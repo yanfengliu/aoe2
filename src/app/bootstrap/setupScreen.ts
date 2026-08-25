@@ -49,8 +49,12 @@ export function setupQueryString(choices: SetupChoices): string {
 
 const MAPS: ReadonlyArray<{ seed: string; label: string }> = [
   { seed: 'aoe2-prototype', label: 'Standard' },
+  { seed: 'arabia', label: 'Arabia' },
   { seed: 'arena', label: 'Arena' },
   { seed: 'black-forest', label: 'Black Forest' },
+  { seed: 'coastal', label: 'Coastal' },
+  { seed: 'fortress', label: 'Fortress' },
+  { seed: 'gold-rush', label: 'Gold Rush' },
 ];
 
 function options(entries: ReadonlyArray<{ value: string; label: string }>, selected: string): string {

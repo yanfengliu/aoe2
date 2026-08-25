@@ -278,6 +278,8 @@ At minimum, the map system should support these standard Random Map types:
 - Fortress
 - Gold Rush
 
+**Implemented (v0.3.76): six of the eight.** Arabia (the standard generator under its AoE2 name — open land, woodlines, hills, scattered water), Arena (walled starts, since v0.1.x), Black Forest, **Coastal** (one sea along the southern edge, dry interior, shore fish and Docks worth building, every start land-connected), **Fortress** (each player opens behind an 11-cell stone-wall square with a gated face toward the middle and a Castle already standing; trees on the wall line are felled, the map edge serves as the wall where a corner start's square is clipped), and **Gold Rush** (a nine-node neutral goldfield at double richness in the map's centre). All are on the setup screen's map row. **Islands and Nomad stay deferred with reasons:** the AI can neither ferry an army across open water nor open without a Town Center, and a map the AI cannot play is a screenshot, not a map.
+
 Each map script should define:
 
 - terrain palette

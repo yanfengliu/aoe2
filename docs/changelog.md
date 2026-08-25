@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.76 - 2026-08-24
+
+### Added
+
+- **Three new maps — Coastal, Fortress, and Gold Rush** — plus Arabia as the standard map's proper name, all on the setup screen. Coastal runs one sea along the southern edge (shore fish, Docks worth building, every start land-connected). Fortress opens every player behind their own stone walls with a Castle already standing and one gate facing the middle. Gold Rush stakes a rich nine-node neutral goldfield in the centre of an open plain: the map is the fight over it. Islands and Nomad wait until the AI can ferry an army and open without a Town Center — a map the AI cannot play is a screenshot, not a map.
+
 ## 0.3.75 - 2026-08-24
 
 ### Added

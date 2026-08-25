@@ -10,6 +10,9 @@ export interface SpawnList {
   addBuildingSpawn(spawn: ScenarioSpawnSpec): void;
   addUnitSpawn(spawn: ScenarioSpawnSpec): void;
   isCellOccupiedByResource(x: number, y: number): boolean;
+  /** Drop the spawn anchored at this cell (Fortress fells trees on its wall
+   *  line). Removes at most one — the anchor-keyed entry. */
+  removeSpawnAt(x: number, y: number): void;
   toArray(): ScenarioSpawnSpec[];
 }
 
@@ -47,6 +50,12 @@ export function createSpawnList(): SpawnList {
 
     isCellOccupiedByResource(x: number, y: number): boolean {
       return resourceByCell.has(cellKey(x, y));
+    },
+
+    removeSpawnAt(x: number, y: number): void {
+      const index = spawns.findIndex((spawn) => spawn.x === x && spawn.y === y);
+      if (index >= 0) spawns.splice(index, 1);
+      resourceByCell.delete(cellKey(x, y));
     },
 
     toArray(): ScenarioSpawnSpec[] {

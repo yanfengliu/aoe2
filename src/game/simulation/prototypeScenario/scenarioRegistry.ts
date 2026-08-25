@@ -12,6 +12,12 @@
 import * as fixtures from '../fixtures';
 import { createArenaMap } from '../mapGeneration/arenaMap';
 import { createBlackForestMap } from '../mapGeneration/blackForestMap';
+import { createDefaultMap } from '../mapGeneration/defaultMap';
+import {
+  createCoastalMap,
+  createFortressMap,
+  createGoldRushMap,
+} from '../mapGeneration/standardVariantMaps';
 import type { PrototypeScenario } from '../prototypeScenario';
 
 type ScenarioFactory = (seed: string) => PrototypeScenario;
@@ -281,6 +287,13 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['black-forest', createBlackForestMap],
   ['arena-fixture', createArenaMap],
   ['arena', createArenaMap],
+  // §5.4's roster: Arabia is the standard map's own character, so the name is
+  // an alias for the default; the three scripts below shape the world their
+  // own way and keep the standard opening.
+  ['arabia', (seed: string) => createDefaultMap(seed)],
+  ['coastal', createCoastalMap],
+  ['fortress', createFortressMap],
+  ['gold-rush', createGoldRushMap],
   // Slice 12 Task B: scenario-validation fixtures. Each seed exercises
   // one failure mode of the bridge-boot validation pass; the
   // `-ok-fixture` is the positive control.
