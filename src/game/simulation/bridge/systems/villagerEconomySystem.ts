@@ -32,6 +32,7 @@ import {
 } from '../villagerDropOffAssignment';
 import {
   effectiveCarryCapacity,
+  heavyPlowFarmCarryBonus,
   gatherRateMultiplierForKind,
 } from '../../economyTechEffects';
 import { civCarryBonus, civFishingShipRateMultiplier,
@@ -309,7 +310,9 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                 const carryCapacity = effectiveCarryCapacity(
                   ownerTechs,
                   gatherer.carryCapacity
-                    + civCarryBonus(playerCivilizations.get(unit.owner), targetResource.resourceType),
+                    + civCarryBonus(playerCivilizations.get(unit.owner), targetResource.resourceType)
+                    // Heavy Plow's "+1 food" carry clause, farms only.
+                    + heavyPlowFarmCarryBonus(ownerTechs, targetResource.resourceType),
                 );
                 const gatherAmount = Math.min(
                   gatherAmountFor(targetResource.resourceType),

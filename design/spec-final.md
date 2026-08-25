@@ -442,7 +442,7 @@ Each tech is offered once at its building from its earliest age and drops out of
 | Heavy Plow | Mill | Castle | Horse Collar | 125 food, 125 wood | 400 ticks (40 s) | +125 | 375 |
 | Crop Rotation | Mill | Imperial | Heavy Plow | 250 food, 250 wood | 700 ticks (70 s) | +175 | 550 |
 
-Because the capacity is derived at create + reseed (not mutated on research), a farm built BEFORE a tech keeps its current stored amount until it next reseeds, at which point it refills to the then-current capacity — AoE2-faithful (an existing field grows as it is re-sown, not retroactively). A farm owned by a player without the techs holds the base 175. The values are the AoE2 capacities the spec pins (250/375/550); the Heavy Plow "Farmers carry +1 food" clause is a carry-capacity effect (not a farm-food effect) and is deferred — it belongs to the carry-tech layer alongside Wheelbarrow/Hand Cart.
+Because the capacity is derived at create + reseed (not mutated on research), a farm built BEFORE a tech keeps its current stored amount until it next reseeds, at which point it refills to the then-current capacity — AoE2-faithful (an existing field grows as it is re-sown, not retroactively). A farm owned by a player without the techs holds the base 175. The values are the AoE2 capacities the spec pins (250/375/550); the Heavy Plow "Farmers carry +1 food" clause landed v0.3.101 in the carry-tech layer: +1 on the BASE carry, farms only, composing with Wheelbarrow/Hand Cart's multipliers exactly like the civilization carry bonuses (add to base first).
 
 ### 6.6 Farm Mechanics
 

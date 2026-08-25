@@ -10,7 +10,9 @@ import {
   researchCost,
   researchTimeTicks,
 } from '../../src/game/simulation/prototypeEconomyRules';
-import { farmFoodCapacity } from '../../src/game/simulation/economyTechEffects';
+import {
+  heavyPlowFarmCarryBonus,
+  effectiveCarryCapacity, farmFoodCapacity } from '../../src/game/simulation/economyTechEffects';
 import type {
   ResearchableTechnologyType,
   TrainableUnitType,
@@ -278,5 +280,15 @@ describe('farm-upgrade techs — save round-trip (DERIVED, unaffected)', () => {
     expect(farm2).toMatchObject({ resourceType: 'farm', amount: 550, maxAmount: 550, baseOwner: 1 });
     // The no-tech owner's farm still reads 175 after load (no-regression survives).
     expect(ownedFarmResource(bridge2, 2)).toMatchObject({ amount: 175, maxAmount: 175 });
+  });
+});
+
+describe('Heavy Plow farmer-carry clause (technologies.csv "+1 food")', () => {
+  it('adds +1 to the base carry on farms only, composing with Wheelbarrow', () => {
+    expect(heavyPlowFarmCarryBonus(new Set(), 'farm')).toBe(0);
+    expect(heavyPlowFarmCarryBonus(new Set(['heavy-plow']), 'farm')).toBe(1);
+    expect(heavyPlowFarmCarryBonus(new Set(['heavy-plow']), 'tree')).toBe(0);
+    // Base 10 + 1, then Wheelbarrow x1.25 -> round(13.75) = 14.
+    expect(effectiveCarryCapacity(new Set(['heavy-plow', 'wheelbarrow']), 10 + 1)).toBe(14);
   });
 });

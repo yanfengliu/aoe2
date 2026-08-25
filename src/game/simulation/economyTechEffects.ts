@@ -128,6 +128,16 @@ export function carryCapacityMultiplier(
   return multiplier;
 }
 
+// Heavy Plow's second clause (technologies.csv: "Farmers carry +1 food"):
+// a flat +1 on the BASE carry, farms only — it composes with Wheelbarrow's
+// multiplier like the civilization carry bonuses do (add to base first).
+export function heavyPlowFarmCarryBonus(
+  researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
+  resourceKind: string,
+): number {
+  return researchedTechnologies.has('heavy-plow') && resourceKind === 'farm' ? 1 : 0;
+}
+
 // A villager's effective carry after its owner's carry techs, rounded to whole
 // units. Never below the base (every factor is >= 1).
 export function effectiveCarryCapacity(
