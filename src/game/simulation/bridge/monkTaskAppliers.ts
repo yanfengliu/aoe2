@@ -40,6 +40,7 @@ import {
 } from '../monasteryTechEffects';
 import { MONK_FAITH_MAX } from './bridgeConstants';
 import { isEnemyOwner } from '../alliances';
+import { createMonkBuildingConversion } from './monkBuildingConversion';
 import { monkTasksCodec } from './bridgeStateSerialize';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
 
@@ -174,6 +175,17 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     accessor.markDirty(monkFaithCodec);
   }
 
+  const buildingConversion = createMonkBuildingConversion({
+    accessor,
+    clearMonkTask,
+    spendFaith,
+    isVisibleToOwner,
+    markOutOfBandRenderChange,
+    monkConvertProcessedThisTick,
+    monkConvertProgressPerTick,
+    monkConvertFlipThreshold,
+  });
+
   function applyMonkConvert(
     monkId: number,
     targetId: number,
@@ -182,6 +194,18 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
   ): void {
     const targetUnit = activeWorld.getComponent<UnitComponent>(targetId, 'unit');
     const conversionState = accessor.get(conversionStateCodec);
+    // Redemption's building half (v0.3.100): a convert task whose target is a
+    // BUILDING runs its own lane — same faith, resistance, and per-tick
+    // guards, its own flip.
+    if (!targetUnit) {
+      const targetBuilding = activeWorld.getComponent<BuildingComponent>(targetId, 'building');
+      if (targetBuilding) {
+        buildingConversion.applyMonkConvertOnBuilding(
+          monkId, targetId, targetBuilding, monkUnit, activeWorld,
+        );
+        return;
+      }
+    }
     // An ALLY's unit is not a conversion target either: with teams, "not mine"
     // stopped meaning "an enemy", and converting a teammate's knight would be
     // the same defect as shooting at them.

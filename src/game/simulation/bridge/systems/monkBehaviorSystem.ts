@@ -6,7 +6,7 @@
 
 import { isMonasticUnit } from '../../monasticUnits';
 import type { Position } from 'civ-engine';
-import type { UnitComponent } from '../../types';
+import type { BuildingComponent, UnitComponent } from '../../types';
 import {
   currentEntityId,
   manhattanDistance,
@@ -164,10 +164,13 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
           continue;
         }
 
-        const distance =
-          task.kind === 'deposit'
-            ? distanceToBuilding(targetId, monkPosition)
-            : manhattanDistance(monkPosition, targetPosition);
+        // A BUILDING target (deposit — or a Redemption building convert)
+        // measures to the footprint and approaches with the building planner.
+        const targetIsBuilding =
+          activeWorld.getComponent<BuildingComponent>(targetId, 'building') !== undefined;
+        const distance = targetIsBuilding
+          ? distanceToBuilding(targetId, monkPosition)
+          : manhattanDistance(monkPosition, targetPosition);
 
         // Block Printing (Monastery, derived): +monk CONVERSION range for the
         // monk's owner. Applies only to convert tasks; heal/pickup/deposit keep
@@ -187,10 +190,9 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
               : MONK_ACTION_RANGE;
 
         if (distance > actionRange) {
-          const plan =
-            task.kind === 'deposit'
-              ? findBuildingApproachPlan(monkId, targetId, actionRange, activeWorld)
-              : findUnitRangePlan(monkId, targetPosition, actionRange, activeWorld);
+          const plan = targetIsBuilding
+            ? findBuildingApproachPlan(monkId, targetId, actionRange, activeWorld)
+            : findUnitRangePlan(monkId, targetPosition, actionRange, activeWorld);
           if (!plan) {
             deleteMonkTask(monkId);
             continue;

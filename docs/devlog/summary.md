@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.100: Redemption's building half — context routing asks eligibility AT THE CLICK; building lane shares faith/resistance/guards in monkBuildingConversion.ts (extracted at 550); flip moves population supply with civ-bonus fidelity both ways, clears the queue, stalls while garrisoned; red-check.
 - 2026-08-25 v0.3.99: construction progress fill (scaffold stages off currentHp/maxHp — the construction HP ramp IS the fraction, no new projection field; construction() moved to details module for the 500 budget); BUILD env + beginBuildingPlacement test-api for staged captures; three-stage visuals inspected.
 - 2026-08-25 v0.3.98: per-age military-building HP (Barracks 1200..2100 ladder via buildingMaxHpForAge at creation + generic sweep ratio composing with the Byzantine ladder — 1320 -> exactly 1800 proof); red-check 3.
 - 2026-08-25 v0.3.97: building damage states (variant sweep <40% + deterministic recipe flames; repair restores) + building HP table to CSV debut rows (house 75->900 etc. — placeholders the damage fixture exposed); 14 test updates (fragile-startHp fixtures for destruction contracts, budgets, exact-HP); prototype diff 0.75% = water floor.

@@ -9,8 +9,13 @@ import { canCarryRelics } from '../monasticUnits';
 import type { EntityRef, Position } from 'civ-engine';
 import type { BuildingComponent, ResourceComponent, UnitComponent } from '../types';
 import type { GameCommands, GameWorld } from './pureHelpers';
+import { monkMayConvert } from '../monasteryTechEffects';
+import { isEnemyOwner } from '../alliances';
+import { EMPTY_TECH_SET } from '../economyTechEffects';
 import type { MonkTask } from './sharedTypes';
 import {
+  playerTeamsCodec,
+  researchedTechnologiesCodec,
   combatStatesCodec,
   monkCarriedRelicCodec,
 } from './bridgeStateSerialize';
@@ -103,6 +108,22 @@ export function createMonkContextOps(deps: MonkContextOpsDeps): MonkContextOps {
       && accessor.get(monkCarriedRelicCodec).get(monkId) !== undefined
     ) {
       return matchesIntendedTask('deposit') ? setMonkTask(monkId, 'deposit', targetEntityRef) : false;
+    }
+
+    // Redemption (v0.3.100): an ENEMY building becomes a conversion target
+    // once the technology is in. Eligibility — the never-convertible list,
+    // the wall line, and the technology itself — lives in monkMayConvert,
+    // asked HERE so an ineligible click stays an ordinary walk instead of
+    // arming a task the applier would only abandon.
+    if (
+      targetBuilding
+      && isEnemyOwner(accessor.get(playerTeamsCodec), monkUnit.owner, targetBuilding.owner)
+      && monkMayConvert(
+        { kind: 'building', buildingType: targetBuilding.buildingType },
+        accessor.get(researchedTechnologiesCodec).get(monkUnit.owner) ?? EMPTY_TECH_SET,
+      )
+    ) {
+      return matchesIntendedTask('convert') ? setMonkTask(monkId, 'convert', targetEntityRef) : false;
     }
 
     return suppressFallback ? false : setUnitMoveCommandDirect(monkId, targetPosition);

@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.100 — 2026-08-25
+
+Redemption now does everything it does in AoE2: monks with the technology can convert enemy buildings — houses, camps, military buildings, towers — though never Town Centers, Castles, Wonders, farms, or walls, and never a building with defenders sheltering inside.
+
 ## 0.3.99 — 2026-08-25
 
 Buildings now visibly rise as villagers work: the construction site starts as a foundation with corner posts, the walls climb with progress, and the scaffold rails appear near completion.

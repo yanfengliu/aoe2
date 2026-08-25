@@ -168,6 +168,8 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['ai-ferry-train-fixture', fixtures.createAiFerryTrainFixture],
   ['tower-arrows-fixture', fixtures.createTowerArrowsFixture],
   ['damage-showcase-fixture', fixtures.createDamageShowcaseFixture],
+  ['redemption-buildings-fixture', fixtures.createRedemptionBuildingsFixture],
+  ['redemption-buildings-baseline-fixture', fixtures.createRedemptionBuildingsBaselineFixture],
   ['civ-goths-infantry-fixture', fixtures.createCivGothsInfantryFixture],
   ['civ-goths-infantry-control-fixture', fixtures.createCivGothsInfantryControlFixture],
   ['civ-aztecs-train-fixture', fixtures.createCivAztecsTrainFixture],

@@ -387,6 +387,10 @@ export { createAiTributeFixture } from './aiTribute';
 export { createAiFerryFixture, createAiFerryTrainFixture } from './aiFerry';
 export { createTowerArrowsFixture } from './towerArrows';
 export { createDamageShowcaseFixture } from './damageShowcase';
+export {
+  createRedemptionBuildingsFixture,
+  createRedemptionBuildingsBaselineFixture,
+} from './redemptionBuildings';
 
 export {
   createCivGothsInfantryFixture,
