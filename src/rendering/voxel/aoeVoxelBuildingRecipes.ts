@@ -1,6 +1,6 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
 import { buildingRole } from '../roles/buildingRole';
-import { construction, createBuildingDetailParts, damageFlames } from './aoeVoxelBuildingDetails';
+import { construction, createBuildingDetailParts, damageFlames, townCenterCrown } from './aoeVoxelBuildingDetails';
 import { architectureRoofGeometry, architectureRoofTint, architectureWallTint } from './aoeVoxelArchitecture';
 import {
   contactShadow,
@@ -97,6 +97,8 @@ function steppedRoof(
 }
 
 
+
+
 function townCenter(context: BuildingContext): void {
   add(context, 'town-center-plinth', 'matte', VOXEL_COLORS.stone, 0.5, 0, 0.5, 0.86, 0.18, 0.82);
   add(context, 'town-center-hall', 'matte', VOXEL_COLORS.plaster, 0.5, 0.18, 0.5, 0.5, 1.28, 0.48);
@@ -117,7 +119,7 @@ function townCenter(context: BuildingContext): void {
   steppedRoof(context, 'town-center-left', 1.04, 0.22, 0.53, 0.24, 0.46, VOXEL_COLORS.thatch, 2);
   steppedRoof(context, 'town-center-right', 1.04, 0.78, 0.53, 0.24, 0.46, VOXEL_COLORS.thatch, 2);
   add(context, 'town-center-tower', 'matte', VOXEL_COLORS.stoneLight, 0.5, 1.94, 0.5, 0.18, 0.58, 0.18);
-  add(context, 'town-center-tower-roof', 'matte', mixTint(architectureRoofTint(context.architecture, VOXEL_COLORS.roofTileDark), context.team, 0.55), 0.5, 2.52, 0.5, 0.24, 0.18, 0.24);
+  townCenterCrown(context);
   add(context, 'town-center-flag-pole', 'metal', VOXEL_COLORS.steelDark, 0.5, 2.7, 0.5, 0.018, 0.58, 0.018);
   add(context, 'town-center-flag', 'matte', context.team, 0.535, 3.02, 0.5, 0.09, 0.22, 0.025);
   add(context, 'town-center-team-band', 'matte', context.team, 0.5, 1.32, 0.755, 0.42, 0.09, 0.025);

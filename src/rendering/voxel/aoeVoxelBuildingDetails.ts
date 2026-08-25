@@ -3,6 +3,7 @@ import { architectureRoofTint } from './aoeVoxelArchitecture';
 import { add as addBuildingPart, type BuildingContext } from './aoeVoxelBuildingRecipes';
 import {
   hash01,
+  mixTint,
   makePart,
   shade,
   VOXEL_COLORS,
@@ -328,5 +329,49 @@ export function construction(context: BuildingContext): void {
   if (progress >= 0.66) {
     addBuildingPart(context, 'construction-scaffold-rail-front', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.62, 0.18, 0.72, 0.07, 0.04);
     addBuildingPart(context, 'construction-scaffold-rail-back', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.62, 0.82, 0.72, 0.07, 0.04);
+  }
+}
+
+// The Town Center's CROWN (v0.3.120, architecture pass 3): the little
+// structure atop the watchtower is the one place each set gets a signature
+// silhouette — a dome for the middle east, a pagoda finial for east asia, a
+// steep spire for central europe, a low terracotta cap for the mediterranean,
+// a stepped stone crest for mesoamerica. Western European keeps the original
+// square cap (the pre-v0.3.120 look, and the default). The flag above it is
+// owner identity and never varies.
+export function townCenterCrown(context: BuildingContext): void {
+  const capTint = mixTint(
+    architectureRoofTint(context.architecture, VOXEL_COLORS.roofTileDark),
+    context.team,
+    0.55,
+  );
+  switch (context.architecture) {
+    case 'middle-eastern':
+      // A dome: two shrinking rounded courses over a pale drum.
+      addBuildingPart(context, 'town-center-crown-drum', 'matte', VOXEL_COLORS.plasterLight, 0.5, 2.5, 0.5, 0.22, 0.08, 0.22);
+      addBuildingPart(context, 'town-center-crown-dome', 'matte', capTint, 0.5, 2.58, 0.5, 0.2, 0.14, 0.2);
+      addBuildingPart(context, 'town-center-crown-dome-top', 'matte', capTint, 0.5, 2.72, 0.5, 0.12, 0.08, 0.12);
+      return;
+    case 'east-asian':
+      // A pagoda finial: wide thin eave cap and a short spike.
+      addBuildingPart(context, 'town-center-crown-eave', 'matte', capTint, 0.5, 2.52, 0.5, 0.3, 0.06, 0.3);
+      addBuildingPart(context, 'town-center-crown-spike', 'matte', VOXEL_COLORS.timberDark, 0.5, 2.58, 0.5, 0.05, 0.2, 0.05);
+      return;
+    case 'central-european':
+      // A steep narrow spire.
+      addBuildingPart(context, 'town-center-crown-spire', 'matte', capTint, 0.5, 2.52, 0.5, 0.18, 0.16, 0.18);
+      addBuildingPart(context, 'town-center-crown-spire-top', 'matte', capTint, 0.5, 2.68, 0.5, 0.09, 0.2, 0.09);
+      return;
+    case 'mediterranean':
+      // A low, wide terracotta cap.
+      addBuildingPart(context, 'town-center-crown-cap', 'matte', capTint, 0.5, 2.52, 0.5, 0.28, 0.1, 0.28);
+      return;
+    case 'mesoamerican':
+      // A stepped stone crest.
+      addBuildingPart(context, 'town-center-crown-crest', 'matte', VOXEL_COLORS.stoneLight, 0.5, 2.52, 0.5, 0.26, 0.1, 0.26);
+      addBuildingPart(context, 'town-center-crown-crest-top', 'matte', VOXEL_COLORS.stone, 0.5, 2.62, 0.5, 0.16, 0.12, 0.16);
+      return;
+    default:
+      addBuildingPart(context, 'town-center-tower-roof', 'matte', capTint, 0.5, 2.52, 0.5, 0.24, 0.18, 0.24);
   }
 }

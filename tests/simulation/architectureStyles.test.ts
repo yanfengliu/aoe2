@@ -121,3 +121,28 @@ describe('per-set roof silhouettes (v0.3.111)', () => {
     }
   });
 });
+
+describe('the town-center crown (v0.3.120)', () => {
+  const TC: ProjectedEntityView = {
+    id: 3, kind: 'building', entityType: 'town-center', owner: 1, x: 4, y: 4,
+    footprintWidth: 4, footprintHeight: 4, tint: 0x4477cc, size: 4,
+    currentHp: 2400, maxHp: 2400, selected: false, isMemory: false,
+  } as unknown as ProjectedEntityView;
+
+  function crownKeys(architecture?: string) {
+    const entity = { ...TC, ...(architecture ? { architecture } : {}) } as ProjectedEntityView;
+    return createBuildingParts(entity, 'p1', 0)
+      .map((part) => part.key)
+      .filter((key) => key.includes('crown') || key.includes('tower-roof'));
+  }
+
+  it('gives each set its signature silhouette, default keeps the square cap', () => {
+    expect(crownKeys().some((key) => key.includes('tower-roof'))).toBe(true);
+    expect(crownKeys('middle-eastern').some((key) => key.includes('crown-dome'))).toBe(true);
+    expect(crownKeys('east-asian').some((key) => key.includes('crown-spike'))).toBe(true);
+    expect(crownKeys('central-european').some((key) => key.includes('crown-spire'))).toBe(true);
+    expect(crownKeys('mesoamerican').some((key) => key.includes('crown-crest'))).toBe(true);
+    // A set crown REPLACES the square cap, never stacks on it.
+    expect(crownKeys('middle-eastern').some((key) => key.includes('tower-roof'))).toBe(false);
+  });
+});

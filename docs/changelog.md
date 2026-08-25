@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.120
+
+- Each architecture crowns its Town Center differently: a dome in the middle east, a pagoda finial in east asia, a spire in central europe, a terracotta cap on the mediterranean, a stone crest in mesoamerica.
+
 ## 0.3.119
 
 - Units fall when they die: the body topples, drops its weapon, and settles into the ground — replacing the old instant debris puff.
