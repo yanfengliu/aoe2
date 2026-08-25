@@ -260,7 +260,16 @@ export function buildingGarrisonCapacity(buildingType: BuildingType): number {
 // trade carts never garrison. (Until v0.3.84 only villagers and castle
 // archers could - the Teuton "towers garrison 2x" line forced the honest
 // widening.)
-export function canGarrisonAt(buildingType: BuildingType, unitType: UnitType): boolean {
+export function canGarrisonAt(
+  buildingType: BuildingType,
+  unitType: UnitType,
+  civilization?: string,
+): boolean {
+  // Khmer only: "Villagers can garrison in Houses" — villagers alone, and
+  // BEFORE the capacity gate, because a house's base capacity is zero.
+  if (buildingType === 'house') {
+    return civilization === 'Khmer' && unitType === 'villager';
+  }
   if (buildingGarrisonCapacity(buildingType) <= 0) {
     return false;
   }

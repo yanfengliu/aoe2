@@ -28,12 +28,14 @@ import {
   touchesWater,
 } from '../shorePlacement';
 import { buildingGarrisonCapacity } from '../prototypeBuildingRules';
+import { civHouseGarrisonCapacity } from '../civBuildingBonuses';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   constructionStatesCodec,
   garrisonedByBuildingCodec,
   garrisonedUnitToBuildingCodec,
   wildlifeStatesCodec,
+  playerCivilizationsCodec,
 } from './bridgeStateSerialize';
 type CivWorld = GameWorld;
 
@@ -452,7 +454,11 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
   ): ActionType[] {
     if (
       owner === humanPlayerId
-      && buildingGarrisonCapacity(buildingType) > 0
+      && buildingGarrisonCapacity(buildingType)
+        + civHouseGarrisonCapacity(
+          accessor.get(playerCivilizationsCodec).get(owner),
+          buildingType,
+        ) > 0
       && (accessor.get(garrisonedByBuildingCodec).get(buildingId)?.length ?? 0) > 0
     ) {
       return ['ungarrison'];

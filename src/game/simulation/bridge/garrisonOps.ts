@@ -19,7 +19,7 @@ import {
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
 } from './bridgeStateSerialize';
-import { civGarrisonCapacityMultiplier } from '../civBuildingBonuses';
+import { civGarrisonCapacityMultiplier, civHouseGarrisonCapacity } from '../civBuildingBonuses';
 import type { GameWorld } from './pureHelpers';
 
 // An owner with nothing researched — Careening and Dry Dock raise a
@@ -150,18 +150,21 @@ export function createGarrisonOps(deps: GarrisonOpsDeps): GarrisonOps {
   function garrisonUnit(unitId: number, buildingId: number): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-    // Teuton towers shelter twice the table ("Towers can garrison 2x units").
+    // Teuton towers shelter twice the table ("Towers can garrison 2x units"),
+    // and Khmer houses hold five villagers on a base of zero.
+    const buildingCivilization = building
+      ? accessor.get(playerCivilizationsCodec).get(building.owner)
+      : undefined;
     const capacity = building
-      ? buildingGarrisonCapacity(building.buildingType) * civGarrisonCapacityMultiplier(
-        accessor.get(playerCivilizationsCodec).get(building.owner),
-        building.buildingType,
-      )
+      ? (buildingGarrisonCapacity(building.buildingType)
+        + civHouseGarrisonCapacity(buildingCivilization, building.buildingType))
+        * civGarrisonCapacityMultiplier(buildingCivilization, building.buildingType)
       : 0;
     if (
       !unit
       || !building
       || unit.owner !== building.owner
-      || !canGarrisonAt(building.buildingType, unit.unitType)
+      || !canGarrisonAt(building.buildingType, unit.unitType, buildingCivilization)
     ) {
       return false;
     }

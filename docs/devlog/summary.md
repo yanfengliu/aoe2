@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.89: Khmer pair — prereq-free age advance (three canAdvance bypasses) + prereq-free build menu (hasCompletedBuilding => true) + villagers-in-houses (canGarrisonAt gains civ param; house capacity 0+5 via civHouseGarrisonCapacity at entry/HUD/ungarrison sites); red-check 3/3.
 - 2026-08-25 v0.3.88: Vietnamese reveal (enemy TCs explored + human fog-memory ghosts at post-seed, via temporary vision source — explored is monotonic, no engine change); CIV env added to captureMapScreenshot; visual differential (ghost vs black) inspected.
 - 2026-08-25 v0.3.87: three 9.2 one-offs — Goth Imperial +10 pop (ownerHardPopCap read by all six deriveCap sites + imperial recompute + unconditional load re-derive), Korean tower range by age (fire-site), Japanese fishing-ship rate ladder (gather loop); two new fixtures; deposit-race test measures the 5%; red-check 6.
 - 2026-08-25 v0.3.86: age-scaled HP family (Viking infantry+berserks, Vietnamese archery units, Byzantine buildings) — age-aware combatStateFactory + building seam + ratio sweep in the three age cases; berserk not in INFANTRY_UNITS (armor-scope set) so named explicitly; red-check 5/6.

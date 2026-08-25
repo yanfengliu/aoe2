@@ -61,6 +61,14 @@ export function civGarrisonCapacityMultiplier(
   return civilization === 'Teutons' && TOWERS.has(buildingType) ? 2 : 1;
 }
 
+/** Khmer: houses hold five villagers; every other house holds nobody. */
+export function civHouseGarrisonCapacity(
+  civilization: string | undefined,
+  buildingType: BuildingType,
+): number {
+  return civilization === 'Khmer' && buildingType === 'house' ? 5 : 0;
+}
+
 /** Teutons: "Monks have 2x healing range" — heal tasks only, never convert. */
 export function civMonkHealRangeMultiplier(civilization: string | undefined): number {
   return civilization === 'Teutons' ? 2 : 1;

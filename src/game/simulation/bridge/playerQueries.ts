@@ -197,6 +197,11 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
     if (getPlayerAge(owner) !== 'dark-age') {
       return false;
     }
+    // Khmer: "Prereq buildings aren't required to advance to further ages" —
+    // the age sequence still holds, the building count does not.
+    if (getPlayerCivilization(owner) === 'Khmer') {
+      return true;
+    }
     return (
       countCompletedOwnedBuildings(owner, isDarkAgePrerequisiteBuilding)
       >= AGE_ADVANCE_REQUIRED_COUNT
@@ -207,6 +212,11 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
     if (getPlayerAge(owner) !== 'feudal-age') {
       return false;
     }
+    // Khmer: "Prereq buildings aren't required to advance to further ages" —
+    // the age sequence still holds, the building count does not.
+    if (getPlayerCivilization(owner) === 'Khmer') {
+      return true;
+    }
     return (
       countCompletedOwnedBuildings(owner, isFeudalAgePrerequisiteBuilding)
       >= AGE_ADVANCE_REQUIRED_COUNT
@@ -216,6 +226,11 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
   function canAdvanceToImperialAge(owner: number): boolean {
     if (getPlayerAge(owner) !== 'castle-age') {
       return false;
+    }
+    // Khmer: "Prereq buildings aren't required to advance to further ages" —
+    // the age sequence still holds, the building count does not.
+    if (getPlayerCivilization(owner) === 'Khmer') {
+      return true;
     }
     return (
       countCompletedOwnedBuildings(owner, isCastleAgePrerequisiteBuilding)

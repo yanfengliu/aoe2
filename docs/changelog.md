@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.89 — 2026-08-25
+
+The Khmer now play by their own rules: ages and buildings unlock without prerequisite buildings, and their villagers can duck into houses (five per house) when raiders come.
+
 ## 0.3.88 — 2026-08-25
 
 The Vietnamese now start every match knowing where their enemies are: each enemy Town Center appears as a fog-memory ghost on explored ground from the first second.

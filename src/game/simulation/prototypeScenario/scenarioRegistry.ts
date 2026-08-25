@@ -158,6 +158,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['civ-teutons-fixture', fixtures.createCivTeutonsFixture],
   ['civ-koreans-tower-fixture', fixtures.createCivKoreansTowerFixture],
   ['civ-goths-pop-fixture', fixtures.createCivGothsPopFixture],
+  ['civ-khmer-house-fixture', fixtures.createCivKhmerHouseFixture],
   ['civ-goths-infantry-fixture', fixtures.createCivGothsInfantryFixture],
   ['civ-goths-infantry-control-fixture', fixtures.createCivGothsInfantryControlFixture],
   ['civ-aztecs-train-fixture', fixtures.createCivAztecsTrainFixture],

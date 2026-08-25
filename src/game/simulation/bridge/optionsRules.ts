@@ -372,7 +372,11 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       owner,
       unitType,
       getPlayerAge,
-      hasCompletedBuilding,
+      // Khmer: "...or unlock other buildings" — every building-standing
+      // prerequisite reads satisfied; the age gates inside stay in force.
+      getPlayerCivilization(owner) === 'Khmer'
+        ? () => true
+        : hasCompletedBuilding,
       hasOwnedWonder,
       hasTechnology,
     );

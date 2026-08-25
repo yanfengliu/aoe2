@@ -13,7 +13,7 @@ import type {
 import { canGarrisonAt } from '../prototypeBuildingRules';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { constructionStatesCodec, wildlifeStatesCodec } from './bridgeStateSerialize';
+import { constructionStatesCodec, playerCivilizationsCodec, wildlifeStatesCodec } from './bridgeStateSerialize';
 
 export function createContextAtEntityRouter(deps: {
   world: GameWorld;
@@ -92,7 +92,11 @@ export function createContextAtEntityRouter(deps: {
       // through to the move below and walks up to the building.
       if (
         allowGarrison
-        && canGarrisonAt(targetBuilding.buildingType, unit.unitType)
+        && canGarrisonAt(
+          targetBuilding.buildingType,
+          unit.unitType,
+          accessor.get(playerCivilizationsCodec).get(targetBuilding.owner),
+        )
         && (!construction || construction.isComplete)
       ) {
         // AoE2 walks the unit to the building and puts it in on arrival. Going

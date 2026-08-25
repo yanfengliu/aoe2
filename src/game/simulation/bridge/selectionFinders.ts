@@ -13,6 +13,7 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   constructionStatesCodec,
   wildlifeStatesCodec,
+  playerCivilizationsCodec,
 } from './bridgeStateSerialize';
 
 export interface SelectionFindersDeps {
@@ -146,7 +147,11 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
         position
         && building
         && building.owner === owner
-        && canGarrisonAt(building.buildingType, unitType)
+        && canGarrisonAt(
+          building.buildingType,
+          unitType,
+          accessor.get(playerCivilizationsCodec).get(building.owner),
+        )
         && buildingOccupiesCell(id, x, y)
       ) {
         const construction = accessor.get(constructionStatesCodec).get(id);
