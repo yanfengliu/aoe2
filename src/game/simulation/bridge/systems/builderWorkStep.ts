@@ -23,8 +23,12 @@ import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
   buildingHealthStatesCodec,
   constructionStatesCodec,
+  playerResourcesCodec,
+  repairAccrualCodec,
   researchedTechnologiesCodec,
 } from '../bridgeStateSerialize';
+import { repairCost } from '../../prototypeEconomyRules';
+import { chargeRepairTick, clearRepairAccrual } from '../../repairCharging';
 import type { ConstructionState, UnitCommand } from '../sharedTypes';
 import type { GameWorld } from '../pureHelpers';
 
@@ -84,11 +88,32 @@ export function runBuilderWorkStep(ctx: BuilderWorkStepContext): BuilderWorkResu
     }
     const buildTicks = buildingBuildTimeTicks(building.buildingType);
     const repairPerTick = buildTicks > 0 ? health.maxHp / buildTicks : health.maxHp;
-    health.currentHp = Math.min(health.maxHp, health.currentHp + repairPerTick);
+    const deltaHp = Math.min(repairPerTick, health.maxHp - health.currentHp);
+    // Continuous charging (v0.3.122): pay for THIS tick's hit points before
+    // they apply; a stockpile that cannot cover a due unit stalls the repair
+    // — the villager keeps standing at the wall, mending nothing for free.
+    const stockpile = accessor.get(playerResourcesCodec).get(unit.owner);
+    const paid = stockpile !== undefined && chargeRepairTick({
+      accrualByTarget: accessor.get(repairAccrualCodec),
+      targetId: buildingId,
+      costPerFullRepair: repairCost(
+        building.buildingType as import('../../types').BuildableBuildingType,
+        health.maxHp,
+        health.maxHp,
+      ),
+      maxHp: health.maxHp,
+      deltaHp,
+      stockpile,
+    });
+    if (!paid) return null;
+    accessor.markDirty(playerResourcesCodec);
+    accessor.markDirty(repairAccrualCodec);
+    health.currentHp = Math.min(health.maxHp, health.currentHp + deltaHp);
     accessor.markDirty(buildingHealthStatesCodec);
     activeWorld.patchComponent<RenderableComponent>(buildingId, 'renderable', (r) => r);
     if (health.currentHp >= health.maxHp) {
       health.currentHp = health.maxHp;
+      clearRepairAccrual(accessor.get(repairAccrualCodec), buildingId);
       clearUnitCommand(id);
     }
     return null;

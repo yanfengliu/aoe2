@@ -108,6 +108,10 @@ export const playerTeamsCodec = flatMapCodec<number, number>('aoe2.playerTeams')
 // Control groups persist per save (v0.3.112, the DE behaviour): digit -> the
 // bound refs. Generation-aware recall prunes members who died pre-save.
 export const controlGroupsCodec = flatMapCodec<number, import('civ-engine').EntityRef[]>('aoe2.controlGroups');
+// Continuous repair charging (v0.3.122): per-target fractional cost accrual
+// in HUNDREDTHS of a resource unit, charged as whole units fall due. Keyed by
+// the repaired entity id; a sub-unit remainder survives an abandoned repair.
+export const repairAccrualCodec = flatMapCodec<number, Partial<Record<'food' | 'wood' | 'gold' | 'stone', number>>>('aoe2.repairAccrual');
 export const playerResourcesCodec = flatMapCodec<number, PlayerResources>('aoe2.playerResources');
 // Population is a bespoke (non-flatMap) codec because PopulationState gained
 // `rawSupply` (the honest unclamped housing sum) in v0.1.37 and the load path
@@ -321,6 +325,7 @@ export const projectilesCodec: SlotCodec<ProjectileSlotState, ProjectileSlotStat
 export const TIER_1_CODECS: ReadonlyArray<SlotCodec<unknown, unknown>> = [
   playerAgesCodec,
   controlGroupsCodec,
+  repairAccrualCodec,
   playerCivilizationsCodec,
   playerTeamsCodec,
   playerResourcesCodec,

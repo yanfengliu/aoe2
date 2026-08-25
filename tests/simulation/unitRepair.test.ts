@@ -47,7 +47,7 @@ describe('the repair economics', () => {
 });
 
 describe('a villager repairing a ram', () => {
-  it('walks over, charges up front, and restores it to full', () => {
+  it('walks over, pays as it mends, and restores it to full', () => {
     const bridge = createSimulationBridge('unit-repair-fixture');
     const units = bridge.getEconomyState().units;
     const villager = units.find((u) => u.owner === 1 && u.unitType === 'villager');
@@ -75,10 +75,14 @@ describe('a villager repairing a ram', () => {
     );
     expect(repaired, 'the ram never reached full HP').toBe(true);
 
-    // Charged once, up front: half the 160w/75g ram cost, pro-rata what was missing.
+    // Charged CONTINUOUSLY as the HP came back (v0.3.122): the completed
+    // repair totals half the 160w/75g ram cost pro-rata what was missing,
+    // within a unit of rounding either side.
     const after = bridge.getHudState().playerResources;
-    expect(before.wood - after.wood).toBe(Math.ceil(160 * 0.5 * (missing / maxHp)));
-    expect(before.gold - after.gold).toBe(Math.ceil(75 * 0.5 * (missing / maxHp)));
+    const expectedWood = 160 * 0.5 * (missing / maxHp);
+    const expectedGold = 75 * 0.5 * (missing / maxHp);
+    expect(Math.abs(before.wood - after.wood - expectedWood)).toBeLessThanOrEqual(1.5);
+    expect(Math.abs(before.gold - after.gold - expectedGold)).toBeLessThanOrEqual(1.5);
   });
 
   it('charges nothing for a full-HP ram', () => {

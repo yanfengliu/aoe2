@@ -1,22 +1,20 @@
 // Build + repair villager command setters, extracted from unitCommandOps to
 // keep that file under the 500-LOC cap. `setUnitBuildCommandDirect` queues
 // construction on an in-progress building; `setUnitRepairCommandDirect` queues
-// repair on a COMPLETE building (spec §8.1); `tryRepairCharge` is the context-
-// routing branch that charges the repair cost up front and queues the repair.
+// repair on a COMPLETE building (spec §8.1); the tryRepair* pair are the
+// context-routing branches that queue a repair — the COST is charged
+// continuously by the repair steps as hit points restore (v0.3.122).
 
 import type { EntityRef, Position } from 'civ-engine';
 
 import type { BuildingComponent, UnitComponent } from '../types';
-import { isRepairableUnitType, unitRepairCost } from '../unitRepair';
-import type { TrainableUnitType } from '../types';
-import { canAfford, repairCost, spendResources } from '../prototypeEconomyRules';
+import { isRepairableUnitType } from '../unitRepair';
 import type { UnitCommand } from './sharedTypes';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
-  playerResourcesCodec,
 } from './bridgeStateSerialize';
 import type { GameWorld } from './pureHelpers';
 
@@ -64,26 +62,21 @@ export function createBuildRepairCommandOps(deps: {
   const setUnitRepairCommandDirect = (unitId: number, buildingId: number): boolean =>
     setBuildOrRepair(unitId, buildingId, 'repair');
 
-  // Repair (spec §8.1): a villager right-clicking a friendly COMPLETE + DAMAGED
-  // building repairs it — the cost (a fraction of the build cost, scaled by the
-  // missing HP) is charged up front, then the build-command loop restores HP.
+  // Repair (spec §8.1; charging model v0.3.122): a villager right-clicking a
+  // friendly COMPLETE + DAMAGED building repairs it. The cost is charged
+  // CONTINUOUSLY as hit points restore (the repair steps own that) — starting
+  // is free, and a broke owner's repair simply stalls, exactly as in AoE2.
   function tryRepairCharge(
     unitId: number,
     targetEntityId: number,
     targetBuilding: BuildingComponent,
   ): boolean {
+    void targetBuilding;
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     if (!unit || unit.unitType !== 'villager') return false;
     const health = accessor.get(buildingHealthStatesCodec).get(targetEntityId);
     if (!health || health.currentHp >= health.maxHp) return false;
-    const cost = repairCost(targetBuilding.buildingType, health.maxHp - health.currentHp, health.maxHp);
-    const stockpile = accessor.get(playerResourcesCodec).get(unit.owner);
-    if (!stockpile || !canAfford(stockpile, cost) || !setUnitRepairCommandDirect(unitId, targetEntityId)) {
-      return false;
-    }
-    spendResources(stockpile, cost);
-    accessor.markDirty(playerResourcesCodec);
-    return true;
+    return setUnitRepairCommandDirect(unitId, targetEntityId);
   }
 
   // Unit repair (spec §8.1, v0.3.107): the same up-front economics applied to
@@ -98,13 +91,7 @@ export function createBuildRepairCommandOps(deps: {
     if (!isRepairableUnitType(target.unitType)) return false;
     const combat = accessor.get(combatStatesCodec).get(targetEntityId);
     if (!combat || combat.currentHp >= combat.maxHp) return false;
-    const cost = unitRepairCost(
-      target.unitType as TrainableUnitType,
-      combat.maxHp - combat.currentHp,
-      combat.maxHp,
-    );
-    const stockpile = accessor.get(playerResourcesCodec).get(unit.owner);
-    if (!stockpile || !canAfford(stockpile, cost)) return false;
+    // v0.3.122: no up-front charge — the repair step pays per restored tick.
     const targetRef = getEntityRef(targetEntityId);
     if (!targetRef) return false;
     clearGathererOrder(unitId);
@@ -114,8 +101,6 @@ export function createBuildRepairCommandOps(deps: {
       targetEntityRef: targetRef,
       targetEntityKind: 'unit',
     });
-    spendResources(stockpile, cost);
-    accessor.markDirty(playerResourcesCodec);
     return true;
   }
 

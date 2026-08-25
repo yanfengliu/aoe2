@@ -8,7 +8,9 @@ import type { Position } from 'civ-engine';
 import type { TrainableUnitType, UnitComponent } from '../../types';
 import { unitRepairRatePerTick } from '../../unitRepair';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { combatStatesCodec } from '../bridgeStateSerialize';
+import { combatStatesCodec, playerResourcesCodec, repairAccrualCodec } from '../bridgeStateSerialize';
+import { unitRepairCost } from '../../unitRepair';
+import { chargeRepairTick, clearRepairAccrual } from '../../repairCharging';
 import type { GameWorld } from '../pureHelpers';
 import type { UnitCommand } from '../sharedTypes';
 import type { UnitMovementPlan } from '../movementTypes';
@@ -65,7 +67,31 @@ export function runRepairUnitStep(deps: {
   }
 
   const rate = unitRepairRatePerTick(target.unitType as TrainableUnitType, combat.maxHp);
-  combat.currentHp = Math.min(combat.maxHp, combat.currentHp + rate);
+  const deltaHp = Math.min(rate, combat.maxHp - combat.currentHp);
+  // Continuous charging (v0.3.122): pay per restored tick; broke = stall.
+  const repairer = world.getComponent<UnitComponent>(id, 'unit');
+  const stockpile = repairer
+    ? accessor.get(playerResourcesCodec).get(repairer.owner)
+    : undefined;
+  const paid = stockpile !== undefined && chargeRepairTick({
+    accrualByTarget: accessor.get(repairAccrualCodec),
+    targetId,
+    costPerFullRepair: unitRepairCost(
+      target.unitType as TrainableUnitType,
+      combat.maxHp,
+      combat.maxHp,
+    ),
+    maxHp: combat.maxHp,
+    deltaHp,
+    stockpile,
+  });
+  if (!paid) return;
+  accessor.markDirty(playerResourcesCodec);
+  accessor.markDirty(repairAccrualCodec);
+  combat.currentHp = Math.min(combat.maxHp, combat.currentHp + deltaHp);
   accessor.markDirty(combatStatesCodec);
-  if (combat.currentHp >= combat.maxHp) clearUnitCommand(id);
+  if (combat.currentHp >= combat.maxHp) {
+    clearRepairAccrual(accessor.get(repairAccrualCodec), targetId);
+    clearUnitCommand(id);
+  }
 }
