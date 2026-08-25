@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.87 — 2026-08-25
+
+Goths now enjoy +10 population limit in the Imperial Age, Korean watch towers outrange everyone by +1 in Castle and +2 in Imperial, and Japanese fishing ships work 5–20% faster as the ages advance.
+
 ## 0.3.86 — 2026-08-25
 
 The age-scaled HP bonuses are in: Viking infantry and Vietnamese archery-range units toughen by +10/15/20% as their owner ages up (existing troops included), and Byzantine buildings stand +10% sturdier from the very start, climbing to +40% in Imperial.

@@ -7,7 +7,10 @@ import {
 } from './createSimulationBridge.helpers';
 import {
   civAgeAdvanceGrant,
+  civFishingShipRateMultiplier,
   civGatherRateMultiplier,
+  civImperialPopulationBonus,
+  koreanTowerRangeBonus,
   civUnitHpMultiplier,
   civBuildingAttackBonus,
   civTrainTimeMultiplier,
@@ -265,4 +268,112 @@ describe('Ethiopian age-advance grant', () => {
       ).toBe(true);
     }
   });
+});
+
+describe('Goth Imperial population limit', () => {
+  it('adds 10 to the hard cap, only in Imperial, only for Goths', () => {
+    expect(civImperialPopulationBonus('Goths', 'imperial-age')).toBe(10);
+    expect(civImperialPopulationBonus('Goths', 'castle-age')).toBe(0);
+    expect(civImperialPopulationBonus('Britons', 'imperial-age')).toBe(0);
+    expect(civImperialPopulationBonus(undefined, 'imperial-age')).toBe(0);
+  });
+
+  it('moves the live cap from 200 to 210 the moment Imperial lands', () => {
+    // The fixture banks 210 raw supply (TC + 41 houses), so the clamp is the
+    // hard cap itself and the bonus is visible.
+    const bridge = createSimulationBridge('civ-goths-pop-fixture', {
+      civilizationsByOwner: new Map([[1, 'Goths']]),
+    });
+    expect(bridge.getPopulationState(1).rawSupply).toBe(210);
+    expect(bridge.getPopulationState(1).cap).toBe(200);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'town-center')).toBe(true);
+    expect(bridge.queueResearch('imperial-age')).toBe(true);
+    expect(
+      stepBridgeUntil(bridge, () => bridge.getPopulationState(1).cap === 210, {
+        maxSteps: 4000,
+      }),
+    ).toBe(true);
+  });
+
+  it('a generic civ stays clamped at 200 with the same supply', () => {
+    const bridge = createSimulationBridge('civ-goths-pop-fixture');
+    expect(bridge.getPopulationState(1).rawSupply).toBe(210);
+    expect(bridge.getPopulationState(1).cap).toBe(200);
+  });
+});
+
+describe('Korean tower range by age', () => {
+  it('reads +1 in Castle and +2 in Imperial, watch towers only', () => {
+    expect(koreanTowerRangeBonus('Koreans', 'watch-tower', 'castle-age')).toBe(1);
+    expect(koreanTowerRangeBonus('Koreans', 'watch-tower', 'imperial-age')).toBe(2);
+    expect(koreanTowerRangeBonus('Koreans', 'watch-tower', 'feudal-age')).toBe(0);
+    expect(koreanTowerRangeBonus('Koreans', 'bombard-tower', 'imperial-age')).toBe(0);
+    expect(koreanTowerRangeBonus('Britons', 'watch-tower', 'imperial-age')).toBe(0);
+  });
+
+  it('a Castle-Age Korean tower reaches a militia one past base range; a generic one never fires', () => {
+    // Enemy at manhattan 8 from the tower — base range 7, Korean Castle 8.
+    // No University stands, so the free Korean Guard Tower cannot fire and
+    // muddy the range with its own ladder.
+    const hp = (bridge: ReturnType<typeof createSimulationBridge>): number => {
+      const enemy = bridge
+        .getEconomyState()
+        .units.find((u) => u.owner === 2 && u.unitType === 'militia')!;
+      return bridge.getEntityHealth(enemy.id)?.currentHp ?? -1;
+    };
+    const koreans = createSimulationBridge('civ-koreans-tower-fixture', {
+      civilizationsByOwner: new Map([[1, 'Koreans']]),
+    });
+    expect(
+      stepBridgeUntil(koreans, () => hp(koreans) < 35, { maxSteps: 400 }),
+    ).toBe(true);
+
+    const generic = createSimulationBridge('civ-koreans-tower-fixture');
+    for (let index = 0; index < 400; index += 1) generic.step(100);
+    expect(hp(generic)).toBe(35);
+  });
+});
+
+describe('Japanese Fishing Ship work rate', () => {
+  it('climbs 1.05 / 1.1 / 1.15 / 1.2 across the ages, Fishing Ships only', () => {
+    expect(civFishingShipRateMultiplier('Japanese', 'fishing-ship', 'dark-age')).toBeCloseTo(1.05, 5);
+    expect(civFishingShipRateMultiplier('Japanese', 'fishing-ship', 'feudal-age')).toBeCloseTo(1.1, 5);
+    expect(civFishingShipRateMultiplier('Japanese', 'fishing-ship', 'castle-age')).toBeCloseTo(1.15, 5);
+    expect(civFishingShipRateMultiplier('Japanese', 'fishing-ship', 'imperial-age')).toBeCloseTo(1.2, 5);
+    // A villager shore-fishing is not a Fishing Ship; other civs read 1.
+    expect(civFishingShipRateMultiplier('Japanese', 'villager', 'imperial-age')).toBe(1);
+    expect(civFishingShipRateMultiplier('Britons', 'fishing-ship', 'imperial-age')).toBe(1);
+  });
+
+  it('a Japanese fishing ship makes its first deposit sooner than a generic one', () => {
+    // Identical fixture, identical route — the only difference between the
+    // two runs is the gather segment, where the Japanese ship works +5%.
+    const ticksToFirstDeposit = (civ?: string): number => {
+      const bridge = createSimulationBridge('naval-fixture', {
+        ...(civ ? { civilizationsByOwner: new Map([[1, civ]]) } : {}),
+      });
+      expect(selectOwnedBuildingDirect(bridge, 1, 'dock')).toBe(true);
+      expect(bridge.queueTrainUnit('fishing-ship')).toBe(true);
+      const ship = (): { id: number; x: number; y: number } | undefined => bridge
+        .getEconomyState()
+        .units.find((u) => u.owner === 1 && u.unitType === 'fishing-ship');
+      expect(
+        stepBridgeUntil(bridge, () => ship() !== undefined, { maxSteps: 600 }),
+      ).toBe(true);
+      expect(bridge.selectEntityAtCell(ship()!.x, ship()!.y)).toBe(true);
+      const fish = bridge
+        .getEconomyState()
+        .resources.find((r) => r.resourceType === 'fish')!;
+      expect(bridge.issueContextCommand(fish.x, fish.y)).toBe(true);
+      const start = bridge.getEconomyState().playerResources[1]!.food;
+      for (let tick = 1; tick <= 5000; tick += 1) {
+        bridge.step(100);
+        if (bridge.getEconomyState().playerResources[1]!.food > start) return tick;
+      }
+      throw new Error('no deposit within 5000 ticks');
+    };
+    const generic = ticksToFirstDeposit();
+    const japanese = ticksToFirstDeposit('Japanese');
+    expect(japanese).toBeLessThan(generic);
+  }, 120_000);
 });

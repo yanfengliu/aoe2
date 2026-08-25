@@ -35,6 +35,8 @@ export interface CivBonusEntry {
   readonly startingResourcesDelta?: Readonly<Partial<Record<'food' | 'wood' | 'gold' | 'stone', number>>>;
   /** Paid into the stockpile each time an age advance completes. */
   readonly ageAdvanceResourceGrant?: Readonly<Partial<Record<'food' | 'wood' | 'gold' | 'stone', number>>>;
+  /** Added to the hard population limit once the owner reaches Imperial. */
+  readonly imperialPopulationBonus?: number;
   readonly extraStartingUnits?: ReadonlyArray<{ readonly kind: UnitType | 'sheep'; readonly count: number }>;
   /** Villager gather-rate multipliers by resource kind. */
   readonly gatherRate?: Readonly<Partial<Record<ResourceKind, number>>>;
@@ -152,6 +154,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Goths',
     carryBonus: [{ kind: 'boar', bonus: 15 }], // "Hunters carry +15 meat".
+    imperialPopulationBonus: 10, // "+10 to population limit in Imperial Age".
     buildingAttack: [{ applies: (unit) => isInfantryUnit(unit), bonus: 1 }],
     cost: [{
       applies: (unit) => isInfantryUnit(unit),

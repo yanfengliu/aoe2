@@ -19,7 +19,8 @@ import {
   STANDARD_POPULATION_CAP,
   STANDARD_STARTING_RESOURCES,
 } from './bridgeConstants';
-import { matchSettingsCodec, populationCodec } from './bridgeStateSerialize';
+import { ownerHardPopCap } from './ownerPopCap';
+import { populationCodec } from './bridgeStateSerialize';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 
@@ -102,14 +103,14 @@ export function bootScenarioOrLoad(deps: BootDeps): void {
     // (they cannot see the settings slot from inside a codec), so a loaded
     // match with a custom cap re-derives once more here, where the whole
     // world — settings included — is in hand.
-    const loadedPopCap = accessor.get(matchSettingsCodec).popCap;
-    if (loadedPopCap !== undefined) {
-      accessor.mutate(populationCodec, (m) => {
-        for (const population of m.values()) {
-          population.cap = deriveCap(population.rawSupply, loadedPopCap);
-        }
-      });
-    }
+    // Unconditional: the decode-time cap used the default hard cap, which
+    // loses both a custom match cap and the Goth Imperial +10 — the owner's
+    // real limit needs civs and ages, which are only all in hand here.
+    accessor.mutate(populationCodec, (m) => {
+      for (const [owner, population] of m) {
+        population.cap = deriveCap(population.rawSupply, ownerHardPopCap(accessor, owner));
+      }
+    });
   }
 
 }

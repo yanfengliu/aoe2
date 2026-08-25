@@ -184,6 +184,44 @@ export function civIgnoresHousing(civilization: string | undefined): boolean {
  * paid into the stockpile when an age advance completes. Null for everyone
  * else so the age cases skip the mutation entirely.
  */
+/** Goths: "+10 to population limit in Imperial Age" — raises the HARD cap. */
+export function civImperialPopulationBonus(
+  civilization: string | undefined,
+  age: AgeType,
+): number {
+  if (age !== 'imperial-age') return 0;
+  return civBonusesFor(civilization)?.imperialPopulationBonus ?? 0;
+}
+
+/**
+ * Koreans: "Towers (except bombard towers) have +1 range in Castle Age /
+ * +2 in Imperial Age" — derived at the tower's fire site like the tech ladder.
+ */
+export function koreanTowerRangeBonus(
+  civilization: string | undefined,
+  buildingType: BuildingType,
+  age: AgeType,
+): number {
+  if (civilization !== 'Koreans' || buildingType !== 'watch-tower') return 0;
+  if (age === 'imperial-age') return 2;
+  if (age === 'castle-age') return 1;
+  return 0;
+}
+
+/**
+ * Japanese: "Fishing Ships work +5% faster in Dark Age / +10% in Feudal Age /
+ * +15% in Castle Age / +20% in Imperial Age" — the ship's gather multiplier.
+ * Villagers shore-fishing are NOT Fishing Ships and read 1.
+ */
+export function civFishingShipRateMultiplier(
+  civilization: string | undefined,
+  unitType: UnitType,
+  age: AgeType,
+): number {
+  if (civilization !== 'Japanese' || unitType !== 'fishing-ship') return 1;
+  return { 'dark-age': 1.05, 'feudal-age': 1.1, 'castle-age': 1.15, 'imperial-age': 1.2 }[age];
+}
+
 export function civAgeAdvanceGrant(
   civilization: string | undefined,
 ): Readonly<Partial<Record<'food' | 'wood' | 'gold' | 'stone', number>>> | null {

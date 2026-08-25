@@ -34,7 +34,8 @@ import {
   effectiveCarryCapacity,
   gatherRateMultiplierForKind,
 } from '../../economyTechEffects';
-import { civCarryBonus, civGatherRateMultiplier } from '../../civBonusEffects';
+import { civCarryBonus, civFishingShipRateMultiplier,
+  civGatherRateMultiplier } from '../../civBonusEffects';
 import { tryReseedFarm } from '../farmReseed';
 import {
   aiStatesCodec,
@@ -42,6 +43,7 @@ import {
   playerCivilizationsCodec,
   researchedTechnologiesCodec,
   unitCommandsCodec,
+  playerAgesCodec,
 } from '../bridgeStateSerialize';
 import type { UnitMovementPlan } from '../movementTypes';
 
@@ -287,6 +289,10 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
               ) * civGatherRateMultiplier(
                 playerCivilizations.get(unit.owner),
                 targetResource.resourceType,
+              ) * civFishingShipRateMultiplier(
+                playerCivilizations.get(unit.owner),
+                unit.unitType,
+                accessor.get(playerAgesCodec).get(unit.owner) ?? 'dark-age',
               );
               const cycleGatherTicks = gatherTicksFor(targetResource.resourceType);
               if (gatherer.gatherProgressTicks >= cycleGatherTicks) {

@@ -379,6 +379,8 @@ export {
 } from './civMongolsScout';
 
 export { createCivTeutonsFixture } from './civTeutons';
+export { createCivKoreansTowerFixture } from './civKoreansTower';
+export { createCivGothsPopFixture } from './civGothsPop';
 
 export {
   createCivGothsInfantryFixture,

@@ -15,6 +15,7 @@ import {
   buildingHealthStatesCodec,
   combatStatesCodec,
   constructionStatesCodec,
+  playerAgesCodec,
   playerCivilizationsCodec,
   playerTeamsCodec,
   garrisonedByBuildingCodec,
@@ -74,6 +75,9 @@ describe("visibility mutation batching", () => {
       [researchedTechnologiesCodec.slot, new Map()],
       [unitCommandsCodec.slot, new Map()],
       [projectilesCodec.slot, projectiles],
+      // The Korean tower-range bonus reads these at the fire site.
+      [playerCivilizationsCodec.slot, new Map()],
+      [playerAgesCodec.slot, new Map()],
     ]);
     const components = new Map<string, unknown>([
       ["1:position", { x: 2, y: 2 }],

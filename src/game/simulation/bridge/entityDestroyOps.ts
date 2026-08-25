@@ -3,7 +3,6 @@
 // the pre-extraction inline implementation byte-for-byte; the only change
 // is the dependency surface is explicit instead of closure-captured.
 
-import { matchSettingsCodec } from './bridgeStateSerialize';
 import { isMonasticUnit } from '../monasticUnits';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
@@ -22,6 +21,7 @@ import {
 } from './pureHelpers';
 import { DEATH_FEED_TICKS } from './visibility';
 import { deriveCap } from './bridgeConstants';
+import { ownerHardPopCap } from './ownerPopCap';
 import { buildingPopulationProvided } from '../prototypeBuildingRules';
 import {
   constructionStatesCodec,
@@ -275,7 +275,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
         populationState.rawSupply -= populationProvided;
         populationState.cap = deriveCap(
           populationState.rawSupply,
-          accessor.get(matchSettingsCodec).popCap,
+          ownerHardPopCap(accessor, building.owner),
         );
         accessor.markDirty(populationCodec);
       }
@@ -428,7 +428,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
           populationState.rawSupply -= populationProvided;
           populationState.cap = deriveCap(
           populationState.rawSupply,
-          accessor.get(matchSettingsCodec).popCap,
+          ownerHardPopCap(accessor, building.owner),
         );
           accessor.markDirty(populationCodec);
         }

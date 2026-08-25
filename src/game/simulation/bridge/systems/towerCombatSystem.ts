@@ -13,6 +13,7 @@ import { buildingArrowCount } from '../../prototypeBuildingRules';
 import { isArcherLineUnit } from '../../prototypeUnitRules';
 import { towerAttackBonus, towerRangeBonus } from '../../towerTechEffects';
 import { buildingArrowAttackBonus, buildingArrowRangeBonus } from '../../buildingArrowTechEffects';
+import { koreanTowerRangeBonus } from '../../civBonusEffects';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
@@ -23,6 +24,8 @@ import {
   projectilesCodec,
   researchedTechnologiesCodec,
   unitCommandsCodec,
+  playerCivilizationsCodec,
+  playerAgesCodec,
 } from '../bridgeStateSerialize';
 import { launchProjectile } from '../projectileOps';
 import { ballisticsLeadsShots } from '../../projectileTechEffects';
@@ -122,7 +125,13 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
         const uniqueBonus = uniqueBuildingBonus(ownerTechs, building.buildingType);
         const effectiveRange =
           buildingCombat.attackRange + buildingArrowRangeBonus(ownerTechs)
-          + towerRangeBonus(towerTechs) + uniqueBonus.attackRange;
+          + towerRangeBonus(towerTechs) + uniqueBonus.attackRange
+          // Koreans: watch towers reach +1 in Castle / +2 in Imperial.
+          + koreanTowerRangeBonus(
+            accessor.get(playerCivilizationsCodec).get(building.owner),
+            building.buildingType,
+            accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age',
+          );
         const effectiveAttackDamage =
           buildingCombat.attackDamage + buildingArrowAttackBonus(ownerTechs)
           + towerAttackBonus(towerTechs) + uniqueBonus.attackDamage;

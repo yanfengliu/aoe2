@@ -9,7 +9,7 @@ import { CHINESE_TEAM_FARM_FOOD_BONUS, teamHasCivilization } from '../teamBonuse
 import { slavsTeamMilitaryPop } from './teamPopulation';
 import { isMonasticUnit } from '../monasticUnits';
 import { civBuildingHpMultiplier, civPopulationProvidedBonus } from '../civBonusEffects';
-import { playerTeamsCodec, matchSettingsCodec, playerAgesCodec, playerCivilizationsCodec } from './bridgeStateSerialize';
+import { playerTeamsCodec, playerAgesCodec, playerCivilizationsCodec } from './bridgeStateSerialize';
 import { atheismCountdownExtension } from './atheismCountdowns';
 import { buildingMaxHpWithTechnologies } from '../buildingTechEffects';
 import type { EntityRef, Position } from 'civ-engine';
@@ -22,6 +22,7 @@ import type {
 } from '../types';
 import { buildingFootprint, getUnitTargetTransformForCell, type GameWorld } from './pureHelpers';
 import { deriveCap } from './bridgeConstants';
+import { ownerHardPopCap } from './ownerPopCap';
 import {
   buildingBuildTimeTicks,
   buildingMaxHp,
@@ -405,10 +406,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     if (isComplete && populationState && populationProvided > 0) {
       // Raise the honest raw supply; cap is the derived 200-clamp of it.
       populationState.rawSupply += populationProvided;
-      populationState.cap = deriveCap(
-        populationState.rawSupply,
-        accessor.get(matchSettingsCodec).popCap,
-      );
+      populationState.cap = deriveCap(populationState.rawSupply, ownerHardPopCap(accessor, owner));
       accessor.markDirty(populationCodec);
     }
 

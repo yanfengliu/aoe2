@@ -42,10 +42,13 @@ import {
   playerAgesCodec,
   playerCivilizationsCodec,
   playerResourcesCodec,
+  populationCodec,
   researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
 import { civAgeAdvanceGrant } from '../civBonusEffects';
 import { applyAgeScaledHpSweep } from './ageScaledHpSweep';
+import { ownerHardPopCap } from './ownerPopCap';
+import { deriveCap } from './bridgeConstants';
 import {
   isArcherLineUnit,
   isCavalryArcherUnit,
@@ -181,6 +184,18 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         accessor.mutate(playerAgesCodec, (m) => m.set(owner, 'imperial-age'));
         grantAgeAdvanceBonus();
         applyAgeScaledHpSweep(world, accessor, owner, 'castle-age', 'imperial-age');
+        {
+          // Goths: the hard population limit itself moves on Imperial, with
+          // no supply change to trigger a re-derive — so re-derive here.
+          const populationState = accessor.get(populationCodec).get(owner);
+          if (populationState) {
+            populationState.cap = deriveCap(
+              populationState.rawSupply,
+              ownerHardPopCap(accessor, owner),
+            );
+            accessor.markDirty(populationCodec);
+          }
+        }
         applyOutpostVisionDelta(world, owner, OUTPOST_VISION_PER_AGE);
         markOutOfBandRenderChange();
         break;

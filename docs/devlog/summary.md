@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-25 v0.3.87: three 9.2 one-offs — Goth Imperial +10 pop (ownerHardPopCap read by all six deriveCap sites + imperial recompute + unconditional load re-derive), Korean tower range by age (fire-site), Japanese fishing-ship rate ladder (gather loop); two new fixtures; deposit-race test measures the 5%; red-check 6.
 - 2026-08-25 v0.3.86: age-scaled HP family (Viking infantry+berserks, Vietnamese archery units, Byzantine buildings) — age-aware combatStateFactory + building seam + ratio sweep in the three age cases; berserk not in INFANTRY_UNITS (armor-scope set) so named explicitly; red-check 5/6.
 - 2026-08-25 v0.3.85: Ethiopian age-advance grant (+100f/+100g on each advance) as a new civBonusTable family applied in technologyOps' three age cases; red-checked; Ethiopians civ column now fully live.
 - 2026-08-25 v0.3.84: Ethiopian team tower/outpost +3 LOS + all four remaining Teuton lines (TC +1 atk/+5 LOS, towers 2x garrison, monks 2x heal range) via new civBuildingBonuses seam on BOTH vision-creation branches; garrison eligibility widened to DE rules (foot soldiers in TCs/towers, mounted in castles); red-check 9/9; entityCreateOps re-split under 500.

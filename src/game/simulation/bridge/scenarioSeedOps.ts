@@ -8,6 +8,7 @@
 // createSimulationBridge stays readable.
 
 import { deriveCap, POP_HARD_CAP } from './bridgeConstants';
+import { ownerHardPopCap } from './ownerPopCap';
 import { seedCivOpeningUnits, civOpeningResources, civOpeningRawSupplyFloor } from './civOpeningSeed';
 import type { Position } from 'civ-engine';
 import { AUTHORITATIVE_BUILDING_FOOTPRINTS } from '../../content/buildingFootprints';
@@ -191,7 +192,7 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
       );
       m.set(start.owner, {
         current: 0,
-        cap: deriveCap(rawSupply, accessor.get(matchSettingsCodec).popCap),
+        cap: deriveCap(rawSupply, ownerHardPopCap(accessor, start.owner)),
         rawSupply,
       });
     });
