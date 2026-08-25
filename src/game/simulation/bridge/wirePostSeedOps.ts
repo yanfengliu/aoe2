@@ -31,6 +31,7 @@ import { createTechnologyOps } from './technologyOps';
 import { createAiDecisionOps } from './aiDecisionOps';
 import { createEntityDestroyOps } from './entityDestroyOps';
 import { createVisibilityQueries } from './visibilityQueries';
+import { applyVietnameseReveal } from './vietnameseReveal';
 import { createSelectionInputOps } from './selectionInputOps';
 import { createTrainingMarketOps } from './trainingMarketOps';
 import { createUnitCommandOps } from './unitCommandOps';
@@ -425,6 +426,10 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
       isCellVisible: (x, y) => visibility.isVisible(ownerId, x, y),
     }),
   };
+
+  // Vietnamese "Reveals enemy positions at game start": stamped once, here,
+  // where the seeded world and the visibility map are both in hand.
+  applyVietnameseReveal(world, accessor, visibility);
 
   return {
     agentOptionsOps,
