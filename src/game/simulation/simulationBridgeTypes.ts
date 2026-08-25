@@ -13,12 +13,14 @@ import type { AgentBuildingOptions } from './bridge/buildingOptionsOps';
 import type { SaveBlob } from './saveSchema';
 import type {
   ActionType,
+  BuildingType,
   BuildableBuildingType,
   EconomyState,
   HudState,
   MarketActionType,
   MatchState,
   PlacementPreviewState,
+  PlayerResources,
   PopulationState,
   ResearchableTechnologyType,
   RenderState,
@@ -56,6 +58,8 @@ export interface SimulationBridge {
   getSharedVisionOwners(playerId: number): number[];
   /** The owner's civilization name (default-filled for unseeded owners). */
   getPlayerCivilization(playerId: number): string;
+  /** The owner's real building price — civilization and team discounts in. */
+  getConstructionCost(playerId: number, buildingType: BuildingType): Partial<PlayerResources>;
   getPopulationState(playerId: number): PopulationState;
   getSelectionState(): SelectionState;
   // Spec 2 (annotation-ui v0.1.5) AO-2: parallel selection getters /

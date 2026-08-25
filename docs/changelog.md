@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.81 - 2026-08-25
+
+### Added
+
+- **Team bonuses.** Your side shares each member civilization's gift, for everything the game can express. Aztec relics pay a third more; Spanish trade routes return +33% gold; Chinese-team farms hold +45 food; Slavic-team military buildings each house five; Britons, Goths and Huns speed their signature production buildings while Turks speed every gunpowder unit and Malians the University; Mayan-team walls cost half and Viking-team Docks a quarter less; Byzantine-team monks heal half again as fast; Teuton-team units shrug off conversion at half rate; and a Portuguese ally gives everyone shared ally sight from the first minute, no Market required.
+
 ## 0.3.80 - 2026-08-24
 
 ### Added

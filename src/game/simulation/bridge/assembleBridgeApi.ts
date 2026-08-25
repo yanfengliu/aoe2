@@ -1,3 +1,6 @@
+import { teamHasCivilization } from '../teamBonuses';
+import type { BuildingType } from '../types';
+import { ownerConstructionCost } from './ownerCosts';
 import { defaultCivilizationName } from './pureHelpers';
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -32,6 +35,7 @@ export interface AssembleBridgeApiDeps
     | 'getPlayerResources'
     | 'getSharedVisionOwners'
     | 'getPlayerCivilization'
+    | 'getConstructionCost'
     | 'getMatchState'
     | 'isSelected'
     | 'consumeOutOfBandRenderChange'
@@ -81,6 +85,9 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     },
     // Cartography: the owners whose vision this one also sees. Empty without
     // the technology or without allies, which is every match before teams.
+    getConstructionCost(playerId: number, buildingType: BuildingType) {
+      return ownerConstructionCost(accessor, playerId, buildingType);
+    },
     getPlayerCivilization(playerId: number) {
       return accessor.get(playerCivilizationsCodec).get(playerId)
         ?? defaultCivilizationName(playerId);
@@ -91,7 +98,14 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
       return sharedVisionOwners(
         accessor.get(playerTeamsCodec),
         playerId,
-        researched.has('cartography'),
+        // Portuguese team bonus: Cartography free from the Dark Age — the
+        // shared sight is simply ON for the whole side, no Market needed.
+        researched.has('cartography') || teamHasCivilization(
+          accessor.get(playerTeamsCodec),
+          accessor.get(playerCivilizationsCodec),
+          playerId,
+          'Portuguese',
+        ),
         accessor.get(playerResourcesCodec).keys(),
         researched.has('spies'),
       );

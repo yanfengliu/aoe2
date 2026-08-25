@@ -905,6 +905,8 @@ Not implemented, and why: nothing — the list is empty. (Its history: **El Dora
 
 **Atheism (v0.3.70, Huns)** adds **+100 years (1000 ticks)** to every Wonder and Relic victory countdown in the match — the ones already running when it completes, and every one that starts while any owner has it. The delay belongs to the match, not the researcher: it buys everyone time against a Wonder rush, which is what the technology is for. It also halves the price of Spies for its owner.
 
+**Team bonuses (v0.3.81).** The `team_bonus` column is live for every line the seams can express — active for an owner when the owner **or any ally** plays the civilization (a side of one still enjoys its own, AoE2's rule). Economy and production: Aztec relics pay a third more (one extra gold per relic every third tick — deterministic), Spanish trade returns +33% gold at the route's load-time pricing, Chinese-team farms hold +45 food (reseeds included), Slavic-team military buildings each shelter +5, and Britons/Goths/Huns speed their Archery Ranges/Barracks/Stables 20% while Turks speed gunpowder units anywhere and Malians speed University research 80%. Costs: Mayan-team walls at half stone, Viking-team Docks a quarter off — through the same `ownerConstructionCost` seam every charge and display reads. Support: Byzantine-team monks heal 50% faster, Teuton-team units resist conversion at half rate (stacking with Faith to a quarter, AoE2's composition), and a Portuguese ally turns Cartography's shared sight ON from the Dark Age with no Market. Listed as the open remainder: the combat-stat lines (Frankish/Mongol/Japanese/Ethiopian/Magyar line-of-sight, Korean and Khmer ranges, Persian and Saracen and Indian attack bonuses), and the lines needing absent content (Berbers' Genitour, Italians' Condottiero, the Vietnamese Imperial Skirmisher, Burmese minimap relics).
+
 The twelve expansion civilizations have no technology rows in the dataset at all, the same gap as their unique units (§9.2.1).
 
 ### 9.3 Required Orders
@@ -1201,7 +1203,7 @@ Coinage and Banking arrived with tribute in v0.3.67 (§6.8), Guilds with commodi
 
 Teams are chosen with `?teams=1,1,2` — one number per player, in owner order, from 1. Anything unusable warns and leaves a free-for-all, including putting every player on one team, which would be a match nobody can win.
 
-Not yet team-aware, and deliberately listed rather than assumed: shared line of sight (Cartography), Market trade between allies, and ordering your own units to attack an ally.
+Deliberately listed rather than assumed as still-open team work: ordering your own units to attack an ally.
 
 **Player count (implemented v0.3.61, all eight seats v0.3.66).** A standard map opens with 2 to 8 players — §4.2's full range — chosen with `?players=n` and defaulting to 2. Each seat has a fixed start position and civilization for its count, so a match is reproducible from its seed and its count alone, and the two-player row is the established 1v1 cell for cell. A count outside the range warns and opens the ordinary 1v1 rather than refusing to start: a bad URL should not stop a game.
 

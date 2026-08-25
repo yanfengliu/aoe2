@@ -10,8 +10,8 @@
 // Read-side only; composes existing optionsRules + playerQueries
 // surfaces. Exposed publicly as SimulationBridge.getAgentBuildingOptions.
 
+import { ownerConstructionCost } from './ownerCosts';
 import { researchCost } from '../prototypeEconomyRules';
-import { effectiveConstructionCost } from '../civBonusEffects';
 import type {
   BuildableBuildingType,
   BuildingComponent,
@@ -126,7 +126,6 @@ export function createBuildingOptionsOps(deps: BuildingOptionsDeps): BuildingOpt
       if (research.length + researchLocked.length + train.length === 0) continue;
       byBuildingType.push({ buildingType, research, researchLocked, train });
     }
-    const civilization = deps.getPlayerCivilization?.(ownerId);
     const villagerCanBuild: AgentBuildOption[] = deps
       .getBuildOptions(ownerId, 'villager')
       .map((buildingType) => {
@@ -134,7 +133,7 @@ export function createBuildingOptionsOps(deps: BuildingOptionsDeps): BuildingOpt
         return {
           buildingType,
           footprint: `${footprint.width}x${footprint.height}`,
-          cost: { ...effectiveConstructionCost(civilization, buildingType) },
+          cost: { ...ownerConstructionCost(deps.accessor, ownerId, buildingType) },
         };
       });
     return { byBuildingType, villagerCanBuild };

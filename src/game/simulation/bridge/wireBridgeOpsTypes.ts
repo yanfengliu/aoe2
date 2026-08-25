@@ -68,6 +68,7 @@ export type WireBridgeOpsResult = Omit<
   | 'getPlayerResources'
   | 'getSharedVisionOwners'
   | 'getPlayerCivilization'
+  | 'getConstructionCost'
   | 'getMatchState'
   | 'isSelected'
   | 'consumeOutOfBandRenderChange'

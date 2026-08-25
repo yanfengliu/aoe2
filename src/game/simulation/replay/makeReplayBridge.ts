@@ -1,3 +1,4 @@
+import { constructionCost } from '../prototypeEconomyRules';
 import {
   RenderAdapter,
 } from 'civ-engine';
@@ -123,6 +124,8 @@ export function makeReplayBridge(
     getMapSize: () => ({ width: world.grid.width, height: world.grid.height }),
     getSharedVisionOwners: () => [],
     getPlayerCivilization: () => 'Britons',
+    getConstructionCost: (_owner: number, buildingType: import('../types').BuildingType) =>
+      constructionCost(buildingType),
     step() {
       flushOutOfBandRenderChange();
     },

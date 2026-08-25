@@ -101,11 +101,11 @@ function formatMissingBuildResources(
 function buildAvailabilitySignature(
   buildOptions: BuildableBuildingType[],
   resources: PlayerResources,
-  civilization: string | undefined,
+  costOf: (buildingType: BuildableBuildingType) => Partial<PlayerResources>,
 ): string {
   return buildOptions
     .map((buildingType) => {
-      const cost = effectiveConstructionCost(civilization, buildingType);
+      const cost = costOf(buildingType);
       return BUILD_COST_ORDER
         .filter((resource) => (cost[resource] ?? 0) > 0)
         .map((resource) => `${resource}:${resources[resource] >= (cost[resource] ?? 0)}`)
@@ -118,13 +118,14 @@ export function renderBuildButtons(
   buildOptions: BuildableBuildingType[],
   resources: PlayerResources,
   placementMode: BuildableBuildingType | null,
-  civilization?: string,
+  costOf: (buildingType: BuildableBuildingType) => Partial<PlayerResources>
+    = (buildingType) => effectiveConstructionCost(undefined, buildingType),
 ): string {
   return buildOptions
     .map((buildingType) => {
       const displayName = formatEntityName(buildingType);
-      // The OWNER's price (Franks castles, Teuton farms…): display = charge.
-      const cost = effectiveConstructionCost(civilization, buildingType);
+      // The OWNER's price (Franks castles, Mayan walls…): display = charge.
+      const cost = costOf(buildingType);
       const affordable = canAfford(resources, cost);
       const active = placementMode === buildingType;
       const readiness = affordable ? 'Ready' : 'Short';
@@ -136,7 +137,7 @@ export function renderBuildButtons(
             data-command="build-${buildingType}"
             data-command-affordable="${affordable}"
             data-command-active="${active}"
-            data-tooltip="${formatBuildTooltip(buildingType, displayName, civilization)}"
+            data-tooltip="${formatBuildTooltip(buildingType, displayName, cost)}"
             type="button"
             aria-label="Build ${displayName}. Cost: ${formatResourceCost(cost)}. ${accessibleStatus}."
             aria-pressed="${active}"
@@ -214,8 +215,9 @@ export interface SelectionPanelDeps {
   sendTribute(toOwner: number, resource: EconomyResourceKind): boolean;
   /** The other players a tribute could go to, and the human's current fee. */
   getTributeTargets(): { owners: number[]; feeRate: number };
-  /** The human's civilization — the build card shows THEIR prices. */
-  getHumanCivilization?(): string;
+  /** The human's real building price — civ AND team discounts included,
+   *  so the card never quotes more than the charge. */
+  getConstructionCost?(buildingType: BuildableBuildingType): Partial<PlayerResources>;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
 }
 
@@ -244,11 +246,14 @@ export function createSelectionPanel(
       return;
     }
 
+    const costOf = (buildingType: BuildableBuildingType): Partial<PlayerResources> =>
+      deps.getConstructionCost?.(buildingType)
+        ?? effectiveConstructionCost(undefined, buildingType);
     const signature = JSON.stringify([
       selectionState,
       selectionState.buildOptions.length > 0
         ? buildAvailabilitySignature(
-            selectionState.buildOptions, playerResources, deps.getHumanCivilization?.())
+            selectionState.buildOptions, playerResources, costOf)
         : null,
     ]);
     if (signature === lastSelectionSignature) {
@@ -300,7 +305,7 @@ export function createSelectionPanel(
       selectionState.buildOptions,
       playerResources,
       selectionState.placementMode,
-      deps.getHumanCivilization?.(),
+      costOf,
     );
     const actionButtons = renderActionButtons(selectionState.actionOptions);
     const trainButtons = renderTrainButtons(selectionState.trainOptions);

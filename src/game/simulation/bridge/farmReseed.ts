@@ -12,11 +12,12 @@
 // Extracted into its own module so villagerEconomySystem.ts stays under the
 // 500-LOC file ceiling.
 
-import { effectiveConstructionCost } from '../civBonusEffects';
+import { CHINESE_TEAM_FARM_FOOD_BONUS, teamHasCivilization } from '../teamBonuses';
+import { ownerConstructionCost } from './ownerCosts';
 import type { BuildingComponent, ResourceComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { playerCivilizationsCodec, playerResourcesCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
+import { playerCivilizationsCodec, playerTeamsCodec, playerResourcesCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
 import { canAfford, spendResources } from '../prototypeEconomyRules';
 import { farmFoodCapacity, EMPTY_TECH_SET } from '../economyTechEffects';
 
@@ -49,10 +50,7 @@ export function tryReseedFarm(
   if (owner === null) return false;
 
   const stockpile = accessor.get(playerResourcesCodec).get(owner);
-  const reseedCost = effectiveConstructionCost(
-    accessor.get(playerCivilizationsCodec).get(owner),
-    'farm',
-  );
+  const reseedCost = ownerConstructionCost(accessor, owner, 'farm');
   if (!stockpile || !canAfford(stockpile, reseedCost)) return false;
 
   spendResources(stockpile, reseedCost);
@@ -65,7 +63,12 @@ export function tryReseedFarm(
   // exceeds max even if a fixture seeded a higher max.
   const capacity = farmFoodCapacity(
     accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECH_SET,
-  );
+  ) + (teamHasCivilization(
+    accessor.get(playerTeamsCodec),
+    accessor.get(playerCivilizationsCodec),
+    owner,
+    'Chinese',
+  ) ? CHINESE_TEAM_FARM_FOOD_BONUS : 0);
   resource.maxAmount = Math.max(resource.maxAmount, capacity);
   resource.amount = resource.maxAmount;
   return true;

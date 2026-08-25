@@ -8,6 +8,7 @@
 // Modeled deterministically as a flat +2 to the monk action range for convert
 // tasks (no probability — the sim is replay-deterministic). See spec §12.
 
+import { TEUTONS_TEAM_CONVERT_RESISTANCE_MULTIPLIER } from './teamBonuses';
 import { isMonasticUnit } from './monasticUnits';
 import type { BuildingType, ResearchableTechnologyType, UnitType } from './types';
 import { isSiegeUnit } from './prototypeUnitRules';
@@ -44,6 +45,13 @@ export function monkConvertProgressMultiplier(
   targetOwnerResearched: ReadonlySet<ResearchableTechnologyType>,
 ): number {
   return targetOwnerResearched.has('faith') ? FAITH_CONVERT_PROGRESS_MULTIPLIER : 1;
+}
+
+// Teuton team bonus: "Units are more resistant to conversion" — the same
+// half-rate shape as Faith, and the two STACK (a Teuton-allied owner with
+// Faith converts at a quarter rate), which is AoE2's own composition.
+export function teamConvertResistanceMultiplier(targetTeamHasTeutons: boolean): number {
+  return targetTeamHasTeutons ? TEUTONS_TEAM_CONVERT_RESISTANCE_MULTIPLIER : 1;
 }
 
 // Herbal Medicine (AoE2 Monastery, Castle Age — technologies.csv:65

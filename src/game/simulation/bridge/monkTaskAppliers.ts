@@ -2,6 +2,7 @@
 // updates side-map state for the Monk and its target; the behavior system
 // invokes the right one once the Monk is within action range.
 
+import { BYZANTINES_TEAM_HEAL_MULTIPLIER, teamHasCivilization } from '../teamBonuses';
 import { isMonasticUnit } from '../monasticUnits';
 import type { EntityRef, Position } from 'civ-engine';
 
@@ -28,10 +29,12 @@ import {
   relicsInMonasteryCodec,
   researchedTechnologiesCodec,
   unitCommandsCodec,
+  playerCivilizationsCodec,
 } from './bridgeStateSerialize';
 import {
   convertedUnitDies,
   monkConvertProgressMultiplier,
+  teamConvertResistanceMultiplier,
   monkGroupRestsOnConversion,
   monkMayConvert,
 } from '../monasteryTechEffects';
@@ -124,8 +127,18 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
       }
       return;
     }
+    // Byzantine team bonus: monks heal 50% faster — the interval between
+    // heal pulses shrinks by a third (10 → 7 ticks, ceil, deterministic).
+    const interval = teamHasCivilization(
+      accessor.get(playerTeamsCodec),
+      accessor.get(playerCivilizationsCodec),
+      monkUnit.owner,
+      'Byzantines',
+    )
+      ? Math.max(1, Math.ceil(monkHealTickInterval / BYZANTINES_TEAM_HEAL_MULTIPLIER))
+      : monkHealTickInterval;
     const counter = (monkHealCounters.get(monkId) ?? 0) + 1;
-    if (counter >= monkHealTickInterval) {
+    if (counter >= interval) {
       targetCombat.currentHp = Math.min(
         targetCombat.maxHp,
         targetCombat.currentHp + monkHealHpPerInterval,
@@ -233,7 +246,15 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     // of switching sides). Un-teched → resistance ×1, no Heresy.
     const targetOwnerResearched =
       accessor.get(researchedTechnologiesCodec).get(targetUnit.owner) ?? EMPTY_TECH_SET;
-    const resistance = monkConvertProgressMultiplier(targetOwnerResearched);
+    const resistance = monkConvertProgressMultiplier(targetOwnerResearched)
+      // Teuton team bonus stacks with Faith, AoE2's own composition: a
+      // Teuton-allied owner with Faith converts at a quarter rate.
+      * teamConvertResistanceMultiplier(teamHasCivilization(
+        accessor.get(playerTeamsCodec),
+        accessor.get(playerCivilizationsCodec),
+        targetUnit.owner,
+        'Teutons',
+      ));
     convState.progress += monkConvertProgressPerTick * resistance;
     if (convState.progress >= monkConvertFlipThreshold) {
       // A completed conversion empties the monk's faith whichever way it ends —

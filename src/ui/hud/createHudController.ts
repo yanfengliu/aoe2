@@ -68,7 +68,7 @@ interface HudBridge {
   issueMarketAction(actionType: MarketActionType): boolean;
   sendTribute: SimulationBridge['sendTribute'];
   listTributeTargets(): number[];
-  getPlayerCivilization(playerId: number): string;
+  getConstructionCost: SimulationBridge['getConstructionCost'];
   humanTributeFeeRate(): number;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
   // Slice 11: drain the oldest pending rejection for a toast; null when none.
@@ -297,7 +297,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     queueResearch: (technologyType) => bridge.queueResearch(technologyType),
     issueMarketAction: (actionType) => bridge.issueMarketAction(actionType),
     sendTribute: (toOwner, resource) => bridge.sendTribute(toOwner, resource, TRIBUTE_AMOUNT),
-    getHumanCivilization: () => bridge.getPlayerCivilization(1),
+    getConstructionCost: (buildingType) => bridge.getConstructionCost(1, buildingType),
     getTributeTargets: () => (
       { owners: bridge.listTributeTargets(), feeRate: bridge.humanTributeFeeRate() }
     ),

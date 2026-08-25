@@ -5,9 +5,11 @@
 // implementation byte-for-byte; the only change is the dependency
 // surface is explicit instead of closure-captured.
 
+import { CHINESE_TEAM_FARM_FOOD_BONUS, teamHasCivilization } from '../teamBonuses';
+import { slavsTeamMilitaryPop } from './teamPopulation';
 import { isMonasticUnit } from '../monasticUnits';
 import { civBuildingHpMultiplier, civPopulationProvidedBonus } from '../civBonusEffects';
-import { matchSettingsCodec, playerCivilizationsCodec } from './bridgeStateSerialize';
+import { playerTeamsCodec, matchSettingsCodec, playerCivilizationsCodec } from './bridgeStateSerialize';
 import { atheismCountdownExtension } from './atheismCountdowns';
 import { buildingMaxHpWithTechnologies } from '../buildingTechEffects';
 import type { EntityRef, Position } from 'civ-engine';
@@ -282,7 +284,12 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       // default owner (no farm techs) holds the base FARM_FOOD_AMOUNT (175).
       const farmCapacity = farmFoodCapacity(
         accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECH_SET,
-      );
+      ) + (teamHasCivilization(
+        accessor.get(playerTeamsCodec),
+        accessor.get(playerCivilizationsCodec),
+        owner,
+        'Chinese',
+      ) ? CHINESE_TEAM_FARM_FOOD_BONUS : 0);
       world.addComponent(buildingId, 'resource', {
         resourceType: 'farm',
         amount: farmCapacity,
@@ -405,7 +412,8 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       + civPopulationProvidedBonus(
         accessor.get(playerCivilizationsCodec).get(owner),
         buildingType,
-      );
+      )
+      + slavsTeamMilitaryPop(accessor, owner, buildingType);
     if (isComplete && populationState && populationProvided > 0) {
       // Raise the honest raw supply; cap is the derived 200-clamp of it.
       populationState.rawSupply += populationProvided;

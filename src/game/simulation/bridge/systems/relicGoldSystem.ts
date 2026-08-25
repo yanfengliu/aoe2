@@ -1,10 +1,11 @@
 // Per tick, every owner with deposited relics gets +1 gold per relic.
 // Iterates Monasteries and accumulates into each owner's resource bank.
 
+import { teamHasCivilization } from '../../teamBonuses';
 import type { BuildingComponent } from '../../types';
 import type { GameWorld } from '../pureHelpers';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import {
+import { playerCivilizationsCodec, playerTeamsCodec,
   playerResourcesCodec,
   relicsInMonasteryCodec,
 } from '../bridgeStateSerialize';
@@ -43,6 +44,19 @@ export function registerRelicGoldSystem(deps: RelicGoldSystemDeps): void {
           continue;
         }
         stockpile.gold += count;
+        // Aztec team bonus: relics pay a third more — one extra gold per
+        // relic every third tick, deterministic and replay-stable.
+        if (
+          activeWorld.tick % 3 === 0
+          && teamHasCivilization(
+            accessor.get(playerTeamsCodec),
+            accessor.get(playerCivilizationsCodec),
+            building.owner,
+            'Aztecs',
+          )
+        ) {
+          stockpile.gold += count;
+        }
         resourcesDirty = true;
       }
       if (dirty) {

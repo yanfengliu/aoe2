@@ -5,7 +5,8 @@
 // inline implementation byte-for-byte; the deps bag is the only structural
 // change.
 
-import { effectiveConstructionCost } from '../civBonusEffects';
+import { teamResearchTimeMultiplier, teamTrainTimeMultiplier } from './teamProductionBonuses';
+import { ownerConstructionCost } from './ownerCosts';
 import { spiesCost } from '../spiesRules';
 import { countEnemyVillagers } from './countEnemyVillagers';
 import type { EntityRef, Position } from 'civ-engine';
@@ -243,7 +244,8 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
           * civTrainTimeMultiplier(ownerCiv, unitType)
           * shipwrightTrainTimeMultiplier(ownerTechs, unitType)
           * conscriptionTrainTimeMultiplier(ownerTechs, building.buildingType)
-          * uniqueTechTrainTimeMultiplier(ownerTechs, building.buildingType),
+          * uniqueTechTrainTimeMultiplier(ownerTechs, building.buildingType)
+          * teamTrainTimeMultiplier(accessor, building.owner, building.buildingType, unitType),
       ),
     );
     accessor.mutate(productionQueuesCodec, (m) => {
@@ -297,7 +299,10 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
 
     spendResources(stockpile, cost);
     accessor.markDirty(playerResourcesCodec);
-    const totalTicks = researchTimeTicks(technologyType);
+    const totalTicks = Math.max(1, Math.round(
+      researchTimeTicks(technologyType)
+        * teamResearchTimeMultiplier(accessor, building.owner, building.buildingType),
+    ));
     accessor.mutate(productionQueuesCodec, (m) => {
       const queue = m.get(buildingId) ?? [];
       queue.push({
@@ -418,10 +423,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     const stockpile = accessor.get(playerResourcesCodec).get(primary.owner);
     if (!stockpile) return false;
 
-    const cost = effectiveConstructionCost(
-      accessor.get(playerCivilizationsCodec).get(primary.owner),
-      buildingType,
-    );
+    const cost = ownerConstructionCost(accessor, primary.owner, buildingType);
     if (!canAfford(stockpile, cost)) return false;
 
     spendResources(stockpile, cost);

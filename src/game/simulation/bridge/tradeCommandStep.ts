@@ -5,13 +5,14 @@
 // so it survives a save mid-leg and dies with the cart, and the goods survive
 // the far Market: once loaded, the gold is on the cart (AoE2's behaviour).
 
+import { SPANISH_TEAM_TRADE_GOLD_MULTIPLIER, teamHasCivilization } from '../teamBonuses';
 import type { EntityRef, Position } from 'civ-engine';
 
 import type { BuildingComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { UnitCommand } from './sharedTypes';
-import { constructionStatesCodec, playerResourcesCodec } from './bridgeStateSerialize';
+import { playerCivilizationsCodec, playerTeamsCodec, constructionStatesCodec, playerResourcesCodec } from './bridgeStateSerialize';
 import { tradeProfit } from '../tradeRules';
 
 export interface TradeStepDeps {
@@ -103,7 +104,16 @@ export function runTradeStep(deps: TradeStepDeps): boolean {
       target: home.position,
       buildingRef: getEntityRef(home.id) ?? undefined,
       tradeFarMarketRef: command.tradeFarMarketRef,
-      tradeCarriedGold: tradeProfit(farPosition, home.position),
+      tradeCarriedGold: Math.round(
+        tradeProfit(farPosition, home.position)
+        // Spanish team bonus: trade returns a third more gold.
+        * (teamHasCivilization(
+          accessor.get(playerTeamsCodec),
+          accessor.get(playerCivilizationsCodec),
+          owner,
+          'Spanish',
+        ) ? SPANISH_TEAM_TRADE_GOLD_MULTIPLIER : 1),
+      ),
     });
     return true;
   }

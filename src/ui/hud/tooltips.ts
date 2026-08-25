@@ -105,9 +105,10 @@ export function formatResearchTooltip(
 export function formatBuildTooltip(
   buildingType: BuildableBuildingType,
   buildingDisplayName: string,
-  civilization?: string,
+  cost?: Partial<import('../../game/simulation/types').PlayerResources>,
 ): string {
-  return `Place a ${buildingDisplayName} foundation (cost: ${formatResourceCost(effectiveConstructionCost(civilization, buildingType))}). The selected villager walks to the site and builds it.`;
+  const shown = cost ?? effectiveConstructionCost(undefined, buildingType);
+  return `Place a ${buildingDisplayName} foundation (cost: ${formatResourceCost(shown)}). The selected villager walks to the site and builds it.`;
 }
 
 export interface TooltipHandle {
