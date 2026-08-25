@@ -392,8 +392,8 @@ export function createSimulationBridge(
     listTributeTargets,
     humanTributeFeeRate,
     beginBuildingPlacement,
-    confirmBuildingPlacement(x: number, y: number) {
-      const didConfirm = confirmBuildingPlacement(x, y);
+    confirmBuildingPlacement(x: number, y: number, options?: { queue?: boolean }) {
+      const didConfirm = confirmBuildingPlacement(x, y, options);
       flushOutOfBandRenderChange();
       return didConfirm;
     },

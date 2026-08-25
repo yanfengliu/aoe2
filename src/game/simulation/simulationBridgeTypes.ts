@@ -134,7 +134,7 @@ export interface SimulationBridge {
   listTributeTargets(): number[];
   humanTributeFeeRate(): number;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
-  confirmBuildingPlacement(x: number, y: number): boolean;
+  confirmBuildingPlacement(x: number, y: number, options?: { queue?: boolean }): boolean;
   // Slice 11: drain the oldest pending command-rejection reason, if any.
   // The HUD polls this every update frame and renders a toast with the
   // returned copy. Returns `null` when no rejection is pending.

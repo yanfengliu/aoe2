@@ -15,6 +15,7 @@ export interface BuildingPlaceConfirmHandlerDeps {
     builderIds: readonly number[],
     buildingType: BuildableBuildingType,
     anchor: Position,
+    queue?: boolean,
   ) => boolean;
 }
 
@@ -30,6 +31,6 @@ export function makeBuildingPlaceConfirmHandler(
     const builderIds = data.additionalBuilderIds && data.additionalBuilderIds.length > 0
       ? [data.builderId, ...data.additionalBuilderIds]
       : [data.builderId];
-    deps.startConstructionWithBuildersDirect(builderIds, data.buildingType, data.position);
+    deps.startConstructionWithBuildersDirect(builderIds, data.buildingType, data.position, data.queue ?? false);
   };
 }

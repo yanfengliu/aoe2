@@ -112,7 +112,7 @@ export interface CreateWorldResult {
   listTributeTargets: () => number[];
   humanTributeFeeRate: () => number;
   beginBuildingPlacement: (buildingType: BuildableBuildingType) => boolean;
-  confirmBuildingPlacement: (x: number, y: number) => boolean;
+  confirmBuildingPlacement: (x: number, y: number, options?: { queue?: boolean }) => boolean;
   isSelected: (id: number) => boolean;
   consumeOutOfBandRenderChange: () => boolean;
   consumeCommandRejection: () => string | null;

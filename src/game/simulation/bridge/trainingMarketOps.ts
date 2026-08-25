@@ -6,7 +6,6 @@
 // change.
 
 import { teamResearchTimeMultiplier, teamTrainTimeMultiplier } from './teamProductionBonuses';
-import { ownerConstructionCost } from './ownerCosts';
 import { spiesCost } from '../spiesRules';
 import { countEnemyVillagers } from './countEnemyVillagers';
 import type { EntityRef, Position } from 'civ-engine';
@@ -17,12 +16,11 @@ import type {
   MarketActionType,
   ResearchableTechnologyType,
   TrainableUnitType,
-  UnitComponent,
   UnitType,
   VisionSourceComponent,
 } from '../types';
 import { createGarrisonOps } from './garrisonOps';
-import { buildingFootprint, clamp, type GameWorld } from './pureHelpers';
+import { buildingFootprint, type GameWorld } from './pureHelpers';
 import { findPlacementAnchorNear } from './placementSearch';
 import {
   canResearchAt,
@@ -40,6 +38,7 @@ import {
 
 import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { createConstructionStart } from './constructionStartOps';
 import {
   constructionStatesCodec,
   marketExchangeRatesCodec,
@@ -100,11 +99,7 @@ export interface TrainingMarketOpsDeps {
   removeSelectedEntity: (id: number) => void;
   setUnitCommand: (
     unitId: number,
-    command: {
-      type: 'build';
-      target: Position;
-      buildingRef: EntityRef;
-    },
+    command: import('./sharedTypes').UnitCommand,
   ) => void;
   addBuildingEntity: (
     owner: number,
@@ -378,72 +373,11 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
   }
 
 
-  function startConstructionWithBuildersDirect(
-    builderIds: readonly number[],
-    buildingType: BuildableBuildingType,
-    anchor: Position,
-  ): boolean {
-    if (builderIds.length === 0) return false;
-    const primaryId = builderIds[0];
-    const primary = world.getComponent<UnitComponent>(primaryId, 'unit');
-    if (!primary) return false;
-
-    // What a unit may build is the build MENU's answer, not a unit-type test —
-    // a Fishing Ship builds Fish Traps out on the water, where no villager can
-    // stand. The menu already refuses everything else.
-    //
-    // Every builder is decided HERE, before the site exists, because putting the
-    // building down CHANGES the menu: `wonder` leaves it the moment the owner
-    // has one, so re-asking after `addBuildingEntity` rejected every builder for
-    // the Wonder they had just started and left it standing at zero progress
-    // forever (the AI wonder-victory test hung on exactly that).
-    const eligibleBuilderIds = builderIds.filter((id) => {
-      const unit = world.getComponent<UnitComponent>(id, 'unit');
-      return unit !== undefined
-        && unit.owner === primary.owner
-        && getBuildOptions(unit.owner, unit.unitType).includes(buildingType);
-    });
-    if (eligibleBuilderIds.length === 0) return false;
-
-    const clampedAnchor = {
-      x: clamp(anchor.x, 0, mapWidth - 1),
-      y: clamp(anchor.y, 0, mapHeight - 1),
-    };
-    const footprint = buildingFootprint(buildingType);
-    if (isPlacementBlocked(
-      clampedAnchor.x,
-      clampedAnchor.y,
-      footprint.width,
-      footprint.height,
-      buildingType,
-    )) {
-      return false;
-    }
-
-    const stockpile = accessor.get(playerResourcesCodec).get(primary.owner);
-    if (!stockpile) return false;
-
-    const cost = ownerConstructionCost(accessor, primary.owner, buildingType);
-    if (!canAfford(stockpile, cost)) return false;
-
-    spendResources(stockpile, cost);
-    accessor.markDirty(playerResourcesCodec);
-    const buildingId = addBuildingEntity(primary.owner, buildingType, clampedAnchor, false);
-    const buildingRef = getEntityRef(buildingId);
-    if (!buildingRef) {
-      throw new Error(`Expected a current EntityRef for new ${buildingType} construction.`);
-    }
-    for (const id of eligibleBuilderIds) {
-      clearGathererOrder(id);
-      setUnitCommand(id, {
-        type: 'build',
-        target: clampedAnchor,
-        buildingRef,
-      });
-    }
-    markOutOfBandRenderChange();
-    return true;
-  }
+  const startConstructionWithBuildersDirect = createConstructionStart({
+    world, accessor, mapWidth, mapHeight,
+    getBuildOptions, isPlacementBlocked, addBuildingEntity, getEntityRef,
+    clearGathererOrder, setUnitCommand, markOutOfBandRenderChange,
+  });
 
   function isGroundWalkable(x: number, y: number): boolean {
     return isTerrainPassableForUnit(x, y)

@@ -235,7 +235,9 @@ export function createVoxelPointerInputController(
     const cellY = clamp(Math.floor(cell.y), 0, map.height - 1);
     if (deps.getBridge().getSelectionState().placementMode) {
       deps.clearRecentSelectionClicks();
-      deps.getBridge().confirmBuildingPlacement(cellX, cellY);
+      // Shift (v0.3.126): stamp this foundation AND stay in placement mode,
+      // queuing the build behind the villager's current site — AoE2's chain.
+      deps.getBridge().confirmBuildingPlacement(cellX, cellY, { queue: event.shiftKey });
       return;
     }
     if (!dragSelection || dragSelection.pointerId !== event.pointerId) return;

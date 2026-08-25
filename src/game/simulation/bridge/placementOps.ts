@@ -78,7 +78,7 @@ export interface PlacementDeps {
 export interface PlacementOps {
   getPlacementPreview(x: number, y: number): PlacementPreviewState | null;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
-  confirmBuildingPlacement(x: number, y: number): boolean;
+  confirmBuildingPlacement(x: number, y: number, options?: { queue?: boolean }): boolean;
 }
 
 export function createPlacementOps(deps: PlacementDeps): PlacementOps {
@@ -164,7 +164,7 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
   // affordability checks synchronously; handler delegates to
   // startConstructionDirect at start of next step's processCommands.
   // Translates validator codes to pre-1B toast strings.
-  function confirmBuildingPlacement(x: number, y: number): boolean {
+  function confirmBuildingPlacement(x: number, y: number, options?: { queue?: boolean }): boolean {
     if (!isMatchRunning()) {
       return false;
     }
@@ -193,6 +193,7 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       buildingType,
       position: anchor,
       ...(additionalBuilderIds.length > 0 ? { additionalBuilderIds } : {}),
+      ...(options?.queue ? { queue: true } : {}),
     });
     if (result.accepted) {
       // Same-window supersession (auto-mine review iter-1 HIGH): an accepted
@@ -206,7 +207,9 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       for (const builderId of additionalBuilderIds) {
         removePendingUnitCommands(state.pendingCommands, builderId);
       }
-      placementMode.current = null;
+      // Shift-queue (v0.3.126): a queued placement keeps the mode armed so
+      // the player can stamp the next foundation without re-opening the menu.
+      if (!options?.queue) placementMode.current = null;
       return true;
     }
     // Translate validator codes to the pre-1B rejection toast strings.

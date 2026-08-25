@@ -27,6 +27,8 @@ export interface UnitCommand {
   target: Position;
   // Shift-queued waypoints (v0.3.125): legs still to walk after `target`.
   queuedTargets?: Position[];
+  // Shift-queued construction (v0.3.126): sites to build after this one.
+  queuedBuildRefs?: EntityRef[];
   buildingRef?: EntityRef;
   targetEntityRef?: EntityRef;
   targetEntityKind?: 'unit' | 'building' | 'resource';

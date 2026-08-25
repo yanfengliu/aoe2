@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.126
+
+- Shift-stamp foundations: hold Shift while placing and the placement stays armed; your villager finishes each site and walks to the next, exactly as in AoE2.
+
 ## 0.3.125
 
 - Shift-click waypoints: hold Shift and right-click to chain movement legs, exactly as in AoE2. A plain click replaces the chain.

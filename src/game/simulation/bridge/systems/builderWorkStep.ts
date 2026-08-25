@@ -26,11 +26,12 @@ import {
   playerResourcesCodec,
   repairAccrualCodec,
   researchedTechnologiesCodec,
+  unitCommandsCodec,
 } from '../bridgeStateSerialize';
 import { repairCost } from '../../prototypeEconomyRules';
 import { chargeRepairTick, clearRepairAccrual } from '../../repairCharging';
 import type { ConstructionState, UnitCommand } from '../sharedTypes';
-import type { GameWorld } from '../pureHelpers';
+import { currentEntityId, type GameWorld } from '../pureHelpers';
 
 const EMPTY_TECH_SET: ReadonlySet<never> = new Set();
 
@@ -121,9 +122,10 @@ export function runBuilderWorkStep(ctx: BuilderWorkStepContext): BuilderWorkResu
 
   // CONSTRUCTION (command.type === 'build'): a complete or absent
   // construction state clears (an over-assigned builder after completion
-  // does NOT continue as a free repair).
+  // does NOT continue as a free repair) — unless a build CHAIN (v0.3.126)
+  // has a next site queued, in which case the builder walks on to it.
   if (!construction || construction.isComplete) {
-    clearUnitCommand(id);
+    if (!advanceQueuedBuild(ctx)) clearUnitCommand(id);
     return null;
   }
   if (!isUnitAtTarget(id, buildingApproachPlan.destination, activeWorld)) {
@@ -155,4 +157,35 @@ export function runBuilderWorkStep(ctx: BuilderWorkStepContext): BuilderWorkResu
   activeWorld.patchComponent<RenderableComponent>(buildingId, 'renderable', (r) => r);
 
   return construction ?? null;
+}
+
+// Shift-queued construction (v0.3.126): rewrite the finished build command to
+// the next still-in-progress queued site, dropping refs whose site vanished
+// or already finished. Returns false when nothing usable is queued.
+function advanceQueuedBuild(ctx: BuilderWorkStepContext): boolean {
+  return advanceQueuedBuildCommand(ctx.world, ctx.accessor, ctx.command);
+}
+
+export function advanceQueuedBuildCommand(
+  activeWorld: GameWorld,
+  accessor: BridgeStateAccessor,
+  command: UnitCommand,
+): boolean {
+  const queued = [...(command.queuedBuildRefs ?? [])];
+  while (queued.length > 0) {
+    const nextRef = queued.shift()!;
+    const nextId = currentEntityId(activeWorld, nextRef);
+    if (nextId === null) continue;
+    const nextConstruction = accessor.get(constructionStatesCodec).get(nextId);
+    if (!nextConstruction || nextConstruction.isComplete) continue;
+    const position = activeWorld.getComponent<Position>(nextId, 'position');
+    if (!position) continue;
+    command.type = 'build';
+    command.target = { x: position.x, y: position.y };
+    command.buildingRef = nextRef;
+    command.queuedBuildRefs = queued;
+    accessor.markDirty(unitCommandsCodec);
+    return true;
+  }
+  return false;
 }

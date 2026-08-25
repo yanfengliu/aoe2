@@ -90,7 +90,7 @@ export type GameCommands = {
     amount: number;
   };
   // --- Construction + building actions ---
-  'building.placeConfirm': { builderId: number; buildingType: BuildableBuildingType; position: Position; additionalBuilderIds?: number[] };
+  'building.placeConfirm': { builderId: number; buildingType: BuildableBuildingType; position: Position; additionalBuilderIds?: number[]; queue?: boolean };
   'building.setRallyPoint': { buildingId: number; target: Position };
   'building.action': { buildingId: number; actionType: BuildingActionType };
 };

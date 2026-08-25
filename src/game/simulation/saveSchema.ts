@@ -61,6 +61,8 @@ export interface SerializedUnitCommand {
   target: { x: number; y: number };
   // v0.3.125 shift-queue: waypoints after `target`; absent on older saves.
   queuedTargets?: { x: number; y: number }[];
+  // v0.3.126 build chains: sites queued behind the active construction.
+  queuedBuildRefs?: { id: number; generation: number }[];
   buildingRef?: SerializedEntityRef;
   targetEntityRef?: SerializedEntityRef;
   targetEntityKind?: 'unit' | 'building' | 'resource';

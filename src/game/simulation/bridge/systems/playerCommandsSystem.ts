@@ -6,7 +6,7 @@
 
 import { runAttackCommandStep } from './attackCommandStep';
 import { isMonasticUnit } from '../../monasticUnits';
-import { runBuilderWorkStep } from './builderWorkStep';
+import { advanceQueuedBuildCommand, runBuilderWorkStep } from './builderWorkStep';
 import { runRepairUnitStep } from './repairUnitStep';
 import { runAttackGroundStep } from './attackGroundStep';
 import { runTradeStep } from '../tradeCommandStep';
@@ -305,7 +305,12 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             onComplete: onBuildingConstructionComplete,
             markRender: markOutOfBandRenderChange,
           });
-          clearUnitCommand(id);
+          // Build chain (v0.3.126): a queued next site takes over instead of
+          // clearing — the builder walks straight from the finished roof to
+          // the next foundation, AoE2's shift-build.
+          if (!advanceQueuedBuildCommand(activeWorld, accessor, command)) {
+            clearUnitCommand(id);
+          }
         }
       }
     },
