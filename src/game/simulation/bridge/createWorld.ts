@@ -66,6 +66,7 @@ export interface CreateWorldOptions {
   difficulty?: import('../ai').DifficultyLevel;
   victory?: 'standard' | 'conquest-only';
   resourcePreset?: import('../matchOptions').ResourcePreset;
+  populationCap?: number;
   /** Which side each owner is on (?teams=). Absent means a free-for-all. */
   teamsByOwner?: ReadonlyMap<number, number>;
 }
@@ -239,6 +240,7 @@ export function createWorld(
     difficulty: options.difficulty,
     victory: options.victory,
     resourcePreset: options.resourcePreset,
+    populationCap: options.populationCap,
     ensurePlayerScoreCounters: helpers.ensurePlayerScoreCounters,
     ensureAiState: helpers.ensureAiState,
     inFlightTechSetFor: helpers.inFlightTechSetFor,

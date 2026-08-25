@@ -4,6 +4,7 @@
 // state, raise the owner's population supply, and fire the completion callback.
 // Pulled out so the build/repair loop stays under the 500-LOC file cap.
 
+import { matchSettingsCodec } from './bridgeStateSerialize';
 import type { BuildingComponent, RenderableComponent, VisionSourceComponent } from '../types';
 import { deriveCap } from './bridgeConstants';
 import {
@@ -94,7 +95,10 @@ export function finalizeBuildingConstruction(params: {
   if (populationState && construction.populationProvided > 0) {
     // Raise the honest raw supply; cap is the derived 200-clamp of it.
     populationState.rawSupply += construction.populationProvided;
-    populationState.cap = deriveCap(populationState.rawSupply);
+    populationState.cap = deriveCap(
+      populationState.rawSupply,
+      accessor.get(matchSettingsCodec).popCap,
+    );
     accessor.markDirty(populationCodec);
   }
 

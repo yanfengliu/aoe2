@@ -11,7 +11,12 @@ import { parseCivParam } from './civParam';
 import { parsePlayersParam } from './playersParam';
 import { parseTeamsParam } from './teamsParam';
 import { parseDifficultyParam } from './difficultyParam';
-import { parseResourcesParam, parseSpeedParam, parseVictoryParam } from './matchOptionParams';
+import {
+  parsePopCapParam,
+  parseResourcesParam,
+  parseSpeedParam,
+  parseVictoryParam,
+} from './matchOptionParams';
 import { createPauseControl } from '../../game/control/PauseControl';
 import { createHotkeyRegistry } from '../../game/control/HotkeyRegistry';
 import { createRecordingService, type RecordingService } from '../../game/recording/RecordingService';
@@ -94,6 +99,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   const victory = parseVictoryParam(window.location.href);
   const resourcePreset = parseResourcesParam(window.location.href);
   const simulationSpeedMultiplier = parseSpeedParam(window.location.href);
+  const populationCap = parsePopCapParam(window.location.href);
 
   // FU5: bridge reference is mutable so HUD Load can swap in a
   // rehydrated simulation. AO-12 adds bridgeRef indirection so consumers
@@ -106,6 +112,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     difficulty,
     victory,
     resourcePreset,
+    populationCap,
     teamsByOwner: teamsByOwner.size > 0 ? teamsByOwner : undefined,
   });
   const bridgeRef = (): SimulationBridge => bridge;

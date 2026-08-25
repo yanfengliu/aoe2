@@ -66,6 +66,7 @@ export interface ScenarioSeedDeps {
   standardStartingResources: PlayerResources;
   /** §4.3: seeds matchSettings — a conquest-only match persists as one. */
   victory?: 'standard' | 'conquest-only';
+  populationCap?: number;
   standardPopulationCap: number;
   defaultDifficulty: DifficultyLevel;
   state: import('./bridgeState').BridgeState;
@@ -167,9 +168,10 @@ export function seedPlayerStarts(deps: ScenarioSeedDeps): void {
   });
   // §4.3: a conquest-only match records it in world state, so the setting
   // survives a save and the countdown systems read one flag.
-  if (deps.victory === 'conquest-only') {
+  if (deps.victory === 'conquest-only' || deps.populationCap !== undefined) {
     accessor.mutate(matchSettingsCodec, (settings) => {
-      settings.conquestOnly = true;
+      if (deps.victory === 'conquest-only') settings.conquestOnly = true;
+      if (deps.populationCap !== undefined) settings.popCap = deps.populationCap;
     });
   }
   for (const start of scenario.starts) {

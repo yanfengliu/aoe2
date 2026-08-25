@@ -44,4 +44,7 @@ export interface CreateSimulationBridgeOptions {
   /** §4.1 starting-resource preset for every seat the scenario does not pin.
    *  standard 200/200/100/200 · medium 500/500/300/400 · high 1000/1000/700/800. */
   resourcePreset?: 'standard' | 'medium' | 'high';
+  /** §4.6 population cap (25..500; absent = the standard 200). Persisted, and
+   *  re-applied to every owner's derived cap on load. */
+  populationCap?: number;
 }

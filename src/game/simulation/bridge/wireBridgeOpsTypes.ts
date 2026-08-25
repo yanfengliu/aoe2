@@ -55,6 +55,7 @@ export interface WireBridgeOpsDeps {
   difficulty?: import('../ai').DifficultyLevel;
   victory?: 'standard' | 'conquest-only';
   resourcePreset?: import('../matchOptions').ResourcePreset;
+  populationCap?: number;
   markOutOfBandRenderChange: () => void;
   getSeed: () => string;
 }

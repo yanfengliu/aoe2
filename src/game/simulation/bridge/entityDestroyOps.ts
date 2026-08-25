@@ -3,6 +3,7 @@
 // the pre-extraction inline implementation byte-for-byte; the only change
 // is the dependency surface is explicit instead of closure-captured.
 
+import { matchSettingsCodec } from './bridgeStateSerialize';
 import { isMonasticUnit } from '../monasticUnits';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
@@ -272,7 +273,10 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
         // evicted (no code path removes units on a cap change), training is
         // blocked (current >= cap) until pop falls below the cap again.
         populationState.rawSupply -= populationProvided;
-        populationState.cap = deriveCap(populationState.rawSupply);
+        populationState.cap = deriveCap(
+          populationState.rawSupply,
+          accessor.get(matchSettingsCodec).popCap,
+        );
         accessor.markDirty(populationCodec);
       }
     }
@@ -422,7 +426,10 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
           // provide 0 pop today so this branch is dormant for the cap, but
           // it stays consistent with the model for any future hybrid.)
           populationState.rawSupply -= populationProvided;
-          populationState.cap = deriveCap(populationState.rawSupply);
+          populationState.cap = deriveCap(
+          populationState.rawSupply,
+          accessor.get(matchSettingsCodec).popCap,
+        );
           accessor.markDirty(populationCodec);
         }
       }

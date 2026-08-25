@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.75 - 2026-08-24
+
+### Added
+
+- **The population cap is a match option** — the setup screen's row (75 to 250) or `?popcap=25..500`. The cap rides the match settings through saves, so a 100-cap match reloads as one. With it, every setup option §4.6 names is configurable.
+
 ## 0.3.74 - 2026-08-24
 
 ### Added

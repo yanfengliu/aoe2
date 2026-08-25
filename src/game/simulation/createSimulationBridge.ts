@@ -135,6 +135,7 @@ export function createSimulationBridge(
       difficulty: options.difficulty,
       victory: options.victory,
       resourcePreset: options.resourcePreset,
+      populationCap: options.populationCap,
       scenario: freshScenario ?? undefined,
     });
   const renderStore = new RenderStore();

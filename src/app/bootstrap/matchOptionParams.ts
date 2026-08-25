@@ -24,6 +24,18 @@ export function parseResourcesParam(url: string): ResourcePreset | undefined {
   return undefined;
 }
 
+/** §4.6 population cap: ?popcap=25..500, absent = the standard 200. */
+export function parsePopCapParam(url: string): number | undefined {
+  const raw = new URL(url).searchParams.get('popcap');
+  if (raw === null || raw.trim() === '') return undefined;
+  const value = Number(raw.trim());
+  if (!Number.isInteger(value) || value < 25 || value > 500) {
+    console.warn(`[aoe2] ?popcap= "${raw.trim()}" is not a whole number in 25..500; using 200.`);
+    return undefined;
+  }
+  return value;
+}
+
 /** The simulation-delta multiplier ?speed= asks for (§4.5); 1 when absent. */
 export function parseSpeedParam(url: string): number {
   const raw = new URL(url).searchParams.get('speed');

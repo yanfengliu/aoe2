@@ -1,12 +1,12 @@
 import { currentEntityId } from './pureHelpers';
 import { defaultStanceFor } from '../unitStance';
 import { DEFAULT_FORMATION } from '../unitFormation';
-import { unitFormationsCodec, unitStancesCodec } from './bridgeStateSerialize';
+import {
+  unitFormationsCodec,
+  unitStancesCodec,
+} from './bridgeStateSerialize';
 import type { UnitTaskState } from '../types';
-import { DEFAULT_DIFFICULTY } from '../ai';
-import { hydrateFromSavedGame, seedFreshScenario } from './scenarioSeedOps';
-import { hydrateRuntimeFromWorldState } from './hydrateFromWorldState';
-import { isSaveBlobV1 } from '../saveSchema';
+import { bootScenarioOrLoad } from './bootScenarioOrLoad';
 import { registerBridgeSystems } from './registerBridgeSystems';
 import { registerCommandHandlers } from './registerCommandHandlers';
 import { buildCommandValidatorDeps } from './commandValidatorDeps';
@@ -17,13 +17,10 @@ import { wirePostSeedOps } from './wirePostSeedOps';
 import { createAiIntentionPushers } from './aiIntentionPushers';
 import { setReplayWorldContext } from '../replay/replayWorldContext';
 import { HUMAN_PLAYER_ID } from '../prototypeScenario';
-import { RESOURCE_PRESETS } from '../matchOptions';
 import { createTributeOps } from './tributeOps';
 import {
   MARKET_FEE_RATE,
   MARKET_TRANSACTION_AMOUNT,
-  STANDARD_POPULATION_CAP,
-  STANDARD_STARTING_RESOURCES,
 } from './bridgeConstants';
 import { TIER_3_SLOTS } from './bridgeStateSerialize';
 
@@ -116,53 +113,22 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getEntityRef,
   });
 
-  if (!savedGame && scenario) {
-    seedFreshScenario({
-      world,
-      scenario,
-      tiles,
-      humanPlayerId: HUMAN_PLAYER_ID,
-      mapWidth: world.grid.width,
-      mapHeight: world.grid.height,
-      standardStartingResources: deps.resourcePreset
-        ? RESOURCE_PRESETS[deps.resourcePreset]
-        : STANDARD_STARTING_RESOURCES,
-      standardPopulationCap: STANDARD_POPULATION_CAP,
-      defaultDifficulty: deps.difficulty ?? DEFAULT_DIFFICULTY,
-      victory: deps.victory,
-      state,
-      accessor,
-      ensureAiState,
-      addBuildingEntity,
-      addUnitEntity,
-      addResourceEntity,
-      findScenarioSpawnPosition,
-      buildingOccupiesCell,
-      isTerrainPassableForUnitId,
-      isCellBlockedByBuilding,
-    });
-  }
-
-  if (savedGame) {
-    if (isSaveBlobV1(savedGame)) {
-      hydrateFromSavedGame({
-        world,
-        savedGame,
-        matchState,
-        state,
-        accessor,
-        inFlightTechSetFor,
-      });
-    } else {
-      hydrateRuntimeFromWorldState({
-        world,
-        matchState,
-        state,
-        accessor,
-        inFlightTechSetFor,
-      });
-    }
-  }
+  bootScenarioOrLoad({
+    world, scenario, savedGame, matchState, state, accessor, tiles,
+    difficulty: deps.difficulty,
+    victory: deps.victory,
+    resourcePreset: deps.resourcePreset,
+    populationCap: deps.populationCap,
+    ensureAiState,
+    inFlightTechSetFor,
+    addBuildingEntity,
+    addUnitEntity,
+    addResourceEntity,
+    findScenarioSpawnPosition,
+    buildingOccupiesCell,
+    isTerrainPassableForUnitId,
+    isCellBlockedByBuilding,
+  });
 
   isBootstrappingScenarioRef.current = false;
   rebuildWorldOccupancyFromWorld();

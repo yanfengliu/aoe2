@@ -29,19 +29,19 @@ describe('the query the screen writes', () => {
   it('carries every non-default choice and omits the defaults', () => {
     expect(setupQueryString({
       seed: 'arena', players: 4, civilization: 'Franks', teams: 'two-sides', difficulty: 'hard',
-      resources: 'high', victory: 'conquest-only', speed: 'fast',
-    })).toBe('seed=arena&players=4&civ=Franks&teams=1%2C1%2C2%2C2&difficulty=hard&resources=high&victory=conquest-only&speed=fast');
+      resources: 'high', victory: 'conquest-only', speed: 'fast', popCap: 100,
+    })).toBe('seed=arena&players=4&civ=Franks&teams=1%2C1%2C2%2C2&difficulty=hard&resources=high&victory=conquest-only&speed=fast&popcap=100');
     // Defaults stay out of the URL, so the ordinary 1v1 link stays short.
     expect(setupQueryString({
       seed: 'aoe2-prototype', players: 2, civilization: 'Britons', teams: 'ffa', difficulty: 'standard',
-      resources: 'standard', victory: 'standard', speed: 'slow',
+      resources: 'standard', victory: 'standard', speed: 'slow', popCap: 200,
     })).toBe('seed=aoe2-prototype&civ=Britons');
   });
 
   it('splits odd counts with the extra seat on the human side', () => {
     const query = setupQueryString({
       seed: 'aoe2-prototype', players: 5, civilization: 'Britons', teams: 'two-sides', difficulty: 'standard',
-      resources: 'standard', victory: 'standard', speed: 'slow',
+      resources: 'standard', victory: 'standard', speed: 'slow', popCap: 200,
     });
     expect(new URLSearchParams(query).get('teams')).toBe('1,1,1,2,2');
   });
@@ -102,5 +102,29 @@ describe('the options inside a real match', () => {
     const reloaded = createSimulationBridge('relic-short-countdown-fixture', { savedGame: blob });
     for (let step = 0; step < 60; step += 1) reloaded.step(100);
     expect(reloaded.getMatchState().outcome).toBe('running');
+  }, 60_000);
+});
+
+describe('the population cap option', () => {
+  it('parses 25..500 and refuses the rest', async () => {
+    const { parsePopCapParam } = await import('../../src/app/bootstrap/matchOptionParams');
+    expect(parsePopCapParam('http://x/?popcap=100')).toBe(100);
+    expect(parsePopCapParam('http://x/?popcap=500')).toBe(500);
+    expect(parsePopCapParam('http://x/?popcap=10')).toBeUndefined();
+    expect(parsePopCapParam('http://x/?popcap=lots')).toBeUndefined();
+    expect(parsePopCapParam('http://x/')).toBeUndefined();
+  });
+
+  it('caps a match below 200 and survives a save', async () => {
+    const { createSimulationBridge } = await import('../../src/game/simulation/createSimulationBridge');
+    const { asSchema2Blob } = await import('./saveBlobTestUtils');
+    // The building-showcase fixture stands enough housing to clear 30 supply,
+    // so a 30 cap binds while the default 200 would not.
+    const bridge = createSimulationBridge('building-showcase-fixture', { populationCap: 30 });
+    expect(bridge.getPopulationState(1).cap).toBe(30);
+    const reloaded = createSimulationBridge('building-showcase-fixture', {
+      savedGame: asSchema2Blob(bridge.saveGame()),
+    });
+    expect(reloaded.getPopulationState(1).cap).toBe(30);
   }, 60_000);
 });

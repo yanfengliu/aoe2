@@ -6,6 +6,7 @@
 // surface is explicit instead of closure-captured.
 
 import { isMonasticUnit } from '../monasticUnits';
+import { matchSettingsCodec } from './bridgeStateSerialize';
 import { atheismCountdownExtension } from './atheismCountdowns';
 import { buildingMaxHpWithTechnologies } from '../buildingTechEffects';
 import type { EntityRef, Position } from 'civ-engine';
@@ -394,7 +395,10 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     if (isComplete && populationState && populationProvided > 0) {
       // Raise the honest raw supply; cap is the derived 200-clamp of it.
       populationState.rawSupply += populationProvided;
-      populationState.cap = deriveCap(populationState.rawSupply);
+      populationState.cap = deriveCap(
+        populationState.rawSupply,
+        accessor.get(matchSettingsCodec).popCap,
+      );
       accessor.markDirty(populationCodec);
     }
 

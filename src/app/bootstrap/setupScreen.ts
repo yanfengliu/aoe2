@@ -17,6 +17,7 @@ export interface SetupChoices {
   resources: 'standard' | 'medium' | 'high';
   victory: 'standard' | 'conquest-only';
   speed: 'slow' | 'normal' | 'fast';
+  popCap: number;
 }
 
 /** True when this visit carries any configuration at all — those boot straight
@@ -42,6 +43,7 @@ export function setupQueryString(choices: SetupChoices): string {
   if (choices.resources !== 'standard') params.set('resources', choices.resources);
   if (choices.victory !== 'standard') params.set('victory', choices.victory);
   if (choices.speed !== 'slow') params.set('speed', choices.speed);
+  if (choices.popCap !== 200) params.set('popcap', String(choices.popCap));
   return params.toString();
 }
 
@@ -107,6 +109,15 @@ export function mountSetupScreen(root: HTMLElement): void {
           <option value="conquest-only">Conquest only</option>
         </select>
       </label>
+      <label class="setup-row">Population cap
+        <select data-setup="popcap">
+          <option value="75">75</option>
+          <option value="100">100</option>
+          <option value="150">150</option>
+          <option value="200" selected>200</option>
+          <option value="250">250</option>
+        </select>
+      </label>
       <label class="setup-row">Game speed
         <select data-setup="speed">
           <option value="slow" selected>Slow (1.0x)</option>
@@ -131,6 +142,7 @@ export function mountSetupScreen(root: HTMLElement): void {
       resources: read('resources') as SetupChoices['resources'],
       victory: read('victory') as SetupChoices['victory'],
       speed: read('speed') as SetupChoices['speed'],
+      popCap: Number(read('popcap')),
     });
     window.location.assign(`${window.location.pathname}?${query}`);
   });

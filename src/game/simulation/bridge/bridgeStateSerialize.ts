@@ -178,11 +178,19 @@ export const marketExchangeRatesCodec: SlotCodec<
 export interface MatchSettings {
   /** True disables Wonder and Relic victories for the whole match. */
   conquestOnly?: boolean;
+  /** §4.6 population cap for the match (absent = the standard 200). */
+  popCap?: number;
 }
 export const matchSettingsCodec: SlotCodec<MatchSettings, MatchSettings> = {
   slot: 'aoe2.matchSettings',
-  serialize: (o) => ({ ...(o.conquestOnly ? { conquestOnly: true } : {}) }),
-  deserialize: (j) => (j === undefined ? {} : { ...(j.conquestOnly ? { conquestOnly: true } : {}) }),
+  serialize: (o) => ({
+    ...(o.conquestOnly ? { conquestOnly: true } : {}),
+    ...(o.popCap !== undefined ? { popCap: o.popCap } : {}),
+  }),
+  deserialize: (j) => (j === undefined ? {} : {
+    ...(j.conquestOnly ? { conquestOnly: true } : {}),
+    ...(j.popCap !== undefined ? { popCap: j.popCap } : {}),
+  }),
 };
 
 // townCenterRefs: Map<ownerId, EntityRef>. EntityRef is `{id, generation}` — JSON-compatible.
