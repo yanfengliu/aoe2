@@ -89,12 +89,23 @@ export function teamAntiArcherBonus(
   attackerType: UnitType,
   targetType: UnitType,
 ): number {
+  let bonus = 0;
   if (
     KNIGHT_LINE.has(attackerType)
     && ARCHER_CLASS_TARGETS.has(targetType)
     && teamHasCivilization(teams, civilizations, owner, 'Persians')
   ) {
-    return 2;
+    bonus += 2;
   }
-  return 0;
+  // Japanese CIV bonus (sourced v0.3.153): "Cavalry Archers +2 attack vs.
+  // Ranged Soldiers (except Skirmishers)" — the owner alone, not the team.
+  if (
+    (attackerType === 'cavalry-archer' || attackerType === 'heavy-cavalry-archer')
+    && ARCHER_CLASS_TARGETS.has(targetType)
+    && targetType !== 'skirmisher' && targetType !== 'elite-skirmisher'
+    && civilizations.get(owner) === 'Japanese'
+  ) {
+    bonus += 2;
+  }
+  return bonus;
 }

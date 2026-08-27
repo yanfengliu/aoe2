@@ -106,6 +106,13 @@ describe('combat-stat bonuses', () => {
     expect(teamBuildingAttackBonus(teams, new Map([[1, 'Indians']]), 1, 'hussar')).toBe(2);
     expect(teamAntiArcherBonus(teams, civs, 2, 'knight', 'archer')).toBe(2);
     expect(teamAntiArcherBonus(teams, civs, 2, 'knight', 'militia')).toBe(0);
+    // Japanese CIV clause (sourced v0.3.153): CA +2 vs ranged except skirms.
+    const japanese = new Map([[1, 'Japanese']]);
+    expect(teamAntiArcherBonus(teams, japanese, 1, 'cavalry-archer', 'archer')).toBe(2);
+    expect(teamAntiArcherBonus(teams, japanese, 1, 'cavalry-archer', 'skirmisher')).toBe(0);
+    expect(teamAntiArcherBonus(teams, japanese, 1, 'archer', 'archer')).toBe(0);
+    // Civ-side, not team-side: an ally's CA gets nothing.
+    expect(teamAntiArcherBonus(new Map([[1, 1], [2, 1]]), new Map([[1, 'Japanese'], [2, 'Franks']]), 2, 'cavalry-archer', 'archer')).toBe(0);
     // And an ALLY carries it too.
     const allied = new Map([[1, 1], [2, 1]]);
     expect(teamAntiArcherBonus(allied, civs, 1, 'knight', 'archer')).toBe(2);

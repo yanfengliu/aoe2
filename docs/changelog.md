@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.153
+
+- Japanese cavalry archers gain +2 attack against ranged soldiers (skirmishers excepted) — the audit's final combat line.
+
 ## 0.3.152
 
 - The per-age combat ladders land: Malian barracks units gain +1/+2/+3 pierce armor through the ages, Teuton barracks and stable units +1/+2 melee armor from the Castle Age, Goth infantry's building damage steps +1/+2/+3, and Berber villagers ramp from +5% to +10% speed at the Feudal Age.
