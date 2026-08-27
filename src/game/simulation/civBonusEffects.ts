@@ -34,7 +34,7 @@ export const BRITONS_SHEEP_GATHER_MULTIPLIER = 1.25;
 // v0.3.148: the Frank mounted +20% rides the Feudal-gated age ladder now.
 
 // Goths infantry deal +1 attack against buildings (from game start).
-export const GOTHS_INFANTRY_BUILDING_ATTACK_BONUS = 1;
+// v0.3.152: the Goth anti-building bonus is the per-age ladder below.
 
 // Aztecs military units train 15% faster (×0.85 train time).
 export const AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER = 0.85;
@@ -423,4 +423,56 @@ export function effectiveResearchCost(
   if (zeroGold) delete cost.gold;
   if (zeroWood) delete cost.wood;
   return cost;
+}
+
+// Per-age ARMOR ladders (sourced v0.3.152), factory-applied and re-derived
+// by delta in the age-up sweep like the range ladder.
+const BARRACKS_UNITS = new Set<UnitType>([
+  'militia', 'man-at-arms', 'long-swordsman', 'two-handed-swordsman', 'champion',
+  'spearman', 'pikeman', 'halberdier', 'eagle-warrior', 'elite-eagle-warrior',
+]);
+const STABLE_UNITS_ARMOR = new Set<UnitType>([
+  'scout', 'light-cavalry', 'hussar', 'knight', 'cavalier', 'paladin', 'camel', 'heavy-camel',
+]);
+
+/** Malians: "Barracks Units +1/+2/+3 pierce armor in Feudal/Castle/Imperial". */
+export function civPierceArmorBonus(
+  civilization: string | undefined,
+  unitType: UnitType,
+  age: AgeType,
+): number {
+  if (civilization !== 'Malians' || !BARRACKS_UNITS.has(unitType)) return 0;
+  if (age === 'imperial-age') return 3;
+  if (age === 'castle-age') return 2;
+  if (age === 'feudal-age') return 1;
+  return 0;
+}
+
+/** Teutons: "Barracks and Stable Units +1/+2 melee armor in Castle/Imperial". */
+export function civMeleeArmorBonus(
+  civilization: string | undefined,
+  unitType: UnitType,
+  age: AgeType,
+): number {
+  if (civilization !== 'Teutons') return 0;
+  if (!BARRACKS_UNITS.has(unitType) && !STABLE_UNITS_ARMOR.has(unitType)) return 0;
+  if (age === 'imperial-age') return 2;
+  if (age === 'castle-age') return 1;
+  return 0;
+}
+
+// Goths (sourced v0.3.152): the +1 became "+1/+2/+3 attack vs. buildings in
+// Feudal/Castle/Imperial" — the flat table entry stays as the Feudal rung's
+// source of truth for tests that predate ages here; this ladder REPLACES it
+// at the delivery site.
+export function civBuildingAttackLadder(
+  civilization: string | undefined,
+  unitType: UnitType,
+  age: AgeType,
+): number {
+  if (civilization !== 'Goths' || !isInfantryUnit(unitType)) return 0;
+  if (age === 'imperial-age') return 3;
+  if (age === 'castle-age') return 2;
+  if (age === 'feudal-age') return 1;
+  return 0;
 }

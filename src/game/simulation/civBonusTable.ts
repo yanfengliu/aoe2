@@ -177,7 +177,8 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     civilization: 'Goths',
     carryBonus: [{ kind: 'boar', bonus: 15 }], // "Hunters carry +15 meat".
     imperialPopulationBonus: 10, // "+10 to population limit in Imperial Age".
-    buildingAttack: [{ applies: (unit) => isInfantryUnit(unit), bonus: 1 }],
+    // The +1 vs buildings became a +1/2/3 age ladder at the delivery site
+    // (civBuildingAttackLadder, sourced v0.3.152).
     cost: [{
       applies: (unit) => isInfantryUnit(unit),
       // DE (sourced v0.3.146): -15/20/25/30% in Dark/Feudal/Castle/Imperial.

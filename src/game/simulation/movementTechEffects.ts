@@ -73,6 +73,8 @@ export function movementSpeedPercent(
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
   unitType: UnitType,
   civilization?: string,
+  /** v0.3.152: the Berber villager bonus is +5% in the Dark Age, +10% after. */
+  age?: import('./types').AgeType,
 ): number {
   // The unit's own rate is the STARTING point, not a special case: a Mangonel
   // is slow whether or not anyone researched anything, and Husbandry makes a
@@ -81,7 +83,10 @@ export function movementSpeedPercent(
   // Civilization speed bonuses (Celts infantry, Berbers villagers and ships,
   // Ethiopians archers) multiply first, so the tech ladder stacks on top of a
   // civ's own rate exactly as it stacks on a unit's own rate.
-  const civMultiplier = civSpeedMultiplier(civilization, unitType);
+  let civMultiplier = civSpeedMultiplier(civilization, unitType);
+  if (civilization === 'Berbers' && unitType === 'villager' && age === 'dark-age') {
+    civMultiplier = 1.05; // DE: +5% Dark, +10% from Feudal.
+  }
   if (civMultiplier !== 1) {
     percent = Math.round(percent * civMultiplier);
   }

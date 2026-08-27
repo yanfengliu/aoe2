@@ -17,6 +17,7 @@ import type { UnitCommand } from '../sharedTypes';
 import {
   buildingHealthStatesCodec,
   combatStatesCodec,
+  playerAgesCodec,
   playerCivilizationsCodec,
   playerTeamsCodec,
   projectilesCodec,
@@ -284,6 +285,7 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
             attacker: { id, unitType: unit.unitType, owner: unit.owner, combat: attackerCombat },
             attackerTechs,
             attackerCivilization: attackerCiv,
+            attackerAge: accessor.get(playerAgesCodec).get(unit.owner) ?? 'dark-age',
             teamBuildingBonus: teamBuildingAttackBonus(
               accessor.get(playerTeamsCodec),
               accessor.get(playerCivilizationsCodec),

@@ -17,7 +17,7 @@ import type { ResearchableTechnologyType, UnitType } from '../types';
 import { attackBonusAgainstBuilding, siegeEngineersBuildingMultiplier } from '../prototypeUnitRules';
 import { sappersBuildingAttackBonus } from '../sappersTechEffects';
 import { detonatesOnAttack } from '../prototypeUnitRules';
-import { civBuildingAttackBonus } from '../civBonusEffects';
+import { civBuildingAttackBonus, civBuildingAttackLadder } from '../civBonusEffects';
 import {
   ballisticsLeadsShots,
   thumbRingAccuracy,
@@ -106,6 +106,8 @@ export interface DeliverBuildingAttackParams extends DeliverAttackShared {
   attacker: { id: number; unitType: UnitType; owner: number; combat: CombatState };
   attackerTechs: ReadonlySet<ResearchableTechnologyType>;
   attackerCivilization: string | undefined;
+  /** v0.3.152: the Goth per-age building-attack ladder reads the OWNER's age. */
+  attackerAge?: import('../types').AgeType;
   /** Team-bonus extra vs buildings (Saracen archers, Indian camels). */
   teamBuildingBonus?: number;
   target: { id: number; position: Position };
@@ -127,6 +129,7 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
       + attackBonusAgainstBuilding(attacker.unitType)
       + sappersBuildingAttackBonus(params.attackerTechs, attacker.unitType)
       + civBuildingAttackBonus(params.attackerCivilization, attacker.unitType)
+      + civBuildingAttackLadder(params.attackerCivilization, attacker.unitType, params.attackerAge ?? 'dark-age')
       + (params.teamBuildingBonus ?? 0))
       * siegeEngineersBuildingMultiplier(params.attackerTechs, attacker.unitType)),
   );

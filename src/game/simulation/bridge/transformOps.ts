@@ -23,11 +23,7 @@ import {
   type GameWorld,
 } from './pureHelpers';
 import { UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK } from './pureHelpers';
-import {
-  constructionStatesCodec,
-  playerCivilizationsCodec,
-  researchedTechnologiesCodec,
-} from './bridgeStateSerialize';
+import { constructionStatesCodec, playerAgesCodec, playerCivilizationsCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
 import {
   movementEntitlement,
   movementSpeedPercent,
@@ -308,7 +304,7 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
         : undefined;
       const speedPercent = unit && researched
         ? movementSpeedPercent(researched, unit.unitType,
-            accessor.get(playerCivilizationsCodec).get(unit.owner))
+            accessor.get(playerCivilizationsCodec).get(unit.owner), accessor.get(playerAgesCodec).get(unit.owner) ?? 'dark-age')
         : 100;
       if (speedPercent !== 100) {
         const entitlement = movementEntitlement(

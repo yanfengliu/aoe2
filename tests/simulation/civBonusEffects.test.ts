@@ -11,7 +11,6 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import {
   AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER,
   BRITONS_SHEEP_GATHER_MULTIPLIER,
-  GOTHS_INFANTRY_BUILDING_ATTACK_BONUS,
   MONGOLS_BOAR_GATHER_MULTIPLIER,
   civBuildingAttackBonus,
   civGatherRateMultiplier,
@@ -118,27 +117,13 @@ describe('civUnitHpMultiplier — Franks knight bonus', () => {
   });
 });
 
-describe('civBuildingAttackBonus — Goths infantry-vs-buildings bonus', () => {
-  it('gives Goths infantry +1 attack vs buildings', () => {
-    expect(civBuildingAttackBonus('Goths', 'militia')).toBe(GOTHS_INFANTRY_BUILDING_ATTACK_BONUS);
-    expect(civBuildingAttackBonus('Goths', 'spearman')).toBe(1);
-    expect(civBuildingAttackBonus('Goths', 'champion')).toBe(1);
-    expect(civBuildingAttackBonus('Goths', 'halberdier')).toBe(1);
-    expect(GOTHS_INFANTRY_BUILDING_ATTACK_BONUS).toBe(1);
-  });
-
-  it('does not touch Goths non-infantry attackers', () => {
-    expect(civBuildingAttackBonus('Goths', 'archer')).toBe(0);
-    expect(civBuildingAttackBonus('Goths', 'knight')).toBe(0);
-    expect(civBuildingAttackBonus('Goths', 'battering-ram')).toBe(0);
-    expect(civBuildingAttackBonus('Goths', 'villager')).toBe(0);
-  });
-
-  it('gives no bonus to any other civilization or an unknown civ', () => {
-    expect(civBuildingAttackBonus('Franks', 'militia')).toBe(0);
-    expect(civBuildingAttackBonus('Britons', 'champion')).toBe(0);
-    expect(civBuildingAttackBonus(undefined, 'militia')).toBe(0);
-    expect(civBuildingAttackBonus('', 'militia')).toBe(0);
+describe('civBuildingAttackLadder — Goths per-age anti-building (sourced v0.3.152)', () => {
+  it('steps +1/+2/+3 for infantry only, and the flat table entry is retired', async () => {
+    const { civBuildingAttackLadder } = await import('../../src/game/simulation/civBonusEffects');
+    expect(civBuildingAttackBonus('Goths', 'militia')).toBe(0);
+    expect(civBuildingAttackLadder('Goths', 'spearman', 'castle-age')).toBe(2);
+    expect(civBuildingAttackLadder('Goths', 'archer', 'imperial-age')).toBe(0);
+    expect(civBuildingAttackLadder('Britons', 'militia', 'imperial-age')).toBe(0);
   });
 });
 

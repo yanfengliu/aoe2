@@ -16,6 +16,8 @@ import { applyArmorTech } from '../armorTechBonuses';
 import { CAREENING_SHIP_PIERCE_ARMOR } from '../dockTechEffects';
 import { isWaterUnit } from '../unitDomain';
 import { civAttackRangeBonus,
+  civMeleeArmorBonus,
+  civPierceArmorBonus,
   civReloadMultiplier,
   civUnitHpMultiplier } from '../civBonusEffects';
 import { ageScaledUnitAttack, ageScaledUnitHpFactor } from '../ageScaledHp';
@@ -109,8 +111,10 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
         * civReloadMultiplier(getCivilization(owner), unitType, getAge(owner)),
       )),
       cooldownTicks: 0,
-      armor: 0,
-      pierceArmorBonus: 0,
+      // Per-age civ armor ladders (sourced v0.3.152): Teuton melee,
+      // Malian barracks pierce.
+      armor: civMeleeArmorBonus(getCivilization(owner), unitType, getAge(owner)),
+      pierceArmorBonus: civPierceArmorBonus(getCivilization(owner), unitType, getAge(owner)),
     };
 
     // Loom: +15 villager max HP + +1 melee / +2 pierce armor (spec §11.8). A

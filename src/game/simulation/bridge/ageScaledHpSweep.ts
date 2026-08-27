@@ -12,7 +12,7 @@ import {
   ageScaledUnitAttack,
   ageScaledUnitHpFactor,
 } from '../ageScaledHp';
-import { civAttackRangeBonus, civReloadMultiplier } from '../civBonusEffects';
+import { civAttackRangeBonus, civMeleeArmorBonus, civPierceArmorBonus, civReloadMultiplier } from '../civBonusEffects';
 import { buildingMaxHpForAge } from '../prototypeBuildingRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
@@ -65,6 +65,18 @@ export function applyAgeScaledHpSweep(
         const rangeTo = civAttackRangeBonus(civilization, unit.unitType, toAge);
         if (rangeFrom !== rangeTo) {
           combat.attackRange += rangeTo - rangeFrom;
+          unitsTouched = true;
+        }
+        const meleeFrom = civMeleeArmorBonus(civilization, unit.unitType, fromAge);
+        const meleeTo = civMeleeArmorBonus(civilization, unit.unitType, toAge);
+        if (meleeFrom !== meleeTo) {
+          combat.armor += meleeTo - meleeFrom;
+          unitsTouched = true;
+        }
+        const pierceFrom = civPierceArmorBonus(civilization, unit.unitType, fromAge);
+        const pierceTo = civPierceArmorBonus(civilization, unit.unitType, toAge);
+        if (pierceFrom !== pierceTo) {
+          combat.pierceArmorBonus += pierceTo - pierceFrom;
           unitsTouched = true;
         }
       }
