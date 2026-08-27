@@ -64,7 +64,7 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
   // validator consults for eligibility.
   ['dock', ['careening', 'dry-dock', 'shipwright', 'elite-longboat-upgrade', 'elite-turtle-ship-upgrade', 'war-galley-upgrade', 'galleon-upgrade', 'fast-fire-ship-upgrade', 'heavy-demolition-ship-upgrade', 'cannon-galleon-unlock', 'elite-cannon-galleon-upgrade']],
   ['archery-range', ['crossbowman-upgrade', 'arbalest-upgrade', 'heavy-cavalry-archer-upgrade', 'elite-skirmisher-upgrade', 'thumb-ring', 'parthian-tactics']],
-  ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade', 'squires', 'tracking', 'elite-eagle-warrior-upgrade']],
+  ['barracks', ['pikeman-upgrade', 'halberdier-upgrade', 'champion-upgrade', 'man-at-arms-upgrade', 'long-swordsman-upgrade', 'two-handed-swordsman-upgrade', 'squires', 'elite-eagle-warrior-upgrade']],
   ['stable', ['light-cavalry-upgrade', 'hussar-upgrade', 'cavalier-upgrade', 'paladin-upgrade', 'heavy-camel-upgrade', 'bloodlines', 'husbandry']],
   ['castle', ['sappers', 'elite-longbowman-upgrade', 'conscription', 'hoardings',
     // Civilization unique technologies; which one an owner may see is
@@ -115,7 +115,7 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
   ['siege-workshop', ['onager-upgrade', 'siege-onager-upgrade', 'heavy-scorpion-upgrade', 'capped-ram-upgrade', 'siege-ram-upgrade']],
   // The Market's first technology. Its others (Coinage, Banking, Caravan,
   // Guilds) are about tribute and trade, neither of which exists yet.
-  ['market', ['cartography', 'coinage', 'banking', 'caravan', 'guilds']],
+  ['market', ['coinage', 'banking', 'caravan', 'guilds']],
   ['lumber-camp', ['double-bit-axe', 'bow-saw', 'two-man-saw']],
   ['mining-camp', ['gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining']],
   ['mill', ['horse-collar', 'heavy-plow', 'crop-rotation']],

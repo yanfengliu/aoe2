@@ -19,7 +19,6 @@ import { towerTechResearchOptions } from '../towerTechOptions';
 import { civDenies } from '../civTechTree';
 import { monasteryTechResearchOptions } from '../monasteryTechOptions';
 import {
-  barracksLosResearchOptions,
   townCenterLosResearchOptions,
   townCenterLosVisibleOptions,
 } from './losTechOptions';
@@ -200,7 +199,6 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
         }
       }
       // Tracking (+2 infantry LoS): Feudal onward (this branch is non-Dark).
-      options.push(...barracksLosResearchOptions(owner, hasTechnology));
       if (isAtLeastAge(owner, 'imperial-age')) {
         if (!hasTechnology(owner, 'halberdier-upgrade')) {
           options.push('halberdier-upgrade');
@@ -268,10 +266,8 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
 
     if (buildingType === 'market') {
       const options: ResearchableTechnologyType[] = [];
-      // Cartography: see what your allies see (technologies.csv, Feudal).
-      if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'cartography')) {
-        options.push('cartography');
-      }
+      // Cartography is gone (v0.3.140, as in DE): allies share sight from
+      // the start of the match, so the Market starts at the tribute techs.
       // The tribute fee, 30% → 20% → 0: Coinage in Feudal, Banking in Castle
       // once Coinage is in — the CSV prices Banking's step FROM Coinage's.
       if (isAtLeastAge(owner, 'feudal-age') && !hasTechnology(owner, 'coinage')) {

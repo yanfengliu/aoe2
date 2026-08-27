@@ -52,11 +52,6 @@ export function townCenterLosVisibleOptions(
   return options;
 }
 
-// Tracking at the Barracks: Feudal onward (the barracks research branch is
-// already gated to non-Dark ages by its caller) until researched.
-export function barracksLosResearchOptions(
-  owner: number,
-  hasTechnology: TechPredicate,
-): ResearchableTechnologyType[] {
-  return hasTechnology(owner, 'tracking') ? [] : ['tracking'];
-}
+// Tracking was removed with DE (v0.3.140): its +2 infantry line of sight is
+// folded into the infantry line itself (visionTechEffects), so the Barracks
+// no longer offers a LoS research.

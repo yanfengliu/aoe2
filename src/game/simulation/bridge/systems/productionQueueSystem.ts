@@ -20,15 +20,12 @@ import type {
 import type { GameWorld } from '../pureHelpers';
 import { unitVisionRadius } from '../../prototypeUnitRules';
 import { resourceKindToEconomyResource } from '../../prototypeEconomyRules';
-import { unitVisionBonus } from '../../visionTechEffects';
-import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import { playerCivilizationsCodec, playerTeamsCodec,
   inFlightTechByOwnerCodec,
   populationCodec,
   productionQueuesCodec,
   rallyPointsCodec,
-  researchedTechnologiesCodec,
 } from '../bridgeStateSerialize';
 
 // AoE2 rally-on-resource: if a harvestable resource sits on the rally cell,
@@ -181,14 +178,9 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
             continue;
           }
 
-          const ownerTechs = accessor.get(researchedTechnologiesCodec).get(building.owner)
-            ?? EMPTY_TECH_SET;
           const unitId = addUnitEntity(building.owner, entry.unitType, spawnPosition, {
             playerId: building.owner,
-            // Tracking (+2 infantry LoS) DERIVED at creation, mirroring the
-            // live bump in applyTechnology for units already on the field.
             radius: unitVisionRadius(entry.unitType)
-              + unitVisionBonus(ownerTechs, entry.unitType)
               + bonusVisionRadius(
                 accessor.get(playerTeamsCodec),
                 accessor.get(playerCivilizationsCodec),

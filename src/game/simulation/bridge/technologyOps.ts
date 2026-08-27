@@ -28,14 +28,12 @@ import { applySanctityToOwnedMonks } from './sanctityEffect';
 import { applyBloodlinesToOwnedCavalry } from './bloodlinesEffect';
 import {
   applyBuildingVisionDelta,
-  applyInfantryVisionDelta,
   applyOutpostVisionDelta,
 } from './losTechEffect';
 import {
   OUTPOST_VISION_PER_AGE,
   TOWN_WATCH_BUILDING_VISION_BONUS,
   TOWN_PATROL_BUILDING_VISION_BONUS,
-  TRACKING_INFANTRY_VISION_BONUS,
 } from '../visionTechEffects';
 import {
   combatStatesCodec,
@@ -465,12 +463,6 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
         break;
       case 'town-patrol':
         applyBuildingVisionDelta(world, owner, TOWN_PATROL_BUILDING_VISION_BONUS);
-        markOutOfBandRenderChange();
-        break;
-      case 'tracking':
-        // Tracking: +2 LoS to every owned infantry unit; new ones derive it at
-        // productionQueueSystem's train site.
-        applyInfantryVisionDelta(world, owner, TRACKING_INFANTRY_VISION_BONUS);
         markOutOfBandRenderChange();
         break;
     }

@@ -36,8 +36,6 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Banking';
     case 'guilds':
       return 'Guilds';
-    case 'cartography':
-      return 'Cartography';
     case 'hoardings':
       return 'Hoardings';
     case 'el-dorado':
@@ -206,8 +204,6 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Town Watch';
     case 'town-patrol':
       return 'Town Patrol';
-    case 'tracking':
-      return 'Tracking';
     case 'conscription':
       return 'Conscription';
     case 'ballistics':

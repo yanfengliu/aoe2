@@ -39,7 +39,7 @@ describe('Guilds — data', () => {
     expect(marketFeeRateFor(new Set())).toBe(MARKET_FEE_RATE);
     expect(marketFeeRateFor(new Set(['guilds']))).toBe(GUILDS_MARKET_FEE_RATE);
     // Another Market technology must not move the fee.
-    expect(marketFeeRateFor(new Set(['cartography']))).toBe(MARKET_FEE_RATE);
+    expect(marketFeeRateFor(new Set(['caravan']))).toBe(MARKET_FEE_RATE);
   });
 });
 

@@ -49,6 +49,7 @@ export function teamResearchTimeMultiplier(
   owner: number,
   buildingType: BuildingType,
 ): number {
+  let multiplier = 1;
   if (
     buildingType === 'university'
     && teamHasCivilization(
@@ -58,7 +59,22 @@ export function teamResearchTimeMultiplier(
       'Malians',
     )
   ) {
-    return MALIANS_TEAM_UNIVERSITY_RESEARCH_MULTIPLIER;
+    multiplier *= MALIANS_TEAM_UNIVERSITY_RESEARCH_MULTIPLIER;
   }
-  return 1;
+  // Portuguese team bonus (current DE, replacing the retired free
+  // Cartography): every technology researches 25% faster for the side.
+  if (
+    teamHasCivilization(
+      accessor.get(playerTeamsCodec),
+      accessor.get(playerCivilizationsCodec),
+      owner,
+      'Portuguese',
+    )
+  ) {
+    multiplier *= PORTUGUESE_TEAM_RESEARCH_MULTIPLIER;
+  }
+  return multiplier;
 }
+
+// +25% speed = time × 1/1.25.
+export const PORTUGUESE_TEAM_RESEARCH_MULTIPLIER = 0.8;

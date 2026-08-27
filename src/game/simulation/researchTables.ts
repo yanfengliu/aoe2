@@ -32,7 +32,6 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   // Mayans' Imperial unique technology.
   hoardings: { food: 400, gold: 400 },
   // Market (technologies.csv): see what your allies see.
-  cartography: { food: 100, gold: 100 },
   guilds: { food: 300, gold: 200 },
   // Market (technologies.csv): the tribute fee, 30% to 20% to nothing.
   coinage: { food: 150, gold: 50 },
@@ -100,7 +99,6 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   fervor: { gold: 140 },
   'town-watch': { food: 75 }, // LoS techs (technologies.csv rows 88/92/9).
   'town-patrol': { food: 300, gold: 200 },
-  tracking: { food: 75 },
   conscription: { food: 150, gold: 150 }, // Castle, Imperial: military trains 25% faster.
   // Projectile techs (technologies.csv): Ballistics (University, Castle),
   // Thumb Ring (Archery Range, Castle).
@@ -192,7 +190,6 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'siege-engineers': 700, // Siege Workshop, Imperial: 70 s × 10 TPS.
   sappers: 200, // Blacksmith, Imperial: quick 20 s research (AoE2 Sappers is a fast tech).
   hoardings: 750, // Castle, Imperial: 75 s x 10 TPS.
-  cartography: 600, // Market, Feudal: 60 s x 10 TPS.
   guilds: 500, // Market, Imperial: 50 s x 10 TPS.
   coinage: 500, // Market, Feudal: 50 s x 10 TPS.
   caravan: 400, // Market, Castle: 40 s x 10 TPS.
@@ -253,7 +250,6 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   fervor: 500,
   'town-watch': 250, // LoS techs — 25/40/35 s × 10 TPS (technologies.csv 88/92/9).
   'town-patrol': 400,
-  tracking: 350,
   conscription: 600, // Castle, Imperial: 60 s × 10 TPS.
   ballistics: 600, // 60 s × 10 TPS.
   'thumb-ring': 450, // 45 s × 10 TPS.

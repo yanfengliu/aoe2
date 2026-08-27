@@ -10,8 +10,6 @@ import {
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 import { parseTeamsParam } from '../../src/app/bootstrap/teamsParam';
-import { researchedTechnologiesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
-import { asSchema2Blob, worldStateOf } from './saveBlobTestUtils';
 import {
   placeBuildingNearTownCenter,
   selectOwnedBuildingDirect,
@@ -176,30 +174,26 @@ describe('sharedVisionOwners', () => {
   });
 });
 
-describe('Cartography in a real match', () => {
-  it('is offered at a Market from the Feudal Age and shows the ally’s map', () => {
-    const bridge = createSimulationBridge('allied-three-player-fixture', {
+describe('Allied shared vision in a real match (v0.3.140: Cartography removed, sharing is the default)', () => {
+  it('shows the ally’s map from the very first frame, no research needed', () => {
+    // Solo baseline: the same seat with no allies sees only its own base.
+    const solo = createSimulationBridge('allied-three-player-fixture', {
+      teamsByOwner: new Map([[1, 1], [2, 2], [3, 3]]),
+    });
+    const alone = solo.getHudState().visibleCells;
+
+    // Allied with owner 2 (base thirty-odd cells away): DE shares team sight
+    // from the start of the match, so strictly more map is lit at boot.
+    const allied = createSimulationBridge('allied-three-player-fixture', {
       teamsByOwner: new Map([[1, 1], [2, 1], [3, 2]]),
     });
-    const before = bridge.getHudState().visibleCells;
-
-    // Grant it the way research does, then read the frame again: the human is
-    // allied with owner 2, whose base is thirty-odd cells away.
-    const blob = asSchema2Blob(bridge.saveGame());
-    worldStateOf(blob)[researchedTechnologiesCodec.slot] = [[1, ['cartography']]];
-    const withCartography = createSimulationBridge('allied-three-player-fixture', {
-      savedGame: blob,
-    });
-    const after = withCartography.getHudState().visibleCells;
-
-    // The ally's vision is added to the player's own, so strictly more of the
-    // map is visible — and it is the ALLY's cells, not the enemy's.
-    expect(after).toBeGreaterThan(before);
+    const together = allied.getHudState().visibleCells;
+    expect(together).toBeGreaterThan(alone);
   }, 60_000);
 });
 
-describe('Cartography is reachable at a Market', () => {
-  it('is offered from the Feudal Age and drops out once researched', () => {
+describe('The Market card after Cartography’s removal (v0.3.140)', () => {
+  it('never offers cartography, and still offers Coinage from the Feudal Age', () => {
     // This fixture has the Barracks a Market needs, and no Market — so the
     // test builds one, which is also how a player gets there.
     const bridge = createSimulationBridge('new-tech-reach-fixture');
@@ -217,16 +211,8 @@ describe('Cartography is reachable at a Market', () => {
     )).toBe(true);
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'market')).toBe(true);
-    expect(bridge.getSelectionState().researchOptions).toContain('cartography');
-    expect(bridge.queueResearch('cartography')).toBe(true);
-
-    expect(stepBridgeUntil(
-      bridge,
-      () => {
-        selectOwnedBuildingDirect(bridge, 1, 'market');
-        return !bridge.getSelectionState().researchOptions.includes('cartography');
-      },
-      { maxSteps: 1_500 },
-    )).toBe(true);
+    const options = bridge.getSelectionState().researchOptions;
+    expect(options).not.toContain('cartography');
+    expect(options).toContain('coinage');
   }, 120_000);
 });

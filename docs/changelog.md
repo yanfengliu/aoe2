@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.140
+
+- Tracking and Cartography are retired, as in current DE: allies share sight from the first frame of the match with no research, the Market opens on the tribute technologies, the Barracks hosts no line-of-sight research, and infantry line-of-sight now carries the sourced DE values directly (militia line 4-5, archer line 6-7 — nineteen units corrected against the game data). The Portuguese team bonus becomes current DE's: every technology researches 25% faster for the whole side.
+
 ## 0.3.139
 
 - Every tech-tree denial row is now sourced from the real DE game data (SiegeEngineers/aoe2techtree) instead of memory: ~380 corrections across all 30 civilizations — Britons lose Siege Ram and Bombard Tower, Franks lose Thumb Ring and their Halberdier returns, Huns lose Onager and Champion, Vikings regain Fire Ships and lose Hussar, Mongols regain Camels, Goths' full monastery holes land, and every civilization gains its true Parthian-Tactics/eco/monastery/dock gaps. Three roster-judgment exceptions are recorded in the CSV header (Persians keep Paladin standing in for the unmodeled Savar; Incas keep eagles and the militia line standing in for the unmodeled Champi Warrior; Tracking/Cartography stay global).

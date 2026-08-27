@@ -1,4 +1,3 @@
-import { teamHasCivilization } from '../teamBonuses';
 import type { BuildingType } from '../types';
 import { ownerConstructionCost } from './ownerCosts';
 import { defaultCivilizationName } from './pureHelpers';
@@ -98,14 +97,9 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
       return sharedVisionOwners(
         accessor.get(playerTeamsCodec),
         playerId,
-        // Portuguese team bonus: Cartography free from the Dark Age — the
-        // shared sight is simply ON for the whole side, no Market needed.
-        researched.has('cartography') || teamHasCivilization(
-          accessor.get(playerTeamsCodec),
-          accessor.get(playerCivilizationsCodec),
-          playerId,
-          'Portuguese',
-        ),
+        // Allies share sight from the start of the match — DE removed
+        // Cartography and made team vision the default (v0.3.140).
+        true,
         accessor.get(playerResourcesCodec).keys(),
         researched.has('spies'),
       );

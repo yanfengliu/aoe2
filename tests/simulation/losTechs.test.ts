@@ -5,14 +5,14 @@
 // visibility system fingerprints radius per tick, so a bump re-stamps the fog
 // automatically) and derived at creation for future entities.
 
+import { unitVisionRadius } from '../../src/game/simulation/prototypeUnitRules';
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { researchCost, researchTimeTicks } from '../../src/game/simulation/prototypeEconomyRules';
 import {
   buildingVisionBonus,
-  unitVisionBonus,
-} from '../../src/game/simulation/visionTechEffects';
+  } from '../../src/game/simulation/visionTechEffects';
 import type { ResearchableTechnologyType } from '../../src/game/simulation/types';
 import { MAP_WIDTH } from '../../src/game/simulation/prototypeScenario';
 
@@ -26,10 +26,6 @@ describe('LoS techs — costs and research times (technologies.csv rows 9/88/92)
   it('Town Patrol: 300 food + 200 gold, 40 s × 10 TPS', () => {
     expect(researchCost('town-patrol')).toEqual({ food: 300, gold: 200 });
     expect(researchTimeTicks('town-patrol')).toBe(400);
-  });
-  it('Tracking: 75 food, 35 s × 10 TPS', () => {
-    expect(researchCost('tracking')).toEqual({ food: 75 });
-    expect(researchTimeTicks('tracking')).toBe(350);
   });
 });
 
@@ -45,13 +41,12 @@ describe('LoS techs — pure vision bonuses', () => {
     expect(buildingVisionBonus(set('loom', 'husbandry'))).toBe(0);
   });
 
-  it('unitVisionBonus grants +2 to INFANTRY only, with Tracking', () => {
-    expect(unitVisionBonus(set('tracking'), 'militia')).toBe(2);
-    expect(unitVisionBonus(set('tracking'), 'pikeman')).toBe(2);
-    expect(unitVisionBonus(set(), 'militia')).toBe(0);
-    expect(unitVisionBonus(set('tracking'), 'archer')).toBe(0);
-    expect(unitVisionBonus(set('tracking'), 'villager')).toBe(0);
-    expect(unitVisionBonus(set('tracking'), 'knight')).toBe(0);
+  it('infantry line of sight carries the DE values directly (Tracking retired, v0.3.140)', () => {
+    // DE removed Tracking; the sourced units table IS the line of sight.
+    expect(unitVisionRadius('militia')).toBe(4);
+    expect(unitVisionRadius('pikeman')).toBe(4);
+    expect(unitVisionRadius('villager')).toBe(4);
+    expect(unitVisionRadius('knight')).toBe(4);
   });
 });
 
@@ -83,11 +78,11 @@ describe('LoS techs — offer gating', () => {
     expect(after.researchOptions).toContain('town-patrol');
   });
 
-  it('the Barracks offers Tracking from Feudal on', () => {
+  it('the Barracks offers no LoS research — Tracking is folded in (v0.3.140)', () => {
     const bridge = createSimulationBridge('los-techs-fixture');
     expect(bridge.selectEntityAtCell(4, 10)).toBe(true);
     expect(bridge.getSelectionState().selectedEntityType).toBe('barracks');
-    expect(bridge.getSelectionState().researchOptions).toContain('tracking');
+    expect(bridge.getSelectionState().researchOptions).not.toContain('tracking');
   });
 });
 
@@ -120,18 +115,14 @@ describe('LoS techs — live fog effect (visionSource.radius bumps re-stamp visi
     expect(isVisible(bridge, 17, 4)).toBe(true);
   }, 60_000);
 
-  it('Tracking widens a standing Militia fog reveal by +2', () => {
+  it('a standing Militia carries the +2 Tracking fold from boot (v0.3.140)', () => {
     const bridge = createSimulationBridge('los-techs-fixture');
     for (let i = 0; i < 5; i += 1) bridge.step(100);
 
-    // Militia parked at (30,4) with base vision 3 (canonical): probe (34,4) is
-    // 4 out — dark (16 > 9) until Tracking lifts the radius to 5 (16 <= 25).
-    expect(isVisible(bridge, 34, 4)).toBe(false);
-
-    expect(bridge.selectEntityAtCell(4, 10)).toBe(true);
-    expect(bridge.getSelectionState().selectedEntityType).toBe('barracks');
-    expect(bridge.queueResearch('tracking')).toBe(true);
-    for (let i = 0; i < 360; i += 1) bridge.step(100);
+    // Militia parked at (30,4) with the sourced DE line of sight of 4:
+    // probe (34,4) at distance 4 is lit with NO research (Tracking is
+    // retired), and (35,4) one further stays dark.
     expect(isVisible(bridge, 34, 4)).toBe(true);
+    expect(isVisible(bridge, 35, 4)).toBe(false);
   }, 60_000);
 });

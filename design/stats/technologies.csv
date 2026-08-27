@@ -6,7 +6,6 @@ Elite Skirmisher, Age of Kings, Imperial, Archery Range, {"Wood":250; "Gold": 16
 Heavy Cavalry Archer, Age of Kings, Imperial, Archery Range, {"Food":900; "Gold": 500}, 50, Cavalry Archer, Upgrade to Heavy Cavalry Archer
 Parthian Tactics, Age of Kings, Imperial, Archery Range, {"Food":200; "Gold": 250}, 65, Cavalry Archer;Mangudai, +1/+2 AR and Cavalry Archer +4 and Mangudai +2 against pikemen
 Man-at-Arms, Age of Kings, Feudal, Barracks, {"Food": 40; "Gold": 40}, 40, Militia, Upgrade to Man-at-Arms
-Tracking, Age of Kings, Feudal, Barracks, {"Food": 75}, 35, Infantry, +2 Line of Sight and +2 Search Radius
 Long Swordsman, Age of Kings, Castle, Barracks, {"Food": 200; "Gold": 65},45, Man-at-Arms, Upgrade to Long Swordsman
 Pikeman, Age of Kings, Castle, Barracks, {"Food": 215; "Gold": 90}, 45, Spearman, Upgrade to Pikeman
 Squires, Age of Kings, Castle, Barracks, {"Food": 200}, 40, Infantry, Movement Rate * 1.1
@@ -48,7 +47,6 @@ Shipwright, Age of Kings, Imperial, Dock, {"Wood": 200; "Food": 1000}, 60, Ships
 Double Bit Axe, Age of Kings, Feudal, Lumber Camp, {"Wood": 50; "Food": 100}, 25, Wood Chopper, Work Rate x 1.2 (20% faster)
 Bow Saw, Age of Kings, Castle, Lumber Camp, {"Wood": 100; "Food": 150}, 50, Wood Chopper, Work Rate x 1.2 (20% faster) which stacks with Double Bit Axe
 Two Man Saw, Age of Kings, Imperial, Lumber Camp, {"Wood": 200; "Food": 300}, 100, Wood Chopper, Work Rate x 1.1 (10% faster) which stacks with Bow Saw
-Cartography, Age of Kings, Feudal, Market, {"Food": 100; "Gold": 100}, 60,, See ally line of sight
 Coinage, Age of Kings, Feudal, Market, {"Food": 150; "Gold": 50}, 50,, Tribute inefficiency - 0.2 (20% tribute fee from 30%)
 Banking, Age of Kings, Castle, Market, {"Food": 200; "Gold": 100}, 50,,Tribute inefficiency - 0 (0% tribute fee from 20% coinage)
 Caravan, Age of Kings, Castle, Market, {"Food": 200; "Gold": 200}, 40, Trade Cart;Trade Cog, Movement rate * 1.5 (50% faster)

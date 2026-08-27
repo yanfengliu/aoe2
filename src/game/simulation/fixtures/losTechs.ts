@@ -38,7 +38,7 @@ export function createLosTechsFixture(seed: string): PrototypeScenario {
     spawns: [
       ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
       ownedSpawn('barracks', 1, 4, 10),
-      ownedSpawn('militia', 1, 30, 4, { vision: 3 }),
+      ownedSpawn('militia', 1, 30, 4, { vision: 4 }), // DE militia LoS (sourced v0.3.140)
       ownedSpawn('town-center', 2, 56, 32, { vision: 7 }),
     ],
   };

@@ -285,7 +285,6 @@ export const CIV_FREE_TECHNOLOGIES: Readonly<Record<string, readonly import('./t
   Ethiopians: ['pikeman-upgrade', 'halberdier-upgrade'],
   Magyars: ['forging', 'iron-casting', 'blast-furnace'],
   Malians: ['gold-mining', 'gold-shaft-mining'],
-  Slavs: ['tracking'],
 };
 
 export function civBonusesFor(civilization: string | undefined): CivBonusEntry | undefined {
