@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.142
+
+- Every seat now has a real civilization: players 3+ default to the classic cast (Byzantines, Chinese, Persians, Saracens, Turks, Vikings) instead of a bonus-less "Player N" with an impossible full tech tree. The LLM playtest harness gained `--civ <name>` to boot the human slot as any civilization.
+
 ## 0.3.141
 
 - Shift-queued entity orders, completing AoE2's waypoint chain: Shift+right-click on a resource, enemy, or building while a unit is busy queues the order to run when the current one finishes — gather after gather, kill after kill. A plain order still replaces the whole chain, chains survive saves, and the queue outranks the villager's same-type auto-continue exactly when the clicked resource runs dry.

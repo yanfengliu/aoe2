@@ -139,16 +139,15 @@ export function cloneResources(resources: PlayerResources): PlayerResources {
   };
 }
 
+// Every seat gets a REAL civilization (v0.3.142) — DE has no civ-less
+// player, and 'Player 3' silently held a full tree with no bonuses. The
+// cast beyond Britons/Franks is the classic AoK row, deterministic per seat.
+const DEFAULT_CIVILIZATIONS: readonly string[] = [
+  'Britons', 'Franks', 'Byzantines', 'Chinese', 'Persians', 'Saracens', 'Turks', 'Vikings',
+];
+
 export function defaultCivilizationName(owner: number): string {
-  if (owner === HUMAN_PLAYER_ID) {
-    return 'Britons';
-  }
-
-  if (owner === 2) {
-    return 'Franks';
-  }
-
-  return `Player ${owner}`;
+  return DEFAULT_CIVILIZATIONS[(owner - 1) % DEFAULT_CIVILIZATIONS.length] ?? 'Britons';
 }
 
 export function factionName(owner: number | null): string | null {

@@ -15,6 +15,8 @@ export class PlaytestLlmArgError extends Error {
 
 export interface PlaytestLlmArgs {
   seed: string;
+  /** v0.3.142: the human slot's civilization (?civ= URL param), '' = default. */
+  civ: string;
   maxTicks: number;
   out: string;
   decisionInterval: number;
@@ -62,6 +64,7 @@ function requireValue(raw: string | undefined, flag: string): string {
 export function parsePlaytestLlmArgs(argv: readonly string[]): PlaytestLlmArgs {
   const args: PlaytestLlmArgs = {
     seed: 'aoe2-prototype',
+    civ: '',
     maxTicks: 5000,
     out: 'output/playtests-llm/run',
     decisionInterval: 250,
@@ -80,6 +83,7 @@ export function parsePlaytestLlmArgs(argv: readonly string[]): PlaytestLlmArgs {
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === '--seed') args.seed = requireValue(argv[++i], '--seed');
+    else if (a === '--civ') args.civ = requireValue(argv[++i], '--civ');
     else if (a === '--max-ticks') args.maxTicks = requireFinite(argv[++i], '--max-ticks', { integer: true, min: 1 });
     else if (a === '--out') args.out = requireValue(argv[++i], '--out');
     else if (a === '--decision-interval') args.decisionInterval = requireFinite(argv[++i], '--decision-interval', { integer: true, min: 1 });

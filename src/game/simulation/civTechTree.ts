@@ -10,11 +10,11 @@
 // `tests/content/techTreeDenials.test.ts` guards that every id it names is a
 // real technology or unit. One namespace: tech and unit ids never collide.
 // Every seeded player HAS a civilization (scenarioSeedOps backfills the
-// Britons/Franks defaults — a civ-less player does not exist, as in DE), so
-// real holes always apply. The undefined/unknown-name path returns the full
-// tree only for unseeded owners in pure-unit tests and pseudo-civ seats
-// ('Player 3'+), which carry no bonuses either — consistent fail-open for
-// non-civilizations, never a safety valve for real ones.
+// per-seat defaults — Britons, Franks, then the classic AoK cast for seats
+// 3+ since v0.3.142 — a civ-less player does not exist, as in DE), so real
+// holes always apply. The undefined/unknown-name path returns the full tree
+// only for unseeded owners in pure-unit tests — a last-resort fail-open,
+// never a safety valve for real civilizations.
 
 const DENIALS_BY_CIVILIZATION = new Map<string, ReadonlySet<string>>();
 

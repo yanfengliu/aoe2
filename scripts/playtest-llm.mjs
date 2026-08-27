@@ -425,7 +425,7 @@ async function main() {
     const page = await context.newPage();
     const ownerCsv = args.owners.join(',');
     await page.goto(
-      `http://localhost:${PORT}/?seed=${encodeURIComponent(args.seed)}&disableAi=${ownerCsv}`,
+      `http://localhost:${PORT}/?seed=${encodeURIComponent(args.seed)}&disableAi=${ownerCsv}${args.civ ? `&civ=${encodeURIComponent(args.civ)}` : ''}`,
     );
 
     const agent = new LlmAgent({
