@@ -208,7 +208,9 @@ export function createVoxelSelectionController(
 
     if (
       targetEntity
-      && getBridge().issueContextCommandAtEntity(targetEntity.id, { garrison, forceAttack })
+      // Shift (v0.3.141): the same held Shift that queues a ground waypoint
+      // queues an ENTITY order — gather after gather, kill after kill.
+      && getBridge().issueContextCommandAtEntity(targetEntity.id, { garrison, forceAttack, queue: queueMove })
     ) {
       return true;
     }

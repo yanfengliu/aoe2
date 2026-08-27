@@ -53,7 +53,7 @@ export interface HumanInputOpsDeps {
   issueUnitAttackMoveCommand: (unitId: number, target: Position) => boolean;
   issueUnitPatrolCommand: (unitId: number, target: Position) => boolean;
   issueUnitContextCommand: (unitId: number, target: Position, garrison?: boolean) => boolean;
-  issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number, garrison?: boolean, forceAttack?: boolean) => boolean;
+  issueUnitContextCommandAtEntity: (unitId: number, targetEntityId: number, garrison?: boolean, forceAttack?: boolean, queue?: boolean) => boolean;
   issueSheepMoveCommand: (sheepId: number, target: Position) => boolean;
   // Spec §12.7 eager pre-reservation: when N units are commanded together to
   // a single target, allocate distinct cells via spiral fill so multiple
@@ -71,7 +71,7 @@ export interface HumanInputOps {
   selectNextIdleVillager(): boolean;
   issueMoveCommand(x: number, y: number, options?: { queue?: boolean }): boolean;
   issueContextCommand(x: number, y: number, garrison?: boolean): boolean;
-  issueContextCommandAtEntityInternal(entityId: number, garrison?: boolean, forceAttack?: boolean): boolean;
+  issueContextCommandAtEntityInternal(entityId: number, garrison?: boolean, forceAttack?: boolean, queue?: boolean): boolean;
   queueTrainUnit(unitType: TrainableUnitType): boolean;
   queueResearch(technologyType: ResearchableTechnologyType): boolean;
   issueAction(actionType: ActionType): boolean;
@@ -219,7 +219,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     return didIssue;
   }
 
-  function issueContextCommandAtEntityInternal(entityId: number, garrison = false, forceAttack = false): boolean {
+  function issueContextCommandAtEntityInternal(entityId: number, garrison = false, forceAttack = false, queue = false): boolean {
     if (!isMatchRunning()) return false;
 
     const targetPosition = world.getComponent<Position>(entityId, 'position');
@@ -262,7 +262,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     let didIssue = false;
     for (const unitId of selectedUnitIds) {
       didIssue =
-        supersedeAutoAggression(unitId, issueUnitContextCommandAtEntity(unitId, entityId, garrison, forceAttack)) || didIssue;
+        supersedeAutoAggression(unitId, issueUnitContextCommandAtEntity(unitId, entityId, garrison, forceAttack, queue)) || didIssue;
     }
     for (const sheepId of ownedSheepIds) {
       didIssue = issueSheepMoveCommand(sheepId, targetPosition) || didIssue;

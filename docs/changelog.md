@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.141
+
+- Shift-queued entity orders, completing AoE2's waypoint chain: Shift+right-click on a resource, enemy, or building while a unit is busy queues the order to run when the current one finishes — gather after gather, kill after kill. A plain order still replaces the whole chain, chains survive saves, and the queue outranks the villager's same-type auto-continue exactly when the clicked resource runs dry.
+
 ## 0.3.140
 
 - Tracking and Cartography are retired, as in current DE: allies share sight from the first frame of the match with no research, the Market opens on the tribute technologies, the Barracks hosts no line-of-sight research, and infantry line-of-sight now carries the sourced DE values directly (militia line 4-5, archer line 6-7 — nineteen units corrected against the game data). The Portuguese team bonus becomes current DE's: every technology researches 25% faster for the whole side.

@@ -40,6 +40,10 @@ const GATHER_APPROACH_TIMEOUT_TICKS = 80;
 const GATHER_UNREACHABLE_TIMEOUT_TICKS = 600;
 
 export interface ToResourceStepDeps {
+  /** v0.3.141: drops the explicit-gather flag when a shift-queued chain
+   *  waits and the walked-to target turns out to be dead (a co-gatherer
+   *  landed the last swing while this villager was still walking). */
+  endExplicitOrderIfChained: (id: number, gatherer: GathererComponent) => void;
   activeWorld: GameWorld;
   accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
   id: number;
@@ -80,6 +84,7 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
     gatherTargetCounts,
     findResourceApproachPlan,
     isHarvestableResource,
+    endExplicitOrderIfChained,
     isUnitAtTarget,
     moveUnitOneSubgridStep,
     assignResource,
@@ -97,6 +102,7 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
         ) {
           gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
           gatherer.targetResourceId = null;
+          endExplicitOrderIfChained(id, gatherer);
         } else if (!resourceApproachPlan) {
           // Unreachable target (campaign-11 gridlock): the resource exists and
           // is harvestable, but every approach cell is blocked (e.g. a sheep

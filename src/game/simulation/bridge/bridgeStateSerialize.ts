@@ -108,6 +108,9 @@ export const playerTeamsCodec = flatMapCodec<number, number>('aoe2.playerTeams')
 // Control groups persist per save (v0.3.112, the DE behaviour): digit -> the
 // bound refs. Generation-aware recall prunes members who died pre-save.
 export const controlGroupsCodec = flatMapCodec<number, import('civ-engine').EntityRef[]>('aoe2.controlGroups');
+// Shift-queued ENTITY orders (v0.3.141): per-unit chains of context orders,
+// fired as each current order completes. Refs are generation-safe.
+export const queuedEntityOrdersCodec = flatMapCodec<number, Array<{ target: EntityRef; garrison: boolean; forceAttack: boolean }>>('aoe2.queuedEntityOrders');
 // Continuous repair charging (v0.3.122): per-target fractional cost accrual
 // in HUNDREDTHS of a resource unit, charged as whole units fall due. Keyed by
 // the repaired entity id; a sub-unit remainder survives an abandoned repair.
@@ -325,6 +328,7 @@ export const projectilesCodec: SlotCodec<ProjectileSlotState, ProjectileSlotStat
 export const TIER_1_CODECS: ReadonlyArray<SlotCodec<unknown, unknown>> = [
   playerAgesCodec,
   controlGroupsCodec,
+  queuedEntityOrdersCodec,
   repairAccrualCodec,
   playerCivilizationsCodec,
   playerTeamsCodec,

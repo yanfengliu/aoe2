@@ -8,6 +8,7 @@ import {
 import type { UnitTaskState } from '../types';
 import { bootScenarioOrLoad } from './bootScenarioOrLoad';
 import { createControlGroupOps } from './controlGroupOps';
+import { createQueuedEntityOrderOps } from './queuedEntityOrderOps';
 import { createTownBellOps } from './townBellOps';
 import { registerBridgeSystems } from './registerBridgeSystems';
 import { registerCommandHandlers } from './registerCommandHandlers';
@@ -268,8 +269,15 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     selectByRefs,
   });
 
+  // Shift-queued entity orders (v0.3.141); registers its own watcher system.
+  const queuedOrders = createQueuedEntityOrderOps({
+    world, accessor, getEntityRef, routeUnitContextAtEntityCommandDirect,
+  });
+
   const finalize = registerBridgeSystems({
     selectUnitsByIds,
+    popQueuedEntityOrder: queuedOrders.popQueuedEntityOrder,
+    hasQueuedEntityOrders: queuedOrders.hasQueuedEntityOrders,
     world,
     systemMode,
     state,
@@ -398,6 +406,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     setUnitGatherCommandDirect,
     routeUnitContextCommandDirect,
     routeUnitContextAtEntityCommandDirect,
+    queuedOrders,
     routeMonkContextAtEntityCommandDirect,
     setSheepMoveCommandDirect,
     enqueueTrainingDirect: enqueueTraining,

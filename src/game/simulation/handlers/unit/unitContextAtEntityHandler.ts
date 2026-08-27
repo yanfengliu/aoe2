@@ -11,6 +11,13 @@ export interface UnitContextAtEntityHandlerDeps {
     allowGarrison: boolean,
     forceAttack?: boolean,
   ) => boolean;
+  // Shift-queued entity orders (v0.3.141). Absent deps = a test harness that
+  // predates the chain; the handler then routes every click directly.
+  queuedOrders?: {
+    unitHasActiveOrder(unitId: number): boolean;
+    appendQueuedEntityOrder(unitId: number, targetEntityId: number, garrison: boolean, forceAttack: boolean): void;
+    wipeQueuedEntityOrders(unitId: number): void;
+  };
 }
 
 export type UnitContextAtEntityHandler = (
@@ -22,12 +29,20 @@ export function makeUnitContextAtEntityHandler(deps: UnitContextAtEntityHandlerD
   return (data) => {
     // Absent `garrison` = a recording made before right-click stopped
     // garrisoning (spec §9.3); replay it as the player saw it.
-    deps.routeUnitContextAtEntityCommandDirect(
-      data.unitId,
-      data.targetEntityId,
-      data.garrison ?? true,
-      // Absent = every older recording: no forced friendly fire.
-      data.forceAttack ?? false,
-    );
+    const garrison = data.garrison ?? true;
+    // Absent = every older recording: no forced friendly fire.
+    const forceAttack = data.forceAttack ?? false;
+
+    if (data.queue && deps.queuedOrders?.unitHasActiveOrder(data.unitId)) {
+      // Shift on a BUSY unit appends to its chain; the completion watchers
+      // fire it later through this same router.
+      deps.queuedOrders.appendQueuedEntityOrder(data.unitId, data.targetEntityId, garrison, forceAttack);
+      return;
+    }
+    if (!data.queue) {
+      // A plain order replaces the whole chain, as in AoE2.
+      deps.queuedOrders?.wipeQueuedEntityOrders(data.unitId);
+    }
+    deps.routeUnitContextAtEntityCommandDirect(data.unitId, data.targetEntityId, garrison, forceAttack);
   };
 }

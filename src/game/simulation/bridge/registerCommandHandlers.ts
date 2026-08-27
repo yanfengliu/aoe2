@@ -141,6 +141,8 @@ export interface CommandHandlerDeps {
   // Phase 1B (unit.contextAtEntity): same shape as unit.context but
   // keyed on entity id.
   routeUnitContextAtEntityCommandDirect: (unitId: number, targetEntityId: number, allowGarrison: boolean) => boolean;
+  // Shift-queued entity orders (v0.3.141): chain surface for the handler.
+  queuedOrders: import('./queuedEntityOrderOps').QueuedEntityOrderOps;
   // Phase 1B (sheep.move).
   setSheepMoveCommandDirect: (sheepId: number, target: Position) => boolean;
   // Phase 1B (monk.contextAtEntity): routing helper. Reads the monk + target
@@ -228,40 +230,49 @@ export function registerCommandHandlers(
   world.registerValidator('entity.delete', entityDeleteValidator);
   // v0.3.117 attack-ground.
   world.registerValidator('unit.attackGround', unitAttackGroundValidator);
+  // A plain explicit order REPLACES a unit's shift-queued entity chain
+  // (v0.3.141, AoE2's rule). Wrapping at the recorded-handler layer keeps the
+  // wipe out of the low-level setters the chain's own pops route through.
+  const wipeThen = <A extends unknown[]>(fn: (unitId: number, ...rest: A) => boolean) =>
+    (unitId: number, ...rest: A): boolean => {
+      deps.queuedOrders.wipeQueuedEntityOrders(unitId);
+      return fn(unitId, ...rest);
+    };
   world.registerHandler('unit.attackGround', makeUnitAttackGroundHandler({
-    setUnitAttackGroundCommandDirect: deps.setUnitAttackGroundCommandDirect,
+    setUnitAttackGroundCommandDirect: wipeThen(deps.setUnitAttackGroundCommandDirect),
   }));
   world.registerHandler('entity.delete', makeEntityDeleteHandler({
     destroyUnitEntity: deps.destroyUnitEntity,
     destroyBuildingEntity: deps.destroyBuildingEntity,
   }));
   world.registerHandler('unit.move', makeUnitMoveHandler({
-    setUnitMoveCommandDirect: deps.setUnitMoveCommandDirect,
+    setUnitMoveCommandDirect: wipeThen(deps.setUnitMoveCommandDirect),
     appendMoveWaypointDirect: deps.appendMoveWaypointDirect,
   }));
   // Phase 1B — unit.attack
   world.registerValidator('unit.attack', unitAttackValidator);
   world.registerHandler('unit.attack', makeUnitAttackHandler({
     setUnitAttackCommandDirect: deps.setUnitAttackCommandDirect,
+    wipeQueuedEntityOrders: deps.queuedOrders.wipeQueuedEntityOrders,
   }));
   // Phase 1B — unit.gather
   world.registerValidator('unit.gather', unitGatherValidator);
   world.registerHandler('unit.gather', makeUnitGatherHandler({
-    setUnitGatherCommandDirect: deps.setUnitGatherCommandDirect,
+    setUnitGatherCommandDirect: wipeThen(deps.setUnitGatherCommandDirect),
   }));
   // M6 control — unit.attackMove
   world.registerValidator('unit.attackMove', makeUnitAttackMoveValidator({
     humanPlayerId: deps.humanPlayerId,
   }));
   world.registerHandler('unit.attackMove', makeUnitAttackMoveHandler({
-    setUnitAttackMoveCommandDirect: deps.setUnitAttackMoveCommandDirect,
+    setUnitAttackMoveCommandDirect: wipeThen(deps.setUnitAttackMoveCommandDirect),
   }));
   // M6 control — unit.patrol
   world.registerValidator('unit.patrol', makeUnitPatrolValidator({
     humanPlayerId: deps.humanPlayerId,
   }));
   world.registerHandler('unit.patrol', makeUnitPatrolHandler({
-    setUnitPatrolCommandDirect: deps.setUnitPatrolCommandDirect,
+    setUnitPatrolCommandDirect: wipeThen(deps.setUnitPatrolCommandDirect),
   }));
   // M6 control — unit.stance
   world.registerValidator('unit.stance', makeUnitStanceValidator({
@@ -288,12 +299,13 @@ export function registerCommandHandlers(
   // Phase 1B — unit.context
   world.registerValidator('unit.context', unitContextValidator);
   world.registerHandler('unit.context', makeUnitContextHandler({
-    routeUnitContextCommandDirect: deps.routeUnitContextCommandDirect,
+    routeUnitContextCommandDirect: wipeThen(deps.routeUnitContextCommandDirect),
   }));
   // Phase 1B — unit.contextAtEntity
   world.registerValidator('unit.contextAtEntity', unitContextAtEntityValidator);
   world.registerHandler('unit.contextAtEntity', makeUnitContextAtEntityHandler({
     routeUnitContextAtEntityCommandDirect: deps.routeUnitContextAtEntityCommandDirect,
+    queuedOrders: deps.queuedOrders,
   }));
   // Phase 1B — sheep.move
   world.registerValidator('sheep.move', sheepMoveValidator);

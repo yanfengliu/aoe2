@@ -243,7 +243,9 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     findPreferredEnemyBuildingInRadius,
     hasPendingUnitCommand,
     // AI-decision system — uses the intention pusher per DESIGN v17 §6.5/§6.6.
-    submitUnitAttackIntention: pushUnitAttackIntention,
+    // `auto: true` (v0.3.141): a guard reaction must not wipe shift chains.
+    submitUnitAttackIntention: (attackerId, targetId, targetKind) =>
+      pushUnitAttackIntention(attackerId, targetId, targetKind, true),
   });
 
   registerPlayerCommandsSystem({
@@ -366,6 +368,8 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerVillagerEconomySystem({
     world,
     accessor,
+    popQueuedEntityOrder: deps.popQueuedEntityOrder,
+    hasQueuedEntityOrders: deps.hasQueuedEntityOrders,
     isLandCell,
     shouldMaintainGatheringOrder,
     findResourceApproachPlan,

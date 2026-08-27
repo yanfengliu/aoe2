@@ -118,10 +118,11 @@ export function createAiIntentionPushers({ state }: AiIntentionPushersDeps) {
       attackerId: number,
       targetId: number,
       targetKind: 'unit' | 'building' | 'resource',
+      auto = false,
     ) => {
       state.pendingCommands.push({
         type: 'unit.attack',
-        data: { unitId: attackerId, targetEntityId: targetId, targetEntityKind: targetKind },
+        data: { unitId: attackerId, targetEntityId: targetId, targetEntityKind: targetKind, auto },
       });
       return true;
     },

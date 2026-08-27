@@ -38,6 +38,9 @@ interface PlayerScoreCountersLike {
 
 export interface RegisterAllSystemsDeps {
   world: GameWorld;
+  // Shift-queued entity orders (v0.3.141): fired when a gatherer idles in-pass.
+  popQueuedEntityOrder: (unitId: number) => boolean;
+  hasQueuedEntityOrders: (unitId: number) => boolean;
   systemMode?: 'live' | 'replay';
   humanPlayerId: number;
   visibility: VisibilityMap;
@@ -167,6 +170,8 @@ export interface RegisterAllSystemsDeps {
     attackerId: number,
     targetId: number,
     targetKind: 'unit' | 'building' | 'resource',
+    /** v0.3.141: auto-aggression engagements — no shift-chain wipe. */
+    auto?: boolean,
   ) => boolean;
   // Phase 1B unit.attack (post review-impl-3): guard helper for AI-decision
   // systems that need to coordinate ordering (e.g., autoAggression should

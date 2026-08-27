@@ -77,6 +77,13 @@ export interface VillagerEconomySystemDeps {
   // The mutate-per-call alternative would add a Set.add per gather
   // step which doesn't scale to dozens of villagers @ 10 TPS.
   accessor: import('../bridgeStateAccessor').BridgeStateAccessor;
+  // Shift-queued entity orders (v0.3.141). When the villager's EXPLICIT
+  // target ENDS while a chain waits, the explicit-order flag drops so the
+  // auto-rotate stands down; the watcher system (pinned to run before this
+  // one) then fires the chain, with the post-maintain pops below as a
+  // second line for same-pass idles.
+  popQueuedEntityOrder: (unitId: number) => boolean;
+  hasQueuedEntityOrders: (unitId: number) => boolean;
   // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
   // Phase 2D: aiStates migrated to world.state.aoe2.* via accessor.
   shouldMaintainGatheringOrder: (owner: number, gatherer: GathererComponent, isAiControlled: boolean) => boolean;
@@ -118,6 +125,8 @@ export interface VillagerEconomySystemDeps {
 
 export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): void {
   const {
+    popQueuedEntityOrder,
+    hasQueuedEntityOrders,
     world,
     accessor,
     shouldMaintainGatheringOrder,
@@ -165,10 +174,26 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     );
   }
 
+  // The CLICKED target ending ends the explicit order when a shift-queued
+  // chain waits (v0.3.141): the flag drops so same-type auto-rotate stands
+  // down and the chain fires once the villager is idle. Called from EVERY
+  // target-ended path — own-swing depletion, a co-gatherer landing the last
+  // unit, and arrival at an already-dead target — because the critic proved
+  // the single-site version lost the race whenever someone else swung last.
+  function endExplicitOrderIfChained(id: number, gatherer: GathererComponent): void {
+    if (hasQueuedEntityOrders(id)) {
+      gatherer.hasExplicitGatherOrder = false;
+    }
+  }
+
   world.registerSystem({
     name: 'prototypeVillagerEconomy',
     phase: 'update',
-    after: ['prototypePlayerCommands'],
+    // prototypeQueuedEntityOrders MUST precede this system: the shift-chain
+    // watcher fires a freshly-idled villager's next order before this pass's
+    // maintain branch could re-rotate it (pinned v0.3.141 — it previously
+    // held only by registration order).
+    after: ['prototypePlayerCommands', 'prototypeQueuedEntityOrders'],
     execute(activeWorld) {
       // Phase 2D — cache the Map once, mutate directly in the gather loop, mark
       // dirty once at the end (avoids accessor.mutate's Set.add per gather step).
@@ -228,6 +253,9 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             });
           });
         }
+        if (gatherer.task === 'idle') {
+          popQueuedEntityOrder(id);
+        }
 
         if (gatherer.task === 'to-resource') {
           runToResourceStep({
@@ -236,6 +264,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             id,
             unit,
             gatherer,
+            endExplicitOrderIfChained,
             gatherTargetCounts,
             findResourceApproachPlan,
             isHarvestableResource,
@@ -248,6 +277,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         if (gatherer.task === 'gathering') {
           if (gatherer.targetResourceId === null) {
             gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
+            endExplicitOrderIfChained(id, gatherer);
           } else {
             const targetPosition = activeWorld.getComponent<Position>(
               gatherer.targetResourceId,
@@ -273,6 +303,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
               gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
               gatherer.targetResourceId = null;
               gatherer.gatherProgressTicks = 0;
+              endExplicitOrderIfChained(id, gatherer);
             } else {
               // Rate accumulation: add the owner's gather-rate multiplier each
               // tick and complete a gather cycle when it crosses the base
@@ -333,6 +364,9 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                 if (depleted && !tryReseedFarm(activeWorld, accessor, depletedId, targetResource)) {
                   gatherer.targetResourceId = null;
                   destroyResourceEntity(depletedId);
+                  // Only a target that actually ENDED ends the order — a farm
+                  // reseeded in place keeps both the flag and the farmer.
+                  endExplicitOrderIfChained(id, gatherer);
                 }
                 if (depleted || gatherer.carriedAmount >= carryCapacity) {
                   gatherer.task = 'to-dropoff';
@@ -369,6 +403,9 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             preferUnsaturated: true,
             spreadCap: IDLE_ASSIGN_SPREAD_CAP,
           });
+        }
+        if (gatherer.task === 'idle') {
+          popQueuedEntityOrder(id);
         }
       }
 

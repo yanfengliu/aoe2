@@ -345,6 +345,7 @@ describe('unitAttackHandler', () => {
         calls.push({ unitId, targetEntityId, targetEntityKind });
         return true;
       },
+      wipeQueuedEntityOrders: () => {},
     });
     handler(
       { unitId: 7, targetEntityId: 5, targetEntityKind: 'building' },

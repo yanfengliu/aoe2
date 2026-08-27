@@ -84,7 +84,7 @@ export interface CreateWorldResult {
   selectByRefs: (refs: readonly EntityRef[]) => boolean;
   clearSelection: () => void;
   issueContextCommand: (x: number, y: number, garrison?: boolean) => boolean;
-  issueContextCommandAtEntity: (entityId: number, garrison?: boolean, forceAttack?: boolean) => boolean;
+  issueContextCommandAtEntity: (entityId: number, garrison?: boolean, forceAttack?: boolean, queue?: boolean) => boolean;
   countIdleVillagers: () => number;
   assignControlGroup: (digit: number) => boolean;
   recallControlGroup: (digit: number) => boolean;

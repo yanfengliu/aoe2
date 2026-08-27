@@ -16,6 +16,9 @@ export interface UnitAttackHandlerDeps {
     targetEntityId: number,
     targetEntityKind: 'unit' | 'building' | 'resource',
   ) => boolean;
+  // v0.3.141: a PLAYER attack replaces the unit's shift-queued chain; an
+  // auto-aggression engagement (`data.auto`) leaves it standing.
+  wipeQueuedEntityOrders: (unitId: number) => void;
 }
 
 export type UnitAttackHandler = (
@@ -25,6 +28,9 @@ export type UnitAttackHandler = (
 
 export function makeUnitAttackHandler(deps: UnitAttackHandlerDeps): UnitAttackHandler {
   return (data) => {
+    if (!data.auto) {
+      deps.wipeQueuedEntityOrders(data.unitId);
+    }
     deps.setUnitAttackCommandDirect(data.unitId, data.targetEntityId, data.targetEntityKind);
   };
 }

@@ -29,6 +29,7 @@ import {
   relicsInMonasteryCodec,
   researchedTechnologiesCodec,
   unitCommandsCodec,
+  queuedEntityOrdersCodec,
   playerCivilizationsCodec,
 } from './bridgeStateSerialize';
 import {
@@ -352,6 +353,12 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     // owner attack commands targeting it.
     clearUnitCommand(targetId);
     clearMonkTask(targetId);
+    // v0.3.141: the shift-queued chain is a prior order too — leaving it
+    // would let the OLD owner's stale chain drive the converted unit.
+    {
+      const chains = accessor.get(queuedEntityOrdersCodec);
+      if (chains.delete(targetId)) accessor.markDirty(queuedEntityOrdersCodec);
+    }
     const unitCommands = accessor.get(unitCommandsCodec);
     const targetGatherer = activeWorld.getComponent<GathererComponent>(targetId, 'gatherer');
     if (targetGatherer) {

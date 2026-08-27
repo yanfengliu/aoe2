@@ -44,6 +44,9 @@ export type GameCommands = {
     // ownership/wildlife checks correctly (mirrors the pre-Phase-1B
     // `issueUnitAttackCommand` signature).
     targetEntityKind: 'unit' | 'building' | 'resource';
+    // v0.3.141: true for AUTO-AGGRESSION engagements — a guard reaction is
+    // not a player order, so it must not wipe the unit's shift-queued chain.
+    auto?: boolean;
   };
   'unit.gather': { unitId: number; resourceId: number };
   // M6 control: the player sets a unit's stance. It rides the recorded command
@@ -65,7 +68,7 @@ export type GameCommands = {
   // right-click garrisoned — replaying those must preserve what the player saw,
   // so the handler treats absence as garrison-allowed. Live paths always set it.
   'unit.context': { unitId: number; target: Position; garrison?: boolean };
-  'unit.contextAtEntity': { unitId: number; targetEntityId: number; garrison?: boolean; forceAttack?: boolean };
+  'unit.contextAtEntity': { unitId: number; targetEntityId: number; garrison?: boolean; forceAttack?: boolean; queue?: boolean };
   // --- Specialty unit orders ---
   'sheep.move': { sheepId: number; target: Position };
   'monk.contextAtEntity': {
