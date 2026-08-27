@@ -94,7 +94,9 @@ describe('attackBonusAgainstUnit — AoE2 armor-class bonuses', () => {
   it('siege units counter siege/rams; mangonel has NO anti-infantry bonus (blast, deferred to M2)', () => {
     expect(attackBonusAgainstUnit('mangonel', 'battering-ram')).toBe(12); // siege class
     expect(attackBonusAgainstUnit('onager', 'siege-ram')).toBe(12); // siege class
-    expect(attackBonusAgainstUnit('scorpion', 'siege-ram')).toBe(1); // ram class
+    expect(attackBonusAgainstUnit('scorpion', 'battering-ram')).toBe(1); // ram class
+    // Siege Ram's +2 ram-class armor (v0.3.135) blunts the scorpion's +1.
+    expect(attackBonusAgainstUnit('scorpion', 'siege-ram')).toBe(0);
     expect(attackBonusAgainstUnit('mangonel', 'militia')).toBe(0); // blast, not a bonus (M2)
     expect(attackBonusAgainstUnit('mangonel', 'villager')).toBe(0);
     // Scout-line anti-monk shipped v0.3.130 (its CSV identity).
@@ -110,8 +112,8 @@ describe('attackBonusAgainstUnit — AoE2 armor-class bonuses', () => {
   });
 
   it('applies the AoE2-accurate siege anti-building bonuses', () => {
-    expect(attackBonusAgainstBuilding('battering-ram')).toBe(150);
-    expect(attackBonusAgainstBuilding('siege-ram')).toBe(240);
+    expect(attackBonusAgainstBuilding('battering-ram')).toBe(125);
+    expect(attackBonusAgainstBuilding('siege-ram')).toBe(200);
     expect(attackBonusAgainstBuilding('bombard-cannon')).toBe(200);
     expect(attackBonusAgainstBuilding('trebuchet')).toBe(250);
     expect(attackBonusAgainstBuilding('mangonel')).toBe(35);

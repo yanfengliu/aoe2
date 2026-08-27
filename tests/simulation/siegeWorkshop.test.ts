@@ -163,8 +163,8 @@ describe('Slice 4 Siege Workshop + siege units', () => {
 
   it('does NOT apply the Pikeman anti-cavalry bonus to a Battering Ram target', () => {
     // Pikeman's +22 vs the cavalry class must not extend to siege weapons —
-    // a Ram is in the siege/ram classes, not cavalry. armorClassBonus sums no
-    // matching class for a ram target, so the fallback 0 is returned.
+    // a Ram is in the siege/ram classes, not cavalry — but from v0.3.135 the
+    // ram's CSV -3 MELEE armor means every melee hit lands 3 harder.
     const bridge = createSimulationBridge('pikeman-vs-ram-fixture');
 
     const ram = findFirstOwnedUnit(bridge, 2, 'battering-ram');
@@ -181,7 +181,7 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     const ramHpAfter = getHealthOfUnitAtCell(bridge, rAfter!.x, rAfter!.y);
     // Pikeman base attack is 4. With the anti-cav bonus wrongly applied the
     // Ram would be at 175 - (4 + 22) = 149; with it correctly excluded: 171.
-    expect(ramHpAfter).toBe(171);
+    expect(ramHpAfter).toBe(168);
   }, 10_000);
 
   it('does NOT apply the Camel anti-cavalry bonus to a Battering Ram target', () => {
@@ -201,7 +201,7 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     const ramHpAfter = getHealthOfUnitAtCell(bridge, rAfter!.x, rAfter!.y);
     // Camel base attack is 5. Bonus wrongly applied → 175 - 14 = 161. With
     // exclusion: 170.
-    expect(ramHpAfter).toBe(170);
+    expect(ramHpAfter).toBe(167);
   }, 10_000);
 
   it('holds Mangonel fire when the target is inside its minimum range of 3', () => {

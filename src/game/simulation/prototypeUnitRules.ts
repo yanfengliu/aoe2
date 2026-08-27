@@ -242,12 +242,15 @@ export function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitT
 // vs-building bonuses — spearman/villager/infantry — are deferred; see the
 // armorClasses.ts header.)
 const BUILDING_ATTACK_BONUS: Partial<Record<UnitType, number>> = {
-  // Ram-line and siege values corrected to units.csv by the v0.3.134
-  // attack-bonus differential (battering 125→150, siege-ram 200→240,
-  // capped-ram/siege-onager/demolition/cannon-galleon were absent).
-  'battering-ram': 150,
-  'capped-ram': 180,
-  'siege-ram': 240,
+  // Ram-line PLAIN values from units.csv (125/150/200). The rows' larger
+  // figures are the WITH-Siege-Engineers and fully-garrisoned variants:
+  // Siege Engineers is the ×1.2 multiplier applied at the building-damage
+  // site (siegeEngineersBuildingMultiplier), and garrison-adds-damage is a
+  // separate deferred mechanic — v0.3.134's first cut baked the teched
+  // figures into the base until the gate's parser learned the row grammar.
+  'battering-ram': 125,
+  'capped-ram': 150,
+  'siege-ram': 200,
   'siege-onager': 60,
   'demolition-ship': 220,
   'heavy-demolition-ship': 280,
@@ -268,6 +271,17 @@ const BUILDING_ATTACK_BONUS: Partial<Record<UnitType, number>> = {
 
 export function attackBonusAgainstBuilding(attackerType: UnitType): number {
   return BUILDING_ATTACK_BONUS[attackerType] ?? 0;
+}
+
+// Siege Engineers (technologies.csv): "Siege weapons do 1.2 * damage vs
+// buildings" — applied to the whole per-hit building damage of a SIEGE
+// attacker at the damage site (v0.3.135), alongside its +1 range.
+export function siegeEngineersBuildingMultiplier(
+  researchedTechnologies: ReadonlySet<import('./technologyTypes').ResearchableTechnologyType>,
+  attackerType: UnitType,
+): number {
+  if (!researchedTechnologies.has('siege-engineers')) return 1;
+  return UNIT_ARMOR_CLASSES[attackerType].has('siege') ? 1.2 : 1;
 }
 
 // Blast/splash radius (spec §10.7), from design/stats/units.csv `blast_radius`,

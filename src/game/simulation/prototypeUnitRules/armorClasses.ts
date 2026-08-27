@@ -268,13 +268,43 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
 
 /** Sum of the attacker's class bonuses over every armor class the target is in
  *  (AoE2 cross-class summation, spec §10.1). */
+/** Class-specific ARMOR (units.csv `armor_bonus`, v0.3.135): resistance
+ *  subtracted from matching incoming CLASS bonuses, floored at zero PER
+ *  CLASS — a Cataphract shrugs anti-cavalry, a Turtle Ship shrugs the
+ *  galley line, upgraded rams shrug anti-ram. AoE2's own damage model. */
+export const UNIT_CLASS_ARMOR: Partial<Record<UnitType, ReadonlyArray<{ vsClass: ArmorClass; armor: number }>>> = {
+  cataphract: [{ vsClass: 'cavalry', armor: 12 }],
+  'elite-cataphract': [{ vsClass: 'cavalry', armor: 16 }],
+  mameluke: [{ vsClass: 'cavalry', armor: 11 }],
+  'elite-mameluke': [{ vsClass: 'cavalry', armor: 11 }],
+  'turtle-ship': [{ vsClass: 'ship', armor: 8 }],
+  'elite-turtle-ship': [{ vsClass: 'ship', armor: 11 }, { vsClass: 'turtle-ship', armor: 1 }],
+  'demolition-ship': [{ vsClass: 'ship', armor: 3 }, { vsClass: 'camel', armor: 3 }],
+  'heavy-demolition-ship': [{ vsClass: 'ship', armor: 5 }, { vsClass: 'camel', armor: 5 }],
+  'fire-ship': [{ vsClass: 'ship', armor: 5 }, { vsClass: 'camel', armor: 5 }],
+  'fast-fire-ship': [{ vsClass: 'ship', armor: 7 }, { vsClass: 'camel', armor: 7 }],
+  'capped-ram': [{ vsClass: 'ram', armor: 1 }],
+  'siege-ram': [{ vsClass: 'ram', armor: 2 }],
+};
+
+export function classArmorAgainst(targetType: UnitType, targetClass: ArmorClass): number {
+  let total = 0;
+  for (const entry of UNIT_CLASS_ARMOR[targetType] ?? []) {
+    if (entry.vsClass === targetClass) total += entry.armor;
+  }
+  return total;
+}
+
 export function armorClassBonus(attackerType: UnitType, targetType: UnitType): number {
   const bonuses = UNIT_ATTACK_BONUSES[attackerType];
   if (!bonuses) return 0;
   const targetClasses = UNIT_ARMOR_CLASSES[targetType];
   let total = 0;
   for (const { targetClass, bonus } of bonuses) {
-    if (targetClasses.has(targetClass)) total += bonus;
+    if (!targetClasses.has(targetClass)) continue;
+    // Per-class floor: class armor blunts ITS class's bonus and never banks
+    // a surplus against a different class.
+    total += Math.max(0, bonus - classArmorAgainst(targetType, targetClass));
   }
   return total;
 }

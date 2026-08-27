@@ -14,7 +14,7 @@
 import type { Position } from 'civ-engine';
 
 import type { ResearchableTechnologyType, UnitType } from '../types';
-import { attackBonusAgainstBuilding } from '../prototypeUnitRules';
+import { attackBonusAgainstBuilding, siegeEngineersBuildingMultiplier } from '../prototypeUnitRules';
 import { sappersBuildingAttackBonus } from '../sappersTechEffects';
 import { detonatesOnAttack } from '../prototypeUnitRules';
 import { civBuildingAttackBonus } from '../civBonusEffects';
@@ -118,13 +118,17 @@ export interface DeliverBuildingAttackParams extends DeliverAttackShared {
  */
 export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams): void {
   const { attacker, target } = params;
+  // Siege Engineers (v0.3.135): ×1.2 on a SIEGE attacker's whole per-hit
+  // building damage — the CSV's "+150 with siege engineers" figures are this
+  // multiplier over the plain +125, not a bigger base.
   const damage = Math.max(
     0,
-    attacker.combat.attackDamage
+    Math.round((attacker.combat.attackDamage
       + attackBonusAgainstBuilding(attacker.unitType)
       + sappersBuildingAttackBonus(params.attackerTechs, attacker.unitType)
       + civBuildingAttackBonus(params.attackerCivilization, attacker.unitType)
-      + (params.teamBuildingBonus ?? 0),
+      + (params.teamBuildingBonus ?? 0))
+      * siegeEngineersBuildingMultiplier(params.attackerTechs, attacker.unitType)),
   );
 
   attacker.combat.cooldownTicks = attacker.combat.reloadTicks;
