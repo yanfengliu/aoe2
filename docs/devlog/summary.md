@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-26 v0.3.128 siege-onager blast 1.5 (the blast table's "off-roster" comment outlived the roster — El Dorado's twin; diagonal-reach proved in the pure blast test).
 - 2026-08-25 v0.3.127 monastery finials per set (abstract silhouettes replace the cross outside the default; fn lives in details for the 500 cap).
 - 2026-08-25 v0.3.126 shift-queued construction (queuedBuildRefs chain; queue flag rides building.placeConfirm; advance at the finalize site — builderWorkStep's clear was the WRONG hook, the system's post-finalize clear was the real one; constructionStartOps extracted at the 500 gate).
 - 2026-08-25 v0.3.125 shift-queued waypoints (queuedTargets on the move command; append rides the recorded unit.move stream — a direct codec write would have desynced replays; first red tests were vacuously green TWICE in one day → mechanism asserts added); trade-route order extracted for the 500 cap.

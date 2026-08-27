@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.128
+
+- Siege Onager now blasts wider than an Onager, reaching diagonal cells — the Imperial upgrade's whole point, which a stale table entry had silently dropped.
+
 ## 0.3.127
 
 - Monasteries crown themselves per architecture: a dome in the middle east, a tiered spike in east asia, a stone crest in mesoamerica, a spire in central europe, a lantern dome on the mediterranean.

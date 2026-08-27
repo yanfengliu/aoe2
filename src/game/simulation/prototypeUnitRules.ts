@@ -258,14 +258,16 @@ export function attackBonusAgainstBuilding(attackerType: UnitType): number {
   return BUILDING_ATTACK_BONUS[attackerType] ?? 0;
 }
 
-// Blast/splash radius (spec §10.7), from design/stats/units.csv `blast_radius`.
-// Only the roster's mangonel line has an effective radial blast at this grid
-// resolution (measured with Euclidean distance): mangonel 1 and onager 1.25
+// Blast/splash radius (spec §10.7), from design/stats/units.csv `blast_radius`,
+// measured with Euclidean distance on the grid: mangonel 1 and onager 1.25
 // both reach the four orthogonal neighbours of the impact cell (a diagonal is
-// √2≈1.41 away, so onager's wider AoE only manifests at siege-onager's 1.5 —
-// off-roster). Bombard's CSV 0.5 is sub-cell (no other cell within it), and
-// scorpion blast is a LINE attack (empty CSV radius) — both deferred. Absent
-// attackers have no blast.
+// √2≈1.41 away), and siege-onager's 1.5 is the Imperial upgrade's whole
+// identity — the first radius that also catches the diagonals. (An earlier
+// comment called siege-onager "off-roster" long after the roster and its
+// upgrade line shipped, which left the upgrade blasting no wider than an
+// onager — the stale-deferral trap again; v0.3.128.) Bombard's CSV 0.5 is
+// sub-cell (no other cell within it), and scorpion blast is a LINE attack
+// (empty CSV radius) — both deferred. Absent attackers have no blast.
 const UNIT_BLAST_RADIUS: Partial<Record<UnitType, number>> = {
   // M5 naval: the demolition line is a floating bomb — its whole purpose
   // is the blast, and units.csv gives it the widest radii in the game.
@@ -273,6 +275,7 @@ const UNIT_BLAST_RADIUS: Partial<Record<UnitType, number>> = {
   'heavy-demolition-ship': 3.5,
   mangonel: 1,
   onager: 1.25,
+  'siege-onager': 1.5,
 };
 
 export function unitBlastRadius(unitType: UnitType): number {
