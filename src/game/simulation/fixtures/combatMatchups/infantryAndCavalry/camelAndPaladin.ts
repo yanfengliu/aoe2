@@ -22,7 +22,7 @@ export function createCamelVsCavalryFixture(seed: string): PrototypeScenario {
         startingAge: 'castle-age',
         // Bonus-free civ so anti-cavalry DAMAGE tests measure raw HP deltas,
         // not the Franks knight-line +20% HP (owner 2 defaults to Franks).
-        civilization: 'Byzantines',
+        civilization: 'Saracens', // bonus-neutral for these stats (Byzantines gained free vision techs in v0.3.146)
       },
     ],
     spawns: [
@@ -56,7 +56,7 @@ export function createSpearmanVsCamelFixture(seed: string): PrototypeScenario {
         startingAge: 'castle-age',
         // Bonus-free civ so anti-cavalry DAMAGE tests measure raw HP deltas,
         // not the Franks knight-line +20% HP (owner 2 defaults to Franks).
-        civilization: 'Byzantines',
+        civilization: 'Saracens', // bonus-neutral for these stats (Byzantines gained free vision techs in v0.3.146)
       },
     ],
     spawns: [
@@ -92,7 +92,7 @@ export function createHeavyCamelVsKnightFixture(seed: string): PrototypeScenario
         startingAge: 'imperial-age',
         // Bonus-free civ so the anti-cavalry DAMAGE test measures raw HP deltas,
         // not the Franks knight-line +20% HP (owner 2 defaults to Franks).
-        civilization: 'Byzantines',
+        civilization: 'Saracens', // bonus-neutral for these stats (Byzantines gained free vision techs in v0.3.146)
       },
     ],
     spawns: [

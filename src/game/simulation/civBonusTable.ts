@@ -153,6 +153,8 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Franks',
+    // DE: "Foragers work +15% faster" (sourced v0.3.146).
+    gatherRate: { 'berry-bush': 1.15 },
     unitHp: [{ applies: (unit) => KNIGHT_LINE.has(unit), multiplier: 1.2 }],
     buildingCost: [{ applies: (building) => building === 'castle', multiplier: 0.75 }],
   },
@@ -163,7 +165,8 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     buildingAttack: [{ applies: (unit) => isInfantryUnit(unit), bonus: 1 }],
     cost: [{
       applies: (unit) => isInfantryUnit(unit),
-      multiplierByAge: { 'feudal-age': 0.65, 'castle-age': 0.65, 'imperial-age': 0.65 },
+      // DE (sourced v0.3.146): -15/20/25/30% in Dark/Feudal/Castle/Imperial.
+      multiplierByAge: { 'dark-age': 0.85, 'feudal-age': 0.8, 'castle-age': 0.75, 'imperial-age': 0.7 },
     }],
   },
   {
@@ -272,6 +275,8 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Slavs',
     gatherRate: { farm: 1.15 },
+    // DE: "Monks move +20% faster" (sourced v0.3.146).
+    speed: [{ applies: (unit) => unit === 'monk', multiplier: 1.2 }],
     // DE: "Siege Workshop Units cost -15%" — in the CSV since v0.3.81, in
     // the table since v0.3.144.
     cost: [{ applies: (unit) => SIEGE_UNITS.has(unit), multiplier: 0.85 }],
@@ -297,12 +302,13 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
 // upgrades wait for a Mill; Viking carts arrive with the age), and the reason
 // the free-tech system checks the same research MENU a player would click.
 export const CIV_FREE_TECHNOLOGIES: Readonly<Record<string, readonly import('./technologyTypes').ResearchableTechnologyType[]>> = {
-  Byzantines: ['town-watch'],
+  Byzantines: ['town-watch', 'town-patrol'], // DE frees both.
   Franks: ['horse-collar', 'heavy-plow', 'crop-rotation'],
   Koreans: ['guard-tower', 'keep', 'padded-archer-armor', 'leather-archer-armor', 'ring-archer-armor'],
-  Teutons: ['murder-holes'],
+  Teutons: ['murder-holes', 'herbal-medicine'], // DE frees both.
   Turks: ['chemistry', 'light-cavalry-upgrade', 'hussar-upgrade'],
   Vikings: ['wheelbarrow', 'hand-cart'],
+  Vietnamese: ['conscription'], // DE: Conscription free.
   Burmese: ['double-bit-axe', 'bow-saw', 'two-man-saw'],
   Ethiopians: ['pikeman-upgrade'], // DE frees the Pikeman upgrade only.
   Magyars: ['forging', 'iron-casting', 'blast-furnace'],

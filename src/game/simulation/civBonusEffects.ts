@@ -39,7 +39,8 @@ export const GOTHS_INFANTRY_BUILDING_ATTACK_BONUS = 1;
 export const AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER = 0.85;
 
 // Goths infantry cost 35% less (×0.65) from the Feudal Age.
-export const GOTHS_INFANTRY_COST_MULTIPLIER = 0.65;
+// v0.3.146: the Goth infantry discount is the per-age ladder in the bonus
+// table (-15/20/25/30% incl. Dark) — the old flat 0.65 constant retired.
 
 // Mongols hunters gather boar 50% faster ("Hunters work 50% faster").
 export const MONGOLS_BOAR_GATHER_MULTIPLIER = 1.4; // DE: hunters +40%.

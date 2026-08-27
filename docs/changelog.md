@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.146
+
+- Civilization bonuses, round three: Frankish foragers work 15% faster, Slavic monks move 20% faster, the Goth infantry discount becomes DE's full -15/20/25/30% ladder (Dark Age included), and the free-technology lists catch up — Byzantines add Town Patrol, Teutons Herbal Medicine, the Vietnamese Conscription. Combat fixtures that leaned on Byzantines as a "bonus-free" stand-in now use a genuinely neutral pick, since Byzantines rightfully gained free vision.
+
 ## 0.3.145
 
 - Civilization bonuses, round two — the signature attack-speed bonuses arrive: Japanese infantry strike 33% faster from the Feudal Age, Ethiopian foot archers 18%, Mongol cavalry archers 25%, Celtic siege 25%, Saracen galleys 25%, Byzantine fire ships 25%, Spanish gunpowder 18%, and Hindustani camels 20%. Britons gain their +1/+2 foot-archer range in Castle/Imperial, and Inca military units cost 15-30% less food by age. Fixed along the way: researching Fletching used to recompute a unit's range from the base table, silently erasing any civilization or team bonus it carried.

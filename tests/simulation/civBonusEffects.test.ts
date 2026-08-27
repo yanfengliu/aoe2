@@ -12,7 +12,6 @@ import {
   BRITONS_SHEEP_GATHER_MULTIPLIER,
   FRANKS_KNIGHT_HP_MULTIPLIER,
   GOTHS_INFANTRY_BUILDING_ATTACK_BONUS,
-  GOTHS_INFANTRY_COST_MULTIPLIER,
   MONGOLS_BOAR_GATHER_MULTIPLIER,
   MONGOLS_SCOUT_HP_MULTIPLIER,
   civBuildingAttackBonus,
@@ -223,17 +222,14 @@ describe('Mongols scout-line bonus — live twin-fixture HP', () => {
   });
 });
 
-describe('effectiveTrainingCost — Goths infantry −35% cost (Feudal+)', () => {
-  it('discounts Goths infantry by 35% from the Feudal Age (each resource rounded)', () => {
-    // Militia base 60 food / 20 gold → ×0.65 = 39 / 13.
-    expect(effectiveTrainingCost('Goths', 'feudal-age', 'militia', NO_TECHS)).toEqual({ food: 39, gold: 13 });
-    // Spearman base 35 food / 25 wood → ×0.65 = 23 / 16.
-    expect(effectiveTrainingCost('Goths', 'castle-age', 'spearman', NO_TECHS)).toEqual({ food: 23, wood: 16 });
-    expect(GOTHS_INFANTRY_COST_MULTIPLIER).toBe(0.65);
-  });
-
-  it('does NOT discount in the Dark Age (bonus starts in Feudal)', () => {
-    expect(effectiveTrainingCost('Goths', 'dark-age', 'militia', NO_TECHS)).toEqual(trainingCost('militia'));
+describe('effectiveTrainingCost — Goths infantry ladder (sourced v0.3.146)', () => {
+  it('discounts Goths infantry -15/20/25/30% by age, Dark included', () => {
+    // Militia base 60 food / 20 gold.
+    expect(effectiveTrainingCost('Goths', 'dark-age', 'militia', NO_TECHS)).toEqual({ food: 51, gold: 17 });
+    expect(effectiveTrainingCost('Goths', 'feudal-age', 'militia', NO_TECHS)).toEqual({ food: 48, gold: 16 });
+    // Spearman base 35 food / 25 wood → ×0.75 Castle = 26 / 19.
+    expect(effectiveTrainingCost('Goths', 'castle-age', 'spearman', NO_TECHS)).toEqual({ food: 26, wood: 19 });
+    expect(effectiveTrainingCost('Goths', 'imperial-age', 'militia', NO_TECHS)).toEqual({ food: 42, gold: 14 });
   });
 
   it('does NOT discount Goths non-infantry (archers, cavalry, siege, villagers)', () => {
@@ -301,8 +297,8 @@ describe('Goths −35% infantry cost — live twin-fixture (gate + charge agree)
     const goths = createSimulationBridge('civ-goths-cost-fixture');
     const control = createSimulationBridge('civ-goths-cost-control-fixture');
 
-    // Both start with 50 food / 15 gold — enough for the Goths-discounted
-    // Militia (39/13) but not the base Militia (60/20).
+    // Both start with 55 food / 18 gold — enough for the Goths-discounted
+    // Feudal Militia (48/16, sourced ladder) but not the base one (60/20).
     for (const bridge of [goths, control]) {
       expect(bridge.selectEntityAtCell(4, 10)).toBe(true); // Barracks
       expect(bridge.getSelectionState().selectedEntityType).toBe('barracks');
@@ -314,7 +310,7 @@ describe('Goths −35% infantry cost — live twin-fixture (gate + charge agree)
     expect(goths.queueTrainUnit('militia')).toBe(true);
     goths.step(100);
     const gothsRes = goths.getEconomyState().playerResources[1];
-    expect(gothsRes.food).toBe(11);
+    expect(gothsRes.food).toBe(7);
     expect(gothsRes.gold).toBe(2);
 
     // Control (non-Goths): can't afford the base Militia (60/20), so the gate
@@ -322,8 +318,8 @@ describe('Goths −35% infantry cost — live twin-fixture (gate + charge agree)
     expect(control.queueTrainUnit('militia')).toBe(false);
     control.step(100);
     const controlRes = control.getEconomyState().playerResources[1];
-    expect(controlRes.food).toBe(50);
-    expect(controlRes.gold).toBe(15);
+    expect(controlRes.food).toBe(55);
+    expect(controlRes.gold).toBe(18);
   });
 });
 

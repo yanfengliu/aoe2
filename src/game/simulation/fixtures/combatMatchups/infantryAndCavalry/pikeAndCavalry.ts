@@ -25,7 +25,7 @@ export function createPikemanVsKnightFixture(seed: string): PrototypeScenario {
         startingAge: 'imperial-age',
         // Bonus-free civ so anti-cavalry DAMAGE tests measure raw HP deltas,
         // not the Franks knight-line +20% HP (owner 2 defaults to Franks).
-        civilization: 'Byzantines',
+        civilization: 'Saracens', // bonus-neutral for these stats (Byzantines gained free vision techs in v0.3.146)
       },
     ],
     spawns: [
@@ -58,7 +58,7 @@ export function createCamelVsHussarFixture(seed: string): PrototypeScenario {
         startingAge: 'imperial-age',
         // Bonus-free civ so anti-cavalry DAMAGE tests measure raw HP deltas,
         // not the Franks knight-line +20% HP (owner 2 defaults to Franks).
-        civilization: 'Byzantines',
+        civilization: 'Saracens', // bonus-neutral for these stats (Byzantines gained free vision techs in v0.3.146)
       },
     ],
     spawns: [
@@ -91,7 +91,7 @@ export function createHalberdierVsCavalierFixture(seed: string): PrototypeScenar
         startingAge: 'imperial-age',
         // Bonus-free civ so anti-cavalry DAMAGE tests measure raw HP deltas,
         // not the Franks knight-line +20% HP (owner 2 defaults to Franks).
-        civilization: 'Byzantines',
+        civilization: 'Saracens', // bonus-neutral for these stats (Byzantines gained free vision techs in v0.3.146)
       },
     ],
     spawns: [
@@ -123,7 +123,7 @@ export function createHalberdierVsKnightFixture(seed: string): PrototypeScenario
         startingAge: 'imperial-age',
         // Bonus-free civ so anti-cavalry DAMAGE tests measure raw HP deltas,
         // not the Franks knight-line +20% HP (owner 2 defaults to Franks).
-        civilization: 'Byzantines',
+        civilization: 'Saracens', // bonus-neutral for these stats (Byzantines gained free vision techs in v0.3.146)
       },
     ],
     spawns: [

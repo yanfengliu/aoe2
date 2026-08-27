@@ -52,9 +52,9 @@ describe('parseCivParam — ?civ=<name> → owner→civilization map', () => {
 
 describe('civilizationsByOwner — overrides the scenario start civ end-to-end', () => {
   it('a ?civ=Goths override lets owner 1 train the discounted (Goths) Militia', () => {
-    // The control fixture is Persians with 50 food / 15 gold — it CANNOT afford
+    // The control fixture is Persians with 55 food / 18 gold — it CANNOT afford
     // the base Militia (60/20). Overriding owner 1 to Goths applies the −35%
-    // infantry discount, so the Militia (39/13) becomes affordable and is charged.
+    // infantry discount, so the Feudal Militia (48/16) becomes affordable and is charged.
     const overridden = createSimulationBridge('civ-goths-cost-control-fixture', {
       civilizationsByOwner: new Map([[1, 'Goths']]),
     });
@@ -62,7 +62,7 @@ describe('civilizationsByOwner — overrides the scenario start civ end-to-end',
     expect(overridden.queueTrainUnit('militia')).toBe(true);
     overridden.step(100);
     const res = overridden.getEconomyState().playerResources[1];
-    expect(res.food).toBe(11);
+    expect(res.food).toBe(7);
     expect(res.gold).toBe(2);
 
     // Sanity: WITHOUT the override the same fixture (Persians) cannot afford it.

@@ -7,12 +7,13 @@ import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // Civ-bonus Goths-cost fixture (v0.1.86). Player 1 (AI disabled) is in the
 // Feudal Age with a Barracks and EXACTLY enough resources to train a Militia at
-// the Goths-discounted price (39 food / 13 gold) but NOT at the base price
-// (60 food / 20 gold): 50 food / 15 gold. The only thing that varies between
+// the Goths-discounted Feudal price (48 food / 16 gold, the sourced -20%
+// ladder rung) but NOT at the base price (60 food / 20 gold): 55 food /
+// 18 gold. The only thing that varies between
 // the two variants is owner 1's civilization — Goths (infantry −35% cost) vs a
 // non-Goths control — so a twin test proves the discount is applied at BOTH the
 // affordability gate (the Goths variant can queue the Militia; the control
-// cannot) and the charge (the Goths variant is left with 11 food / 2 gold).
+// cannot) and the charge (the Goths variant is left with 7 food / 2 gold).
 function createCivGothsCostScenario(seed: string, civilization: string): PrototypeScenario {
   return {
     seed,
@@ -26,7 +27,7 @@ function createCivGothsCostScenario(seed: string, civilization: string): Prototy
         startingAge: 'feudal-age',
         civilization,
         disableAi: true,
-        startingResources: { food: 50, wood: 0, gold: 15, stone: 0 },
+        startingResources: { food: 55, wood: 0, gold: 18, stone: 0 },
       },
       {
         owner: 2,

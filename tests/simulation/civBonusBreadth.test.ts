@@ -35,6 +35,7 @@ describe('gather-rate bonuses', () => {
     // Malian gold drop-off rides the same seam.
     expect(civGatherRateMultiplier('Indians', 'fish')).toBe(1);
     expect(civGatherRateMultiplier('Malians', 'gold-mine')).toBeCloseTo(1.1, 5);
+    expect(civGatherRateMultiplier('Franks', 'berry-bush')).toBeCloseTo(1.15, 5); // DE: foragers +15%.
     // The originals hold, and a civ without the bonus reads 1.
     expect(civGatherRateMultiplier('Britons', 'sheep')).toBeCloseTo(1.25, 5);
     expect(civGatherRateMultiplier('Celts', 'gold-mine')).toBe(1);
@@ -76,6 +77,7 @@ describe('speed bonuses', () => {
     // The Ethiopian archer bonus is ATTACK speed in DE, not movement — the
     // move-speed reading was a transcription error (sourced v0.3.144).
     expect(civSpeedMultiplier('Ethiopians', 'archer')).toBe(1);
+    expect(civSpeedMultiplier('Slavs', 'monk')).toBeCloseTo(1.2, 5); // DE: monks +20%.
     expect(civSpeedMultiplier('Celts', 'archer')).toBe(1);
     expect(civSpeedMultiplier(undefined, 'militia')).toBe(1);
   });
@@ -141,8 +143,11 @@ describe('cost bonuses', () => {
   });
 
   it('leaves the Goths discount and everyone unmatched exactly as before', () => {
+    // Goths (sourced v0.3.146): -15/20/25/30% by age, Dark included.
+    expect(effectiveTrainingCost('Goths', 'dark-age', 'militia', NONE))
+      .toEqual({ food: 51, gold: 17 });
     expect(effectiveTrainingCost('Goths', 'feudal-age', 'militia', NONE))
-      .toEqual({ food: 39, gold: 13 });
+      .toEqual({ food: 48, gold: 16 });
     expect(effectiveTrainingCost('Britons', 'castle-age', 'knight', NONE))
       .toEqual({ food: 60, gold: 75 });
   });
