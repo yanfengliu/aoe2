@@ -126,8 +126,8 @@ export function mountSetupScreen(root: HTMLElement): void {
       </label>
       <label class="setup-row">Game speed
         <select data-setup="speed">
-          <option value="slow" selected>Slow (1.0x)</option>
-          <option value="normal">Normal (1.5x)</option>
+          <option value="slow">Slow (1.0x)</option>
+          <option value="normal" selected>Normal (1.5x)</option>
           <option value="fast">Fast (2.0x)</option>
         </select>
       </label>
