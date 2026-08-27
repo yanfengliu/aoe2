@@ -112,14 +112,13 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
     // are researched where the ship is trained (spec §9.2.1), and leaving them
     // in this list made two entries no card can ever offer.
   ]],
-  ['siege-workshop', ['onager-upgrade', 'siege-onager-upgrade', 'heavy-scorpion-upgrade', 'capped-ram-upgrade', 'siege-ram-upgrade', 'siege-engineers']],
+  ['siege-workshop', ['onager-upgrade', 'siege-onager-upgrade', 'heavy-scorpion-upgrade', 'capped-ram-upgrade', 'siege-ram-upgrade']],
   // The Market's first technology. Its others (Coinage, Banking, Caravan,
   // Guilds) are about tribute and trade, neither of which exists yet.
   ['market', ['cartography', 'coinage', 'banking', 'caravan', 'guilds']],
   ['lumber-camp', ['double-bit-axe', 'bow-saw', 'two-man-saw']],
   ['mining-camp', ['gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining']],
   ['mill', ['horse-collar', 'heavy-plow', 'crop-rotation']],
-  ['watch-tower', ['guard-tower', 'keep']],
   ['monastery', [
     'block-printing', 'sanctity', 'faith', 'herbal-medicine', 'heresy',
     'illumination', 'theocracy',
@@ -128,5 +127,7 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
   // University: Ballistics (spec §10.4). Research-only — trains nothing.
   ['university', ['ballistics', 'masonry', 'architecture', 'treadmill-crane', 'heated-shot',
     'murder-holes',
-    'bombard-tower-unlock', 'fortified-wall']],
+    'bombard-tower-unlock', 'fortified-wall',
+    // v0.3.131: the tower upgrades research here, as technologies.csv says.
+    'guard-tower', 'keep', 'siege-engineers']],
 ]);

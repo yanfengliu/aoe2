@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-26 v0.3.131 University hosts guard-tower/keep/siege-engineers (two "University does not exist yet" divergence notes and a stale HP-deferred note retired; three fixtures gained universities; edited the WRONG imperial fixture first — registry, then file).
 - 2026-08-26 v0.3.130 audit harvest: war-elephant class (cavalry-stacking, +92 halberdier swing), conquistador rides (MOUNTED_UNITS), scout anti-monk ladder live; the convert-vision fixture's scout swapped for militia — the predicted entanglement arrived exactly as the old deferral warned, two years of comments outlived by their roster.
 - 2026-08-26 v0.3.129 eagle armor class (the HC-vs-eagle inversion restored; 14 dropped CSV anti-eagle rows live; isInfantryUnit keeps eagles in tech scope — vulnerability ≠ upgrade scope again); found by the off-roster-comment audit that v0.3.128 triggered.
 - 2026-08-26 v0.3.128 siege-onager blast 1.5 (the blast table's "off-roster" comment outlived the roster — El Dorado's twin; diagonal-reach proved in the pure blast test).

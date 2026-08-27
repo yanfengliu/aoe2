@@ -125,6 +125,8 @@ export function createImperialSiegeFixture(seed: string): PrototypeScenario {
     spawns: [
       ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
       ownedSpawn('siege-workshop', 1, 14, 6),
+      // v0.3.131: Siege Engineers researches at the University now.
+      ownedSpawn('university', 1, 18, 6),
       // Slice 12 Task B: moved from (*, 10) (inside TC footprint).
       ownedSpawn('mangonel', 1, 10, 13, { vision: 9 }),
       ownedSpawn('scorpion', 1, 12, 13, { vision: 9 }),

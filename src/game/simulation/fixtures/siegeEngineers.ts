@@ -54,6 +54,8 @@ function createSiegeEngineersScenario(
     spawns: [
       ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
       ownedSpawn('siege-workshop', 1, 14, 6),
+      // v0.3.131: Siege Engineers researches at the University now.
+      ownedSpawn('university', 1, 18, 6),
       ownedSpawn('mangonel', 1, 10, 13, { vision: 9 }),
       ownedSpawn('archer', 1, 12, 13, { vision: 6 }),
       ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),

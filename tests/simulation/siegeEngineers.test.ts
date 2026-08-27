@@ -58,27 +58,32 @@ describe('Siege Engineers — cost & research-time tables', () => {
   });
 });
 
-describe('Siege Engineers — gating at the Siege Workshop', () => {
-  it('is researchable only at the Siege Workshop', () => {
-    expect(canResearchAt('siege-workshop', 'siege-engineers')).toBe(true);
+describe('Siege Engineers — gating at the University (v0.3.131)', () => {
+  it('is researchable only at the University', () => {
+    expect(canResearchAt('university', 'siege-engineers')).toBe(true);
+    expect(canResearchAt('siege-workshop', 'siege-engineers')).toBe(false);
     expect(canResearchAt('blacksmith', 'siege-engineers')).toBe(false);
     expect(canResearchAt('town-center', 'siege-engineers')).toBe(false);
     expect(canResearchAt('castle', 'siege-engineers')).toBe(false);
   });
 
-  it('is offered as an Imperial-Age Siege Workshop option and drops once researched', () => {
+  it('is offered as an Imperial-Age University option and drops once researched (v0.3.131)', () => {
     const bridge = createSimulationBridge('imperial-siege-fixture');
 
-    expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'university')).toBe(true);
     expect(bridge.getSelectionState().researchOptions).toContain('siege-engineers');
+    // And the old Siege Workshop hosting is gone.
+    expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
+    expect(bridge.getSelectionState().researchOptions ?? []).not.toContain('siege-engineers');
 
     // Research it → it drops from the option list.
+    expect(selectOwnedBuildingDirect(bridge, 1, 'university')).toBe(true);
     expect(bridge.queueResearch('siege-engineers')).toBe(true);
     expect(
       stepBridgeUntil(
         bridge,
         () => {
-          selectOwnedBuildingDirect(bridge, 1, 'siege-workshop');
+          selectOwnedBuildingDirect(bridge, 1, 'university');
           return !(bridge.getSelectionState().researchOptions ?? []).includes(
             'siege-engineers',
           );
@@ -86,9 +91,6 @@ describe('Siege Engineers — gating at the Siege Workshop', () => {
         { maxSteps: 1500 },
       ),
     ).toBe(true);
-
-    expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
-    expect(bridge.getSelectionState().researchOptions ?? []).not.toContain('siege-engineers');
   }, 60_000); // Full-suite contention: 36.2-37.8s observed vs 24.6s isolated (2026-07-13).
 
   it('is NOT offered before Imperial Age (Castle-Age Siege Workshop)', () => {
@@ -133,7 +135,7 @@ describe('Siege Engineers — existing-unit +1 range on research (applyTechnolog
     const mangonelId = mangonelBefore!.id;
     const rangeBefore = mangonelBefore!.attackRange;
 
-    expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'university')).toBe(true);
     expect(bridge.queueResearch('siege-engineers')).toBe(true);
 
     expect(

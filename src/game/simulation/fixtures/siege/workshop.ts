@@ -35,6 +35,8 @@ export function createSiegeWorkshopFixture(seed: string): PrototypeScenario {
     spawns: [
       ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
       ownedSpawn('siege-workshop', 1, 14, 6),
+      // v0.3.131: Siege Engineers researches at the University now.
+      ownedSpawn('university', 1, 14, 10),
       ownedSpawn('villager', 1, 6, 10, { vision: 4 }),
       ownedSpawn('town-center', 2, 24, 8, { vision: 7 }),
     ],

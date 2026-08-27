@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.131
+
+- Guard Tower, Keep, and Siege Engineers now research at the University, where AoE2 puts them.
+
 ## 0.3.130
 
 - Three more restored stat families: spearmen devastate War Elephants (stacking with their anti-cavalry, as in AoE2), Conquistadors benefit from Bloodlines and Husbandry, and the scout line hunts down Monks with its +6/+10/+12 bonus.

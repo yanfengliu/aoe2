@@ -270,7 +270,17 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
     }
 
     if (buildingType === 'university') {
-      return projectileTechOptions('university', owner, isAtLeastAge, hasTechnology);
+      // v0.3.131: the tower upgrades AND Siege Engineers research here, as
+      // technologies.csv places them (both had been parked elsewhere under a
+      // "University does not exist yet" claim the absence audit retired).
+      const universityOptions = [
+        ...projectileTechOptions('university', owner, isAtLeastAge, hasTechnology),
+        ...towerTechResearchOptions(buildingType, owner, isAtLeastAge, hasTechnology),
+      ];
+      if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'siege-engineers')) {
+        universityOptions.push('siege-engineers');
+      }
+      return universityOptions;
     }
 
     if (buildingType === 'castle' && isAtLeastAge(owner, 'castle-age')) {
@@ -304,17 +314,9 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       if (hasTechnology(owner, 'onager-upgrade') && !hasTechnology(owner, 'siege-onager-upgrade')) {
         options.push('siege-onager-upgrade');
       }
-      // Siege Engineers: +1 range to every siege unit. Imperial, drops once researched.
-      if (!hasTechnology(owner, 'siege-engineers')) {
-        options.push('siege-engineers');
-      }
       if (options.length > 0) {
         return options;
       }
-    }
-
-    if (buildingType === 'watch-tower') {
-      return towerTechResearchOptions(buildingType, owner, isAtLeastAge, hasTechnology);
     }
 
     if (buildingType === 'monastery') {

@@ -24,8 +24,9 @@ const AGE_ORDER: AgeType[] = ['dark-age', 'feudal-age', 'castle-age', 'imperial-
 // (+2 more attack, +1 range) needs Imperial Age AND guard-tower first. The
 // bonus is recomputed from the owner's researched-tech set at the tower's fire
 // site (towerTechEffects) — no per-entity state, no save-format change. HP
-// scaling (AoE2's +25% tower HP per upgrade) is DEFERRED (needs building-HP
-// mutation with no prior art). See spec §10.8.
+// scaling ships via buildingTechEffects' guard-tower/keep multipliers (the
+// old DEFERRED note here outlived the mechanic — absence-claim audit). The
+// upgrades research at the UNIVERSITY (v0.3.131), as technologies.csv says.
 
 function optionsFor(
   age: AgeType,
@@ -33,7 +34,7 @@ function optionsFor(
 ): ResearchableTechnologyType[] {
   const have = new Set(researched);
   return towerTechResearchOptions(
-    'watch-tower',
+    'university',
     1,
     (_owner, min) => AGE_ORDER.indexOf(age) >= AGE_ORDER.indexOf(min),
     (_owner, tech) => have.has(tech),
@@ -110,8 +111,9 @@ describe('tower-upgrade — cost & research-time tables', () => {
   });
 
   it('gates both techs to the Watch Tower (validator ↔ options agreement)', () => {
-    expect(canResearchAt('watch-tower', 'guard-tower')).toBe(true);
-    expect(canResearchAt('watch-tower', 'keep')).toBe(true);
+    expect(canResearchAt('university', 'guard-tower')).toBe(true);
+    expect(canResearchAt('university', 'keep')).toBe(true);
+    expect(canResearchAt('watch-tower', 'guard-tower')).toBe(false);
     expect(canResearchAt('castle', 'guard-tower')).toBe(false);
     expect(canResearchAt('town-center', 'keep')).toBe(false);
   });

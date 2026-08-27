@@ -1,7 +1,8 @@
-// Research options for the DERIVED defensive tower-upgrade techs, hosted at the
-// Watch Tower (AoE2 hosts them at the University, which does not exist in this
-// build yet). Extracted from optionsRules.ts to keep that file under the
-// 500-LOC budget, mirroring economyTechOptions.ts. Pure: the age and tech
+// Research options for the DERIVED defensive tower-upgrade techs, hosted at
+// the UNIVERSITY exactly as technologies.csv places them (v0.3.131 — an
+// earlier comment claimed the University "does not exist in this build yet"
+// years after it shipped with Ballistics and Masonry; the absence-claim
+// audit found it). Extracted from optionsRules.ts for the 500-LOC budget. Pure: the age and tech
 // predicates are passed in (the bridge owns the underlying side maps).
 //
 // A linear AoE2 prereq chain like the Mill farm chain: Guard Tower (Castle Age,
@@ -23,7 +24,7 @@ export function towerTechResearchOptions(
   isAtLeastAge: AgePredicate,
   hasTechnology: TechPredicate,
 ): ResearchableTechnologyType[] {
-  if (buildingType !== 'watch-tower' || !isAtLeastAge(owner, 'castle-age')) {
+  if (buildingType !== 'university' || !isAtLeastAge(owner, 'castle-age')) {
     return [];
   }
   const options: ResearchableTechnologyType[] = [];
