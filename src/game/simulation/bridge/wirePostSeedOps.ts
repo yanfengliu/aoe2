@@ -8,6 +8,7 @@ import type { EntityRef, Position, VisibilityMap } from 'civ-engine';
 
 import type { GameWorld } from './pureHelpers';
 import { currentEntityId } from './pureHelpers';
+import { effectiveResearchCost } from '../civBonusEffects';
 import type { BridgeState } from './bridgeState';
 import type {
   BuildableBuildingType,
@@ -17,7 +18,7 @@ import type {
   TerrainComponent,
   UnitType,
 } from '../types';
-import { playerCivilizationsCodec, inFlightTechByOwnerCodec } from './bridgeStateSerialize';
+import { playerAgesCodec, playerCivilizationsCodec, inFlightTechByOwnerCodec } from './bridgeStateSerialize';
 import { unitTint } from '../prototypeUnitRules';
 import {
   AI_MONK_HEAL_HP_FRACTION,
@@ -407,6 +408,11 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
       accessor.get(playerCivilizationsCodec).get(owner) ?? defaultCivilizationName(owner),
     inFlightTechsFor: (owner) =>
       accessor.get(inFlightTechByOwnerCodec).get(owner) ?? NO_IN_FLIGHT,
+    effectiveResearchCostFor: (owner, tech) => effectiveResearchCost(
+      accessor.get(playerCivilizationsCodec).get(owner),
+      accessor.get(playerAgesCodec).get(owner) ?? 'dark-age',
+      tech,
+    ),
     researchUnavailableReason: deps.researchUnavailableReason,
   });
   const agentOptionsOps = {

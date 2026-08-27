@@ -4,6 +4,7 @@
 // feudal-age prerequisite rule from 8 bare rejections; this surface
 // states it up front.
 
+import { researchCost } from '../../src/game/simulation/prototypeEconomyRules';
 import { describe, expect, it } from 'vitest';
 
 import { World } from 'civ-engine';
@@ -70,6 +71,7 @@ function makeUnitFixture() {
     getTrainOptions: (_owner, buildingType) => trainByType[buildingType] ?? [],
     getBuildOptions: () => ['house', 'barracks'],
     inFlightTechsFor: () => new Set<ResearchableTechnologyType>(),
+    effectiveResearchCostFor: (_owner, tech) => researchCost(tech),
     researchUnavailableReason: (_owner, _buildingType, tech) => `reason for ${tech}`,
   };
   return { deps, researchByType, visibleByType };

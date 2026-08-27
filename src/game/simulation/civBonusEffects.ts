@@ -21,7 +21,8 @@ import type {
   TrainableUnitType,
   UnitType,
 } from './types';
-import { constructionCost, trainingCost } from './prototypeEconomyRules';
+import { constructionCost, researchCost, trainingCost } from './prototypeEconomyRules';
+import { RESEARCHES_BY_BUILDING } from './buildingProductionTables';
 import { civBonusesFor } from './civBonusTable';
 import { isInfantryUnit } from './prototypeUnitRules';
 import { shipwrightWoodCost } from './dockTechEffects';
@@ -338,4 +339,69 @@ export function civAttackRangeBonus(
   if (age === 'imperial-age') return 2;
   if (age === 'castle-age') return 1;
   return 0;
+}
+
+// Civ RESEARCH-COST bonuses (sourced v0.3.147). Scopes derive from the
+// HOSTING table where DE names a building ("Dock and University
+// technologies", "Blacksmith upgrades"), so a hosting change moves the
+// discount with it and no second list exists.
+const GUNPOWDER_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set([
+  'chemistry', 'cannon-galleon-unlock', 'elite-cannon-galleon-upgrade', 'bombard-tower-unlock',
+] as ResearchableTechnologyType[]);
+const ECONOMY_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set([
+  'double-bit-axe', 'bow-saw', 'two-man-saw', 'horse-collar', 'heavy-plow', 'crop-rotation',
+  'gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining',
+  'wheelbarrow', 'hand-cart', 'loom',
+] as ResearchableTechnologyType[]);
+const AGE_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set([
+  'feudal-age', 'castle-age', 'imperial-age',
+] as ResearchableTechnologyType[]);
+
+function hostedAt(building: 'dock' | 'university' | 'blacksmith', tech: ResearchableTechnologyType): boolean {
+  return RESEARCHES_BY_BUILDING.get(building)?.includes(tech) ?? false;
+}
+
+export function effectiveResearchCost(
+  civilization: string | undefined,
+  age: AgeType,
+  technologyType: ResearchableTechnologyType,
+): Partial<PlayerResources> {
+  const base = researchCost(technologyType);
+  let multiplier = 1;
+  let zeroGold = false;
+  let zeroWood = false;
+  switch (civilization) {
+    case 'Chinese': {
+      // "-5/10/15% in Feudal/Castle/Imperial Age" — by the OWNER's age.
+      const byAge = { 'feudal-age': 0.95, 'castle-age': 0.9, 'imperial-age': 0.85 } as const;
+      multiplier = (byAge as Record<string, number>)[age] ?? 1;
+      break;
+    }
+    case 'Italians':
+      if (AGE_TECHS.has(technologyType)) multiplier = 0.85;
+      else if (hostedAt('dock', technologyType) || hostedAt('university', technologyType)) multiplier = 0.75;
+      break;
+    case 'Byzantines':
+      if (technologyType === 'imperial-age') multiplier = 0.67;
+      break;
+    case 'Turks':
+      if (GUNPOWDER_TECHS.has(technologyType)) multiplier = 0.5;
+      break;
+    case 'Spanish':
+      zeroGold = hostedAt('blacksmith', technologyType);
+      break;
+    case 'Vietnamese':
+      zeroWood = ECONOMY_TECHS.has(technologyType);
+      break;
+    default:
+      break;
+  }
+  if (multiplier === 1 && !zeroGold && !zeroWood) return base;
+  const cost: Partial<PlayerResources> = { ...base };
+  for (const key of Object.keys(cost) as (keyof PlayerResources)[]) {
+    cost[key] = Math.round((cost[key] ?? 0) * multiplier);
+  }
+  if (zeroGold) delete cost.gold;
+  if (zeroWood) delete cost.wood;
+  return cost;
 }

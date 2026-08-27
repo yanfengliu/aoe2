@@ -30,7 +30,6 @@ import {
   canAfford,
   isBuyMarketAction,
   marketCommodityForAction,
-  researchCost,
   researchTimeTicks,
   spendResources,
   trainingTimeTicks,
@@ -48,7 +47,7 @@ import {
   productionQueuesCodec,
   researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
-import { civTrainTimeMultiplier, effectiveTrainingCost } from '../civBonusEffects';
+import { civTrainTimeMultiplier, effectiveResearchCost, effectiveTrainingCost } from '../civBonusEffects';
 import { shipwrightTrainTimeMultiplier } from '../dockTechEffects';
 import { marketFeeRateFor } from '../marketTechEffects';
 import {
@@ -289,7 +288,13 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
           (accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET)
             .has('atheism'),
         )
-      : researchCost(technologyType);
+      // Civ research discounts (sourced v0.3.147): the charge and the gate
+      // both price through the owner's civilization and age.
+      : effectiveResearchCost(
+          accessor.get(playerCivilizationsCodec).get(building.owner),
+          accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age',
+          technologyType,
+        );
     if (!canAfford(stockpile, cost)) return false;
 
     spendResources(stockpile, cost);

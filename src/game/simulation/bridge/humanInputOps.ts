@@ -18,18 +18,12 @@ import type {
   TrainableUnitType,
 } from '../types';
 import { clamp, type GameWorld } from './pureHelpers';
-import {
-  researchCost,
-  resourcesMissing,
-  trainingCost,
-} from '../prototypeEconomyRules';
+import { resourcesMissing, trainingCost } from '../prototypeEconomyRules';
+import { effectiveResearchCost } from '../civBonusEffects';
 import { createIdleVillagerOps } from './idleVillagerOps';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { removePendingUnitCommands } from './pendingCommandQuery';
-import {
-  constructionStatesCodec,
-  playerResourcesCodec,
-} from './bridgeStateSerialize';
+import { constructionStatesCodec, playerAgesCodec, playerCivilizationsCodec, playerResourcesCodec } from './bridgeStateSerialize';
 
 export interface HumanInputOpsDeps {
   world: GameWorld;
@@ -334,7 +328,9 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
       } else if (result.code === 'insufficient_resources') {
         const stockpile = accessor.get(playerResourcesCodec).get(humanPlayerId);
         const missing = stockpile
-          ? resourcesMissing(stockpile, researchCost(technologyType))
+          ? resourcesMissing(stockpile, effectiveResearchCost(
+            accessor.get(playerCivilizationsCodec).get(humanPlayerId),
+            accessor.get(playerAgesCodec).get(humanPlayerId) ?? 'dark-age', technologyType))
           : null;
         enqueueRejection(missing ? `Not enough ${missing}.` : 'Cannot research that here.');
       } else {

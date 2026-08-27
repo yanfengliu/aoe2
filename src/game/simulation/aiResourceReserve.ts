@@ -3,7 +3,8 @@
 // budget; all three functions answer the same question and nothing else in
 // that file asks it.
 
-import { canAfford, researchCost } from './prototypeEconomyRules';
+import { canAfford } from './prototypeEconomyRules';
+import { effectiveResearchCost } from './civBonusEffects';
 import type { AgeType, PlayerResources, ResearchableTechnologyType } from './types';
 
 // Resources-on-hand threshold for age-up "safety buffer". The AI
@@ -40,13 +41,15 @@ export function ageUpResourceBuffer(
 export function ageUpReserveCost(
   age: AgeType,
   canAdvanceToNextAge: boolean,
+  /** v0.3.147: the reserve is the owner's OWN discounted price. */
+  civilization?: string,
 ): Partial<PlayerResources> {
   const next: ResearchableTechnologyType | null =
     age === 'dark-age' ? 'feudal-age'
     : age === 'feudal-age' ? 'castle-age'
     : age === 'castle-age' ? 'imperial-age'
     : null;
-  return next && canAdvanceToNextAge ? researchCost(next) : {};
+  return next && canAdvanceToNextAge ? effectiveResearchCost(civilization, age, next) : {};
 }
 
 // True when `stockpile` covers `cost` ON TOP OF `reserve` — i.e. the spend

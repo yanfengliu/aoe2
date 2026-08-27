@@ -4,7 +4,8 @@
 // monks. Runs after the building phase and before the attack phase.
 
 import type { ResearchableTechnologyType } from '../../types';
-import { canAfford, researchCost, trainingCost } from '../../prototypeEconomyRules';
+import { canAfford, trainingCost } from '../../prototypeEconomyRules';
+import { effectiveResearchCost } from '../../civBonusEffects';
 import {
   AI_MONK_COUNT_CAP,
   ageUpReserveCost,
@@ -21,6 +22,8 @@ import {
   constructionStatesCodec,
   playerResourcesCodec,
   productionQueuesCodec,
+  playerAgesCodec,
+  playerCivilizationsCodec,
 } from '../bridgeStateSerialize';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
 
@@ -42,6 +45,10 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
     pushAiMonkTaskIntentions,
     pushMonkContextAtEntityIntention,
   } = deps;
+  // Civ research discounts (v0.3.147): the AI budgets with ITS OWN prices —
+  // a Byzantine AI must not over-save a third for Imperial it will not pay.
+  const civOf = (o: number) => accessor.get(playerCivilizationsCodec).get(o);
+  const ageOf = (o: number) => accessor.get(playerAgesCodec).get(o) ?? 'dark-age';
   const {
     owner,
     ownerTownCenterId,
@@ -63,7 +70,7 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
     if (!nextAgeTech) return false;
     const s = accessor.get(playerResourcesCodec).get(owner);
     if (!s) return false;
-    const cost = researchCost(nextAgeTech);
+    const cost = effectiveResearchCost(civOf(owner), ageOf(owner), nextAgeTech);
     const foodTarget = cost.food ?? 0;
     const goldTarget = cost.gold ?? 0;
     const foodProgress = foodTarget > 0 ? s.food / foodTarget : 1;
@@ -82,7 +89,7 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
     : nextAgeTech === 'castle-age' ? canAdvanceToCastleAge(owner)
     : nextAgeTech === 'imperial-age' ? canAdvanceToImperialAge(owner)
     : false;
-  const ageUpReserve = ageUpReserveCost(currentAge, qualifiesForNextAge);
+  const ageUpReserve = ageUpReserveCost(currentAge, qualifiesForNextAge, civOf(owner));
 
   // Phase 1C: pickUnitMix BEFORE villager training (the +1-tick handler
   // delay otherwise mis-aligns the full-tcQueue corner case). Priority:
@@ -151,7 +158,7 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
           return false;
         },
         (tech) => {
-          return stockpile ? canAfford(stockpile, researchCost(tech)) : false;
+          return stockpile ? canAfford(stockpile, effectiveResearchCost(civOf(owner), ageOf(owner), tech)) : false;
         },
       );
       // Effective TC queue length BEFORE the age-up gate (productionQueues
@@ -192,10 +199,10 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
         nextAgeTech
         && qualifiesForNextAge
         && stockpile
-        && !canAfford(stockpile, researchCost(nextAgeTech))
+        && !canAfford(stockpile, effectiveResearchCost(civOf(owner), ageOf(owner), nextAgeTech))
       ) {
         const trade = marketActionForAgeUpShortfall(
-          stockpile, researchCost(nextAgeTech), MARKET_TRANSACTION_AMOUNT);
+          stockpile, effectiveResearchCost(civOf(owner), ageOf(owner), nextAgeTech), MARKET_TRANSACTION_AMOUNT);
         if (trade !== null) pushMarketActionIntention(owner, trade);
       }
 
@@ -247,7 +254,7 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
         // Phase 1C: skip techs whose queue.research intention is
         // already pending (handler hasn't flipped inFlightTechByOwner).
         if (pendingResearchKeys.has(`${owner}:${tech}`)) continue;
-        const cost = researchCost(tech);
+        const cost = effectiveResearchCost(civOf(owner), ageOf(owner), tech);
         if (canAfford(stockpile, cost)) {
           pushQueueResearchIntention(buildingId, tech);
           // Update per-tick gating maps so subsequent same-tick

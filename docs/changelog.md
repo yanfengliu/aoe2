@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.147
+
+- Civilization research discounts arrive, priced identically at the charge, the affordability gate, the tooltip, and the AI's own budget: Chinese technologies cost 5/10/15% less by age, Italian dock and university technologies 25% less and age advances 15% less, the Byzantine Imperial Age a third less, Turkish gunpowder technologies half, Spanish blacksmith upgrades cost no gold, and Vietnamese economic upgrades no wood.
+
 ## 0.3.146
 
 - Civilization bonuses, round three: Frankish foragers work 15% faster, Slavic monks move 20% faster, the Goth infantry discount becomes DE's full -15/20/25/30% ladder (Dark Age included), and the free-technology lists catch up — Byzantines add Town Patrol, Teutons Herbal Medicine, the Vietnamese Conscription. Combat fixtures that leaned on Byzantines as a "bonus-free" stand-in now use a genuinely neutral pick, since Byzantines rightfully gained free vision.

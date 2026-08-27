@@ -11,7 +11,6 @@
 // surfaces. Exposed publicly as SimulationBridge.getAgentBuildingOptions.
 
 import { ownerConstructionCost } from './ownerCosts';
-import { researchCost } from '../prototypeEconomyRules';
 import type {
   BuildableBuildingType,
   BuildingComponent,
@@ -73,6 +72,7 @@ export interface BuildingOptionsDeps {
   // owners that have none — getAgentBuildingOptions is a pure read
   // surface and must not perturb bridge state.
   inFlightTechsFor: (owner: number) => ReadonlySet<ResearchableTechnologyType>;
+  effectiveResearchCostFor: (owner: number, tech: import('../types').ResearchableTechnologyType) => Partial<import('../types').PlayerResources>;
   researchUnavailableReason: (
     owner: number,
     buildingType: BuildingType,
@@ -109,7 +109,7 @@ export function createBuildingOptionsOps(deps: BuildingOptionsDeps): BuildingOpt
         if (inFlight.has(tech)) {
           researchLocked.push({ tech, reason: `${tech} is already being researched.` });
         } else {
-          research.push({ tech, cost: { ...researchCost(tech) } });
+          research.push({ tech, cost: { ...deps.effectiveResearchCostFor(ownerId, tech) } });
         }
       }
       // Visible-but-unavailable (today only the TC's next age-up): state

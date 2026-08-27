@@ -12,10 +12,13 @@ import type {
 } from '../../types';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 import { canResearchAt } from '../../prototypeBuildingRules';
-import { researchCost, canAfford, describeMissingResources } from '../../prototypeEconomyRules';
+import { canAfford, describeMissingResources } from '../../prototypeEconomyRules';
+import { effectiveResearchCost } from '../../civBonusEffects';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
 import {
   constructionStatesCodec,
+  playerAgesCodec,
+  playerCivilizationsCodec,
   playerResourcesCodec,
 } from '../../bridge/bridgeStateSerialize';
 
@@ -83,7 +86,11 @@ export function makeQueueResearchValidator(deps: QueueResearchValidatorDeps): Qu
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }
-    const cost = researchCost(data.technologyType);
+    const cost = effectiveResearchCost(
+      deps.accessor.get(playerCivilizationsCodec).get(building.owner),
+      deps.accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age',
+      data.technologyType,
+    );
     if (!canAfford(stockpile, cost)) {
       const detail = describeMissingResources(stockpile, cost);
       return {
