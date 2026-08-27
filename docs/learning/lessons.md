@@ -10,6 +10,8 @@ When a lesson becomes a gate — a test, a lint rule, a fixed command — delete
 
 ## Rules
 
+- A comment claiming "X is not in the roster" is a claim with a shelf life — grep the absence-claims graveyard whenever the roster grows ([evidence](lessons-evidence.md#absence-claims-have-a-shelf-life-2026-08-26))
+
 - A positive assertion on an effect BOTH the feature and its fallback produce proves nothing — assert the mechanism (the standing order), not the shared outcome ([evidence](lessons-evidence.md#assert-the-mechanism-not-the-shared-outcome-2026-08-25))
 
 - A cross-owner op must never touch another player's UI state; and a pointer→view seam no test crosses can silently drop its arguments for months. ([evidence](lessons-evidence.md#cross-owner-ui-state))

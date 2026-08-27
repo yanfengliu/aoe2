@@ -749,3 +749,9 @@ The tests were right to fail and the fix is one line each (`grid: { width: MAP_W
 Building attack-ground (v0.3.117), the first bombard test asserted "cluster HP drops after the order" — and went GREEN before the executor branch existed. The unrouted command was cleared on tick 1, auto-aggression re-engaged the mangonel, and its ORDINARY attack splashed the same cluster: the assertion could not distinguish the feature from the fallback that fires whenever the feature is absent. The empty-cell companion test (order still standing, type still 'attack-ground', after 80 ticks with nothing to aggro) failed honestly and exposed the gap.
 
 Anchor: `tests/simulation/attackGround.test.ts` > "keeps firing at the empty cell after everyone leaves — ground is the target" (the mechanism assertion), alongside the splash test it disambiguates.
+
+## Absence claims have a shelf life (2026-08-26)
+
+Three separate finds, one shape: El Dorado (v0.3.57) was deferred as "Eagle Warriors are not on the roster" after they shipped; the blast table (v0.3.128) called siege-onager "off-roster" while the unit, its upgrade line, and its CSV 1.5 radius existed — the Imperial upgrade blasted no wider than an Onager; and the armorClasses header's deferral list (v0.3.129-130) outlived the eagle line, the war elephants, the conquistador, and the monk class it named as absent — fourteen anti-eagle CSV rows, the spear line's +30/47/60 vs elephants, Bloodlines for conquistadors, and the scout line's anti-monk ladder were all silently dropped. The audit that found the last batch was one command: grep the sim for `off-roster|not in the roster|deferred` and verify each hit against the roster.
+
+Anchor: `tests/simulation/siegeOnagerBlast.test.ts`, `tests/simulation/eagleArmorClass.test.ts`, `tests/simulation/rosterAuditHarvest.test.ts`.
