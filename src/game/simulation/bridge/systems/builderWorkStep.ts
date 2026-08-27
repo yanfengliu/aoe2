@@ -23,6 +23,7 @@ import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
   buildingHealthStatesCodec,
   constructionStatesCodec,
+  playerCivilizationsCodec,
   playerResourcesCodec,
   repairAccrualCodec,
   researchedTechnologiesCodec,
@@ -140,6 +141,7 @@ export function runBuilderWorkStep(ctx: BuilderWorkStepContext): BuilderWorkResu
   // gather-rate lesson).
   construction.buildProgressTicks += buildRateMultiplier(
     accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET,
+    accessor.get(playerCivilizationsCodec).get(unit.owner),
   );
   accessor.markDirty(constructionStatesCodec);
   const buildingHealth = accessor.get(buildingHealthStatesCodec).get(buildingId);

@@ -190,7 +190,16 @@ export function civIgnoresHousing(civilization: string | undefined): boolean {
 /** Incas: "Villagers affected by Blacksmith upgrades" — the infantry ARMOR
  *  line reaches villagers (the melee ATTACK line already reaches every civ's
  *  villagers, matching AoE2, because villagers are melee units). */
-export function civVillagersTakeInfantryArmor(civilization: string | undefined): boolean {
+export function civVillagersTakeInfantryArmor(
+  civilization: string | undefined,
+  /** DE (sourced v0.3.149): the Inca clause starts in the CASTLE Age. */
+  age?: AgeType,
+): boolean {
+  if (age === 'dark-age' || age === 'feudal-age') return false;
+  return civVillagersTakeInfantryArmorUngated(civilization);
+}
+
+function civVillagersTakeInfantryArmorUngated(civilization: string | undefined): boolean {
   return civilization === 'Incas';
 }
 

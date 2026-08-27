@@ -399,3 +399,35 @@ describe('Japanese Fishing Ship work rate', () => {
     expect(japanese).toBeLessThan(generic);
   }, 120_000);
 });
+
+describe('round-six bonuses (sourced v0.3.149)', () => {
+  it('Spanish builders work 30% faster, composing with Treadmill Crane', async () => {
+    const { buildRateMultiplier } = await import('../../src/game/simulation/buildingTechEffects');
+    expect(buildRateMultiplier(NONE, 'Spanish')).toBeCloseTo(1.3, 5);
+    expect(buildRateMultiplier(new Set(['treadmill-crane']), 'Spanish')).toBeCloseTo(1.56, 5);
+    expect(buildRateMultiplier(NONE, 'Britons')).toBe(1);
+  });
+
+  it('a completed Spanish research pays +20 gold into the stockpile', () => {
+    const spanish = createSimulationBridge('feudal-blacksmith-fixture', {
+      civilizationsByOwner: new Map([[1, 'Spanish'], [2, 'Spanish']]),
+    });
+    const goldBefore = spanish.getEconomyState().playerResources[1]!.gold;
+    expect(selectOwnedBuildingDirect(spanish, 1, 'blacksmith')).toBe(true);
+    expect(spanish.queueResearch('fletching')).toBe(true);
+    expect(stepBridgeUntil(
+      spanish,
+      // Blacksmith upgrades cost the Spanish no gold, so the ONLY gold
+      // movement is the +20 completion grant.
+      () => spanish.getEconomyState().playerResources[1]!.gold === goldBefore + 20,
+      { maxSteps: 600 },
+    )).toBe(true);
+  }, 30_000);
+
+  it('the Inca villager-armor clause starts in the Castle Age', async () => {
+    const { civVillagersTakeInfantryArmor } = await import('../../src/game/simulation/civBonusEffects');
+    expect(civVillagersTakeInfantryArmor('Incas', 'feudal-age')).toBe(false);
+    expect(civVillagersTakeInfantryArmor('Incas', 'castle-age')).toBe(true);
+    expect(civVillagersTakeInfantryArmor('Britons', 'imperial-age')).toBe(false);
+  });
+});

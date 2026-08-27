@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.149
+
+- Spanish builders now work 30% faster and every completed technology pays the Spanish +20 gold; the Inca villager-armor clause starts in the Castle Age, as in DE.
+
 ## 0.3.148
 
 - The hit-point ladders match current DE: Viking infantry is a flat +20% from the Feudal Age (was a 10/15/20 ramp), Vietnamese archery-range units +20% at every age, Frankish MOUNTED units (not just knights) +20% from Feudal, the Mongol scout line +20/30% in Castle/Imperial, and Portuguese ships climb +10/15/20% by age. All replace-not-compound on age-up, as before.

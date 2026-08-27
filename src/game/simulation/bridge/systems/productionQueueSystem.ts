@@ -23,6 +23,7 @@ import { resourceKindToEconomyResource } from '../../prototypeEconomyRules';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import { playerCivilizationsCodec, playerTeamsCodec,
   inFlightTechByOwnerCodec,
+  playerResourcesCodec,
   populationCodec,
   productionQueuesCodec,
   rallyPointsCodec,
@@ -80,6 +81,21 @@ export interface ProductionQueueSystemDeps {
   issueUnitMoveCommand: (unitId: number, target: Position) => boolean;
   isHarvestableResource: (resourceId: number, resource: ResourceComponent) => boolean;
   applyTechnology: (owner: number, technologyType: ResearchableTechnologyType) => void;
+}
+
+
+// Spanish (sourced v0.3.149): +20 gold for each completed technology,
+// age-ups included — paid at BOTH research-completion sites below.
+function paySpanishTechGold(
+  accessor: import('../bridgeStateAccessor').BridgeStateAccessor,
+  owner: number,
+): void {
+  if (accessor.get(playerCivilizationsCodec).get(owner) !== 'Spanish') return;
+  const stockpile = accessor.get(playerResourcesCodec).get(owner);
+  if (stockpile) {
+    stockpile.gold += 20;
+    accessor.markDirty(playerResourcesCodec);
+  }
 }
 
 export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): void {
@@ -142,6 +158,7 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
               }
               if (research.remainingTicks <= 0 && research.technologyType) {
                 applyTechnology(building.owner, research.technologyType);
+                paySpanishTechGold(accessor, building.owner);
                 accessor
                   .get(inFlightTechByOwnerCodec)
                   .get(building.owner)
@@ -219,6 +236,7 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
 
         if (entry.kind === 'technology' && entry.technologyType) {
           applyTechnology(building.owner, entry.technologyType);
+          paySpanishTechGold(accessor, building.owner);
           // Phase 2D: inFlightTechByOwner is Tier-2 — runtime cache only,
           // NOT flushed. No markDirty call.
           accessor.get(inFlightTechByOwnerCodec).get(building.owner)?.delete(entry.technologyType);

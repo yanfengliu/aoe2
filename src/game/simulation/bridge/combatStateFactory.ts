@@ -158,7 +158,7 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
     }
     // Incas: villagers wear the infantry armor line too.
     const wearsInfantryArmor = isInfantryUnit(unitType)
-      || (unitType === 'villager' && civVillagersTakeInfantryArmor(getCivilization(owner)));
+      || (unitType === 'villager' && civVillagersTakeInfantryArmor(getCivilization(owner), getAge(owner)));
     if (wearsInfantryArmor && hasTechnology(owner, 'plate-mail-armor')) {
       applyArmorTech(state, 'plate-mail-armor');
     }

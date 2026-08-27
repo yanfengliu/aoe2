@@ -85,11 +85,17 @@ export function buildingMaxHpWithTechnologies(
 // Treadmill Crane (Castle): "Builders work rate x 1.2".
 export const TREADMILL_CRANE_BUILD_MULTIPLIER = 1.2;
 
+// Spanish (sourced v0.3.149): "Builders work +30% faster" — composing with
+// Treadmill Crane the way stacked rate techs do.
+export const SPANISH_BUILDER_MULTIPLIER = 1.3;
+
 /** How much faster this owner's villagers put up a building. */
 export function buildRateMultiplier(
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
+  civilization?: string,
 ): number {
-  return researchedTechnologies.has('treadmill-crane') ? TREADMILL_CRANE_BUILD_MULTIPLIER : 1;
+  return (researchedTechnologies.has('treadmill-crane') ? TREADMILL_CRANE_BUILD_MULTIPLIER : 1)
+    * (civilization === 'Spanish' ? SPANISH_BUILDER_MULTIPLIER : 1);
 }
 
 // Heated Shot (Castle): "Towers do 2.25 * attack bonus vs ships/camels".

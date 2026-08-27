@@ -145,7 +145,10 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
     // Blacksmith upgrades") — one scope shared by the three armor cases.
     const infantryArmorScope = (u: UnitType): boolean => isInfantryUnit(u)
       || (u === 'villager'
-        && civVillagersTakeInfantryArmor(accessor.get(playerCivilizationsCodec).get(owner)));
+        && civVillagersTakeInfantryArmor(
+          accessor.get(playerCivilizationsCodec).get(owner),
+          accessor.get(playerAgesCodec).get(owner) ?? 'dark-age',
+        ));
 
     // Ethiopians: "+100 gold and +100 food when advancing to the next age" —
     // paid the moment the advance completes, into the same stockpile the
