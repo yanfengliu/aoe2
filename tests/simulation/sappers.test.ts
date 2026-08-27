@@ -88,17 +88,16 @@ describe('sappersBuildingAttackBonus — the derived +15 vs buildings', () => {
     expect(sappersBuildingAttackBonus(NO_TECHS, 'archer')).toBe(0);
   });
 
-  it('grants +15 to infantry with the tech, and 0 to non-infantry', () => {
-    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'militia')).toBe(
+  it('grants +15 to VILLAGERS with the tech (technologies.csv), nobody else', () => {
+    // v0.3.132: the CSV applies Sappers to Villagers — the siege-crew
+    // reading — not to infantry, which an earlier slice had assumed.
+    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'villager')).toBe(
       SAPPERS_BUILDING_ATTACK_BONUS,
     );
-    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'champion')).toBe(15);
-    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'pikeman')).toBe(15);
-    // Non-infantry gain nothing even with the tech researched.
+    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'militia')).toBe(0);
+    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'champion')).toBe(0);
     expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'archer')).toBe(0);
-    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'villager')).toBe(0);
     expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'knight')).toBe(0);
-    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'mangonel')).toBe(0);
   });
 });
 
@@ -109,42 +108,36 @@ describe('Sappers — cost & research-time tables', () => {
   });
 });
 
-describe('Sappers — gating at the Blacksmith', () => {
-  it('is researchable only at the Blacksmith', () => {
-    expect(canResearchAt('blacksmith', 'sappers')).toBe(true);
+describe('Sappers — gating at the Castle (v0.3.132)', () => {
+  it('is researchable only at the Castle', () => {
+    expect(canResearchAt('castle', 'sappers')).toBe(true);
+    expect(canResearchAt('blacksmith', 'sappers')).toBe(false);
     expect(canResearchAt('siege-workshop', 'sappers')).toBe(false);
-    expect(canResearchAt('town-center', 'sappers')).toBe(false);
     expect(canResearchAt('monastery', 'sappers')).toBe(false);
   });
 
-  it('is offered at an Imperial-Age Blacksmith and drops once researched', () => {
-    const bridge = createSimulationBridge('imperial-blacksmith-fixture');
+  it('is offered at an Imperial-Age Castle and drops once researched (v0.3.132)', () => {
+    const bridge = createSimulationBridge('conscription-fixture');
 
-    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
     expect(bridge.getSelectionState().researchOptions).toContain('sappers');
+    // And the old Blacksmith hosting is gone.
+    expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
+    expect(bridge.getSelectionState().researchOptions ?? []).not.toContain('sappers');
 
+    expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
     expect(bridge.queueResearch('sappers')).toBe(true);
     expect(
       stepBridgeUntil(
         bridge,
         () => {
-          selectOwnedBuildingDirect(bridge, 1, 'blacksmith');
+          selectOwnedBuildingDirect(bridge, 1, 'castle');
           return !(bridge.getSelectionState().researchOptions ?? []).includes('sappers');
         },
         { maxSteps: 1500 },
       ),
     ).toBe(true);
-
-    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
-    expect(bridge.getSelectionState().researchOptions ?? []).not.toContain('sappers');
   }, 30_000);
-
-  it('is NOT offered before Imperial Age (pre-Imperial Blacksmith)', () => {
-    // The castle-upgrades fixture's player 1 owns a Feudal-Age Blacksmith.
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
-    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
-    expect(bridge.getSelectionState().researchOptions ?? []).not.toContain('sappers');
-  });
 });
 
 describe('Sappers — derived +15 vs buildings in live combat', () => {

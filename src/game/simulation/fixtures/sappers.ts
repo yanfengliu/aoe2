@@ -16,7 +16,8 @@ import { createGrassFixtureTerrain, ownedSpawn } from './common';
 // Sappers is DERIVED at the unit->building damage site (like the building-arrow
 // techs), so pre-seeding the researched set on boot pre-applies the bonus with
 // no research cycle in-test. The House does not fire back and AI is disabled,
-// so the militia's per-hit building damage is the only variable.
+// so the VILLAGER's per-hit building damage is the only variable (v0.3.132:
+// technologies.csv applies Sappers to villagers, not infantry).
 
 interface SappersOptions {
   // Player-1 techs pre-applied on boot (drives the derived +15 vs buildings).
@@ -50,7 +51,7 @@ function createSappersScenario(seed: string, options: SappersOptions): Prototype
     ],
     spawns: [
       ownedSpawn('town-center', 1, 4, 20, { vision: 7 }),
-      ownedSpawn('militia', 1, 13, 8, { vision: 6 }),
+      ownedSpawn('villager', 1, 13, 8, { vision: 6 }),
       ownedSpawn('house', 2, 14, 8),
       ownedSpawn('town-center', 2, 40, 24, { vision: 7 }),
     ],

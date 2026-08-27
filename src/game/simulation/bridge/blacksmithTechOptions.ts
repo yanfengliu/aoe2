@@ -71,9 +71,6 @@ export function blacksmithResearchOptions(
       options.push('chemistry');
     }
     // Sappers: +15 infantry attack vs buildings (AoE2 University; hosted at the Blacksmith here); Imperial, drops once researched.
-    if (!hasTechnology(owner, 'sappers')) {
-      options.push('sappers');
-    }
   }
   return options;
 }

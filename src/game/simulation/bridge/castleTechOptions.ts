@@ -45,6 +45,12 @@ export function castleResearchOptions(deps: CastleTechOptionsDeps): Researchable
       // so the button's tooltip quotes the live figure (any civ).
       options.push('spies');
     }
+    if (!hasTechnology(owner, 'sappers')) {
+      // Sappers (v0.3.132): villagers +15 vs buildings — a Castle tech,
+      // where technologies.csv hosts it (an earlier slice parked it at the
+      // Blacksmith as an infantry tech; the absence-claim audit fixed both).
+      options.push('sappers');
+    }
   }
 
   // Civilization unique technologies, gated exactly like the unique units: one

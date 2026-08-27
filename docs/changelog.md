@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.132
+
+- Sappers corrected to the stats sheet: it now boosts VILLAGERS (+15 vs buildings) and researches at the Castle.
+
 ## 0.3.131
 
 - Guard Tower, Keep, and Siege Engineers now research at the University, where AoE2 puts them.
