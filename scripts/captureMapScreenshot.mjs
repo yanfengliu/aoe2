@@ -14,7 +14,7 @@ const seed = process.env.SEED ?? 'aoe2-prototype';
 // anything a player sees at boot.
 const focus = process.env.FOCUS ?? '';
 // ZOOM sets the camera zoom before the shot (the camera clamps to 0.7-2.4;
-// the game opens at 2.0). The renderer's isometric angle is fixed, so a
+// the game opens at 1.2). The renderer's isometric angle is fixed, so a
 // multi-view sweep varies FOCUS, ZOOM and SIZE rather than rotating.
 const zoom = process.env.ZOOM ?? '';
 // SIZE="WxH" captures at a different viewport, because a HUD that fits at

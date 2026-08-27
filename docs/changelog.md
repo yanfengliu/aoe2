@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.158
+
+- The camera now boots at AoE2 DE's default framing: the whole opening base and its resource ring on screen, instead of a Town Center filling half the view with parts of the starting resource ring pushed off-frame.
+
 ## 0.3.157
 
 - The Technology Tree viewer arrives: open it from the game menu or F1 to browse your civilization's full tree, building by building — your unique units included, and every hole your civilization has shown dimmed and struck through rather than hidden, exactly as DE presents it.

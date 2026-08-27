@@ -48,6 +48,14 @@ function harness() {
 }
 
 describe('voxel camera controller', () => {
+  it('boots at the DE default framing zoom (spec §9.4: base + resource ring on screen)', () => {
+    const { controller } = harness();
+    // 1.2 of the 0.7–2.4 wheel range (v0.3.158). 2.0 filled half the screen
+    // with the Town Center alone. A default-sized map must not clamp it.
+    expect(controller.initialZoom).toBe(1.2);
+    expect(controller.getState().zoom).toBe(1.2);
+  });
+
   it('round-trips a centered world cell through screen and iso coordinates', () => {
     const { controller } = harness();
     controller.centerOnWorldPosition(10.5, 12.5);

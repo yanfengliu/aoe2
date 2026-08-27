@@ -1,9 +1,10 @@
 {
   "name": "aoe2",
-  "version": "0.3.157",
+  "version": "0.3.158",
   "private": true,
   "type": "module",
   "scripts": {
+    "verify": "npm test && npm run typecheck && npm run lint && npm run build",
     "voxel:build": "npm --prefix ../voxel run build",
     "predev": "npm run voxel:build",
     "dev": "vite",

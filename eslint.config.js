@@ -13,6 +13,13 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
+      // An underscore prefix marks a parameter a seam keeps deliberately
+      // unused (e.g. a DE-dead bonus hook whose callers stay wired). The
+      // codebase already used the convention; the rule now honors it.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       // Phase-6.A.1: prevent @anthropic-ai/sdk from being statically
       // imported. The SDK is ~200 KB and would silently inflate the
       // production bundle. Approved callers below; everything else

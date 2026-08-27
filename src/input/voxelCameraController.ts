@@ -6,7 +6,10 @@ const EDGE_PAN_SPEED_PX_PER_SECOND = 480;
 const EDGE_PAN_HOVER_DELAY_MS = 500;
 const MIN_CAMERA_ZOOM = 0.7;
 const MAX_CAMERA_ZOOM = 2.4;
-const INITIAL_CAMERA_ZOOM = 2.0;
+// 1.2 frames the whole opening base plus its resource ring, matching AoE2 DE's
+// default framing; 2.0 (the old default) filled half the screen with the Town
+// Center alone and pushed parts of the starting resource ring off-frame.
+const INITIAL_CAMERA_ZOOM = 1.2;
 const KEYBOARD_SCROLL_SPEED_PX_PER_SECOND = 420;
 
 export interface VoxelPointerState {

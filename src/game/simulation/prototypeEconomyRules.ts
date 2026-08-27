@@ -47,7 +47,7 @@ const GATHER_TICKS_BY_KIND: Record<ResourceKind, number | null> = {
   wolf: null,
   tree: 5,
   relic: null,
-  farm: 4, // M1 Farms: berry-bush food cadence (spec §6.3 ~0.32–0.34 food/sec; berry-bush parity).
+  farm: 4, // M1 Farms: berry-bush parity. NOTE: 4 ticks/unit = 2.5 food/s raw, ~8x spec §6.3's target — the whole table awaits the §6.3 pacing retune (spec §6.6 note, 2026-08-27).
 };
 
 const GATHER_AMOUNT_BY_KIND: Record<ResourceKind, number | null> = {
