@@ -6,7 +6,7 @@
 
 import type { BuildingType, UnitType } from '../types';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { playerCivilizationsCodec, playerTeamsCodec } from './bridgeStateSerialize';
+import { playerAgesCodec, playerCivilizationsCodec, playerTeamsCodec } from './bridgeStateSerialize';
 import {
   BRITONS_TEAM_ARCHERY_MULTIPLIER,
   MALIANS_TEAM_UNIVERSITY_RESEARCH_MULTIPLIER,
@@ -52,15 +52,45 @@ export function teamTrainTimeMultiplier(
     && teamHasCivilization(teams, civilizations, owner, 'Magyars')) {
     multiplier *= TURKS_TEAM_GUNPOWDER_MULTIPLIER;
   }
+  // Persians (sourced v0.3.151): TCs and Docks WORK faster by age — their
+  // training rides the same clause as their research.
+  if (civilizations.get(owner) === 'Persians'
+    && (buildingType === 'town-center' || buildingType === 'dock')) {
+    multiplier *= PERSIAN_WORK_RATE_BY_AGE[accessor.get(playerAgesCodec).get(owner) ?? 'dark-age'] ?? 1;
+  }
   return multiplier;
 }
+
+// v0.3.151: CIV research-time clauses ride the same multiplier the team
+// bonuses use — Goths' instant Loom, Vietnamese eco research +100% faster,
+// Persian TC/Dock work rate by age.
+const VIETNAMESE_ECO_TECHS = new Set<string>([
+  'double-bit-axe', 'bow-saw', 'two-man-saw', 'horse-collar', 'heavy-plow', 'crop-rotation',
+  'gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining',
+  'wheelbarrow', 'hand-cart', 'loom',
+]);
+const PERSIAN_WORK_RATE_BY_AGE: Record<string, number> = {
+  'dark-age': 1 / 1.05, 'feudal-age': 1 / 1.1, 'castle-age': 1 / 1.15, 'imperial-age': 1 / 1.2,
+};
 
 export function teamResearchTimeMultiplier(
   accessor: BridgeStateAccessor,
   owner: number,
   buildingType: BuildingType,
+  technologyType?: string,
 ): number {
   let multiplier = 1;
+  const civ = accessor.get(playerCivilizationsCodec).get(owner);
+  if (civ === 'Goths' && technologyType === 'loom') {
+    // DE: "Loom is researched instantly".
+    return 0;
+  }
+  if (civ === 'Vietnamese' && technologyType !== undefined && VIETNAMESE_ECO_TECHS.has(technologyType)) {
+    multiplier *= 0.5;
+  }
+  if (civ === 'Persians' && (buildingType === 'town-center' || buildingType === 'dock')) {
+    multiplier *= PERSIAN_WORK_RATE_BY_AGE[accessor.get(playerAgesCodec).get(owner) ?? 'dark-age'] ?? 1;
+  }
   if (
     buildingType === 'university'
     && teamHasCivilization(

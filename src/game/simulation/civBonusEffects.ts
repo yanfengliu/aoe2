@@ -287,6 +287,12 @@ export function effectiveTrainingCost(
         target.gold = Math.round(target.gold * rule.goldMultiplier);
       }
     }
+    if (rule.woodMultiplier !== undefined) {
+      const target = writable();
+      if (target.wood !== undefined) {
+        target.wood = Math.round(target.wood * rule.woodMultiplier);
+      }
+    }
     const foodMultiplier = rule.foodMultiplierByAge?.[age];
     if (foodMultiplier !== undefined && foodMultiplier !== 1) {
       const target = writable();

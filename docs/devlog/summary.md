@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-27 v0.3.151 batch 8: Korean wood-component discounts (new unit-cost woodMultiplier), Goth instant Loom + Viet eco x0.5 + Persian TC/dock work-rate-by-age (research AND train through the team-time seam, technologyType threaded), Mayan longevity (swing depletes /1.15, farms excluded) — live twin proves the node outlasts.
 - 2026-08-27 v0.3.150 age-aware construction prices (effectiveConstructionCost age param via ownerConstructionCost funnel): Franks castles -15/25 by age, Britons TC wood -50% Castle+; three stale pins migrated (sim x2 + browser HUD wood 425->562).
 - 2026-08-27 v0.3.149 Spanish builders x1.3 + +20g per completed tech (BOTH queue completion sites — first landing missed the entry.kind path and the live pin caught it) + Inca villager-armor Castle gate.
 - 2026-08-27 v0.3.148 HP ladders sourced (Vikings flat 1.2 Feudal+, Viet flat 1.2, Franks MOUNTED scope Feudal-gated, Mongol scout 1/1/1.2/1.3, Portuguese ships 1/1.1/1.15/1.2) — three flat table entries moved into the age seam so creation + age-up sweep stay one mechanism.

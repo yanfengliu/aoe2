@@ -16,6 +16,8 @@ export interface CivCostRule {
   readonly multiplierByAge?: Partial<Record<AgeType, number>>;
   /** Multiplier for the GOLD component alone (Portuguese). */
   readonly goldMultiplier?: number;
+  /** Multiplier for the WOOD component alone (Koreans). */
+  readonly woodMultiplier?: number;
   /** Multiplier for the FOOD component alone, by age (Incas). */
   readonly foodMultiplierByAge?: Partial<Record<AgeType, number>>;
   /** Flat wood delta (Italians' fishing ships). */
@@ -92,6 +94,7 @@ const SHIPS = new Set<UnitType>([
   ...WARSHIPS, 'fishing-ship', 'transport-ship', 'trade-cog',
 ]);
 const CAVALRY_ARCHER_LINE = new Set<UnitType>(['cavalry-archer', 'heavy-cavalry-archer']);
+const RANGED_SOLDIERS = new Set<UnitType>(['archer', 'crossbowman', 'arbalest', 'skirmisher', 'elite-skirmisher', 'cavalry-archer', 'heavy-cavalry-archer', 'hand-cannoneer']);
 const FOOT_ARCHER_LINE = new Set<UnitType>(['archer', 'crossbowman', 'arbalest']);
 const SCOUT_LINE = new Set<UnitType>(['scout', 'light-cavalry', 'hussar']);
 const SIEGE_UNITS = new Set<UnitType>(['battering-ram', 'capped-ram', 'siege-ram', 'mangonel', 'onager', 'siege-onager', 'scorpion', 'heavy-scorpion', 'bombard-cannon', 'petard', 'trebuchet']);
@@ -219,6 +222,15 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Koreans',
     gatherRate: { 'stone-mine': 1.2 },
+    // DE (sourced v0.3.151): "Ranged Soldiers and Infantry cost -50% wood"
+    // and "Warships cost -20% wood".
+    cost: [
+      {
+        applies: (unit) => isInfantryUnit(unit) || RANGED_SOLDIERS.has(unit),
+        woodMultiplier: 0.5,
+      },
+      { applies: (unit) => WARSHIPS.has(unit), woodMultiplier: 0.8 },
+    ],
   },
   {
     civilization: 'Malians',

@@ -301,7 +301,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     accessor.markDirty(playerResourcesCodec);
     const totalTicks = Math.max(1, Math.round(
       researchTimeTicks(technologyType)
-        * teamResearchTimeMultiplier(accessor, building.owner, building.buildingType),
+        * teamResearchTimeMultiplier(accessor, building.owner, building.buildingType, technologyType),
     ));
     accessor.mutate(productionQueuesCodec, (m) => {
       const queue = m.get(buildingId) ?? [];

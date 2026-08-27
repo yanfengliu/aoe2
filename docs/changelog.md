@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.151
+
+- Korean ranged soldiers and infantry cost half wood and their warships a fifth less; Goths research Loom instantly; Vietnamese economic upgrades research twice as fast; Persian Town Centers and Docks work 5-20% faster by age (training and research alike); and Mayan resource nodes last 15% longer under the same harvest.
+
 ## 0.3.150
 
 - Frankish castles cost -15/25% in Castle/Imperial (was a flat quarter off), and Briton Town Centers cost half wood from the Castle Age — the construction-price seam is age-aware now, at the charge and on the build card alike.

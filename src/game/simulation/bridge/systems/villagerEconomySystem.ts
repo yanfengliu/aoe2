@@ -350,7 +350,13 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                   targetResource.amount,
                   carryCapacity - gatherer.carriedAmount,
                 );
-                targetResource.amount -= gatherAmount;
+                // Mayans (sourced v0.3.151): "Resources last +15% longer" —
+                // each swing removes less from the node while yielding the
+                // same carry. Farms are excluded (their food is a build).
+                targetResource.amount -= (
+                  playerCivilizations.get(unit.owner) === 'Mayans'
+                  && targetResource.resourceType !== 'farm'
+                ) ? gatherAmount / 1.15 : gatherAmount;
                 gatherer.carriedResource = carriedResource;
                 gatherer.carriedAmount += gatherAmount;
 
