@@ -134,7 +134,7 @@ describe('Castle-Age production-line upgrades', () => {
 
     const startingScout = findFirstOwnedUnit(bridge, 1, 'scout');
     expect(startingScout).toMatchObject({
-      attackDamage: 3,
+      attackDamage: 5,
     });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);

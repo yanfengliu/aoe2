@@ -69,9 +69,9 @@ export const UNIT_MAX_HP: Record<UnitType, number> = {
   'trade-cart': 70, // units.csv hit_points.
   'trade-cog': 80, // units.csv hit_points.
   missionary: 30, // units.csv hit_points.
-  'man-at-arms': 50,
-  'long-swordsman': 60,
-  'two-handed-swordsman': 65,
+  'man-at-arms': 45,
+  'long-swordsman': 55,
+  'two-handed-swordsman': 60,
   paladin: 160,
   'heavy-camel': 120,
   'fishing-ship': 60,
@@ -157,7 +157,7 @@ export const UNIT_ATTACK_DAMAGE: Record<UnitType, number> = {
   onager: 50,
   'siege-onager': 75,
   'heavy-scorpion': 16,
-  'siege-ram': 3,
+  'siege-ram': 4,
   'capped-ram': 3,
   'bombard-cannon': 40,
   trebuchet: 200,
@@ -351,7 +351,7 @@ export const UNIT_ATTACK_RANGE: Record<UnitType, number> = {
   'heavy-cavalry-archer': 4,
   cavalier: MELEE_ATTACK_RANGE,
   champion: MELEE_ATTACK_RANGE,
-  'elite-longbowman': 6,
+  'elite-longbowman': 8,
   onager: 8,
   'siege-onager': 8,
   'heavy-scorpion': 7,

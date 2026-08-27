@@ -57,3 +57,13 @@ export function ageScaledBuildingHpFactor(
   }
   return 1;
 }
+
+// The Scout Cavalry's hidden Feudal buff (units.csv rows 65/66, v0.3.136):
+// the SAME unit attacks for 3 in the Dark Age and 5 from Feudal on — AoE2's
+// own quiet upgrade, and the reason an early scout cannot bully a boar line.
+// The scout ONLY: light cavalry and hussar are separate units with their own
+// rows. Same replace-not-compound contract as the HP ladders.
+export function ageScaledUnitAttack(unitType: UnitType, age: AgeType): number | null {
+  if (unitType !== 'scout') return null;
+  return age === 'dark-age' ? 3 : 5;
+}

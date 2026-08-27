@@ -111,11 +111,11 @@ describe('Imperial-Age Castle upgrade (Britons-gated Elite Longbowman)', () => {
       ),
     ).toBe(true);
 
-    // Elite Longbowman base attack 7 / base range 6. With Fletching
+    // Elite Longbowman base attack 9 / base range 6. With Fletching
     // stacked via isArcherLineUnit: atk 8 / range 7.
     const upgraded = findFirstOwnedUnit(bridge, 1, 'elite-longbowman');
     expect(upgraded?.attackDamage).toBe(8);
-    expect(upgraded?.attackRange).toBe(7);
+    expect(upgraded?.attackRange).toBe(9);
   }, 90_000); // 90s: 30.7-31.1s observed under full-suite contention vs the old 30s cap (2026-06-11); vitest-timeout-headroom precedent
 });
 

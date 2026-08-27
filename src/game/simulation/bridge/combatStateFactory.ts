@@ -16,7 +16,7 @@ import { applyArmorTech } from '../armorTechBonuses';
 import { CAREENING_SHIP_PIERCE_ARMOR } from '../dockTechEffects';
 import { isWaterUnit } from '../unitDomain';
 import { civUnitHpMultiplier } from '../civBonusEffects';
-import { ageScaledUnitHpFactor } from '../ageScaledHp';
+import { ageScaledUnitAttack, ageScaledUnitHpFactor } from '../ageScaledHp';
 import { civVillagersTakeInfantryArmor } from '../civBonusEffects';
 import {
   takesMeleeAttackTechs,
@@ -96,7 +96,7 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
     const state: CombatState = {
       currentHp: baseHp,
       maxHp: baseHp,
-      attackDamage: unitAttackDamage(unitType),
+      attackDamage: ageScaledUnitAttack(unitType, getAge(owner)) ?? unitAttackDamage(unitType),
       attackRange: unitAttackRange(unitType)
         + (deps.teamAttackRangeBonus?.(owner, unitType) ?? 0),
       reloadTicks: unitReloadTicks(unitType),

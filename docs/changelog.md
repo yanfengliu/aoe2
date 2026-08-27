@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.136
+
+- Base stats squared with the sheet: swordsman HP trimmed to true values, the Elite Longbowman gets its full 8 range, the Siege Ram its 4 attack, Petard and Trade Cog armor un-swapped — and scouts now gain their hidden +2 attack on reaching the Feudal Age, exactly as in AoE2. A third permanent test locks every numeric column to the stats sheet.
+
 ## 0.3.135
 
 - The defensive half of the stat sheet: Cataphracts shrug anti-cavalry bonuses, Turtle Ships shrug the galley line, fire ships resist naval bonuses, upgraded rams resist anti-ram — and every ram takes 3 extra from melee swings, so swordsmen are the answer again. Siege Engineers now multiplies siege building damage by 1.2, as written.

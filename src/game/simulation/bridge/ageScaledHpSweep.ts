@@ -9,6 +9,7 @@
 import type { AgeType, BuildingComponent, UnitComponent } from '../types';
 import {
   ageScaledBuildingHpFactor,
+  ageScaledUnitAttack,
   ageScaledUnitHpFactor,
 } from '../ageScaledHp';
 import { buildingMaxHpForAge } from '../prototypeBuildingRules';
@@ -34,6 +35,17 @@ export function applyAgeScaledHpSweep(
   for (const id of world.query('unit')) {
     const unit = world.getComponent<UnitComponent>(id, 'unit');
     if (!unit || unit.owner !== owner) continue;
+    // Scout Feudal attack (v0.3.136): replace-not-compound, like the HP
+    // rows — and civ-independent, so it runs BEFORE the civilization guard.
+    const attackFrom = ageScaledUnitAttack(unit.unitType, fromAge);
+    const attackTo = ageScaledUnitAttack(unit.unitType, toAge);
+    if (attackFrom !== null && attackTo !== null && attackFrom !== attackTo) {
+      const scoutCombat = combatStates.get(id);
+      if (scoutCombat) {
+        scoutCombat.attackDamage += attackTo - attackFrom;
+        unitsTouched = true;
+      }
+    }
     if (!civilization) continue;
     const from = ageScaledUnitHpFactor(civilization, unit.unitType, fromAge);
     const to = ageScaledUnitHpFactor(civilization, unit.unitType, toAge);

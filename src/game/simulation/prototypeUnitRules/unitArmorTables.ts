@@ -48,9 +48,9 @@ export const UNIT_PIERCE_ARMOR: Record<UnitType, number> = {
   'capped-ram': 190,
   'bombard-cannon': 5,
   trebuchet: 150,
-  petard: 0, // units.csv armour 0/2: no melee armour.
+  petard: 2, // units.csv armour 0/2: no melee armour.
   'trade-cart': 0, // units.csv armour 0/0.
-  'trade-cog': 0, // units.csv armour 0/6: no melee armour.
+  'trade-cog': 6, // units.csv armour 0/6: a tough hull against arrows.
   missionary: 0, // units.csv armour 0/0.
   'man-at-arms': 1,
   'long-swordsman': 1,
@@ -149,9 +149,9 @@ export const UNIT_MELEE_ARMOR: Record<UnitType, number> = {
   'capped-ram': -3,
   'bombard-cannon': 2,
   trebuchet: 1,
-  petard: 2, // units.csv armour 0/2: two pierce.
+  petard: 0, // units.csv armour 0/2: two pierce.
   'trade-cart': 0, // units.csv armour 0/0.
-  'trade-cog': 6, // units.csv armour 0/6: six pierce, a tough hull.
+  'trade-cog': 0, // units.csv armour 0/6: no melee armour.
   missionary: 0, // units.csv armour 0/0.
   'man-at-arms': 0,
   'long-swordsman': 0,

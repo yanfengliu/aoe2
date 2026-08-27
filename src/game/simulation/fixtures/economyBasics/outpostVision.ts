@@ -26,6 +26,8 @@ export function createOutpostVisionFixture(seed: string): PrototypeScenario {
     ],
     spawns: [
       ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      // v0.3.136: a scout for the Feudal-attack sweep test to watch.
+      ownedSpawn('scout', 1, 12, 14),
       // Two Dark-Age buildings: the Feudal age-up prerequisite.
       ownedSpawn('mill', 1, 5, 8),
       ownedSpawn('barracks', 1, 13, 8),

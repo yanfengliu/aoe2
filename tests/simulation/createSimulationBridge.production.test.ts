@@ -159,7 +159,7 @@ describe('createSimulationBridge production progression', () => {
       .units.filter((unit) => unit.owner === 1 && unit.unitType === 'scout');
     expect(playerScouts).toHaveLength(1);
     expect(playerScouts[0]).toMatchObject({
-      attackDamage: 3,
+      attackDamage: 5,
       attackRange: 1,
     });
 
