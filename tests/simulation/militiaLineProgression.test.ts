@@ -31,7 +31,7 @@ describe('Militia-line intermediate tiers at Barracks', () => {
   // champion) can be researched in sequence on the same bridge.
 
   it('Man-at-Arms upgrade mutates Militia in place and swaps the Barracks train option', () => {
-    const bridge = createSimulationBridge('militia-line-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('militia-line-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     const baseMilitia = findFirstOwnedUnit(bridge, 1, 'militia');
     expect(baseMilitia).toBeDefined();
@@ -65,7 +65,7 @@ describe('Militia-line intermediate tiers at Barracks', () => {
   }, 30_000);
 
   it('Long Swordsman upgrade mutates Man-at-Arms in place after Man-at-Arms is researched', () => {
-    const bridge = createSimulationBridge('militia-line-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('militia-line-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.queueResearch('man-at-arms-upgrade')).toBe(true);
@@ -100,7 +100,7 @@ describe('Militia-line intermediate tiers at Barracks', () => {
   }, 45_000);
 
   it('Two-Handed Swordsman upgrade mutates Long Swordsman in place after Long Swordsman is researched', () => {
-    const bridge = createSimulationBridge('militia-line-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('militia-line-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.queueResearch('man-at-arms-upgrade')).toBe(true);
@@ -144,7 +144,7 @@ describe('Militia-line intermediate tiers at Barracks', () => {
   }, 60_000);
 
   it('Champion upgrade mutates a Two-Handed Swordsman to Champion after the full chain', () => {
-    const bridge = createSimulationBridge('militia-line-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('militia-line-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.queueResearch('man-at-arms-upgrade')).toBe(true);
@@ -200,7 +200,7 @@ describe('Militia-line intermediate tiers at Barracks', () => {
     // Swordsman). This keeps existing Slice 7 / imperial-halberdier
     // test coverage intact while the new intermediate tiers are
     // optional.
-    const bridge = createSimulationBridge('militia-line-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('militia-line-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.queueResearch('champion-upgrade')).toBe(true);
@@ -225,7 +225,7 @@ describe('Paladin upgrade at Stable', () => {
   // becomes the head of the Knight chain.
 
   it('exposes Paladin research at the Stable after Cavalier is researched', () => {
-    const bridge = createSimulationBridge('paladin-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('paladin-fixture', { civilizationsByOwner: new Map([[1, 'Franks'], [2, 'Franks']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     expect(bridge.getSelectionState().researchOptions).toContain('cavalier-upgrade');
@@ -257,7 +257,7 @@ describe('Paladin upgrade at Stable', () => {
   }, 60_000);
 
   it('swaps the Knight / Cavalier train option for Paladin after Paladin research', () => {
-    const bridge = createSimulationBridge('paladin-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('paladin-fixture', { civilizationsByOwner: new Map([[1, 'Franks'], [2, 'Franks']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('knight');
@@ -326,7 +326,9 @@ describe('Heavy Camel upgrade at Stable', () => {
     // damage to a Knight than its own unbuffed damage. The fixture
     // spawns a pre-upgraded Heavy Camel adjacent to the enemy Knight so
     // the first melee hit lands within a handful of ticks.
-    const bridge = createSimulationBridge('heavy-camel-vs-knight-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    // Persians: camels in the tree and no cavalry hit-point bonus to skew
+    // the expected Knight HP (Franks' +20% cavalry HP broke the pin here).
+    const bridge = createSimulationBridge('heavy-camel-vs-knight-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     const heavyCamel = findFirstOwnedUnit(bridge, 1, 'heavy-camel');
     expect(heavyCamel).toBeDefined();

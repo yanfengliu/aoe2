@@ -63,7 +63,7 @@ test.describe('units added since v0.3.45 are reachable with a mouse', () => {
   });
 
   test('the Siege Workshop trains a Capped Ram and offers the two tiers above it', async ({ page }) => {
-    await game.waitForBootWithSeed(page, 'new-unit-reach-fixture');
+    await game.waitForBootWithSeed(page, 'new-unit-reach-fixture', 'Celts');  // full ram line (Britons lost Siege Ram in the sourced audit)
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'siege-workshop')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Siege Workshop');

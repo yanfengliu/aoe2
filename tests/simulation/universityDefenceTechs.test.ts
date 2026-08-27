@@ -175,7 +175,11 @@ describe('Fortified Wall and the tower hit-point upgrades', () => {
 
 describe('the Bombard Tower', () => {
   it('is offered to a villager only once the technology is researched', () => {
-    const bridge: Bridge = createSimulationBridge('university-imperial-fixture');
+    // Koreans: a tower civilization whose DE tree keeps the Bombard Tower
+    // (the default Britons lost it in the v0.3.139 sourced audit).
+    const bridge: Bridge = createSimulationBridge('university-imperial-fixture', {
+      civilizationsByOwner: new Map([[1, 'Koreans'], [2, 'Koreans']]),
+    });
     expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
     expect(bridge.getSelectionState().buildOptions).not.toContain('bombard-tower');
 

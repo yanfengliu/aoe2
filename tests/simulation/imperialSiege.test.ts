@@ -32,7 +32,7 @@ function getHealthOfUnitAtCell(bridge: Bridge, x: number, y: number): number | n
 
 describe('Imperial-Age Siege Workshop upgrades', () => {
   it('exposes Onager, Heavy Scorpion, and Siege Ram research options at the Siege Workshop in Imperial Age', () => {
-    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
+    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Celts'], [2, 'Celts']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
     const options = bridge.getSelectionState().researchOptions;
@@ -116,7 +116,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
   }, 10_000);
 
   it('researches Heavy Scorpion at the Siege Workshop and swaps existing Scorpions', () => {
-    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
+    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Celts'], [2, 'Celts']]) });
 
     const startingScorpion = findFirstOwnedUnit(bridge, 1, 'scorpion');
     expect(startingScorpion).toBeDefined();
@@ -140,7 +140,9 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
   }, 30_000);
 
   it('swaps the Scorpion train option for Heavy Scorpion after research', () => {
-    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
+    // Celts: the one pinned civ here whose DE tree keeps Heavy Scorpion
+    // (Saracens, pinned for the gunpowder tests, lost it).
+    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Celts'], [2, 'Celts']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('scorpion');

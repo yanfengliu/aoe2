@@ -25,7 +25,7 @@ function findFirstOwnedUnit(bridge: Bridge, owner: number, unitType: string) {
 
 describe('Imperial-Age Archery Range upgrades', () => {
   it('exposes Arbalest and Heavy Cavalry Archer research options at the Archery Range in Imperial Age', () => {
-    const bridge = createSimulationBridge('imperial-arbalest-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('imperial-arbalest-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     const options = bridge.getSelectionState().researchOptions;
@@ -34,7 +34,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
   });
 
   it('researches Arbalest at the Archery Range and swaps existing Crossbowmen to Arbalest', () => {
-    const bridge = createSimulationBridge('imperial-arbalest-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('imperial-arbalest-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     const startingCrossbowman = findFirstOwnedUnit(bridge, 1, 'crossbowman');
     expect(startingCrossbowman).toBeDefined();
@@ -58,7 +58,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('trains Arbalest after the Arbalest upgrade (train menu exposes Arbalest, drops archer-line predecessors)', () => {
-    const bridge = createSimulationBridge('imperial-arbalest-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('imperial-arbalest-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     // Starting fixture has the human in Imperial Age but with neither
     // crossbowman-upgrade nor arbalest-upgrade researched, so the archer
@@ -95,7 +95,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('researches Heavy Cavalry Archer and swaps existing Cavalry Archers', () => {
-    const bridge = createSimulationBridge('imperial-arbalest-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('imperial-arbalest-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     const startingCa = findFirstOwnedUnit(bridge, 1, 'cavalry-archer');
     expect(startingCa).toBeDefined();
@@ -119,7 +119,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('swaps the Cavalry Archer train option for Heavy Cavalry Archer after research', () => {
-    const bridge = createSimulationBridge('imperial-arbalest-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('imperial-arbalest-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('cavalry-archer');
@@ -140,7 +140,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('applies Fletching +1 attack / +1 range to Arbalest after the upgrade', () => {
-    const bridge = createSimulationBridge('imperial-arbalest-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('imperial-arbalest-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
     expect(bridge.queueResearch('fletching')).toBe(true);
@@ -175,7 +175,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
 
 describe('Imperial-Age Barracks upgrades', () => {
   it('exposes Halberdier and Champion research options at the Barracks in Imperial Age', () => {
-    const bridge = createSimulationBridge('imperial-halberdier-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('imperial-halberdier-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     const options = bridge.getSelectionState().researchOptions;
@@ -184,7 +184,7 @@ describe('Imperial-Age Barracks upgrades', () => {
   });
 
   it('researches Halberdier at the Barracks and swaps existing Pikemen to Halberdier', () => {
-    const bridge = createSimulationBridge('imperial-halberdier-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('imperial-halberdier-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     const startingPikeman = findFirstOwnedUnit(bridge, 1, 'pikeman');
     expect(startingPikeman).toBeDefined();
@@ -208,7 +208,7 @@ describe('Imperial-Age Barracks upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('exposes Halberdier in the Barracks train menu after the Halberdier upgrade (drops spearman-line predecessors)', () => {
-    const bridge = createSimulationBridge('imperial-halberdier-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('imperial-halberdier-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     // Starting fixture has the human in Imperial Age but with neither
     // pikeman-upgrade nor halberdier-upgrade researched, so the spearman
@@ -236,7 +236,7 @@ describe('Imperial-Age Barracks upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('researches Champion and swaps existing Militia to Champion', () => {
-    const bridge = createSimulationBridge('imperial-halberdier-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('imperial-halberdier-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     const startingMilitia = findFirstOwnedUnit(bridge, 1, 'militia');
     expect(startingMilitia).toBeDefined();
@@ -260,7 +260,7 @@ describe('Imperial-Age Barracks upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('swaps the Militia train option for Champion after research', () => {
-    const bridge = createSimulationBridge('imperial-halberdier-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const bridge = createSimulationBridge('imperial-halberdier-fixture', { civilizationsByOwner: new Map([[1, 'Japanese'], [2, 'Japanese']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('militia');

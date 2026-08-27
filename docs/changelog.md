@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.139
+
+- Every tech-tree denial row is now sourced from the real DE game data (SiegeEngineers/aoe2techtree) instead of memory: ~380 corrections across all 30 civilizations — Britons lose Siege Ram and Bombard Tower, Franks lose Thumb Ring and their Halberdier returns, Huns lose Onager and Champion, Vikings regain Fire Ships and lose Hussar, Mongols regain Camels, Goths' full monastery holes land, and every civilization gains its true Parthian-Tactics/eco/monastery/dock gaps. Three roster-judgment exceptions are recorded in the CSV header (Persians keep Paladin standing in for the unmodeled Savar; Incas keep eagles and the militia line standing in for the unmodeled Champi Warrior; Tracking/Cartography stay global).
+
 ## 0.3.138
 
 - Per-civilization tech-tree denial: every civilization now has its real AoE2 holes. The Franks have no Bracer or Bloodlines, the Spanish no Crossbowman line, the Turks no Elite Skirmisher or Pikeman line, the Goths no stone walls or Keeps, the mesoamerican three no stables or gunpowder — and only they can train Eagle Warriors. Denied items vanish from the command card, are rejected by the queue, cannot be placed, and the AI respects the same holes. `design/stats/tech-tree.csv` is the new spec-of-record surface (30 civilizations); a content gate keeps the runtime table identical to it. Mesoamerican civilizations start with an Eagle Warrior in place of the Scout, as in DE.
