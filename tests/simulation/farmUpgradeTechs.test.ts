@@ -45,6 +45,7 @@ function optionsAt(age: AgeType, researched: ResearchableTechnologyType[] = []) 
     hasTechnology: (_owner, tech) => have.has(tech),
     getPlayerAge: () => age,
     isAtLeastAge: (_owner, min) => AGE_ORDER.indexOf(age) >= AGE_ORDER.indexOf(min),
+    rawCivilizationOf: () => undefined,
     getPlayerCivilization: () => 'Franks',
     canAdvanceToFeudalAge: () => false,
     canAdvanceToCastleAge: () => false,

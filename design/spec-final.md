@@ -1283,6 +1283,8 @@ Each civ differs in:
 - unique units
 - unique technologies
 
+**Tech-tree denial (implemented v0.3.138).** `design/stats/tech-tree.csv` is the spec of record for per-civilization holes: one row per civilization, a semicolon list of the technology, unit, and building ids that civilization can NEVER research, train, or construct — the Franks have no Bracer or Bloodlines, the Spanish no Crossbowman line, the Turks no Elite Skirmisher or Pikeman line or Onagers, the Goths no stone fortifications, the mesoamerican three (Aztecs, Mayans, Incas) no stables, no gunpowder and no barding, and the Eagle line belongs to them alone. Technologies, units, and buildings share one id namespace, so a single list per civilization covers all three. Enforcement is at the OPTIONS choke points (`getTrainOptions` / `getResearchOptions` / `getBuildOptions` in `optionsRules.ts` filter through `civDenies`), and because the queue validators and the building-placement validator consume those same filtered options, the HUD, the AI, recorded-command validation, and placement all inherit the holes from one filter — a denied item is not offered, not queueable, and not placeable, with no second list to drift. Every seeded player has a civilization (the Britons/Franks display defaults are stored at seed, so their real holes apply even when nobody chose a civ — a civ-less player does not exist, as in DE); an unknown name or a pseudo-civ seat (`Player 3`+, which carries no bonuses either) keeps the full tree, a fail-open for non-civilizations only. A civilization whose tree denies the Scout line starts with an Eagle Warrior in the Scout's opening slot instead (DE's Eagle Scout stand-in; swapped at world creation after the civ override, so the choice follows `?civ=`). The runtime table is embedded in `civTechTree.ts` (browser bundles cannot read files); `tests/content/techTreeDenials.test.ts` asserts the embedded copy and the CSV are identical, that every denied id is a real technology/unit/building, and that every roster civilization has a row.
+
 ### 11.2 Technology Families
 
 At minimum, support these research families:
@@ -1319,12 +1321,14 @@ If a technology-tree UI is implemented, preserve the official mental model:
 
 The final spec should not duplicate every civ row in prose because that creates drift.
 
+`design/stats/tech-tree.csv` owns the per-civilization denial lists (§11.1) on the same terms: the CSV is the correctable data surface, and the prose never restates a civilization's full hole list.
+
 ### 11.5 Required Civilization Capabilities
 
 The engine must express:
 
-- civ-specific disabled units
-- civ-specific disabled technologies
+- civ-specific disabled units — implemented v0.3.138 via `tech-tree.csv` (§11.1)
+- civ-specific disabled technologies — implemented v0.3.138 via `tech-tree.csv` (§11.1)
 - civ-specific free technologies
 - civ-specific cost discounts
 - civ-specific stat modifiers

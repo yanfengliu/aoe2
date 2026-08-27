@@ -48,7 +48,10 @@ describe('the Eagle Warrior line', () => {
   });
 
   it('is offered at the Barracks, so a player can actually train one', () => {
-    const bridge = createSimulationBridge('conscription-fixture');
+    // v0.3.138: the Eagle line belongs to the mesoamericans alone.
+    const bridge = createSimulationBridge('conscription-fixture', {
+      civilizationsByOwner: new Map([[1, 'Aztecs'], [2, 'Aztecs']]),
+    });
     const barracks = bridge
       .getEconomyState()
       .buildings.find((b) => b.owner === 1 && b.buildingType === 'barracks');

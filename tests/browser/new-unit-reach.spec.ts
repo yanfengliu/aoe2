@@ -15,7 +15,7 @@ import * as game from './helpers/gameTestHelpers';
 
 test.describe('units added since v0.3.45 are reachable with a mouse', () => {
   test('the Barracks trains an Eagle Warrior and offers its Elite upgrade', async ({ page }) => {
-    await game.waitForBootWithSeed(page, 'new-unit-reach-fixture');
+    await game.waitForBootWithSeed(page, 'new-unit-reach-fixture', 'Aztecs');
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Barracks');
@@ -39,7 +39,7 @@ test.describe('units added since v0.3.45 are reachable with a mouse', () => {
   });
 
   test('the Archery Range trains a Hand Cannoneer and an Elite Skirmisher', async ({ page }) => {
-    await game.waitForBootWithSeed(page, 'new-unit-reach-fixture');
+    await game.waitForBootWithSeed(page, 'new-unit-reach-fixture', 'Saracens');
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');

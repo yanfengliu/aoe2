@@ -1,3 +1,6 @@
+// v0.3.138 tech-tree denials: this suite's default owners were Britons/
+// Franks, whose REAL AoE2 holes deny the content under test — it now boots
+// Persians, whose tree carries it.
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
@@ -35,7 +38,7 @@ describe('Halberdier anti-cavalry bonus', () => {
     // The Halberdier must leave the Knight with strictly less HP after the
     // first hit than the Pikeman does.
 
-    const pikemanBridge = createSimulationBridge('pikeman-vs-knight-fixture');
+    const pikemanBridge = createSimulationBridge('pikeman-vs-knight-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
     const pikemanKnight = findFirstOwnedUnit(pikemanBridge, 2, 'knight');
     expect(pikemanKnight).toBeDefined();
 
@@ -57,7 +60,7 @@ describe('Halberdier anti-cavalry bonus', () => {
       pikemanKnight!.y,
     );
 
-    const halbBridge = createSimulationBridge('halberdier-vs-knight-fixture');
+    const halbBridge = createSimulationBridge('halberdier-vs-knight-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
     const halbKnight = findFirstOwnedUnit(halbBridge, 2, 'knight');
     expect(halbKnight).toBeDefined();
 
@@ -90,7 +93,7 @@ describe('Halberdier anti-cavalry bonus', () => {
 
 describe('Imperial-Age Stable upgrades', () => {
   it('exposes Hussar and Cavalier research options at the Stable in Imperial Age', () => {
-    const bridge = createSimulationBridge('imperial-stable-fixture');
+    const bridge = createSimulationBridge('imperial-stable-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     const options = bridge.getSelectionState().researchOptions;
@@ -99,7 +102,7 @@ describe('Imperial-Age Stable upgrades', () => {
   });
 
   it('researches Hussar and swaps existing Light Cavalry to Hussar with vision bump', () => {
-    const bridge = createSimulationBridge('imperial-stable-fixture');
+    const bridge = createSimulationBridge('imperial-stable-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     const startingLightCav = findFirstOwnedUnit(bridge, 1, 'light-cavalry');
     expect(startingLightCav).toBeDefined();
@@ -125,7 +128,7 @@ describe('Imperial-Age Stable upgrades', () => {
   }, 30_000);
 
   it('researches Cavalier and swaps existing Knights to Cavalier', () => {
-    const bridge = createSimulationBridge('imperial-stable-fixture');
+    const bridge = createSimulationBridge('imperial-stable-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     const startingKnight = findFirstOwnedUnit(bridge, 1, 'knight');
     expect(startingKnight).toBeDefined();
@@ -151,7 +154,7 @@ describe('Imperial-Age Stable upgrades', () => {
   }, 30_000);
 
   it('swaps the Scout slot for Hussar after Hussar research (drops Light Cavalry + Scout from menu)', () => {
-    const bridge = createSimulationBridge('imperial-stable-fixture');
+    const bridge = createSimulationBridge('imperial-stable-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     // Starting fixture: Imperial with neither light-cavalry-upgrade nor
     // hussar-upgrade researched; menu shows the scout-line predecessor
@@ -180,7 +183,7 @@ describe('Imperial-Age Stable upgrades', () => {
   }, 30_000);
 
   it('swaps the Knight slot for Cavalier after Cavalier research', () => {
-    const bridge = createSimulationBridge('imperial-stable-fixture');
+    const bridge = createSimulationBridge('imperial-stable-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('knight');
@@ -207,7 +210,7 @@ describe('Anti-cavalry bonuses vs Hussar and Cavalier', () => {
   it("applies Camel's +10 anti-cavalry bonus to a Hussar", () => {
     // Hussar is a cavalry target. Camel base atk 5 + 10 = 15. Hussar (75 HP,
     // 0 melee armor) -> 60 after first hit.
-    const bridge = createSimulationBridge('camel-vs-hussar-fixture');
+    const bridge = createSimulationBridge('camel-vs-hussar-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     const hussar = findFirstOwnedUnit(bridge, 2, 'hussar');
     expect(hussar).toBeDefined();
@@ -232,7 +235,7 @@ describe('Anti-cavalry bonuses vs Hussar and Cavalier', () => {
   it("applies Halberdier's +32 anti-cavalry bonus to a Cavalier", () => {
     // Cavalier (120 HP). Halberdier base atk 6 + 32 = 38 raw; the Cavalier's
     // 2 base melee armor reduces it to 36, so 120 - 36 = 84.
-    const bridge = createSimulationBridge('halberdier-vs-cavalier-fixture');
+    const bridge = createSimulationBridge('halberdier-vs-cavalier-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     const cavalier = findFirstOwnedUnit(bridge, 2, 'cavalier');
     expect(cavalier).toBeDefined();

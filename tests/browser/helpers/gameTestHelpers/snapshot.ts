@@ -14,8 +14,11 @@ export async function waitForBoot(page: Page): Promise<void> {
   await waitForBootWithSeed(page, 'aoe2-prototype');
 }
 
-export async function waitForBootWithSeed(page: Page, seed: string): Promise<void> {
-  await page.goto(`/?seed=${seed}`);
+// `civ` pins the human player's civilization via the real ?civ= param — needed
+// since v0.3.138, when tech-tree denials made the default Britons unable to
+// reach camels, eagles, hand cannoneers, or Parthian Tactics.
+export async function waitForBootWithSeed(page: Page, seed: string, civ?: string): Promise<void> {
+  await page.goto(`/?seed=${seed}${civ ? `&civ=${civ}` : ''}`);
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
   await expect.poll(async () => (await getSnapshot(page)).hudState.seed).toBe(seed);
   await expect.poll(async () => {

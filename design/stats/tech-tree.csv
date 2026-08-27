@@ -1,0 +1,37 @@
+civilization, denied
+# Tech-tree holes per civilization (v0.3.138): semicolon-separated ids of
+# technologies AND units this civilization can never research or train —
+# AoE2 DE's defining per-civ gaps, restricted to content this game models.
+# Absent civilization = full tree. Authored from DE tech trees; uncertain
+# holes are OMITTED (allowed) rather than guessed. One namespace: tech ids
+# and unit ids never collide.
+Aztecs, scout;light-cavalry;hussar;knight;cavalier;paladin;camel;heavy-camel;cavalry-archer;heavy-cavalry-archer;hand-cannoneer;bombard-cannon;cannon-galleon;elite-cannon-galleon;light-cavalry-upgrade;hussar-upgrade;cavalier-upgrade;paladin-upgrade;heavy-camel-upgrade;heavy-cavalry-archer-upgrade;cannon-galleon-unlock;elite-cannon-galleon-upgrade;bombard-tower-unlock;bloodlines;husbandry;parthian-tactics;scale-barding-armor;chain-barding-armor;plate-barding;halberdier;halberdier-upgrade;stable
+Mayans, scout;light-cavalry;hussar;knight;cavalier;paladin;camel;heavy-camel;cavalry-archer;heavy-cavalry-archer;hand-cannoneer;bombard-cannon;cannon-galleon;elite-cannon-galleon;light-cavalry-upgrade;hussar-upgrade;cavalier-upgrade;paladin-upgrade;heavy-camel-upgrade;heavy-cavalry-archer-upgrade;cannon-galleon-unlock;elite-cannon-galleon-upgrade;bombard-tower-unlock;bloodlines;husbandry;parthian-tactics;scale-barding-armor;chain-barding-armor;plate-barding;blast-furnace;stable;champion;champion-upgrade
+Incas, scout;light-cavalry;hussar;knight;cavalier;paladin;camel;heavy-camel;cavalry-archer;heavy-cavalry-archer;hand-cannoneer;bombard-cannon;cannon-galleon;elite-cannon-galleon;light-cavalry-upgrade;hussar-upgrade;cavalier-upgrade;paladin-upgrade;heavy-camel-upgrade;heavy-cavalry-archer-upgrade;cannon-galleon-unlock;elite-cannon-galleon-upgrade;bombard-tower-unlock;bloodlines;husbandry;parthian-tactics;scale-barding-armor;chain-barding-armor;plate-barding;stable
+Britons, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;cavalry-archer;heavy-cavalry-archer;heavy-cavalry-archer-upgrade;parthian-tactics;bloodlines;thumb-ring;hand-cannoneer;paladin;paladin-upgrade;bombard-cannon
+Franks, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;bracer;bloodlines;arbalest;arbalest-upgrade;halberdier;halberdier-upgrade;bombard-cannon
+Celts, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;bracer;thumb-ring;bloodlines;arbalest;arbalest-upgrade;hand-cannoneer;paladin;paladin-upgrade;redemption;atonement;bombard-cannon
+Teutons, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;bracer;husbandry;light-cavalry;hussar;light-cavalry-upgrade;hussar-upgrade;thumb-ring
+Goths, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;stone-wall;stone-gate;fortified-wall;keep;architecture;hoardings;bombard-tower-unlock
+Vikings, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;bloodlines;cavalry-archer;heavy-cavalry-archer;heavy-cavalry-archer-upgrade;parthian-tactics;fire-ship;fast-fire-ship;fast-fire-ship-upgrade;hand-cannoneer;bombard-cannon;paladin;paladin-upgrade;cannon-galleon;elite-cannon-galleon;cannon-galleon-unlock;elite-cannon-galleon-upgrade
+Huns, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;fortified-wall;keep;bombard-tower-unlock;two-man-saw
+Magyars, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;redemption;block-printing
+Slavs, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;thumb-ring;bracer
+Saracens, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;halberdier;halberdier-upgrade;paladin;paladin-upgrade
+Persians, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;arbalest;arbalest-upgrade;two-man-saw
+Turks, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;elite-skirmisher;elite-skirmisher-upgrade;pikeman;halberdier;pikeman-upgrade;halberdier-upgrade;onager;siege-onager;onager-upgrade;siege-onager-upgrade;paladin;paladin-upgrade
+Berbers, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;paladin;paladin-upgrade;bracer
+Malians, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;blast-furnace;paladin;paladin-upgrade
+Ethiopians, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;bloodlines;paladin;paladin-upgrade
+Indians, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;knight;cavalier;paladin;cavalier-upgrade;paladin-upgrade
+Chinese, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;paladin;paladin-upgrade;hand-cannoneer;bombard-cannon
+Japanese, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;bloodlines;hussar;hussar-upgrade;paladin;paladin-upgrade
+Koreans, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;paladin;paladin-upgrade;bloodlines
+Mongols, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;paladin;paladin-upgrade;halberdier;halberdier-upgrade
+Vietnamese, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;blast-furnace
+Khmer, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;pikeman;halberdier;pikeman-upgrade;halberdier-upgrade
+Burmese, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;padded-archer-armor;leather-archer-armor;ring-archer-armor
+Byzantines, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;bloodlines;blast-furnace;siege-engineers
+Italians, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;paladin;paladin-upgrade;bloodlines
+Portuguese, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;paladin;paladin-upgrade
+Spanish, eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;camel;heavy-camel;heavy-camel-upgrade;crossbowman;arbalest;crossbowman-upgrade;arbalest-upgrade

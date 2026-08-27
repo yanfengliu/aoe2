@@ -60,6 +60,13 @@ export interface ResearchAvailabilityDeps {
     owner: number,
     buildingType: BuildingType,
   ) => readonly ResearchableTechnologyType[];
+  /** The owner's civilization when its tech tree DENIES `tech`, else
+   *  undefined — a permanent hole gets a permanent-sounding reason
+   *  instead of the generic "not available yet" (spec §11.1). */
+  civilizationDenying: (
+    owner: number,
+    tech: ResearchableTechnologyType,
+  ) => string | undefined;
 }
 
 export interface ResearchAvailability {
@@ -87,6 +94,7 @@ export function createResearchAvailability(
     hasTechnology,
     countCompletedAgePrerequisites,
     getResearchOptions,
+    civilizationDenying,
   } = deps;
 
   function ageUpReason(owner: number, tech: AgeUpTechnologyType): string {
@@ -123,6 +131,13 @@ export function createResearchAvailability(
     }
     if (hasTechnology(owner, tech)) {
       return `${tech} is already researched.`;
+    }
+    const denier = civilizationDenying(owner, tech);
+    if (denier !== undefined) {
+      return (
+        `${tech} is not in the ${denier} technology tree — `
+        + 'no age or research will ever unlock it for this civilization.'
+      );
     }
     const available = getResearchOptions(owner, buildingType);
     const availableNote = available.length > 0

@@ -13,7 +13,7 @@ import * as game from './helpers/gameTestHelpers';
 
 test.describe('technologies added since v0.3.48 are reachable with a mouse', () => {
   test('the Archery Range researches Parthian Tactics and it armors a cavalry archer', async ({ page }) => {
-    await game.waitForBootWithSeed(page, 'new-tech-reach-fixture');
+    await game.waitForBootWithSeed(page, 'new-tech-reach-fixture', 'Huns');
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');

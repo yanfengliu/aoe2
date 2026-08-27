@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.138
+
+- Per-civilization tech-tree denial: every civilization now has its real AoE2 holes. The Franks have no Bracer or Bloodlines, the Spanish no Crossbowman line, the Turks no Elite Skirmisher or Pikeman line, the Goths no stone walls or Keeps, the mesoamerican three no stables or gunpowder — and only they can train Eagle Warriors. Denied items vanish from the command card, are rejected by the queue, cannot be placed, and the AI respects the same holes. `design/stats/tech-tree.csv` is the new spec-of-record surface (30 civilizations); a content gate keeps the runtime table identical to it. Mesoamerican civilizations start with an Eagle Warrior in place of the Scout, as in DE.
+
 ## 0.3.137
 
 - A fourth permanent test locks building hit points and garrison capacities to the stats sheet (already clean — pure insurance).

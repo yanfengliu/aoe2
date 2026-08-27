@@ -31,6 +31,7 @@ import {
 } from '../prototypeScenario';
 import type { SaveBlob } from '../saveSchema';
 import { createWorldOccupancy } from '../worldOccupancy';
+import { civDenies } from '../civTechTree';
 import type { BuildableBuildingType, MatchState } from '../types';
 import { populationCodec, TIER_3_SLOTS } from './bridgeStateSerialize';
 import {
@@ -190,6 +191,18 @@ export function createWorld(
       if (civ !== undefined) {
         start.civilization = civ;
       }
+    }
+  }
+  // Mesoamerican starts (spec §11.1): a civilization whose tree denies the
+  // Scout line begins with an Eagle Warrior instead — DE gives them an Eagle
+  // Scout, and the Eagle Warrior is this roster's stand-in for that slot.
+  // After the civ override above, so a ?civ= choice changes the opening unit.
+  if (scenario) {
+    for (const spawn of scenario.spawns) {
+      if (spawn.kind !== 'scout' || spawn.owner === null) continue;
+      const owner = spawn.owner;
+      const civ = scenario.starts.find((start) => start.owner === owner)?.civilization;
+      if (civDenies(civ, 'scout')) spawn.kind = 'eagle-warrior';
     }
   }
   // Team selection: ?teams=1,1,2 → createSimulationBridge → here. Same shape

@@ -15,6 +15,7 @@ function rulesAt(age: AgeType, hasBarracks = true) {
     hasTechnology: () => false,
     getPlayerAge: () => age,
     isAtLeastAge: (_owner, min) => AGE_ORDER.indexOf(age) >= AGE_ORDER.indexOf(min),
+    rawCivilizationOf: () => undefined,
     getPlayerCivilization: () => 'Franks',
     canAdvanceToFeudalAge: () => false,
     canAdvanceToCastleAge: () => false,

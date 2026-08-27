@@ -1,3 +1,8 @@
+// v0.3.138 tech-tree denials: this suite's default owners were Britons/
+// Franks, whose REAL AoE2 holes deny the content under test — it now boots
+// Saracens, whose Feudal tree is complete and whose bonus (market rates)
+// leaves the AI's economy pacing untouched — the Huns' houseless bonus
+// warped this timing-sensitive plan.
 // The Feudal-Age AI mined no stone at all: `villagerTargetsForAge('feudal-age')`
 // allocated `stone: 0`, so its stockpile stayed at zero for the whole age and
 // everything Feudal stone buys was unaffordable — the Watch Tower (125 stone)
@@ -38,7 +43,7 @@ describe('the Feudal AI mines the stone its own plans need', () => {
   // One match, sampled twice — the assertions are about the same run, and a
   // Feudal economy takes thousands of ticks to say anything.
   it('banks stone from zero, and keeps banking it', () => {
-    const bridge = createSimulationBridge('ai-feudal-stone-fixture');
+    const bridge = createSimulationBridge('ai-feudal-stone-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
     expect(stoneOf(bridge, 2)).toBe(0);
 
     run(bridge, 4000);

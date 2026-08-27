@@ -1,3 +1,6 @@
+// v0.3.138 tech-tree denials: this suite's default owners were Britons/
+// Franks, whose REAL AoE2 holes deny the content under test — it now boots
+// Huns, whose tree carries it.
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
@@ -45,7 +48,7 @@ describe('Bloodlines — gating at the Stable', () => {
   });
 
   it('is offered at a Castle+/Stable and drops once researched', () => {
-    const bridge = createSimulationBridge('imperial-stable-fixture');
+    const bridge = createSimulationBridge('imperial-stable-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     expect(bridge.getSelectionState().researchOptions).toContain('bloodlines');
@@ -67,7 +70,7 @@ describe('Bloodlines — gating at the Stable', () => {
   }, 60_000); // Full-suite contention: 31.4s observed vs 22.7s isolated (2026-07-13).
 
   it('IS offered at a FEUDAL-Age Stable (technologies.csv:78 — v0.1.67 conformance fix)', () => {
-    const bridge = createSimulationBridge('bloodlines-feudal-stable-fixture');
+    const bridge = createSimulationBridge('bloodlines-feudal-stable-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     const options = bridge.getSelectionState().researchOptions ?? [];
     expect(options).toContain('bloodlines');
@@ -79,8 +82,8 @@ describe('Bloodlines — gating at the Stable', () => {
 
 describe('Bloodlines — derived +20 mounted HP at unit creation (createCombatState)', () => {
   it('a cavalry unit built WITH Bloodlines has maxHp = base + 20', () => {
-    const baseline = createSimulationBridge('bloodlines-baseline-fixture');
-    const researched = createSimulationBridge('bloodlines-researched-fixture');
+    const baseline = createSimulationBridge('bloodlines-baseline-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const researched = createSimulationBridge('bloodlines-researched-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
 
     const baseKnight = getOwnedUnit(baseline, 1, 'knight');
     const techKnight = getOwnedUnit(researched, 1, 'knight');
@@ -94,8 +97,8 @@ describe('Bloodlines — derived +20 mounted HP at unit creation (createCombatSt
   });
 
   it('a mounted ARCHER (Cavalry Archer) built WITH Bloodlines has maxHp = base + 20 (csv:78 applies-to)', () => {
-    const baseline = createSimulationBridge('bloodlines-baseline-fixture');
-    const researched = createSimulationBridge('bloodlines-researched-fixture');
+    const baseline = createSimulationBridge('bloodlines-baseline-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const researched = createSimulationBridge('bloodlines-researched-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
 
     const baseArcher = getOwnedUnit(baseline, 1, 'cavalry-archer');
     const techArcher = getOwnedUnit(researched, 1, 'cavalry-archer');
@@ -109,8 +112,8 @@ describe('Bloodlines — derived +20 mounted HP at unit creation (createCombatSt
   });
 
   it('a NON-cavalry unit (Militia) is unaffected by Bloodlines', () => {
-    const baseline = createSimulationBridge('bloodlines-baseline-fixture');
-    const researched = createSimulationBridge('bloodlines-researched-fixture');
+    const baseline = createSimulationBridge('bloodlines-baseline-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
+    const researched = createSimulationBridge('bloodlines-researched-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
 
     const baseMilitia = getOwnedUnit(baseline, 1, 'militia');
     const techMilitia = getOwnedUnit(researched, 1, 'militia');
@@ -126,7 +129,7 @@ describe('Bloodlines — derived +20 mounted HP at unit creation (createCombatSt
 
 describe('Bloodlines — existing-unit +20 HP on research (applyTechnology)', () => {
   it('researching Bloodlines raises an EXISTING cavalry unit maxHp by 20', () => {
-    const bridge = createSimulationBridge('imperial-stable-fixture');
+    const bridge = createSimulationBridge('imperial-stable-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
 
     const knightBefore = getOwnedUnit(bridge, 1, 'knight');
     expect(knightBefore).toBeDefined();
@@ -148,7 +151,7 @@ describe('Bloodlines — existing-unit +20 HP on research (applyTechnology)', ()
   }, 30_000);
 
   it('researching Bloodlines at a FEUDAL stable raises an EXISTING cavalry archer maxHp by 20', () => {
-    const bridge = createSimulationBridge('bloodlines-feudal-stable-fixture');
+    const bridge = createSimulationBridge('bloodlines-feudal-stable-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
 
     const archerBefore = getOwnedUnit(bridge, 1, 'cavalry-archer');
     expect(archerBefore).toBeDefined();

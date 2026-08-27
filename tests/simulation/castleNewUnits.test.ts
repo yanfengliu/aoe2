@@ -1,3 +1,6 @@
+// v0.3.138 tech-tree denials: this suite's default owners were Britons/
+// Franks, whose REAL AoE2 holes deny the content under test — it now boots
+// Persians, whose tree carries it.
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
@@ -30,7 +33,7 @@ function getHealthOfUnitAtCell(bridge: Bridge, x: number, y: number): number | n
 
 describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
   it('exposes Camel in the Stable train menu at Castle Age', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     const trainOptions = bridge.getSelectionState().trainOptions;
@@ -38,7 +41,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
   });
 
   it('exposes Cavalry Archer in the Archery Range train menu at Castle Age', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     const trainOptions = bridge.getSelectionState().trainOptions;
@@ -49,7 +52,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     // feudal-blacksmith-fixture has a completed Archery Range but the human
     // is only in Feudal Age, so Cavalry Archer (Castle-only) should be absent
     // from the train menu. The Archer + Skirmisher options remain.
-    const bridge = createSimulationBridge('feudal-blacksmith-fixture');
+    const bridge = createSimulationBridge('feudal-blacksmith-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     const trainOptions = bridge.getSelectionState().trainOptions;
@@ -58,7 +61,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
   });
 
   it('trains a Camel when the Stable is selected and the train command is issued', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     expect(bridge.queueTrainUnit('camel')).toBe(true);
@@ -79,7 +82,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('trains a Cavalry Archer when the Archery Range is selected and the train command is issued', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.queueTrainUnit('cavalry-archer')).toBe(true);
@@ -101,7 +104,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('deals +10 anti-cavalry bonus damage when a Camel attacks a Knight (base 5 + 10 = 15)', () => {
-    const bridge = createSimulationBridge('camel-vs-cavalry-fixture');
+    const bridge = createSimulationBridge('camel-vs-cavalry-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     const knight = findFirstOwnedUnit(bridge, 2, 'knight');
     expect(knight).toBeDefined();
@@ -132,7 +135,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('deals +10 anti-cavalry bonus damage when a Camel attacks a Scout', () => {
-    const bridge = createSimulationBridge('camel-vs-cavalry-fixture');
+    const bridge = createSimulationBridge('camel-vs-cavalry-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     const scout = findFirstOwnedUnit(bridge, 2, 'scout');
     expect(scout).toBeDefined();
@@ -163,7 +166,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('lets a Cavalry Archer hit a distant target at range 4 without closing to melee', () => {
-    const bridge = createSimulationBridge('cavalry-archer-ranged-fixture');
+    const bridge = createSimulationBridge('cavalry-archer-ranged-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     const enemyMilitia = findFirstOwnedUnit(bridge, 2, 'militia');
     expect(enemyMilitia).toBeDefined();
@@ -208,7 +211,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     // AoE2: camels are a SEPARATE armor class, so the spear line's smaller
     // anti-camel bonus applies (spearman +7 vs camel), NOT its +15 vs cavalry.
     // Here the human Spearman (player 1) attacks an enemy Camel (player 2).
-    const bridge = createSimulationBridge('spearman-vs-camel-fixture');
+    const bridge = createSimulationBridge('spearman-vs-camel-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     const camel = findFirstOwnedUnit(bridge, 2, 'camel');
     expect(camel).toBeDefined();
@@ -239,7 +242,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
   it('applies the Skirmisher +3 anti-archer bonus to Cavalry Archer targets', () => {
     // Skirmisher base attack is 2, +3 vs the archer class = 5. Cavalry Archer
     // starts at 50 HP, so one hit should bring it to 45 (not 48 if missing).
-    const bridge = createSimulationBridge('skirmisher-vs-cavalry-archer-fixture');
+    const bridge = createSimulationBridge('skirmisher-vs-cavalry-archer-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     const cavArcher = findFirstOwnedUnit(bridge, 2, 'cavalry-archer');
     expect(cavArcher).toBeDefined();
@@ -265,7 +268,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('applies Fletching +1 attack / +1 range to Cavalry Archers when Fletching is researched BEFORE the unit is trained', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     // Research Fletching first.
     expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
@@ -301,7 +304,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('applies Fletching +1 attack / +1 range to existing Cavalry Archers when Fletching is researched AFTER the unit is trained', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     // Train a Cavalry Archer first (base 6/4).
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
@@ -345,7 +348,7 @@ describe('Castle-Age new train-menu units (Camel, Cavalry Archer)', () => {
     // Backs the GameScene same-type-double-click flow: the scene dispatches
     // to selectOwnedUnitsByTypeInRect with the clicked unit's type, and that
     // call must actually return the full set of owned Camels on screen.
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Persians'], [2, 'Persians']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     expect(bridge.queueTrainUnit('camel')).toBe(true);

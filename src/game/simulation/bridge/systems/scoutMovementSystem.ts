@@ -130,7 +130,9 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
         // human slot (all-AI playtests) has an AI state and wanders.
         if (
           !unit
-          || unit.unitType !== 'scout'
+          // The mesoamerican opening unit is an Eagle Warrior in the Scout's
+          // slot (spec §11.1), and it patrols the same way.
+          || (unit.unitType !== 'scout' && unit.unitType !== 'eagle-warrior')
           || (unit.owner === humanPlayerId && !aiStates.has(unit.owner))
         ) {
           continue;

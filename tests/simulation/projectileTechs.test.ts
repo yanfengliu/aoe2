@@ -1,3 +1,6 @@
+// v0.3.138 tech-tree denials: this suite's default owners were Britons/
+// Franks, whose REAL AoE2 holes deny the content under test — it now boots
+// Huns, whose tree carries it.
 import { MAP_HEIGHT, MAP_WIDTH } from '../../src/game/simulation/mapGeneration/constants';
 import { describe, expect, it } from 'vitest';
 
@@ -215,7 +218,7 @@ describe('researching the projectile techs in a real match', () => {
   // built, it offers the technology, and researching it completes. This is
   // what would have caught the University offering nothing.
   it('lets a Castle-Age player build a University and research Ballistics', () => {
-    const bridge = createSimulationBridge('imperial-age-fixture');
+    const bridge = createSimulationBridge('imperial-age-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
     expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
     expect(bridge.getSelectionState().buildOptions).toContain('university');
     placeBuildingNearTownCenter(bridge, 'university');
@@ -246,7 +249,7 @@ describe('researching the projectile techs in a real match', () => {
   }, 60_000);
 
   it('offers Thumb Ring at an existing Archery Range', () => {
-    const bridge = createSimulationBridge('imperial-upgrades-fixture');
+    const bridge = createSimulationBridge('imperial-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.getSelectionState().researchOptions).toContain('thumb-ring');
     expect(bridge.queueResearch('thumb-ring')).toBe(true);

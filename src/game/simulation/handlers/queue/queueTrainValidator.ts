@@ -10,6 +10,7 @@ import type { World } from 'civ-engine';
 import type { BuildingComponent, BuildingType, TrainableUnitType } from '../../types';
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 import { canTrainAt } from '../../prototypeBuildingRules';
+import { civDenies } from '../../civTechTree';
 import { canAfford, describeMissingResources } from '../../prototypeEconomyRules';
 import { effectiveTrainingCost } from '../../civBonusEffects';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
@@ -68,6 +69,16 @@ export function makeQueueTrainValidator(deps: QueueTrainValidatorDeps): QueueTra
       const note = options.length > 0
         ? `Currently trainable here: ${options.join(', ')}.`
         : 'Nothing is currently trainable at this building right now (check your age).';
+      // A tech-tree hole is PERMANENT — say so, instead of implying an age
+      // or upgrade would unlock it (spec §11.1).
+      const owningCiv = deps.accessor.get(playerCivilizationsCodec).get(building.owner);
+      if (civDenies(owningCiv, data.unitType)) {
+        return {
+          code: 'cannot_train',
+          message: `${data.unitType} is not in the ${owningCiv} technology tree — `
+            + `no age or research will ever unlock it for this civilization. ${note}`,
+        };
+      }
       return {
         code: 'cannot_train',
         message: `Cannot train ${data.unitType} at this ${building.buildingType}. ${note}`,

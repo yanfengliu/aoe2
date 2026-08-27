@@ -22,6 +22,7 @@ import { createOptionsRules } from './optionsRules';
 import { createPlayerQueries } from './playerQueries';
 import { createSpawnFinders, createGathererOrderOps } from './bridgeHelpers';
 import { createResearchAvailability } from './researchAvailability';
+import { civDenies } from '../civTechTree';
 import { VisibilityCell } from './visibilityCell';
 import { HUMAN_PLAYER_ID } from '../prototypeScenario';
 import { WONDER_COUNTDOWN_TICKS } from './bridgeConstants';
@@ -139,6 +140,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     getPlayerAge,
     isAtLeastAge,
     getPlayerCivilization,
+    rawCivilizationOf: (owner) => accessor.get(playerCivilizationsCodec).get(owner),
     canAdvanceToFeudalAge,
     canAdvanceToCastleAge,
     canAdvanceToImperialAge,
@@ -164,6 +166,10 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     hasTechnology,
     countCompletedAgePrerequisites,
     getResearchOptions,
+    civilizationDenying: (owner, tech) => {
+      const civ = accessor.get(playerCivilizationsCodec).get(owner);
+      return civ !== undefined && civDenies(civ, tech) ? civ : undefined;
+    },
   });
 
   const createCombatState = createCombatStateFactory({

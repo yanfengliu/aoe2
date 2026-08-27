@@ -1,3 +1,5 @@
+// v0.3.138 tech-tree denials: the default Britons/Franks lack Bombard Cannon
+// (a real AoE2 hole), so this file pins Saracens, whose gunpowder is complete.
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
@@ -30,7 +32,7 @@ describe('Blacksmith melee attack progression (Forging / Iron Casting / Blast Fu
     // successor. Each buff re-walks the player's units so existing
     // Militia reflect the new total immediately.
 
-    const bridge = createSimulationBridge('blacksmith-progression-fixture');
+    const bridge = createSimulationBridge('blacksmith-progression-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const baseMilitia = findFirstOwnedUnit(bridge, 1, 'militia');
     expect(baseMilitia).toBeDefined();
@@ -79,7 +81,7 @@ describe('Blacksmith melee attack progression (Forging / Iron Casting / Blast Fu
 
 describe('Blacksmith infantry armor progression (Scale Mail / Chain Mail / Plate Mail)', () => {
   it('stacks +1 armor per tier on a Spearman for +3 total', () => {
-    const bridge = createSimulationBridge('blacksmith-progression-fixture');
+    const bridge = createSimulationBridge('blacksmith-progression-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedUnitDirect(bridge, 1, 'spearman')).toBe(true);
     expect(bridge.getSelectionState().armor).toBe(0);
@@ -127,7 +129,7 @@ describe('Blacksmith infantry armor progression (Scale Mail / Chain Mail / Plate
 
 describe('Blacksmith cavalry armor progression (Scale / Chain / Plate Barding)', () => {
   it('stacks +1 armor per tier on a Knight for +3 total', () => {
-    const bridge = createSimulationBridge('blacksmith-progression-fixture');
+    const bridge = createSimulationBridge('blacksmith-progression-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedUnitDirect(bridge, 1, 'knight')).toBe(true);
     expect(bridge.getSelectionState().armor).toBe(0);
@@ -175,7 +177,7 @@ describe('Blacksmith cavalry armor progression (Scale / Chain / Plate Barding)',
 
 describe('Blacksmith archer armor progression (Padded / Leather / Ring Archer Armor)', () => {
   it('stacks +1 armor per tier on an Archer for +3 total', () => {
-    const bridge = createSimulationBridge('blacksmith-progression-fixture');
+    const bridge = createSimulationBridge('blacksmith-progression-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedUnitDirect(bridge, 1, 'archer')).toBe(true);
     expect(bridge.getSelectionState().armor).toBe(0);
@@ -223,7 +225,7 @@ describe('Blacksmith archer armor progression (Padded / Leather / Ring Archer Ar
 
 describe('Blacksmith archer attack/range progression (Fletching / Bodkin / Bracer)', () => {
   it('stacks +1 attack and +1 range per tier on an Archer for +3/+3 total', () => {
-    const bridge = createSimulationBridge('blacksmith-progression-fixture');
+    const bridge = createSimulationBridge('blacksmith-progression-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const baseArcher = findFirstOwnedUnit(bridge, 1, 'archer');
     expect(baseArcher).toBeDefined();
@@ -281,7 +283,7 @@ describe('Armor reduces damage per hit', () => {
     // both fixtures so the test can issue the attack via the human's
     // context command pathway.
 
-    const unarmoredBridge = createSimulationBridge('champion-vs-halberdier-fixture');
+    const unarmoredBridge = createSimulationBridge('champion-vs-halberdier-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
     const unarmoredHalb = findFirstOwnedUnit(unarmoredBridge, 2, 'halberdier');
     expect(unarmoredHalb).toBeDefined();
 
@@ -305,7 +307,7 @@ describe('Armor reduces damage per hit', () => {
     expect(unarmoredHp).toBe(47);
 
     // Same layout, but player 2's Halberdier has Plate Mail armor +1.
-    const armoredBridge = createSimulationBridge('champion-vs-armored-halberdier-fixture');
+    const armoredBridge = createSimulationBridge('champion-vs-armored-halberdier-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
     const armoredHalb = findFirstOwnedUnit(armoredBridge, 2, 'halberdier');
     expect(armoredHalb).toBeDefined();
     expect(armoredHalb?.armor).toBe(1);
@@ -333,7 +335,7 @@ describe('Armor reduces damage per hit', () => {
 
 describe('Chemistry gates Bombard Cannon training', () => {
   it('does not expose Bombard Cannon at the Siege Workshop until Chemistry is researched', () => {
-    const bridge = createSimulationBridge('blacksmith-progression-fixture');
+    const bridge = createSimulationBridge('blacksmith-progression-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     // The progression fixture starts in Imperial Age with a Siege Workshop
     // but no Chemistry — Bombard Cannon should NOT be trainable yet.
@@ -361,7 +363,7 @@ describe('Chemistry gates Bombard Cannon training', () => {
 
 describe('Chemistry grants +1 attack to archer-line units', () => {
   it('bumps Archer attack from 4 to 5 after Chemistry completes', () => {
-    const bridge = createSimulationBridge('blacksmith-progression-fixture');
+    const bridge = createSimulationBridge('blacksmith-progression-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'university')).toBe(true);
     expect(bridge.queueResearch('chemistry')).toBe(true);

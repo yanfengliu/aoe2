@@ -22,6 +22,7 @@ function makeDeps(overrides: {
   researched?: ResearchableTechnologyType[];
   prereqCounts?: Partial<Record<'feudal-age' | 'castle-age' | 'imperial-age', number>>;
   options?: Partial<Record<BuildingType, ResearchableTechnologyType[]>>;
+  denyingCivilization?: string;
 } = {}): ResearchAvailabilityDeps {
   const researched = new Set(overrides.researched ?? []);
   return {
@@ -31,6 +32,7 @@ function makeDeps(overrides: {
       overrides.prereqCounts?.[forTech] ?? 0,
     getResearchOptions: (_owner, buildingType) =>
       overrides.options?.[buildingType] ?? [],
+    civilizationDenying: () => overrides.denyingCivilization,
   };
 }
 
@@ -106,5 +108,17 @@ describe('researchUnavailableReason', () => {
     );
     const reason = researchUnavailableReason(1, 'blacksmith', 'fletching');
     expect(reason).toContain('Nothing is currently researchable at this building');
+  });
+});
+
+describe('tech-tree denial reasons (spec §11.1)', () => {
+  it('says a denied technology is PERMANENTLY out, not "not yet"', () => {
+    const { researchUnavailableReason } = createResearchAvailability(
+      makeDeps({ age: 'imperial-age', denyingCivilization: 'Franks' }),
+    );
+    const reason = researchUnavailableReason(1, 'blacksmith', 'bracer');
+    expect(reason).toContain('not in the Franks technology tree');
+    expect(reason).toContain('will ever unlock');
+    expect(reason).not.toContain('yet');
   });
 });

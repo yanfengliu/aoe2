@@ -1,3 +1,6 @@
+// v0.3.138 tech-tree denials: this suite's default owners were Britons/
+// Franks, whose REAL AoE2 holes deny the content under test — it now boots
+// Huns, whose tree carries it.
 import { describe, expect, it } from 'vitest';
 
 import { createCombatStateFactory } from '../../src/game/simulation/bridge/combatStateFactory';
@@ -212,7 +215,7 @@ describe('Parthian Tactics — landed damage at the projectile impact site', () 
 // completes. This is the check that would catch the building offering nothing.
 describe('Parthian Tactics — researched in a real match', () => {
   it('is offered at an Imperial Archery Range and completes', () => {
-    const bridge = createSimulationBridge('imperial-upgrades-fixture');
+    const bridge = createSimulationBridge('imperial-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Huns'], [2, 'Huns']]) });
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.getSelectionState().researchOptions).toContain('parthian-tactics');
     expect(bridge.queueResearch('parthian-tactics')).toBe(true);

@@ -134,6 +134,10 @@ describe('every technology a building offers is one it can research', () => {
       hasTechnology: () => allResearched,
       getPlayerAge: () => age,
       isAtLeastAge: (_owner, minAge) => AGES.indexOf(age) >= AGES.indexOf(minAge),
+      // The denial filter must be LIVE during this sweep — stubbing it off
+      // would exempt every dead-button check from the very mechanism most
+      // likely to create dead buttons (the critic caught exactly that).
+      rawCivilizationOf: () => civilization,
       getPlayerCivilization: () => civilization,
       canAdvanceToFeudalAge: () => true,
       canAdvanceToCastleAge: () => true,
@@ -202,6 +206,7 @@ describe('every technology a building hosts is one it can actually offer', () =>
                 hasTechnology: (_owner, tech) => isResearched(tech),
                 getPlayerAge: () => age,
                 isAtLeastAge: (_owner, minAge) => AGES.indexOf(age) >= AGES.indexOf(minAge),
+                rawCivilizationOf: () => civilization,
                 getPlayerCivilization: () => civilization,
                 canAdvanceToFeudalAge: () => true,
                 canAdvanceToCastleAge: () => true,

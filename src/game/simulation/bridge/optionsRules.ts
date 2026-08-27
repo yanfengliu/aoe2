@@ -16,6 +16,7 @@ import type {
 import type { UpgradeChainEntry } from '../upgradeChains';
 import { economyTechResearchOptions } from './economyTechOptions';
 import { towerTechResearchOptions } from '../towerTechOptions';
+import { civDenies } from '../civTechTree';
 import { monasteryTechResearchOptions } from '../monasteryTechOptions';
 import {
   barracksLosResearchOptions,
@@ -36,6 +37,12 @@ export interface OptionsRulesDeps {
     minAge: 'dark-age' | 'feudal-age' | 'castle-age' | 'imperial-age',
   ) => boolean;
   getPlayerCivilization: (owner: number) => string;
+  /** The STORED civilization — the tech-tree denial source. Every seeded
+   *  start gets one (scenarioSeedOps backfills the Britons/Franks defaults,
+   *  so their real holes apply even when nobody chose a civ, as in DE where
+   *  a civ-less player does not exist). Undefined only for unseeded owners
+   *  in pure-unit tests; `civDenies(undefined, …)` is false there. */
+  rawCivilizationOf: (owner: number) => string | undefined;
   canAdvanceToFeudalAge: (owner: number) => boolean;
   canAdvanceToCastleAge: (owner: number) => boolean;
   canAdvanceToImperialAge: (owner: number) => boolean;
@@ -61,6 +68,7 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
     getPlayerAge,
     isAtLeastAge,
     getPlayerCivilization,
+    rawCivilizationOf,
     canAdvanceToFeudalAge,
     canAdvanceToCastleAge,
     canAdvanceToImperialAge,
@@ -69,13 +77,22 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
     nomadFirstTownCenter,
   } = deps;
 
-  const getTrainOptions = createTrainOptions({
+  const getTrainOptionsUnfiltered = createTrainOptions({
     getPlayerAge,
     isAtLeastAge,
     hasTechnology,
     latestResearchedInChain,
     getPlayerCivilization,
   });
+
+  // Tech-tree denial (v0.3.138): the civilization's holes filter BOTH menus
+  // at these single choke points — the HUD, the AI, and the free-technology
+  // grants all read options from here, so one filter covers every consumer.
+  function getTrainOptions(owner: number, buildingType: BuildingType): TrainableUnitType[] {
+    const civilization = rawCivilizationOf(owner);
+    return getTrainOptionsUnfiltered(owner, buildingType)
+      .filter((unit) => !civDenies(civilization, unit));
+  }
 
   /** The elite upgrades this civilization may research at this building. */
   function eliteUpgradeOptions(
@@ -90,6 +107,15 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
   }
 
   function getResearchOptions(
+    owner: number,
+    buildingType: BuildingType,
+  ): ResearchableTechnologyType[] {
+    const civilization = rawCivilizationOf(owner);
+    return getResearchOptionsUnfiltered(owner, buildingType)
+      .filter((technology) => !civDenies(civilization, technology));
+  }
+
+  function getResearchOptionsUnfiltered(
     owner: number,
     buildingType: BuildingType,
   ): ResearchableTechnologyType[] {
@@ -355,7 +381,12 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       if (!hasTechnology(owner, 'loom')) {
         options.push('loom');
       }
-      return options;
+      // The same denial filter as every other card: a technology the civ's
+      // tree denies must not draw even as a locked button (it would never
+      // unlock). Latent for today's rows, real the day a Town Center
+      // technology is denied.
+      const civilization = rawCivilizationOf(owner);
+      return options.filter((technology) => !civDenies(civilization, technology));
     }
 
     return getResearchOptions(owner, buildingType);
@@ -378,6 +409,14 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
 
 
   function getBuildOptions(owner: number, unitType: UnitType): BuildableBuildingType[] {
+    // Tech-tree denial also covers BUILDINGS (the Goths' famous no-stone-walls);
+    // the placement validator reads this same menu, so the hole is airtight.
+    const civilization = rawCivilizationOf(owner);
+    return getBuildOptionsUnfiltered(owner, unitType)
+      .filter((buildingType) => !civDenies(civilization, buildingType));
+  }
+
+  function getBuildOptionsUnfiltered(owner: number, unitType: UnitType): BuildableBuildingType[] {
     return buildOptionsFor(
       owner,
       unitType,

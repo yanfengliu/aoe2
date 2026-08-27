@@ -390,7 +390,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     issueFormationOrderToSelection(x, y, issueUnitAttackMoveCommand);
 
   const issueAttackGroundCommand = (x: number, y: number): boolean =>
-    issueFormationOrderToSelection(x, y, (id, _target) =>
+    issueFormationOrderToSelection(x, y, (id) =>
       world.submitWithResult('unit.attackGround', {
         unitId: id,
         target: { x: clamp(x, 0, mapWidth - 1), y: clamp(y, 0, mapHeight - 1) },

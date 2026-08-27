@@ -1,3 +1,5 @@
+// v0.3.138 tech-tree denials: the default Britons/Franks lack Bombard Cannon
+// (a real AoE2 hole), so this file pins Saracens, whose gunpowder is complete.
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
@@ -30,7 +32,7 @@ function getHealthOfUnitAtCell(bridge: Bridge, x: number, y: number): number | n
 
 describe('Imperial-Age Siege Workshop upgrades', () => {
   it('exposes Onager, Heavy Scorpion, and Siege Ram research options at the Siege Workshop in Imperial Age', () => {
-    const bridge = createSimulationBridge('imperial-siege-fixture');
+    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
     const options = bridge.getSelectionState().researchOptions;
@@ -44,7 +46,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
   });
 
   it('researches Onager at the Siege Workshop and swaps existing Mangonels to Onager', () => {
-    const bridge = createSimulationBridge('imperial-siege-fixture');
+    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const startingMangonel = findFirstOwnedUnit(bridge, 1, 'mangonel');
     expect(startingMangonel).toBeDefined();
@@ -68,7 +70,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
   }, 30_000);
 
   it('exposes Onager in the Siege Workshop train menu after research (drops Mangonel)', () => {
-    const bridge = createSimulationBridge('imperial-siege-fixture');
+    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('mangonel');
@@ -92,7 +94,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
     // Onager inherits the Mangonel's min-range 3 "dead zone". Identical
     // setup to the mangonel-min-range-blocked fixture but an Onager is
     // placed at distance 2 from a Spearman. The Onager must hold fire.
-    const bridge = createSimulationBridge('onager-min-range-blocked-fixture');
+    const bridge = createSimulationBridge('onager-min-range-blocked-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const spearman = findFirstOwnedUnit(bridge, 2, 'spearman');
     expect(spearman).toBeDefined();
@@ -114,7 +116,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
   }, 10_000);
 
   it('researches Heavy Scorpion at the Siege Workshop and swaps existing Scorpions', () => {
-    const bridge = createSimulationBridge('imperial-siege-fixture');
+    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const startingScorpion = findFirstOwnedUnit(bridge, 1, 'scorpion');
     expect(startingScorpion).toBeDefined();
@@ -138,7 +140,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
   }, 30_000);
 
   it('swaps the Scorpion train option for Heavy Scorpion after research', () => {
-    const bridge = createSimulationBridge('imperial-siege-fixture');
+    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('scorpion');
@@ -159,7 +161,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
   }, 30_000);
 
   it('walks a Battering Ram up the whole line, one tier at a time', () => {
-    const bridge = createSimulationBridge('imperial-siege-fixture');
+    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const startingRam = findFirstOwnedUnit(bridge, 1, 'battering-ram');
     expect(startingRam).toBeDefined();
@@ -195,7 +197,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
   }, 60_000);
 
   it('swaps the Battering Ram train option for Siege Ram after research', () => {
-    const bridge = createSimulationBridge('imperial-siege-fixture');
+    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('battering-ram');
@@ -220,7 +222,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
     // A Town Center with 200 HP (below its default 2400 max) should drop to
     // 0 after a single hit — confirming the Siege Ram's huge anti-building
     // bonus scaled up from the Ram's +125.
-    const bridge = createSimulationBridge('siege-ram-vs-building-fixture');
+    const bridge = createSimulationBridge('siege-ram-vs-building-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const tc = bridge.getEconomyState().buildings.find(
       (b) => b.owner === 2 && b.buildingType === 'town-center',
@@ -245,7 +247,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
 
 describe('Bombard Cannon', () => {
   it('appears in the Siege Workshop train menu at Imperial Age', () => {
-    const bridge = createSimulationBridge('imperial-siege-fixture');
+    const bridge = createSimulationBridge('imperial-siege-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('bombard-cannon');
@@ -254,7 +256,7 @@ describe('Bombard Cannon', () => {
   it('deals +200 bonus damage against buildings at long range', () => {
     // Bombard Cannon base attack 40 + 200 anti-building bonus = 240 per hit.
     // A Town Center with 200 HP drops in a single hit.
-    const bridge = createSimulationBridge('bombard-cannon-vs-building-fixture');
+    const bridge = createSimulationBridge('bombard-cannon-vs-building-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const tc = bridge.getEconomyState().buildings.find(
       (b) => b.owner === 2 && b.buildingType === 'town-center',
@@ -277,7 +279,7 @@ describe('Bombard Cannon', () => {
   }, 30_000);
 
   it('holds fire when the target is inside its minimum range of 5', () => {
-    const bridge = createSimulationBridge('bombard-cannon-min-range-blocked-fixture');
+    const bridge = createSimulationBridge('bombard-cannon-min-range-blocked-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const targetSpearman = findFirstOwnedUnit(bridge, 2, 'spearman');
     expect(targetSpearman).toBeDefined();
@@ -303,6 +305,8 @@ describe('Bombard Cannon', () => {
 
 describe('Trebuchet', () => {
   it('appears in the Castle train menu at Imperial Age regardless of civilization', () => {
+    // Default civs on purpose: the assertion below is about the BRITON
+    // unique unit sharing the card with the Trebuchet.
     const bridge = createSimulationBridge('imperial-castle-fixture');
 
     // Britons player-1 Castle: Longbowman (or Elite Longbowman if researched) + Trebuchet.

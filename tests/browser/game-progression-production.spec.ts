@@ -4,7 +4,7 @@ test.describe('browser gameplay smoke tests - production', () => {
   test('can train a Camel at the Stable in Castle Age and render its HUD label', async ({
     page,
   }) => {
-    await game.waitForBootWithSeed(page, 'castle-upgrades-fixture');
+    await game.waitForBootWithSeed(page, 'castle-upgrades-fixture', 'Persians');
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'stable')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Stable');
