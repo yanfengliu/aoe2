@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.143
+
+- Doorways now follow the civilization's architecture: stepped arches with stone jambs in middle-eastern towns, timber frames in central Europe, broad lintels in east Asia, pale stone surrounds on the Mediterranean, and trapezoid doorways in mesoamerica — on Town Centers, houses, mills, military halls, and gates. Western European keeps its classic look, pixel for pixel.
+
 ## 0.3.142
 
 - Every seat now has a real civilization: players 3+ default to the classic cast (Byzantines, Chinese, Persians, Saracens, Turks, Vikings) instead of a bonus-less "Player N" with an impossible full tech tree. The LLM playtest harness gained `--civ <name>` to boot the human slot as any civilization.

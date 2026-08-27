@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-27 v0.3.143 per-set door forms (pure architectureDoorBoxes table; 5 recipe sites; west identity) — before/after/diff on 3 sets: Britons 0.00% (byte-identical), Saracens 0.36%, Aztecs 0.20%, all confined to door regions; visual sweep clean.
 - 2026-08-27 v0.3.142 seats 3+ get real default civs (classic AoK cast; no more hole-less bonus-less 'Player N') + playtest harness --civ flag; two lessons landed (helpers satisfy outcome assertions; no git checkout mid-red-check).
 - 2026-08-27 v0.3.141 shift-queued ENTITY orders (per-unit serialized chain via the live context router; generic completion watcher + in-pass villager pop with explicit-flag drop at depletion-when-chain-waits; wipeThen at the recorded-handler layer) — red-check caught two vacuous tests first (auto-aggro killed both victims; fixture spread + outpost sight fixed it).
 - 2026-08-27 v0.3.140 Tracking+Cartography retired per current DE (allies share sight from boot; barracks/market cards shrink; infantry LOS = sourced DE values, 19 corrections, scout line kept age-folded); Portuguese team bonus -> research x0.8 via the existing teamResearchTimeMultiplier seam; near-miss: almost double-folded +2 infantry LOS before checking the dataset's militia value.

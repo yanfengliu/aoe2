@@ -1,7 +1,7 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
 import { buildingRole } from '../roles/buildingRole';
 import { construction, createBuildingDetailParts, damageFlames, monasteryFinial, townCenterCrown } from './aoeVoxelBuildingDetails';
-import { architectureRoofGeometry, architectureRoofTint, architectureWallTint } from './aoeVoxelArchitecture';
+import { architectureDoorBoxes, architectureRoofGeometry, architectureRoofTint, architectureWallTint } from './aoeVoxelArchitecture';
 import {
   contactShadow,
   makePart,
@@ -56,6 +56,10 @@ export function add(
   ));
 }
 
+// Per-set door forms (v0.3.143): one call replaces a raw door box.
+function setDoor(context: BuildingContext, prefix: string, xF: number, bottom: number, zF: number, wF: number, h: number, dF: number): void {
+  for (const [sfx, tint, ...box] of architectureDoorBoxes(context.architecture, xF, bottom, zF, wF, h, dF)) add(context, `${prefix}-${sfx}`, 'matte', tint, ...box);
+}
 function steppedRoof(
   context: BuildingContext,
   prefix: string,
@@ -104,7 +108,7 @@ function townCenter(context: BuildingContext): void {
   add(context, 'town-center-hall', 'matte', VOXEL_COLORS.plaster, 0.5, 0.18, 0.5, 0.5, 1.28, 0.48);
   add(context, 'town-center-wing-left', 'matte', VOXEL_COLORS.plasterLight, 0.22, 0.18, 0.53, 0.19, 0.86, 0.38);
   add(context, 'town-center-wing-right', 'matte', VOXEL_COLORS.plasterLight, 0.78, 0.18, 0.53, 0.19, 0.86, 0.38);
-  add(context, 'town-center-door', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.18, 0.75, 0.11, 0.67, 0.035);
+  setDoor(context, 'town-center', 0.5, 0.18, 0.75, 0.11, 0.67, 0.035);
   add(context, 'town-center-window-left', 'matte', VOXEL_COLORS.window, 0.4, 0.82, 0.745, 0.07, 0.25, 0.025);
   add(context, 'town-center-window-right', 'matte', VOXEL_COLORS.window, 0.6, 0.82, 0.745, 0.07, 0.25, 0.025);
   for (const [name, x, z] of [
@@ -128,7 +132,7 @@ function townCenter(context: BuildingContext): void {
 function house(context: BuildingContext): void {
   add(context, 'house-plinth', 'matte', VOXEL_COLORS.stone, 0.5, 0, 0.5, 0.78, 0.12, 0.72);
   add(context, 'house-walls', 'matte', VOXEL_COLORS.plaster, 0.5, 0.12, 0.5, 0.65, 0.9, 0.6);
-  add(context, 'house-door', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.12, 0.81, 0.16, 0.58, 0.035);
+  setDoor(context, 'house', 0.5, 0.12, 0.81, 0.16, 0.58, 0.035);
   add(context, 'house-window', 'matte', VOXEL_COLORS.window, 0.7, 0.52, 0.805, 0.12, 0.23, 0.025);
   for (const [name, x, z] of [
     ['front-left', 0.19, 0.8],
@@ -255,7 +259,7 @@ function mill(context: BuildingContext): void {
     bottom: 0.15, height: 1.25, width: 0.52, depth: 0.5,
     tint: shade(VOXEL_COLORS.plaster, 0.86),
   });
-  add(context, 'mill-door', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.15, 0.765, 0.14, 0.58, 0.035);
+  setDoor(context, 'mill', 0.5, 0.15, 0.765, 0.14, 0.58, 0.035);
   add(context, 'mill-door-trim', 'matte', VOXEL_COLORS.timber, 0.5, 0.72, 0.767, 0.19, 0.04, 0.03);
   steppedRoof(context, 'mill', 1.4, 0.5, 0.5, 0.65, 0.63, VOXEL_COLORS.thatch);
   add(context, 'mill-axle', 'metal', VOXEL_COLORS.steelDark, 0.5, 1.03, 0.78, 0.08, 0.08, 0.18);
@@ -274,7 +278,7 @@ function hall(context: BuildingContext, role: 'military' | 'drop-site'): void {
     tint: shade(wallTint, role === 'military' ? 0.85 : 1.16),
     count: role === 'military' ? 3 : 4,
   });
-  add(context, `${role}-door`, 'matte', VOXEL_COLORS.timberDark, 0.5, 0.14, 0.825, 0.2, 0.62, 0.035);
+  setDoor(context, role, 0.5, 0.14, 0.825, 0.2, 0.62, 0.035);
   add(context, `${role}-door-trim`, 'matte', VOXEL_COLORS.timber, 0.5, 0.76, 0.827, 0.25, 0.045, 0.03);
   for (const [name, x] of [['left', 0.2], ['right', 0.8]] as const) {
     add(context, `${role}-front-post-${name}`, 'matte', VOXEL_COLORS.timberDark, x, 0.14, 0.82, 0.045, 0.96, 0.045);
@@ -436,7 +440,7 @@ function gate(context: BuildingContext): void {
   add(context, 'gate-lintel', 'matte', cap, 0.5, 1.0, 0.5, 0.78, 0.16, 0.56);
   // The door sits back from the piers' faces so the opening keeps a visible
   // depth rather than reading as one flat wall.
-  add(context, 'gate-door', 'matte', VOXEL_COLORS.timber, 0.5, 0.04, 0.5, 0.5, 0.96, 0.2);
+  setDoor(context, 'gate', 0.5, 0.04, 0.5, 0.5, 0.96, 0.2);
   add(context, 'gate-door-band', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.62, 0.5, 0.52, 0.08, 0.24);
   add(context, 'gate-team-banner', 'matte', context.team, 0.5, 1.02, 0.79, 0.26, 0.22, 0.04);
 }

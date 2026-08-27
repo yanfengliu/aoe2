@@ -88,3 +88,41 @@ export function architectureRoofGeometry(
 ): RoofGeometry {
   return ROOF_GEOMETRY[architecture ?? 'western-european'];
 }
+
+/** One door-box description: [suffix, tint, xF, bottom, zF, wF, h, dF]. */
+export type DoorBox = readonly [string, number, number, number, number, number, number, number];
+
+/** Per-set DOOR FORMS (v0.3.143): the base leaf plus the set's adornment
+ *  boxes — a stepped arch head for the middle east, a timber frame for
+ *  central europe, a broad thin lintel for east asia, a pale stone surround
+ *  for the mediterranean, a trapezoid step for mesoamerica; the west keeps
+ *  the plain leaf. Pure data (the recipe's own `add` emits it), every box
+ *  hugging the door so footprints, picking, and health bars are untouched. */
+export function architectureDoorBoxes(
+  architecture: ArchitectureStyle | undefined,
+  xF: number, bottom: number, zF: number, wF: number, h: number, dF: number,
+): DoorBox[] {
+  const C = VOXEL_COLORS;
+  const boxes: DoorBox[] = [['door', C.timberDark, xF, bottom, zF, wF, h, dF]];
+  const set = architecture ?? 'western-european';
+  if (set === 'middle-eastern') {
+    boxes.push(['door-arch', C.timberDark, xF, bottom + h, zF, wF * 0.55, h * 0.16, dF]);
+    boxes.push(['door-jamb-l', C.stoneLight, xF - wF * 0.68, bottom, zF, wF * 0.2, h * 1.1, dF]);
+    boxes.push(['door-jamb-r', C.stoneLight, xF + wF * 0.68, bottom, zF, wF * 0.2, h * 1.1, dF]);
+  } else if (set === 'central-european') {
+    boxes.push(['door-frame-l', C.timber, xF - wF * 0.62, bottom, zF, wF * 0.16, h * 1.18, dF]);
+    boxes.push(['door-frame-r', C.timber, xF + wF * 0.62, bottom, zF, wF * 0.16, h * 1.18, dF]);
+    boxes.push(['door-lintel', C.timber, xF, bottom + h * 1.12, zF, wF * 1.5, h * 0.1, dF]);
+  } else if (set === 'east-asian') {
+    boxes.push(['door-lintel', C.timberDark, xF, bottom + h * 1.02, zF, wF * 1.8, h * 0.08, dF]);
+    boxes.push(['door-sill', C.timber, xF, bottom, zF, wF * 1.4, h * 0.06, dF]);
+  } else if (set === 'mediterranean') {
+    boxes.push(['door-head', C.stoneLight, xF, bottom + h, zF, wF * 1.15, h * 0.14, dF]);
+    boxes.push(['door-jamb-l', C.stoneLight, xF - wF * 0.66, bottom, zF, wF * 0.18, h * 1.02, dF]);
+    boxes.push(['door-jamb-r', C.stoneLight, xF + wF * 0.66, bottom, zF, wF * 0.18, h * 1.02, dF]);
+  } else if (set === 'mesoamerican') {
+    boxes.push(['door-base', C.timberDark, xF, bottom, zF, wF * 1.45, h * 0.3, dF]);
+    boxes.push(['door-head-step', C.stoneLight, xF, bottom + h, zF, wF * 1.3, h * 0.12, dF]);
+  }
+  return boxes;
+}
