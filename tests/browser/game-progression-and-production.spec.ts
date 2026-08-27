@@ -18,7 +18,8 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
         townCenterPlacement,
       ),
     ).toBe(true);
-    await expect(page.locator('[data-hud="wood"]')).toHaveText('425');
+    // Britons TC wood -50% from Castle Age (sourced v0.3.150): 700 - 138.
+    await expect(page.locator('[data-hud="wood"]')).toHaveText('562');
     await expect(page.locator('[data-hud="stone"]')).toHaveText('250');
 
     await page.evaluate(() => {

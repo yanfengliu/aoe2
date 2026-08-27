@@ -216,8 +216,17 @@ describe('building bonuses', () => {
     const { effectiveConstructionCost } = await import('../../src/game/simulation/civBonusEffects');
     const { constructionCost } = await import('../../src/game/simulation/prototypeEconomyRules');
     const base = constructionCost('castle');
-    expect(effectiveConstructionCost('Franks', 'castle'))
+    // Franks castles by age (sourced v0.3.150): -15% Castle, -25% Imperial;
+    // ageless calls apply flat rules only.
+    expect(effectiveConstructionCost('Franks', 'castle', 'castle-age'))
+      .toEqual({ stone: Math.round((base.stone ?? 0) * 0.85) });
+    expect(effectiveConstructionCost('Franks', 'castle', 'imperial-age'))
       .toEqual({ stone: Math.round((base.stone ?? 0) * 0.75) });
+    // Britons TC wood halves from Castle Age.
+    const tcBase = constructionCost('town-center');
+    expect(effectiveConstructionCost('Britons', 'town-center', 'castle-age').wood)
+      .toBe(Math.round((tcBase.wood ?? 0) * 0.5));
+    expect(effectiveConstructionCost('Britons', 'town-center', 'feudal-age')).toBe(tcBase);
     expect(effectiveConstructionCost('Japanese', 'mill').wood)
       .toBe(Math.round((constructionCost('mill').wood ?? 0) * 0.5));
     expect(effectiveConstructionCost('Teutons', 'farm').wood)

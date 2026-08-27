@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-27 v0.3.150 age-aware construction prices (effectiveConstructionCost age param via ownerConstructionCost funnel): Franks castles -15/25 by age, Britons TC wood -50% Castle+; three stale pins migrated (sim x2 + browser HUD wood 425->562).
 - 2026-08-27 v0.3.149 Spanish builders x1.3 + +20g per completed tech (BOTH queue completion sites — first landing missed the entry.kind path and the live pin caught it) + Inca villager-armor Castle gate.
 - 2026-08-27 v0.3.148 HP ladders sourced (Vikings flat 1.2 Feudal+, Viet flat 1.2, Franks MOUNTED scope Feudal-gated, Mongol scout 1/1/1.2/1.3, Portuguese ships 1/1.1/1.15/1.2) — three flat table entries moved into the age seam so creation + age-up sweep stay one mechanism.
 - 2026-08-27 v0.3.147 research-cost seam (effectiveResearchCost at charge/validator/toast/agent-card/AI-budget incl. age-up reserve; hosting-derived scopes): Chinese age ladder, Italians dock+univ+age, Byz Imperial -33%, Turks gunpowder -50%, Spanish smith no-gold, Viet eco no-wood.

@@ -22,7 +22,8 @@ describe('createSimulationBridge production progression', () => {
     // processCommands.
     bridge.step(100);
     expect(bridge.getHudState().playerResources).toMatchObject({
-      wood: 425,
+      // Britons TC wood -50% from Castle Age (sourced v0.3.150).
+      wood: 562,
       stone: 250,
     });
 

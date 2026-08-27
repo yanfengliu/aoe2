@@ -7,6 +7,7 @@
 import type { BuildingType, PlayerResources } from '../types';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
+  playerAgesCodec,
   playerCivilizationsCodec,
   playerTeamsCodec,
 } from './bridgeStateSerialize';
@@ -25,7 +26,11 @@ export function ownerConstructionCost(
   buildingType: BuildingType,
 ): Partial<PlayerResources> {
   const civilizations = accessor.get(playerCivilizationsCodec);
-  let cost = effectiveConstructionCost(civilizations.get(owner), buildingType);
+  let cost = effectiveConstructionCost(
+    civilizations.get(owner),
+    buildingType,
+    accessor.get(playerAgesCodec).get(owner) ?? 'dark-age',
+  );
   const teams = accessor.get(playerTeamsCodec);
   const scale = (multiplier: number): void => {
     const scaled: Partial<PlayerResources> = {};

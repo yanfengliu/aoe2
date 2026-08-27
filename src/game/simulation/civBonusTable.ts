@@ -59,11 +59,14 @@ export interface CivBonusEntry {
     readonly multiplier: number;
   }>;
   readonly cost?: ReadonlyArray<CivCostRule>;
-  /** Building-cost rules: whole-cost or single-component multipliers. */
+  /** Building-cost rules: whole-cost or single-component multipliers,
+   *  flat or by the owner's age (Franks castles, Briton TC wood). */
   readonly buildingCost?: ReadonlyArray<{
     readonly applies: (buildingType: string) => boolean;
     readonly multiplier?: number;
+    readonly multiplierByAge?: Partial<Record<AgeType, number>>;
     readonly woodMultiplier?: number;
+    readonly woodMultiplierByAge?: Partial<Record<AgeType, number>>;
     readonly stoneMultiplier?: number;
   }>;
   /** Building max-HP multipliers (Persians' Town Centers and Docks). */
@@ -122,6 +125,12 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Britons',
     gatherRate: { sheep: 1.25 },
+    // DE (sourced v0.3.150): "Town Centers cost -50% wood starting in
+    // Castle Age".
+    buildingCost: [{
+      applies: (building) => building === 'town-center',
+      woodMultiplierByAge: { 'castle-age': 0.5, 'imperial-age': 0.5 },
+    }],
   },
   {
     civilization: 'Byzantines',
@@ -155,7 +164,11 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     // DE: "Foragers work +15% faster" (sourced v0.3.146). The mounted +20%
     // HP rides the Feudal-gated age ladder (ageScaledHp, v0.3.148).
     gatherRate: { 'berry-bush': 1.15 },
-    buildingCost: [{ applies: (building) => building === 'castle', multiplier: 0.75 }],
+    // DE (sourced v0.3.150): "Castles cost -15/25% in Castle/Imperial Age".
+    buildingCost: [{
+      applies: (building) => building === 'castle',
+      multiplierByAge: { 'castle-age': 0.85, 'imperial-age': 0.75 },
+    }],
   },
   {
     civilization: 'Goths',

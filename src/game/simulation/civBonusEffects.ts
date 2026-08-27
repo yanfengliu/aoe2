@@ -137,6 +137,8 @@ export function civPopulationProvidedBonus(
 export function effectiveConstructionCost(
   civilization: string | undefined,
   buildingType: BuildingType,
+  /** Age-scaled rules read the OWNER's age; absent = flat rules only. */
+  age?: AgeType,
 ): Partial<PlayerResources> {
   const base = constructionCost(buildingType);
   const rules = civBonusesFor(civilization)?.buildingCost ?? [];
@@ -147,15 +149,17 @@ export function effectiveConstructionCost(
   };
   for (const rule of rules) {
     if (!rule.applies(buildingType)) continue;
-    if (rule.multiplier !== undefined) {
+    const wholeMultiplier = rule.multiplier ?? (age ? rule.multiplierByAge?.[age] : undefined);
+    if (wholeMultiplier !== undefined) {
       const target = writable();
       for (const key of Object.keys(target) as (keyof PlayerResources)[]) {
-        target[key] = Math.round((target[key] ?? 0) * rule.multiplier);
+        target[key] = Math.round((target[key] ?? 0) * wholeMultiplier);
       }
     }
-    if (rule.woodMultiplier !== undefined) {
+    const woodMultiplier = rule.woodMultiplier ?? (age ? rule.woodMultiplierByAge?.[age] : undefined);
+    if (woodMultiplier !== undefined) {
       const target = writable();
-      if (target.wood !== undefined) target.wood = Math.round(target.wood * rule.woodMultiplier);
+      if (target.wood !== undefined) target.wood = Math.round(target.wood * woodMultiplier);
     }
     if (rule.stoneMultiplier !== undefined) {
       const target = writable();
