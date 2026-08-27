@@ -183,7 +183,10 @@ export function isInfantryUnit(unitType: UnitType): boolean {
   // so the blacksmith infantry techs, Squires, Tracking, Sappers, and the
   // infantry civ bonuses reach all of them, as in AoE2. (INFANTRY_UNITS, the
   // old hand list, covered only the stock lines.)
-  return UNIT_ARMOR_CLASSES[unitType].has('infantry');
+  // Eagles are 'eagle' to incoming fire (v0.3.129) but INFANTRY to the
+  // blacksmith and the infantry civ bonuses, exactly as in AoE2.
+  const classes = UNIT_ARMOR_CLASSES[unitType];
+  return classes.has('infantry') || classes.has('eagle');
 }
 
 /** The Forging line's scope (AoE2): infantry, cavalry, and villagers — NOT

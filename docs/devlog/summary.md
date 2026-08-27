@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-26 v0.3.129 eagle armor class (the HC-vs-eagle inversion restored; 14 dropped CSV anti-eagle rows live; isInfantryUnit keeps eagles in tech scope — vulnerability ≠ upgrade scope again); found by the off-roster-comment audit that v0.3.128 triggered.
 - 2026-08-26 v0.3.128 siege-onager blast 1.5 (the blast table's "off-roster" comment outlived the roster — El Dorado's twin; diagonal-reach proved in the pure blast test).
 - 2026-08-25 v0.3.127 monastery finials per set (abstract silhouettes replace the cross outside the default; fn lives in details for the 500 cap).
 - 2026-08-25 v0.3.126 shift-queued construction (queuedBuildRefs chain; queue flag rides building.placeConfirm; advance at the finalize site — builderWorkStep's clear was the WRONG hook, the system's post-finalize clear was the real one; constructionStartOps extracted at the 500 gate).

@@ -45,7 +45,12 @@ export type ArmorClass =
   // Deferred when this taxonomy was written because nothing targeted it.
   // The Eagle Warrior line does: units.csv gives it +8 (+10 Elite) against
   // Monks, and running down a Monk before it converts is the line's job.
-  | 'monk';
+  | 'monk'
+  // v0.3.129: AoE2's inversion — an Eagle is NOT infantry to incoming fire
+  // (a Hand Cannoneer's +10 infantry misses it) while the swordsman line
+  // carries explicit anti-eagle answers. Upgrade scope stays infantry via
+  // isInfantryUnit's second clause; vulnerability is this class.
+  | 'eagle';
 
 type BonusEntry = { targetClass: ArmorClass; bonus: number };
 
@@ -59,8 +64,8 @@ export const UNIT_ARMOR_CLASSES = {
   archer: new Set<ArmorClass>(['archer']),
   skirmisher: new Set<ArmorClass>(['archer']),
   'elite-skirmisher': new Set<ArmorClass>(['archer']),
-  'eagle-warrior': new Set<ArmorClass>(['infantry']),
-  'elite-eagle-warrior': new Set<ArmorClass>(['infantry']),
+  'eagle-warrior': new Set<ArmorClass>(['eagle']),
+  'elite-eagle-warrior': new Set<ArmorClass>(['eagle']),
   'hand-cannoneer': new Set<ArmorClass>(['archer']),
   knight: new Set<ArmorClass>(['cavalry']),
   crossbowman: new Set<ArmorClass>(['archer']),
@@ -157,10 +162,15 @@ export const UNIT_ARMOR_CLASSES = {
  *  Values transcribed from design/stats/units.csv `attack_bonus` (roster-
  *  relevant target classes only). Absent attackers deal no class bonus. */
 export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEntry>>> = {
-  // Spear line: flat vs ALL cavalry + separate vs camel.
-  spearman: [{ targetClass: 'cavalry', bonus: 15 }, { targetClass: 'camel', bonus: 7 }],
-  pikeman: [{ targetClass: 'cavalry', bonus: 22 }, { targetClass: 'camel', bonus: 11 }],
-  halberdier: [{ targetClass: 'cavalry', bonus: 32 }, { targetClass: 'camel', bonus: 16 }],
+  // Swordsman line: the anti-eagle answer (units.csv +2/+4/+6/+6).
+  'man-at-arms': [{ targetClass: 'eagle', bonus: 2 }],
+  'long-swordsman': [{ targetClass: 'eagle', bonus: 4 }],
+  'two-handed-swordsman': [{ targetClass: 'eagle', bonus: 6 }],
+  champion: [{ targetClass: 'eagle', bonus: 6 }],
+  // Spear line: flat vs ALL cavalry + separate vs camel (+1 eagles each tier).
+  spearman: [{ targetClass: 'cavalry', bonus: 15 }, { targetClass: 'camel', bonus: 7 }, { targetClass: 'eagle', bonus: 1 }],
+  pikeman: [{ targetClass: 'cavalry', bonus: 22 }, { targetClass: 'camel', bonus: 11 }, { targetClass: 'eagle', bonus: 1 }],
+  halberdier: [{ targetClass: 'cavalry', bonus: 32 }, { targetClass: 'camel', bonus: 16 }, { targetClass: 'eagle', bonus: 1 }],
   // Camels: anti-cavalry + anti-camel.
   camel: [{ targetClass: 'cavalry', bonus: 10 }, { targetClass: 'camel', bonus: 5 }],
   'heavy-camel': [{ targetClass: 'cavalry', bonus: 18 }, { targetClass: 'camel', bonus: 9 }],
@@ -169,8 +179,8 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
   'elite-skirmisher': [{ targetClass: 'archer', bonus: 4 }, { targetClass: 'spearman', bonus: 3 }],
   // units.csv: +8 monks, +3 siege at the Castle-Age tier. The Monk bonus is
   // the line's whole point — nothing else on the field runs one down.
-  'eagle-warrior': [{ targetClass: 'monk', bonus: 8 }, { targetClass: 'siege', bonus: 3 }],
-  'elite-eagle-warrior': [{ targetClass: 'monk', bonus: 10 }, { targetClass: 'siege', bonus: 5 }],
+  'eagle-warrior': [{ targetClass: 'monk', bonus: 8 }, { targetClass: 'siege', bonus: 3 }, { targetClass: 'cavalry', bonus: 2 }, { targetClass: 'ship', bonus: 1 }, { targetClass: 'camel', bonus: 1 }],
+  'elite-eagle-warrior': [{ targetClass: 'monk', bonus: 10 }, { targetClass: 'siege', bonus: 5 }, { targetClass: 'cavalry', bonus: 4 }, { targetClass: 'ship', bonus: 2 }, { targetClass: 'camel', bonus: 2 }],
   // units.csv: +10 infantry (+1 spearman, folded into the infantry line
   // it is the answer to), +2 rams.
   'hand-cannoneer': [{ targetClass: 'infantry', bonus: 10 }, { targetClass: 'siege', bonus: 2 }],
@@ -200,22 +210,28 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
   // M4 unique units, from units.csv `attack_bonus`. Off-roster target
   // classes in that column (eagles, buildings, castles, stone defense,
   // walls) stay deferred with the rest of them.
-  'jaguar-warrior': [{ targetClass: 'infantry', bonus: 10 }],
+  'jaguar-warrior': [{ targetClass: 'infantry', bonus: 10 }, { targetClass: 'eagle', bonus: 12 }],
   'cataphract': [{ targetClass: 'infantry', bonus: 9 }],
   'chu-ko-nu': [{ targetClass: 'spearman', bonus: 2 }],
-  'huskarl': [{ targetClass: 'archer', bonus: 6 }],
-  'samurai': [{ targetClass: 'unique-unit', bonus: 10 }],
+  'huskarl': [{ targetClass: 'archer', bonus: 6 }, { targetClass: 'eagle', bonus: 2 }],
+  'samurai': [{ targetClass: 'unique-unit', bonus: 10 }, { targetClass: 'eagle', bonus: 2 }],
   'plumed-archer': [{ targetClass: 'infantry', bonus: 1 }, { targetClass: 'spearman', bonus: 2 }],
   'mangudai': [{ targetClass: 'spearman', bonus: 1 }, { targetClass: 'siege', bonus: 3 }],
   'mameluke': [{ targetClass: 'cavalry', bonus: 9 }],
   'conquistador': [{ targetClass: 'ram', bonus: 4 }],
   'janissary': [{ targetClass: 'ram', bonus: 2 }],
+  // Anti-eagle rows for the remaining roster infantry uniques (units.csv).
+  'berserk': [{ targetClass: 'eagle', bonus: 2 }],
+  'elite-berserk': [{ targetClass: 'eagle', bonus: 3 }],
+  'elite-huskarl': [{ targetClass: 'archer', bonus: 10 }, { targetClass: 'eagle', bonus: 3 }],
+  'teutonic-knight': [{ targetClass: 'eagle', bonus: 4 }],
+  'elite-teutonic-knight': [{ targetClass: 'eagle', bonus: 4 }],
   'longboat': [{ targetClass: 'ship', bonus: 9 }, { targetClass: 'ram', bonus: 4 }],
   // Elite rows from the same CSV column; off-roster classes stay deferred.
-  'elite-jaguar-warrior': [{ targetClass: 'infantry', bonus: 10 }],
+  'elite-jaguar-warrior': [{ targetClass: 'infantry', bonus: 10 }, { targetClass: 'eagle', bonus: 12 }],
   'elite-cataphract': [{ targetClass: 'infantry', bonus: 12 }],
   'elite-chu-ko-nu': [{ targetClass: 'spearman', bonus: 2 }],
-  'elite-samurai': [{ targetClass: 'unique-unit', bonus: 12 }],
+  'elite-samurai': [{ targetClass: 'unique-unit', bonus: 12 }, { targetClass: 'eagle', bonus: 3 }],
   'elite-plumed-archer': [{ targetClass: 'infantry', bonus: 2 }, { targetClass: 'spearman', bonus: 2 }],
   'elite-mangudai': [{ targetClass: 'spearman', bonus: 1 }, { targetClass: 'siege', bonus: 5 }],
   'elite-mameluke': [{ targetClass: 'cavalry', bonus: 12 }],

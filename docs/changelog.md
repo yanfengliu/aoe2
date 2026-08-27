@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.129
+
+- Eagle Warriors now fight like AoE2's: anti-infantry bonuses miss them, the swordsman line's anti-eagle bonuses land, and eagles gained their own anti-cavalry/camel/ship values. Fourteen stat lines that had been silently dropped are live.
+
 ## 0.3.128
 
 - Siege Onager now blasts wider than an Onager, reaching diagonal cells — the Imperial upgrade's whole point, which a stale table entry had silently dropped.
