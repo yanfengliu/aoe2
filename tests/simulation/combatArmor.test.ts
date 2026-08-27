@@ -97,8 +97,9 @@ describe('attackBonusAgainstUnit — AoE2 armor-class bonuses', () => {
     expect(attackBonusAgainstUnit('scorpion', 'siege-ram')).toBe(1); // ram class
     expect(attackBonusAgainstUnit('mangonel', 'militia')).toBe(0); // blast, not a bonus (M2)
     expect(attackBonusAgainstUnit('mangonel', 'villager')).toBe(0);
-    // Scout-line anti-monk is deferred this slice.
-    expect(attackBonusAgainstUnit('scout', 'monk')).toBe(0);
+    // Scout-line anti-monk shipped v0.3.130 (its CSV identity).
+    expect(attackBonusAgainstUnit('scout', 'monk')).toBe(6);
+    expect(attackBonusAgainstUnit('hussar', 'monk')).toBe(12);
   });
 
   it('gives no bonus for non-matching pairs', () => {

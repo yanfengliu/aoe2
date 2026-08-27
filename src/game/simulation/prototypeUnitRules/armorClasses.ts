@@ -19,12 +19,11 @@
 //   anti-infantry is BLAST/splash (spec §10.7), deferred to M2; mangonel keeps
 //   its +12 siege.
 //
-// Deferred out of this slice (documented): the scout line's +vs-monk bonus and
-// the `monk` armor class (it entangles the conversion fixtures — a scout that
-// out-damages a converting monk is a separate auto-aggro/convert-priority
-// concern); off-roster classes (eagle, war-elephant, ship, conquistador,
-// unique-unit, stone-defense, wall); and the tiny +1-3 vs-building bonuses of
-// non-siege units (spearman/villager/infantry).
+// The old header deferral list is retired (v0.3.128-130 audit): monk, eagle,
+// war-elephant, ship, and unique-unit classes all exist and their bonuses are
+// live; conquistador rides in MOUNTED_UNITS. Still deferred: stone-defense
+// and wall building-kind bonuses (the building table is one number per
+// attacker), and the tiny +1-3 vs-building bonuses of non-siege units.
 
 import type { UnitType } from '../types';
 
@@ -50,7 +49,10 @@ export type ArmorClass =
   // (a Hand Cannoneer's +10 infantry misses it) while the swordsman line
   // carries explicit anti-eagle answers. Upgrade scope stays infantry via
   // isInfantryUnit's second clause; vulnerability is this class.
-  | 'eagle';
+  | 'eagle'
+  // v0.3.130: the Persian elephants' own class — STACKS with 'cavalry'
+  // under the spear line (halberdier +32 cavalry +60 elephant), AoE2's rule.
+  | 'war-elephant';
 
 type BonusEntry = { targetClass: ArmorClass; bonus: number };
 
@@ -128,7 +130,7 @@ export const UNIT_ARMOR_CLASSES = {
   'war-wagon': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit']),
   'plumed-archer': new Set<ArmorClass>(['archer', 'unique-unit']),
   'mangudai': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit']),
-  'war-elephant': new Set<ArmorClass>(['cavalry', 'unique-unit']),
+  'war-elephant': new Set<ArmorClass>(['cavalry', 'unique-unit', 'war-elephant']),
   'mameluke': new Set<ArmorClass>(['camel', 'unique-unit']),
   'conquistador': new Set<ArmorClass>(['cavalry', 'unique-unit']),
   'teutonic-knight': new Set<ArmorClass>(['infantry', 'unique-unit']),
@@ -148,7 +150,7 @@ export const UNIT_ARMOR_CLASSES = {
   'elite-war-wagon': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit']),
   'elite-plumed-archer': new Set<ArmorClass>(['archer', 'unique-unit']),
   'elite-mangudai': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit']),
-  'elite-war-elephant': new Set<ArmorClass>(['cavalry', 'unique-unit']),
+  'elite-war-elephant': new Set<ArmorClass>(['cavalry', 'unique-unit', 'war-elephant']),
   'elite-mameluke': new Set<ArmorClass>(['camel', 'unique-unit']),
   'elite-conquistador': new Set<ArmorClass>(['cavalry', 'unique-unit']),
   'elite-teutonic-knight': new Set<ArmorClass>(['infantry', 'unique-unit']),
@@ -168,9 +170,9 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
   'two-handed-swordsman': [{ targetClass: 'eagle', bonus: 6 }],
   champion: [{ targetClass: 'eagle', bonus: 6 }],
   // Spear line: flat vs ALL cavalry + separate vs camel (+1 eagles each tier).
-  spearman: [{ targetClass: 'cavalry', bonus: 15 }, { targetClass: 'camel', bonus: 7 }, { targetClass: 'eagle', bonus: 1 }],
-  pikeman: [{ targetClass: 'cavalry', bonus: 22 }, { targetClass: 'camel', bonus: 11 }, { targetClass: 'eagle', bonus: 1 }],
-  halberdier: [{ targetClass: 'cavalry', bonus: 32 }, { targetClass: 'camel', bonus: 16 }, { targetClass: 'eagle', bonus: 1 }],
+  spearman: [{ targetClass: 'cavalry', bonus: 15 }, { targetClass: 'camel', bonus: 7 }, { targetClass: 'eagle', bonus: 1 }, { targetClass: 'war-elephant', bonus: 30 }],
+  pikeman: [{ targetClass: 'cavalry', bonus: 22 }, { targetClass: 'camel', bonus: 11 }, { targetClass: 'eagle', bonus: 1 }, { targetClass: 'war-elephant', bonus: 47 }],
+  halberdier: [{ targetClass: 'cavalry', bonus: 32 }, { targetClass: 'camel', bonus: 16 }, { targetClass: 'eagle', bonus: 1 }, { targetClass: 'war-elephant', bonus: 60 }],
   // Camels: anti-cavalry + anti-camel.
   camel: [{ targetClass: 'cavalry', bonus: 10 }, { targetClass: 'camel', bonus: 5 }],
   'heavy-camel': [{ targetClass: 'cavalry', bonus: 18 }, { targetClass: 'camel', bonus: 9 }],
@@ -191,13 +193,17 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
   'heavy-cavalry-archer': [{ targetClass: 'spearman', bonus: 2 }],
   longbowman: [{ targetClass: 'spearman', bonus: 2 }],
   'elite-longbowman': [{ targetClass: 'spearman', bonus: 2 }],
-  // (Scout-line anti-monk deferred — see header.)
+  // Scout line: the anti-monk ladder is the line's CSV identity (v0.3.130 —
+  // the old deferral predated the 'monk' class existing at all).
+  scout: [{ targetClass: 'monk', bonus: 6 }],
+  'light-cavalry': [{ targetClass: 'monk', bonus: 10 }],
+  hussar: [{ targetClass: 'monk', bonus: 12 }],
   // Siege: anti-siege / anti-ram (mangonel's anti-infantry is BLAST, deferred).
   mangonel: [{ targetClass: 'siege', bonus: 12 }],
   onager: [{ targetClass: 'siege', bonus: 12 }],
   'siege-onager': [{ targetClass: 'siege', bonus: 12 }],
-  scorpion: [{ targetClass: 'ram', bonus: 1 }],
-  'heavy-scorpion': [{ targetClass: 'ram', bonus: 2 }],
+  scorpion: [{ targetClass: 'ram', bonus: 1 }, { targetClass: 'war-elephant', bonus: 6 }],
+  'heavy-scorpion': [{ targetClass: 'ram', bonus: 2 }, { targetClass: 'war-elephant', bonus: 8 }],
   'battering-ram': [{ targetClass: 'siege', bonus: 40 }],
   'siege-ram': [{ targetClass: 'siege', bonus: 65 }],
   'capped-ram': [{ targetClass: 'siege', bonus: 50 }],

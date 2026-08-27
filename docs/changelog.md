@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.130
+
+- Three more restored stat families: spearmen devastate War Elephants (stacking with their anti-cavalry, as in AoE2), Conquistadors benefit from Bloodlines and Husbandry, and the scout line hunts down Monks with its +6/+10/+12 bonus.
+
 ## 0.3.129
 
 - Eagle Warriors now fight like AoE2's: anti-infantry bonuses miss them, the swordsman line's anti-eagle bonuses land, and eagles gained their own anti-cavalry/camel/ship values. Fourteen stat lines that had been silently dropped are live.

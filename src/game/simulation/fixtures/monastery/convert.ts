@@ -221,11 +221,14 @@ export function createMonkConvertVisionFixture(seed: string): PrototypeScenario 
       // Small vision so only the Monk's immediate cells are visible —
       // cells 3+ away around the Scout are fog-hidden until vision flips.
       ownedSpawn('monk', 1, 20, 20, { vision: 2 }),
-      // Radius 6 so (scoutX + 3) is inside the Scout's vision but
+      // Radius 6 so (unitX + 3) is inside the target's vision but
       // outside the Monk's radius-2 vision. After conversion, player 1
-      // should see that cell iff the Scout's visionSource playerId was
-      // flipped.
-      ownedSpawn('scout', 2, 21, 20, { vision: 6 }),
+      // should see that cell iff the target's visionSource playerId was
+      // flipped. A MILITIA, not a scout, since v0.3.130: the scout line's
+      // CSV anti-monk bonus (+6) now wins the melee race against the
+      // conversion, and this fixture's contract is the vision flip — the
+      // scout-kills-monk matchup has its own coverage in the bonus tests.
+      ownedSpawn('militia', 2, 21, 20, { vision: 6 }),
       ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
   };

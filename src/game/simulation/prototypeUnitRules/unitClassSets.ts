@@ -42,7 +42,7 @@ export const CAVALRY_UNITS = new Set<UnitType>([
 
 // Mounted units = cavalry + the mounted-archer line — the scope of BOTH
 // Stable rider techs (Husbandry csv:79, Bloodlines csv:78; applies-to
-// "Cavalry;Cavalry Archer;Conquistador" — conquistador is not in the roster).
+// "Cavalry;Cavalry Archer;Conquistador" — the conquistadors ride (v0.3.130).
 // Spread from CAVALRY_UNITS so the sets cannot drift. The barding ARMOR techs
 // stay on CAVALRY_UNITS (mounted archers take the archer armor line instead).
 // The CAVALRY-ARCHER class: the scope of Parthian Tactics (technologies.csv,
@@ -66,6 +66,10 @@ export const MOUNTED_UNITS = new Set<UnitType>([
   'heavy-cavalry-archer',
   // The Spanish monk rides: Bloodlines and Husbandry reach it (AoE2).
   'missionary',
+  // The applies-to column names the Conquistador outright; the old comment
+  // claimed it was off-roster long after it shipped (v0.3.130 audit).
+  'conquistador',
+  'elite-conquistador',
 ]);
 
 export const INFANTRY_UNITS = new Set<UnitType>([

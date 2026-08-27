@@ -28,10 +28,10 @@ describe('Slice 5 Monastery + Monks + Relics — vision/population/relics', () =
   it('reassigns visionSource playerId when a Monk converts an enemy unit', () => {
     const bridge = createSimulationBridge('monk-convert-vision-fixture');
 
-    const enemyScout = findFirstOwnedUnit(bridge, 2, 'scout');
-    expect(enemyScout).toBeDefined();
-    const scoutId = enemyScout!.id;
-    const scoutCell = { x: enemyScout!.x, y: enemyScout!.y };
+    const enemyTarget = findFirstOwnedUnit(bridge, 2, 'militia');
+    expect(enemyTarget).toBeDefined();
+    const scoutId = enemyTarget!.id;
+    const scoutCell = { x: enemyTarget!.x, y: enemyTarget!.y };
 
     // Sanity: a cell just outside every known player 1 vision source starts
     // fog-hidden. The enemy Scout's visionSource belongs to player 2, so
