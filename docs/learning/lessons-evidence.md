@@ -755,3 +755,12 @@ Anchor: `tests/simulation/attackGround.test.ts` > "keeps firing at the empty cel
 Three separate finds, one shape: El Dorado (v0.3.57) was deferred as "Eagle Warriors are not on the roster" after they shipped; the blast table (v0.3.128) called siege-onager "off-roster" while the unit, its upgrade line, and its CSV 1.5 radius existed — the Imperial upgrade blasted no wider than an Onager; and the armorClasses header's deferral list (v0.3.129-130) outlived the eagle line, the war elephants, the conquistador, and the monk class it named as absent — fourteen anti-eagle CSV rows, the spear line's +30/47/60 vs elephants, Bloodlines for conquistadors, and the scout line's anti-monk ladder were all silently dropped. The audit that found the last batch was one command: grep the sim for `off-roster|not in the roster|deferred` and verify each hit against the roster.
 
 Anchor: `tests/simulation/siegeOnagerBlast.test.ts`, `tests/simulation/eagleArmorClass.test.ts`, `tests/simulation/rosterAuditHarvest.test.ts`.
+
+
+## Background helpers satisfy outcome assertions (2026-08-27)
+
+The first red-check of `tests/simulation/queuedEntityOrders.test.ts` PASSED its attack-chain test before any implementation existed: the two victim militia stood beside the archer, so auto-aggression killed both without a queue. The gather test had the twin failure in reverse — auto-rotate (type-agnostic, nearest-first) could reach the queued tree on its own. Both were made honest by placing the queued target OUT OF THE HELPER'S REACH: the second militia outside vision (with a friendly outpost providing sight so the click is issuable), the queued tree far past a nearer decoy the rotate prefers. Anchor: the two "critic regressions" tests in that file, which fail 2/7 when the chain machinery is disabled and passed vacuously before the fixture spread.
+
+## git checkout during a red-check destroys uncommitted work (2026-08-27)
+
+Ending a disable-the-feature red-check with `git checkout <file>` reverted `villagerEconomySystem.ts` to HEAD — which did not yet contain the session's uncommitted v0.3.141 edits (deps, helper, four flag-drop sites, two pop hooks, ordering pin). All were rebuilt from the session's own edit script, but only because that script still existed in scrollback. Restore red-checks by reversing the string edit that disabled the path, or commit the working state first; checkout is only safe when HEAD holds what you mean to return to. Anchor: commit a9d719f4's devlog process note.

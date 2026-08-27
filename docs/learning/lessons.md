@@ -10,6 +10,9 @@ When a lesson becomes a gate — a test, a lint rule, a fixed command — delete
 
 ## Rules
 
+- A background helper (auto-aggro, auto-rotate) can satisfy an outcome assertion alone — place the test's target OUT OF THE HELPER'S REACH ([evidence](lessons-evidence.md#background-helpers-satisfy-outcome-assertions-2026-08-27))
+- Never `git checkout` a file you have uncommitted work in to end a red-check — comment the code path out and restore by string, or commit first ([evidence](lessons-evidence.md#git-checkout-during-a-red-check-destroys-uncommitted-work-2026-08-27))
+
 - A comment claiming "X is not in the roster" is a claim with a shelf life — grep the absence-claims graveyard whenever the roster grows ([evidence](lessons-evidence.md#absence-claims-have-a-shelf-life-2026-08-26))
 
 - A positive assertion on an effect BOTH the feature and its fallback produce proves nothing — assert the mechanism (the standing order), not the shared outcome ([evidence](lessons-evidence.md#assert-the-mechanism-not-the-shared-outcome-2026-08-25))
