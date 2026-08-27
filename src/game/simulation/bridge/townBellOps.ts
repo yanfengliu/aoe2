@@ -7,7 +7,7 @@ import type { Position } from 'civ-engine';
 
 import type { BuildingComponent, UnitComponent } from '../types';
 import { buildingGarrisonCapacity, canGarrisonAt } from '../prototypeBuildingRules';
-import { civHouseGarrisonCapacity, civGarrisonCapacityMultiplier } from '../civBuildingBonuses';
+import { civHouseGarrisonCapacity, civGarrisonCapacityBonus } from '../civBuildingBonuses';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   constructionStatesCodec,
@@ -27,9 +27,9 @@ export function createTownBellOps(deps: {
 
   function shelterCapacity(building: BuildingComponent): number {
     const civ = accessor.get(playerCivilizationsCodec).get(building.owner);
-    const base = buildingGarrisonCapacity(building.buildingType)
-      + civHouseGarrisonCapacity(civ, building.buildingType);
-    return Math.floor(base * civGarrisonCapacityMultiplier(civ, building.buildingType));
+    return buildingGarrisonCapacity(building.buildingType)
+      + civHouseGarrisonCapacity(civ, building.buildingType)
+      + civGarrisonCapacityBonus(civ, building.buildingType);
   }
 
   function ringTownBell(owner: number): boolean {

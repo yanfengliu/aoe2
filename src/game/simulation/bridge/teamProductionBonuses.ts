@@ -8,8 +8,10 @@ import type { BuildingType, UnitType } from '../types';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { playerCivilizationsCodec, playerTeamsCodec } from './bridgeStateSerialize';
 import {
+  BRITONS_TEAM_ARCHERY_MULTIPLIER,
   MALIANS_TEAM_UNIVERSITY_RESEARCH_MULTIPLIER,
   TEAM_PRODUCTION_SPEED_MULTIPLIER,
+  TURKS_TEAM_GUNPOWDER_MULTIPLIER,
   teamHasCivilization,
 } from '../teamBonuses';
 
@@ -18,10 +20,13 @@ const GUNPOWDER_UNITS = new Set<UnitType>([
   'conquistador', 'elite-conquistador', 'janissary', 'elite-janissary',
 ]);
 
-const BUILDING_SPEED_CIVS: ReadonlyArray<readonly [BuildingType, string]> = [
-  ['archery-range', 'Britons'],
-  ['barracks', 'Goths'],
-  ['stable', 'Huns'],
+// Sourced v0.3.144: per-civ team speeds differ (Britons +10%, Goths/Huns
+// and Celts' siege workshops +20%, Turks' gunpowder +25%).
+const BUILDING_SPEED_CIVS: ReadonlyArray<readonly [BuildingType, string, number]> = [
+  ['archery-range', 'Britons', BRITONS_TEAM_ARCHERY_MULTIPLIER],
+  ['barracks', 'Goths', TEAM_PRODUCTION_SPEED_MULTIPLIER],
+  ['stable', 'Huns', TEAM_PRODUCTION_SPEED_MULTIPLIER],
+  ['siege-workshop', 'Celts', TEAM_PRODUCTION_SPEED_MULTIPLIER],
 ];
 
 export function teamTrainTimeMultiplier(
@@ -33,13 +38,19 @@ export function teamTrainTimeMultiplier(
   const teams = accessor.get(playerTeamsCodec);
   const civilizations = accessor.get(playerCivilizationsCodec);
   let multiplier = 1;
-  for (const [building, civilization] of BUILDING_SPEED_CIVS) {
+  for (const [building, civilization, speed] of BUILDING_SPEED_CIVS) {
     if (buildingType === building && teamHasCivilization(teams, civilizations, owner, civilization)) {
-      multiplier *= TEAM_PRODUCTION_SPEED_MULTIPLIER;
+      multiplier *= speed;
     }
   }
   if (GUNPOWDER_UNITS.has(unitType) && teamHasCivilization(teams, civilizations, owner, 'Turks')) {
-    multiplier *= TEAM_PRODUCTION_SPEED_MULTIPLIER;
+    multiplier *= TURKS_TEAM_GUNPOWDER_MULTIPLIER;
+  }
+  // Magyar team bonus (sourced v0.3.144, replacing the DE-dead foot-archer
+  // LoS): mounted archers train +25% faster anywhere they train.
+  if ((unitType === 'cavalry-archer' || unitType === 'heavy-cavalry-archer')
+    && teamHasCivilization(teams, civilizations, owner, 'Magyars')) {
+    multiplier *= TURKS_TEAM_GUNPOWDER_MULTIPLIER;
   }
   return multiplier;
 }

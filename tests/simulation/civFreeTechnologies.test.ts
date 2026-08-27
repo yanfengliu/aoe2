@@ -25,16 +25,17 @@ function researched(bridge: Bridge, owner: number): ReadonlySet<string> {
 }
 
 describe('civilization free technologies', () => {
-  it('gives the Aztecs Loom moments into the Dark Age, and costs nothing', () => {
-    const bridge = bootAs('Aztecs');
-    const goldBefore = bridge.getEconomyState().playerResources[1]!.gold;
+  it('opens the Aztecs with +50 gold; the free Loom left with DE (sourced v0.3.144)', () => {
+    // Opening resources are seeded from the civ at CREATION, so this boots
+    // with the civ option (a blob-swapped civ rightly changes no history).
+    const bridge = createSimulationBridge('aoe2-prototype', {
+      civilizationsByOwner: new Map([[1, 'Aztecs'], [2, 'Franks']]),
+    });
+    const plain = createSimulationBridge('aoe2-prototype');
+    expect(bridge.getEconomyState().playerResources[1]!.gold)
+      .toBe(plain.getEconomyState().playerResources[1]!.gold + 50);
     for (let step = 0; step < 30; step += 1) bridge.step(100);
-    expect(researched(bridge, 1).has('loom')).toBe(true);
-    // Loom costs 50 gold when bought; free means the stockpile never moved
-    // for it (the opening economy earns no gold this early).
-    expect(bridge.getEconomyState().playerResources[1]!.gold).toBe(goldBefore);
-    // The other player is not an Aztec and researched nothing.
-    expect(researched(bridge, 2).has('loom')).toBe(false);
+    expect(researched(bridge, 1).has('loom')).toBe(false);
   });
 
   it('gives the Slavs Tracking only once its Barracks stands', () => {

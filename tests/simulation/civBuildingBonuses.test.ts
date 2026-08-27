@@ -17,7 +17,7 @@ import {
 } from './createSimulationBridge.helpers';
 import {
   civBuildingBaseAttackBonus,
-  civGarrisonCapacityMultiplier,
+  civGarrisonCapacityBonus,
   civMonkHealRangeMultiplier,
   teamBuildingVisionBonus,
 } from '../../src/game/simulation/civBuildingBonuses';
@@ -58,25 +58,18 @@ describe('building bonus tables (pure)', () => {
     expect(teamBuildingVisionBonus(teams, civs, 3, 'outpost')).toBe(0);
   });
 
-  it('Teutons grant their own Town Centers +5 LOS and +1 attack (civ, not team)', () => {
+  it('the old Teuton TC attack/LOS is DE-dead (sourced v0.3.144)', () => {
     const civs = new Map([[1, 'Teutons']]);
-    expect(teamBuildingVisionBonus(noTeams, civs, 1, 'town-center')).toBe(5);
-    expect(teamBuildingVisionBonus(noTeams, civs, 1, 'watch-tower')).toBe(0);
-    // A Teuton ALLY's TC gets nothing — this is a civilization bonus.
-    const teams = new Map([[1, 1], [2, 1]]);
-    const allied = new Map([[1, 'Teutons'], [2, 'Britons']]);
-    expect(teamBuildingVisionBonus(teams, allied, 2, 'town-center')).toBe(0);
-    expect(civBuildingBaseAttackBonus('Teutons', 'town-center')).toBe(1);
-    expect(civBuildingBaseAttackBonus('Teutons', 'watch-tower')).toBe(0);
-    expect(civBuildingBaseAttackBonus('Britons', 'town-center')).toBe(0);
+    expect(teamBuildingVisionBonus(noTeams, civs, 1, 'town-center')).toBe(0);
+    expect(civBuildingBaseAttackBonus('Teutons', 'town-center')).toBe(0);
     expect(civBuildingBaseAttackBonus(undefined, 'town-center')).toBe(0);
   });
 
-  it('Teuton towers hold twice the garrison; monks heal twice as far', () => {
-    expect(civGarrisonCapacityMultiplier('Teutons', 'watch-tower')).toBe(2);
-    expect(civGarrisonCapacityMultiplier('Teutons', 'bombard-tower')).toBe(2);
-    expect(civGarrisonCapacityMultiplier('Teutons', 'town-center')).toBe(1);
-    expect(civGarrisonCapacityMultiplier('Britons', 'watch-tower')).toBe(1);
+  it('Teuton garrison is a FLAT add (DE: TC +10, towers +5); monks heal twice as far', () => {
+    expect(civGarrisonCapacityBonus('Teutons', 'watch-tower')).toBe(5);
+    expect(civGarrisonCapacityBonus('Teutons', 'bombard-tower')).toBe(5);
+    expect(civGarrisonCapacityBonus('Teutons', 'town-center')).toBe(10);
+    expect(civGarrisonCapacityBonus('Britons', 'watch-tower')).toBe(0);
     expect(civMonkHealRangeMultiplier('Teutons')).toBe(2);
     expect(civMonkHealRangeMultiplier('Britons')).toBe(1);
     expect(civMonkHealRangeMultiplier(undefined)).toBe(1);
@@ -130,20 +123,20 @@ describe('Ethiopian tower/outpost sight in the world', () => {
 });
 
 describe('Teuton Town Center sight and attack in the world', () => {
-  it('the starting TC (explicit fixture vision 7) sees 12 as Teutons', () => {
+  it('the starting TC keeps its plain vision as Teutons (the +5 is DE-dead)', () => {
     const bridge = createSimulationBridge('outpost-vision-fixture', {
       civilizationsByOwner: new Map([[1, 'Teutons']]),
     });
     const townCenter = findBuilding(bridge, 1, 'town-center');
     const outpost = findBuilding(bridge, 1, 'outpost');
-    expect(visionRadiusOf(bridge, townCenter!.id)).toBe(12); // 7 + 5
-    expect(visionRadiusOf(bridge, outpost!.id)).toBe(6); // Teutons touch only the TC
+    expect(visionRadiusOf(bridge, townCenter!.id)).toBe(7);
+    expect(visionRadiusOf(bridge, outpost!.id)).toBe(6);
   });
 
-  it('a Teuton TC arrow hits for 6; a generic TC for 5', () => {
+  it('a Teuton TC arrow hits like any other (the +1 attack is DE-dead)', () => {
     // The militia's 1 pierce armor is applied when the arrow LANDS
-    // (projectileOps), so the observed hits are 6-1=5 and 5-1=4.
-    for (const [civ, expected] of [['Teutons', 30], [undefined, 31]] as const) {
+    // (projectileOps), so the observed hit is 5-1=4 for everyone.
+    for (const [civ, expected] of [['Teutons', 31], [undefined, 31]] as const) {
       const bridge = createSimulationBridge('civ-teutons-fixture', {
         ...(civ ? { civilizationsByOwner: new Map([[1, civ]]) } : {}),
       });

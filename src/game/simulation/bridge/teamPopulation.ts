@@ -8,8 +8,9 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { playerCivilizationsCodec, playerTeamsCodec } from './bridgeStateSerialize';
 import { SLAVS_TEAM_MILITARY_BUILDING_POP, teamHasCivilization } from '../teamBonuses';
 
+// DE (sourced v0.3.144): "Military buildings (except Castles)".
 const MILITARY_BUILDINGS = new Set<BuildingType>([
-  'barracks', 'archery-range', 'stable', 'siege-workshop', 'castle', 'dock',
+  'barracks', 'archery-range', 'stable', 'siege-workshop', 'dock',
 ]);
 
 export function slavsTeamMilitaryPop(

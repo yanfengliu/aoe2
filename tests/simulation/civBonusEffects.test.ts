@@ -69,9 +69,9 @@ describe('civGatherRateMultiplier — Britons shepherd bonus', () => {
 // a herdable owned by Britons, fish is fished). The site is kind-agnostic, so
 // the integration path is the one the Britons sheep live-race already validates.
 describe('civGatherRateMultiplier — Mongols hunter bonus', () => {
-  it('gives Mongols +50% ONLY on boar', () => {
+  it('gives Mongols +40% ONLY on boar (sourced v0.3.144)', () => {
     expect(civGatherRateMultiplier('Mongols', 'boar')).toBe(MONGOLS_BOAR_GATHER_MULTIPLIER);
-    expect(MONGOLS_BOAR_GATHER_MULTIPLIER).toBe(1.5);
+    expect(MONGOLS_BOAR_GATHER_MULTIPLIER).toBe(1.4);
   });
 
   it('does not touch Mongols gathering herded sheep, berries, farms, or non-food kinds', () => {

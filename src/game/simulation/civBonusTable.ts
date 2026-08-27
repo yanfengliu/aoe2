@@ -90,6 +90,7 @@ const SHIPS = new Set<UnitType>([
 const CAVALRY_ARCHER_LINE = new Set<UnitType>(['cavalry-archer', 'heavy-cavalry-archer']);
 const FOOT_ARCHER_LINE = new Set<UnitType>(['archer', 'crossbowman', 'arbalest']);
 const SCOUT_LINE = new Set<UnitType>(['scout', 'light-cavalry', 'hussar']);
+const SIEGE_UNITS = new Set<UnitType>(['battering-ram', 'capped-ram', 'siege-ram', 'mangonel', 'onager', 'siege-onager', 'scorpion', 'heavy-scorpion', 'bombard-cannon', 'petard', 'trebuchet']);
 const STABLE_UNITS = new Set<UnitType>([
   'scout', 'light-cavalry', 'hussar', 'knight', 'cavalier', 'paladin', 'camel', 'heavy-camel',
 ]);
@@ -101,7 +102,8 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Aztecs',
     trainTime: [{ applies: (unit) => unit !== 'villager', multiplier: 0.85 }],
-    carryBonus: [{ bonus: 5 }], // "Villagers carry +5".
+    carryBonus: [{ bonus: 3 }], // DE: "Villagers carry +3" (sourced v0.3.144).
+    startingResourcesDelta: { gold: 50 }, // DE: "Start with +50 gold".
   },
   {
     civilization: 'Berbers',
@@ -113,7 +115,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     ],
     cost: [{
       applies: (unit) => STABLE_UNITS.has(unit),
-      multiplierByAge: { 'castle-age': 0.8, 'imperial-age': 0.8 },
+      multiplierByAge: { 'castle-age': 0.85, 'imperial-age': 0.8 }, // DE: -15/20%.
     }],
   },
   {
@@ -133,16 +135,17 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Chinese',
-    unitHp: [{ applies: (unit) => unit === 'demolition-ship' || unit === 'heavy-demolition-ship', multiplier: 1.5 }],
-    // "Start game with 3 extra villagers but -50 wood and -200 food" ·
-    // "Town Centers support 10 population instead of 5".
+    // DE: "+3 Villagers, -50 wood, -200 food" · "Town Centers +7 line of
+    // sight and provide +15 population space" (demo-ship HP is DE-dead).
     startingResourcesDelta: { wood: -50, food: -200 },
     extraStartingUnits: [{ kind: 'villager', count: 3 }],
-    populationProvided: { 'town-center': 5 },
+    populationProvided: { 'town-center': 15 },
   },
   {
     civilization: 'Ethiopians',
-    speed: [{ applies: (unit) => FOOT_ARCHER_LINE.has(unit) || unit === 'skirmisher' || unit === 'elite-skirmisher', multiplier: 1.15 }],
+    // DE's bonus is foot archers ATTACK +18% faster — a reload bonus, not
+    // move speed (the CSV's transcription error shipped as speed until
+    // v0.3.144); the reload seam lands it in the follow-up batch.
     // "Receive +100 gold and +100 food when advancing to the next age."
     ageAdvanceResourceGrant: { food: 100, gold: 100 },
   },
@@ -167,24 +170,24 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     startingResourcesDelta: { wood: -100 }, // "Start game with -100 Wood".
     cost: [{
       applies: (unit) => CAVALRY_ARCHER_LINE.has(unit),
-      multiplierByAge: { 'castle-age': 0.75, 'imperial-age': 0.7 },
+      multiplierByAge: { 'castle-age': 0.9, 'imperial-age': 0.8 }, // DE: -10/20%.
     }],
   },
   {
     civilization: 'Indians',
-    // "Fishermen work 15% faster" · villager cost by age.
-    gatherRate: { fish: 1.15 },
+    // DE (Hindustanis): villagers -8/13/18/23% by age; the old fisherman
+    // bonus is DE-dead.
     cost: [{
       applies: (unit) => unit === 'villager',
       multiplierByAge: {
-        'dark-age': 0.9, 'feudal-age': 0.85, 'castle-age': 0.8, 'imperial-age': 0.75,
+        'dark-age': 0.92, 'feudal-age': 0.87, 'castle-age': 0.82, 'imperial-age': 0.77,
       },
     }],
   },
   {
     civilization: 'Italians',
     cost: [
-      { applies: (unit) => GUNPOWDER_UNITS.has(unit), multiplier: 0.75 },
+      { applies: (unit) => GUNPOWDER_UNITS.has(unit), multiplier: 0.8 }, // DE: -20%.
       { applies: (unit) => unit === 'fishing-ship', woodDelta: -15 },
     ],
   },
@@ -203,6 +206,9 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Malians',
     buildingCost: [{ applies: () => true, woodMultiplier: 0.85 }],
+    // DE: "Villagers drop off +10% more gold" — the nearest existing seam is
+    // the gather rate; the free mining techs it replaced are gone.
+    gatherRate: { 'gold-mine': 1.1 },
   },
   {
     civilization: 'Magyars',
@@ -220,7 +226,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Mongols',
-    gatherRate: { boar: 1.5 },
+    gatherRate: { boar: 1.4 }, // DE: hunters +40%.
     unitHp: [{ applies: (unit) => unit === 'light-cavalry' || unit === 'hussar', multiplier: 1.3 }],
   },
   {
@@ -233,7 +239,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Teutons',
-    buildingCost: [{ applies: (building) => building === 'farm', multiplier: 0.67 }],
+    buildingCost: [{ applies: (building) => building === 'farm', multiplier: 0.6 }], // DE: -40%.
   },
   {
     civilization: 'Incas',
@@ -246,25 +252,35 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Portuguese',
     unitHp: [{ applies: (unit) => SHIPS.has(unit), multiplier: 1.1 }],
-    cost: [{ applies: () => true, goldMultiplier: 0.85 }],
+    cost: [{ applies: () => true, goldMultiplier: 0.8 }], // DE: -20% gold.
   },
   {
     civilization: 'Saracens',
-    unitHp: [{ applies: (unit) => unit === 'transport-ship', multiplier: 2 }],
-    buildingAttack: [{ applies: (unit) => CAVALRY_ARCHER_LINE.has(unit), bonus: 4 }],
+    unitHp: [
+      { applies: (unit) => unit === 'transport-ship', multiplier: 2 },
+      // DE: "Camel Units +25% HP" (the old CA +4 vs buildings is DE-dead).
+      { applies: (unit) => unit === 'camel' || unit === 'heavy-camel', multiplier: 1.25 },
+    ],
   },
   {
     civilization: 'Slavs',
     gatherRate: { farm: 1.15 },
+    // DE: "Siege Workshop Units cost -15%" — in the CSV since v0.3.81, in
+    // the table since v0.3.144.
+    cost: [{ applies: (unit) => SIEGE_UNITS.has(unit), multiplier: 0.85 }],
   },
   {
     civilization: 'Turks',
-    gatherRate: { 'gold-mine': 1.15 },
+    gatherRate: { 'gold-mine': 1.25 }, // DE: gold miners +25%.
     unitHp: [{ applies: (unit) => GUNPOWDER_UNITS.has(unit), multiplier: 1.25 }],
   },
   {
     civilization: 'Vikings',
-    cost: [{ applies: (unit) => WARSHIPS.has(unit), multiplier: 0.8 }],
+    cost: [{
+      applies: (unit) => WARSHIPS.has(unit),
+      // DE: -10/15/20% in Feudal/Castle/Imperial.
+      multiplierByAge: { 'feudal-age': 0.9, 'castle-age': 0.85, 'imperial-age': 0.8 },
+    }],
   },
 ];
 
@@ -274,17 +290,15 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
 // upgrades wait for a Mill; Viking carts arrive with the age), and the reason
 // the free-tech system checks the same research MENU a player would click.
 export const CIV_FREE_TECHNOLOGIES: Readonly<Record<string, readonly import('./technologyTypes').ResearchableTechnologyType[]>> = {
-  Aztecs: ['loom'],
   Byzantines: ['town-watch'],
   Franks: ['horse-collar', 'heavy-plow', 'crop-rotation'],
-  Koreans: ['guard-tower', 'keep'],
+  Koreans: ['guard-tower', 'keep', 'padded-archer-armor', 'leather-archer-armor', 'ring-archer-armor'],
   Teutons: ['murder-holes'],
   Turks: ['chemistry', 'light-cavalry-upgrade', 'hussar-upgrade'],
   Vikings: ['wheelbarrow', 'hand-cart'],
   Burmese: ['double-bit-axe', 'bow-saw', 'two-man-saw'],
-  Ethiopians: ['pikeman-upgrade', 'halberdier-upgrade'],
+  Ethiopians: ['pikeman-upgrade'], // DE frees the Pikeman upgrade only.
   Magyars: ['forging', 'iron-casting', 'blast-furnace'],
-  Malians: ['gold-mining', 'gold-shaft-mining'],
 };
 
 export function civBonusesFor(civilization: string | undefined): CivBonusEntry | undefined {

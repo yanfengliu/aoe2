@@ -19,8 +19,6 @@ const TOWERS = new Set<BuildingType>(['watch-tower', 'bombard-tower']);
 /**
  * Extra line of sight for a building at its creation (or completion) site.
  * Ethiopians team_bonus: "Towers and Outposts +3 LOS" — owner or ally.
- * Teutons civilization bonus: "Town Centers have ... +5 line of sight" —
- * the owner's own civilization only.
  */
 export function teamBuildingVisionBonus(
   teams: Teams | undefined,
@@ -39,26 +37,28 @@ export function teamBuildingVisionBonus(
   ) {
     bonus += 3;
   }
-  if (buildingType === 'town-center' && civilizations.get(owner) === 'Teutons') {
-    bonus += 5;
-  }
+  // (The old Teuton TC +5 LoS is DE-dead — sourced v0.3.144.)
   return bonus;
 }
 
-/** Teutons: "Town Centers have +1 attack" — added to the combat-state factory. */
+/** DE-dead since the sourced audit (v0.3.144): current DE gives Teuton Town
+ *  Centers no attack bonus. The seam stays for the callers. */
 export function civBuildingBaseAttackBonus(
-  civilization: string | undefined,
-  buildingType: BuildingType,
+  _civilization: string | undefined,
+  _buildingType: BuildingType,
 ): number {
-  return civilization === 'Teutons' && buildingType === 'town-center' ? 1 : 0;
+  return 0;
 }
 
-/** Teutons: "Towers can garrison 2x units" — multiplies the capacity table. */
-export function civGarrisonCapacityMultiplier(
+/** Teutons (sourced v0.3.144): "Town Centers +10 garrison capacity; Towers
+ *  +5 garrison capacity" — flat adds, replacing the old ×2 tower rule. */
+export function civGarrisonCapacityBonus(
   civilization: string | undefined,
   buildingType: BuildingType,
 ): number {
-  return civilization === 'Teutons' && TOWERS.has(buildingType) ? 2 : 1;
+  if (civilization !== 'Teutons') return 0;
+  if (buildingType === 'town-center') return 10;
+  return TOWERS.has(buildingType) ? 5 : 0;
 }
 
 /** Khmer: houses hold five villagers; every other house holds nobody. */

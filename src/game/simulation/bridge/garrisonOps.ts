@@ -19,7 +19,7 @@ import {
   garrisonedUnitToBuildingCodec,
   garrisonedUnitVisionSourcesCodec,
 } from './bridgeStateSerialize';
-import { civGarrisonCapacityMultiplier, civHouseGarrisonCapacity } from '../civBuildingBonuses';
+import { civGarrisonCapacityBonus, civHouseGarrisonCapacity } from '../civBuildingBonuses';
 import type { GameWorld } from './pureHelpers';
 
 // An owner with nothing researched — Careening and Dry Dock raise a
@@ -166,9 +166,9 @@ export function createGarrisonOps(deps: GarrisonOpsDeps): GarrisonOps {
       ? accessor.get(playerCivilizationsCodec).get(building.owner)
       : undefined;
     const capacity = building
-      ? (buildingGarrisonCapacity(building.buildingType)
-        + civHouseGarrisonCapacity(buildingCivilization, building.buildingType))
-        * civGarrisonCapacityMultiplier(buildingCivilization, building.buildingType)
+      ? buildingGarrisonCapacity(building.buildingType)
+        + civHouseGarrisonCapacity(buildingCivilization, building.buildingType)
+        + civGarrisonCapacityBonus(buildingCivilization, building.buildingType)
       : 0;
     if (
       !unit

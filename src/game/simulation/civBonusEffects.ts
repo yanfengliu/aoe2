@@ -41,7 +41,7 @@ export const AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER = 0.85;
 export const GOTHS_INFANTRY_COST_MULTIPLIER = 0.65;
 
 // Mongols hunters gather boar 50% faster ("Hunters work 50% faster").
-export const MONGOLS_BOAR_GATHER_MULTIPLIER = 1.5;
+export const MONGOLS_BOAR_GATHER_MULTIPLIER = 1.4; // DE: hunters +40%.
 
 // Mongols Light Cavalry and Hussars have +30% HP.
 export const MONGOLS_SCOUT_HP_MULTIPLIER = 1.3;

@@ -16,7 +16,6 @@ const FOOT_ARCHERS = new Set<UnitType>([
   'longbowman', 'elite-longbowman',
 ]);
 const GALLEY_LINE = new Set<UnitType>(['galley', 'war-galley', 'galleon']);
-const MANGONEL_LINE = new Set<UnitType>(['mangonel', 'onager', 'siege-onager']);
 const SCORPION_LINE = new Set<UnitType>(['scorpion', 'heavy-scorpion']);
 const ARCHER_CLASS_TARGETS = new Set<UnitType>([
   'archer', 'crossbowman', 'arbalest', 'skirmisher', 'elite-skirmisher',
@@ -31,23 +30,21 @@ export function bonusVisionRadius(
   civilizations: Civs,
   owner: number,
   unitType: UnitType,
-  baseRadius: number,
+  _baseRadius: number,
 ): number {
   let bonus = 0;
-  // Koreans (civilization bonus): villagers +3 line of sight.
-  if (civilizations.get(owner) === 'Koreans' && unitType === 'villager') bonus += 3;
+  // Koreans TEAM bonus (sourced v0.3.144): villagers +3 line of sight for
+  // the whole side, not just the Korean player.
+  if (unitType === 'villager' && teamHasCivilization(teams, civilizations, owner, 'Koreans')) bonus += 3;
   if (KNIGHT_LINE.has(unitType) && teamHasCivilization(teams, civilizations, owner, 'Franks')) {
     bonus += 2;
   }
   if (SCOUT_LINE.has(unitType) && teamHasCivilization(teams, civilizations, owner, 'Mongols')) {
     bonus += 2;
   }
-  if (FOOT_ARCHERS.has(unitType) && teamHasCivilization(teams, civilizations, owner, 'Magyars')) {
-    bonus += 2;
-  }
-  // Japanese team bonus: galleys see 50% farther.
+  // Japanese team bonus (sourced v0.3.144): galleys +4 line of sight, flat.
   if (GALLEY_LINE.has(unitType) && teamHasCivilization(teams, civilizations, owner, 'Japanese')) {
-    bonus += Math.round(baseRadius * 0.5);
+    bonus += 4;
   }
   return bonus;
 }
@@ -60,9 +57,6 @@ export function bonusAttackRange(
   unitType: UnitType,
 ): number {
   let bonus = 0;
-  if (MANGONEL_LINE.has(unitType) && teamHasCivilization(teams, civilizations, owner, 'Koreans')) {
-    bonus += 1;
-  }
   if (SCORPION_LINE.has(unitType) && teamHasCivilization(teams, civilizations, owner, 'Khmer')) {
     bonus += 1;
   }
@@ -80,8 +74,9 @@ export function teamBuildingAttackBonus(
   if (FOOT_ARCHERS.has(unitType) && teamHasCivilization(teams, civilizations, owner, 'Saracens')) {
     bonus += 2;
   }
-  if (CAMEL_LINE.has(unitType) && teamHasCivilization(teams, civilizations, owner, 'Indians')) {
-    bonus += 5;
+  // Hindustanis (sourced v0.3.144): scout line AND camels, +2 vs buildings.
+  if ((CAMEL_LINE.has(unitType) || SCOUT_LINE.has(unitType)) && teamHasCivilization(teams, civilizations, owner, 'Indians')) {
+    bonus += 2;
   }
   return bonus;
 }

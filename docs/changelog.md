@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.144
+
+- Civilization bonuses sourced against current DE, round one — roughly thirty corrections. Highlights: Huns cavalry archers now cost -10/20% (was -25/30%), Teuton farms -40%, Turkish gold miners +25%, Aztecs open with +50 gold and carry +3 (free Loom retired), Chinese Town Centers hold +15 population, Hindustanis lose the fisherman bonus and gain the -8/13/18/23% villagers, Vikings price warships by age, Saracen camels gain +25% HP, and Teuton garrison becomes DE's flat +10 TC / +5 towers. Team bonuses split per civ: Britons +10%, Turks +25%, Celts' siege workshops join, Spanish trade +25%, Byzantine healing +100%, Viking docks -15%, Magyar mounted archers train +25% faster, Korean villager sight is now shared with allies, and Chinese team farms hold +10% food.
+
 ## 0.3.143
 
 - Doorways now follow the civilization's architecture: stepped arches with stone jambs in middle-eastern towns, timber frames in central Europe, broad lintels in east Asia, pale stone surrounds on the Mediterranean, and trapezoid doorways in mesoamerica — on Town Centers, houses, mills, military halls, and gates. Western European keeps its classic look, pixel for pixel.

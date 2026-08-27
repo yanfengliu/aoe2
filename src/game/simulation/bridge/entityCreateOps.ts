@@ -5,7 +5,7 @@
 // implementation byte-for-byte; the only change is the dependency
 // surface is explicit instead of closure-captured.
 
-import { CHINESE_TEAM_FARM_FOOD_BONUS, teamHasCivilization } from '../teamBonuses';
+import { CHINESE_TEAM_FARM_FOOD_MULTIPLIER, teamHasCivilization } from '../teamBonuses';
 import { slavsTeamMilitaryPop } from './teamPopulation';
 import { isMonasticUnit } from '../monasticUnits';
 import { civBuildingHpMultiplier, civPopulationProvidedBonus } from '../civBonusEffects';
@@ -280,14 +280,14 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       // capacity, DERIVED from the OWNER's persisted researched-tech set — a
       // farm built by a player who has the techs holds the upgraded food; a
       // default owner (no farm techs) holds the base FARM_FOOD_AMOUNT (175).
-      const farmCapacity = farmFoodCapacity(
+      const farmCapacity = Math.round(farmFoodCapacity(
         accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECH_SET,
-      ) + (teamHasCivilization(
+      ) * (teamHasCivilization(
         accessor.get(playerTeamsCodec),
         accessor.get(playerCivilizationsCodec),
         owner,
         'Chinese',
-      ) ? CHINESE_TEAM_FARM_FOOD_BONUS : 0);
+      ) ? CHINESE_TEAM_FARM_FOOD_MULTIPLIER : 1));
       world.addComponent(buildingId, 'resource', {
         resourceType: 'farm',
         amount: farmCapacity,

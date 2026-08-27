@@ -29,9 +29,12 @@ describe('gather-rate bonuses', () => {
   it('speeds the right workers for the right civs and nobody else', () => {
     expect(civGatherRateMultiplier('Celts', 'tree')).toBeCloseTo(1.15, 5);
     expect(civGatherRateMultiplier('Koreans', 'stone-mine')).toBeCloseTo(1.2, 5);
-    expect(civGatherRateMultiplier('Turks', 'gold-mine')).toBeCloseTo(1.15, 5);
+    expect(civGatherRateMultiplier('Turks', 'gold-mine')).toBeCloseTo(1.25, 5); // DE: +25%.
     expect(civGatherRateMultiplier('Slavs', 'farm')).toBeCloseTo(1.15, 5);
-    expect(civGatherRateMultiplier('Indians', 'fish')).toBeCloseTo(1.15, 5);
+    // The Hindustani fisherman bonus is DE-dead (sourced v0.3.144); the
+    // Malian gold drop-off rides the same seam.
+    expect(civGatherRateMultiplier('Indians', 'fish')).toBe(1);
+    expect(civGatherRateMultiplier('Malians', 'gold-mine')).toBeCloseTo(1.1, 5);
     // The originals hold, and a civ without the bonus reads 1.
     expect(civGatherRateMultiplier('Britons', 'sheep')).toBeCloseTo(1.25, 5);
     expect(civGatherRateMultiplier('Celts', 'gold-mine')).toBe(1);
@@ -41,7 +44,8 @@ describe('gather-rate bonuses', () => {
 
 describe('unit-HP bonuses', () => {
   it('multiplies the named lines', () => {
-    expect(civUnitHpMultiplier('Chinese', 'demolition-ship')).toBeCloseTo(1.5, 5);
+    expect(civUnitHpMultiplier('Chinese', 'demolition-ship')).toBe(1); // DE-dead.
+    expect(civUnitHpMultiplier('Saracens', 'camel')).toBeCloseTo(1.25, 5); // DE: camels +25%.
     expect(civUnitHpMultiplier('Japanese', 'fishing-ship')).toBeCloseTo(2, 5);
     expect(civUnitHpMultiplier('Saracens', 'transport-ship')).toBeCloseTo(2, 5);
     expect(civUnitHpMultiplier('Turks', 'hand-cannoneer')).toBeCloseTo(1.25, 5);
@@ -55,9 +59,9 @@ describe('unit-HP bonuses', () => {
 });
 
 describe('anti-building bonuses', () => {
-  it('adds Saracen cavalry-archer siege alongside the Goth infantry bonus', () => {
-    expect(civBuildingAttackBonus('Saracens', 'cavalry-archer')).toBe(4);
-    expect(civBuildingAttackBonus('Saracens', 'heavy-cavalry-archer')).toBe(4);
+  it('drops the DE-dead Saracen cavalry-archer siege; the Goth infantry bonus stays', () => {
+    expect(civBuildingAttackBonus('Saracens', 'cavalry-archer')).toBe(0);
+    expect(civBuildingAttackBonus('Saracens', 'heavy-cavalry-archer')).toBe(0);
     expect(civBuildingAttackBonus('Goths', 'militia')).toBe(1);
     expect(civBuildingAttackBonus('Saracens', 'knight')).toBe(0);
   });
@@ -69,7 +73,9 @@ describe('speed bonuses', () => {
     expect(civSpeedMultiplier('Celts', 'champion')).toBeCloseTo(1.15, 5);
     expect(civSpeedMultiplier('Berbers', 'villager')).toBeCloseTo(1.1, 5);
     expect(civSpeedMultiplier('Berbers', 'galley')).toBeCloseTo(1.1, 5);
-    expect(civSpeedMultiplier('Ethiopians', 'archer')).toBeCloseTo(1.15, 5);
+    // The Ethiopian archer bonus is ATTACK speed in DE, not movement — the
+    // move-speed reading was a transcription error (sourced v0.3.144).
+    expect(civSpeedMultiplier('Ethiopians', 'archer')).toBe(1);
     expect(civSpeedMultiplier('Celts', 'archer')).toBe(1);
     expect(civSpeedMultiplier(undefined, 'militia')).toBe(1);
   });
@@ -79,8 +85,9 @@ describe('cost bonuses', () => {
   it('scales Byzantine trash, Berber stables, and Magyar scouts', () => {
     expect(effectiveTrainingCost('Byzantines', 'feudal-age', 'spearman', NONE))
       .toEqual({ food: 26, wood: 19 });
+    // Berbers (sourced v0.3.144): stable units -15% in Castle Age.
     expect(effectiveTrainingCost('Berbers', 'castle-age', 'knight', NONE))
-      .toEqual({ food: 48, gold: 60 });
+      .toEqual({ food: 51, gold: 64 });
     // Not yet in Castle Age: full price at the stable.
     expect(effectiveTrainingCost('Berbers', 'feudal-age', 'knight', NONE))
       .toEqual({ food: 60, gold: 75 });
@@ -89,11 +96,11 @@ describe('cost bonuses', () => {
   });
 
   it('scales by age where the CSV scales by age', () => {
-    // Huns cavalry archers: -25% Castle, -30% Imperial.
+    // Huns cavalry archers (sourced v0.3.144): -10% Castle, -20% Imperial.
     expect(effectiveTrainingCost('Huns', 'castle-age', 'cavalry-archer', NONE))
-      .toEqual({ wood: 30, gold: 53 });
+      .toEqual({ wood: 36, gold: 63 });
     expect(effectiveTrainingCost('Huns', 'imperial-age', 'cavalry-archer', NONE))
-      .toEqual({ wood: 28, gold: 49 });
+      .toEqual({ wood: 32, gold: 56 });
     // Mayans archers: -10/-20/-30 by age.
     expect(effectiveTrainingCost('Mayans', 'feudal-age', 'archer', NONE))
       .toEqual({ wood: 23, gold: 41 });
@@ -101,25 +108,27 @@ describe('cost bonuses', () => {
     // deterministic, and the figure the game actually charges.
     expect(effectiveTrainingCost('Mayans', 'imperial-age', 'archer', NONE))
       .toEqual({ wood: 18, gold: 31 });
-    // Indians villagers: -10/-15/-20/-25 by age.
+    // Hindustani villagers (sourced v0.3.144): -8/13/18/23% by age.
     expect(effectiveTrainingCost('Indians', 'dark-age', 'villager', NONE))
-      .toEqual({ food: 45 });
+      .toEqual({ food: 46 });
     expect(effectiveTrainingCost('Indians', 'imperial-age', 'villager', NONE))
-      .toEqual({ food: 38 });
+      .toEqual({ food: 39 });
   });
 
   it('discounts the Portuguese gold component and Viking warships', () => {
-    // Portuguese: every unit costs -15% GOLD — the other components hold.
+    // Portuguese (sourced v0.3.144): every unit costs -20% GOLD.
     expect(effectiveTrainingCost('Portuguese', 'castle-age', 'knight', NONE))
-      .toEqual({ food: 60, gold: 64 });
-    // Vikings: warships -20%; a transport is not a warship.
+      .toEqual({ food: 60, gold: 60 });
+    // Vikings (sourced v0.3.144): warships -10/15/20% by age.
     expect(effectiveTrainingCost('Vikings', 'feudal-age', 'galley', NONE))
+      .toEqual({ wood: 81, gold: 27 });
+    expect(effectiveTrainingCost('Vikings', 'imperial-age', 'galley', NONE))
       .toEqual({ wood: 72, gold: 24 });
     expect(effectiveTrainingCost('Vikings', 'feudal-age', 'transport-ship', NONE))
       .toEqual({ wood: 125 });
-    // Italians: gunpowder -25%, fishing ships -15 wood flat.
+    // Italians (sourced v0.3.144): gunpowder -20%, fishing ships -15 wood.
     expect(effectiveTrainingCost('Italians', 'imperial-age', 'hand-cannoneer', NONE))
-      .toEqual({ food: 34, gold: 38 });
+      .toEqual({ food: 36, gold: 40 });
     expect(effectiveTrainingCost('Italians', 'dark-age', 'fishing-ship', NONE))
       .toEqual({ wood: 60 });
   });
@@ -155,8 +164,8 @@ describe('opening bonuses in a real match', () => {
     );
     expect(villagers).toHaveLength(6);
     expect(bridge.getEconomyState().playerResources[1]).toMatchObject({ food: 0, wood: 150 });
-    // Their Town Center shelters ten: base cap 5 becomes 10.
-    expect(bridge.getPopulationState(1).cap).toBe(10);
+    // DE: Town Centers provide +15 population space — base cap 5 becomes 20.
+    expect(bridge.getPopulationState(1).cap).toBe(20);
   });
 
   it('opens the Persians richer and the Huns short of wood', async () => {
@@ -179,10 +188,10 @@ describe('opening bonuses in a real match', () => {
     expect(sheep.length).toBe(plainSheep.length + 1);
   });
 
-  it('lets Aztec villagers carry five more', async () => {
+  it('lets Aztec villagers carry three more (sourced v0.3.144)', async () => {
     const { civCarryBonus } = await import('../../src/game/simulation/civBonusEffects');
-    expect(civCarryBonus('Aztecs', 'berry-bush')).toBe(5);
-    expect(civCarryBonus('Aztecs', 'tree')).toBe(5);
+    expect(civCarryBonus('Aztecs', 'berry-bush')).toBe(3);
+    expect(civCarryBonus('Aztecs', 'tree')).toBe(3);
     expect(civCarryBonus('Goths', 'boar')).toBe(15);
     expect(civCarryBonus('Goths', 'tree')).toBe(0);
     expect(civCarryBonus('Britons', 'tree')).toBe(0);
@@ -199,7 +208,7 @@ describe('building bonuses', () => {
     expect(effectiveConstructionCost('Japanese', 'mill').wood)
       .toBe(Math.round((constructionCost('mill').wood ?? 0) * 0.5));
     expect(effectiveConstructionCost('Teutons', 'farm').wood)
-      .toBe(Math.round((constructionCost('farm').wood ?? 0) * 0.67));
+      .toBe(Math.round((constructionCost('farm').wood ?? 0) * 0.6)); // DE: -40%.
     expect(effectiveConstructionCost('Malians', 'barracks').wood)
       .toBe(Math.round((constructionCost('barracks').wood ?? 0) * 0.85));
     expect(effectiveConstructionCost('Incas', 'castle').stone)

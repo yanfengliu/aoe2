@@ -12,7 +12,7 @@
 // Extracted into its own module so villagerEconomySystem.ts stays under the
 // 500-LOC file ceiling.
 
-import { CHINESE_TEAM_FARM_FOOD_BONUS, teamHasCivilization } from '../teamBonuses';
+import { CHINESE_TEAM_FARM_FOOD_MULTIPLIER, teamHasCivilization } from '../teamBonuses';
 import { ownerConstructionCost } from './ownerCosts';
 import type { BuildingComponent, ResourceComponent } from '../types';
 import type { GameWorld } from './pureHelpers';
@@ -61,14 +61,14 @@ export function tryReseedFarm(
   // maintained farm reseeds to its UPGRADED cap (e.g. 250/375/550) once the
   // owner has the techs. maxAmount is widened (never lowered) so amount never
   // exceeds max even if a fixture seeded a higher max.
-  const capacity = farmFoodCapacity(
+  const capacity = Math.round(farmFoodCapacity(
     accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECH_SET,
-  ) + (teamHasCivilization(
+  ) * (teamHasCivilization(
     accessor.get(playerTeamsCodec),
     accessor.get(playerCivilizationsCodec),
     owner,
     'Chinese',
-  ) ? CHINESE_TEAM_FARM_FOOD_BONUS : 0);
+  ) ? CHINESE_TEAM_FARM_FOOD_MULTIPLIER : 1));
   resource.maxAmount = Math.max(resource.maxAmount, capacity);
   resource.amount = resource.maxAmount;
   return true;
