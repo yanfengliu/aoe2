@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.154
+
+- Stone walls crest in their civilization's style: pointed caps in middle-eastern towns, tall teeth in central Europe, a layered ridge in east Asia, wide low merlons on the Mediterranean, and a stepped band in mesoamerica. Western walls are untouched, pixel for pixel — and this closes the per-civilization architecture family.
+
 ## 0.3.153
 
 - Japanese cavalry archers gain +2 attack against ranged soldiers (skirmishers excepted) — the audit's final combat line.

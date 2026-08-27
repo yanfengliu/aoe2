@@ -1,7 +1,7 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
 import { buildingRole } from '../roles/buildingRole';
 import { construction, createBuildingDetailParts, damageFlames, monasteryFinial, townCenterCrown } from './aoeVoxelBuildingDetails';
-import { architectureDoorBoxes, architectureRoofGeometry, architectureRoofTint, architectureWallTint } from './aoeVoxelArchitecture';
+import { architectureDoorBoxes, architectureMerlonBoxes, architectureRoofGeometry, architectureRoofTint, architectureWallTint } from './aoeVoxelArchitecture';
 import {
   contactShadow,
   makePart,
@@ -412,9 +412,8 @@ function wall(context: BuildingContext): void {
     return;
   }
   add(context, 'wall-base', 'matte', VOXEL_COLORS.stone, 0.5, 0, 0.5, 0.92, 0.76, 0.5);
-  for (let index = 0; index < 5; index += 1) {
-    add(context, `wall-merlon-${String(index)}`, 'matte', VOXEL_COLORS.stoneLight, 0.1 + index * 0.2, 0.76, 0.5, 0.12, 0.3, 0.58);
-  }
+  // Per-set merlon forms (v0.3.154): the set shapes the wall's crest.
+  for (const [sfx, tint, ...box] of architectureMerlonBoxes(context.architecture, VOXEL_COLORS.stoneLight, VOXEL_COLORS.stoneDark)) add(context, `wall-${sfx}`, 'matte', tint, ...box);
   add(context, 'wall-team-shield', 'matte', context.team, 0.5, 0.34, 0.77, 0.18, 0.28, 0.035);
 }
 

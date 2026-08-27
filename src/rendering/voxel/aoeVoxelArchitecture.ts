@@ -126,3 +126,51 @@ export function architectureDoorBoxes(
   }
   return boxes;
 }
+
+/** Per-set WALL MERLON forms (v0.3.154) — the last named remainder of the
+ *  architecture-set family. Same pure-data contract as the door forms: each
+ *  entry is [suffix, tint, xF, bottom, zF, wF, h, dF], every box inside the
+ *  wall's own footprint. The west keeps the classic five square merlons. */
+export function architectureMerlonBoxes(
+  architecture: ArchitectureStyle | undefined,
+  stoneLight: number,
+  stoneDark: number,
+): DoorBox[] {
+  const set = architecture ?? 'western-european';
+  const boxes: DoorBox[] = [];
+  if (set === 'middle-eastern') {
+    // Narrow pointed merlons: slim base, slimmer cap.
+    for (let index = 0; index < 5; index += 1) {
+      const x = 0.1 + index * 0.2;
+      boxes.push([`merlon-${index}`, stoneLight, x, 0.76, 0.5, 0.1, 0.22, 0.5]);
+      boxes.push([`merlon-cap-${index}`, stoneLight, x, 0.98, 0.5, 0.05, 0.12, 0.4]);
+    }
+  } else if (set === 'central-european') {
+    // Tall narrow teeth.
+    for (let index = 0; index < 5; index += 1) {
+      boxes.push([`merlon-${index}`, stoneLight, 0.1 + index * 0.2, 0.76, 0.5, 0.09, 0.4, 0.5]);
+    }
+  } else if (set === 'east-asian') {
+    // A continuous low cap ridge with thin posts under it — the layered read.
+    boxes.push(['merlon-ridge', stoneDark, 0.5, 0.98, 0.5, 0.96, 0.1, 0.62]);
+    for (let index = 0; index < 4; index += 1) {
+      boxes.push([`merlon-post-${index}`, stoneLight, 0.16 + index * 0.22, 0.76, 0.5, 0.08, 0.22, 0.5]);
+    }
+  } else if (set === 'mediterranean') {
+    // Three wide, low merlons.
+    for (let index = 0; index < 3; index += 1) {
+      boxes.push([`merlon-${index}`, stoneLight, 0.18 + index * 0.32, 0.76, 0.5, 0.2, 0.22, 0.56]);
+    }
+  } else if (set === 'mesoamerican') {
+    // Stepped crest: wide base band, inset top steps.
+    boxes.push(['merlon-band', stoneLight, 0.5, 0.76, 0.5, 0.92, 0.14, 0.56]);
+    for (let index = 0; index < 3; index += 1) {
+      boxes.push([`merlon-step-${index}`, stoneLight, 0.18 + index * 0.32, 0.9, 0.5, 0.16, 0.16, 0.48]);
+    }
+  } else {
+    for (let index = 0; index < 5; index += 1) {
+      boxes.push([`merlon-${index}`, stoneLight, 0.1 + index * 0.2, 0.76, 0.5, 0.12, 0.3, 0.58]);
+    }
+  }
+  return boxes;
+}
