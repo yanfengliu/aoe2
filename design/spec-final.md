@@ -951,7 +951,7 @@ Required interaction model:
 - double-click same-type on-screen select
 - control groups
 - shift-queued orders
-- DE muscle-memory hotkeys (v0.3.155): `H` selects the Town Center and centres (round-robin over multiple TCs), `,` cycles idle MILITARY (the '.' villager bell's companion, same round-robin over the human's non-economy units with no command/task/shelter), `F3` toggles the same manual pause the game menu preserves, and `+`/`-` step the in-match game speed through the §4.5 ladder (1.0/1.5/2.0). Arrow keys and WASD pan the camera continuously and pointer edge-scroll pans after a short hover delay (both pre-existing); wheel zooms; middle-drag pans; the minimap clicks to pan.
+- DE muscle-memory hotkeys (v0.3.155): `H` selects the Town Center and centres (round-robin over multiple TCs), `,` cycles idle MILITARY (the '.' villager bell's companion, same round-robin over the human's non-economy units with no command/task/shelter), `F3` toggles the same manual pause the game menu preserves, `+`/`-` step the in-match game speed through the §4.5 ladder (1.0/1.5/2.0), and `Space` (v0.3.156) jumps the camera to the last town-under-attack event — the horn's companion, remembered by the audio controller's own home-hit detection; in replay mode Space stays the replay play/pause toggle (the boot binding arbitrates, since the registry is first-match). Arrow keys and WASD pan the camera continuously and pointer edge-scroll pans after a short hover delay (both pre-existing); wheel zooms; middle-drag pans; the minimap clicks to pan.
 - idle villager selection
 - select all military or select all idle military conveniences
 

@@ -57,6 +57,8 @@ export interface GameAudioControllerDeps {
 }
 
 export interface GameAudioController {
+  /** Space (v0.3.156): where the last town-under-attack landed. */
+  getLastHomeAttackPosition(): { x: number; y: number } | null;
   poll(): void;
   isMuted(): boolean;
   setMuted(muted: boolean): void;
@@ -83,6 +85,7 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
   let knownBellRings: number | null = null;
   let knownOrderAcks: number | null = null;
   let knownSelectionId: number | null = null;
+  let lastHomeAttack: { x: number; y: number } | null = null;
 
   function cue(name: GameAudioCue): void {
     if (!muted) playCue(name);
@@ -102,6 +105,13 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
     );
     if (!hitsHome) return;
     lastHornTick = tick;
+    // Space's jump target (v0.3.156): the freshest home-hit's cell.
+    const hit = fresh.find((attack) =>
+      town.some((entity) =>
+        Math.abs(entity.x - attack.targetX) <= 1 && Math.abs(entity.y - attack.targetY) <= 1,
+      ),
+    );
+    if (hit) lastHomeAttack = { x: hit.targetX, y: hit.targetY };
     cue('town-under-attack');
   }
 
@@ -189,6 +199,7 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
   }
 
   return {
+    getLastHomeAttackPosition: () => lastHomeAttack,
     poll(): void {
       pollHorn();
       pollAge();

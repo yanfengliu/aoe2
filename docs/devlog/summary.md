@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-27 v0.3.156 feel-loop iter 2: Space = jump-to-last-home-attack (audio controller records the home-hit cell its horn already detects; replay-mode arbitration mirrors Esc since the registry is first-match) + setup preselects Normal speed.
 - 2026-08-27 v0.3.155 feel-loop iteration 1: DE hotkeys H/,/F3/+- (idleMilitaryOps bridge twin; pause via pauseControl toggle; view.adjustSpeed ladder) — 4 real-key browser tests; found arrows/WASD/edge-scroll/minimap-pan already existed; live comma test needed an out-of-sight fixture (auto-aggro empties the idle cycle where soldiers spawn in view).
 - 2026-08-27 v0.3.154 per-set wall merlons (pure architectureMerlonBoxes; west identity) — the architecture-set family CLOSES; fortress-map visual sweep on Saracens/Aztecs clean.
 - 2026-08-27 v0.3.153 Japanese CA +2 vs ranged (except skirms; civ-side clause in the anti-class thread) — the sourced bonus audit's modelable remainder is now CLOSED; open D-class (Feitoria/Caravanserai/herdables/dynamic monk HP) recorded in the audit trail.

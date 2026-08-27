@@ -81,6 +81,19 @@ describe('the attack horn', () => {
     harness.controller.poll();
     expect(harness.played).toEqual([]);
   });
+
+  it("remembers WHERE the last home hit landed, for Space's camera jump (v0.3.156)", () => {
+    expect(harness.controller.getLastHomeAttackPosition()).toBeNull();
+    harness.state.attacks = [{ tick: 1, targetX: 10, targetY: 10 }];
+    harness.state.tick = 1;
+    harness.controller.poll();
+    expect(harness.controller.getLastHomeAttackPosition()).toEqual({ x: 10, y: 10 });
+    // A miss elsewhere does not move the marker.
+    harness.state.attacks = [{ tick: 600, targetX: 30, targetY: 30 }];
+    harness.state.tick = 600;
+    harness.controller.poll();
+    expect(harness.controller.getLastHomeAttackPosition()).toEqual({ x: 10, y: 10 });
+  });
 });
 
 describe('the age-up fanfare and the match stings', () => {

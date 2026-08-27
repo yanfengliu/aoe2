@@ -428,6 +428,20 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   // Numpad +/- (v0.3.155): in-match game speed through the §4.5 ladder.
   hotkeyRegistry.register({ key: '+' }, () => { view.adjustSpeed(1); });
   hotkeyRegistry.register({ key: '-' }, () => { view.adjustSpeed(-1); });
+  // Space (v0.3.156): jump the camera to the last town-under-attack event —
+  // DE's answer to hearing the horn while looking elsewhere. The registry is
+  // first-match and this boot-time binding precedes ReplayHotkeys' dynamic
+  // one, so it arbitrates like Esc does: in replay mode Space stays the
+  // replay play/pause toggle.
+  hotkeyRegistry.register({ key: ' ' }, () => {
+    if (replayController.mode === 'replay') {
+      if (replayController.isPlaying()) replayController.pause();
+      else replayController.play();
+      return;
+    }
+    const hit = gameAudio.getLastHomeAttackPosition();
+    if (hit) view.centerCameraOnWorldPosition(hit.x + 0.5, hit.y + 0.5);
+  });
   // v0.1.95: Esc toggles the in-game menu (the ☰ button toggles it too). The
   // HotkeyRegistry already suppresses keys while a text input is focused. Esc
   // has prior claimants: in replay mode it EXITS replay, and while a modal

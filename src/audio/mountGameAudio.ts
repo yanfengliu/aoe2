@@ -13,6 +13,7 @@ import { unitRole } from '../rendering/roles/unitRole';
 import type { UnitType } from '../game/simulation/types';
 
 export interface MountedGameAudio {
+  getLastHomeAttackPosition(): { x: number; y: number } | null;
   dispose(): void;
 }
 
@@ -129,6 +130,7 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
   rafHandle = requestAnimationFrame(loop);
 
   return {
+    getLastHomeAttackPosition: () => controller.getLastHomeAttackPosition(),
     dispose(): void {
       if (rafHandle !== null) cancelAnimationFrame(rafHandle);
       window.removeEventListener('pointerdown', unlock);

@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.156
+
+- Press Space after the attack horn sounds and the camera jumps to where your town is being hit; the setup screen now starts on Normal speed like DE.
+
 ## 0.3.155
 
 - The DE muscle-memory keys arrive: H selects your Town Center (cycling if you have several), comma cycles idle military the way period cycles idle villagers, F3 pauses, and +/- change game speed mid-match through the 1.0/1.5/2.0 ladder.
