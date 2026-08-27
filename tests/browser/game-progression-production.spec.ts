@@ -240,7 +240,7 @@ test.describe('browser gameplay smoke tests - production', () => {
     );
     expect(playerScouts).toHaveLength(1);
     expect(playerScouts[0]).toMatchObject({
-      attackDamage: 3,
+      attackDamage: 5, // scout from Feudal on (v0.3.136 hidden buff)
       attackRange: 1,
     });
   });
