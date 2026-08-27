@@ -57,7 +57,7 @@ export const TRAINABLE_UNITS_BY_BUILDING = new Map<BuildingType, readonly Traina
 
 export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly ResearchableTechnologyType[]>([
   ['town-center', ['feudal-age', 'castle-age', 'imperial-age', 'wheelbarrow', 'hand-cart', 'loom', 'town-watch', 'town-patrol']],
-  ['blacksmith', ['fletching', 'bracer', 'blast-furnace', 'plate-mail-armor', 'plate-barding', 'forging', 'scale-mail-armor', 'scale-barding-armor', 'padded-archer-armor', 'iron-casting', 'chain-mail-armor', 'chain-barding-armor', 'leather-archer-armor', 'bodkin-arrow', 'ring-archer-armor', 'chemistry']],
+  ['blacksmith', ['fletching', 'bracer', 'blast-furnace', 'plate-mail-armor', 'plate-barding', 'forging', 'scale-mail-armor', 'scale-barding-armor', 'padded-archer-armor', 'iron-casting', 'chain-mail-armor', 'chain-barding-armor', 'leather-archer-armor', 'bodkin-arrow', 'ring-archer-armor']],
   // 'elite-longboat-upgrade' / 'elite-turtle-ship-upgrade': the two unique
   // ships are trained at the DOCK, so their elite upgrades are researched
   // there too (spec 9.2.1). The civ gate lives in the option list, which the
@@ -129,5 +129,7 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
     'murder-holes',
     'bombard-tower-unlock', 'fortified-wall',
     // v0.3.131: the tower upgrades research here, as technologies.csv says.
-    'guard-tower', 'keep', 'siege-engineers']],
+    'guard-tower', 'keep', 'siege-engineers',
+    // v0.3.133: Chemistry is a University tech (technologies.csv row 100).
+    'chemistry']],
 ]);

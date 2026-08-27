@@ -44,6 +44,8 @@ export function createBlacksmithProgressionFixture(seed: string): PrototypeScena
       ownedSpawn('barracks', 1, 16, 6),
       ownedSpawn('stable', 1, 20, 6),
       ownedSpawn('siege-workshop', 1, 24, 6),
+      // v0.3.133: Chemistry researches at the University now.
+      ownedSpawn('university', 1, 28, 6),
       ownedSpawn('archer', 1, 10, 13, { vision: 5 }),
       ownedSpawn('militia', 1, 12, 13, { vision: 3 }),
       ownedSpawn('spearman', 1, 14, 13, { vision: 3 }),

@@ -112,13 +112,14 @@ describe('prototype building rules', () => {
     expect(buildingBuildTimeTicks('castle')).toBe(560);
     expect(canTrainAt('castle', 'trebuchet')).toBe(true);
     expect(canTrainAt('town-center', 'trebuchet')).toBe(false);
-    expect(canResearchAt('blacksmith', 'chemistry')).toBe(true);
+    expect(canResearchAt('university', 'chemistry')).toBe(true);
+    expect(canResearchAt('blacksmith', 'chemistry')).toBe(false);
     expect(canResearchAt('stable', 'chemistry')).toBe(false);
   });
 
   it('exposes reverse research lookup + age-up prerequisite tables (agent-affordances A1)', () => {
     expect(buildingsThatResearch('feudal-age')).toEqual(['town-center']);
-    expect(buildingsThatResearch('chemistry')).toEqual(['blacksmith']);
+    expect(buildingsThatResearch('chemistry')).toEqual(['university']);
     expect(agePrerequisiteBuildingTypes('feudal-age')).toEqual([
       'mill',
       'lumber-camp',

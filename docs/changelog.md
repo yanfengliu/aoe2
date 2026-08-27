@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.133
+
+- Chemistry researches at the University, completing the sweep that puts every technology at its AoE2 building — now enforced by a permanent test against the stats sheet.
+
 ## 0.3.132
 
 - Sappers corrected to the stats sheet: it now boosts VILLAGERS (+15 vs buildings) and researches at the Castle.

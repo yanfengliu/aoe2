@@ -280,6 +280,10 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
       if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'siege-engineers')) {
         universityOptions.push('siege-engineers');
       }
+      // Chemistry (v0.3.133): Imperial University research, as the CSV says.
+      if (isAtLeastAge(owner, 'imperial-age') && !hasTechnology(owner, 'chemistry')) {
+        universityOptions.push('chemistry');
+      }
       return universityOptions;
     }
 

@@ -340,8 +340,8 @@ describe('Chemistry gates Bombard Cannon training', () => {
     expect(selectOwnedBuildingDirect(bridge, 1, 'siege-workshop')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).not.toContain('bombard-cannon');
 
-    // Research Chemistry at the Blacksmith.
-    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
+    // Research Chemistry at the University (v0.3.133, per technologies.csv).
+    expect(selectOwnedBuildingDirect(bridge, 1, 'university')).toBe(true);
     expect(bridge.queueResearch('chemistry')).toBe(true);
     expect(
       stepBridgeUntil(
@@ -363,7 +363,7 @@ describe('Chemistry grants +1 attack to archer-line units', () => {
   it('bumps Archer attack from 4 to 5 after Chemistry completes', () => {
     const bridge = createSimulationBridge('blacksmith-progression-fixture');
 
-    expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
+    expect(selectOwnedBuildingDirect(bridge, 1, 'university')).toBe(true);
     expect(bridge.queueResearch('chemistry')).toBe(true);
     expect(
       stepBridgeUntil(

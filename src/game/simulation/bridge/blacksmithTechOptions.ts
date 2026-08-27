@@ -67,10 +67,8 @@ export function blacksmithResearchOptions(
     if (!hasTechnology(owner, 'ring-archer-armor')) {
       options.push('ring-archer-armor');
     }
-    if (!hasTechnology(owner, 'chemistry')) {
-      options.push('chemistry');
-    }
-    // Sappers: +15 infantry attack vs buildings (AoE2 University; hosted at the Blacksmith here); Imperial, drops once researched.
+    // Chemistry moved to the University (v0.3.133) and Sappers to the
+    // Castle (v0.3.132), where technologies.csv hosts them.
   }
   return options;
 }
