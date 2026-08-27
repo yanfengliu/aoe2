@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.155
+
+- The DE muscle-memory keys arrive: H selects your Town Center (cycling if you have several), comma cycles idle military the way period cycles idle villagers, F3 pauses, and +/- change game speed mid-match through the 1.0/1.5/2.0 ladder.
+
 ## 0.3.154
 
 - Stone walls crest in their civilization's style: pointed caps in middle-eastern towns, tall teeth in central Europe, a layered ridge in east Asia, wide low merlons on the Mediterranean, and a stepped band in mesoamerica. Western walls are untouched, pixel for pixel — and this closes the per-civilization architecture family.

@@ -83,6 +83,8 @@ export function createSimulationBridge(
     getEconomyState,
     getPopulationState,
     countIdleVillagers,
+    countIdleMilitary,
+    selectNextIdleMilitary,
     selectNextIdleVillager,
     assignControlGroup,
     recallControlGroup,
@@ -239,6 +241,8 @@ export function createSimulationBridge(
   return {
     getMapSize: () => ({ width: world.grid.width, height: world.grid.height }),
     countIdleVillagers,
+    countIdleMilitary,
+    selectNextIdleMilitary,
     selectNextIdleVillager,
     assignControlGroup,
     recallControlGroup,

@@ -64,6 +64,8 @@ export interface SimulationBridge {
   /** The idle villager bell (v0.3.103): the standing-around count, and the
    *  round-robin next-selection AoE2 binds to '.'. */
   countIdleVillagers(): number;
+  countIdleMilitary(): number;
+  selectNextIdleMilitary(): boolean;
   selectNextIdleVillager(): boolean;
   /** Control groups (v0.3.104): Ctrl+digit binds, digit recalls survivors. */
   assignControlGroup(digit: number): boolean;

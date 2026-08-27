@@ -70,7 +70,7 @@ export class AoeVoxelGameView {
   private currentFrameTimeMs = 0;
   private booted = false;
   private disposed = false;
-  private readonly simulationSpeedMultiplier: number;
+  private simulationSpeedMultiplier: number;
 
   constructor(options: AoeVoxelGameViewOptions) {
     this.simulationSpeedMultiplier = options.simulationSpeedMultiplier ?? 1;
@@ -262,6 +262,13 @@ export class AoeVoxelGameView {
   private readonly groundOrder = new ArmedGroundOrder();
 
   /** Arm a ground order; the next left click spends it (A/P/G hotkeys). */
+  /** In-match speed (v0.3.155): DE's numpad +/- ladder (1 / 1.5 / 2). */
+  adjustSpeed(direction: 1 | -1): number {
+    const ladder = [1, 1.5, 2];
+    const index = Math.max(0, ladder.findIndex((step) => Math.abs(step - this.simulationSpeedMultiplier) < 0.01));
+    this.simulationSpeedMultiplier = ladder[Math.min(ladder.length - 1, Math.max(0, index + direction))]!;
+    return this.simulationSpeedMultiplier;
+  }
   armAttackMove(): void { this.groundOrder.arm('attack-move'); }
   armPatrol(): void { this.groundOrder.arm('patrol'); }
   armAttackGround(): void { this.groundOrder.arm('attack-ground'); }

@@ -137,6 +137,8 @@ export interface RegisterBridgeSystemsDeps {
 
 export interface RegisterBridgeSystemsResult {
   countIdleVillagers: () => number;
+  countIdleMilitary: () => number;
+  selectNextIdleMilitary: () => boolean;
   selectNextIdleVillager: () => boolean;
   saveGame: CreateWorldResult['saveGame'];
   getEconomyState: CreateWorldResult['getEconomyState'];
@@ -318,6 +320,8 @@ export function registerBridgeSystems(
     issueContextCommand,
     issueContextCommandAtEntityInternal,
     countIdleVillagers,
+    countIdleMilitary,
+    selectNextIdleMilitary,
     selectNextIdleVillager,
     queueTrainUnit,
     queueResearch,
@@ -394,6 +398,8 @@ export function registerBridgeSystems(
     issueContextCommand,
     issueContextCommandAtEntity: issueContextCommandAtEntityInternal,
     countIdleVillagers,
+    countIdleMilitary,
+    selectNextIdleMilitary,
     selectNextIdleVillager,
     queueTrainUnit,
     queueResearch,

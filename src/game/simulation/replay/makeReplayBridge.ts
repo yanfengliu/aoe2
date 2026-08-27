@@ -205,6 +205,8 @@ export function makeReplayBridge(
       return api.getEconomyState();
     },
     countIdleVillagers: () => 0,
+    countIdleMilitary: () => 0,
+    selectNextIdleMilitary: () => false,
     selectNextIdleVillager: () => false,
     assignControlGroup: () => false,
     recallControlGroup: () => false,

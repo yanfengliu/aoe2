@@ -21,6 +21,7 @@ import { clamp, type GameWorld } from './pureHelpers';
 import { resourcesMissing, trainingCost } from '../prototypeEconomyRules';
 import { effectiveResearchCost } from '../civBonusEffects';
 import { createIdleVillagerOps } from './idleVillagerOps';
+import { createIdleMilitaryOps } from './idleMilitaryOps';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { removePendingUnitCommands } from './pendingCommandQuery';
 import { constructionStatesCodec, playerAgesCodec, playerCivilizationsCodec, playerResourcesCodec } from './bridgeStateSerialize';
@@ -63,6 +64,7 @@ export interface HumanInputOpsDeps {
 export interface HumanInputOps {
   countIdleVillagers(): number;
   selectNextIdleVillager(): boolean;
+  countIdleMilitary(): number; selectNextIdleMilitary(): boolean;
   issueMoveCommand(x: number, y: number, options?: { queue?: boolean }): boolean;
   issueContextCommand(x: number, y: number, garrison?: boolean): boolean;
   issueContextCommandAtEntityInternal(entityId: number, garrison?: boolean, forceAttack?: boolean, queue?: boolean): boolean;
@@ -473,13 +475,15 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     return true;
   }
 
-  const { countIdleVillagers, selectNextIdleVillager } = createIdleVillagerOps({
-    world, accessor, humanPlayerId, isGarrisonedUnit, selectUnitsByIds,
-  });
+  const idleDeps = { world, accessor, humanPlayerId, isGarrisonedUnit, selectUnitsByIds };
+  const { countIdleVillagers, selectNextIdleVillager } = createIdleVillagerOps(idleDeps);
+  const { countIdleMilitary, selectNextIdleMilitary } = createIdleMilitaryOps(idleDeps);
 
   return {
     countIdleVillagers,
     selectNextIdleVillager,
+    countIdleMilitary,
+    selectNextIdleMilitary,
     issueMoveCommand,
     issueContextCommand,
     issueContextCommandAtEntityInternal,

@@ -420,6 +420,14 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   hotkeyRegistry.register({ key: 'g' }, () => {
     view.armAttackGround();
   });
+  // F3 (v0.3.155): the DE pause key. Toggles the same manual pause the game
+  // menu preserves, so opening the menu while F3-paused stays paused.
+  hotkeyRegistry.register({ key: 'F3' }, () => {
+    if (pauseControl.isPaused()) pauseControl.resume(); else pauseControl.pause();
+  });
+  // Numpad +/- (v0.3.155): in-match game speed through the §4.5 ladder.
+  hotkeyRegistry.register({ key: '+' }, () => { view.adjustSpeed(1); });
+  hotkeyRegistry.register({ key: '-' }, () => { view.adjustSpeed(-1); });
   // v0.1.95: Esc toggles the in-game menu (the ☰ button toggles it too). The
   // HotkeyRegistry already suppresses keys while a text input is focused. Esc
   // has prior claimants: in replay mode it EXITS replay, and while a modal

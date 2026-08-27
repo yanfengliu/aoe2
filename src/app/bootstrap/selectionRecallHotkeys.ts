@@ -54,5 +54,25 @@ export function registerSelectionRecallHotkeys(
   hotkeyRegistry.register({ key: 'Delete' }, () => {
     bridgeRef().deleteSelectedEntity();
   });
+  // ',' (v0.3.155): the idle-MILITARY cycle, DE's companion to '.'.
+  hotkeyRegistry.register({ key: ',' }, () => {
+    if (!bridgeRef().selectNextIdleMilitary()) return;
+    centerOnPrimarySelection(bridgeRef(), view);
+  });
+  // 'H' (v0.3.155): select the Town Center and centre on it — DE's most-used
+  // economy key. Repeated presses cycle multiple TCs round-robin.
+  let lastTownCenterId = -1;
+  hotkeyRegistry.register({ key: 'h' }, () => {
+    const bridge = bridgeRef();
+    const centers = bridge.getEconomyState().buildings
+      .filter((b) => b.owner === 1 && b.buildingType === 'town-center')
+      .sort((a, b) => a.id - b.id);
+    if (centers.length === 0) return;
+    const next = centers.find((c) => c.id > lastTownCenterId) ?? centers[0]!;
+    lastTownCenterId = next.id;
+    if (bridge.selectEntityById(next.id)) {
+      view.centerCameraOnWorldPosition(next.x + 0.5, next.y + 0.5);
+    }
+  });
   return selectNextIdleVillagerAndCenter;
 }
