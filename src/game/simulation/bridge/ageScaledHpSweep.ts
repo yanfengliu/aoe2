@@ -12,6 +12,7 @@ import {
   ageScaledUnitAttack,
   ageScaledUnitHpFactor,
 } from '../ageScaledHp';
+import { civAttackRangeBonus, civReloadMultiplier } from '../civBonusEffects';
 import { buildingMaxHpForAge } from '../prototypeBuildingRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
@@ -47,6 +48,27 @@ export function applyAgeScaledHpSweep(
       }
     }
     if (!civilization) continue;
+    // Reload/range ladders (sourced v0.3.145): the Japanese infantry attack
+    // speed engages at Feudal and the Briton foot-archer range steps at
+    // Castle/Imperial — standing units re-derive by RATIO/DELTA, replacing
+    // rather than compounding, exactly like the HP ladder below.
+    {
+      const combat = combatStates.get(id);
+      if (combat) {
+        const reloadFrom = civReloadMultiplier(civilization, unit.unitType, fromAge);
+        const reloadTo = civReloadMultiplier(civilization, unit.unitType, toAge);
+        if (reloadFrom !== reloadTo) {
+          combat.reloadTicks = Math.max(1, Math.round((combat.reloadTicks * reloadTo) / reloadFrom));
+          unitsTouched = true;
+        }
+        const rangeFrom = civAttackRangeBonus(civilization, unit.unitType, fromAge);
+        const rangeTo = civAttackRangeBonus(civilization, unit.unitType, toAge);
+        if (rangeFrom !== rangeTo) {
+          combat.attackRange += rangeTo - rangeFrom;
+          unitsTouched = true;
+        }
+      }
+    }
     const from = ageScaledUnitHpFactor(civilization, unit.unitType, fromAge);
     const to = ageScaledUnitHpFactor(civilization, unit.unitType, toAge);
     if (from === to) continue;

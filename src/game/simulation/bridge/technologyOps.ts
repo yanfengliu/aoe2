@@ -55,8 +55,6 @@ import {
   isInfantryUnit,
   takesMeleeAttackTechs,
   isSiegeUnit,
-  unitAttackDamage,
-  unitAttackRange,
 } from '../prototypeUnitRules';
 
 interface CombatStateLike {
@@ -211,8 +209,11 @@ export function createTechnologyOps(deps: TechnologyDeps): TechnologyOps {
             continue;
           }
 
-          combat.attackDamage = unitAttackDamage(unit.unitType) + 1;
-          combat.attackRange = unitAttackRange(unit.unitType) + 1;
+          // DELTA, not overwrite (v0.3.145): the stored range already
+          // carries the civ/team bonuses (Britons ladder) — re-deriving from
+          // the base table silently erased them.
+          combat.attackDamage += 1;
+          combat.attackRange += 1;
         }
         break;
       // M5 naval, Dock: the ship upgrade lines. Cannon Galleon has no

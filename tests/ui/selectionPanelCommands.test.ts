@@ -69,6 +69,7 @@ function economyState(resources: PlayerResources): EconomyState {
       unitType: 'villager',
       x: 10,
       y: 10,
+      reloadTicks: 20,
       task: 'moving',
       attackDamage: 3,
       attackRange: 1,

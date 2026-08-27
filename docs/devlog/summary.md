@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-27 v0.3.145 bonus round 2: civReloadMultiplier hook (8 civs' attack-speed signatures) + Britons +1/+2 range ladder + Incas food-component discounts, all re-derived on age-up by ratio/delta; enabling fix = fletching live-apply OVERWROTE range from base table (erased civ/team bonuses); reloadTicks joined the economy unit view.
 - 2026-08-27 v0.3.144 civ-bonus source audit round 1 (~30 corrections vs current DE across civBonusTable/team files; agent-audited, spot-verified vs dataset help texts; DE-dead entries removed incl. Teuton TC attack/LOS + Saracen CA-siege + free Loom/gold-mining; team constants split per civ; Chinese farms flat+45 -> x1.1); CSV texts + spec 908 re-synced; batch B (reload-seam attack speeds, Britons range ladder, Incas food discounts) queued.
 - 2026-08-27 v0.3.143 per-set door forms (pure architectureDoorBoxes table; 5 recipe sites; west identity) — before/after/diff on 3 sets: Britons 0.00% (byte-identical), Saracens 0.36%, Aztecs 0.20%, all confined to door regions; visual sweep clean.
 - 2026-08-27 v0.3.142 seats 3+ get real default civs (classic AoK cast; no more hole-less bonus-less 'Player N') + playtest harness --civ flag; two lessons landed (helpers satisfy outcome assertions; no git checkout mid-red-check).

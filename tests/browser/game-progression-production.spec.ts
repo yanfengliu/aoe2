@@ -83,7 +83,8 @@ test.describe('browser gameplay smoke tests - production', () => {
     expect(longbows).toHaveLength(1);
     expect(longbows[0]).toMatchObject({
       attackDamage: 6,
-      attackRange: 6,
+      // 6 base + 1 Britons Castle-Age foot-archer range ladder (v0.3.145).
+      attackRange: 7,
     });
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'longbowman')).toBe(true);

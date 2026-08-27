@@ -271,6 +271,7 @@ export interface EconomyState {
     task: UnitTaskState;
     attackDamage: number;
     attackRange: number;
+    reloadTicks: number;
     armor: number;
   }>;
   buildings: Array<{

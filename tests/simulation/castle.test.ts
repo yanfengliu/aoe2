@@ -149,11 +149,12 @@ describe('Slice 6 Castle + Longbowman', () => {
     expect(longbow).toMatchObject({
       unitType: 'longbowman',
       attackDamage: 7,
-      attackRange: 7,
+      // 6 base + 1 Fletching + 1 Britons Castle-Age range ladder (v0.3.145).
+      attackRange: 8,
     });
   }, 40_000);
 
-  it('Fletching researched after training a Longbowman upgrades the existing Longbowman to 7/7', () => {
+  it('Fletching researched after training a Longbowman upgrades the existing Longbowman to 7 attack / 8 range', () => {
     // Same Britons Castle + Blacksmith fixture, but train the Longbow
     // first (base 6/6), then research Fletching, and assert the Longbow
     // was updated in place.
@@ -174,7 +175,8 @@ describe('Slice 6 Castle + Longbowman', () => {
     expect(longbowBefore).toMatchObject({
       unitType: 'longbowman',
       attackDamage: 6,
-      attackRange: 6,
+      // 6 base + 1 Britons Castle-Age range ladder (v0.3.145).
+      attackRange: 7,
     });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
@@ -197,7 +199,8 @@ describe('Slice 6 Castle + Longbowman', () => {
     expect(longbowAfter).toMatchObject({
       unitType: 'longbowman',
       attackDamage: 7,
-      attackRange: 7,
+      // 6 base + 1 Fletching + 1 Britons Castle-Age range ladder (v0.3.145).
+      attackRange: 8,
     });
   }, 40_000);
 

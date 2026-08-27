@@ -23,6 +23,7 @@ import type {
 } from './types';
 import { constructionCost, trainingCost } from './prototypeEconomyRules';
 import { civBonusesFor } from './civBonusTable';
+import { isInfantryUnit } from './prototypeUnitRules';
 import { shipwrightWoodCost } from './dockTechEffects';
 
 // Britons shepherds gather sheep 25% faster.
@@ -271,6 +272,13 @@ export function effectiveTrainingCost(
         target.gold = Math.round(target.gold * rule.goldMultiplier);
       }
     }
+    const foodMultiplier = rule.foodMultiplierByAge?.[age];
+    if (foodMultiplier !== undefined && foodMultiplier !== 1) {
+      const target = writable();
+      if (target.food !== undefined) {
+        target.food = Math.round(target.food * foodMultiplier);
+      }
+    }
     if (rule.woodDelta !== undefined) {
       const target = writable();
       if (target.wood !== undefined) {
@@ -279,4 +287,54 @@ export function effectiveTrainingCost(
     }
   }
   return cost ?? base;
+}
+
+// Civ ATTACK-SPEED bonuses (sourced v0.3.145): reload multiplier per
+// (civilization, unit, age). "+N% faster" divides the reload interval.
+// Wordings verified verbatim against the current-DE help texts.
+const FOOT_ARCHER_RELOAD_LINE = new Set<UnitType>(['archer', 'crossbowman', 'arbalest', 'longbowman', 'elite-longbowman']);
+const CA_LINE = new Set<UnitType>(['cavalry-archer', 'heavy-cavalry-archer']);
+const SIEGE_RELOAD_LINE = new Set<UnitType>(['battering-ram', 'capped-ram', 'siege-ram', 'mangonel', 'onager', 'siege-onager', 'scorpion', 'heavy-scorpion', 'bombard-cannon', 'trebuchet']);
+const GALLEY_RELOAD_LINE = new Set<UnitType>(['galley', 'war-galley', 'galleon']);
+const GUNPOWDER_RELOAD_LINE = new Set<UnitType>(['hand-cannoneer', 'bombard-cannon', 'cannon-galleon', 'elite-cannon-galleon']);
+
+export function civReloadMultiplier(
+  civilization: string | undefined,
+  unitType: UnitType,
+  age: AgeType,
+): number {
+  switch (civilization) {
+    case 'Japanese':
+      // "Infantry attacks +33% faster starting in Feudal Age".
+      return isInfantryUnit(unitType) && age !== 'dark-age' ? 1 / 1.33 : 1;
+    case 'Ethiopians':
+      return FOOT_ARCHER_RELOAD_LINE.has(unitType) ? 1 / 1.18 : 1;
+    case 'Mongols':
+      return CA_LINE.has(unitType) ? 1 / 1.25 : 1;
+    case 'Celts':
+      return SIEGE_RELOAD_LINE.has(unitType) ? 1 / 1.25 : 1;
+    case 'Saracens':
+      return GALLEY_RELOAD_LINE.has(unitType) ? 1 / 1.25 : 1;
+    case 'Byzantines':
+      return unitType === 'fire-ship' || unitType === 'fast-fire-ship' ? 1 / 1.25 : 1;
+    case 'Spanish':
+      return GUNPOWDER_RELOAD_LINE.has(unitType) ? 1 / 1.18 : 1;
+    case 'Indians':
+      return unitType === 'camel' || unitType === 'heavy-camel' ? 1 / 1.2 : 1;
+    default:
+      return 1;
+  }
+}
+
+// Britons (sourced v0.3.145): "Foot Archers +1/+2 range in Castle/Imperial
+// Age" — the archer line only; Yeomen covers the Skirmisher line separately.
+export function civAttackRangeBonus(
+  civilization: string | undefined,
+  unitType: UnitType,
+  age: AgeType,
+): number {
+  if (civilization !== 'Britons' || !FOOT_ARCHER_RELOAD_LINE.has(unitType)) return 0;
+  if (age === 'imperial-age') return 2;
+  if (age === 'castle-age') return 1;
+  return 0;
 }

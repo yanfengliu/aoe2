@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.145
+
+- Civilization bonuses, round two — the signature attack-speed bonuses arrive: Japanese infantry strike 33% faster from the Feudal Age, Ethiopian foot archers 18%, Mongol cavalry archers 25%, Celtic siege 25%, Saracen galleys 25%, Byzantine fire ships 25%, Spanish gunpowder 18%, and Hindustani camels 20%. Britons gain their +1/+2 foot-archer range in Castle/Imperial, and Inca military units cost 15-30% less food by age. Fixed along the way: researching Fletching used to recompute a unit's range from the base table, silently erasing any civilization or team bonus it carried.
+
 ## 0.3.144
 
 - Civilization bonuses sourced against current DE, round one — roughly thirty corrections. Highlights: Huns cavalry archers now cost -10/20% (was -25/30%), Teuton farms -40%, Turkish gold miners +25%, Aztecs open with +50 gold and carry +3 (free Loom retired), Chinese Town Centers hold +15 population, Hindustanis lose the fisherman bonus and gain the -8/13/18/23% villagers, Vikings price warships by age, Saracen camels gain +25% HP, and Teuton garrison becomes DE's flat +10 TC / +5 towers. Team bonuses split per civ: Britons +10%, Turks +25%, Celts' siege workshops join, Spanish trade +25%, Byzantine healing +100%, Viking docks -15%, Magyar mounted archers train +25% faster, Korean villager sight is now shared with allies, and Chinese team farms hold +10% food.

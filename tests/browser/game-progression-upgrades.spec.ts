@@ -68,7 +68,8 @@ test.describe('browser gameplay smoke tests - upgrades', () => {
       ),
     ).toMatchObject({
       attackDamage: 5,
-      attackRange: 5,
+      // 5 base + 1 Britons Castle-Age foot-archer range ladder (v0.3.145).
+      attackRange: 6,
     });
     expect(
       snapshot.economyState.units.some(
@@ -126,7 +127,8 @@ test.describe('browser gameplay smoke tests - upgrades', () => {
     expect(arbalests.length).toBeGreaterThanOrEqual(2);
     expect(arbalests[0]).toMatchObject({
       attackDamage: 6,
-      attackRange: 5,
+      // 5 base + 2 Britons Imperial foot-archer range ladder (v0.3.145).
+      attackRange: 7,
     });
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'arbalest')).toBe(true);

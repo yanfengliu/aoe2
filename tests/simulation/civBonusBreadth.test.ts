@@ -88,6 +88,13 @@ describe('cost bonuses', () => {
     // Berbers (sourced v0.3.144): stable units -15% in Castle Age.
     expect(effectiveTrainingCost('Berbers', 'castle-age', 'knight', NONE))
       .toEqual({ food: 51, gold: 64 });
+    // Incas (sourced v0.3.145): military units cost -15/20/25/30% FOOD only.
+    expect(effectiveTrainingCost('Incas', 'castle-age', 'militia', NONE))
+      .toEqual({ food: 45, gold: 20 });
+    expect(effectiveTrainingCost('Incas', 'imperial-age', 'militia', NONE))
+      .toEqual({ food: 42, gold: 20 });
+    expect(effectiveTrainingCost('Incas', 'castle-age', 'villager', NONE))
+      .toEqual({ food: 50 });
     // Not yet in Castle Age: full price at the stable.
     expect(effectiveTrainingCost('Berbers', 'feudal-age', 'knight', NONE))
       .toEqual({ food: 60, gold: 75 });

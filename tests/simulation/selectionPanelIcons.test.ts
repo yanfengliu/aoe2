@@ -74,7 +74,8 @@ function villagerUnit(id: number): EconomyState['units'][number] {
     task: 'idle',
     attackDamage: 3,
     attackRange: 1,
-    armor: 0,
+    reloadTicks: 20,
+  armor: 0,
   };
 }
 

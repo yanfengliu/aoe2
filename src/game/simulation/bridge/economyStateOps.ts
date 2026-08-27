@@ -23,7 +23,7 @@ import {
   buildingBuildTimeTicks,
   buildingPopulationProvided,
 } from '../prototypeBuildingRules';
-import { unitAttackDamage, unitAttackRange } from '../prototypeUnitRules';
+import { unitAttackDamage, unitAttackRange, unitReloadTicks } from '../prototypeUnitRules';
 import {
   combatStatesCodec,
   constructionStatesCodec,
@@ -95,6 +95,7 @@ export function createEconomyStateOps(deps: EconomyStateOpsDeps): {
           task: getUnitTaskState(id),
           attackDamage: combat?.attackDamage ?? unitAttackDamage(unit.unitType),
           attackRange: combat?.attackRange ?? unitAttackRange(unit.unitType),
+          reloadTicks: combat?.reloadTicks ?? unitReloadTicks(unit.unitType),
           armor: combat?.armor ?? 0,
         };
       })

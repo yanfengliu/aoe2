@@ -16,6 +16,8 @@ export interface CivCostRule {
   readonly multiplierByAge?: Partial<Record<AgeType, number>>;
   /** Multiplier for the GOLD component alone (Portuguese). */
   readonly goldMultiplier?: number;
+  /** Multiplier for the FOOD component alone, by age (Incas). */
+  readonly foodMultiplierByAge?: Partial<Record<AgeType, number>>;
   /** Flat wood delta (Italians' fishing ships). */
   readonly woodDelta?: number;
 }
@@ -244,10 +246,15 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Incas',
     // "Start with a free llama" (a herdable — this build's sheep) ·
-    // "Houses support 10 population".
+    // "Houses support 10 population" · DE (sourced v0.3.145): "Military
+    // Units cost -15/20/25/30% food" by age.
     extraStartingUnits: [{ kind: 'sheep', count: 1 }],
     populationProvided: { house: 5 },
     buildingCost: [{ applies: () => true, stoneMultiplier: 0.85 }],
+    cost: [{
+      applies: (unit) => unit !== 'villager' && unit !== 'trade-cart' && unit !== 'fishing-ship' && unit !== 'trade-cog' && unit !== 'transport-ship',
+      foodMultiplierByAge: { 'dark-age': 0.85, 'feudal-age': 0.8, 'castle-age': 0.75, 'imperial-age': 0.7 },
+    }],
   },
   {
     civilization: 'Portuguese',

@@ -1,3 +1,5 @@
+// v0.3.145: the Britons foot-archer range ladder makes the DEFAULT civ's
+// archer stats age-dependent, so this generic-production file pins Saracens.
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
@@ -28,7 +30,7 @@ function findFirstOwnedUnit(bridge: Bridge, owner: number, unitType: string) {
 
 describe('Castle-Age production-line upgrades', () => {
   it('researches Crossbowman at the Archery Range and swaps existing Archers to Crossbowmen', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const startingArcher = findFirstOwnedUnit(bridge, 1, 'archer');
     expect(startingArcher).toMatchObject({
@@ -57,7 +59,7 @@ describe('Castle-Age production-line upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('reflects the upgraded unit type in render state, not just economy state', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.queueResearch('crossbowman-upgrade')).toBe(true);
@@ -83,7 +85,7 @@ describe('Castle-Age production-line upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('leaves enemy Archers untouched when the human researches the Crossbowman upgrade', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(countOwnedUnits(bridge, 2, 'archer')).toBe(1);
 
@@ -103,7 +105,7 @@ describe('Castle-Age production-line upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('researches Pikeman at the Barracks and swaps existing Spearmen to Pikemen', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const startingSpearman = findFirstOwnedUnit(bridge, 1, 'spearman');
     expect(startingSpearman).toMatchObject({
@@ -130,7 +132,7 @@ describe('Castle-Age production-line upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('researches Light Cavalry at the Stable and swaps existing Scout Cavalry to Light Cavalry', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const startingScout = findFirstOwnedUnit(bridge, 1, 'scout');
     expect(startingScout).toMatchObject({
@@ -157,7 +159,7 @@ describe('Castle-Age production-line upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('preserves the current HP ratio when an Archer is upgraded to Crossbowman mid-combat', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const startingArcher = findFirstOwnedUnit(bridge, 1, 'archer');
     expect(startingArcher).toBeDefined();
@@ -192,7 +194,7 @@ describe('Castle-Age production-line upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('removes the Archer train option and exposes the Crossbowman train option after research', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.getSelectionState().trainOptions).toContain('archer');
@@ -229,7 +231,7 @@ describe('Castle-Age production-line upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('hides the upgrade option once it has been researched', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.getSelectionState().researchOptions).toContain('crossbowman-upgrade');
@@ -248,7 +250,7 @@ describe('Castle-Age production-line upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('rejects researching the Crossbowman upgrade while still in Feudal Age', () => {
-    const bridge = createSimulationBridge('feudal-blacksmith-fixture');
+    const bridge = createSimulationBridge('feudal-blacksmith-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.getSelectionState().researchOptions).not.toContain('crossbowman-upgrade');
@@ -256,7 +258,7 @@ describe('Castle-Age production-line upgrades', () => {
   });
 
   it('preserves the Fletching +1 attack / +1 range on Crossbowmen when Fletching was researched BEFORE the upgrade', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
     expect(bridge.queueResearch('fletching')).toBe(true);
@@ -290,7 +292,7 @@ describe('Castle-Age production-line upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('gives upgraded Light Cavalry a vision radius of 6 (up from Scout 4)', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const beforeVisibleCells = bridge.getHudState().visibleCells;
 
@@ -311,7 +313,7 @@ describe('Castle-Age production-line upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('spawns newly trained Light Cavalry with vision radius 6, not the legacy hard-coded 4', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
     expect(bridge.queueResearch('light-cavalry-upgrade')).toBe(true);
@@ -345,7 +347,7 @@ describe('Castle-Age production-line upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('keeps Crossbowman / Pikeman / Light Cavalry upgrades researchable in Imperial Age', () => {
-    const bridge = createSimulationBridge('imperial-upgrades-fixture');
+    const bridge = createSimulationBridge('imperial-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.getSelectionState().researchOptions).toContain('crossbowman-upgrade');
@@ -362,7 +364,7 @@ describe('Castle-Age production-line upgrades', () => {
   });
 
   it('rewrites queued Archers to Crossbowmen when the upgrade finishes before they spawn', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     // Queue the research FIRST so it completes before any of the queued Archers
@@ -389,7 +391,7 @@ describe('Castle-Age production-line upgrades', () => {
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('applies the Fletching +1 attack / +1 range to Crossbowmen when Fletching is researched AFTER the upgrade', () => {
-    const bridge = createSimulationBridge('castle-upgrades-fixture');
+    const bridge = createSimulationBridge('castle-upgrades-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'archery-range')).toBe(true);
     expect(bridge.queueResearch('crossbowman-upgrade')).toBe(true);

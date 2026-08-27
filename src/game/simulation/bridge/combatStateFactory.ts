@@ -15,7 +15,9 @@ import type {
 import { applyArmorTech } from '../armorTechBonuses';
 import { CAREENING_SHIP_PIERCE_ARMOR } from '../dockTechEffects';
 import { isWaterUnit } from '../unitDomain';
-import { civUnitHpMultiplier } from '../civBonusEffects';
+import { civAttackRangeBonus,
+  civReloadMultiplier,
+  civUnitHpMultiplier } from '../civBonusEffects';
 import { ageScaledUnitAttack, ageScaledUnitHpFactor } from '../ageScaledHp';
 import { civVillagersTakeInfantryArmor } from '../civBonusEffects';
 import {
@@ -98,8 +100,14 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
       maxHp: baseHp,
       attackDamage: ageScaledUnitAttack(unitType, getAge(owner)) ?? unitAttackDamage(unitType),
       attackRange: unitAttackRange(unitType)
-        + (deps.teamAttackRangeBonus?.(owner, unitType) ?? 0),
-      reloadTicks: unitReloadTicks(unitType),
+        + (deps.teamAttackRangeBonus?.(owner, unitType) ?? 0)
+        // Britons foot-archer +1/+2 range by age (sourced v0.3.145).
+        + civAttackRangeBonus(getCivilization(owner), unitType, getAge(owner)),
+      // Civ attack-speed bonuses (sourced v0.3.145) divide the interval.
+      reloadTicks: Math.max(1, Math.round(
+        unitReloadTicks(unitType)
+        * civReloadMultiplier(getCivilization(owner), unitType, getAge(owner)),
+      )),
       cooldownTicks: 0,
       armor: 0,
       pierceArmorBonus: 0,

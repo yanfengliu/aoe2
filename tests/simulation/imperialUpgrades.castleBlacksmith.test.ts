@@ -95,7 +95,8 @@ describe('Imperial-Age Castle upgrade (Britons-gated Elite Longbowman)', () => {
         bridge,
         () => {
           const lbow = findFirstOwnedUnit(bridge, 1, 'longbowman');
-          return !!lbow && lbow.attackDamage === 7 && lbow.attackRange === 7;
+          // 6 base + 1 Fletching + 2 Britons Imperial ladder (v0.3.145).
+          return !!lbow && lbow.attackDamage === 7 && lbow.attackRange === 9;
         },
         { maxSteps: 500 },
       ),
@@ -115,7 +116,8 @@ describe('Imperial-Age Castle upgrade (Britons-gated Elite Longbowman)', () => {
     // stacked via isArcherLineUnit: atk 8 / range 7.
     const upgraded = findFirstOwnedUnit(bridge, 1, 'elite-longbowman');
     expect(upgraded?.attackDamage).toBe(8);
-    expect(upgraded?.attackRange).toBe(9);
+    // 8 base + 1 Fletching + 2 Britons Imperial range ladder (v0.3.145).
+    expect(upgraded?.attackRange).toBe(11);
   }, 90_000); // 90s: 30.7-31.1s observed under full-suite contention vs the old 30s cap (2026-06-11); vitest-timeout-headroom precedent
 });
 
@@ -151,7 +153,8 @@ describe('Imperial-Age Blacksmith upgrades', () => {
     expect(baseArbalest).toBeDefined();
     // Arbalest base atk 6 / range 5 per Slice 7A stats.
     expect(baseArbalest?.attackDamage).toBe(6);
-    expect(baseArbalest?.attackRange).toBe(5);
+    // 5 base + 2 Britons Imperial range ladder (v0.3.145).
+    expect(baseArbalest?.attackRange).toBe(7);
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
     expect(bridge.queueResearch('bracer')).toBe(true);
@@ -160,7 +163,8 @@ describe('Imperial-Age Blacksmith upgrades', () => {
         bridge,
         () => {
           const arb = findFirstOwnedUnit(bridge, 1, 'arbalest');
-          return !!arb && arb.attackDamage === 7 && arb.attackRange === 6;
+          // +2 Britons Imperial ladder rides on top (v0.3.145).
+          return !!arb && arb.attackDamage === 7 && arb.attackRange === 8;
         },
         { maxSteps: 700 },
       ),
@@ -196,7 +200,8 @@ describe('Imperial-Age Blacksmith upgrades', () => {
       .getEconomyState()
       .units.filter((u) => u.owner === 1 && u.unitType === 'arbalest');
     expect(allArbs.length).toBeGreaterThanOrEqual(2);
-    expect(allArbs.every((u) => u.attackDamage === 7 && u.attackRange === 6)).toBe(true);
+    // 5 base + 1 Bracer + 2 Britons Imperial ladder (v0.3.145).
+    expect(allArbs.every((u) => u.attackDamage === 7 && u.attackRange === 8)).toBe(true);
   }, 60_000);
 
   it('stacks Bracer on top of Fletching (Arbalest atk = base + 2, range = base + 2)', () => {
@@ -210,7 +215,8 @@ describe('Imperial-Age Blacksmith upgrades', () => {
         bridge,
         () => {
           const arb = findFirstOwnedUnit(bridge, 1, 'arbalest');
-          return !!arb && arb.attackDamage === 7 && arb.attackRange === 6;
+          // +2 Britons Imperial ladder rides on top (v0.3.145).
+          return !!arb && arb.attackDamage === 7 && arb.attackRange === 8;
         },
         { maxSteps: 700 },
       ),
@@ -224,7 +230,8 @@ describe('Imperial-Age Blacksmith upgrades', () => {
         bridge,
         () => {
           const arb = findFirstOwnedUnit(bridge, 1, 'arbalest');
-          return !!arb && arb.attackDamage === 8 && arb.attackRange === 7;
+          // base + Fletching + Bracer + the Britons ladder = range 9.
+          return !!arb && arb.attackDamage === 8 && arb.attackRange === 9;
         },
         { maxSteps: 700 },
       ),
