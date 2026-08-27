@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.148
+
+- The hit-point ladders match current DE: Viking infantry is a flat +20% from the Feudal Age (was a 10/15/20 ramp), Vietnamese archery-range units +20% at every age, Frankish MOUNTED units (not just knights) +20% from Feudal, the Mongol scout line +20/30% in Castle/Imperial, and Portuguese ships climb +10/15/20% by age. All replace-not-compound on age-up, as before.
+
 ## 0.3.147
 
 - Civilization research discounts arrive, priced identically at the charge, the affordability gate, the tooltip, and the AI's own budget: Chinese technologies cost 5/10/15% less by age, Italian dock and university technologies 25% less and age advances 15% less, the Byzantine Imperial Age a third less, Turkish gunpowder technologies half, Spanish blacksmith upgrades cost no gold, and Vietnamese economic upgrades no wood.

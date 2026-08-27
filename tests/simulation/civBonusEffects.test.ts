@@ -4,16 +4,15 @@
 // derived from the owner's civilization + the resource kind, read at the
 // villager gather-tick site alongside the tech gather-rate multiplier.
 
+import { ageScaledUnitHpFactor } from '../../src/game/simulation/ageScaledHp';
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import {
   AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER,
   BRITONS_SHEEP_GATHER_MULTIPLIER,
-  FRANKS_KNIGHT_HP_MULTIPLIER,
   GOTHS_INFANTRY_BUILDING_ATTACK_BONUS,
   MONGOLS_BOAR_GATHER_MULTIPLIER,
-  MONGOLS_SCOUT_HP_MULTIPLIER,
   civBuildingAttackBonus,
   civGatherRateMultiplier,
   civTrainTimeMultiplier,
@@ -92,14 +91,14 @@ describe('civGatherRateMultiplier — Mongols hunter bonus', () => {
 });
 
 describe('civUnitHpMultiplier — Franks knight bonus', () => {
-  it('gives Franks +20% HP to the knight line only', () => {
-    expect(civUnitHpMultiplier('Franks', 'knight')).toBe(FRANKS_KNIGHT_HP_MULTIPLIER);
-    expect(civUnitHpMultiplier('Franks', 'cavalier')).toBe(FRANKS_KNIGHT_HP_MULTIPLIER);
-    expect(civUnitHpMultiplier('Franks', 'paladin')).toBe(FRANKS_KNIGHT_HP_MULTIPLIER);
-    expect(FRANKS_KNIGHT_HP_MULTIPLIER).toBe(1.2);
+  it('moved the Franks mounted HP to the Feudal-gated age ladder (v0.3.148)', () => {
+    expect(civUnitHpMultiplier('Franks', 'knight')).toBe(1);
+    expect(ageScaledUnitHpFactor('Franks', 'knight', 'feudal-age')).toBeCloseTo(1.2, 5);
+    expect(ageScaledUnitHpFactor('Franks', 'camel', 'castle-age')).toBeCloseTo(1.2, 5);
+    expect(ageScaledUnitHpFactor('Franks', 'scout', 'dark-age')).toBe(1);
   });
 
-  it('does not touch Franks non-knight cavalry, camels, scouts, or other units', () => {
+  it('does not touch Franks foot units, and mounted only from Feudal', () => {
     // The bonus is the Knight line (knight/cavalier/paladin) only — NOT the
     // scout line, camels, or cavalry archers.
     expect(civUnitHpMultiplier('Franks', 'scout')).toBe(1);
@@ -174,10 +173,12 @@ describe('Franks knight bonus — live twin-fixture HP', () => {
 // UPGRADED scout line (light-cavalry, hussar); the base Scout Cavalry is excluded
 // per the CSV (it carries the +2 LoS instead).
 describe('civUnitHpMultiplier — Mongols scout-line HP bonus', () => {
-  it('gives Mongols +30% HP to light cavalry and hussars only', () => {
-    expect(civUnitHpMultiplier('Mongols', 'light-cavalry')).toBe(MONGOLS_SCOUT_HP_MULTIPLIER);
-    expect(civUnitHpMultiplier('Mongols', 'hussar')).toBe(MONGOLS_SCOUT_HP_MULTIPLIER);
-    expect(MONGOLS_SCOUT_HP_MULTIPLIER).toBe(1.3);
+  it('moved the Mongol scout-line HP to the Castle/Imperial ladder (v0.3.148)', () => {
+    expect(civUnitHpMultiplier('Mongols', 'light-cavalry')).toBe(1);
+    expect(ageScaledUnitHpFactor('Mongols', 'light-cavalry', 'castle-age')).toBeCloseTo(1.2, 5);
+    expect(ageScaledUnitHpFactor('Mongols', 'hussar', 'imperial-age')).toBeCloseTo(1.3, 5);
+    expect(ageScaledUnitHpFactor('Mongols', 'scout', 'feudal-age')).toBe(1);
+    expect(ageScaledUnitHpFactor('Mongols', 'knight', 'imperial-age')).toBe(1);
   });
 
   it('does not touch the base Scout Cavalry or other Mongols units', () => {
@@ -195,7 +196,7 @@ describe('civUnitHpMultiplier — Mongols scout-line HP bonus', () => {
 });
 
 describe('Mongols scout-line bonus — live twin-fixture HP', () => {
-  it('a Mongols light cavalry has round(base × 1.3) maxHp; a control has the base', () => {
+  it('a Mongols light cavalry has round(base × 1.2) maxHp at Castle Age (the sourced ladder); a control has the base', () => {
     const mongols = createSimulationBridge('civ-mongols-scout-fixture');
     const control = createSimulationBridge('civ-mongols-scout-control-fixture');
     // One step so combat state is projected; HP is set at creation (no research).
@@ -217,7 +218,8 @@ describe('Mongols scout-line bonus — live twin-fixture HP', () => {
     // Control is the raw base; Mongols is +30% (rounded), on both current and
     // max since a freshly-created unit is at full HP.
     expect(controlHp.maxHp).toBeGreaterThan(0);
-    expect(mongolsHp.maxHp).toBe(Math.round(controlHp.maxHp! * 1.3));
+    // Castle Age rung of the +20/30% ladder (v0.3.148).
+    expect(mongolsHp.maxHp).toBe(Math.round(controlHp.maxHp! * 1.2));
     expect(mongolsHp.currentHp).toBe(mongolsHp.maxHp);
   });
 });

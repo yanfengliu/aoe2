@@ -51,9 +51,10 @@ describe('unit-HP bonuses', () => {
     expect(civUnitHpMultiplier('Saracens', 'transport-ship')).toBeCloseTo(2, 5);
     expect(civUnitHpMultiplier('Turks', 'hand-cannoneer')).toBeCloseTo(1.25, 5);
     expect(civUnitHpMultiplier('Turks', 'bombard-cannon')).toBeCloseTo(1.25, 5);
-    expect(civUnitHpMultiplier('Portuguese', 'galley')).toBeCloseTo(1.1, 5);
-    // Originals hold; unmatched civs and units read 1.
-    expect(civUnitHpMultiplier('Franks', 'knight')).toBeCloseTo(1.2, 5);
+    // Portuguese ship HP rides the age ladder now (v0.3.148).
+    expect(civUnitHpMultiplier('Portuguese', 'galley')).toBe(1);
+    // Franks mounted HP rides the Feudal-gated ladder now (v0.3.148).
+    expect(civUnitHpMultiplier('Franks', 'knight')).toBe(1);
     expect(civUnitHpMultiplier('Turks', 'knight')).toBe(1);
     expect(civUnitHpMultiplier('Portuguese', 'militia')).toBe(1);
   });

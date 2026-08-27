@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-27 v0.3.148 HP ladders sourced (Vikings flat 1.2 Feudal+, Viet flat 1.2, Franks MOUNTED scope Feudal-gated, Mongol scout 1/1/1.2/1.3, Portuguese ships 1/1.1/1.15/1.2) — three flat table entries moved into the age seam so creation + age-up sweep stay one mechanism.
 - 2026-08-27 v0.3.147 research-cost seam (effectiveResearchCost at charge/validator/toast/agent-card/AI-budget incl. age-up reserve; hosting-derived scopes): Chinese age ladder, Italians dock+univ+age, Byz Imperial -33%, Turks gunpowder -50%, Spanish smith no-gold, Viet eco no-wood.
 - 2026-08-27 v0.3.146 bonus round 3 (Franks foragers, Slav monk speed, Goth full age ladder w/ Dark rung, free-tech catch-up Byz/Teuton/Viet); free Town Patrol broke the 'Byzantines are bonus-free' fixture assumption (mangonel wandered when the enemy TC saw farther) -> neutral-civ pins swept to Saracens; retired GOTHS_INFANTRY_COST_MULTIPLIER.
 - 2026-08-27 v0.3.145 bonus round 2: civReloadMultiplier hook (8 civs' attack-speed signatures) + Britons +1/+2 range ladder + Incas food-component discounts, all re-derived on age-up by ratio/delta; enabling fix = fletching live-apply OVERWROTE range from base table (erased civ/team bonuses); reloadTicks joined the economy unit view.

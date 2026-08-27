@@ -75,7 +75,6 @@ export interface CivBonusEntry {
   readonly houselessPopulation?: boolean;
 }
 
-const KNIGHT_LINE = new Set<UnitType>(['knight', 'cavalier', 'paladin']);
 const GUNPOWDER_UNITS = new Set<UnitType>([
   'hand-cannoneer', 'bombard-cannon', 'cannon-galleon', 'elite-cannon-galleon',
   'conquistador', 'elite-conquistador', 'janissary', 'elite-janissary',
@@ -153,9 +152,9 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Franks',
-    // DE: "Foragers work +15% faster" (sourced v0.3.146).
+    // DE: "Foragers work +15% faster" (sourced v0.3.146). The mounted +20%
+    // HP rides the Feudal-gated age ladder (ageScaledHp, v0.3.148).
     gatherRate: { 'berry-bush': 1.15 },
-    unitHp: [{ applies: (unit) => KNIGHT_LINE.has(unit), multiplier: 1.2 }],
     buildingCost: [{ applies: (building) => building === 'castle', multiplier: 0.75 }],
   },
   {
@@ -232,7 +231,8 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Mongols',
     gatherRate: { boar: 1.4 }, // DE: hunters +40%.
-    unitHp: [{ applies: (unit) => unit === 'light-cavalry' || unit === 'hussar', multiplier: 1.3 }],
+    // The scout-line +20/30% HP rides the Castle/Imperial age ladder
+    // (ageScaledHp, v0.3.148).
   },
   {
     civilization: 'Persians',
@@ -261,7 +261,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Portuguese',
-    unitHp: [{ applies: (unit) => SHIPS.has(unit), multiplier: 1.1 }],
+    // Ship +10/15/20% HP rides the age ladder (ageScaledHp, v0.3.148).
     cost: [{ applies: () => true, goldMultiplier: 0.8 }], // DE: -20% gold.
   },
   {

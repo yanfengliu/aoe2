@@ -31,7 +31,7 @@ import { shipwrightWoodCost } from './dockTechEffects';
 export const BRITONS_SHEEP_GATHER_MULTIPLIER = 1.25;
 
 // Franks Knight line (Knight → Cavalier → Paladin) has +20% HP.
-export const FRANKS_KNIGHT_HP_MULTIPLIER = 1.2;
+// v0.3.148: the Frank mounted +20% rides the Feudal-gated age ladder now.
 
 // Goths infantry deal +1 attack against buildings (from game start).
 export const GOTHS_INFANTRY_BUILDING_ATTACK_BONUS = 1;
@@ -47,7 +47,7 @@ export const AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER = 0.85;
 export const MONGOLS_BOAR_GATHER_MULTIPLIER = 1.4; // DE: hunters +40%.
 
 // Mongols Light Cavalry and Hussars have +30% HP.
-export const MONGOLS_SCOUT_HP_MULTIPLIER = 1.3;
+// v0.3.148: the Mongol scout-line HP rides the Castle/Imperial ladder now.
 
 // Every seam below reads the declared table (civBonusTable.ts) — the if-chain
 // era ended at five civilizations, and the table now carries every CSV line

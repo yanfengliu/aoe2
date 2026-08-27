@@ -50,12 +50,20 @@ function advanceToFeudal(bridge: Bridge): void {
 describe('age-scaled HP factors (pure)', () => {
   it('walks the Viking infantry and Vietnamese archery ladders', () => {
     expect(ageScaledUnitHpFactor('Vikings', 'militia', 'dark-age')).toBe(1);
-    expect(ageScaledUnitHpFactor('Vikings', 'militia', 'feudal-age')).toBeCloseTo(1.1, 5);
-    expect(ageScaledUnitHpFactor('Vikings', 'champion', 'castle-age')).toBeCloseTo(1.15, 5);
+    // Sourced v0.3.148: Vikings are +20% FLAT from Feudal; Vietnamese +20%
+    // flat at every age; Franks mounted +20% from Feudal; Mongols scout line
+    // +20/30% Castle/Imperial; Portuguese ships +10/15/20 by age.
+    expect(ageScaledUnitHpFactor('Vikings', 'militia', 'feudal-age')).toBeCloseTo(1.2, 5);
+    expect(ageScaledUnitHpFactor('Vikings', 'champion', 'castle-age')).toBeCloseTo(1.2, 5);
     expect(ageScaledUnitHpFactor('Vikings', 'berserk', 'imperial-age')).toBeCloseTo(1.2, 5);
-    expect(ageScaledUnitHpFactor('Vietnamese', 'archer', 'feudal-age')).toBeCloseTo(1.1, 5);
-    expect(ageScaledUnitHpFactor('Vietnamese', 'skirmisher', 'castle-age')).toBeCloseTo(1.15, 5);
+    expect(ageScaledUnitHpFactor('Vikings', 'militia', 'dark-age')).toBe(1);
+    expect(ageScaledUnitHpFactor('Vietnamese', 'archer', 'dark-age')).toBeCloseTo(1.2, 5);
+    expect(ageScaledUnitHpFactor('Vietnamese', 'skirmisher', 'castle-age')).toBeCloseTo(1.2, 5);
     expect(ageScaledUnitHpFactor('Vietnamese', 'hand-cannoneer', 'imperial-age')).toBeCloseTo(1.2, 5);
+    expect(ageScaledUnitHpFactor('Franks', 'knight', 'castle-age')).toBeCloseTo(1.2, 5);
+    expect(ageScaledUnitHpFactor('Mongols', 'hussar', 'imperial-age')).toBeCloseTo(1.3, 5);
+    expect(ageScaledUnitHpFactor('Portuguese', 'galley', 'imperial-age')).toBeCloseTo(1.2, 5);
+    expect(ageScaledUnitHpFactor('Portuguese', 'galley', 'feudal-age')).toBeCloseTo(1.1, 5);
     // Wrong class or wrong civ reads 1.
     expect(ageScaledUnitHpFactor('Vikings', 'archer', 'imperial-age')).toBe(1);
     expect(ageScaledUnitHpFactor('Vietnamese', 'militia', 'imperial-age')).toBe(1);
@@ -74,7 +82,7 @@ describe('age-scaled HP factors (pure)', () => {
 });
 
 describe('Viking infantry HP through the ages (in the world)', () => {
-  it('trains at 40 in the Dark Age, sweeps to 44 on Feudal, trains new at 44', () => {
+  it('trains at 40 in the Dark Age, sweeps to 48 on Feudal (flat +20%), trains new at 48', () => {
     const bridge = boot('Vikings');
     expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.queueTrainUnit('militia')).toBe(true);
@@ -87,7 +95,7 @@ describe('Viking infantry HP through the ages (in the world)', () => {
 
     advanceToFeudal(bridge);
     // The one already standing is swept to the Feudal factor, still full.
-    expect(firstUnitHealth(bridge, 'militia')).toEqual({ currentHp: 44, maxHp: 44 });
+    expect(firstUnitHealth(bridge, 'militia')).toEqual({ currentHp: 48, maxHp: 48 });
   });
 
   it('a generic civ militia stays at 40 across the advance', () => {
