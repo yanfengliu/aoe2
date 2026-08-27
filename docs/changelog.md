@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.134
+
+- Forty-six missing stat-sheet bonuses restored, headlined by naval combat's identity: galleys now tear into ships (+8/+9/+11), fire ships burn hulls and turtle ships, cannon galleons shell shorelines, camels fight boats, and rams hit buildings at full CSV strength — all now locked to the stats sheet by a permanent test.
+
 ## 0.3.133
 
 - Chemistry researches at the University, completing the sweep that puts every technology at its AoE2 building — now enforced by a permanent test against the stats sheet.

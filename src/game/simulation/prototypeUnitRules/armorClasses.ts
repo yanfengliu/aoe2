@@ -52,7 +52,12 @@ export type ArmorClass =
   | 'eagle'
   // v0.3.130: the Persian elephants' own class — STACKS with 'cavalry'
   // under the spear line (halberdier +32 cavalry +60 elephant), AoE2's rule.
-  | 'war-elephant';
+  | 'war-elephant'
+  // v0.3.134: the fire-ship line's extra bite against the Korean shell.
+  | 'turtle-ship'
+  // v0.3.134: the Elite Skirmisher's +6 lands on this — every mounted
+  // archer (the CAVALRY_ARCHER_UNITS scope as a vulnerability).
+  | 'cavalry-archer';
 
 type BonusEntry = { targetClass: ArmorClass; bonus: number };
 
@@ -74,7 +79,7 @@ export const UNIT_ARMOR_CLASSES = {
   pikeman: new Set<ArmorClass>(['infantry', 'spearman']),
   'light-cavalry': new Set<ArmorClass>(['cavalry']),
   camel: new Set<ArmorClass>(['camel']),
-  'cavalry-archer': new Set<ArmorClass>(['archer']),
+  'cavalry-archer': new Set<ArmorClass>(['archer', 'cavalry-archer']),
   mangonel: new Set<ArmorClass>(['siege']),
   scorpion: new Set<ArmorClass>(['siege']),
   'battering-ram': new Set<ArmorClass>(['siege', 'ram']),
@@ -83,7 +88,7 @@ export const UNIT_ARMOR_CLASSES = {
   arbalest: new Set<ArmorClass>(['archer']),
   halberdier: new Set<ArmorClass>(['infantry', 'spearman']),
   hussar: new Set<ArmorClass>(['cavalry']),
-  'heavy-cavalry-archer': new Set<ArmorClass>(['archer']),
+  'heavy-cavalry-archer': new Set<ArmorClass>(['archer', 'cavalry-archer']),
   cavalier: new Set<ArmorClass>(['cavalry']),
   champion: new Set<ArmorClass>(['infantry']),
   'elite-longbowman': new Set<ArmorClass>(['archer']),
@@ -127,16 +132,16 @@ export const UNIT_ARMOR_CLASSES = {
   'huskarl': new Set<ArmorClass>(['infantry', 'unique-unit']),
   'tarkan': new Set<ArmorClass>(['cavalry', 'unique-unit']),
   'samurai': new Set<ArmorClass>(['infantry', 'unique-unit']),
-  'war-wagon': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit']),
+  'war-wagon': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit', 'cavalry-archer']),
   'plumed-archer': new Set<ArmorClass>(['archer', 'unique-unit']),
-  'mangudai': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit']),
+  'mangudai': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit', 'cavalry-archer']),
   'war-elephant': new Set<ArmorClass>(['cavalry', 'unique-unit', 'war-elephant']),
   'mameluke': new Set<ArmorClass>(['camel', 'unique-unit']),
   'conquistador': new Set<ArmorClass>(['cavalry', 'unique-unit']),
   'teutonic-knight': new Set<ArmorClass>(['infantry', 'unique-unit']),
   'janissary': new Set<ArmorClass>(['archer', 'unique-unit']),
   'berserk': new Set<ArmorClass>(['infantry', 'unique-unit']),
-  'turtle-ship': new Set<ArmorClass>(['ship', 'unique-unit']),
+  'turtle-ship': new Set<ArmorClass>(['ship', 'unique-unit', 'turtle-ship']),
   'longboat': new Set<ArmorClass>(['ship', 'unique-unit']),
   // Elites carry exactly their base unit classes.
   'elite-jaguar-warrior': new Set<ArmorClass>(['infantry', 'unique-unit']),
@@ -147,16 +152,16 @@ export const UNIT_ARMOR_CLASSES = {
   'elite-huskarl': new Set<ArmorClass>(['infantry', 'unique-unit']),
   'elite-tarkan': new Set<ArmorClass>(['cavalry', 'unique-unit']),
   'elite-samurai': new Set<ArmorClass>(['infantry', 'unique-unit']),
-  'elite-war-wagon': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit']),
+  'elite-war-wagon': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit', 'cavalry-archer']),
   'elite-plumed-archer': new Set<ArmorClass>(['archer', 'unique-unit']),
-  'elite-mangudai': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit']),
+  'elite-mangudai': new Set<ArmorClass>(['archer', 'cavalry', 'unique-unit', 'cavalry-archer']),
   'elite-war-elephant': new Set<ArmorClass>(['cavalry', 'unique-unit', 'war-elephant']),
   'elite-mameluke': new Set<ArmorClass>(['camel', 'unique-unit']),
   'elite-conquistador': new Set<ArmorClass>(['cavalry', 'unique-unit']),
   'elite-teutonic-knight': new Set<ArmorClass>(['infantry', 'unique-unit']),
   'elite-janissary': new Set<ArmorClass>(['archer', 'unique-unit']),
   'elite-berserk': new Set<ArmorClass>(['infantry', 'unique-unit']),
-  'elite-turtle-ship': new Set<ArmorClass>(['ship', 'unique-unit']),
+  'elite-turtle-ship': new Set<ArmorClass>(['ship', 'unique-unit', 'turtle-ship']),
   'elite-longboat': new Set<ArmorClass>(['ship', 'unique-unit']),
 } satisfies Record<UnitType, ReadonlySet<ArmorClass>>;
 
@@ -170,22 +175,22 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
   'two-handed-swordsman': [{ targetClass: 'eagle', bonus: 6 }],
   champion: [{ targetClass: 'eagle', bonus: 6 }],
   // Spear line: flat vs ALL cavalry + separate vs camel (+1 eagles each tier).
-  spearman: [{ targetClass: 'cavalry', bonus: 15 }, { targetClass: 'camel', bonus: 7 }, { targetClass: 'eagle', bonus: 1 }, { targetClass: 'war-elephant', bonus: 30 }],
-  pikeman: [{ targetClass: 'cavalry', bonus: 22 }, { targetClass: 'camel', bonus: 11 }, { targetClass: 'eagle', bonus: 1 }, { targetClass: 'war-elephant', bonus: 47 }],
-  halberdier: [{ targetClass: 'cavalry', bonus: 32 }, { targetClass: 'camel', bonus: 16 }, { targetClass: 'eagle', bonus: 1 }, { targetClass: 'war-elephant', bonus: 60 }],
+  spearman: [{ targetClass: 'cavalry', bonus: 15 }, { targetClass: 'camel', bonus: 7 }, { targetClass: 'ship', bonus: 7 }, { targetClass: 'eagle', bonus: 1 }, { targetClass: 'war-elephant', bonus: 30 }],
+  pikeman: [{ targetClass: 'cavalry', bonus: 22 }, { targetClass: 'camel', bonus: 11 }, { targetClass: 'ship', bonus: 11 }, { targetClass: 'eagle', bonus: 1 }, { targetClass: 'war-elephant', bonus: 47 }],
+  halberdier: [{ targetClass: 'cavalry', bonus: 32 }, { targetClass: 'camel', bonus: 16 }, { targetClass: 'ship', bonus: 16 }, { targetClass: 'eagle', bonus: 1 }, { targetClass: 'war-elephant', bonus: 60 }],
   // Camels: anti-cavalry + anti-camel.
-  camel: [{ targetClass: 'cavalry', bonus: 10 }, { targetClass: 'camel', bonus: 5 }],
-  'heavy-camel': [{ targetClass: 'cavalry', bonus: 18 }, { targetClass: 'camel', bonus: 9 }],
+  camel: [{ targetClass: 'cavalry', bonus: 10 }, { targetClass: 'camel', bonus: 5 }, { targetClass: 'ship', bonus: 5 }],
+  'heavy-camel': [{ targetClass: 'cavalry', bonus: 18 }, { targetClass: 'camel', bonus: 9 }, { targetClass: 'ship', bonus: 9 }],
   // Skirmishers: anti-archer + anti-spearman.
   skirmisher: [{ targetClass: 'archer', bonus: 3 }, { targetClass: 'spearman', bonus: 3 }],
-  'elite-skirmisher': [{ targetClass: 'archer', bonus: 4 }, { targetClass: 'spearman', bonus: 3 }],
+  'elite-skirmisher': [{ targetClass: 'archer', bonus: 4 }, { targetClass: 'spearman', bonus: 3 }, { targetClass: 'cavalry-archer', bonus: 6 }],
   // units.csv: +8 monks, +3 siege at the Castle-Age tier. The Monk bonus is
   // the line's whole point — nothing else on the field runs one down.
   'eagle-warrior': [{ targetClass: 'monk', bonus: 8 }, { targetClass: 'siege', bonus: 3 }, { targetClass: 'cavalry', bonus: 2 }, { targetClass: 'ship', bonus: 1 }, { targetClass: 'camel', bonus: 1 }],
   'elite-eagle-warrior': [{ targetClass: 'monk', bonus: 10 }, { targetClass: 'siege', bonus: 5 }, { targetClass: 'cavalry', bonus: 4 }, { targetClass: 'ship', bonus: 2 }, { targetClass: 'camel', bonus: 2 }],
   // units.csv: +10 infantry (+1 spearman, folded into the infantry line
   // it is the answer to), +2 rams.
-  'hand-cannoneer': [{ targetClass: 'infantry', bonus: 10 }, { targetClass: 'siege', bonus: 2 }],
+  'hand-cannoneer': [{ targetClass: 'infantry', bonus: 10 }, { targetClass: 'spearman', bonus: 1 }, { targetClass: 'ram', bonus: 2 }],
   // Archer line: anti-spearman.
   crossbowman: [{ targetClass: 'spearman', bonus: 3 }],
   arbalest: [{ targetClass: 'spearman', bonus: 3 }],
@@ -231,8 +236,23 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
   'elite-berserk': [{ targetClass: 'eagle', bonus: 3 }],
   'elite-huskarl': [{ targetClass: 'archer', bonus: 10 }, { targetClass: 'eagle', bonus: 3 }],
   'teutonic-knight': [{ targetClass: 'eagle', bonus: 4 }],
+  'throwing-axeman': [{ targetClass: 'eagle', bonus: 1 }],
+  'elite-throwing-axeman': [{ targetClass: 'eagle', bonus: 2 }],
+  'woad-raider': [{ targetClass: 'eagle', bonus: 2 }],
+  'elite-woad-raider': [{ targetClass: 'eagle', bonus: 3 }],
   'elite-teutonic-knight': [{ targetClass: 'eagle', bonus: 4 }],
   'longboat': [{ targetClass: 'ship', bonus: 9 }, { targetClass: 'ram', bonus: 4 }],
+  // The naval bonus fabric (v0.3.134 differential): the galley line's
+  // anti-ship values ARE naval combat's identity, and every one was missing.
+  galley: [{ targetClass: 'ship', bonus: 8 }, { targetClass: 'camel', bonus: 8 }, { targetClass: 'ram', bonus: 3 }],
+  'war-galley': [{ targetClass: 'ship', bonus: 9 }, { targetClass: 'camel', bonus: 9 }, { targetClass: 'ram', bonus: 4 }],
+  galleon: [{ targetClass: 'ship', bonus: 11 }, { targetClass: 'camel', bonus: 11 }, { targetClass: 'ram', bonus: 4 }],
+  'fire-ship': [{ targetClass: 'ship', bonus: 3 }, { targetClass: 'camel', bonus: 3 }, { targetClass: 'turtle-ship', bonus: 2 }],
+  'fast-fire-ship': [{ targetClass: 'ship', bonus: 4 }, { targetClass: 'camel', bonus: 4 }, { targetClass: 'turtle-ship', bonus: 3 }],
+  'cannon-galleon': [{ targetClass: 'infantry', bonus: 15 }, { targetClass: 'archer', bonus: 15 }, { targetClass: 'cavalry', bonus: 15 }, { targetClass: 'siege', bonus: 40 }],
+  'elite-cannon-galleon': [{ targetClass: 'infantry', bonus: 15 }, { targetClass: 'archer', bonus: 15 }, { targetClass: 'cavalry', bonus: 15 }, { targetClass: 'siege', bonus: 40 }],
+  // Petard: the +60 siege beside its building charges.
+  petard: [{ targetClass: 'siege', bonus: 60 }],
   // Elite rows from the same CSV column; off-roster classes stay deferred.
   'elite-jaguar-warrior': [{ targetClass: 'infantry', bonus: 10 }, { targetClass: 'eagle', bonus: 12 }],
   'elite-cataphract': [{ targetClass: 'infantry', bonus: 12 }],

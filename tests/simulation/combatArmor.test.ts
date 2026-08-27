@@ -110,8 +110,8 @@ describe('attackBonusAgainstUnit — AoE2 armor-class bonuses', () => {
   });
 
   it('applies the AoE2-accurate siege anti-building bonuses', () => {
-    expect(attackBonusAgainstBuilding('battering-ram')).toBe(125);
-    expect(attackBonusAgainstBuilding('siege-ram')).toBe(200);
+    expect(attackBonusAgainstBuilding('battering-ram')).toBe(150);
+    expect(attackBonusAgainstBuilding('siege-ram')).toBe(240);
     expect(attackBonusAgainstBuilding('bombard-cannon')).toBe(200);
     expect(attackBonusAgainstBuilding('trebuchet')).toBe(250);
     expect(attackBonusAgainstBuilding('mangonel')).toBe(35);

@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-26 v0.3.134 the 46-entry attack-bonus harvest (naval fabric WHOLE — galley/fire/cannon-galleon lines had zero bonuses; turtle-ship + cavalry-archer classes; HC's phantom +2 siege was a bonus the CSV never gave; ram building values) + the permanent CSV differential gate with named deferrals and the one bombard exception.
 - 2026-08-26 v0.3.133 Chemistry to the University + the hosting DIFFERENTIAL promoted to a permanent gate (tests/content/technologyHosting.test.ts: every CSV row's building vs RESEARCHES_BY_BUILDING, alias + intentional-absence lists both self-checking); free techs follow hosting via the menu automatically.
 - 2026-08-26 v0.3.132 Sappers corrected (villagers not infantry, Castle not Blacksmith — the CSV is the spec of record; the combat fixture's militia became a villager); §1143's leftover Siege-Workshop sentence fixed.
 - 2026-08-26 v0.3.131 University hosts guard-tower/keep/siege-engineers (two "University does not exist yet" divergence notes and a stale HP-deferred note retired; three fixtures gained universities; edited the WRONG imperial fixture first — registry, then file).

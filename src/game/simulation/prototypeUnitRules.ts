@@ -242,8 +242,17 @@ export function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitT
 // vs-building bonuses — spearman/villager/infantry — are deferred; see the
 // armorClasses.ts header.)
 const BUILDING_ATTACK_BONUS: Partial<Record<UnitType, number>> = {
-  'battering-ram': 125,
-  'siege-ram': 200,
+  // Ram-line and siege values corrected to units.csv by the v0.3.134
+  // attack-bonus differential (battering 125→150, siege-ram 200→240,
+  // capped-ram/siege-onager/demolition/cannon-galleon were absent).
+  'battering-ram': 150,
+  'capped-ram': 180,
+  'siege-ram': 240,
+  'siege-onager': 60,
+  'demolition-ship': 220,
+  'heavy-demolition-ship': 280,
+  'cannon-galleon': 200,
+  'elite-cannon-galleon': 275,
   'bombard-cannon': 200,
   trebuchet: 250,
   // units.csv: "+500 buildings;+100 castle;+60 siege;+900 walls & gates". The
