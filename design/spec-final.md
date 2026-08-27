@@ -1301,7 +1301,7 @@ At minimum, support these research families:
 
 ### 11.3 Technology Tree UI Semantics
 
-If a technology-tree UI is implemented, preserve the official mental model:
+Implemented v0.3.157: the Technology Tree viewer opens from the game-menu button or `F1` (F2 belongs to the debug overlay), renders OVER the menu so closing it returns there, and derives from the same hosting tables and `civDenies` the validators play by — per-building sections (Town Center through Castle) listing trainable units and researchable technologies, the civilization's own unique units/techs included and other civs' excluded, with every denied entry rendered dimmed and struck rather than hidden. The official mental model it preserves:
 
 - buildings are separate from units and technologies
 - available content is shown as available

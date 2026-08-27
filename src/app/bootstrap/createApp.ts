@@ -37,6 +37,8 @@ import {
 } from '../../game/replay/ReplayController';
 import { createTimelinePanel } from '../../game/replay/TimelinePanel';
 import { createIdleVillagerBell } from '../../ui/hud/idleVillagerBell';
+import { createTechTreePanel } from '../../ui/hud/techTreePanel';
+import { registerDePlayHotkeys } from './dePlayHotkeys';
 import { registerSelectionRecallHotkeys } from './selectionRecallHotkeys';
 import { mountGameAudio } from '../../audio/mountGameAudio';
 import { registerReplayHotkeys } from '../../game/replay/ReplayHotkeys';
@@ -402,6 +404,17 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   const selectNextIdleVillagerAndCenter = registerSelectionRecallHotkeys(hotkeyRegistry, bridgeRef, view);
   // Audio cues (v0.3.109): horn, age-up fanfare, match stings, mute toggle.
   const gameAudio = mountGameAudio(bridgeRef, hudRoot);
+  // Technology tree viewer (v0.3.157): §11.3's browse-the-tree modal, on the
+  // menu button and F1 (F2 belongs to the debug overlay). Opens OVER the
+  // menu, so closing it returns there and the menu's pause holds.
+  const techTree = createTechTreePanel(hudRoot, {
+    getCivilization: () => bridgeRef().getPlayerCivilization(1),
+  });
+  cleanupCallbacks.push(() => techTree.destroy());
+  hudRoot.querySelector('[data-hud="menu-tech-tree"]')?.addEventListener('click', () => {
+    techTree.open();
+  });
+  hotkeyRegistry.register({ key: 'F1' }, () => { techTree.toggle(); });
   cleanupCallbacks.push(() => gameAudio.dispose());
   const idleBell = createIdleVillagerBell({
     countIdleVillagers: () => bridge.countIdleVillagers(),
@@ -420,27 +433,9 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   hotkeyRegistry.register({ key: 'g' }, () => {
     view.armAttackGround();
   });
-  // F3 (v0.3.155): the DE pause key. Toggles the same manual pause the game
-  // menu preserves, so opening the menu while F3-paused stays paused.
-  hotkeyRegistry.register({ key: 'F3' }, () => {
-    if (pauseControl.isPaused()) pauseControl.resume(); else pauseControl.pause();
-  });
-  // Numpad +/- (v0.3.155): in-match game speed through the §4.5 ladder.
-  hotkeyRegistry.register({ key: '+' }, () => { view.adjustSpeed(1); });
-  hotkeyRegistry.register({ key: '-' }, () => { view.adjustSpeed(-1); });
-  // Space (v0.3.156): jump the camera to the last town-under-attack event —
-  // DE's answer to hearing the horn while looking elsewhere. The registry is
-  // first-match and this boot-time binding precedes ReplayHotkeys' dynamic
-  // one, so it arbitrates like Esc does: in replay mode Space stays the
-  // replay play/pause toggle.
-  hotkeyRegistry.register({ key: ' ' }, () => {
-    if (replayController.mode === 'replay') {
-      if (replayController.isPlaying()) replayController.pause();
-      else replayController.play();
-      return;
-    }
-    const hit = gameAudio.getLastHomeAttackPosition();
-    if (hit) view.centerCameraOnWorldPosition(hit.x + 0.5, hit.y + 0.5);
+  registerDePlayHotkeys({
+    hotkeyRegistry, view, pauseControl, replayController,
+    getLastHomeAttackPosition: () => gameAudio.getLastHomeAttackPosition(),
   });
   // v0.1.95: Esc toggles the in-game menu (the ☰ button toggles it too). The
   // HotkeyRegistry already suppresses keys while a text input is focused. Esc

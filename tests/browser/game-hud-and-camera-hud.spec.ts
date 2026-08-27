@@ -110,6 +110,7 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
       { hook: 'menu-resume', name: 'Resume', icon: 'resume', text: '' },
       { hook: 'save-button', name: 'Save game', icon: 'save', text: '' },
       { hook: 'load-button', name: 'Load game', icon: 'load', text: '' },
+      { hook: 'menu-tech-tree', name: 'Technology tree', icon: 'techTree', text: '' },
       { hook: 'replay-load-button', name: 'Watch a replay…', icon: 'replay', text: '' },
       { hook: 'menu-restart', name: 'Restart match', icon: 'restart', text: '' },
       { hook: 'menu-quit', name: 'Quit to title', icon: 'quit', text: '' },
@@ -239,6 +240,9 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
     await page.locator('[data-hud="load-button"]').click();
     await page.locator('[data-hud="load-cancel"]').click();
     await expect(page.locator('[data-hud="load-button"]')).toBeFocused();
+    await page.keyboard.press('Tab');
+    // v0.3.157: the Technology-tree row sits between Load and Replay.
+    await expect(page.locator('[data-hud="menu-tech-tree"]')).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(page.locator('[data-hud="replay-load-button"]')).toBeFocused();
 

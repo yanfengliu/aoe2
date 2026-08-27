@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-27 v0.3.157 tech-tree viewer (menu button + F1; model from hosting tables + civDenies so the view can't disagree with validators; own uniques in, others' out; denied = dimmed+struck) — F2 collision with debug overlay caught by the existing browser suite; createApp split (dePlayHotkeys.ts); Franks screenshot verified.
 - 2026-08-27 v0.3.156 feel-loop iter 2: Space = jump-to-last-home-attack (audio controller records the home-hit cell its horn already detects; replay-mode arbitration mirrors Esc since the registry is first-match) + setup preselects Normal speed.
 - 2026-08-27 v0.3.155 feel-loop iteration 1: DE hotkeys H/,/F3/+- (idleMilitaryOps bridge twin; pause via pauseControl toggle; view.adjustSpeed ladder) — 4 real-key browser tests; found arrows/WASD/edge-scroll/minimap-pan already existed; live comma test needed an out-of-sight fixture (auto-aggro empties the idle cycle where soldiers spawn in view).
 - 2026-08-27 v0.3.154 per-set wall merlons (pure architectureMerlonBoxes; west identity) — the architecture-set family CLOSES; fortress-map visual sweep on Saracens/Aztecs clean.

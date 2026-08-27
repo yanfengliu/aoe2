@@ -12,6 +12,7 @@ export const GAME_MENU_ICON_KINDS = [
   'quit',
   'debug',
   'artStyle',
+  'techTree',
 ] as const;
 
 export type GameMenuIconKind = (typeof GAME_MENU_ICON_KINDS)[number];
@@ -42,6 +43,14 @@ const GAME_MENU_ICON_BODY: Record<GameMenuIconKind, string> = {
     <rect x="3.5" y="4.5" width="17" height="13" rx="1.5" />
     <path d="M8 20.25h8M12 17.5v2.75M12 8v5m-2.5-2.5h5" />
     <circle cx="12" cy="10.5" r="4" />`,
+  // A branching tree of nodes: the technology lattice this panel browses.
+  techTree: `
+    <circle cx="12" cy="5" r="2" />
+    <circle cx="6" cy="12" r="2" />
+    <circle cx="18" cy="12" r="2" />
+    <circle cx="6" cy="19" r="2" />
+    <circle cx="18" cy="19" r="2" />
+    <path d="M12 7v2m0 0-4.5 1.7M12 9l4.5 1.7M6 14v3m12-3v3" />`,
   // A drawing nib over a flat field: the two halves of the look this setting
   // switches between — the contour, and the unmodulated colour under it.
   artStyle: `

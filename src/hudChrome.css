@@ -227,3 +227,33 @@
     -webkit-backdrop-filter: none;
   }
 }
+
+/* Technology tree viewer (v0.3.157) — spec §11.3's browse-the-tree modal. */
+.tech-tree { position: fixed; inset: 0; z-index: 55; pointer-events: auto; }
+.tech-tree__backdrop {
+  position: fixed; inset: 0; background: rgba(6, 10, 14, 0.55); pointer-events: auto;
+}
+.tech-tree__panel {
+  position: fixed; inset: 6% 8%; overflow-y: auto; pointer-events: auto;
+  background: rgba(16, 22, 28, 0.96); border: 1px solid rgba(150, 180, 200, 0.25);
+  border-radius: 10px; padding: 14px 18px; color: #dfe8ee; z-index: 56;
+  font: 13px/1.45 system-ui, sans-serif;
+}
+.tech-tree__header { display: flex; justify-content: space-between; align-items: center; }
+.tech-tree__title { font-size: 16px; font-weight: 600; letter-spacing: 0.02em; }
+.tech-tree__close {
+  background: none; border: 1px solid rgba(150, 180, 200, 0.35); color: inherit;
+  border-radius: 6px; min-width: 32px; min-height: 32px; cursor: pointer;
+}
+.tech-tree__legend { color: #9fb2bf; margin: 6px 0 10px; font-size: 12px; }
+.tech-tree__section { border-top: 1px solid rgba(150, 180, 200, 0.15); padding: 8px 0; }
+.tech-tree__section-name { margin: 0 0 6px; font-size: 13px; color: #cfe0ea; }
+.tech-tree__row { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; margin: 4px 0; }
+.tech-tree__row-label { color: #8fa4b1; min-width: 92px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.tech-tree__item {
+  background: rgba(90, 130, 160, 0.18); border: 1px solid rgba(120, 160, 190, 0.3);
+  border-radius: 5px; padding: 2px 8px; white-space: nowrap;
+}
+.tech-tree__item--denied {
+  opacity: 0.38; border-style: dashed; text-decoration: line-through;
+}

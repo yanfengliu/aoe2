@@ -13,6 +13,7 @@ const MENU_ACTIONS = [
   { hook: 'menu-resume', label: 'Resume', icon: 'resume', state: '' },
   { hook: 'save-button', label: 'Save game', icon: 'save', state: '' },
   { hook: 'load-button', label: 'Load game', icon: 'load', state: '' },
+  { hook: 'menu-tech-tree', label: 'Technology tree', icon: 'techTree', state: '' },
   { hook: 'replay-load-button', label: 'Watch a replay…', icon: 'replay', state: '' },
   { hook: 'menu-restart', label: 'Restart match', icon: 'restart', state: '' },
   { hook: 'menu-quit', label: 'Quit to title', icon: 'quit', state: '' },
