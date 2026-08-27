@@ -1,5 +1,6 @@
 ## 2026-08-25 (combat team bonuses + the attack-step extraction, v0.3.82)
 
+- 2026-08-26 v0.3.137 structures gate (28/28 clean on arrival; tower upgrade rows via the multiplier chain) — the content-differential family complete.
 - 2026-08-26 v0.3.136 base-stat harvest (militia-line HP −5×3, elite LB range 8, siege-ram atk 4, petard/trade-cog armor un-transposed, scout Feudal +2 via the age-scaled seam hoisted above the civ guard) + the third differential gate; audit trilogy complete — hosting, bonuses both directions, base stats, all machine-locked to the CSVs.
 - 2026-08-26 v0.3.135 class armor (UNIT_CLASS_ARMOR, per-class floored subtraction in armorClassBonus; cataphract/turtle/mameluke/hull/ram entries; ram melee −3 in the base table) + Siege Engineers ×1.2 building damage (the CSV ram figures were the TECHED values — v0.3.134's parse over-read them; bases restored 125/150/200, gate grammar taught the row); armor_bonus column now gated too; naval smoke clean (19 cmds, 0 rej).
 - 2026-08-26 v0.3.134 the 46-entry attack-bonus harvest (naval fabric WHOLE — galley/fire/cannon-galleon lines had zero bonuses; turtle-ship + cavalry-archer classes; HC's phantom +2 siege was a bonus the CSV never gave; ram building values) + the permanent CSV differential gate with named deferrals and the one bombard exception.
