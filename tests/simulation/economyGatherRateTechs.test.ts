@@ -48,8 +48,8 @@ describe('economy gather-rate tech multipliers', () => {
   });
 
   it('no-tech gather takes base-cadence × cycles; wood techs do not touch gold', () => {
-    // tree: base 5 ticks/cycle, amount 1, carry 10 -> 50 ticks with no tech
-    expect(ticksToGatherCarry(techs(), 'tree', 10)).toBe(50);
+    // tree: base 26 ticks/cycle (spec §6.3 retune), amount 1, carry 10 -> 260
+    expect(ticksToGatherCarry(techs(), 'tree', 10)).toBe(260);
     expect(ticksToGatherCarry(techs('double-bit-axe'), 'gold-mine', 10)).toBe(
       ticksToGatherCarry(techs(), 'gold-mine', 10),
     );

@@ -204,7 +204,8 @@ describe('Slice 10 AI planner — simulation end-to-end', () => {
     const bridge = createSimulationBridge('ai-difficulty-fixture');
     let easyPeakFood = 0;
     let hardPeakFood = 0;
-    for (let i = 0; i < 1500; i += 1) {
+    // §6.3 pacing (v0.3.159): slower gather needs a proportionally longer window.
+    for (let i = 0; i < 9000; i += 1) {
       bridge.step(100);
       const economy = bridge.getEconomyState();
       // Only sample while still in the Dark Age — once the age-up research

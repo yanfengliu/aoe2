@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.159
+
+- The economy now runs at AoE2's real pace: every base gather rate (sheep, berries, boar, farms, fish, wood, gold, stone) lands on the spec §6.3 table that build and research times were already matched to — a Feudal push is once again a plan measured in minutes, not a formality measured in seconds. The AI's villager rebalancer learned not to ping-pong a worker between two resources when the split is already as even as whole villagers allow, which the old hot cadences had been hiding.
+
 ## 0.3.158
 
 - The camera now boots at AoE2 DE's default framing: the whole opening base and its resource ring on screen, instead of a Town Center filling half the view with parts of the starting resource ring pushed off-frame.

@@ -107,8 +107,10 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
     ).toBe(true);
 
     await expect.poll(async () => {
+      // §6.3 pacing (v0.3.159): 25 ticks per poll — a shore-fish carry is
+      // 20 ticks/food plus the wade, far past 1-tick-per-poll inside 15s.
       const snapshot = await page.evaluate(
-        () => window.__AOE2_TEST__!.advanceTicks(1, 100),
+        () => window.__AOE2_TEST__!.advanceTicks(25, 100),
       );
       return snapshot.hudState.playerResources.food;
     }, { timeout: 15_000 }).toBeGreaterThan(0);

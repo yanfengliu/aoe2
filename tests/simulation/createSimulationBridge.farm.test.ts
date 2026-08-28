@@ -199,7 +199,9 @@ describe('createSimulationBridge farms', () => {
     // depletion→reseed cycle, proving reseed is repeatable and drains exactly
     // 60 wood each time.
     const foodAfterFirst = ownerFood();
-    const secondReseed = stepBridgeUntil(bridge, () => ownerWood() === 20, { maxSteps: 1200 });
+    // Spec §6.3 pacing (v0.3.159): draining a freshly reseeded 175-food farm
+    // at ~0.33 food/s per farmer takes thousands of ticks, not hundreds.
+    const secondReseed = stepBridgeUntil(bridge, () => ownerWood() === 20, { maxSteps: 9000 });
     expect(secondReseed).toBe(true);
     expect(farmFood()).not.toBeNull(); // still the same entity
     // Food keeps rising across the reseed (gathering never stalled).
@@ -213,7 +215,8 @@ describe('createSimulationBridge farms', () => {
     const farmRemoved = stepBridgeUntil(
       bridge,
       () => !bridge.getEconomyState().resources.some((resource) => resource.id === farmId),
-      { maxSteps: 1200 },
+      // §6.3 pacing: a third full 175-food drain precedes the removal.
+      { maxSteps: 9000 },
     );
     expect(farmRemoved).toBe(true);
     expect(bridge.getEconomyState().buildings.some((building) => building.id === farmId)).toBe(false);

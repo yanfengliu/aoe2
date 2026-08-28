@@ -25,7 +25,7 @@ describe('villager drop-off reroute off an unreachable drop-off (AI-vs-AI ground
     // Long enough for both villagers to gather a full carry AND walk to the
     // farther reachable Town Center to deposit (the boxed Mill is nearer but
     // unreachable). Pre-fix they stay pinned in `to-dropoff` and never deposit.
-    for (let i = 0; i < 400; i += 1) bridge.step(100);
+    for (let i = 0; i < 900; i += 1) bridge.step(100); // §6.3 retune (v0.3.159): a berry carry now takes 320 gather ticks
 
     const eco1 = bridge.getEconomyState();
     const foodAfter = eco1.playerResources[2]?.food ?? 0;

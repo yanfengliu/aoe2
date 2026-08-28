@@ -1,10 +1,9 @@
 {
   "name": "aoe2",
-  "version": "0.3.158",
+  "version": "0.3.159",
   "private": true,
   "type": "module",
   "scripts": {
-    "verify": "npm test && npm run typecheck && npm run lint && npm run build",
     "voxel:build": "npm --prefix ../voxel run build",
     "predev": "npm run voxel:build",
     "dev": "vite",
@@ -35,7 +34,7 @@
     "content:build": "node scripts/build-content.mjs",
     "content:validate": "node scripts/validate-content.mjs",
     "content:validate:strict": "node scripts/validate-content.mjs --strict",
-    "verify": "npm run content:validate && npm run test && npm run test:browser && npm run lint && npm run build",
+    "verify": "npm run content:validate && npm run test && npm run typecheck && npm run test:browser && npm run lint && npm run build",
     "playtest:canary": "tsx scripts/playtest-canary.mjs",
     "lessons:check": "node scripts/check-lessons.mjs"
   },

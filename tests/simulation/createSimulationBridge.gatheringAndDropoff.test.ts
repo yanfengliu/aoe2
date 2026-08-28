@@ -13,7 +13,9 @@ describe('createSimulationBridge core systems', () => {
     const initialHudState = bridge.getHudState();
     const initialEconomyState = bridge.getEconomyState();
 
-    for (let index = 0; index < 120; index += 1) {
+    // Spec §6.3 pacing (v0.3.159): the first 10-food carry needs ~300 ticks
+    // of gathering before any drop-off can move the stockpile.
+    for (let index = 0; index < 500; index += 1) {
       bridge.step(100);
     }
 
@@ -151,10 +153,12 @@ describe('createSimulationBridge core systems', () => {
 
     expect(bridge.issueContextCommand(13, 7)).toBe(true);
 
-    for (let index = 0; index < 120; index += 1) {
-      bridge.step(100);
-    }
-
-    expect(bridge.getHudState().playerResources.gold).toBeGreaterThan(100);
+    // Spec §6.3 pacing (v0.3.159): a full 10-gold carry takes 26 ticks/unit,
+    // so the first drop-off cannot land before ~300 ticks.
+    expect(
+      stepBridgeUntil(bridge, () => bridge.getHudState().playerResources.gold > 100, {
+        maxSteps: 800,
+      }),
+    ).toBe(true);
   });
 });

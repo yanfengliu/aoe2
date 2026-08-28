@@ -404,8 +404,10 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     await game.clickCell(page, goldMine.x, goldMine.y, 'right');
     await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
 
+    // §6.3 pacing (v0.3.159): a 10-gold carry alone is 260 ticks of mining,
+    // so the walk + first drop-off need a wider window.
     const advancedSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(260, 100),
+      () => window.__AOE2_TEST__!.advanceTicks(700, 100),
     );
 
     await expect(page.locator('[data-hud="gold"]')).toHaveText(

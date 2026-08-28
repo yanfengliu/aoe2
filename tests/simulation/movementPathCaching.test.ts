@@ -142,10 +142,10 @@ describe('move path caching', () => {
 
     const movingVillager = bridge
       .getEconomyState()
-      .units.find((unit) => unit.owner === 1 && unit.unitType === 'villager' && unit.x === 10 && unit.y === 8);
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'villager' && unit.x === 2 && unit.y === 8);
     expect(movingVillager).toBeDefined();
 
-    expect(bridge.selectEntityAtCell(10, 8)).toBe(true);
+    expect(bridge.selectEntityAtCell(2, 8)).toBe(true);
     expect(bridge.issueMoveCommand(18, 8)).toBe(true);
 
     expect(
@@ -155,7 +155,8 @@ describe('move path caching', () => {
           !bridge
             .getEconomyState()
             .resources.some((resource) => resource.resourceType === 'tree' && resource.x === 18 && resource.y === 8),
-        { maxSteps: 160 },
+        // §6.3 pacing (v0.3.159): the helper chops 26 ticks/unit before the tree falls.
+        { maxSteps: 900 },
       ),
     ).toBe(true);
 
@@ -181,10 +182,10 @@ describe('move path caching', () => {
 
     const movingVillager = bridge
       .getEconomyState()
-      .units.find((unit) => unit.owner === 1 && unit.unitType === 'villager' && unit.x === 10 && unit.y === 8);
+      .units.find((unit) => unit.owner === 1 && unit.unitType === 'villager' && unit.x === 2 && unit.y === 8);
     expect(movingVillager).toBeDefined();
 
-    expect(bridge.selectEntityAtCell(10, 8)).toBe(true);
+    expect(bridge.selectEntityAtCell(2, 8)).toBe(true);
     expect(bridge.issueMoveCommand(18, 8)).toBe(true);
 
     expect(
@@ -194,7 +195,8 @@ describe('move path caching', () => {
           !bridge
             .getEconomyState()
             .resources.some((resource) => resource.resourceType === 'tree' && resource.x === 18 && resource.y === 8),
-        { maxSteps: 160 },
+        // §6.3 pacing (v0.3.159): the helper chops 26 ticks/unit before the tree falls.
+        { maxSteps: 900 },
       ),
     ).toBe(true);
 

@@ -281,6 +281,16 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       && bestKind
       && worstKind !== bestKind
       && bestRatio - worstRatio > 0.01
+      // No-inversion guard (v0.3.159): moving one villager must not FLIP the
+      // ordering — if it would, the split is already as balanced as integers
+      // allow, and moving anyway starts a ping-pong that re-yanks the same
+      // cheapest villager every decision. The old 4-6-tick gather cycles
+      // completed between decisions and hid this; at spec §6.3 cadences
+      // (26-32 ticks/cycle) the bounced villager never finishes a cycle:
+      // measured on ai-feudal-stone-fixture, stone froze at 50 for 12,000
+      // ticks with the lone miner permanently mid-first-cycle.
+      && (actualByKind[bestKind] - 1) / desiredByKind[bestKind]
+        >= (actualByKind[worstKind] + 1) / desiredByKind[worstKind]
     ) {
       // Donate the villager with the LEAST sunk work, not whichever the
       // entity query happened to list first. Reassignment throws away the
@@ -296,8 +306,11 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
         const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
         if (!gatherer) return 0;
         // A carried load is lost outright; gather progress is lost too; a
-        // villager merely walking out has spent the least.
-        return (gatherer.carriedAmount * 4) + gatherer.gatherProgressTicks;
+        // villager merely walking out has spent the least. Each carried unit
+        // is weighted by the §6.3 stone cadence (28 ticks — mid-table) rather
+        // than the pre-v0.3.159 4-tick cycle, which undervalued carried loads
+        // ~7x and donated the fullest villager first.
+        return (gatherer.carriedAmount * 28) + gatherer.gatherProgressTicks;
       };
       let donorId: number | undefined;
       let cheapest = Number.POSITIVE_INFINITY;

@@ -37,17 +37,22 @@ const ECONOMY_RESOURCE_BY_KIND: Record<ResourceKind, EconomyResourceKind | null>
   farm: 'food',
 };
 
+// Ticks per gather cycle, tuned so amount/ticks × 10 ticks/s lands on spec
+// §6.3's AoE2 base rates (±5%; integer ticks cannot hit every decimal).
+// Retuned 2026-08-27 (v0.3.159): the original 4/5/6-tick cadences ran the
+// whole economy 4.5–10x hotter than the §6.3 table while build/research
+// times matched AoE2 1:1 — Feudal in ~3 minutes instead of ~10.
 const GATHER_TICKS_BY_KIND: Record<ResourceKind, number | null> = {
-  'berry-bush': 4,
-  'gold-mine': 6,
-  'stone-mine': 6,
-  boar: 5,
-  fish: 4,
-  sheep: 4,
+  'berry-bush': 32, // 0.3125/s vs 0.31
+  'gold-mine': 26, // 0.385/s vs 0.38
+  'stone-mine': 28, // 0.357/s vs 0.36
+  boar: 49, // ×2/cycle = 0.408/s vs 0.41
+  fish: 20, // 0.5/s vs "about 0.49" (deep fish)
+  sheep: 30, // 0.333/s vs 0.33
   wolf: null,
-  tree: 5,
+  tree: 26, // 0.385/s vs 0.39
   relic: null,
-  farm: 4, // M1 Farms: berry-bush parity. NOTE: 4 ticks/unit = 2.5 food/s raw, ~8x spec §6.3's target — the whole table awaits the §6.3 pacing retune (spec §6.6 note, 2026-08-27).
+  farm: 30, // 0.333/s vs "about 0.32 to 0.34" (sheep parity)
 };
 
 const GATHER_AMOUNT_BY_KIND: Record<ResourceKind, number | null> = {

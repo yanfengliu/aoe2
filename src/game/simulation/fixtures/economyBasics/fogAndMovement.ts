@@ -158,7 +158,11 @@ export function createMoveTargetUnblocksFixture(seed: string): PrototypeScenario
     ],
     spawns: [
       ownedSpawn('town-center', 1, 2, 2, { vision: 7 }),
-      ownedSpawn('villager', 1, 10, 8, { vision: 4 }),
+      // The mover spawns 16 cells out so its walk OUTLASTS the chopper's
+      // first §6.3-pacing gather cycle (26 ticks/wood) — the whole premise of
+      // the mid-walk-unblock tests is that the tree falls while the mover is
+      // still walking.
+      ownedSpawn('villager', 1, 2, 8, { vision: 4 }),
       ownedSpawn('villager', 1, 17, 8, { vision: 4 }),
       gaiaSpawn('tree', 18, 8, { amount: 1 }),
       ownedSpawn('town-center', 2, 36, 8, { vision: 7 }),

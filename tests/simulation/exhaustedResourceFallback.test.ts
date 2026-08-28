@@ -62,7 +62,7 @@ describe('villagers fall back to what is left when their resource runs out', () 
   //
   // v0.3.56 sends a PARTY instead, which is AoE2's answer to the same animal.
   it('sends a hunting party at the boar and eats it', () => {
-    const { bridge } = runExhaustedBase(3_000);
+    const { bridge } = runExhaustedBase(14_000); // §6.3 retune (v0.3.159): berries deplete ~6.5x slower, then the party hunts a 340-food boar at 0.41/s
     const eco = bridge.getEconomyState();
     // The boar is eaten: no live boar with food left on the map.
     const boarLeft = (eco.resources ?? []).filter(
@@ -76,5 +76,5 @@ describe('villagers fall back to what is left when their resource runs out', () 
     // reason the party size exists.
     expect(eco.units.filter((u) => u.owner === 1 && u.unitType === 'villager').length)
       .toBeGreaterThanOrEqual(4);
-  }, 60_000);
+  }, 300_000);
 });

@@ -21,7 +21,7 @@ describe('villager gather reroute off an unreachable resource (campaign-11 regre
     // villagers never gather anything.
     const foodBefore = eco0.playerResources[2]?.food ?? 0;
 
-    for (let i = 0; i < 250; i += 1) bridge.step(100);
+    for (let i = 0; i < 800; i += 1) bridge.step(100); // §6.3 retune (v0.3.159): a berry carry now takes 320 gather ticks
 
     const eco1 = bridge.getEconomyState();
     const foodAfter = eco1.playerResources[2]?.food ?? 0;

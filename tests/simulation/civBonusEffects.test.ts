@@ -360,9 +360,11 @@ describe('Britons shepherd bonus — live twin-fixture sheep race', () => {
     }
 
     // Step both the same window. Over many gather+deposit cycles the 25% edge
-    // compounds past one carry-load of trip-phase noise (deterministic here:
-    // control ~100 vs Britons ~110 harvested), short of exhausting the sheep.
-    for (let i = 0; i < 600; i += 1) {
+    // compounds past one carry-load of trip-phase noise, short of exhausting
+    // the sheep. Window re-derived for the §6.3 pacing retune (v0.3.159):
+    // sheep is 1 food/30 ticks now, so 2400 ticks gives control ~75 vs
+    // Britons ~95 — a margin far past the +5 assertion.
+    for (let i = 0; i < 2400; i += 1) {
       britons.step(100);
       control.step(100);
     }

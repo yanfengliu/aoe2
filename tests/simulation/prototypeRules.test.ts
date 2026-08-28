@@ -55,7 +55,7 @@ describe('prototype economy rules', () => {
   it('maps resources and gather rates to the existing economy values', () => {
     expect(resourceKindToEconomyResource('gold-mine')).toBe('gold');
     expect(resourceKindToEconomyResource('wolf')).toBeNull();
-    expect(gatherTicksFor('tree')).toBe(5);
+    expect(gatherTicksFor('tree')).toBe(26); // spec §6.3 retune (v0.3.159)
     expect(gatherAmountFor('boar')).toBe(2);
   });
 

@@ -43,11 +43,13 @@ describe('villager wood-gather spread (to-resource gridlock fix)', () => {
     // excess villager redistributes off the over-subscribed tree at the
     // approach timeout (~t80+) and — under the v0.1.79 drop-off-locality sort —
     // walks to a drop-off-proximate tree rather than the one adjacent to it,
-    // reaching and chopping it by ~t200. 260 ticks covers all of that while
-    // staying WELL before the piled tree depletes (cap-2 gatherers × 1 wood /
-    // 5 ticks from ~t80 → depletion ~t330+): after depletion even the buggy
-    // pre-campaign-4 code reassigns villagers, which would mask the fix.
-    for (let i = 0; i < 260; i += 1) bridge.step(100);
+    // reaching and chopping it by ~t200. The §6.3 pacing retune (v0.3.159)
+    // slowed chopping to 1 wood / 26 ticks, so a full first carry (10 wood)
+    // finishes ~t460 and deposits by ~t520; 700 ticks covers that with margin
+    // while the piled tree (100 wood, cap-2 gatherers) is nowhere near
+    // depletion — after depletion even the buggy pre-campaign-4 code
+    // reassigns villagers, which would mask the fix.
+    for (let i = 0; i < 700; i += 1) bridge.step(100);
 
     const eco1 = bridge.getEconomyState();
 
