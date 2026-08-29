@@ -3,16 +3,23 @@ name: CI
 on:
   # Cost control: only run the gates on a push that changes package.json — i.e.
   # a version bump (every user-visible change bumps the version) or a dependency
-  # change. Refactor-only / doc-only / CI-config pushes skip CI and don't burn
-  # Actions minutes. Pull requests still run the full gates regardless.
+  # change. Refactor-only / doc-only pushes skip CI and don't burn Actions
+  # minutes. Pull requests still run the full gates regardless.
+  #
+  # The workflows themselves are IN the filter (v0.3.161): a fix to this file
+  # could not trigger the run that would prove it, which is how a Windows-only
+  # tar bug survived two months. workflow_dispatch is here for the same reason —
+  # a CI change must be testable without inventing an unrelated version bump.
   push:
     branches: [main]
     paths:
       - 'package.json'
       - 'package-lock.json'
       - '.github/voxel-commit'
+      - '.github/workflows/**'
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   gates:
