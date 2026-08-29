@@ -295,12 +295,16 @@ describe('unit attack animation replay snapshots', () => {
     live.clearSelection();
     live.selectEntityById(attackerId!);
     live.issueMoveCommand(0, 0);
-    live.step(100);
-    const cancellationTick = live.getRenderState().tick;
-    expect(
-      live.getRenderState().entities.find((entity) => entity.id === attackerId)
-        ?.attackAnimation?.cancelTick,
-    ).toBe(cancellationTick);
+    // §12.4.2 clock: the cancel publishes on the attacker's first MOVING tick
+    // (a villager banks 32 hundredths a tick — tick +4, not +1).
+    let cancellationTick: number | undefined;
+    for (let step = 0; step < 8 && cancellationTick === undefined; step += 1) {
+      live.step(100);
+      cancellationTick = live.getRenderState().entities
+        .find((entity) => entity.id === attackerId)?.attackAnimation?.cancelTick;
+    }
+    expect(cancellationTick).toBe(live.getRenderState().tick);
+    if (cancellationTick === undefined) throw new Error('no cancellation tick found');
     live.step(100);
     const bundle = recording.bundle() as SessionBundle<
       GameEvents,

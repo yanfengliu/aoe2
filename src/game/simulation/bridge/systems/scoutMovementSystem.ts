@@ -145,19 +145,27 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
         // exit open (prove-rerun 3, wide-box oracle verdict). A staggered
         // heading rotation every WANDER_HEADING_REFRESH_TICKS (angle cycling
         // 90/180/270) breaks any such cycle while keeping runs replayable.
-        applyWanderKick(velocity, activeWorld.tick, id);
-
         // Wander moves the fine transform DIRECTLY rather than through the
-        // step executor, so the per-unit base speed has to be applied here too
-        // — otherwise an AI scout patrols at a villager's pace while the same
-        // scout under a move order travels at 150%. A whole-fine-unit step
-        // rather than the fractional carry: the bounce reflection recomputes
-        // this step three times in one tick and a carry banked across a
-        // reflection has no meaning. Rounding is exact for the scout (2 x 150%
-        // = 3) and at worst a few percent off for any future wanderer.
-        const wanderStepUnits = Math.max(1, Math.round(
-          (UNIT_SUBGRID_STEP_PER_TICK * unitBaseSpeedPercent(unit.unitType)) / 100,
+        // step executor, so the per-unit base speed has to be applied here
+        // too. §12.4.2 clock (v0.3.160): the base step is fractional (0.32),
+        // so a whole-unit wander step is issued only every Nth tick — the
+        // reciprocal of the per-tick entitlement — instead of 3 units every
+        // tick. A carry across bounce reflections still has no meaning, so
+        // the throttle is tick-modulo rather than banked.
+        const wanderHundredths = Math.max(1, Math.round(
+          UNIT_SUBGRID_STEP_PER_TICK * unitBaseSpeedPercent(unit.unitType),
         ));
+        const wanderInterval = Math.max(1, Math.round(100 / wanderHundredths));
+        if (activeWorld.tick % wanderInterval !== 0) continue;
+        const wanderStepUnits = 1;
+
+        // Periodic deterministic patrol kick, clocked in MOVES scaled x3 so a
+        // heading leg covers the same fine DISTANCE as the old 3-units-a-tick
+        // design. Kicking on the raw tick clock while moves slowed 6x cut
+        // every leg below one cell, and the billiard closed into a sub-cell
+        // orbit that never escaped (measured: fine cycle of period 16 inside
+        // one cell, stranded scout frozen for 2,600 ticks).
+        applyWanderKick(velocity, Math.floor(activeWorld.tick / (wanderInterval * 3)), id);
         const slottedPosition = getUnitTargetTransformForPosition(id, position);
         const currentFineX = transform?.fineX ?? slottedPosition.fineX;
         const currentFineY = transform?.fineY ?? slottedPosition.fineY;

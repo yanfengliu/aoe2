@@ -72,7 +72,8 @@ export type MarketCommodity = Exclude<EconomyResourceKind, 'gold'>;
 
 export const MARKET_BASE_RATE = 100;
 export const UNIT_SUBGRID_RESOLUTION = 4;
-export const UNIT_SUBGRID_STEP_PER_TICK = 2;
+// §12.4.2 villager reference 0.8 tiles/s = 0.32 fine/tick via the carry.
+export const UNIT_SUBGRID_STEP_PER_TICK = 0.32;
 export const UNIT_CELL_SLOT_OFFSETS: ReadonlyArray<{ x: number; y: number }> = [
   { x: 0, y: 0 },
   { x: 0.5, y: 0 },

@@ -78,6 +78,12 @@ function maxMatrixDelta(left: VoxelPart, right: VoxelPart): number {
   )));
 }
 
+const ORIGIN_HISTORY_FIELDS = {
+  x: 0, y: 0, sampleTimeMs: 0,
+  anchorX: 0, anchorY: 0, anchorTimeMs: 0,
+  youngAnchorX: 0, youngAnchorY: 0, youngAnchorTimeMs: 0,
+} as const;
+
 describe('AoE voxel unit locomotion sampling', () => {
   it('starts a fresh idle identity on its authored forward axis', () => {
     const initial = resolveUnitAnimationState(
@@ -232,9 +238,7 @@ describe('AoE voxel unit locomotion sampling', () => {
         directionX: 1,
         directionZ: 0,
       }),
-      x: 0,
-      y: 0,
-      sampleTimeMs: 0,
+      ...ORIGIN_HISTORY_FIELDS,
     };
     const next = resolveUnitAnimationState(
       unit({ x: targetX * 0.1, y: targetZ * 0.1 }),
@@ -258,9 +262,7 @@ describe('AoE voxel unit locomotion sampling', () => {
         directionX: Math.cos(previousAngle),
         directionZ: Math.sin(previousAngle),
       }),
-      x: 0,
-      y: 0,
-      sampleTimeMs: 0,
+      ...ORIGIN_HISTORY_FIELDS,
     };
     const next = resolveUnitAnimationState(
       unit({ x: Math.cos(targetAngle) * 0.1, y: Math.sin(targetAngle) * 0.1 }),
@@ -295,7 +297,10 @@ describe('AoE voxel unit locomotion sampling', () => {
 
     expect(forced.state).toEqual(moving.state);
     expect(resumedAfterForcedRedraw).toEqual(resumedWithoutRedraw);
-    expect(resumedAfterForcedRedraw.state.speedWorldUnitsPerSecond).toBeCloseTo(5);
+    // v0.3.160: speed reads over the ~450ms trailing window (0.3 world units
+    // in 120ms => 2.5/s), not the single-frame delta — the §12.4.2 carry
+    // grants fine steps only every few ticks, so per-frame speed flickered.
+    expect(resumedAfterForcedRedraw.state.speedWorldUnitsPerSecond).toBeCloseTo(2.5);
   });
 
   it('uses the full injected interval for speed while bounding only transition smoothing', () => {

@@ -297,6 +297,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['fish-trap-fixture', fixtures.createFishTrapFixture],
   ['ai-under-raid-fixture', fixtures.createAiUnderRaidFixture],
   ['dropoff-unreachable-reroute-fixture', fixtures.createDropOffUnreachableRerouteFixture],
+  ['dropoff-convoy-fixture', fixtures.createDropOffConvoyFixture],
   ['fog-memory-fixture', fixtures.createFogMemoryFixture],
   ['building-footprint-vision-fixture', fixtures.createBuildingFootprintVisionFixture],
   // Slice 11: alternate playable maps. Both share the default

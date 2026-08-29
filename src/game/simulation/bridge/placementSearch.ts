@@ -11,20 +11,21 @@ import type { Position } from 'civ-engine';
 // only 3x3 buildings ever fit the inner ring, and the AI could NEVER place a 4x4
 // one (it hoarded resources on a build it couldn't complete; v0.1.93 FIND).
 // Reaching radius 12 lets the 4x4 gap be found past the crowded core.
-// How far past the footprint the connectivity guard looks for a way around it.
-// Three cells is enough to route around any building this game has (the widest
-// is 4x4) without turning the check into a map-wide flood fill.
-const CONNECTIVITY_MARGIN = 3;
-
 /**
  * Whether placing `footprint` at `anchor` would cut the free ground beside it
  * in two — the free cells touching the building must still reach each other
- * without passing through it.
+ * without passing through it. The flood is GLOBAL (whole map, typed-array
+ * visited), not margin-boxed: a 3-cell local box passed every individual farm
+ * of a wall whose COLLECTIVE effect sealed the corridor three-plus cells out
+ * (v0.3.160 feudal-stone profile: eleven carriers walled off from every
+ * drop-off by farms the local guard had individually approved). At 60x36
+ * cells one flood is ~2K visits — cheaper than the string-keyed local Set.
  *
- * Measured on the default map: the AI packed its buildings into a solid mass
- * ten cells wide and sealed its own sheep, boar and forest into a pocket its
- * villagers could not enter; six of them then held that one unreachable sheep
- * for thirteen thousand ticks while the whole economy stood still.
+ * Measured on the default map (v0.1.x): the AI packed its buildings into a
+ * solid mass ten cells wide and sealed its own sheep, boar and forest into a
+ * pocket its villagers could not enter; six of them then held that one
+ * unreachable sheep for thirteen thousand ticks while the economy stood
+ * still.
  */
 export function placementKeepsGroundConnected(
   anchor: Position,
@@ -33,16 +34,12 @@ export function placementKeepsGroundConnected(
   mapHeight: number,
   isFree: (x: number, y: number) => boolean,
 ): boolean {
-  const minX = Math.max(0, anchor.x - CONNECTIVITY_MARGIN);
-  const minY = Math.max(0, anchor.y - CONNECTIVITY_MARGIN);
-  const maxX = Math.min(mapWidth - 1, anchor.x + footprint.width - 1 + CONNECTIVITY_MARGIN);
-  const maxY = Math.min(mapHeight - 1, anchor.y + footprint.height - 1 + CONNECTIVITY_MARGIN);
   const insideFootprint = (x: number, y: number): boolean => (
     x >= anchor.x && x < anchor.x + footprint.width
     && y >= anchor.y && y < anchor.y + footprint.height
   );
   const walkable = (x: number, y: number): boolean => (
-    x >= minX && x <= maxX && y >= minY && y <= maxY
+    x >= 0 && x < mapWidth && y >= 0 && y < mapHeight
     && !insideFootprint(x, y) && isFree(x, y)
   );
 
@@ -61,20 +58,29 @@ export function placementKeepsGroundConnected(
   // Nothing to separate.
   if (border.length <= 1) return true;
 
-  const visited = new Set<string>([`${String(border[0]!.x)},${String(border[0]!.y)}`]);
-  const queue: Position[] = [border[0]!];
-  while (queue.length > 0) {
-    const current = queue.pop() as Position;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-      const nextX = current.x + dx;
-      const nextY = current.y + dy;
-      const key = `${String(nextX)},${String(nextY)}`;
-      if (visited.has(key) || !walkable(nextX, nextY)) continue;
-      visited.add(key);
-      queue.push({ x: nextX, y: nextY });
-    }
+  const visited = new Uint8Array(mapWidth * mapHeight);
+  const queue = new Int32Array(mapWidth * mapHeight);
+  let head = 0;
+  let tail = 0;
+  const push = (x: number, y: number): void => {
+    const index = y * mapWidth + x;
+    if (visited[index]) return;
+    visited[index] = 1;
+    queue[tail] = index;
+    tail += 1;
+  };
+  push(border[0]!.x, border[0]!.y);
+  while (head < tail) {
+    const index = queue[head]!;
+    head += 1;
+    const x = index % mapWidth;
+    const y = (index - x) / mapWidth;
+    if (x + 1 < mapWidth && walkable(x + 1, y)) push(x + 1, y);
+    if (x - 1 >= 0 && walkable(x - 1, y)) push(x - 1, y);
+    if (y + 1 < mapHeight && walkable(x, y + 1)) push(x, y + 1);
+    if (y - 1 >= 0 && walkable(x, y - 1)) push(x, y - 1);
   }
-  return border.every((cell) => visited.has(`${String(cell.x)},${String(cell.y)}`));
+  return border.every((cell) => visited[cell.y * mapWidth + cell.x] === 1);
 }
 
 export function findPlacementAnchorNear(

@@ -229,6 +229,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     movePathCache,
     isCellPassableForUnit,
     isCellPassableForWildlife,
+    structuralRevision: () => worldOccupancy.structuralRevision(),
   });
   const {
     uniquePositions,

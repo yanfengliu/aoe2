@@ -169,7 +169,7 @@ describe('move path caching', () => {
             .units.find((unit) => unit.id === movingVillager?.id);
           return updatedVillager?.x === 18 && updatedVillager.y === 8;
         },
-        { maxSteps: 160 },
+        { maxSteps: 500 }, // §12.4.2 clock (v0.3.160): walks run ~6x longer.
       ),
     ).toBe(true);
   });
@@ -201,7 +201,7 @@ describe('move path caching', () => {
     ).toBe(true);
 
     let reachedClickedCellBeforeFallback = false;
-    for (let tick = 0; tick < 120; tick += 1) {
+    for (let tick = 0; tick < 500; tick += 1) { // §12.4.2 clock (v0.3.160): walks run ~6x longer.
       bridge.step(100);
       const updatedVillager = bridge
         .getEconomyState()

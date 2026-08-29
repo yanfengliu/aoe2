@@ -26,7 +26,7 @@ function commandMove(bridge: Bridge, target: { x: number; y: number }): void {
   expect(bridge.issueMoveCommand(target.x, target.y)).toBe(true);
 }
 
-function arrivalTick(bridge: Bridge, target: { x: number; y: number }, maxTicks = 200): number {
+function arrivalTick(bridge: Bridge, target: { x: number; y: number }, maxTicks = 1400): number {
   for (let tick = 1; tick <= maxTicks; tick += 1) {
     bridge.step(100);
     const villager = getVillager(bridge, 1);

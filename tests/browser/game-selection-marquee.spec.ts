@@ -151,8 +151,9 @@ test.describe('browser gameplay smoke tests - selection: marquee + activity', ()
       await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(14, 12)),
     ).toBe(true);
 
+    // §12.4.2 walk clock (v0.3.160): ~5 tiles at villager speed is ~65 ticks.
     const movedSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(40, 100),
+      () => window.__AOE2_TEST__!.advanceTicks(260, 100),
     );
 
     expect(

@@ -271,7 +271,10 @@ describe('sheep movement', () => {
     let lastX = sheep.x;
     let lastY = sheep.y;
     let stableTicks = 0;
-    for (let i = 0; i < 600; i += 1) {
+    // §12.4.2 clock: a sheep's COARSE cell advances only every ~24 ticks
+    // (one fine step per 6 ticks, 4 fine per cell), so "stable" must outlast
+    // that cadence, and the walk itself takes ~25 ticks per cell.
+    for (let i = 0; i < 1600; i += 1) {
       bridge.step(100);
       const current = findHumanClaimedSheep(bridge)!;
       if (current.x === lastX && current.y === lastY) {
@@ -281,11 +284,11 @@ describe('sheep movement', () => {
         lastX = current.x;
         lastY = current.y;
       }
-      if (stableTicks >= 10) {
+      if (stableTicks >= 40) {
         break;
       }
     }
-    expect(stableTicks).toBeGreaterThanOrEqual(10);
+    expect(stableTicks).toBeGreaterThanOrEqual(40);
 
     // The sheep should have ended adjacent to the Town Center footprint.
     const settled = findHumanClaimedSheep(bridge)!;
@@ -455,14 +458,14 @@ describe('sheep movement', () => {
       .units.find((unit) => unit.owner === 1 && unit.unitType === 'villager');
     expect(villagerStart).toBeDefined();
 
-    // Both move toward the human Town Center. Villager step is 0.5 cells/tick, sheep is 0.25.
+    // Both move toward the human Town Center. §12.4.2 clock: villager 0.08 cells/tick, sheep 0.04.
     expect(selectSheepAt(bridge, sheepStart.x, sheepStart.y)).toBe(true);
     expect(bridge.issueMoveCommand(4, 4)).toBe(true);
 
     expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
     expect(bridge.issueMoveCommand(4, 4)).toBe(true);
 
-    stepBridgeNTicks(bridge, 32);
+    stepBridgeNTicks(bridge, 100);
 
     const sheepEnd = findHumanClaimedSheep(bridge)!;
     const villagerEnd = bridge

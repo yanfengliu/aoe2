@@ -140,7 +140,8 @@ describe('unit motion persistence', () => {
 
     let rebound: UnitTransformComponent | undefined;
     let previous = before;
-    for (let tick = 0; tick < 10; tick += 1) {
+    // §12.4.2 clock: the walk to the freed slot spans dozens of ticks now.
+    for (let tick = 0; tick < 80; tick += 1) {
       bridge.step(100);
       loaded.step(100);
       const uninterrupted = bridge.world.getComponent<UnitTransformComponent>(

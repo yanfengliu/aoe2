@@ -17,7 +17,15 @@ import { sheepMoveOrdersCodec } from '../bridgeStateSerialize';
 
 type CivWorld = GameWorld;
 
+// §12.4.2 clock (v0.3.160): the herd contract is HALF villager speed. A
+// villager earns 0.32 fine units/tick, so a sheep's contract is 0.16; 1 step
+// per 6 ticks lands on 0.1667 — 4% hot, the closest a whole-step throttle
+// gets (1/7 = 0.143 is 11% slow) — one whole
+// subgrid step every 6th tick via the same tick-modulo throttle the wander
+// path uses (a fractional carry has no meaning for the replanned-per-tick
+// herd step either).
 const SHEEP_SUBGRID_STEP_PER_TICK = 1;
+const SHEEP_STEP_TICK_INTERVAL = 6;
 
 export interface HerdableMovementSystemDeps {
   world: GameWorld;
@@ -109,8 +117,10 @@ export function registerHerdableMovementSystem(deps: HerdableMovementSystemDeps)
           continue;
         }
 
-        moveUnitOneSubgridStep(sheepId, plan.nextStep, activeWorld, SHEEP_SUBGRID_STEP_PER_TICK);
-        markOutOfBandRenderChange();
+        if (activeWorld.tick % SHEEP_STEP_TICK_INTERVAL === 0) {
+          moveUnitOneSubgridStep(sheepId, plan.nextStep, activeWorld, SHEEP_SUBGRID_STEP_PER_TICK);
+          markOutOfBandRenderChange();
+        }
       }
       if (dirty) {
         accessor.markDirty(sheepMoveOrdersCodec);

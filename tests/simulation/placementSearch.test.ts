@@ -59,9 +59,14 @@ describe('findPlacementAnchorNear — will not seal off ground', () => {
   const ORIGIN_AT = { x: 20, y: 20 };
 
   it('refuses the anchor that would close a one-cell gap in a wall', () => {
-    // A wall of buildings along y = 20 with a single gap at x = 20. Filling
-    // that gap severs north from south.
-    const wall = (x: number, y: number): boolean => y === 20 && x >= 14 && x <= 26 && x !== 20;
+    // A MAP-SPANNING wall of buildings along y = 20 with a single gap at
+    // x = 20. Filling that gap severs north from south globally. (v0.3.160:
+    // the guard floods the WHOLE map now, so a partial wall with open ends is
+    // correctly allowed — walking around a wall is a detour, not a seal. The
+    // pre-global margin-boxed guard would have called this partial wall a
+    // seal, which is exactly the local blindness that let real farm walls
+    // through when their collective seal lay outside any one farm's box.)
+    const wall = (x: number, y: number): boolean => y === 20 && x !== 20;
     const blocked = (x: number, y: number, width: number, height: number): boolean => {
       for (let dy = 0; dy < height; dy += 1) {
         for (let dx = 0; dx < width; dx += 1) {
@@ -85,6 +90,29 @@ describe('findPlacementAnchorNear — will not seal off ground', () => {
     );
     expect(guarded).not.toBeNull();
     expect(guarded).not.toEqual(gap);
+  });
+
+  it('allows filling the gap of a PARTIAL wall — a detour is not a seal (v0.3.160)', () => {
+    // Same wall, but spanning only x 14..26: units can walk around either
+    // end, so plugging the gap merely forces a detour. The whole-map flood
+    // sees that; the old 3-cell margin box could not, and its false refusals
+    // were the same local blindness that let REAL multi-farm seals through.
+    const wall = (x: number, y: number): boolean => y === 20 && x >= 14 && x <= 26 && x !== 20;
+    const blocked = (x: number, y: number, width: number, height: number): boolean => {
+      for (let dy = 0; dy < height; dy += 1) {
+        for (let dx = 0; dx < width; dx += 1) {
+          if (wall(x + dx, y + dy)) return true;
+        }
+      }
+      return false;
+    };
+    const free = (x: number, y: number): boolean => (
+      x >= 0 && y >= 0 && x < MAP_SIZE && y < MAP_SIZE && !wall(x, y)
+    );
+    const guarded = findPlacementAnchorNear(
+      { x: 20, y: 22 }, { width: 1, height: 1 }, MAP_SIZE, MAP_SIZE, blocked, 2, free,
+    );
+    expect(guarded).not.toBeNull();
   });
 
   it('still places a building on open ground, where nothing is severed', () => {

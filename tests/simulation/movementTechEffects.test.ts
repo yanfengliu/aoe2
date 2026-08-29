@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   HAND_CART_SPEED_PERCENT,
   HUSBANDRY_SPEED_PERCENT,
-  MOVE_CARRY_CAP_HUNDREDTHS,
+  MOVE_CARRY_CAP_TICKS,
   SQUIRES_SPEED_PERCENT,
   WHEELBARROW_SPEED_PERCENT,
   movementEntitlement,
@@ -196,7 +196,7 @@ describe('movementEntitlement / settleMovementCarry — the carry accumulator', 
     for (let tick = 0; tick < 25; tick += 1) {
       const { grantedSteps, entitledHundredths } = movementEntitlement(carry, 2, 100);
       expect(grantedSteps).toBe(2);
-      carry = settleMovementCarry(entitledHundredths, grantedSteps);
+      carry = settleMovementCarry(entitledHundredths, grantedSteps, 200);
       expect(carry).toBe(0);
     }
   });
@@ -207,7 +207,7 @@ describe('movementEntitlement / settleMovementCarry — the carry accumulator', 
     for (let tick = 0; tick < 10; tick += 1) {
       const { grantedSteps, entitledHundredths } = movementEntitlement(carry, 2, 110);
       grants.push(grantedSteps);
-      carry = settleMovementCarry(entitledHundredths, grantedSteps);
+      carry = settleMovementCarry(entitledHundredths, grantedSteps, 220);
     }
     expect(grants).toEqual([2, 2, 2, 2, 3, 2, 2, 2, 2, 3]);
     expect(grants.reduce((sum, grant) => sum + grant, 0)).toBe(22);
@@ -218,12 +218,17 @@ describe('movementEntitlement / settleMovementCarry — the carry accumulator', 
     // unconsumed 100 hundredths stay banked.
     const { grantedSteps, entitledHundredths } = movementEntitlement(80, 2, 110);
     expect(grantedSteps).toBe(3);
-    expect(settleMovementCarry(entitledHundredths, 2)).toBe(100);
+    expect(settleMovementCarry(entitledHundredths, 2, 220)).toBe(100);
   });
 
-  it('caps the bank and never returns a negative carry', () => {
-    expect(settleMovementCarry(10_000, 0)).toBe(MOVE_CARRY_CAP_HUNDREDTHS);
-    expect(settleMovementCarry(150, 2)).toBe(0);
+  it('caps the bank proportionally, floored at one step plus a tick', () => {
+    // §12.4.2 (v0.3.160): a 32-hundredth villager tick banks at most 132 —
+    // enough to ALWAYS afford the next fine step (the bank IS the walk at
+    // fractional rates) but never the 9.4-tick burst the old absolute 300
+    // had quietly become. A fast 200-hundredth mover keeps the 1.5-tick rule.
+    expect(settleMovementCarry(10_000, 0, 32)).toBe(132);
+    expect(settleMovementCarry(10_000, 0, 200)).toBe(Math.round(200 * MOVE_CARRY_CAP_TICKS));
+    expect(settleMovementCarry(150, 2, 32)).toBe(0);
   });
 
   it('delivers a real +10% under per-cell waypoint clamping (the quantization trap)', () => {
@@ -243,7 +248,7 @@ describe('movementEntitlement / settleMovementCarry — the carry accumulator', 
         if (legRemaining === 0) {
           legRemaining = 4;
         }
-        carry = settleMovementCarry(entitledHundredths, moved);
+        carry = settleMovementCarry(entitledHundredths, moved, Math.round(2 * speedPercent));
         if (travelled >= totalFineUnits) {
           return tick;
         }

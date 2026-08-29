@@ -288,15 +288,17 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     const transform = getUnitTransform(id, activeWorld);
     if (!transform) return null;
 
-    // Movement-speed model (spec §12.5): an explicitly-passed stepUnits (the
-    // sheep site) bypasses the model; every other mover derives its per-tick
-    // grant from its owner's techs + civ via the per-unit carry accumulator
-    // (movementTechEffects). The carry banks whatever a waypoint/map clamp
-    // doesn't let through — legs are per-CELL, so a stateless surge loses its
-    // extra step to the leg clamp. The 100-percent path never touches the
-    // carry: byte-identical to the pre-speed-model behavior.
+    // Movement-speed model (spec §12.5, clock retuned §12.4.2 v0.3.160): an
+    // explicitly-passed stepUnits (the sheep site) bypasses the model; every
+    // other mover — the 100% villager included — derives its per-tick grant
+    // from base clock x techs + civ via the per-unit carry accumulator
+    // (movementTechEffects). At 0.32 fine units/tick the base itself is
+    // fractional, so there is no whole-step fast path any more: the carry
+    // banks the sub-step entitlement (and whatever a waypoint/map clamp
+    // doesn't let through) for everyone alike.
     let resolvedStepUnits = stepUnits ?? UNIT_SUBGRID_STEP_PER_TICK;
     let entitledHundredths: number | null = null;
+    let perTickHundredths = Math.round(UNIT_SUBGRID_STEP_PER_TICK * 100);
     if (stepUnits === undefined) {
       const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
       const researched = unit
@@ -306,15 +308,14 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
         ? movementSpeedPercent(researched, unit.unitType,
             accessor.get(playerCivilizationsCodec).get(unit.owner), accessor.get(playerAgesCodec).get(unit.owner) ?? 'dark-age')
         : 100;
-      if (speedPercent !== 100) {
-        const entitlement = movementEntitlement(
-          transform.moveCarryHundredths ?? 0,
-          UNIT_SUBGRID_STEP_PER_TICK,
-          speedPercent,
-        );
-        resolvedStepUnits = entitlement.grantedSteps;
-        entitledHundredths = entitlement.entitledHundredths;
-      }
+      const entitlement = movementEntitlement(
+        transform.moveCarryHundredths ?? 0,
+        UNIT_SUBGRID_STEP_PER_TICK,
+        speedPercent,
+      );
+      resolvedStepUnits = entitlement.grantedSteps;
+      entitledHundredths = entitlement.entitledHundredths;
+      perTickHundredths = Math.round(UNIT_SUBGRID_STEP_PER_TICK * speedPercent);
     }
 
     const targetTransform = laneAxis
@@ -341,7 +342,7 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
       // banks its shortfall instead of losing it.
       const movedSteps = Math.abs(nextTransform.fineX - transform.fineX)
         + Math.abs(nextTransform.fineY - transform.fineY);
-      nextMoveCarryHundredths = settleMovementCarry(entitledHundredths, movedSteps);
+      nextMoveCarryHundredths = settleMovementCarry(entitledHundredths, movedSteps, perTickHundredths);
     }
     activeWorld.setComponent(id, 'unitTransform', {
       ...transform,

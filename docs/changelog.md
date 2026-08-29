@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.160
+
+- Units walk at AoE2's real speeds: the movement clock lands on the villager's 0.8 tiles/second reference, every unit's movement_rate percent on top of it — where everything previously moved at 6.25x and read as teleporting. Honest walking exposed and forced three fixes: the AI no longer walls its own economy in with farm lines (its placement check now floods the whole map), villagers stuck behind an obstacle no longer burn the CPU re-searching hopeless paths every tick, and heavy traffic at a drop-off door no longer collapses the simulation (profiled 12.3 s/tick, now ~2 ms).
+
 ## 0.3.159
 
 - The economy now runs at AoE2's real pace: every base gather rate (sheep, berries, boar, farms, fish, wood, gold, stone) lands on the spec §6.3 table that build and research times were already matched to — a Feudal push is once again a plan measured in minutes, not a formality measured in seconds. The AI's villager rebalancer learned not to ping-pong a worker between two resources when the split is already as even as whole villagers allow, which the old hot cadences had been hiding.

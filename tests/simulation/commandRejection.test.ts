@@ -82,7 +82,7 @@ describe('createSimulationBridge command rejection queue', () => {
 
     expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
     placeBuildingNearTownCenter(bridge, 'market', 1, [{ x: 17, y: 8 }]);
-    for (let i = 0; i < 280; i += 1) bridge.step(100);
+    for (let i = 0; i < 700; i += 1) bridge.step(100); // §12.4.2 clock (v0.3.160): walks run ~6x longer.
     expect(selectOwnedBuildingDirect(bridge, 1, 'market')).toBe(true);
 
     const foodBefore = bridge.getHudState().playerResources.food;

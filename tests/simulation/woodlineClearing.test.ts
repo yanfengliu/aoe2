@@ -31,7 +31,7 @@ describe('an exhausted tree clears its forest tile', () => {
     const farBefore = before.resources.find((r) => r.x === 11 && r.y === 10);
     expect(farBefore?.amount).toBe(100);
 
-    for (let i = 0; i < 900; i += 1) bridge.step(100);
+    for (let i = 0; i < 2600; i += 1) bridge.step(100); // §12.4.2 clock (v0.3.160): walks run ~6x longer.
 
     const after = bridge.getEconomyState();
     // The near tree is gone...
@@ -52,7 +52,7 @@ describe('an exhausted tree clears its forest tile', () => {
     const bridge = createSimulationBridge('woodline-clearing-fixture');
     // Long enough to fell the near tree, short enough that the far one still
     // has wood left to prove the reload with.
-    for (let i = 0; i < 400; i += 1) bridge.step(100);
+    for (let i = 0; i < 700; i += 1) bridge.step(100); // §12.4.2 clock (v0.3.160): walks run ~6x longer.
     expect(terrainKindAt(bridge, 10, 10)).toBe('grass');
     const farAtSave = bridge.getEconomyState().resources.find((r) => r.x === 11 && r.y === 10);
     expect(farAtSave?.amount ?? 0).toBeGreaterThan(0);

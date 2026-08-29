@@ -239,15 +239,31 @@ test.describe('voxel unit attack animation', () => {
       expect(progressedParts.tool!.matrix).not.toEqual(impactParts.tool!.matrix);
     }
     expect(progressedMotions.approacherMotions).toHaveLength(4);
-    expect(progressedMotions.approacherMotions.every((motion) => motion?.mode === 'moving')).toBe(true);
     expect(progressedMotions.approacherMotions.every((motion) => (
       motion !== null
       && Number.isFinite(motion.attackWeight)
       && motion.attackWeight >= 0
       && motion.attackWeight <= 1
     ))).toBe(true);
-    expect(progressedMotions.approacherMotions.map(
-      (motion) => motion?.attackWeight ?? Number.NaN,
-    ).sort((left, right) => left - right)).toEqual([0, 0, 1, 1]);
+    // §12.4.2 (v0.3.160): at honest walk speed the next pair of hunters has
+    // NOT closed in one tick after the first strikes (the old [0,0,1,1]
+    // choreography was teleport-clock timing). Walk the sim forward until the
+    // nearer pair engages, and at that same presented moment the farther pair
+    // must still read as WALKING — mode 'moving' across zero-step ticks is
+    // exactly what the trailing motion window exists to keep true.
+    let engagedWeights: number[] = [];
+    let laterMotions: Array<{ mode: string; attackWeight: number } | null> = [];
+    for (let round = 0; round < 40; round += 1) {
+      await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(2, 150));
+      await waitForPresentedSnapshot(page);
+      laterMotions = await page.evaluate((approachers) => approachers.map(
+        ({ identity }) => window.__AOE2_TEST__!.inspectVoxelUnitMotion(identity),
+      ), approachingHunters);
+      engagedWeights = laterMotions.map((motion) => motion?.attackWeight ?? Number.NaN);
+      if (engagedWeights.filter((weight) => weight === 1).length >= 2) break;
+    }
+    expect([...engagedWeights].sort((left, right) => left - right)).toEqual([0, 0, 1, 1]);
+    expect(laterMotions.filter((motion) => motion?.attackWeight === 0)
+      .every((motion) => motion?.mode === 'moving')).toBe(true);
   });
 });

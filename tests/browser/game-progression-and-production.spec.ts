@@ -200,7 +200,9 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
     await expect(page.locator('[data-hud="wood"]')).toHaveText('275');
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(280, 100));
+    // §12.4.2 walk clock (v0.3.160): the builder WALKS to the site now, so the
+    // construction window carries the commute on top of the build time.
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(900, 100));
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'market')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Market');

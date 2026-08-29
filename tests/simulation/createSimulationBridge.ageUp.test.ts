@@ -47,7 +47,7 @@ describe('createSimulationBridge age-up progression', () => {
     expect(bridge.getSelectionState().buildOptions).toContain('archery-range');
     placeBuildingNearTownCenter(bridge, 'archery-range');
 
-    for (let index = 0; index < 280; index += 1) {
+    for (let index = 0; index < 700; index += 1) { // §12.4.2 clock (v0.3.160): walks run ~6x longer.
       bridge.step(100);
     }
 
@@ -58,7 +58,7 @@ describe('createSimulationBridge age-up progression', () => {
     expect(bridge.getSelectionState().trainOptions).toContain('archer');
     expect(bridge.queueTrainUnit('archer')).toBe(true);
 
-    for (let index = 0; index < 380; index += 1) {
+    for (let index = 0; index < 700; index += 1) {
       bridge.step(100);
     }
 

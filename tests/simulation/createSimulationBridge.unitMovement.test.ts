@@ -33,12 +33,18 @@ describe('createSimulationBridge core systems', () => {
     expect(initial).toBeDefined();
     expect(bridge.selectEntityById(scout?.id ?? -1)).toBe(true);
     expect(bridge.issueMoveCommand(10, 9)).toBe(true);
-    bridge.step(100);
-
-    const moved = bridge.world.getComponent<UnitTransformComponent>(
-      scout?.id ?? -1,
-      'unitTransform',
-    );
+    // §12.4.2 clock: a scout banks 48 hundredths a tick, so the FIRST whole
+    // fine step lands on tick 3 — the contract is that when it lands it is
+    // purely cardinal (no perpendicular recentering), not that it lands on
+    // tick one.
+    let moved = initial;
+    for (let tick = 0; tick < 6 && moved?.fineY === initial?.fineY; tick += 1) {
+      bridge.step(100);
+      moved = bridge.world.getComponent<UnitTransformComponent>(
+        scout?.id ?? -1,
+        'unitTransform',
+      );
+    }
     expect(moved?.fineX).toBe(initial?.fineX);
     expect((initial?.fineY ?? 0) - (moved?.fineY ?? 0)).toBe(maxFineStepPerTick('scout'));
   });
@@ -79,12 +85,15 @@ describe('createSimulationBridge core systems', () => {
     expect(loadedStart?.fineX).toBe(transform.fineX + 1);
     expect(loaded.selectEntityById(scout.id)).toBe(true);
     expect(loaded.issueMoveCommand(scout.x, scout.y - 1)).toBe(true);
-    loaded.step(100);
-
-    const loadedMoved = loaded.world.getComponent<UnitTransformComponent>(
-      scout.id,
-      'unitTransform',
-    );
+    // §12.4.2 clock: step to the scout's first whole fine step (tick 3).
+    let loadedMoved = loadedStart;
+    for (let tick = 0; tick < 6 && loadedMoved?.fineY === loadedStart?.fineY; tick += 1) {
+      loaded.step(100);
+      loadedMoved = loaded.world.getComponent<UnitTransformComponent>(
+        scout.id,
+        'unitTransform',
+      );
+    }
     expect(loadedMoved?.fineX).toBe(loadedStart?.fineX);
     expect((loadedStart?.fineY ?? 0) - (loadedMoved?.fineY ?? 0))
       .toBe(maxFineStepPerTick('scout'));
@@ -194,27 +203,32 @@ describe('createSimulationBridge core systems', () => {
     expect(bridge.selectEntityAtCell(scoutX, scoutY)).toBe(true);
     expect(bridge.issueMoveCommand(Math.max(scoutX - 5, 0), scoutY)).toBe(true);
 
-    bridge.step(100);
-
-    const tickOneState = bridge.getRenderState();
-    const tickOneRenderScout = tickOneState.entities.find((entity) => entity.id === scout?.id);
+    // §12.4.2 clock: advance to the scout's first sub-grid step (tick 3).
+    let tickOneState = bridge.getRenderState();
+    let tickOneRenderScout = tickOneState.entities.find((entity) => entity.id === scout?.id);
+    for (let tick = 0; tick < 6 && tickOneRenderScout?.x === initialScoutRender?.x; tick += 1) {
+      bridge.step(100);
+      tickOneState = bridge.getRenderState();
+      tickOneRenderScout = tickOneState.entities.find((entity) => entity.id === scout?.id);
+    }
     const tickOneTownCenter = tickOneState.entities
       .find((entity) => entity.owner === 1 && entity.entityType === 'town-center');
     const previousScout = tickOneState.previousPositionFrame?.positions.find((position) => (
       position.id === scout?.id && position.generation === initialScoutRender?.generation
     ));
 
-    // After one 100ms tick the scout's render position must differ from
-    // its starting render position (it is moving on the sub-grid) but
-    // must not have advanced a full cell's worth. The TC, a building,
-    // never moves on the sub-grid and keeps an integer render position.
+    // At the scout's first moving tick its render position differs from the
+    // start by LESS than a cell (it moves on the sub-grid). The TC, a
+    // building, never moves on the sub-grid and keeps an integer position.
     expect(tickOneRenderScout?.x).not.toBe(initialScoutRender?.x);
     expect(
       Math.abs((tickOneRenderScout?.x ?? 0) - (initialScoutRender?.x ?? 0)),
     ).toBeLessThan(1);
     expect(tickOneTownCenter?.x).toBe(townCenter?.x);
     expect(Number.isInteger(tickOneTownCenter?.x ?? NaN)).toBe(true);
-    expect(tickOneState.previousPositionFrame?.tick).toBe(initialRenderState.tick);
+    // The previous frame is the tick BEFORE the first moving tick, where the
+    // scout still sat at its starting position.
+    expect(tickOneState.previousPositionFrame?.tick).toBe(tickOneState.tick - 1);
     expect(previousScout).toMatchObject({
       x: initialScoutRender?.x,
       y: initialScoutRender?.y,

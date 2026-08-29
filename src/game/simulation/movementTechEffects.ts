@@ -51,15 +51,19 @@ export const HAND_CART_SPEED_PERCENT = 110;
 // Bound on the banked entitlement so a long-clamped unit cannot burst-move
 // later; consumption is further clamped to the current waypoint leg anyway.
 //
-// Per-unit base speeds (v0.3.21) raised the top per-tick entitlement from 242
-// (a villager with both carry techs) to 400 (a Heavy Demolition Ship at 200%),
-// which sits above this cap — so it is worth being explicit that the cap does
-// NOT cost a fast unit speed while it is actually moving. The bank self-
-// regulates: a knight at 169% earns 338 a tick and settles to 38 / 276 / 214 /
-// 152 / 90 over an unobstructed run of 4-fine-unit legs, never reaching 300.
-// The cap only bites on a unit that is BLOCKED for several ticks, which is
-// exactly what it is for. Measured end-to-end in unitSpeedEndToEnd.test.ts.
-export const MOVE_CARRY_CAP_HUNDREDTHS = 300;
+// PROPORTIONAL to the per-tick entitlement (v0.3.160), floored at one fine
+// step plus a tick: at §12.4.2 rates the bank IS the walk (a villager needs
+// four 32-hundredth ticks to afford one step), so the cap must always admit
+// one full step's accumulation — but no more than that plus 1.5 ticks, where
+// the old absolute 300 had become 9.4 villager-ticks and a long-blocked unit
+// burst-moved 3 fine units (0.75 tiles) in a single tick when freed.
+export const MOVE_CARRY_CAP_TICKS = 1.5;
+export function moveCarryCapHundredths(perTickHundredths: number): number {
+  return Math.max(
+    100 + perTickHundredths,
+    Math.round(perTickHundredths * MOVE_CARRY_CAP_TICKS),
+  );
+}
 
 // Whole-percent speed multiplier for a unit derived from the owner's researched
 // set: Husbandry → mounted units, Squires → infantry, Wheelbarrow/Hand Cart →
@@ -135,14 +139,18 @@ export function movementSpeedPercent(
 
 // Phase 1 (entitle): add this tick's earned distance (base × percent, in
 // hundredths of a fine unit) to the banked carry and grant the whole fine
-// units. base 2 at 110% earns 220/tick — grant 2 with 20 banked, and every
+// units. base 0.32 at 110% earns 35/tick — grants land every third tick, and every
 // 5th unobstructed tick the bank crosses 100 and grants 3.
 export function movementEntitlement(
   carryHundredths: number,
   baseStepUnits: number,
   speedPercent: number,
 ): { grantedSteps: number; entitledHundredths: number } {
-  const entitledHundredths = carryHundredths + baseStepUnits * speedPercent;
+  // Rounded so the bank stays integral: 0.32 x 112 = 35.84 float becomes 36
+  // hundredths/tick deterministically, instead of drifting float dust into
+  // the carry (0.45% on the worst percent, far under a fine unit per walk —
+  // and a deliberate, spec-noted bias: 112% plays as 112.5%, 110% as 109.4%).
+  const entitledHundredths = carryHundredths + Math.round(baseStepUnits * speedPercent);
   return {
     grantedSteps: Math.floor(entitledHundredths / 100),
     entitledHundredths,
@@ -155,7 +163,8 @@ export function movementEntitlement(
 export function settleMovementCarry(
   entitledHundredths: number,
   movedSteps: number,
+  perTickHundredths: number,
 ): number {
   const remaining = entitledHundredths - movedSteps * 100;
-  return Math.min(Math.max(remaining, 0), MOVE_CARRY_CAP_HUNDREDTHS);
+  return Math.min(Math.max(remaining, 0), moveCarryCapHundredths(perTickHundredths));
 }

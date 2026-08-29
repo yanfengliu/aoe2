@@ -28,10 +28,17 @@ describe('unit attack animation movement cancellation', () => {
     bridge.clearSelection();
     expect(bridge.selectEntityById(attackerId!)).toBe(true);
     expect(bridge.issueMoveCommand(0, 0)).toBe(true);
-    bridge.step(100);
-
-    const handoff = bridge.getRenderState().entities.find((entity) => entity.id === attackerId);
-    expect(handoff?.attackAnimation?.cancelTick).toBe(attackTick! + 1);
+    // §12.4.2 clock: the cancel publishes on the attacker's first MOVING tick
+    // — a villager banks 32 hundredths a tick, so that is tick attackTick+4,
+    // not +1. The contract is one smooth handoff frame, then removal.
+    let cancelTick: number | undefined;
+    for (let step = 0; step < 8 && cancelTick === undefined; step += 1) {
+      bridge.step(100);
+      const handoff = bridge.getRenderState().entities.find((entity) => entity.id === attackerId);
+      cancelTick = handoff?.attackAnimation?.cancelTick;
+    }
+    expect(cancelTick).toBeGreaterThan(attackTick!);
+    expect(cancelTick).toBe(bridge.getRenderState().tick);
 
     bridge.step(100);
     const settled = bridge.getRenderState().entities.find((entity) => entity.id === attackerId);

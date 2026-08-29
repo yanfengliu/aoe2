@@ -135,11 +135,13 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueContextCommand(12, 8))).toBe(true);
 
     await expect.poll(async () => {
-      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+      // §6.3+§12.4.2 pacing: the walk plus one 26-tick chop per poll tick
+      // would outlast the poll budget at 1 tick/poll.
+      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(25, 100));
       return snapshot.economyState.resources.some(
         (resource) => resource.resourceType === 'tree' && resource.x === 12 && resource.y === 8,
       );
-    }).toBe(false);
+    }, { timeout: 15_000 }).toBe(false);
 
     const depletedSnapshot = await game.getSnapshot(page);
     expect(
@@ -297,9 +299,10 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
     expect(await game.selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(4, 5))).toBe(true);
 
-    // Poll until the scout arrives (it can take many ticks).
+    // Poll until the scout arrives — §12.4.2 walk clock: a cross-base return
+    // leg is hundreds of ticks now, so stride 40 per poll and give it 30s.
     await expect.poll(async () => {
-      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(10, 100));
+      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(40, 100));
       const scout = snapshot.economyState.units.find(
         (unit) => unit.owner === 1 && unit.unitType === 'scout',
       );
@@ -307,7 +310,7 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
         return Number.POSITIVE_INFINITY;
       }
       return Math.abs(scout.x - 4) + Math.abs(scout.y - 5);
-    }).toBeLessThanOrEqual(1);
+    }, { timeout: 30_000 }).toBeLessThanOrEqual(1);
 
     // A few more ticks for visibility to settle.
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(5, 100));

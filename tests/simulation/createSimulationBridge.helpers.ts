@@ -155,11 +155,11 @@ export function stepUntilGarrisoned(
  * The most fine units a unit of this type can advance in one tick.
  *
  * Before per-unit base speeds every unit moved exactly UNIT_SUBGRID_STEP_PER_TICK
- * and tests could hard-code it. Now a Scout covers 3 and a Knight 4 while a
- * Mangonel covers 1, so a smooth-motion assertion has to ask what THIS unit is
- * entitled to. The ceiling is right because the fractional carry hands out
- * floor-or-floor+1 in a steady walk (the leftover after a consumed step is
- * always under one whole fine unit).
+ * and tests could hard-code it. At the §12.4.2 clock (v0.3.160, base 0.32)
+ * every ordinary unit's per-tick entitlement is FRACTIONAL — most ticks grant
+ * 0 fine units and the carry banks the rest — so the per-tick ceiling is 1
+ * for everything at or under 312%, and a smooth-motion assertion still has
+ * to ask what THIS unit is entitled to rather than hard-coding.
  */
 export function maxFineStepPerTick(unitType: UnitType): number {
   return Math.ceil((UNIT_SUBGRID_STEP_PER_TICK * unitBaseSpeedPercent(unitType)) / 100);

@@ -39,6 +39,8 @@ export interface MovementPlanOpsDeps {
   movePathCache: Map<number, CachedMovePath>;
   isCellPassableForUnit: IsPassable;
   isCellPassableForWildlife: IsPassable;
+  /** worldOccupancy.structuralRevision — see the unreachable-plan cache. */
+  structuralRevision?: () => number;
 }
 
 export interface MovementPlanOps {
@@ -350,6 +352,29 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     };
   }
 
+  // Unreachable-plan cache (v0.3.160). Units never block
+  // `isCellPassableForUnit`, so whether ANY path exists between two cells can
+  // only change when a building, resource, or terrain cell changes — i.e.
+  // when worldOccupancy.structuralRevision bumps. Without this, every carrier
+  // stuck behind a sealed corridor re-ran a full-map failing A* PER APPROACH
+  // CANDIDATE every retry interval: profiled at 12.3 s/tick on the
+  // feudal-stone fixture by tick 8,340 (16 villagers against a farm wall).
+  const unreachablePlans = new Map<string, number>();
+  const UNREACHABLE_CACHE_LIMIT = 4096;
+
+  function cachedUnreachable(key: string): boolean {
+    const revision = deps.structuralRevision?.();
+    if (revision === undefined) return false;
+    return unreachablePlans.get(key) === revision;
+  }
+
+  function rememberUnreachable(key: string): void {
+    const revision = deps.structuralRevision?.();
+    if (revision === undefined) return;
+    if (unreachablePlans.size >= UNREACHABLE_CACHE_LIMIT) unreachablePlans.clear();
+    unreachablePlans.set(key, revision);
+  }
+
   function findResourceApproachPlan(
     unitId: number,
     resourceId: number,
@@ -361,13 +386,18 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
       return null;
     }
 
-    return findMovementPlan(
+    const cacheKey = `r${unitId}:${resourceId}`;
+    if (cachedUnreachable(cacheKey)) return null;
+    const plan = findMovementPlan(
       unitId,
       position,
       getApproachCellsForFootprint(resourcePosition, 1, 1, 1),
       true,
       activeWorld,
     );
+    if (!plan) rememberUnreachable(cacheKey);
+    else unreachablePlans.delete(cacheKey);
+    return plan;
   }
 
   function findBuildingApproachPlan(
@@ -384,13 +414,18 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     }
 
     const footprint = buildingFootprint(building.buildingType);
-    return findMovementPlan(
+    const cacheKey = `b${unitId}:${buildingId}:${range}`;
+    if (cachedUnreachable(cacheKey)) return null;
+    const plan = findMovementPlan(
       unitId,
       position,
       getApproachCellsForFootprint(buildingPosition, footprint.width, footprint.height, range),
       true,
       activeWorld,
     );
+    if (!plan) rememberUnreachable(cacheKey);
+    else unreachablePlans.delete(cacheKey);
+    return plan;
   }
 
   function findUnitRangePlan(

@@ -45,7 +45,8 @@ export type ResearchableTechnologyType =
   // Husbandry (Stable, Castle): +10% movement speed for MOUNTED units (cavalry
   // + cavalry archers). DERIVED (pure movementTechEffects) inside the single
   // step executor moveUnitOneSubgridStep via the per-unit carry accumulator
-  // (moveCarryHundredths — additive save field, engaged only at percent ≠ 100).
+  // (moveCarryHundredths — additive save field; every mover banks since the
+  // v0.3.160 fractional base clock).
   // Spec §12.5.
   | 'husbandry'
   // Squires (Barracks, Castle): +10% movement speed for INFANTRY. Same DERIVED

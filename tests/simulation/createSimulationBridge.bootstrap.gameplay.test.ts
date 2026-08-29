@@ -256,7 +256,7 @@ describe('createSimulationBridge core systems — gameplay/multi-select/placemen
 
     expect(bridge.issueMoveCommand(14, 12)).toBe(true);
 
-    for (let index = 0; index < 40; index += 1) {
+    for (let index = 0; index < 300; index += 1) { // §12.4.2 clock (v0.3.160): walks run ~6x longer.
       bridge.step(100);
     }
 

@@ -39,7 +39,7 @@ describe('createSimulationBridge production progression', () => {
               && building.y === 8
               && building.isComplete,
           ),
-        { maxSteps: 420 },
+        { maxSteps: 900 }, // §12.4.2 clock (v0.3.160): walks run ~6x longer.
       ),
     ).toBe(true);
 
@@ -137,7 +137,7 @@ describe('createSimulationBridge production progression', () => {
     placeBuildingNearTownCenter(bridge, 'stable', 1, [{ x: 17, y: 8 }]);
     expect(bridge.getHudState().playerResources.wood).toBe(75);
 
-    for (let index = 0; index < 280; index += 1) {
+    for (let index = 0; index < 700; index += 1) { // §12.4.2 clock (v0.3.160): walks run ~6x longer.
       bridge.step(100);
     }
 

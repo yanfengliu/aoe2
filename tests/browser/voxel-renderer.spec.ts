@@ -195,6 +195,10 @@ test.describe('voxel world renderer', () => {
       motion: window.__AOE2_TEST__!.inspectVoxelUnitMotion(key),
       displayed: window.__AOE2_TEST__!.getDisplayedEntities(),
     }), identity);
+    // §12.4.2 (v0.3.160): a villager's first fine step lands on movement tick
+    // 4 (the carry banks 32 hundredths a tick) — walk ticks 2-3 first so the
+    // sampled 150 ms tick is the one that steps.
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(2, 100));
     const partial = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 150));
     const moving = await page.evaluate((key) => ({
       motion: window.__AOE2_TEST__!.inspectVoxelUnitMotion(key),

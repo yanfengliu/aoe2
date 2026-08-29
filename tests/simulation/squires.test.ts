@@ -38,7 +38,7 @@ function arrivalTick(
   bridge: Bridge,
   unitType: string,
   target: { x: number; y: number },
-  maxTicks = 200,
+  maxTicks = 1400,
 ): number {
   for (let tick = 1; tick <= maxTicks; tick += 1) {
     bridge.step(100);

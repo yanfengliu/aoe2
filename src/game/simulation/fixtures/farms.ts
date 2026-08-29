@@ -254,6 +254,11 @@ export function createFarmOwnershipFixture(seed: string): PrototypeScenario {
       // Player 1's own villager (will gather its own farm). Placed left of the
       // 4x4 Town Center (anchored at 8,8 → spans 8..11) so it does not collide.
       ownedSpawn('villager', 1, 6, 8, { vision: 4 }),
+      // A second player-1 farm in the OWNER's base for the owner-gather phase:
+      // at §12.4.2 walking speed the (20,8) farm beside the enemy Town Center
+      // is a death march (the TC's arrows get ~100 ticks at the approaching
+      // 25 HP villager), and that phase is about ownership, not survival.
+      ownedSpawn('farm', 1, 12, 8, { vision: 2 }),
       ownedSpawn('town-center', 2, 22, 8, { vision: 7 }),
       // Player 2's food villager — its only nearby food is player 1's farm.
       ownedSpawn('villager', 2, 21, 8, { vision: 4 }),

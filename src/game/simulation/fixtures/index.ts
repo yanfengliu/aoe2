@@ -62,6 +62,7 @@ export {
 export {
   createDropOffUnreachableRerouteFixture,
 } from './economyBasics/dropOffReroute';
+export { createDropOffConvoyFixture } from './economyBasics/dropOffConvoy';
 
 export {
   createFeudalMissingPrereqFixture,

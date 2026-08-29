@@ -26,7 +26,8 @@ test.describe('tribute through the live command panel', () => {
         placement,
       ),
     ).toBe(true);
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(281, 100));
+    // §12.4.2 walk clock (v0.3.160): commute + build time.
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(900, 100));
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'market')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Market');

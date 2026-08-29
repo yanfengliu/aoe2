@@ -76,7 +76,7 @@ describe('createSimulationBridge core systems', () => {
       stepBridgeUntil(
         bridge,
         () => bridge.getHudState().playerResources.food > initialFood,
-        { maxSteps: 220 },
+        { maxSteps: 700 }, // §12.4.2 clock (v0.3.160): walks run ~6x longer.
       ),
     ).toBe(true);
 

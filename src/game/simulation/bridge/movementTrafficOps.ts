@@ -267,34 +267,38 @@ export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
           ? { x: unit.position.x + unitDirection.x, y: unit.position.y + unitDirection.y }
           : null;
       };
-      const closeDependencies = (
-        current: TrafficUnitSnapshot,
-        visited: ReadonlySet<number>,
-      ): ReadonlySet<number> | null => {
-        const currentNext = nextFor(current);
-        if (!currentNext) return null;
-        const occupants = trafficUnits.filter((unit) => samePosition(unit.position, currentNext));
-        if (occupants.length === 0) return null;
-        const closedIds = new Set([current.id]);
-        for (const occupant of occupants) {
-          if (occupant.id === mover.id) continue;
-          // A side loop or shared occupant that does not close back through the
-          // caller is not releasable by admitting the caller.
-          // Already part of the set being closed. Aborting here is what made
-          // a multi-unit head-on jam unsolvable: with several units sharing a
-          // cell, every member's exploration reached a peer it had already
-          // seen, so no member could ever close the set and none was admitted.
-          if (visited.has(occupant.id)) continue;
-          const branch = closeDependencies(
-            occupant,
-            new Set([...visited, occupant.id]),
-          );
-          if (!branch) return null;
-          for (const id of branch) closedIds.add(id);
+      // Iterative closure (v0.3.160). The recursive version copied its
+      // visited-Set per branch — combinatorial in ball size, profiled at
+      // multi-second ticks with sixteen carriers sharing a door's cells. One
+      // BFS over the wait-for graph closes the same set: every member of the
+      // mover's reachable jam must itself be trying to move (a member with no
+      // learned direction, or facing an empty cell, is not a closed jam — it
+      // will move on its own, so the caller waits for it instead of pushing).
+      const closeDependencies = (): ReadonlySet<number> | null => {
+        const byCell = new Map<string, TrafficUnitSnapshot[]>();
+        for (const unit of trafficUnits) {
+          const key = `${unit.position.x},${unit.position.y}`;
+          const cell = byCell.get(key);
+          if (cell) cell.push(unit);
+          else byCell.set(key, [unit]);
+        }
+        const closedIds = new Set<number>([mover.id]);
+        const queue: TrafficUnitSnapshot[] = [mover];
+        while (queue.length > 0) {
+          const current = queue.pop()!;
+          const currentNext = nextFor(current);
+          if (!currentNext) return null;
+          const occupants = byCell.get(`${currentNext.x},${currentNext.y}`);
+          if (!occupants || occupants.length === 0) return null;
+          for (const occupant of occupants) {
+            if (closedIds.has(occupant.id)) continue;
+            closedIds.add(occupant.id);
+            queue.push(occupant);
+          }
         }
         return closedIds;
       };
-      const cycle = closeDependencies(mover, new Set([mover.id]));
+      const cycle = closeDependencies();
       // A normal occupied lane has no directed cycle, so its follower waits.
       // A fully learned head-on pair or longer occupied loop admits only the
       // stable lowest-id caller when every blocking branch closes back to it.

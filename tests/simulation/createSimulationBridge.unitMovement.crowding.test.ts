@@ -26,7 +26,12 @@ describe('createSimulationBridge movement under crowding', () => {
     let previousRenderedScout = initialRenderedScout;
     let visibleSamples = 0;
     let maxRenderedDisplacement = 0;
-    for (let tick = 0; tick < 4; tick += 1) {
+    let transformWrites = 0;
+    // §12.4.2 clock (v0.3.160): a wandering scout takes one whole fine step
+    // every 2nd tick (0.48 fine units/tick entitlement), so the sub-grid
+    // WRITE lands on moving ticks rather than every tick — the window is 8
+    // ticks and the contract is "several sub-cell writes", not "one per tick".
+    for (let tick = 0; tick < 8; tick += 1) {
       bridge.step(100);
 
       const steppedRenderedScout = bridge
@@ -38,8 +43,10 @@ describe('createSimulationBridge movement under crowding', () => {
       );
 
       expect(transform).toBeDefined();
-      expect(bridge.world.getDiff()?.components.unitTransform?.set)
-        .toContainEqual([enemyScout?.id, transform]);
+      const writes = bridge.world.getDiff()?.components.unitTransform?.set;
+      if (writes?.some(([writtenId]: [number, unknown]) => writtenId === enemyScout?.id)) {
+        transformWrites += 1;
+      }
       if (!steppedRenderedScout) continue;
       visibleSamples += 1;
       maxRenderedDisplacement = Math.max(
@@ -53,9 +60,8 @@ describe('createSimulationBridge movement under crowding', () => {
         .toBeCloseTo((transform?.fineX ?? 0) / UNIT_SUBGRID_RESOLUTION);
       expect(steppedRenderedScout?.y)
         .toBeCloseTo((transform?.fineY ?? 0) / UNIT_SUBGRID_RESOLUTION);
-      // A Scout covers 3 fine units a tick (150% of a villager), so its
-      // per-tick render displacement is 0.75 cells, not the flat 0.5 every unit
-      // shared before per-unit base speeds.
+      // A wandering Scout covers at most one fine unit on a moving tick
+      // (§12.4.2 clock), so its per-tick render displacement is 0.25 cells.
       const scoutCellStep = maxFineStepPerTick('scout') / UNIT_SUBGRID_RESOLUTION;
       expect(Math.abs((steppedRenderedScout?.x ?? 0) - (previousRenderedScout?.x ?? 0)))
         .toBeLessThanOrEqual(scoutCellStep);
@@ -65,6 +71,7 @@ describe('createSimulationBridge movement under crowding', () => {
     }
 
     expect(visibleSamples).toBeGreaterThan(0);
+    expect(transformWrites).toBeGreaterThanOrEqual(2);
     expect(maxRenderedDisplacement).toBeGreaterThan(0);
   });
 

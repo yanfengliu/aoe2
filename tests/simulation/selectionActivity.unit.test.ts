@@ -97,7 +97,7 @@ describe('selection activity — owned unit', () => {
         const activity = bridge.getSelectionState().activity;
         return activity !== null && activity.verb === 'dropping off';
       },
-      { maxSteps: 600 },
+      { maxSteps: 1500 }, // §12.4.2 clock (v0.3.160): walks run ~6x longer.
     );
     expect(reached).toBe(true);
     expect(bridge.getSelectionState().activity).toEqual({ verb: 'dropping off', target: { kind: 'economy-resource', type: 'wood' } });

@@ -106,8 +106,14 @@ describe('fog memory', () => {
       ),
     ).toBe(true);
 
-    for (let i = 0; i < 3; i += 1) {
+    // §12.4.2 clock: the final approach step lands later — settle until the
+    // house re-enters live vision instead of assuming three ticks.
+    for (let i = 0; i < 40; i += 1) {
       bridge.step(100);
+      const live = bridge.getRenderState().entities.find(
+        (entity) => entity.kind === 'building' && entity.entityType === 'house' && entity.owner === 2,
+      );
+      if (live && !live.isMemory) break;
     }
 
     const revisitEntities = bridge.getRenderState().entities;

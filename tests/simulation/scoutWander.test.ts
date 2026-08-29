@@ -194,7 +194,8 @@ describe('scout wander', () => {
 
     let prev = { x: strandX, y: strandY };
     let reentered = false;
-    for (let i = 0; i < 400 && !reentered; i++) {
+    // §12.4.2 clock: the walk-back covers the same cells ~6x slower.
+    for (let i = 0; i < 2600 && !reentered; i++) {
       bridge.step(TICK_MS);
       const now = world.getComponent<{ x: number; y: number }>(base.id, 'position')!;
       const jump = Math.max(Math.abs(now.x - prev.x), Math.abs(now.y - prev.y));

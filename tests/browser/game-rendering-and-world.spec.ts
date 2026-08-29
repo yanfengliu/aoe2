@@ -434,7 +434,8 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     await expect(page.locator('[data-hud="wood"]')).toHaveText('100');
     await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+    // §12.4.2 walk clock (v0.3.160): commute + build time.
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(900, 100));
 
     const completedSnapshot = await game.getSnapshot(page);
     expect(
@@ -447,8 +448,9 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     ).toBe(true);
 
     await game.clickCell(page, 13, 7, 'right');
+    // A 10-gold carry is 260 mining ticks (§6.3) plus the walk to the camp.
     const incomeSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(120, 100),
+      () => window.__AOE2_TEST__!.advanceTicks(700, 100),
     );
 
     await expect(page.locator('[data-hud="gold"]')).toHaveText(

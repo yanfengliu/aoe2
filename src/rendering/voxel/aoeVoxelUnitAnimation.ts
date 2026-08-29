@@ -1,5 +1,7 @@
 import type { ProjectedEntityView, UnitType } from '../../game/simulation/types';
 import { TPS } from '../../game/simulation/prototypeScenario';
+import { unitBaseSpeedPercent } from '../../game/simulation/prototypeUnitRules/unitBaseSpeed';
+import { UNIT_SUBGRID_STEP_PER_TICK } from '../../game/simulation/bridge/pureHelpers';
 import { unitRole, type UnitRole } from '../roles/unitRole';
 import type { VoxelPart } from './aoeVoxelRecipeTypes';
 import type { AoeUnitAnimationState } from './aoeVoxelUnitAnimationState';
@@ -22,6 +24,21 @@ export interface AoeUnitMotionHistory extends AoeUnitAnimationState {
   readonly x: number;
   readonly y: number;
   readonly sampleTimeMs: number;
+  // Trailing displacement anchors (v0.3.160). At spec §12.4.2 speeds the sim
+  // grants a fine step only every 2-5 ticks (the carry banks the fraction
+  // between), so frame-to-frame displacement is ZERO on most sampled frames
+  // even mid-walk, and deriving `moving`/speed from the single-frame delta
+  // made every walk hitch. TWO anchors, promoted every half-window, keep the
+  // effective displacement window between half and one full window at all
+  // times — a single anchor that snaps forward collapses the window to one
+  // frame at each rollover (measured: 18% idle frames, 250 ms idle holds on
+  // a continuously walking villager).
+  readonly anchorX: number;
+  readonly anchorY: number;
+  readonly anchorTimeMs: number;
+  readonly youngAnchorX: number;
+  readonly youngAnchorY: number;
+  readonly youngAnchorTimeMs: number;
 }
 
 export interface ResolvedUnitAnimationState {
@@ -33,6 +50,19 @@ const TAU = Math.PI * 2;
 const MOVEMENT_EPSILON = 0.000_001;
 const MAX_SPEED_WORLD_UNITS_PER_SECOND = 20;
 const MAX_SMOOTHING_DELTA_MS = 250;
+// Per-unit displacement window: two base step cadences plus a tick, in
+// DISPLAY-time ms (display time is sim-clock time — ticks x 100 ms — so the
+// cadence is invariant across game speeds). Movement techs only SHORTEN the
+// cadence, so the untech'd base is the upper bound. The slowest §12.4.2
+// mover (Battering Ram, 62% = 20 hundredths/tick) steps every 5 ticks; its
+// window is 1,100 ms, a villager's 900, a scout's 700.
+const MS_PER_TICK = 1_000 / TPS;
+function motionWindowMsFor(entity: ProjectedEntityView): number {
+  const percent = unitBaseSpeedPercent(entity.entityType as UnitType) ?? 100;
+  const hundredthsPerTick = Math.max(1, Math.round(UNIT_SUBGRID_STEP_PER_TICK * percent));
+  const stepIntervalTicks = Math.ceil(100 / hundredthsPerTick);
+  return (2 * stepIntervalTicks + 1) * MS_PER_TICK;
+}
 const FULL_LOCOMOTION_SPEED = 2.5;
 const START_RESPONSE_MS = 90;
 const STOP_RESPONSE_MS = 180;
@@ -135,7 +165,11 @@ function initialUnitMotion(
   };
   return {
     state,
-    history: { ...state, x: entity.x, y: entity.y, sampleTimeMs },
+    history: {
+      ...state, x: entity.x, y: entity.y, sampleTimeMs,
+      anchorX: entity.x, anchorY: entity.y, anchorTimeMs: sampleTimeMs,
+      youngAnchorX: entity.x, youngAnchorY: entity.y, youngAnchorTimeMs: sampleTimeMs,
+    },
   };
 }
 
@@ -174,10 +208,30 @@ export function resolveUnitAnimationState(
   const deltaX = entity.x - previous.x;
   const deltaZ = entity.y - previous.y;
   const distance = Math.hypot(deltaX, deltaZ);
-  const moving = distance > MOVEMENT_EPSILON;
+  // Two-anchor promotion: when the YOUNG anchor is half a window old, the
+  // old anchor retires to it and the young anchor restarts at the previous
+  // sample. Displacement always measures against an anchor between half and
+  // one full window old — never a freshly-planted one.
+  const windowMs = motionWindowMsFor(entity);
+  const promote = sampleTimeMs - previous.youngAnchorTimeMs >= windowMs / 2;
+  const anchorX = promote ? previous.youngAnchorX : previous.anchorX;
+  const anchorY = promote ? previous.youngAnchorY : previous.anchorY;
+  const anchorTimeMs = promote ? previous.youngAnchorTimeMs : previous.anchorTimeMs;
+  const youngAnchorX = promote ? previous.x : previous.youngAnchorX;
+  const youngAnchorY = promote ? previous.y : previous.youngAnchorY;
+  const youngAnchorTimeMs = promote ? previous.sampleTimeMs : previous.youngAnchorTimeMs;
+  const windowDeltaX = entity.x - anchorX;
+  const windowDeltaZ = entity.y - anchorY;
+  const windowDistance = Math.hypot(windowDeltaX, windowDeltaZ);
+  const windowElapsedMs = Math.max(0, sampleTimeMs - anchorTimeMs);
+  // Frame-based facts keep their original jobs (same-time redraw semantics,
+  // teleport reset, the stationary-strike arbitration); the WINDOW only
+  // decides locomotion mode and speed, bridging the carry's zero-step ticks.
+  const frameMoving = distance > MOVEMENT_EPSILON;
+  const moving = windowDistance > MOVEMENT_EPSILON;
   const elapsedMs = Math.max(0, sampleTimeMs - previous.sampleTimeMs);
   if (elapsedMs === 0) {
-    if (!moving) {
+    if (!frameMoving) {
       return {
         state: {
           mode: previous.mode,
@@ -197,6 +251,7 @@ export function resolveUnitAnimationState(
         },
         history: { ...previous, x: entity.x, y: entity.y },
       };
+      // (anchor fields ride along via ...previous)
     }
     return initialUnitMotion(entity, identity, sampleTimeMs);
   }
@@ -204,8 +259,8 @@ export function resolveUnitAnimationState(
     MAX_SMOOTHING_DELTA_MS,
     elapsedMs,
   );
-  const speed = elapsedMs > 0
-    ? Math.min(MAX_SPEED_WORLD_UNITS_PER_SECOND, distance * 1_000 / elapsedMs)
+  const speed = windowElapsedMs > 0
+    ? Math.min(MAX_SPEED_WORLD_UNITS_PER_SECOND, windowDistance * 1_000 / windowElapsedMs)
     : 0;
   const attackSample = sampleUnitAttack(
     entity,
@@ -214,7 +269,15 @@ export function resolveUnitAnimationState(
     previous.directionZ,
   );
   const attack = !attackSample?.poseWeight ? null : attackSample;
-  const stationaryAttack = moving ? null : attack;
+  // A frame-halted unit with a LIVE attack event reads attacking immediately
+  // (the sim stops units to fight, so the event is authoritative intent); a
+  // mere residual attack pose on a unit the window still shows walking must
+  // NOT flip a mid-walk zero-step frame to attacking.
+  const stationaryAttack = frameMoving
+    ? null
+    : attack && (entity.attackAnimation != null || !moving)
+      ? attack
+      : null;
   const targetWeight = clamp01(speed / FULL_LOCOMOTION_SPEED);
   const responseMs = targetWeight > previous.locomotionWeight
     ? START_RESPONSE_MS
@@ -237,7 +300,10 @@ export function resolveUnitAnimationState(
   const gaitPhaseRadians = wrapRadians(
     previous.gaitPhaseRadians + distance / strideLength * TAU,
   );
-  const [directionX, directionZ] = moving
+  // Arm order matters: a frame-halted striker takes its ATTACK direction
+  // before the moving-hold window gets a vote, or a unit that stops to fight
+  // mid-walk keeps turning toward its stale travel heading.
+  const [directionX, directionZ] = frameMoving
     ? smoothDirection(
       previous,
       deltaX / distance,
@@ -246,9 +312,16 @@ export function resolveUnitAnimationState(
     )
     : attackSample
       ? [attackSample.directionX, attackSample.directionZ]
-      : [previous.directionX, previous.directionZ];
+      : moving
+        ? smoothDirection(
+          previous,
+          windowDeltaX / windowDistance,
+          windowDeltaZ / windowDistance,
+          smoothingDeltaMs,
+        )
+        : [previous.directionX, previous.directionZ];
   const state: AoeUnitAnimationState = {
-    mode: moving ? 'moving' : stationaryAttack ? 'attacking' : 'idle',
+    mode: stationaryAttack ? 'attacking' : moving ? 'moving' : 'idle',
     phaseRadians: previous.phaseRadians,
     gaitPhaseRadians,
     locomotionWeight,
@@ -259,12 +332,18 @@ export function resolveUnitAnimationState(
     attackWeight,
     ambientSuppressionWeight: attackSample?.ambientSuppressionWeight ?? 0,
     workPhase: builderWorkPhase(sampleTimeMs, previous.phaseRadians),
+    // The WINDOW gates the work pose: a builder commuting to its site is
+    // walking (zero-step frames included) and must not strobe its hammer.
     workWeight: builderWorkWeight(entity, moving, attackWeight),
     targetDistance: attackSample?.targetDistance ?? 0,
   };
   return {
     state,
-    history: { ...state, x: entity.x, y: entity.y, sampleTimeMs },
+    history: {
+      ...state, x: entity.x, y: entity.y, sampleTimeMs,
+      anchorX, anchorY, anchorTimeMs,
+      youngAnchorX, youngAnchorY, youngAnchorTimeMs,
+    },
   };
 }
 

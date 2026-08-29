@@ -38,7 +38,7 @@ describe('the Feudal AI mines the stone its own plans need', () => {
     // Still an economy that ages up: stone must not outrank the food the
     // 800-food Castle age-up is waiting on.
     expect(feudal.food ?? 0).toBeGreaterThan(feudal.stone ?? 0);
-  });
+  }, 60_000);
 
   // One match, sampled twice — the assertions are about the same run, and a
   // Feudal economy takes thousands of ticks to say anything.
@@ -46,16 +46,16 @@ describe('the Feudal AI mines the stone its own plans need', () => {
     const bridge = createSimulationBridge('ai-feudal-stone-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
     expect(stoneOf(bridge, 2)).toBe(0);
 
-    // §6.3 pacing retune (v0.3.159): stone is 1/28 ticks now. Calibrated on
-    // this exact fixture: stone crosses 125 near tick 4,800 — and the horizon
-    // stays at 6,000 because past ~7k ticks the AI's growing economy makes
-    // each tick several times more expensive. The assertion tracks the
-    // running PEAK, not the closing balance: the AI SPENDS banked stone on
+    // §6.3 pacing retune (v0.3.159): stone is 1/28 ticks. §12.4.2 walk clock
+    // (v0.3.160): the 125-crossing moved to ~tick 8,300, so the horizon is
+    // 18 x 500-tick blocks. The assertion tracks the running PEAK, not the
+    // closing balance: the AI SPENDS banked stone on
     // exactly the things this test exists to make affordable (measured: 130
     // banked at tick 5,000 became 60 by 6,000 — a ~100-stone purchase), and
     // a stockpile assertion would fail on that success.
+    // (Calibrated on this fixture: steady ~10 stone/500 ticks.)
     let peakStone = 0;
-    for (let block = 0; block < 12; block += 1) {
+    for (let block = 0; block < 18; block += 1) {
       run(bridge, 500);
       peakStone = Math.max(peakStone, stoneOf(bridge, 2));
     }
@@ -74,14 +74,18 @@ describe('the Feudal AI mines the stone its own plans need', () => {
     // thing — which is stone doing its job, not mining stopping.
     let minedInWindow = 0;
     let previous = stoneOf(bridge, 2);
-    for (let block = 0; block < 15; block += 1) {
+    for (let block = 0; block < 30; block += 1) {
       run(bridge, 100);
       const current = stoneOf(bridge, 2);
       if (current > previous) minedInWindow += current - previous;
       previous = current;
     }
-    // ~0.357/s per miner × 150s window: even a single sustained miner banks
-    // ~50; require 30 to stay seed-robust while still proving real mining.
+    // At DE pacing a steady miner lands a 10-stone deposit every ~75-90s
+    // (gathering a carry is 280 ticks; the camp walk is the rest — the old
+    // "a miner banks ~50 per 150s" figure was teleport-clock math). Three
+    // deposits inside 300s proves a miner is STAYING on stone; churn shows
+    // up as one orphaned deposit or none.
     expect(minedInWindow).toBeGreaterThanOrEqual(30);
-  });
+    // 10,500 DE-paced ticks: ~19s alone, more under suite parallelism.
+  }, 120_000);
 });

@@ -52,6 +52,22 @@ export interface WorldOccupancy {
     targetCenter: Position,
   ): Position[];
   release(entity: EntityId): void;
+  /** Bumped on every building/resource/terrain change. Unit churn does not
+   *  bump it — units never block `isCellPassableForUnit`, so REACHABILITY
+   *  between two cells can only change when this number does (the fact the
+   *  unreachable-plan cache in movementPlanOps keys on).
+   *
+   *  KNOWN BOUNDARY: gate admittance (cellPassability.admitsThroughGate) also
+   *  depends on completion, team membership, and the ASKING unit's owner —
+   *  none of which bump this counter. Today that cannot arm a stale cache
+   *  because a separate pre-existing defect keeps in-match gates from ever
+   *  admitting (completion is tested via a codec entry that finalize never
+   *  deletes); the task that fixes gates must also bump this revision on
+   *  gate completion, or the cache will hold a stale unreachable verdict
+   *  across a gate opening. Entity ids also recycle (see `generation`) —
+   *  the cache tolerates that only because every structural death bumps
+   *  the revision, which flushes the dead id's entries. */
+  structuralRevision(): number;
   getUnitSlotOffset(entity: EntityId): SubcellSlotOffset | null;
   getCellStatus(x: number, y: number, ignoredEntityId?: EntityId | null): OccupancyCellStatus;
   isCellBlockedByBuilding(x: number, y: number, ignoredEntityId?: EntityId | null): boolean;
@@ -80,6 +96,8 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
   // logical slot the engine allocated, instead of a unitId-derived hash that
   // collides for any two units in the same cell with the same id-modulo.
   const unitSlotOffsets = new Map<EntityId, SubcellSlotOffset>();
+  let structuralRevisionCounter = 0;
+  const structuralEntities = new Set<EntityId>();
 
   const clearOverflowForEntity = (entity: EntityId): void => {
     const blockedState = overflowBlockedByEntity.get(entity);
@@ -99,6 +117,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
     binding.release(entity);
     clearOverflowForEntity(entity);
     unitSlotOffsets.delete(entity);
+    if (structuralEntities.delete(entity)) structuralRevisionCounter += 1;
   };
 
   const reattachWorldHooks = (): void => {
@@ -206,6 +225,8 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       overflowCrowdedByCell.clear();
       overflowCrowdedByEntity.clear();
       unitSlotOffsets.clear();
+      structuralEntities.clear();
+      structuralRevisionCounter += 1;
       reattachWorldHooks();
     },
 
@@ -217,6 +238,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       binding.block(cells, {
         metadata: { kind: 'terrain' },
       });
+      structuralRevisionCounter += 1;
     },
 
     unblockTerrain(cells: ReadonlyArray<Position>): void {
@@ -225,6 +247,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       }
 
       binding.unblock(cells);
+      structuralRevisionCounter += 1;
     },
 
     syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint): void {
@@ -240,6 +263,8 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       if (!binding.occupy(entity, area, { metadata: { kind: 'building' } })) {
         addOverflowBlockedClaim(entity, toFootprintCells(anchor, footprint), 'building');
       }
+      structuralEntities.add(entity);
+      structuralRevisionCounter += 1;
     },
 
     syncResource(entity: EntityId, position: Position): void {
@@ -249,6 +274,8 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       if (!binding.occupy(entity, [position], { metadata: { kind: 'resource' } })) {
         addOverflowBlockedClaim(entity, [position], 'resource');
       }
+      structuralEntities.add(entity);
+      structuralRevisionCounter += 1;
     },
 
     syncUnit(entity: EntityId, position: Position, preferredOffset?: SubcellSlotOffset, restoreOverflow = false): SyncUnitResult {
@@ -354,6 +381,11 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       binding.release(entity);
       clearOverflowForEntity(entity);
       unitSlotOffsets.delete(entity);
+      if (structuralEntities.delete(entity)) structuralRevisionCounter += 1;
+    },
+
+    structuralRevision(): number {
+      return structuralRevisionCounter;
     },
 
     getUnitSlotOffset(entity: EntityId): SubcellSlotOffset | null {

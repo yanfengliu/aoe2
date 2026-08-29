@@ -46,9 +46,10 @@ import type { CombatState } from './systems/systemTypes';
 
 export { firesProjectile };
 
-// Every unit in this game shares one base ground speed (there is a single
-// UNIT_SUBGRID_STEP_PER_TICK), so leading uses one constant rather than a
-// per-unit lookup. Measured against a walking villager: 0.4 tiles/tick.
+// Projectile lead uses the VILLAGER-reference base speed (0.08 tiles/tick at
+// the §12.4.2 clock — derived, not hardcoded). Per-unit movement_rate
+// percents mean a real target may run up to ~2x this; the lead is a hint,
+// not a guarantee, and arrows already re-home per tick.
 const UNIT_TILES_PER_TICK = UNIT_SUBGRID_STEP_PER_TICK / UNIT_SUBGRID_RESOLUTION;
 
 /** The same point, pulled back onto the map if it lies outside it. */

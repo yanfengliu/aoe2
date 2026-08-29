@@ -250,10 +250,10 @@ describe('createSimulationBridge utility progression', () => {
     expect(bridge.issueContextCommand(8, 8, true)).toBe(true);
 
     // The TC fires PIERCE arrows (attack 5) and a Scout carries 2 pierce armor
-    // (units.csv 0/2), so each arrow now deals 3 — the lone Scout still dies,
-    // just slower than when arrows ignored armor. ~2 arrows/reload × 3 over
-    // ~8 reloads (12 ticks each) clears its 45 HP; 120 ticks gives margin.
-    for (let index = 0; index < 120; index += 1) {
+    // (units.csv 0/2), so each arrow deals 3. §12.4.2 clock: the garrisoning
+    // villager WALKS in first, so the boosted volleys start tens of ticks in;
+    // 300 ticks covers the walk plus the ~8 reloads that clear 45 HP.
+    for (let index = 0; index < 300; index += 1) {
       bridge.step(100);
     }
 
@@ -272,7 +272,7 @@ describe('createSimulationBridge utility progression', () => {
     placeBuildingNearTownCenter(bridge, 'market', 1, [{ x: 17, y: 8 }]);
     expect(bridge.getHudState().playerResources.wood).toBe(275);
 
-    for (let index = 0; index < 280; index += 1) {
+    for (let index = 0; index < 700; index += 1) { // §12.4.2 clock (v0.3.160): walks run ~6x longer.
       bridge.step(100);
     }
 

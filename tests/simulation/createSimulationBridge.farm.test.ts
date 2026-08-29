@@ -244,7 +244,7 @@ describe('createSimulationBridge farms', () => {
 
     const farmAfter = bridge
       .getEconomyState()
-      .resources.find((resource) => resource.resourceType === 'farm' && resource.baseOwner === 1);
+      .resources.find((resource) => resource.resourceType === 'farm' && resource.baseOwner === 1 && resource.x === 20);
     expect(farmAfter).toBeDefined();
     expect(farmAfter!.amount).toBe(175); // untouched by the enemy villager
     expect(bridge.getEconomyState().playerResources[2]?.food ?? 0).toBe(0); // no theft
@@ -257,17 +257,24 @@ describe('createSimulationBridge farms', () => {
     expect(ownVillager).toBeDefined();
     expect(bridge.selectEntityAtCell(ownVillager!.x, ownVillager!.y)).toBe(true);
     expect(bridge.getSelectionState().selectedEntityType).toBe('villager');
-    expect(bridge.issueContextCommand(farm!.x, farm!.y)).toBe(true);
+    // The owner-gather phase uses the farm in the OWNER's base at (12,8): the
+    // (20,8) farm exists to sit beside the ENEMY Town Center for the theft
+    // phase, and walking to it at §12.4.2 speed is fatal, not forbidden.
+    const homeFarm = bridge
+      .getEconomyState()
+      .resources.find((resource) => resource.resourceType === 'farm' && resource.baseOwner === 1 && resource.x === 12);
+    expect(homeFarm).toBeDefined();
+    expect(bridge.issueContextCommand(homeFarm!.x, homeFarm!.y)).toBe(true);
 
     const ownerGathered = stepBridgeUntil(
       bridge,
       () => {
         const f = bridge
           .getEconomyState()
-          .resources.find((resource) => resource.resourceType === 'farm' && resource.baseOwner === 1);
+          .resources.find((resource) => resource.id === homeFarm!.id);
         return f !== undefined && f.amount < 175;
       },
-      { maxSteps: 600 },
+      { maxSteps: 900 },
     );
     expect(ownerGathered).toBe(true);
   }, 90_000);

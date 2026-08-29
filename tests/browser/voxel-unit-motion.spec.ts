@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { unitBaseSpeedPercent } from '../../src/game/simulation/prototypeUnitRules/unitBaseSpeed';
-import { UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK } from '../../src/game/simulation/bridge/pureHelpers';
+import { UNIT_SUBGRID_RESOLUTION } from '../../src/game/simulation/bridge/pureHelpers';
 import * as game from './helpers/gameTestHelpers';
 
 test.describe('voxel unit motion', () => {
@@ -39,7 +38,9 @@ test.describe('voxel unit motion', () => {
 
       if (!api.issueMoveCommand(12, 10)) throw new Error('Scout move was rejected.');
       const result = [read()];
-      for (let frame = 0; frame < 84; frame += 1) {
+      // §12.4.2 (v0.3.160): 504 render frames = ~84 sim ticks — the corner
+      // walk that took 14 ticks at the old clock needs the honest one.
+      for (let frame = 0; frame < 504; frame += 1) {
         api.advanceTicks(1, 1_000 / 60);
         result.push(read());
       }
@@ -89,10 +90,13 @@ test.describe('voxel unit motion', () => {
     // i.e. at least four rendered frames per simulation tick. Stated that way
     // it stays a real interpolation claim instead of a number tied to one
     // speed.
-    const scoutTickTravel = (UNIT_SUBGRID_STEP_PER_TICK
-      * (unitBaseSpeedPercent('scout') / 100)) / UNIT_SUBGRID_RESOLUTION;
+    // §12.4.2 (v0.3.160): travel arrives in QUANTA of one fine unit every few
+    // ticks (the carry banks the fraction), so the per-frame bound tracks the
+    // step QUANTUM, not the average tick travel: one fine step (1/resolution)
+    // interpolated across at least four rendered frames.
+    const fineStepQuantum = 1 / UNIT_SUBGRID_RESOLUTION;
     expect(Math.max(...moving.map(({ distance }) => distance)))
-      .toBeLessThanOrEqual(scoutTickTravel / 4);
+      .toBeLessThanOrEqual(fineStepQuantum / 4);
     expect(Math.max(...deltas.map(({ headingDelta }) => headingDelta))).toBeLessThanOrEqual(0.25);
     expect(moving.every(({ speed }) => speed > 0)).toBe(true);
     const facingDots = moving.map(({ facingDot }) => facingDot!);

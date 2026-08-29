@@ -48,16 +48,16 @@ describe('tower volleys in the world', () => {
         { maxSteps: 900 },
       ),
     ).toBe(true);
-    // The knight charges when shot and the tower snipes during the walk-in,
-    // so exact-tick numbers are fragile — measure DAMAGE OVER A WINDOW.
-    // Four arrows x (5 - 2 pierce armor) = 12 per ~12-tick volley: a 60-tick
-    // window must land well over three volleys' worth (>= 36); an empty
-    // tower's single arrow could never exceed ~18 in the same window.
-    for (let index = 0; index < 30; index += 1) bridge.step(100);
+    // The tower snipes throughout the crew's §12.4.2-slow walk-in, so by full
+    // garrison the knight has ~45 ticks of life left (measured: 100 HP at
+    // spawn, dead ~125 ticks after the first partial-garrison volley). The
+    // window therefore opens IMMEDIATELY on full garrison and stays short:
+    // 36 ticks = 3 four-arrow volleys x (5 - 2 pierce) = 36 max; require 30.
+    // An empty tower's single arrow lands at most ~9 in the same window.
     const baseline = bridge.getEntityHealth(enemy.id)!.currentHp;
-    for (let index = 0; index < 60; index += 1) bridge.step(100);
+    for (let index = 0; index < 36; index += 1) bridge.step(100);
     const dealt = baseline - bridge.getEntityHealth(enemy.id)!.currentHp;
-    expect(dealt).toBeGreaterThanOrEqual(36);
+    expect(dealt).toBeGreaterThanOrEqual(30);
   });
 
   it('an empty tower still fires exactly its one base arrow', () => {
@@ -73,12 +73,14 @@ describe('tower volleys in the world', () => {
       expect(bridge.selectEntityAtCell(mine.x, mine.y)).toBe(true);
       expect(bridge.issueMoveCommand(6, 28)).toBe(true);
     }
-    for (let index = 0; index < 60; index += 1) bridge.step(100);
-    // Same 60-tick window as the garrisoned run: a single base arrow lands
-    // at most ~5 volleys x 3 = 15 damage — far under the 4-arrow floor of 36.
-    for (let index = 0; index < 30; index += 1) bridge.step(100);
+    // §12.4.2 clock: long enough for the crew to clear the field, short
+    // enough that the base arrow (3 damage per ~12 ticks) leaves the 100 HP
+    // knight alive for the measuring window.
+    for (let index = 0; index < 150; index += 1) bridge.step(100);
+    // Same 36-tick window as the garrisoned run: a single base arrow lands
+    // ~3 volleys x 3 = 9 damage — far under the 4-arrow floor of 30.
     const baseline = bridge.getEntityHealth(enemy.id)!.currentHp;
-    for (let index = 0; index < 60; index += 1) bridge.step(100);
+    for (let index = 0; index < 36; index += 1) bridge.step(100);
     const dealt = baseline - bridge.getEntityHealth(enemy.id)!.currentHp;
     expect(dealt).toBeGreaterThan(0);
     expect(dealt).toBeLessThanOrEqual(18);
