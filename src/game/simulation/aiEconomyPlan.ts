@@ -19,10 +19,36 @@ import type { AgeType, EconomyResourceKind } from './types';
 // Feudal keeps at least two villagers on gold so military production
 // (archer / skirmisher cost gold) doesn't stall waiting on a single
 // gold villager.
+// The Dark-Age knobs, named rather than buried in the switches below, because
+// they are the pair that decides when the AI reaches Feudal and they can only
+// be understood together. `scripts/ai-dark-age-sweep.mjs` sweeps them.
+//
+// THE VALUES ARE UNCHANGED. A 2026-08-29 attempt to tune them for a faster
+// Feudal was measured, adopted, and then withdrawn, and the reason is the
+// useful part: a sixteen-row sweep on `default-seed` said food weight
+// dominates and 6:3 improved both owners there (9,400/12,100 against
+// 10,100/12,200) — but on `aoe2-prototype`, which is DEFAULT_SEED and the map
+// a player actually boots, the same row is 800 ticks WORSE (13,300 against
+// 12,500). Across five seeds it helps two and hurts two. The stated mechanisms
+// were seed-local too: on one seed a HIGHER cap beat 10 for both owners, and
+// on another a food-heavier split was worse than 4:3 outright.
+//
+// So the finding is not a number, it is a shape: these knobs interact with a
+// map's resource layout, and any future adoption needs a row that does not
+// regress `aoe2-prototype`, ranked on the WORST owner across several seeds
+// rather than the best owner on one. Two further traps found the same day —
+// 6:2 (75% food) wins the ranking and starves the AI of the wood for its
+// 60-wood farms, caught by `gatherDomain.test.ts`; and 7:1 starves the
+// Barracks, a Feudal PREREQUISITE, so the extra food cannot be spent.
+export const DARK_AGE_TUNING = {
+  villagerCap: 10,
+  weights: { food: 4, wood: 3, gold: 0, stone: 0 } as Partial<Record<EconomyResourceKind, number>>,
+};
+
 export function villagerTargetsForAge(age: AgeType): Partial<Record<EconomyResourceKind, number>> {
   switch (age) {
     case 'dark-age':
-      return { food: 4, wood: 3, gold: 0, stone: 0 };
+      return { ...DARK_AGE_TUNING.weights };
     case 'feudal-age':
       // Food-dominant: the Castle age-up costs 800 food : 200 gold (4:1).
       // Grounded 2026-07-04 by replaying the default-seed corpus — the old
@@ -64,7 +90,7 @@ export function villagerTargetsForAge(age: AgeType): Partial<Record<EconomyResou
 export function villagerCapForAge(age: AgeType): number {
   switch (age) {
     case 'dark-age':
-      return 10;
+      return DARK_AGE_TUNING.villagerCap;
     case 'feudal-age':
       return 22;
     case 'castle-age':
