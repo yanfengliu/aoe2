@@ -53,16 +53,16 @@ jobs:
         run: |
           VOXEL_COMMIT="$(tr -d '[:space:]' < .github/voxel-commit)"
           printf '%s\n' "$VOXEL_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
-          test ! -e "$GITHUB_WORKSPACE/../voxel"
-          mkdir -p "$GITHUB_WORKSPACE/../voxel"
-          # Relative archive path on purpose: GNU tar reads a leading "D:"
-          # as host:path ("Cannot connect to D:"), which kept every
+          test ! -e ../voxel
+          mkdir -p ../voxel
+          # Relative paths on purpose, -C included: under Git-bash on Windows
+          # GNU tar mangles a drive-lettered path, which kept every
           # windows-latest run red for two months.
           curl -fsSL --retry 3 \
             -o voxel.tgz \
             "https://github.com/yanfengliu/voxel/archive/${VOXEL_COMMIT}.tar.gz"
           tar -xzf voxel.tgz \
-            -C "$GITHUB_WORKSPACE/../voxel" \
+            -C ../voxel \
             --strip-components=1
           rm -f voxel.tgz
       - uses: actions/setup-node@v4
@@ -70,7 +70,7 @@ jobs:
           node-version: '22'
       - name: Install and build voxel
         shell: bash
-        run: npm --prefix "$GITHUB_WORKSPACE/../voxel" ci
+        run: npm --prefix ../voxel ci
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Run LLM corpus (default — reads playtest-corpus-llm.json)

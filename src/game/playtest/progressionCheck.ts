@@ -34,6 +34,14 @@ export interface AgeProgressionResult {
   message: string;
 }
 
+// The budget this runs against is a MEASUREMENT, not a preference. At spec
+// §6.3 gather rates and §12.4.2 walk speeds (v0.3.159-160), the default-seed
+// AIs reach Feudal at ticks 10,100 and 12,200 — measured 2026-08-29 by
+// sampling `getEconomyState().ages` every 100 ticks. The corpus budget was
+// 8,000 from the era when the economy ran ~6x hot, so honest pacing turned
+// this gate red without anything stalling. It is 13,000 now: above the slower
+// owner with margin, and still far below "never".
+//
 // Flags a run where NO living owner reached `requiredAge`. Only LIVING owners
 // count — an eliminated player that never aged up is not a progression failure
 // (it lost), and a run where at least one side advanced is progressing. When
