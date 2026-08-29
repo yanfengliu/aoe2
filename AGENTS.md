@@ -37,7 +37,7 @@ This repo's own rules live in [docs/policies/local-rules.md](docs/policies/local
 
 ## Session start
 
-Read `docs/devlog/summary.md` and `docs/architecture/ARCHITECTURE.md` before starting work.
+Run `npm run ci:status` FIRST — it prints main's remote CI and playtest-corpus conclusions and exits non-zero when either is red. A red remote gate is the next task, ahead of whatever was planned. (This is a command because the intention was not enough: main's CI ran red for 200 consecutive runs over two months behind green local gates — see the 2026-08-29 defect-register entry.) Then read `docs/devlog/summary.md` and `docs/architecture/ARCHITECTURE.md` before starting work.
 
 ## Invariants & boundaries
 

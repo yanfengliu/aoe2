@@ -37,12 +37,16 @@ jobs:
           printf '%s\n' "$VOXEL_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
           test ! -e "$GITHUB_WORKSPACE/../voxel"
           mkdir -p "$GITHUB_WORKSPACE/../voxel"
+          # Relative archive path on purpose: GNU tar reads a leading "D:"
+          # as host:path ("Cannot connect to D:"), which kept every
+          # windows-latest run red for two months.
           curl -fsSL --retry 3 \
-            -o "$RUNNER_TEMP/voxel.tgz" \
+            -o voxel.tgz \
             "https://github.com/yanfengliu/voxel/archive/${VOXEL_COMMIT}.tar.gz"
-          tar -xzf "$RUNNER_TEMP/voxel.tgz" \
+          tar -xzf voxel.tgz \
             -C "$GITHUB_WORKSPACE/../voxel" \
             --strip-components=1
+          rm -f voxel.tgz
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
