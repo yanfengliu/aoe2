@@ -28,6 +28,7 @@ import {
 } from '../civBuildingBonuses';
 import { buildingVisionBonus, outpostVisionRadiusForAge } from '../visionTechEffects';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
+import { isGateBuilding } from '../gates';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { GameWorld } from './pureHelpers';
 
@@ -43,6 +44,10 @@ export function finalizeBuildingConstruction(params: {
     visionSourceAdded: boolean,
   ) => void;
   markRender: () => void;
+  /** Announce a passability change when the finished building is a gate.
+   *  REQUIRED: omitting the bump is the defect the second half of v0.3.161
+   *  fixes, and an optional parameter lets the next caller reintroduce it. */
+  notePassabilityChange: () => void;
 }): void {
   const { world, accessor, buildingId, building } = params;
   const construction = accessor.get(constructionStatesCodec).get(buildingId);
@@ -51,6 +56,14 @@ export function finalizeBuildingConstruction(params: {
   construction.buildProgressTicks = construction.totalBuildTicks;
   construction.isComplete = true;
   accessor.markDirty(constructionStatesCodec);
+
+  // A gate that finishes OPENS a route for its owner and their allies without
+  // any cell being claimed or released, so the occupancy revision — which the
+  // unreachable-plan cache keys on — would not otherwise move, and a unit that
+  // found no path before the gate stood would keep refusing after it opened.
+  // Only gates change passability on completion: every other building already
+  // blocked its footprint as a foundation.
+  if (isGateBuilding(building.buildingType)) params.notePassabilityChange();
 
   const buildingHealth = accessor.get(buildingHealthStatesCodec).get(buildingId);
   if (buildingHealth) {

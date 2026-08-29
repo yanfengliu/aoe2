@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.161
+
+- A gate you build now opens for you. Every gate raised during a match stayed shut to its own owner — walling your base was a way to lock yourself out of it — because the passability check read "finished" as "has no construction record", which is true of scenario-placed gates and never true of built ones. Units also take the route a finishing gate opens instead of keeping the verdict they reached while it was still a foundation.
+
 ## 0.3.160
 
 - Units walk at AoE2's real speeds: the movement clock lands on the villager's 0.8 tiles/second reference, every unit's movement_rate percent on top of it — where everything previously moved at 6.25x and read as teleporting. Honest walking exposed and forced three fixes: the AI no longer walls its own economy in with farm lines (its placement check now floods the whole map), villagers stuck behind an obstacle no longer burn the CPU re-searching hopeless paths every tick, and heavy traffic at a drop-off door no longer collapses the simulation (profiled 12.3 s/tick, now ~2 ms).

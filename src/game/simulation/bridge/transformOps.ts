@@ -68,6 +68,7 @@ export interface TransformOps {
     laneAxis?: import('./movementTrafficOps').MovementLaneAxis,
   ): Position | null;
   isUnitAtTarget(id: number, target: Position, activeWorld?: CivWorld): boolean;
+  /** See worldOccupancy.notePassabilityChange. */ notePassabilityChange(): void;
   // Spec §12.7 lazy redirect: returns null if the unit found a free slot at
   // its arrival cell; returns a redirected cell when the unit is in overflow
   // and a free slot exists in a neighbor cell. Caller rewrites the move
@@ -486,6 +487,7 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     syncUnitTransformToPosition,
     moveUnitOneSubgridStep,
     isUnitAtTarget,
+    notePassabilityChange: () => { worldOccupancy.notePassabilityChange(); },
     resolveArrivalRedirect,
     syncOccupancyForEntity,
     setPositionAndSyncOccupancy,

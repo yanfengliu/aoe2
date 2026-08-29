@@ -280,7 +280,8 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
       if (claim.entity === null) continue;
       const building = activeWorld.getComponent<BuildingComponent>(claim.entity, 'building');
       if (!building) continue;
-      const isComplete = !accessor.get(constructionStatesCodec).has(claim.entity);
+      // v0.3.161: completion is the FIELD (a built gate keeps its entry).
+      const isComplete = accessor.get(constructionStatesCodec).get(claim.entity)?.isComplete ?? true;
       if (gateAdmits(building.buildingType, building.owner, isComplete, owner, accessor.get(playerTeamsCodec))) return true;
     }
     return false;

@@ -149,6 +149,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['los-techs-fixture', fixtures.createLosTechsFixture],
   ['conscription-fixture', fixtures.createConscriptionFixture],
   ['gate-fixture', fixtures.createGatesFixture],
+  ['gate-built-in-match-fixture', fixtures.createGateBuiltInMatchFixture],
   ['unit-repair-fixture', fixtures.createUnitRepairFixture],
   ['transport-fixture', fixtures.createTransportFixture],
   ['murder-holes-hugged-fixture', fixtures.createMurderHolesHuggedFixture],

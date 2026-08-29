@@ -52,18 +52,22 @@ export function createGatesFixture(seed: string): PrototypeScenario {
       // One unit each side of the line.
       ownedSpawn('scout', 1, 18, 12),
       ownedSpawn('scout', 2, 22, 12),
-      ...wallLine(),
+      ...gateWallLine('seeded-gate'),
     ],
   };
 }
 
-// x=20 from edge to edge, with the single Gate at y=12.
-function wallLine(): ScenarioSpawnSpec[] {
+// x=20 from edge to edge. `gateRow` says what stands on y=12: a seeded Gate
+// here, or nothing at all for the fixture whose player builds its own.
+export function gateWallLine(gateRow: 'seeded-gate' | 'open'): ScenarioSpawnSpec[] {
   const line: ScenarioSpawnSpec[] = [];
   for (let y = 0; y < MAP_HEIGHT; y += 1) {
-    line.push(y === GATE_ROW
-      ? ownedSpawn('stone-gate', 1, WALL_COLUMN, y, { vision: 4 })
-      : ownedSpawn('stone-wall', 1, WALL_COLUMN, y));
+    if (y === GATE_ROW) {
+      if (gateRow === 'open') continue;
+      line.push(ownedSpawn('stone-gate', 1, WALL_COLUMN, y, { vision: 4 }));
+      continue;
+    }
+    line.push(ownedSpawn('stone-wall', 1, WALL_COLUMN, y));
   }
   return line;
 }

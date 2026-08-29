@@ -111,6 +111,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     resolveArrivalRedirect,
     resolveMovePlanFromCache,
     markOutOfBandRenderChange,
+    notePassabilityChange,
     ensurePlayerScoreCounters,
     destroyUnitEntity,
     killWildlifeEntity,
@@ -273,6 +274,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     syncUnitTransformToPosition,
     resolveMovePlanFromCache,
     markOutOfBandRenderChange,
+    notePassabilityChange,
     ensurePlayerScoreCounters,
     destroyUnitEntity: (...args) => {
       playerCommandVisibilityRevision.runEntityMutation(args[0], () => {

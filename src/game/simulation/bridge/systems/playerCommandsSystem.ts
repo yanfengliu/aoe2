@@ -85,6 +85,7 @@ export interface PlayerCommandsSystemDeps {
     activeWorld: CivWorld,
   ) => UnitMovementPlan | null;
   markOutOfBandRenderChange: () => void;
+  notePassabilityChange: () => void;
   ensurePlayerScoreCounters: (owner: number) => PlayerScoreCountersLike;
   destroyUnitEntity: (id: number) => void;
   killWildlifeEntity: (id: number) => void;
@@ -121,6 +122,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     syncUnitTransformToPosition,
     resolveMovePlanFromCache,
     markOutOfBandRenderChange,
+    notePassabilityChange,
     ensurePlayerScoreCounters,
     destroyUnitEntity,
     killWildlifeEntity,
@@ -304,6 +306,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             building,
             onComplete: onBuildingConstructionComplete,
             markRender: markOutOfBandRenderChange,
+            notePassabilityChange,
           });
           // Build chain (v0.3.126): a queued next site takes over instead of
           // clearing — the builder walks straight from the finished roof to

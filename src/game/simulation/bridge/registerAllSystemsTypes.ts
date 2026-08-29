@@ -259,6 +259,8 @@ export interface RegisterAllSystemsDeps {
     monkUnit: UnitComponent,
     activeWorld: CivWorld,
   ) => void;
+  /** Announce a gate finishing so reachability caches invalidate (v0.3.161). */
+  notePassabilityChange: () => void;
   setPositionAndSyncOccupancy: (
     entity: number,
     position: Position,

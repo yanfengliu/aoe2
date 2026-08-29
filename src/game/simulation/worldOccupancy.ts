@@ -59,15 +59,26 @@ export interface WorldOccupancy {
    *
    *  KNOWN BOUNDARY: gate admittance (cellPassability.admitsThroughGate) also
    *  depends on completion, team membership, and the ASKING unit's owner —
-   *  none of which bump this counter. Today that cannot arm a stale cache
-   *  because a separate pre-existing defect keeps in-match gates from ever
-   *  admitting (completion is tested via a codec entry that finalize never
-   *  deletes); the task that fixes gates must also bump this revision on
-   *  gate completion, or the cache will hold a stale unreachable verdict
-   *  across a gate opening. Entity ids also recycle (see `generation`) —
-   *  the cache tolerates that only because every structural death bumps
-   *  the revision, which flushes the dead id's entries. */
+   *  none of which claim or release a cell. Gate COMPLETION is handled
+   *  (v0.3.161): finalizeBuildingConstruction calls notePassabilityChange(),
+   *  so a route that opens when a gate finishes invalidates the cache like
+   *  any structural change. The remaining boundary is per-owner and currently
+   *  closed by other rules, not by this counter: a unit changing owner (monk
+   *  conversion) inherits the cached verdicts of its old owner, since the key
+   *  carries no owner; and a BUILDING changing owner would change who its
+   *  gate admits, which cannot happen today only because monk conversion
+   *  refuses every wall-line building (monasteryTechEffects). Teams are
+   *  seed-only and never change mid-match. Any future capture mechanic, or
+   *  any owner-keyed passability, must call notePassabilityChange().
+   *  Entity ids also recycle (see
+   *  `generation`) — the cache tolerates that only because every structural
+   *  death bumps the revision, which flushes the dead id's entries. */
   structuralRevision(): number;
+  /** Bump `structuralRevision` for a change that alters WHO may pass a cell
+   *  without changing which cells are claimed — a gate finishing for its
+   *  owner. Reachability caches key on the revision, so anything that opens
+   *  or closes a route to some player must announce itself here. */
+  notePassabilityChange(): void;
   getUnitSlotOffset(entity: EntityId): SubcellSlotOffset | null;
   getCellStatus(x: number, y: number, ignoredEntityId?: EntityId | null): OccupancyCellStatus;
   isCellBlockedByBuilding(x: number, y: number, ignoredEntityId?: EntityId | null): boolean;
@@ -382,6 +393,10 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       clearOverflowForEntity(entity);
       unitSlotOffsets.delete(entity);
       if (structuralEntities.delete(entity)) structuralRevisionCounter += 1;
+    },
+
+    notePassabilityChange(): void {
+      structuralRevisionCounter += 1;
     },
 
     structuralRevision(): number {

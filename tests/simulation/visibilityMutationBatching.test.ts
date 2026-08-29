@@ -449,6 +449,7 @@ describe("visibility mutation batching", () => {
         building: { owner: 1, buildingType },
         onComplete,
         markRender: vi.fn(),
+      notePassabilityChange: vi.fn(),
       });
 
       return onComplete.mock.calls[0]?.[3];
