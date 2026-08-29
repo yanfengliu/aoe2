@@ -722,6 +722,8 @@ And `$?` after a PIPE is the last command's status, not the gate's — writing t
 The check that generalises: run each gate unpiped and print its own `$?`. `npm run lint; echo "LINT=$?"` costs one word and cannot be misread; `| tail -1` can, and `| grep ...; echo $?` reports the wrong process entirely. The same applies to `npm test` (whose summary line survives a tail, which is why this went unnoticed there) and to any future gate whose failure output is short.
 
 
+**Recurrence (2026-08-29), on the tool built to stop exactly this:** checked the new `npm run ci:status` with `... | tail -6; echo "EXIT=$?"` and read `EXIT=0` as green while the script was reporting a RED corpus gate in the text above it. Unpiped it returns 1 correctly. Reading a gate through a pipe is how the gate stops being a gate — and this time the gate in question was the one that reads other gates.
+
 **Recurrence (2026-08-27):** every battery this session ran `npm run lint 2>&1 | tail -1 && echo LINT-OK` — the pipeline exits with `tail`'s status, so LINT-OK printed over a 3-error red lint for an unknown number of commits until an independent critic ran the gate bare. Fixed command: the repo's existing `npm run verify` (content:validate+test+typecheck+test:browser+lint+build, typecheck added 2026-08-27) chains with `&&` and NO pipes; run it unpiped (in background if long) and read the output file, never through a pipeline. Postscript: the first fix attempt ADDED a duplicate "verify" key without checking for one — esbuild's duplicate-object-key warning caught it.
 
 ## A cell index in a projected frame is a CONTRACT with the decoder, not a private key (2026-08-24)
