@@ -2,14 +2,21 @@ name: playtest-corpus
 on:
   pull_request:
   # Cost control (same as ci.yml): only run the sim-heavy corpus on a push that
-  # changes package.json — a version bump or dependency change. Refactor/doc/CI
+  # changes package.json — a version bump or dependency change. Refactor/doc
   # pushes skip it. PRs still run it.
+  #
+  # The corpus CONFIG and the workflows are in the filter (v0.3.161) for the
+  # reason ci.yml carries: a change to the thing a gate reads could not trigger
+  # the gate that would prove it. workflow_dispatch for the same reason.
   push:
     branches: [main]
     paths:
       - 'package.json'
       - 'package-lock.json'
       - '.github/voxel-commit'
+      - '.github/workflows/**'
+      - 'playtest-corpus.json'
+  workflow_dispatch:
 
 permissions:
   contents: read
