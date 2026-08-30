@@ -224,9 +224,9 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
   ): boolean {
     const kind = terrainKindAt(x, y, world);
     if (!kind || !terrainPassableForDomain(kind, domain)) return false;
-    // Water carries no buildings or land resources, so a passable water cell
-    // is spawnable; land keeps the existing occupancy answer.
-    return domain === 'water' ? true : isCellPassableForSpawn(x, y);
+    // A Fish Trap is a building ON water, so water is not auto-spawnable.
+    if (domain === 'water') return !worldOccupancy.isCellBlockedByBuilding(x, y);
+    return isCellPassableForSpawn(x, y);
   }
 
   function isCellBlockedByBuilding(x: number, y: number): boolean {
@@ -257,9 +257,9 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     if (!isTerrainPassableForUnitId(unitId, x, y, activeWorld)) return false;
     const unit = activeWorld.getComponent<UnitComponent>(unitId, 'unit');
     if (unit && unitDomain(unit.unitType) === 'water') {
-      // Water cells hold no buildings or land resources, so open water is
-      // clear; the shared spawn check would reject it for being water.
-      return true;
+      // Open water is clear (the spawn check rejects it merely for being
+      // water), but a Fish Trap is a BUILDING on water — ships route around.
+      return !worldOccupancy.isCellBlockedByBuilding(x, y);
     }
     if (isCellPassableForSpawn(x, y)) return true;
     // The cell is blocked — but a gate is a wall with a door, and the door is

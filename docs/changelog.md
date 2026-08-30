@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.164
+
+- Ships no longer sail through Fish Traps. A Fish Trap is a building standing on water, but the water-passability rule assumed water never holds buildings, so every ship passed straight through one. Ships now route around them, while open water stays as open as it was.
+
+## 0.3.163
+
+- The AI no longer strands itself in the Dark Age. A villager walking to a busy resource gave up after a fixed 80 ticks — a rule written when units moved six times faster, where it meant "forty tiles" and now means "six". Villagers whose food sat further than that abandoned the trip a moment before arriving, over and over, and their player never gathered enough to age up. The give-up point is now measured against the walk itself, so on the map the game opens with, the second player reaches the Feudal Age instead of never leaving the first.
+
 ## 0.3.162
 
 - Villagers no longer strand what they are carrying. A villager whose resource runs out and who cannot find another of the same kind used to stand still holding a full load; it now carries that load to the drop-off first, as it should. The AI economies feel this most — on the default map one player now reaches the Feudal Age about six minutes of game time sooner.

@@ -7,6 +7,15 @@
       "gameLength": 13000,
       "allAi": true,
       "requireAgeByEnd": "feudal-age"
+    },
+    {
+      "name": "boot-map-both-owners",
+      "seed": "aoe2-prototype",
+      "maxTicks": 13100,
+      "gameLength": 13000,
+      "allAi": true,
+      "requireAgeByEnd": "feudal-age",
+      "requireAgeForEveryOwner": "feudal-age"
     }
   ]
 }

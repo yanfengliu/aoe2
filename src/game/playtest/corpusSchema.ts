@@ -22,6 +22,12 @@ export interface PlaytestCorpusRun {
   // bundle). Guards against the drop-off-freeze class where an economy stalls
   // and no one leaves the Dark Age. Only meaningful for a long run.
   requireAgeByEnd?: 'feudal-age' | 'castle-age' | 'imperial-age';
+  // The STRICT companion: EVERY living owner must have reached this age.
+  // `requireAgeByEnd` passes when ANY owner did, which cannot see a match where
+  // one side never plays — the blind spot that hid a frozen AI on the boot map
+  // for a whole session (root cause fixed v0.3.163). Eliminated owners stay
+  // exempt: losing is not an economy stall.
+  requireAgeForEveryOwner?: 'feudal-age' | 'castle-age' | 'imperial-age';
   thresholds?: OracleThresholds;
 }
 
@@ -58,6 +64,14 @@ export function parseCorpusFile(raw: string): PlaytestCorpus {
     ) {
       throw new Error(
         `corpus.runs[${i}]: requireAgeByEnd must be one of feudal-age, castle-age, imperial-age`,
+      );
+    }
+    if (
+      r.requireAgeForEveryOwner !== undefined
+      && !['feudal-age', 'castle-age', 'imperial-age'].includes(r.requireAgeForEveryOwner)
+    ) {
+      throw new Error(
+        `corpus.runs[${i}]: requireAgeForEveryOwner must be one of feudal-age, castle-age, imperial-age`,
       );
     }
     if (r.thresholds !== undefined && (typeof r.thresholds !== 'object' || r.thresholds === null)) {

@@ -7,7 +7,7 @@ import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { SessionReplayer } from 'civ-engine';
 import { parseCorpusFile } from '../src/game/playtest/corpusSchema.ts';
-import { checkAgeProgression } from '../src/game/playtest/progressionCheck.ts';
+import { checkAgeProgression, checkEveryOwnerAgeProgression } from '../src/game/playtest/progressionCheck.ts';
 import { createReplayWorldOnly } from '../src/game/simulation/replay/createReplayWorldOnly.ts';
 import { makeReplayBridge } from '../src/game/simulation/replay/makeReplayBridge.ts';
 
@@ -128,6 +128,22 @@ for (const run of corpus.runs) {
         console.error(`corpus: run ${run.name} progression gate FAILED — ${result.message}`);
       } else {
         progressionNote = ` progression: ok (${result.reached.map((r) => `${r.owner}:${r.age}`).join(', ')})`;
+      }
+      // The strict companion, when the row opts in. Appended AFTER the
+      // any-owner note so it cannot be overwritten by it: a match where one
+      // side never plays passes the check above, which is exactly how a frozen
+      // AI on the boot map stayed invisible for a whole session.
+      if (run.requireAgeForEveryOwner) {
+        const strict = checkEveryOwnerAgeProgression(
+          ages, aliveOwners, run.requireAgeForEveryOwner,
+        );
+        if (!strict.ok) {
+          totalHigh += 1;
+          progressionNote += ` everyOwner: FAIL (${strict.message})`;
+          console.error(`corpus: run ${run.name} every-owner gate FAILED — ${strict.message}`);
+        } else {
+          progressionNote += ' everyOwner: ok';
+        }
       }
     } catch (err) {
       // A bundle that can't be replayed can't be progression-checked. Fail the

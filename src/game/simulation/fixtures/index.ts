@@ -358,6 +358,7 @@ export { createLosTechsFixture } from './losTechs';
 
 export { createConscriptionFixture } from './conscription';
 export { createGatesFixture } from './gates';
+export { createFishTrapBlocksFixture } from './fishTrapBlocks';
 export { createGateBuiltInMatchFixture } from './gateBuiltInMatch';
 export { createUnitRepairFixture } from './unitRepair';
 export { createTransportFixture, EAST_SHORE, STRAIT, WEST_SHORE } from './transport';

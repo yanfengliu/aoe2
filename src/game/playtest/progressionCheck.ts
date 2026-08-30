@@ -47,6 +47,34 @@ export interface AgeProgressionResult {
 // (it lost), and a run where at least one side advanced is progressing. When
 // there are no living owners at all (mutual elimination) the check passes: the
 // match resolved, which is not a progression stall.
+/**
+ * The STRICT reading: every LIVING owner must have reached `requiredAge`.
+ *
+ * `checkAgeProgression` above passes when ANY living owner did, which cannot
+ * see a match where one side never plays — and that is a real failure mode,
+ * not a hypothetical: on `aoe2-prototype` owner 2 sat in the Dark Age past
+ * 24,000 ticks while owner 1 aged up and the corpus stayed green the whole
+ * time (root cause fixed in v0.3.163). Eliminated owners stay exempt for the
+ * same reason they are exempt above: losing a match is not an economy stall.
+ */
+export function checkEveryOwnerAgeProgression(
+  ownerAges: Record<number, string>,
+  aliveOwners: readonly number[],
+  requiredAge: AgeName,
+): AgeProgressionResult {
+  const reached = aliveOwners.map((owner) => ({ owner, age: ownerAges[owner] ?? 'dark-age' }));
+  const behind = reached.filter((r) => !ageAtLeast(r.age, requiredAge));
+  return {
+    ok: behind.length === 0,
+    requiredAge,
+    reached,
+    message: behind.length === 0
+      ? ''
+      : `a living owner never reached ${requiredAge} (behind: `
+        + `${behind.map((r) => `${r.owner}:${r.age}`).join(', ')})`,
+  };
+}
+
 export function checkAgeProgression(
   ownerAges: Record<number, string>,
   aliveOwners: readonly number[],
