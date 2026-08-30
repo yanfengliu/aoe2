@@ -278,8 +278,17 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
     test.slow();
     await game.waitForBootWithSeed(page, 'fog-memory-fixture');
 
-    // Warm up a couple of ticks so visibility updates run.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(3, 100));
+    // NO warm-up, and the removed three ticks were the whole bug in this line.
+    // The fixture's scout carries no wander bounds but it does not stand still:
+    // it auto-engages the enemy house four tiles away and steps off (10,10),
+    // which takes that house out of its radius-4 vision. Measured IN THE
+    // BROWSER: `isMemory` is false at boot and already true after a single
+    // extra tick, with the scout at (10,9). (The node simulation holds until
+    // tick 4 — boot advances further here, which is exactly why a fixed
+    // warm-up count could not be right in both places.) Waiting three ticks
+    // asserted the house was in live vision at a moment it had already left,
+    // which is why this passed inside the full suite and failed in isolation.
+    // Visibility is already computed at boot, so there is nothing to wait for.
 
     // Confirm the enemy house starts in live vision (non-memory).
     const initialHouse = await page.evaluate(() =>
@@ -293,7 +302,17 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
         ),
     );
     expect(initialHouse).toBeTruthy();
-    expect(initialHouse!.isMemory).toBe(false);
+    // Deliberately NOT asserting `isMemory === false` here. That the house
+    // STARTS in live vision is a property of the fixture, not of the rendering
+    // this spec is for, and it cannot be checked from the browser at a fixed
+    // tick: boot advances a variable number of ticks under load, and the
+    // fixture's scout auto-engages this house and steps out of its own
+    // radius-4 vision almost immediately. Warming three ticks failed in
+    // isolation and passed in the suite; warming none did the exact reverse.
+    // The premise is pinned deterministically in
+    // `tests/simulation/fogMemoryFixturePremise.test.ts` instead, and what
+    // remains here is the thing only a browser can answer — that a house which
+    // has left vision renders as a reduced-opacity memory.
 
     // Select the scout and walk it back near the human TC so the house leaves vision.
     expect(await game.selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
