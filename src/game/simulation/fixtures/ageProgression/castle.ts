@@ -124,3 +124,65 @@ export function createCastleUpgradesFixture(seed: string): PrototypeScenario {
     ],
   };
 }
+
+// Spec §7.2's "2 qualifying Castle Age buildings OR 1 Castle": a player in the
+// Castle Age holding exactly ONE Castle and nothing else from that tier. It is
+// the whole point of the alternative — a single Castle is a bigger investment
+// than two of anything else, so AoE2 lets it stand alone — and the count-only
+// rule blocked it, because a Castle merely counted as one of the two.
+export function createLoneCastleFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        startingResources: { food: 2000, wood: 2000, gold: 2000, stone: 2000 },
+      },
+      { owner: 2, townCenter: { x: 40, y: 24 } },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      // One Castle. No University, Siege Workshop or Monastery, so the
+      // count-only rule sees exactly one qualifying building.
+      ownedSpawn('castle', 1, 16, 16, { vision: 6 }),
+      ownedSpawn('villager', 1, FIXTURE_NEARBY_VILLAGER_POSITION.x, FIXTURE_NEARBY_VILLAGER_POSITION.y, {
+        vision: 4,
+      }),
+      ownedSpawn('town-center', 2, 40, 24, { vision: 7 }),
+    ],
+  };
+}
+
+// The control: the same Castle-Age player holding ONE non-Castle qualifying
+// building. One of those is not enough, and must stay not enough — otherwise
+// "or 1 Castle" has decayed into "or any one building".
+export function createLoneUniversityFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 8, y: 8 },
+        startingAge: 'castle-age',
+        startingResources: { food: 2000, wood: 2000, gold: 2000, stone: 2000 },
+      },
+      { owner: 2, townCenter: { x: 40, y: 24 } },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      ownedSpawn('university', 1, 16, 16, { vision: 4 }),
+      ownedSpawn('villager', 1, FIXTURE_NEARBY_VILLAGER_POSITION.x, FIXTURE_NEARBY_VILLAGER_POSITION.y, {
+        vision: 4,
+      }),
+      ownedSpawn('town-center', 2, 40, 24, { vision: 7 }),
+    ],
+  };
+}

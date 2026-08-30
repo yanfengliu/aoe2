@@ -238,3 +238,20 @@ The attack path itself was fine. `attackCommandStep` has handled `targetEntityKi
 **Still OPEN: the (maxX, minY) corner.** That corner still pins — two cells in 1,200 ticks, on a map with no wildlife — after this fix, so it is a second and independent defect in the same system rather than a case the fix missed. It is deliberately not in the test, with a comment saying why, so that nobody lowers the bar for the three corners that now work in order to accommodate it. Repro: `createSimulationBridge('aoe2-canary')`, take the owner-2 scout with the largest `maxX`, set its position and `unitTransform` to `(bounds.maxX, bounds.minY)`, step 1,200 ticks, count distinct cells.
 
 **What this predicts.** Every other place a cell-space bound is enforced in fine space has the same trap, and the asymmetry is what makes it invisible: the min side is always right, so a symmetric-looking expression is half wrong. `worldOccupancy`'s spawn guard was audited for this in the same session and is correct because it compares in cell space throughout.
+
+## 2026-08-30 — A red Windows CI on a suite that was green everywhere else
+
+**Symptom.** `main`'s remote gate failed on the push of commit e6c73556. Ubuntu passed; Windows failed with one test timing out — `selectionActivity.unit.test.ts > villager returning with wood reports Dropping off wood`, `Test timed out in 30000ms`. Every local gate had been green, including the full suite, the browser suite and the corpus.
+
+**Investigation.** The test takes 8.0 seconds on the author's machine against a 30-second budget. The Windows job took 34 minutes against the previous run's 24. Two candidates were measured rather than argued:
+
+- *Did the change make the simulation slower?* An A/B on the scout wander fix — the only behaviour change that makes units do MORE work — over the two heaviest AI suites: 70.46s with it, 69.11s without. About 2%. Not the cause.
+- *Did the new tests cost that much?* They total roughly 21 seconds of the suite's 967 seconds of test time, about 2%. Not on their own either.
+
+What is left is contention. The suite runs in parallel workers on a CI runner with few cores, and a test with an 8-second cost and a 30-second budget has no headroom once anything else is competing for the machine. The new tests were enough to tip it; on a faster runner they would not have been. Windows runner variance covers the rest of the 24-to-34-minute gap.
+
+**Root cause.** A budget calibrated on the author's machine with nothing else running. It is the same shape as the 2026-08-29 two-month CI outage entry: the local gate and the remote gate run on different machines, and every machine that runs this suite in CI is slower than the author's.
+
+**How it is checked from now on.** The marginal test's budget is now 90 seconds with the measurement written beside it, so a slow runner has room. The new tests were re-measured and shortened wherever the signal allowed — the scout corner floors dropped from 1,200 ticks to 400, the retaliation horizon from 1,200 to 300 (the wolf is at 1/25 by tick 200) — which took the suite from 110.7s to 104.7s locally. The one test that kept its full horizon kept it for a measured reason: its signal does not exist below 1,200 ticks (17 cells against the broken build's 19 at 600).
+
+**What this predicts.** Every remaining test whose runtime is a large fraction of its timeout is the same defect waiting for a busy runner. `gatherDomain` at 107s, `aiPlayer` at 44s and `aiFeudalStone` at 37s are the ones to look at first, and the general rule is that a per-test budget should be a multiple of the measured cost rather than a round number that happened to pass once.

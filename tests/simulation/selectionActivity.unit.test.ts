@@ -101,7 +101,14 @@ describe('selection activity — owned unit', () => {
     );
     expect(reached).toBe(true);
     expect(bridge.getSelectionState().activity).toEqual({ verb: 'dropping off', target: { kind: 'economy-resource', type: 'wood' } });
-  }, 30_000);
+    // 90s, not 30s. This walks a villager to a tree, fills it, and walks it
+    // home on a full AI map — 8 seconds on the author's machine, and every
+    // machine that runs it in CI is slower than the author's. It timed out on
+    // the Windows runner at 30s, which left roughly no headroom at all, and
+    // the trigger was unrelated tests added elsewhere in the same change
+    // competing for cores. A budget that only holds when nothing else is
+    // running is not a budget.
+  }, 90_000);
 
   it('villager placing a house foundation reports Building House', () => {
     const bridge = createSimulationBridge(DEFAULT_SEED);

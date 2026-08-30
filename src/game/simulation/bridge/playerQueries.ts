@@ -232,6 +232,14 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
     if (getPlayerCivilization(owner) === 'Khmer') {
       return true;
     }
+    // Spec §7.2: "2 qualifying Castle Age buildings OR 1 Castle". The
+    // alternative is the point — a Castle costs more than two of anything else
+    // in its tier, so AoE2 lets one stand alone — and only the count was
+    // implemented, with a Castle merely counting as one of the two. A player
+    // who had built a Castle and nothing else was blocked out of Imperial.
+    if (hasCompletedBuilding(owner, 'castle')) {
+      return true;
+    }
     return (
       countCompletedOwnedBuildings(owner, isCastleAgePrerequisiteBuilding)
       >= AGE_ADVANCE_REQUIRED_COUNT

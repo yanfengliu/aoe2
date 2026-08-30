@@ -12,6 +12,7 @@
 
 import type { Position } from 'civ-engine';
 
+import { teamHasCivilization } from '../../teamBonuses';
 import { buildRateMultiplier } from '../../buildingTechEffects';
 import { buildingBuildTimeTicks } from '../../prototypeBuildingRules';
 import type {
@@ -24,6 +25,7 @@ import {
   buildingHealthStatesCodec,
   constructionStatesCodec,
   playerCivilizationsCodec,
+  playerTeamsCodec,
   playerResourcesCodec,
   repairAccrualCodec,
   researchedTechnologiesCodec,
@@ -142,6 +144,21 @@ export function runBuilderWorkStep(ctx: BuilderWorkStepContext): BuilderWorkResu
   construction.buildProgressTicks += buildRateMultiplier(
     accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET,
     accessor.get(playerCivilizationsCodec).get(unit.owner),
+    {
+      // Incas: "Farms built 50% faster" — scoped to the farm, so the
+      // multiplier needs to be told what is under construction.
+      // Short-circuited on the building type: `teamHasCivilization` scans the
+      // whole civilization map and calls `areAllied`, and this runs for every
+      // builder every tick. The multiplier discards it for anything but a
+      // farm anyway.
+      farmTeamBonus: building.buildingType === 'farm' && teamHasCivilization(
+        accessor.get(playerTeamsCodec),
+        accessor.get(playerCivilizationsCodec),
+        unit.owner,
+        'Incas',
+      ),
+      buildingType: building.buildingType,
+    },
   );
   accessor.markDirty(constructionStatesCodec);
   const buildingHealth = accessor.get(buildingHealthStatesCodec).get(buildingId);

@@ -34,6 +34,13 @@ export const MAYANS_TEAM_WALL_COST_MULTIPLIER = 0.5;
 export const VIKINGS_TEAM_DOCK_COST_MULTIPLIER = 0.85; // DE: docks -15%.
 export const MALIANS_TEAM_UNIVERSITY_RESEARCH_MULTIPLIER = 1 / 1.8;
 export const SLAVS_TEAM_MILITARY_BUILDING_POP = 5;
+// `civilizations.csv:23` — "Farms built 50% faster". Held to the CSV rather
+// than to live DE on purpose: DE raised this to 100% and later replaced the
+// bonus outright with a Spearman/Skirmisher sight line, and `design/stats/` is
+// this repo's stated authority. Recorded rather than silently followed, because
+// the neighbouring bonuses in the spec carry sourcing notes and this one's
+// divergence is the kind that looks like a typo years later.
+export const INCAS_TEAM_FARM_BUILD_MULTIPLIER = 1.5;
 // Per-civ team production speeds (sourced v0.3.144): DE gives Britons +10%,
 // Goths/Huns/Celts +20%, Turks +25% — the old shared 1/1.2 overbuffed
 // Britons and shorted Turks.

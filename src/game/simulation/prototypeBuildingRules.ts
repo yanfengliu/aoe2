@@ -190,11 +190,17 @@ import {
 } from './buildingProductionTables';
 import { ownerTint } from './playerColors';
 
+// Spec §7.2's qualifying set in full. The Dock was omitted on the strength of
+// a sentence in that section reading "This land-only slice has no Dock" —
+// true when it was written, and false since the naval slice shipped one that
+// §7.3 lists as a Dark Age unlock. A water-map opening of Dock plus Mill is an
+// ordinary AoE2 opening and it could not age up.
 const DARK_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([
   'mill',
   'lumber-camp',
   'mining-camp',
   'barracks',
+  'dock',
 ]);
 
 const FEUDAL_AGE_PREREQUISITE_BUILDINGS = new Set<BuildingType>([

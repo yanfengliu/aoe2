@@ -83,6 +83,8 @@ export {
 
 export {
   createCastleAgeFixture,
+  createLoneCastleFixture,
+  createLoneUniversityFixture,
   createCastleTownCenterFixture,
   createCastleUpgradesFixture,
 } from './ageProgression/castle';

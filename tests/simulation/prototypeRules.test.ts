@@ -120,11 +120,15 @@ describe('prototype building rules', () => {
   it('exposes reverse research lookup + age-up prerequisite tables (agent-affordances A1)', () => {
     expect(buildingsThatResearch('feudal-age')).toEqual(['town-center']);
     expect(buildingsThatResearch('chemistry')).toEqual(['university']);
+    // Spec §7.2's full qualifying set. The Dock joined it once the naval
+    // slice shipped one — this list had pinned the land-only four, which was
+    // the shape of the defect rather than a guard against it.
     expect(agePrerequisiteBuildingTypes('feudal-age')).toEqual([
       'mill',
       'lumber-camp',
       'mining-camp',
       'barracks',
+      'dock',
     ]);
     expect(agePrerequisiteBuildingTypes('castle-age')).toContain('blacksmith');
     expect(AGE_ADVANCE_REQUIRED_COUNT).toBe(2);

@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.168
+
+- A Dock counts toward advancing to the Feudal Age, as it does in Age of Empires II. It always should have — a water-map opening of a Dock and a Mill met the requirement everywhere except in this game, where it left you stuck in the Dark Age.
+- A single Castle is now enough to advance to the Imperial Age. The rule is "two Castle-Age buildings or one Castle", and only the counting half existed, so a player who had committed to a Castle and nothing else was locked out of the age it unlocks.
+- Incas allies build farms 50% faster — the last team bonus that was simply missing rather than waiting on content that does not exist yet.
+
 ## 0.3.167
 
 - An idle unit fights back when an animal attacks it. A wolf could maul a villager to death while taking no damage at all, because wildlife are not units and nothing in the retaliation path could see one — the villager simply stood there. A unit that is busy still keeps doing what you told it to; defending yourself without losing your orders is still to come.

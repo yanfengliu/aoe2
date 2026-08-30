@@ -35,7 +35,12 @@ function wolfHealth(bridge: Bridge): { id: number; currentHp: number; maxHp: num
   return health ? { id: wolf.id, ...health } : null;
 }
 
-/** Lowest HP the wolf reaches over `ticks`; 0 if it dies (it leaves the set). */
+/** Lowest HP the wolf reaches over `ticks`; 0 if it dies (it leaves the set).
+ *
+ *  300 ticks is the horizon everywhere here: the wolf is measured at 1/25 by
+ *  tick 200 and the villager is dead by 100, so a longer run adds cost and no
+ *  information. It was 1,200, and the new tests in this change pushed the
+ *  Windows CI suite from 24 minutes to 34. */
 function lowestWolfHealthOver(bridge: Bridge, ticks: number): number {
   const start = wolfHealth(bridge);
   expect(start, 'fixture must start with a living wolf').not.toBeNull();
@@ -54,7 +59,7 @@ describe('wildlife retaliation', () => {
     const bridge = createSimulationBridge('wolf-aggro-fixture');
     const maxHp = wolfHealth(bridge)!.maxHp;
     expect(
-      lowestWolfHealthOver(bridge, 1200),
+      lowestWolfHealthOver(bridge, 300),
       'the wolf was never damaged — nothing fought back',
     ).toBeLessThan(maxHp);
   }, 60_000);
@@ -67,7 +72,7 @@ describe('wildlife retaliation', () => {
     const bridge = createSimulationBridge('wolf-idle-fixture');
     const maxHp = wolfHealth(bridge)!.maxHp;
     expect(
-      lowestWolfHealthOver(bridge, 1200),
+      lowestWolfHealthOver(bridge, 300),
       'a wolf that attacked nobody lost health — the retaliation reading is not trustworthy',
     ).toBe(maxHp);
   }, 60_000);

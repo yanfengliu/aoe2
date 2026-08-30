@@ -108,9 +108,14 @@ export function createResearchAvailability(
     }
     const have = countCompletedAgePrerequisites(owner, tech);
     const candidates = formatList(agePrerequisiteBuildingTypes(tech));
+    // Spec §7.2 gives Imperial an ALTERNATIVE — two qualifying buildings or a
+    // single Castle — and a message that names only the count tells a player
+    // with a Castle nearly finished to go build something else. An error
+    // message has to name what would satisfy it, so it names both routes.
+    const alternative = tech === 'imperial-age' ? ' (or a single completed castle)' : '';
     return (
       `Advancing to ${tech} requires ${AGE_ADVANCE_REQUIRED_COUNT} completed `
-      + `${ERA_LABEL[departsFrom]} buildings (${candidates}) — you have ${have}.`
+      + `${ERA_LABEL[departsFrom]} buildings (${candidates})${alternative} — you have ${have}.`
     );
   }
 

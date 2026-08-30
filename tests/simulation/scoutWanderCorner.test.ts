@@ -35,7 +35,10 @@ interface Bounds { minX: number; maxX: number; minY: number; maxY: number }
 
 /** Distinct cells the canary map's AI scout visits in 1,200 ticks when it
  *  starts at `corner`. Two full minutes of game time. */
-function cellsRoamedFrom(pick: (bounds: Bounds) => { x: number; y: number }): number {
+function cellsRoamedFrom(
+  pick: (bounds: Bounds) => { x: number; y: number },
+  ticks = 1200,
+): number {
   const bridge = createSimulationBridge('aoe2-canary');
   const world = bridge.world as { getComponent<T>(id: number, name: string): T | null };
   const scout = bridge
@@ -56,7 +59,7 @@ function cellsRoamedFrom(pick: (bounds: Bounds) => { x: number; y: number }): nu
   transform.fineY = corner.y * 4;
 
   const visited = new Set<string>();
-  for (let tick = 0; tick < 1200; tick += 1) {
+  for (let tick = 0; tick < ticks; tick += 1) {
     bridge.step(100);
     const now = world.getComponent<{ x: number; y: number }>(scout!.id, 'position');
     if (!now) break;
@@ -76,12 +79,19 @@ describe('a scout at the edge of its wander box', () => {
   }, 120_000);
 
   // Floors, NOT detection. These two corners are unmoved by the fix; they are
-  // here so a later change to the wander bounds cannot quietly degrade them,
-  // and the numbers are the measured ones minus a margin.
+  // here so a later change to the wander bounds cannot quietly degrade them.
+  //
+  // They run on a SHORTER horizon than the test above, deliberately. A floor
+  // only needs enough ticks to tell roaming from pinning, and these two runs
+  // were two thirds of this file's cost — which mattered: the new tests in
+  // this change pushed the Windows CI suite from 24 minutes to 34 and starved
+  // an unrelated test into its timeout. The discriminating test keeps its full
+  // 1,200 ticks because its signal does not exist below that (17 cells against
+  // the broken build's 19 at 600 ticks — the gap only opens later).
   it('does not regress at the two corners this fix does not move', () => {
-    expect(cellsRoamedFrom((b) => ({ x: b.minX, y: b.maxY }))).toBeGreaterThanOrEqual(20);
-    expect(cellsRoamedFrom((b) => ({ x: b.minX, y: b.minY }))).toBeGreaterThanOrEqual(10);
-  }, 240_000);
+    expect(cellsRoamedFrom((b) => ({ x: b.minX, y: b.maxY }), 400)).toBeGreaterThanOrEqual(15);
+    expect(cellsRoamedFrom((b) => ({ x: b.minX, y: b.minY }), 400)).toBeGreaterThanOrEqual(9);
+  }, 120_000);
 
   // (maxX, minY) is deliberately absent: 2 cells before this change and 2
   // after, so it is a second and independent defect in the same system. It is

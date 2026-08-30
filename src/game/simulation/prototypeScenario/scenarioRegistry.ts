@@ -40,6 +40,8 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['blocked-stable-spawn-fixture', fixtures.createBlockedStableSpawnFixture],
   ['isolated-scout-spawn-fixture', fixtures.createIsolatedScoutSpawnFixture],
   ['castle-age-fixture', fixtures.createCastleAgeFixture],
+  ['lone-castle-fixture', fixtures.createLoneCastleFixture],
+  ['lone-university-fixture', fixtures.createLoneUniversityFixture],
   ['castle-town-center-fixture', fixtures.createCastleTownCenterFixture],
   ['multi-villager-construction-fixture', fixtures.createMultiVillagerConstructionFixture],
   ['auto-mine-camp-fixture', fixtures.createAutoMineCampFixture],

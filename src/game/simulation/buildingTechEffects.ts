@@ -5,6 +5,7 @@
 // tech set it already carried.
 
 import { isWaterUnit } from './unitDomain';
+import { INCAS_TEAM_FARM_BUILD_MULTIPLIER } from './teamBonuses';
 import type { BuildingType } from './types';
 import type { ResearchableTechnologyType } from './technologyTypes';
 import type { UnitType } from './unitTypes';
@@ -89,13 +90,29 @@ export const TREADMILL_CRANE_BUILD_MULTIPLIER = 1.2;
 // Treadmill Crane the way stacked rate techs do.
 export const SPANISH_BUILDER_MULTIPLIER = 1.3;
 
+/** What is being built, for bonuses scoped to one building rather than to the
+ *  builder. Optional so every existing caller keeps its two-argument shape. */
+export interface BuildRateContext {
+  /** The owner's side carries the Incas team bonus. */
+  readonly farmTeamBonus?: boolean;
+  readonly buildingType?: BuildingType;
+}
+
 /** How much faster this owner's villagers put up a building. */
 export function buildRateMultiplier(
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
   civilization?: string,
+  context?: BuildRateContext,
 ): number {
+  // Incas: "Farms built 50% faster". Scoped to the FARM, which is why this
+  // function needs to know what is under construction — the other two
+  // multipliers here are properties of the builder and apply to everything.
+  const incasFarm = context?.farmTeamBonus === true && context.buildingType === 'farm'
+    ? INCAS_TEAM_FARM_BUILD_MULTIPLIER
+    : 1;
   return (researchedTechnologies.has('treadmill-crane') ? TREADMILL_CRANE_BUILD_MULTIPLIER : 1)
-    * (civilization === 'Spanish' ? SPANISH_BUILDER_MULTIPLIER : 1);
+    * (civilization === 'Spanish' ? SPANISH_BUILDER_MULTIPLIER : 1)
+    * incasFarm;
 }
 
 // Heated Shot (Castle): "Towers do 2.25 * attack bonus vs ships/camels".
