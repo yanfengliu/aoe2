@@ -8,6 +8,7 @@ import type { BuildableBuildingType, BuildingComponent } from '../../types';
 import { canAfford } from '../../prototypeEconomyRules';
 import { pickNextBuildTarget, shouldPursueWonder } from '../../ai';
 import { matchSettingsCodec, playerResourcesCodec } from '../bridgeStateSerialize';
+import { dropOffAnchorFor } from './dropOffAnchor';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
 
 export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
@@ -68,7 +69,13 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       && stockpile
       && canAfford(stockpile, ownerConstructionCost(accessor, owner, 'lumber-camp'))
     ) {
-      const anchor = findBuildPlacementNear(builderPosition, 'lumber-camp');
+      // AoE2 plants the camp ON the woodline; the builder's own feet are
+      // wherever it happened to be standing. Fall back to that only when no
+      // trees are in range.
+      const woodline = ownerTownCenterPosition
+        ? dropOffAnchorFor(activeWorld, 'lumber-camp', ownerTownCenterPosition)
+        : null;
+      const anchor = findBuildPlacementNear(woodline ?? builderPosition, 'lumber-camp');
       if (anchor) {
         pushBuildingPlaceConfirmIntention(builderId, 'lumber-camp', anchor);
         pendingBuildsByOwner.set(owner, (pendingBuildsByOwner.get(owner) ?? 0) + 1);
@@ -185,7 +192,14 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
     });
     if (nextBuild && ongoingBuilds < maxConcurrentBuilds && !wonderPursuit) {
       const builderId = findAvailableVillagerForBuild(owner);
-      const anchor = findBuildPlacementNear(ownerTownCenterPosition, nextBuild);
+      // A drop-off building exists to shorten a carry, so it belongs beside
+      // what it serves rather than beside the Town Center like everything
+      // else. `dropOffAnchorFor` returns null for non-drop-offs and for a
+      // resource too far to be worth walking to, so both fall back here.
+      const anchor = findBuildPlacementNear(
+        dropOffAnchorFor(activeWorld, nextBuild, ownerTownCenterPosition) ?? ownerTownCenterPosition,
+        nextBuild,
+      );
       const buildCost = ownerConstructionCost(accessor, owner, nextBuild);
       if (
         builderId !== null

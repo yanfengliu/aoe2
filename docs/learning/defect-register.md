@@ -191,3 +191,18 @@ No frozen player on any seed, and the `default-seed` regression the first fix ca
 **The trigger to watch for.** It becomes live the moment two players' gatherers can reach the same node: a map with a contested middle (gold or stone between bases), overlapping resource rings on a small map, or allied players sharing a base. Any of those should come with the fix — key the counts by owner — and this entry is the note that the machinery is already wrong when they arrive.
 
 **What this predicts.** A shared counter with no owner dimension is a latent cross-player coupling wherever it appears. `gatherTargetCounts` is one; the same shape is worth looking for in any per-tick map keyed only by entity id.
+
+
+## 2026-08-30 — The AI built its drop-offs next to its Town Center, not next to the resources (RESOLVED v0.3.166)
+
+**Symptom.** Villagers spent 45% of their time walking, against an ideal nearer 24% for the geometry involved, and the AI reached Feudal in 18-20 minutes of game time against DE's 11-13. Found by measuring the villager time budget after the earlier freezes were fixed: with idling gone (36% to 1%), what remained was carry distance.
+
+**Root cause.** `aiSystemBuildingPhase` anchored EVERY building at the Town Center (`findBuildPlacementNear(ownerTownCenterPosition, nextBuild)`), except the bootstrap Lumber Camp, which anchored at the builder's own feet. A Lumber Camp, Mining Camp and Mill exist precisely to shorten a carry, and AoE2 puts them ON the woodline and the ore. Measured across three seeds, camps landed a median 5 tiles from what they serve, with a Mining Camp at 16 and a Mill 52 tiles from the nearest berry.
+
+**Fix.** `dropOffAnchorFor` returns the nearest harvestable resource of the kind a drop-off serves, bounded to the owner's neighbourhood; non-drop-offs and out-of-range resources return null so callers keep their old anchor. Camp-to-resource distance dropped to a median 2 (lumber) and 3 (mining).
+
+**Two things measurement corrected mid-fix.** Anchoring a Mill on sheep and boar as well as berries is wrong — both are brought TO the Town Center in AoE2, and a wandering sheep won the nearest-resource contest. And the "mill is 8 tiles from the nearest berry" metric is confounded by DEPLETION: a mill built beside berries that are later eaten reads as badly placed. Haul distance and gather share are the honest measures.
+
+**Outcome, including the cost.** On the worst-owner-across-seeds ranking this repo adopted after an earlier review, **17,200 → 14,100 ticks**. `aoe2-prototype` owner 2: 11,000 → 9,200. `corpus-seed-b` owner 2: 17,200 → 12,100. Owner 2's gather share on the boot map: 51% → 59%. The cost, recorded not buried: `default-seed` owner 1 slows 12,100 → 14,100. Three slots improve, one regresses, two are unchanged.
+
+**What this predicts.** The anchor radius (12) is not currently load-bearing — every camp on every tested map already falls inside it, and 22 gave identical results. It becomes real on a map whose resources sit far from the start position, and that is the case to measure before trusting it.

@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.166
+
+- The AI builds its Lumber Camps, Mining Camps and Mills next to the resources they serve, the way a player does, instead of next to its Town Center. Its villagers walk less and it reaches the Feudal Age sooner — on one map a player that took nearly 29 minutes now takes 20.
+
 ## 0.3.165
 
 - Corrects the give-up rule shipped a moment earlier: it was measured from where a villager currently stands, recomputed every tick, which made it shrink as the villager got closer and abandon ordinary walks even sooner than the rule it replaced. It is a fixed allowance now — thirty-two tiles of walking — so no player's economy stalls on any of the maps we test, and the one map that had slowed down is back to its old pace.
