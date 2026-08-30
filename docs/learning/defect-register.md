@@ -119,6 +119,19 @@ Unlike a lesson, an entry stays after it becomes a gate. The register is not a t
 
 **A correction, because the first version of this entry got it wrong.** It claimed "ten villagers are lost in clusters", read from `getEconomyState().units`. That snapshot is built from `world.query('position', 'unit')`, and garrisoning REMOVES a unit's `position` component — so sheltering villagers silently drop out of it and reappear later. Measured against the authoritative world entities, the snapshot showed 3 villagers while 7 were alive. The oscillation was mostly visibility, not death; the real attrition is mild (10 to 7 over 10,000 ticks). Any future probe counting units must count world entities, or state explicitly that it is counting the POSITIONED ones.
 
-**The sharpened question.** Why is net food income near zero with 7-10 villagers working? Candidates, none yet tested: the Dark-Age split is 57% food, so ~4 villagers on food at ~0.33/s should still bank; income may be going straight back out as villager training (50 each) in a treadmill that never accumulates; or food-role villagers may be walking further than they gather on this map's layout. Instrument the food LEDGER — deposits credited versus spend, per owner, per interval — rather than counting bodies again.
+**Measured: the villagers walk instead of gathering.** Sampling owner 2's villager task every 50 ticks for 10,000 ticks, against the same measurement for a seed where the AI DOES age up:
+
+| | `aoe2-prototype` (stuck) | `default-seed` (ages up) |
+|---|---|---|
+| gathering | **32%** | 62% |
+| walking to a resource | 32% | 22% |
+| hauling back | 21% | 13% |
+| idle | 9% | 0% |
+
+Half the gathering share, and more time in transit than at the resource. With ~8 villagers that is roughly one villager-equivalent actually on food, ~0.33 food/s gross, which villager training at 50 food each consumes entirely — hence a stockpile that never passes 50.
+
+**Four more causes eliminated.** Drop-off placement is not it, and is in fact BETTER than the winning player's: at tick 10,000 owner 2 holds mill at distance 2 and lumber-camp at 4, with berries 3 tiles out and a 1-tile haul, while owner 1 ages up with its nearest sheep **41 tiles** away. Reassignment churn is not it: role flips number 2-4 per player across 10,000 ticks, so the v0.3.159 no-inversion guard is holding. Target switching is only modestly higher for owner 2 (150 vs 105) and is ordinary depletion. And the Dark-Age gold villager (12% of owner 2's villager-time) is DELIBERATE — `aiDecisionOps` documents it as the canonical AoE2 fourth-villager opening and warns that removing it breaks age progression.
+
+**The sharpened question.** With resources 3-4 tiles away and a 1-4 tile haul, a §6.3 gather cycle should be ~78% gathering; owner 2 measures 32%. Where does the transit time go? The untested candidates are traffic — villagers queueing or yielding at a contested patch, which `movementTrafficOps` arbitrates — and assignment sending villagers past the near resource to a farther one. Instrument the per-villager trip: for one food villager, log its target, its distance to that target, and its tick-by-tick position for a few complete cycles. A single traced round trip will show whether the time goes to distance, to blocking, or to re-targeting.
 
 **What this predicts.** A gate written as "did anyone progress" cannot see the player who did not, and every such `some()` deserves re-reading as a blind spot. And a snapshot assembled from a component query silently omits whatever loses that component — `position` for garrisoned units here; the same shape will recur wherever a view is built from `query(...)` rather than from ownership.
