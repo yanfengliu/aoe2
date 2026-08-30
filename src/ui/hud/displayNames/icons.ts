@@ -47,6 +47,7 @@ const ENTITY_ICONS = {
   'gold-mine': ['G', '#d7c46a'],
   'stone-mine': ['S', '#b8c0cf'],
   'boar': ['BO', '#bf7d68'],
+  'deer': ['De', '#c09a68'],
   'fish': ['F', '#73b9d6'],
   'sheep': ['SH', '#d9e0e5'],
   'wolf': ['WO', '#9ca6b2'],

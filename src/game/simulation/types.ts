@@ -77,6 +77,10 @@ export type ResourceKind =
   | 'gold-mine'
   | 'stone-mine'
   | 'boar'
+  // Spec §5.6's third huntable. Unlike sheep and boar it FLEES an approaching
+  // unit, which is the whole reason a player lures it with a scout instead of
+  // walking villagers at it.
+  | 'deer'
   | 'fish'
   | 'sheep'
   | 'wolf'

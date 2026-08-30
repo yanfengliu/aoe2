@@ -11,6 +11,7 @@ import {
   allocateGroupMoveTargets as allocateGroupMoveTargetsImpl,
   findNearestFreeUnitCellInSpiral,
 } from './worldOccupancyAllocators';
+import { createSpawnPassabilityMemo } from './spawnPassabilityMemo';
 import {
   positionKey,
   removeClaimFromCellMap,
@@ -23,6 +24,14 @@ import {
 } from './worldOccupancyCells';
 
 export type { Footprint } from './worldOccupancyCells';
+
+/** The claim kinds that make a cell impassable to everything, as opposed to
+ *  merely crowded. Shared so the four kinds are listed once — spawn and
+ *  wildlife passability must agree on them, and they were three copies. */
+const blocksWholeCell = (claim: OccupancyCellClaim): boolean => (
+  claim.kind === 'bounds' || claim.kind === 'terrain'
+  || claim.kind === 'building' || claim.kind === 'resource'
+);
 
 export interface SyncUnitResult {
   placedAt: Position;
@@ -63,16 +72,14 @@ export interface WorldOccupancy {
    *  (v0.3.161): finalizeBuildingConstruction calls notePassabilityChange(),
    *  so a route that opens when a gate finishes invalidates the cache like
    *  any structural change. The remaining boundary is per-owner and currently
-   *  closed by other rules, not by this counter: a unit changing owner (monk
-   *  conversion) inherits the cached verdicts of its old owner, since the key
-   *  carries no owner; and a BUILDING changing owner would change who its
-   *  gate admits, which cannot happen today only because monk conversion
-   *  refuses every wall-line building (monasteryTechEffects). Teams are
-   *  seed-only and never change mid-match. Any future capture mechanic, or
-   *  any owner-keyed passability, must call notePassabilityChange().
-   *  Entity ids also recycle (see
-   *  `generation`) — the cache tolerates that only because every structural
-   *  death bumps the revision, which flushes the dead id's entries. */
+   *  closed by other rules: a unit changing owner (monk conversion) inherits
+   *  its old owner's cached verdicts since the key carries no owner, and a
+   *  BUILDING changing owner would change who its gate admits, which cannot
+   *  happen only because monk conversion refuses every wall-line building
+   *  (monasteryTechEffects). Teams are seed-only. Any future capture mechanic,
+   *  or any owner-keyed passability, must call notePassabilityChange().
+   *  Recycled entity ids are tolerated only because every structural death
+   *  bumps the revision, flushing the dead id's entries. */
   structuralRevision(): number;
   /** Bump `structuralRevision` for a change that alters WHO may pass a cell
    *  without changing which cells are claimed — a gate finishing for its
@@ -108,7 +115,23 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
   // collides for any two units in the same cell with the same id-modulo.
   const unitSlotOffsets = new Map<EntityId, SubcellSlotOffset>();
   let structuralRevisionCounter = 0;
+  // Keyed on the structural revision — see spawnPassabilityMemo.ts.
+  const spawnMemo = createSpawnPassabilityMemo(worldWidth, worldHeight);
   const structuralEntities = new Set<EntityId>();
+
+  // The ONLY way an entity's claims come off, so no path can drop a structural
+  // blocker without bumping the revision (spawnPassabilityMemo.ts says why).
+  // `bumpOnStructural: false` is for a caller that releases and IMMEDIATELY
+  // re-claims (syncBuilding, syncResource) and bumps once itself; the second
+  // bump only costs a redundant full clear of the memo, which every moving
+  // resource paid on every step. A release that does NOT re-claim must bump.
+  const releaseClaims = (entity: EntityId, bumpOnStructural = true): void => {
+    binding.release(entity);
+    clearOverflowForEntity(entity);
+    unitSlotOffsets.delete(entity);
+    const wasStructural = structuralEntities.delete(entity);
+    if (wasStructural && bumpOnStructural) structuralRevisionCounter += 1;
+  };
 
   const clearOverflowForEntity = (entity: EntityId): void => {
     const blockedState = overflowBlockedByEntity.get(entity);
@@ -125,10 +148,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
   };
 
   const destroyCallback = (entity: EntityId): void => {
-    binding.release(entity);
-    clearOverflowForEntity(entity);
-    unitSlotOffsets.delete(entity);
-    if (structuralEntities.delete(entity)) structuralRevisionCounter += 1;
+    releaseClaims(entity);
   };
 
   const reattachWorldHooks = (): void => {
@@ -200,6 +220,20 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
     };
   };
 
+  /** The uncached answer: engine claims first, then our overflow claims. */
+  const computeSpawnPassability = (x: number, y: number): boolean => {
+    for (const claim of binding.getCellStatus(x, y).blockedBy) {
+      if (blocksWholeCell(claim)) return false;
+    }
+    if (overflowBlockedByCell.size === 0) return true;
+    const overflow = overflowBlockedByCell.get(positionKey(x, y));
+    if (overflow === undefined) return true;
+    for (const claim of overflow) {
+      if (blocksWholeCell(claim)) return false;
+    }
+    return true;
+  };
+
   const hasWholeCellBlocker = (
     status: OccupancyCellStatus,
     kind: 'terrain' | 'building' | 'resource' | 'bounds',
@@ -262,8 +296,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
     },
 
     syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint): void {
-      binding.release(entity);
-      clearOverflowForEntity(entity);
+      releaseClaims(entity, false);
 
       const area = {
         x: anchor.x,
@@ -279,8 +312,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
     },
 
     syncResource(entity: EntityId, position: Position): void {
-      binding.release(entity);
-      clearOverflowForEntity(entity);
+      releaseClaims(entity, false);
 
       if (!binding.occupy(entity, [position], { metadata: { kind: 'resource' } })) {
         addOverflowBlockedClaim(entity, [position], 'resource');
@@ -290,9 +322,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
     },
 
     syncUnit(entity: EntityId, position: Position, preferredOffset?: SubcellSlotOffset, restoreOverflow = false): SyncUnitResult {
-      binding.release(entity);
-      clearOverflowForEntity(entity);
-      unitSlotOffsets.delete(entity);
+      releaseClaims(entity);
       if (restoreOverflow) {
         addOverflowCrowdedClaim(entity, position);
         return { placedAt: position, slotOffset: null };
@@ -389,10 +419,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
     },
 
     release(entity: EntityId): void {
-      binding.release(entity);
-      clearOverflowForEntity(entity);
-      unitSlotOffsets.delete(entity);
-      if (structuralEntities.delete(entity)) structuralRevisionCounter += 1;
+      releaseClaims(entity);
     },
 
     notePassabilityChange(): void {
@@ -438,24 +465,20 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       return this.getCellStatus(x, y, ignoredEntityId).crowdedBy.some((claim) => claim.kind === 'unit');
     },
 
+    // The hottest query in the simulation — 32% of all CPU before it was
+    // memoised. Pinned against the merged-status answer, and against staleness
+    // after every kind of mutation, by `worldOccupancyFastPath.test.ts`.
     isCellPassableForSpawn(x: number, y: number): boolean {
-      const status = this.getCellStatus(x, y);
-      return !status.blockedBy.some((claim) =>
-        claim.kind === 'bounds'
-        || claim.kind === 'terrain'
-        || claim.kind === 'building'
-        || claim.kind === 'resource'
-      );
+      // A fractional or NaN coordinate would index the memo out of range, or
+      // with an even width ALIAS another cell. The merged path raised
+      // `occupancy_coords_not_integer` here; this keeps it a refusal.
+      if (!Number.isInteger(x) || !Number.isInteger(y)) return false;
+      if (x < 0 || x >= worldWidth || y < 0 || y >= worldHeight) return false;
+      return spawnMemo.get(x, y, structuralRevisionCounter, computeSpawnPassability);
     },
 
     isCellPassableForWildlife(resourceId: EntityId, x: number, y: number): boolean {
-      const status = this.getCellStatus(x, y, resourceId);
-      return !status.blockedBy.some((claim) =>
-        claim.kind === 'bounds'
-        || claim.kind === 'terrain'
-        || claim.kind === 'building'
-        || claim.kind === 'resource'
-      );
+      return !this.getCellStatus(x, y, resourceId).blockedBy.some(blocksWholeCell);
     },
 
     isPlacementBlocked(x: number, y: number, width: number, height: number): boolean {

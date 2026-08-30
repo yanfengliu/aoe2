@@ -190,19 +190,27 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
           maxY: Math.max(bounds.maxY, position.y),
         };
 
+        // The box is stated in CELLS and enforced in FINE units, and the two
+        // edges do not convert the same way. `min * RESOLUTION` is genuinely
+        // the first fine slot of the first legal cell, but `max * RESOLUTION`
+        // is the first slot of the LAST legal cell, not its last — cell 32
+        // spans fine 128..131. Using it as the ceiling pinned a scout on that
+        // edge to one fine coordinate: every outward step was flipped by the
+        // reflection and snapped back by the clamp, and it covered three cells
+        // in 1,200 ticks. `scoutWanderCorner.test.ts` holds three of the four
+        // corners; the fourth pins for a different, still-open reason.
+        const fineMinX = effectiveBounds.minX * UNIT_SUBGRID_RESOLUTION;
+        const fineMaxX = (effectiveBounds.maxX + 1) * UNIT_SUBGRID_RESOLUTION - 1;
+        const fineMinY = effectiveBounds.minY * UNIT_SUBGRID_RESOLUTION;
+        const fineMaxY = (effectiveBounds.maxY + 1) * UNIT_SUBGRID_RESOLUTION - 1;
+
         const nextX = currentFineX + velocity.dx * wanderStepUnits;
         const nextY = currentFineY + velocity.dy * wanderStepUnits;
 
-        if (
-          nextX < effectiveBounds.minX * UNIT_SUBGRID_RESOLUTION
-          || nextX > effectiveBounds.maxX * UNIT_SUBGRID_RESOLUTION
-        ) {
+        if (nextX < fineMinX || nextX > fineMaxX) {
           velocity.dx *= -1;
         }
-        if (
-          nextY < effectiveBounds.minY * UNIT_SUBGRID_RESOLUTION
-          || nextY > effectiveBounds.maxY * UNIT_SUBGRID_RESOLUTION
-        ) {
+        if (nextY < fineMinY || nextY > fineMaxY) {
           velocity.dy *= -1;
         }
 
@@ -215,16 +223,8 @@ export function registerScoutMovementSystem(deps: ScoutMovementSystemDeps): void
           // from, purely because 2 happened to leave it inside the cell.
           const candidateFor = (stepUnits: number) => ({
             ...transform,
-            fineX: clamp(
-              currentFineX + velocity.dx * stepUnits,
-              effectiveBounds.minX * UNIT_SUBGRID_RESOLUTION,
-              effectiveBounds.maxX * UNIT_SUBGRID_RESOLUTION,
-            ),
-            fineY: clamp(
-              currentFineY + velocity.dy * stepUnits,
-              effectiveBounds.minY * UNIT_SUBGRID_RESOLUTION,
-              effectiveBounds.maxY * UNIT_SUBGRID_RESOLUTION,
-            ),
+            fineX: clamp(currentFineX + velocity.dx * stepUnits, fineMinX, fineMaxX),
+            fineY: clamp(currentFineY + velocity.dy * stepUnits, fineMinY, fineMaxY),
           });
           const staysInCell = (grid: { x: number; y: number }) => (
             grid.x === position.x && grid.y === position.y
@@ -412,10 +412,16 @@ export function headingEscapes(
   heading: Heading,
   isPassable: (x: number, y: number) => boolean,
 ): boolean {
+  // The SAME cell→fine conversion the wander step uses. This function exists to
+  // emulate that step, so a different ceiling here means every heading choice
+  // at a max edge is made against a model the game does not run — which is
+  // what happened when the step's ceiling was corrected and this was not.
+  // Measured: making the two agree took a scout at the far corner from 35 to
+  // 57 distinct cells in 1,200 ticks.
   const minFineX = probe.bounds.minX * UNIT_SUBGRID_RESOLUTION;
-  const maxFineX = probe.bounds.maxX * UNIT_SUBGRID_RESOLUTION;
+  const maxFineX = (probe.bounds.maxX + 1) * UNIT_SUBGRID_RESOLUTION - 1;
   const minFineY = probe.bounds.minY * UNIT_SUBGRID_RESOLUTION;
-  const maxFineY = probe.bounds.maxY * UNIT_SUBGRID_RESOLUTION;
+  const maxFineY = (probe.bounds.maxY + 1) * UNIT_SUBGRID_RESOLUTION - 1;
   let { fineX, fineY } = probe;
   let { dx, dy } = heading;
   for (let i = 0; i < UNIT_SUBGRID_RESOLUTION; i++) {

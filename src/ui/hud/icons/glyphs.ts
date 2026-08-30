@@ -162,6 +162,7 @@ const RELIC_GLYPH_BODY =
 const SELECTION_FAUNA_GLYPH_BODY: Partial<Record<ResourceKind, string>> = {
   sheep: PAW_GLYPH_BODY,
   boar: PAW_GLYPH_BODY,
+  deer: PAW_GLYPH_BODY,
   wolf: PAW_GLYPH_BODY,
   fish: FISH_GLYPH_BODY,
   relic: RELIC_GLYPH_BODY,

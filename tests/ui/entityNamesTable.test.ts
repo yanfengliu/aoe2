@@ -39,6 +39,7 @@ const EXPECTED: Readonly<Record<Entity, readonly [singular: string, plural: stri
   'gold-mine': ['Gold Mine', 'Gold Mines'],
   'stone-mine': ['Stone Mine', 'Stone Mines'],
   'boar': ['Boar', 'Boars'],
+  'deer': ['Deer', 'Deer'],
   'fish': ['Fish', 'Fish'],
   'sheep': ['Sheep', 'Sheep'],
   'wolf': ['Wolf', 'Wolves'],

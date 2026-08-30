@@ -16,9 +16,7 @@ import { registerGarrisonHealSystem } from './systems/garrisonHealSystem';
 import { registerUnitRegenerationSystem } from './systems/unitRegenerationSystem';
 import { registerBuildingDamageVariantSystem } from './systems/buildingDamageVariantSystem';
 import { registerFreeTechnologySystem } from './systems/freeTechnologySystem';
-import { registerHerdableMovementSystem } from './systems/herdableMovementSystem';
 import { registerMatchResolutionSystems } from './registerMatchResolutionSystems';
-import { registerHerdableOwnershipSystem } from './systems/herdableOwnershipSystem';
 import { registerMonkBehaviorSystem } from './systems/monkBehaviorSystem';
 import { registerPlayerCommandsSystem } from './systems/playerCommandsSystem';
 import { registerProductionQueueSystem } from './systems/productionQueueSystem';
@@ -28,8 +26,8 @@ import { registerPatrolSystem } from './systems/patrolSystem';
 import { registerProjectileSystem } from './systems/projectileSystem';
 import { registerTowerCombatSystem } from './systems/towerCombatSystem';
 import { registerVillagerEconomySystem } from './systems/villagerEconomySystem';
+import { registerWildlifeSystems } from './registerWildlifeSystems';
 import { registerVisibilitySystem } from './systems/visibilitySystem';
-import { registerWildlifeCombatSystem } from './systems/wildlifeCombatSystem';
 import { createUnitAttackRecorder } from './unitAttackAnimationFeed';
 import { createMovementTrafficOps } from './movementTrafficOps';
 import { syncVisibilitySources } from './visibility';
@@ -85,9 +83,11 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     findPreferredVisibleEnemyUnitInRangeOfBuilding,
     findNearestHostileWildlifeTarget,
     // Phase 1B unit.attack: aiSystem + autoAggressionSystem use the
-    // intention pusher (AI-decision). No deterministic-system call sites
-    // for attack today, so no direct helper threaded through this layer.
+    // intention pusher (AI-decision). `setUnitAttackCommandDirect` is the one
+    // deterministic-resolution call site — wildlife retaliation, which cannot
+    // go through auto-aggression because wildlife are resources, not units.
     pushUnitAttackIntention,
+    setUnitAttackCommandDirect,
     hasPendingUnitCommand,
     // Phase 1B unit.move: aiSystem and productionQueueSystem each get a
     // distinct impl (pushUnitMoveIntention / setUnitMoveCommandDirect).
@@ -384,7 +384,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     ensurePlayerScoreCounters,
   });
 
-  registerWildlifeCombatSystem({
+  registerWildlifeSystems({
     world,
     accessor,
     currentEntityId,
@@ -395,19 +395,12 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     destroyUnitEntity,
     markOutOfBandRenderChange,
     recordUnitAttack,
-  });
-
-  registerHerdableOwnershipSystem({ world, markOutOfBandRenderChange });
-
-  registerHerdableMovementSystem({
-    world,
-    accessor,
+    setUnitAttackCommandDirect,
+    isCellPassableForWildlife,
     getUnitTransform,
     findMovementPlan,
     getNearestMoveCandidates,
-    isCellPassableForWildlife,
     moveUnitOneSubgridStep,
-    markOutOfBandRenderChange,
   });
 
   registerVisibilitySystem({

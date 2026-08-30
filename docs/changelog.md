@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.167
+
+- An idle unit fights back when an animal attacks it. A wolf could maul a villager to death while taking no damage at all, because wildlife are not units and nothing in the retaliation path could see one — the villager simply stood there. A unit that is busy still keeps doing what you told it to; defending yourself without losing your orders is still to come.
+- Deer join the game as a third huntable, alongside sheep and boar: 140 food each, and they run from anyone who comes near, so hunting one means committing villagers to the chase. They are not yet placed on generated maps — for now they appear only in scenarios that name them.
+- Scouts stop freezing at the far edge of their patrol area. A scout that reached that corner got stuck shuffling between a couple of tiles for the rest of the match, leaving its owner blind. One corner of the patrol box still has a separate problem of its own and is not fixed by this.
+
 ## 0.3.166
 
 - The AI builds its Lumber Camps, Mining Camps and Mills next to the resources they serve, the way a player does, instead of next to its Town Center. Its villagers walk less and it reaches the Feudal Age sooner — on one map a player that took nearly 29 minutes now takes 20.

@@ -28,6 +28,7 @@ const ECONOMY_RESOURCE_BY_KIND: Record<ResourceKind, EconomyResourceKind | null>
   'gold-mine': 'gold',
   'stone-mine': 'stone',
   boar: 'food',
+  deer: 'food',
   fish: 'food',
   sheep: 'food',
   wolf: null,
@@ -47,6 +48,7 @@ const GATHER_TICKS_BY_KIND: Record<ResourceKind, number | null> = {
   'gold-mine': 26, // 0.385/s vs 0.38
   'stone-mine': 28, // 0.357/s vs 0.36
   boar: 49, // ×2/cycle = 0.408/s vs 0.41
+  deer: 49, // spec §6.3 rates a deer with the boar: 0.41 food/sec.
   fish: 20, // 0.5/s vs "about 0.49" (deep fish)
   sheep: 30, // 0.333/s vs 0.33
   wolf: null,
@@ -60,6 +62,7 @@ const GATHER_AMOUNT_BY_KIND: Record<ResourceKind, number | null> = {
   'gold-mine': 1,
   'stone-mine': 1,
   boar: 2,
+  deer: 2,
   fish: 1,
   sheep: 1,
   wolf: null,
@@ -74,6 +77,7 @@ const RESOURCE_BASE_TINTS: Record<ResourceKind, number> = {
   'gold-mine': 0xd8b44c,
   'stone-mine': 0x8f9aa4,
   boar: 0x6a3b2e,
+  deer: 0xa8794c,
   fish: 0x6fb5d8,
   sheep: 0xe7ece6,
   wolf: 0x7f8894,

@@ -171,3 +171,99 @@ export function createWolfAggroFixture(seed: string): PrototypeScenario {
     ],
   };
 }
+
+// Spec §5.6 "deer flee". A villager stands three tiles from a deer — inside
+// DEER_FLEE_TRIGGER_RADIUS — with clear grass behind the deer so the flight
+// has somewhere to go and cannot be mistaken for a deer wedged against
+// terrain. Nothing else is nearby, so any movement the deer makes is caused
+// by this villager.
+export function createDeerFleeFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 4, y: 4 } },
+      { owner: 2, townCenter: { x: 50, y: 30 } },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('villager', 1, 20, 18, { vision: 4 }),
+      gaiaSpawn('deer', 23, 18, { amount: 140 }),
+      ownedSpawn('house', 2, 50, 30, { vision: 4 }),
+    ],
+  };
+}
+
+// The control for the fixture above: the SAME deer, on the same terrain, with
+// every unit far away. A deer that wandered on its own would move here too, so
+// this is what makes the flee assertion evidence of the approach rather than
+// evidence that deer move at all.
+export function createDeerUndisturbedFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 4, y: 4 } },
+      { owner: 2, townCenter: { x: 50, y: 30 } },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('villager', 1, 10, 9, { vision: 4 }),
+      gaiaSpawn('deer', 30, 20, { amount: 140 }),
+      ownedSpawn('house', 2, 50, 30, { vision: 4 }),
+    ],
+  };
+}
+
+// A wolf with nothing within its aggro range of 5 — the control for the
+// retaliation tests. "The wolf lost health" only means something if a wolf
+// that fights nobody keeps all of it, and the first version of that control
+// never stepped the simulation, so it could not have detected ambient damage
+// of any kind.
+export function createWolfIdleFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 4, y: 4 } },
+      { owner: 2, townCenter: { x: 50, y: 30 } },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('villager', 1, 10, 9, { vision: 4 }),
+      gaiaSpawn('wolf', 40, 8, { amount: 0 }),
+      ownedSpawn('house', 2, 50, 30, { vision: 4 }),
+    ],
+  };
+}
+
+// A villager with a wolf already at its shoulder. The bite lands on the first
+// tick, so a test can order the villager to do something and see immediately
+// whether the retaliation kept or destroyed that order — no race between "the
+// wolf arrives" and "the work finishes", which is what made the same question
+// unanswerable on `wolf-aggro-fixture`, where the house completed before the
+// wolf mattered under both behaviours.
+export function createWolfAtShoulderFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 4, y: 4 } },
+      { owner: 2, townCenter: { x: 50, y: 30 } },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('villager', 1, 20, 20, { vision: 4 }),
+      gaiaSpawn('wolf', 21, 20, { amount: 0 }),
+      ownedSpawn('house', 2, 50, 30, { vision: 4 }),
+    ],
+  };
+}

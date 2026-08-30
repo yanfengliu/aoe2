@@ -270,6 +270,33 @@ function wolf(context: ResourceContext): void {
   add(context, 'wolf-tail', 'matte', shade(context.entity.tint, 0.7), -0.56, 0.42, 0.22, 0.13, 0.7, 0.13, { roll: 0.72 });
 }
 
+// Read at a glance against the other two huntables: where the boar is low and
+// heavy and the sheep is a squat woolly block, the deer is LEGS and NECK — it
+// stands taller than either, on thin legs, with the head carried high. The
+// antlers and the pale rump flash are the details that survive being three
+// pixels wide at the default zoom.
+function deer(context: ResourceContext): void {
+  const hide = context.entity.tint;
+  add(context, 'deer-leg-front-left', 'matte', shade(hide, 0.62), 0.24, 0, 0.14, 0.09, 0.5, 0.09);
+  add(context, 'deer-leg-front-right', 'matte', shade(hide, 0.62), 0.24, 0, -0.14, 0.09, 0.5, 0.09);
+  add(context, 'deer-leg-back-left', 'matte', shade(hide, 0.62), -0.26, 0, 0.14, 0.09, 0.5, 0.09);
+  add(context, 'deer-leg-back-right', 'matte', shade(hide, 0.62), -0.26, 0, -0.14, 0.09, 0.5, 0.09);
+  add(context, 'deer-body', 'matte', hide, 0, 0.62, 0, 0.78, 0.4, 0.4);
+  add(context, 'deer-rump', 'matte', 0xe8dcc4, -0.42, 0.66, 0, 0.16, 0.3, 0.32);
+  add(context, 'deer-tail', 'matte', 0xf2ead6, -0.5, 0.78, 0, 0.1, 0.18, 0.1, { roll: 0.35 });
+  add(context, 'deer-neck', 'matte', shade(hide, 0.9), 0.4, 0.86, 0, 0.2, 0.44, 0.22, { roll: -0.3 });
+  add(context, 'deer-head', 'matte', shade(hide, 0.82), 0.56, 1.12, 0, 0.32, 0.22, 0.22);
+  add(context, 'deer-muzzle', 'matte', shade(hide, 0.55), 0.74, 1.06, 0, 0.16, 0.14, 0.14);
+  add(context, 'deer-ear-left', 'matte', shade(hide, 0.7), 0.5, 1.24, 0.13, 0.1, 0.14, 0.08, { roll: 0.4 });
+  add(context, 'deer-ear-right', 'matte', shade(hide, 0.7), 0.5, 1.24, -0.13, 0.1, 0.14, 0.08, { roll: -0.4 });
+  // Antlers: an upright beam per side with one forward prong, which is all the
+  // structure a voxel silhouette can carry and still read as antler.
+  add(context, 'deer-antler-left', 'matte', 0xcbb489, 0.52, 1.36, 0.1, 0.07, 0.3, 0.07, { roll: 0.28 });
+  add(context, 'deer-antler-right', 'matte', 0xcbb489, 0.52, 1.36, -0.1, 0.07, 0.3, 0.07, { roll: -0.28 });
+  add(context, 'deer-antler-prong-left', 'matte', 0xcbb489, 0.66, 1.44, 0.14, 0.16, 0.06, 0.06, { roll: 0.5 });
+  add(context, 'deer-antler-prong-right', 'matte', 0xcbb489, 0.66, 1.44, -0.14, 0.16, 0.06, 0.06, { roll: -0.5 });
+}
+
 function fish(context: ResourceContext): void {
   add(context, 'fish-body', 'matte', context.entity.tint, 0, 0.03, 0, 0.72, 0.22, 0.32, { yaw: -0.45 });
   add(context, 'fish-head', 'matte', shade(context.entity.tint, 1.15), 0.32, 0.05, -0.15, 0.26, 0.24, 0.28, { yaw: -0.45 });
@@ -342,6 +369,7 @@ export function createResourceParts(
     case 'berry-bush': berryBush(context); break;
     case 'sheep': sheep(context); break;
     case 'boar': boar(context); break;
+    case 'deer': deer(context); break;
     case 'wolf': wolf(context); break;
     case 'fish': fish(context); break;
     case 'relic': relic(context); break;

@@ -40,6 +40,7 @@ const ENTITY_NAMES = {
   'gold-mine': 'Gold Mine',
   'stone-mine': 'Stone Mine',
   'boar': 'Boar',
+  'deer': ['Deer', 'Deer'],
   'fish': ['Fish', 'Fish'],
   'sheep': ['Sheep', 'Sheep'],
   'wolf': ['Wolf', 'Wolves'],

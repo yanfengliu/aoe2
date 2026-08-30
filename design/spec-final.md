@@ -333,7 +333,8 @@ Rules:
 - herdables change ownership when discovered
 - boar retaliate when lured or attacked
 - multiple selected villagers may attack one living boar concurrently; every villager retains independent approach, attack, and cooldown state, while the boar's retaliation target is non-exclusive and never reserves the boar against other attackers
-- deer flee
+- deer flee — a deer bolts from any unit that comes within 5 tiles, and stops when none is that close. It breaks diagonally rather than straight away from the pursuer: fleeing along the pursuer's own line of travel keeps the deer in front of it indefinitely, and a herd doing that becomes a moving wall rather than an animal
+- a unit attacked by wildlife fights back on its own, but ONLY if it has no order of its own. Wildlife are world resources rather than units, so the ordinary auto-aggression path cannot see one; the retaliation is issued by the animal's own attack. The restriction to idle units is what keeps this rule compatible with the boar lure above: issuing an attack replaces the victim's whole command, so retaliating on behalf of a unit under orders would overwrite the retreat order that defines the lure, along with build queues, trade routes and gather assignments. A unit under orders keeps them and does not yet defend itself; resuming an interrupted order after a fight is not yet modelled
 - animal carcasses decay after death
 - relics can only be carried by monks
 - fish require fishing ships unless explicitly modeled as shore fish for villagers

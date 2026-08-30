@@ -324,6 +324,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     issueUnitPatrolCommand,
     resumePatrolLeg,
     setUnitMoveCommandDirect,
+    setUnitAttackCommandDirect,
     distanceToBuilding,
     findBuildingSpawnPosition,
     applyTechnology,

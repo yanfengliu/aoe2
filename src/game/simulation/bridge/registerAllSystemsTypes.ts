@@ -158,9 +158,15 @@ export interface RegisterAllSystemsDeps {
   // Command-issuance closures.
   // Phase 1B unit.attack (DESIGN v17 §6.5): commandified facade for HUD use;
   // intention pusher for AI-decision systems (aiSystem + autoAggressionSystem).
-  // No deterministic-resolution system calls attack today, so no direct
-  // helper threaded through this layer (the handler reaches the helper via
-  // `unitCommandOps` → `registerCommandHandlers` deps directly).
+  // `setUnitAttackCommandDirect` IS now threaded through: wildlife combat
+  // retaliation is a deterministic-resolution call site, added when wolves
+  // reached generated maps. (This comment previously said no such call site
+  // existed — an absence claim that expired the moment one did.)
+  setUnitAttackCommandDirect: (
+    unitId: number,
+    targetEntityId: number,
+    targetEntityKind: 'unit' | 'building' | 'resource',
+  ) => boolean;
   issueUnitAttackCommand: (
     attackerId: number,
     targetId: number,

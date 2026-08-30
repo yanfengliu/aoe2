@@ -597,3 +597,31 @@ Consequence to remember: a rename inside a recipe changes the characterization h
 The 2026-07-05 decision capped civilization bonuses at five curated civs (Britons, Franks, Goths, Aztecs, Mongols) so effort would concentrate on completing the game rather than spreading across 30 identities. Two things ended it. First, the cap was already breached in spirit: unique units shipped for 16 civilizations in v0.3.20 and unique technologies for all 19 CSV rows by v0.3.70 — "no bespoke identity outside the five" had quietly become false everywhere except this one bonus layer. Second, the concentration the cap protected has happened: rosters closed, §4 and §6 complete, the game feature-complete enough that breadth IS the remaining work.
 
 The supersession keeps the July decision's real insight — per-civ if-chains do not scale — by replacing the chains with a declared table (`civBonusTable.ts`, the `uniqueTechnologies` pattern): one entry per civilization, effects as data, one loop per seam. Only lines the existing six seams can express are encoded; the rest are listed in the spec as the open remainder rather than silently dropped, so a reader can still tell implemented from absent. The v0.1.101 Slavs revert (farm bonus removed to honor the cap) is re-applied forward: the same bonus now ships as a table row.
+
+## 2026-08-30 — Spawn passability is cached on the structural revision, which makes the revision contract load-bearing twice
+
+`isCellPassableForSpawn` is the simulation's hottest query — pathfinding asks it for every neighbour of every expanded node, and it was 32% of all CPU in an AI self-play match. It is now memoised in `spawnPassabilityMemo.ts`, a `Uint8Array` of the world cleared whenever `worldOccupancy.structuralRevision` moves.
+
+The alternative was to make each call cheaper, and that was tried first: the predicate was rewritten to read engine claims directly instead of building a merged cell status, removing a string key, two filtered arrays, two spread arrays and an object per call. It produced no measurable win (15.13 → 15.77 ms/tick). The call count was the cost, not the work, so the cache is the change that mattered (15.13 → 7.99, and → 5.45 once review found that release-then-reclaim was bumping the revision twice and flushing the cache an extra time on every moving resource).
+
+What this decision buys and what it costs: the cache is correct only under a two-sided contract, and the second side is the one that bites. The READ side is that the predicate reads exactly bounds, terrain, building claims and resource claims — and NOT units, which crowd rather than block and deliberately do not bump the revision. The WRITE side is that every path which changes one of those claims bumps the revision. The write side was broken when this shipped for review (`syncUnit` released claims without bumping), which is why `releaseClaims` is now the single choke point through which claims come off: an argument about a read-set cannot be enforced, but a single function can be. The failure mode if either side lapses is a stale verdict that changes what the simulation does, not merely how fast it does it.
+
+This is the second load-bearing use of `structuralRevision` (the first is the v0.3.160 unreachable-plan cache), which is the reason the counter's doc comment enumerates its bumpers explicitly, and the reason the 2026-08-29 gate-completion entry treats a missing bump as a correctness defect. A third consumer should be read as a signal that the counter deserves a named invalidation type rather than another comment.
+
+## 2026-08-30 — Wildlife retaliation is issued by the biter, not by auto-aggression
+
+Auto-aggression finds its targets through `world.query('position', 'unit')`. Wildlife are `resource` entities with a wildlife state and no `unit` component, so they are structurally invisible to it — a wolf could kill anything it met and take no damage doing so.
+
+The obvious fix is to make wildlife visible to auto-aggression, and it was rejected. Wildlife are resources because that is what they are to the rest of the game: a villager gathers a boar, a deer holds 140 food, the drop-off anchor searches them, the renderer draws them from the resource recipe table. Giving them a `unit` component to satisfy one query would put every one of those paths on notice, and the auto-aggression query would then have to learn to ignore the sheep.
+
+So the retaliation is issued at the bite instead: `wildlifeCombatSystem` calls `setUnitAttackCommandDirect` on the victim, and only when the victim is not already attacking something. The guard is load-bearing rather than an optimisation — re-issuing on every bite resets the approach each tick, and two wolves sharing a victim would leave it oscillating between them without ever landing a blow.
+
+The cost is that this is the first deterministic-resolution system to issue an attack, which the dependency layer had a comment asserting would not happen. That comment is now corrected rather than deleted, because the reason it was written still holds for the AI-decision systems it was about.
+
+## 2026-08-30 — Wolves are a map feature; deer are a per-player one
+
+Both are spec §5.6 required, and the first implementation gave each player two wolves on a ring just past their own resources. That ring is where the scout patrols, and wolves are `autoAggro` with a range of 5, so every match opened with the scout being ambushed. AoE2 keeps wolves away from starting positions for exactly this reason: a predator inside your opening is a coin flip nobody chose to make.
+
+Deer stay per-player, because a deer hunt is something a player does with their own villagers and each player needs their own. Wolves become a map-level pass placed in the ground between the bases, at least 16 tiles from any Town Center — beyond the widest scout wander box.
+
+Neither is seeded into generated maps yet: adding deer breaks an unrelated scout test on the canary map for a reason not yet root-caused (see the devlog for what was eliminated). The placement code was reverted with the spawns rather than left dead in the tree; the design is recorded here because it was reached by measurement and should not be re-derived when the blocker clears.

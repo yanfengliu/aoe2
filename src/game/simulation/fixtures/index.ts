@@ -33,6 +33,10 @@ export {
   createBoarAggroFixture,
   createBoarHuntFixture,
   createWolfAggroFixture,
+  createDeerFleeFixture,
+  createDeerUndisturbedFixture,
+  createWolfIdleFixture,
+  createWolfAtShoulderFixture,
 } from './economyBasics/visionAndAggro';
 
 export {

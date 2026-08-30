@@ -169,15 +169,15 @@ export function inventoryResourceName(resourceType: ResourceKind): string {
       return 'stone';
     case 'berry-bush':
     case 'boar':
+    case 'deer':
     case 'fish':
     case 'sheep':
     case 'wolf':
     case 'farm': // M1 Farms: a farm holds food.
       return 'food';
-    // Relics are not harvestable — they carry no inventory amount. This
-    // branch should never fire because getSelectionInventory is only called
-    // for resource entities with an amount, but the exhaustive switch needs
-    // to cover every ResourceKind.
+    // Relics carry no inventory amount, so this never fires in practice —
+    // getSelectionInventory is only called for resources with an amount. The
+    // exhaustive switch still needs the branch.
     case 'relic':
       return 'relic';
   }

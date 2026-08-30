@@ -9,7 +9,7 @@ import { effectiveMeleeArmor } from '../../prototypeUnitRules';
 import { manhattanDistance, type GameWorld } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { combatStatesCodec, wildlifeStatesCodec } from '../bridgeStateSerialize';
+import { combatStatesCodec, unitCommandsCodec, wildlifeStatesCodec } from '../bridgeStateSerialize';
 
 type CivWorld = GameWorld;
 
@@ -41,6 +41,14 @@ export interface WildlifeCombatSystemDeps {
   // Spec §14.5 wildlife retaliation animation: landed bites publish through
   // the same witnessed successful-hit feed as unit attacks.
   recordUnitAttack: (attackerId: number, targetId: number) => void;
+  // A bitten unit fights back. Wildlife are `resource` entities, so the
+  // ordinary auto-aggression path — which queries units — cannot see one, and
+  // without this a wolf kills anything it meets while taking no damage at all.
+  setUnitAttackCommandDirect: (
+    unitId: number,
+    targetEntityId: number,
+    targetEntityKind: 'unit' | 'building' | 'resource',
+  ) => boolean;
 }
 
 export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): void {
@@ -55,6 +63,7 @@ export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): vo
     destroyUnitEntity,
     markOutOfBandRenderChange,
     recordUnitAttack,
+    setUnitAttackCommandDirect,
   } = deps;
 
   world.registerSystem({
@@ -133,6 +142,30 @@ export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): vo
         // Spec §14.5: the landed bite is a witnessed successful hit — same
         // feed, witness rule, and replay semantics as a unit attack.
         recordUnitAttack(id, targetId);
+
+        // The victim fights back, as it does in AoE2 — a villager mauled by a
+        // wolf turns on it rather than standing there.
+        //
+        // ONLY a unit with no order at all. `setUnitAttackCommandDirect`
+        // REPLACES the whole `UnitCommand`, so it discards shift-queued
+        // waypoints and build refs, the trade-route refs and carried gold, and
+        // it calls `clearGathererOrder` — which also zeroes gather progress
+        // and the explicit assignment, permanently. A first version guarded
+        // only on "not already attacking", and review measured what that
+        // costs: a house foundation frozen at 0/120 that otherwise reached
+        // 43/120, a move order replaced at tick 3, a garrison-escape order
+        // destroyed by the very thing it was escaping — and the boar LURE made
+        // unplayable, because the retreat order that defines the mechanic was
+        // overwritten by the boar's next bite. Spec §5.6 mandates that lure,
+        // so the wide guard put two spec rules in direct conflict.
+        //
+        // An idle unit has nothing to lose, which is why this is the version
+        // that ships. A unit under orders keeps them and does not defend
+        // itself yet; resuming an interrupted order after a fight needs the
+        // command to be saved and restored, and that is its own piece of work.
+        if (!accessor.get(unitCommandsCodec).has(targetId)) {
+          setUnitAttackCommandDirect(targetId, id, 'resource');
+        }
 
         if (targetCombat.currentHp <= 0) {
           destroyUnitEntity(targetId);

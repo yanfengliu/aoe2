@@ -97,6 +97,7 @@ export interface RegisterBridgeSystemsDeps {
   getResearchOptions: RegisterAllSystemsArg['getResearchOptions'];
   issueUnitAttackCommand: RegisterAllSystemsArg['issueUnitAttackCommand'];
   pushUnitAttackIntention: RegisterAllSystemsArg['pushUnitAttackIntention'];
+  setUnitAttackCommandDirect: RegisterAllSystemsArg['setUnitAttackCommandDirect'];
   hasPendingUnitCommand: RegisterAllSystemsArg['hasPendingUnitCommand'];
   issueUnitMoveCommand: RegisterAllSystemsArg['issueUnitMoveCommand'];
   issueUnitAttackMoveCommand: (unitId: number, target: Position) => boolean;
@@ -209,6 +210,7 @@ export function registerBridgeSystems(
     getResearchOptions,
     issueUnitAttackCommand,
     pushUnitAttackIntention,
+    setUnitAttackCommandDirect,
     hasPendingUnitCommand,
     issueUnitMoveCommand,
     issueUnitAttackMoveCommand,
@@ -284,6 +286,7 @@ export function registerBridgeSystems(
     getResearchOptions,
     issueUnitAttackCommand,
     pushUnitAttackIntention,
+    setUnitAttackCommandDirect,
     hasPendingUnitCommand,
     issueUnitMoveCommand,
     setUnitMoveCommandDirect,

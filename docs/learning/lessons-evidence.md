@@ -789,3 +789,19 @@ The shape is identical every time: the probe answered a question I had not asked
 The cost was eight wasted probe runs on one defect, four claims to the user retracted in successive messages, and one defect-register entry that had to be rewritten after it was committed.
 
 The eighth is the most general and the least obvious: a VIEW assembled from `query(componentA, componentB)` silently omits every entity that has lost one of those components for an ordinary reason. Counting bodies through such a view measures visibility, not population. When the question is "how many are there", count from ownership in the authoritative world; when it is "how many are working", say so — and never let one stand in for the other.
+
+## Self time says WHERE, not WHY — the cost may be the call count, not the work (2026-08-30)
+
+Tick cost was climbing with base size on `aoe2-prototype` — 3.94 ms/tick at 17 units, 13.11 at 34 — against a 100 ms tick budget at TPS 10, so a straight line from those two points reaches the budget somewhere near a real DE population.
+
+`scripts/profile-selfplay.mjs` (written for this, `node:inspector` over a real AI self-play match) put `getCellStatus` at ~32% of all CPU. Reading the function explained the number immediately: per call it builds a position-key string, two filtered arrays, two spread arrays and a status object, and its hottest caller — `isCellPassableForSpawn`, which pathfinding asks for every neighbour of every expanded node — throws all of that away except one boolean. The fix wrote itself: read the engine's claims directly, allocation-free.
+
+**Result: 15.13 → 15.77 ms/tick. Nothing, or slightly worse.**
+
+The profile had been read as "this function is expensive". What it actually says is "the process is inside this function a third of the time", and those differ whenever a cheap function is called enormously often. Making each call cheaper moved a number that was not the bottleneck; the bottleneck was that the call happened at all, hundreds of thousands of times per tick, for answers that had not changed.
+
+Memoising the same predicate on `worldOccupancy.structuralRevision` took it to **7.99 ms/tick — 47%**, and `getCellStatus` fell from the profile's top line to about 5% of self time spread across four entries. Same function, same profile line, opposite outcome, because the second change attacked the count rather than the unit cost. (An earlier version of this entry said `getCellStatus` "left the profile entirely"; review measured that and it is false. The correction landed in the devlog first and not here — which is its own small lesson about writing the same claim into two files.)
+
+Anchors: `tests/simulation/worldOccupancyFastPath.test.ts` pins the rewritten predicate against the pre-optimisation merged-status definition; `npx tsx scripts/profile-selfplay.mjs` reproduces the profile.
+
+Two things generalise. First, before optimising a hot function, get its CALL COUNT, not just its self time — the two suggest opposite fixes, and only one of them is ever right. Second, the negative result was worth as much as the win: it is the measurement that redirected the work, and had it gone unreported it would have looked like a refactor with an unexplained absence of benefit.

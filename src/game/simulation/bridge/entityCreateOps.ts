@@ -73,6 +73,7 @@ const RESOURCE_SIZES: Record<ResourceComponent['resourceType'], number> = {
   'gold-mine': 0.8,
   'stone-mine': 0.8,
   boar: 0.48,
+  deer: 0.46,
   fish: 0.42,
   sheep: 0.42,
   wolf: 0.46,

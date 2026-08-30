@@ -87,7 +87,10 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       authoritative blocker/crowding contract, and the `structuralRevision`
       counter reachability caches key on — bumped by every claim or release
       and by `notePassabilityChange()` when a gate finishing changes who may
-      pass without changing what is claimed), `selectionActivity.ts`
+      pass without changing what is claimed), `spawnPassabilityMemo.ts` (the
+      per-revision cache for the simulation's hottest predicate, and the
+      argument for why the revision counter is a sufficient invalidation
+      signal for it), `selectionActivity.ts`
       (structured activity payload for the HUD selection panel), and
       `renderStore.ts` (the per-tick render-message store the projector
       writes into, including the exact immediately prior forward-tick unit and
