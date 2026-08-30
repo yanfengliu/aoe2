@@ -10,6 +10,8 @@ When a lesson becomes a gate — a test, a lint rule, a fixed command — delete
 
 ## Rules
 
+- A rendered cue must be judged across the axes it VARIES over — every post-processing art style, both ownership colours, a bright and a dark background ([evidence](lessons-evidence.md#a-rendered-image-judged-from-one-capture-is-one-capture-not-a-verification-2026-08-30))
+
 - A profile's SELF TIME says where the process is, not why — get the CALL COUNT before optimising a hot function ([evidence](lessons-evidence.md#self-time-says-where-not-why-the-cost-may-be-the-call-count-not-the-work-2026-08-30))
 
 - A background helper (auto-aggro, auto-rotate) can satisfy an outcome assertion alone — place the test's target OUT OF THE HELPER'S REACH ([evidence](lessons-evidence.md#background-helpers-satisfy-outcome-assertions-2026-08-27))

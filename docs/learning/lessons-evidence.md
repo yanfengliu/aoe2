@@ -805,3 +805,17 @@ Memoising the same predicate on `worldOccupancy.structuralRevision` took it to *
 Anchors: `tests/simulation/worldOccupancyFastPath.test.ts` pins the rewritten predicate against the pre-optimisation merged-status definition; `npx tsx scripts/profile-selfplay.mjs` reproduces the profile.
 
 Two things generalise. First, before optimising a hot function, get its CALL COUNT, not just its self time — the two suggest opposite fixes, and only one of them is ever right. Second, the negative result was worth as much as the win: it is the measurement that redirected the work, and had it gone unreported it would have looked like a refactor with an unexplained absence of benefit.
+
+## A rendered image judged from one capture is one capture, not a verification (2026-08-30)
+
+The behind-building silhouette was opaque and read as a unit standing ON the building. I made it translucent, captured the showcase fixture before and after, ran the pixel diff — 0.09% of pixels, confined entirely to the silhouette — captured the real default map with fog, looked at both, and called it verified. Every gate was green.
+
+Review then measured the same change three ways and none of them agreed:
+
+- The default art style is `moebius`, whose tone-band quantiser snaps **24.1% of the cue's pixels byte-identical to the fully opaque render**. Both of my captures were `painted`. Under the style the game actually ships, the change barely does anything.
+- A translucent instanced part that overlaps ITSELF blends twice. The mirror copies a unit's own overlapping parts, so ~14% of the body drew at the wrong opacity — solved per-pixel as 452 px at the declared 0.55, 68 at 0.7975 (1−0.45²), 6 at 0.9089 (1−0.45³).
+- The cue has two ownership colours and **no fixture spawns the enemy one**. Coral shares a hue family with every roof in the palette: its mean distance from the background over a bright roof fell from 204.2 opaque to 82.0, while the friendly blue — orange's complement — held at 196.9. The cue exists to answer "are those mine?" and I degraded the *not mine* answer without ever seeing it.
+
+The change was reverted. Anchors: `docs/learning/defect-register.md` 2026-08-30 entry, and the engine ask in `docs/engine-feedback/current.md`.
+
+The repo already had a rule about verifying on the real default view rather than a showcase fixture, and I followed it — I captured both. It was not enough, because "the real view" is still ONE art style, ONE owner, ONE camera, and ONE background. For a change to a rendered CUE, the axes that matter are the ones the cue varies over: every art style that post-processes, both ownership colours, and a bright and a dark surface behind it. And where the change is a blend, solve the per-pixel alpha instead of trusting your eye — the seam artefact was invisible to me at every zoom I looked at and is arithmetic once measured.
