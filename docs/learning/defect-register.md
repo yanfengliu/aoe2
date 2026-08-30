@@ -273,3 +273,28 @@ Raising opacity to 0.78 fixed the measured colour bar but none of the three caus
 **How it is checked from now on.** It is not, and that is the honest state — no gate covers "does this cue read as behind rather than on top", because it is a judgement about a rendered image. What the attempt DID leave behind is the measurement method: capture background / opaque / candidate under both art styles, solve the per-pixel alpha, and measure mean RGB distance from the local background for BOTH ownership colours over both a bright and a dark building. Any future attempt that does not do that is guessing, and the first attempt's 0.55 was a guess that looked right in one capture of one art style with one owner.
 
 **What this predicts.** Every other overlay that might reach for transparency has the same two traps waiting — the moebius quantiser and self-blending — and every two-colour ownership cue should be checked in BOTH colours against the palette it will sit on, not just the one the showcase fixture happens to spawn.
+
+## 2026-08-30 — The AI cannot leave the Feudal Age: wood-starved while banking everything else (OPEN)
+
+**Symptom.** In a 40-minute all-AI match neither player ever reaches the Castle Age, on any of three seeds. The whole match exercises four unit types (villager, scout, militia, spearman) and eight or nine building types. Against a content audit that puts 137 of 138 technologies live with real effects and 93 units trainable, AI self-play exercises a small fraction of the game — which matters because self-play is the standing acceptance test for feature completeness.
+
+**Investigation.** Measured on `default-seed`, the winning AI at tick 24,000:
+
+    food=1571  gold=1140  stone=750  wood=38   feudal buildings: NONE
+
+It is sitting on nearly twice the food and five times the gold the Castle advance costs (800 food, 200 gold) and cannot take it, because the advance also needs two qualifying Feudal buildings and those cost 150–175 WOOD each. Wood never rises above about 50 at any sample on any seed, on either side, for the whole match.
+
+Two hypotheses were tested and BOTH failed, which is the useful part:
+
+- *More wood villagers.* Feudal weights `{food:7, wood:4, gold:1, stone:1}` → `{food:7, wood:6, …}`, which moves the split from ~7 wood villagers to ~9. Castle still never reached on any of the three seeds; building and unit variety unchanged.
+- *The farm gate.* `pickNextBuildTarget` returns `farm` on essentially every decision tick, so the theory was that farms block the Feudal buildings. Holding farms to the floor while the age-up prerequisites are missing made it slightly WORSE on `aoe2-prototype` (eight building types down to seven) and changed nothing elsewhere — because a farm is CONSUMED, so the count falls back below even a floor of two and the branch re-fires anyway.
+
+So wood income is not the constraint and the farm ordering is not the constraint: wood SPEND is. Every point of wood goes to houses for a growing population and to replacing farms as they are eaten, and the AI never accumulates the 150 for its first Blacksmith.
+
+**Why the reserve makes this self-sustaining.** `ageUpReserveCost` returns an empty reserve unless the owner ALREADY qualifies for the next age. Not qualifying, the AI has nothing protecting a stockpile it also has nothing to spend on — so food and gold pile up, unspendable, while the one resource that would unblock it stays at zero. The state is stable, which is why 40 minutes changes nothing.
+
+**Root cause (open).** The villager allocation is a fixed per-age split that does not respond to which resource is actually binding. A player who has banked 1571 food and 1140 gold and cannot build a 150-wood building moves people onto wood; this AI cannot, because its split is a constant.
+
+**How it is checked from now on.** Not yet, and that is the honest state — this is registered rather than fixed. What a fix needs is stated here so the next attempt does not repeat these two: the acceptance metric is what a match EXERCISES (ages reached, distinct building and unit types), measured across at least the three seeds above, and not Feudal timing, which both failed hypotheses left untouched while changing nothing that matters. The repo has already withdrawn one economy tuning that won on one seed and lost on the boot map; rank on the worst owner across seeds.
+
+**What this predicts.** Any other fixed proportional allocation in the AI has the same failure mode available to it — the split is right for an assumed spend pattern and silently wrong when the actual bottleneck moves. The Castle and Imperial splits are untested against real play for exactly the reason this entry exists: no match has ever got there.
