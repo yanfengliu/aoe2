@@ -81,6 +81,17 @@ export interface AssignNearestResourceOptions {
 // `to-resource` + the chosen target (or `idle` if none qualifies). The chosen
 // target's slot in `gatherTargetCounts` is reserved (count++) so later
 // same-tick assignments see it one fuller and spread to the next one.
+// A villager holding resources always takes them home (v0.3.162). Assignment
+// failing to find work is not a reason to strand a carry: AoE2's villager
+// whose bush runs out walks its load to the drop-off, and an idle loaded one
+// is production the economy already paid the walk for and cannot spend.
+// Measured on `aoe2-prototype`: one AI villager stood idle 211 ticks holding
+// a full 10 food while its owner's stockpile never passed 50.
+function parkOrDeliver(gatherer: GathererComponent): void {
+  gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
+  gatherer.targetResourceId = null;
+}
+
 export function assignNearestResource(
   deps: GatherAssignmentDeps,
   activeWorld: GameWorld,
@@ -134,8 +145,7 @@ export function assignNearestResource(
   // fully depleted re-runs assignment twice per tick indefinitely; review
   // 2026-07-02 low finding).
   if (matchingResources.length === 0) {
-    gatherer.task = 'idle';
-    gatherer.targetResourceId = null;
+    parkOrDeliver(gatherer);
     return;
   }
 
@@ -284,8 +294,7 @@ export function assignNearestResource(
   }
 
   if (!target) {
-    gatherer.task = 'idle';
-    gatherer.targetResourceId = null;
+    parkOrDeliver(gatherer);
     return;
   }
 

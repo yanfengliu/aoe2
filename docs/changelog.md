@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.162
+
+- Villagers no longer strand what they are carrying. A villager whose resource runs out and who cannot find another of the same kind used to stand still holding a full load; it now carries that load to the drop-off first, as it should. The AI economies feel this most — on the default map one player now reaches the Feudal Age about six minutes of game time sooner.
+
 ## 0.3.161
 
 - A gate you build now opens for you. Every gate raised during a match stayed shut to its own owner — walling your base was a way to lock yourself out of it — because the passability check read "finished" as "has no construction record", which is true of scenario-placed gates and never true of built ones. Units also take the route a finishing gate opens instead of keeping the verdict they reached while it was still a foundation.
