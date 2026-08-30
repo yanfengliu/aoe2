@@ -768,3 +768,20 @@ The first red-check of `tests/simulation/queuedEntityOrders.test.ts` PASSED its 
 ## git checkout during a red-check destroys uncommitted work (2026-08-27)
 
 Ending a disable-the-feature red-check with `git checkout <file>` reverted `villagerEconomySystem.ts` to HEAD — which did not yet contain the session's uncommitted v0.3.141 edits (deps, helper, four flag-drop sites, two pop hooks, ordering pin). All were rebuilt from the session's own edit script, but only because that script still existed in scrollback. Restore red-checks by reversing the string edit that disabled the path, or commit the working state first; checkout is only safe when HEAD holds what you mean to return to. Anchor: commit a9d719f4's devlog process note.
+
+
+## A probe that finds NOTHING is a claim about your query (2026-08-29)
+
+Seven instrument errors in one session, every one of them SILENT — a plausible number or an empty result, never a crash:
+
+1. `allAi: true` passed to `createSimulationBridge`, which does not accept it (the corpus schema does, and the harness translates it to `forceAiForOwners`). Player 1 sat inert for 12,000 ticks and I nearly reported a dead AI.
+2. Villager counts read as an economic stall, when they had passed the Dark-Age cap of 10 — which only aging up allows. The AI was doing the opposite of what I reported.
+3. A "clipped" selection title that measured 30px INSIDE its panel; the apparent clipping was the panel's fade-to-transparent.
+4. A tuning row adopted whose value was never in the sweep's own grid — and the harness's `(baseline)` marker had stopped matching any row, which I read as cosmetic.
+5. A sweep ranking that returned `Infinity - Infinity = NaN` whenever rows tied at "never", making the comparator undefined while it printed a confident winner.
+6. `v.targetResourceId` filtered on the villager SNAPSHOT, which carries no such field — so "no villager targets a boar" was structurally impossible to observe, not a measurement.
+7. `getRenderState()` used to watch a rival's units and wildlife — it is FOG-FILTERED to the human player, so the arrays were empty and the correlation read as "no evidence" rather than "wrong camera".
+
+The shape is identical every time: the probe answered a question I had not asked, and answered it plausibly. A crash would have been kinder. Two cheap guards catch all seven — print the identifiers you are filtering ON (ids, keys, field names) before filtering, so an empty result is visibly distinguishable from a broken query; and for anything about another player, use the authoritative state (`getEconomyState`, world components), never a per-player view.
+
+The cost was six wasted probe runs on one defect, and three claims to the user that had to be retracted in successive messages.

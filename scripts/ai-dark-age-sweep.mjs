@@ -46,14 +46,16 @@ const SEEDS = String(arg('seeds', 'aoe2-prototype,default-seed,corpus-seed-b')).
 // Cap × split grid. The splits are food:wood ratios written as the AI's
 // weights; gold and stone stay 0 in the Dark Age exactly as the shipped plan
 // has them (nothing in the Dark Age costs gold, and stone waits for Feudal).
-const CAPS = [10, 13, 16, 22];
-const SPLITS = [
-  { food: 4, wood: 3 }, // shipped baseline, 57% food
-  { food: 5, wood: 2 }, // 71% food
-  { food: 6, wood: 3 }, // 67% food — shipped
-  { food: 6, wood: 2 }, // 75% food
-  { food: 7, wood: 1 }, // 88% food — houses/barracks may starve
-];
+// A full grid across several seeds is 60+ matches and hours of wall clock, so
+// both axes are narrowable: --caps 10,13 --splits 4:3,6:3. Narrow deliberately
+// and say what you dropped; a silently truncated sweep reads as "we checked
+// everything" when it did not.
+const CAPS = String(arg('caps', '10,13,16,22')).split(',').map(Number);
+const DEFAULT_SPLITS = '4:3,5:2,6:3,6:2,7:1';
+const SPLITS = String(arg('splits', DEFAULT_SPLITS)).split(',').map((pair) => {
+  const [food, wood] = pair.split(':').map(Number);
+  return { food, wood };
+});
 
 /** Run one match and return the tick each owner first entered Feudal. */
 function feudalTicks(seed, cap, split) {
@@ -129,3 +131,7 @@ console.log('');
 console.log('Ranked by the WORST owner across all seeds. A row that beats the'
   + ' baseline on one seed and loses on another is not an improvement.');
 console.log('Adopt by hand in aiEconomyPlan.ts, then let npm test + playtest:corpus veto it.');
+if (CAPS.length * SPLITS.length < 20) {
+  console.log(`NOTE: narrowed grid — caps ${CAPS.join(',')} x splits `
+    + `${SPLITS.map((s2) => `${s2.food}:${s2.wood}`).join(',')}. Rows outside it were NOT measured.`);
+}
