@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.165
+
+- Corrects the give-up rule shipped a moment earlier: it was measured from where a villager currently stands, recomputed every tick, which made it shrink as the villager got closer and abandon ordinary walks even sooner than the rule it replaced. It is a fixed allowance now — thirty-two tiles of walking — so no player's economy stalls on any of the maps we test, and the one map that had slowed down is back to its old pace.
+
 ## 0.3.164
 
 - Ships no longer sail through Fish Traps. A Fish Trap is a building standing on water, but the water-passability rule assumed water never holds buildings, so every ship passed straight through one. Ships now route around them, while open water stays as open as it was.

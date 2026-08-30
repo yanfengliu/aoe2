@@ -14,20 +14,20 @@ import type { GameWorld } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { AssignNearestResourceOptions } from '../villagerGatherAssignment';
 import { assignIdleGatherer, shouldRetryReachability } from '../idleGatherAssignment';
-import { gatherApproachBudgetTicks } from './gatherApproachBudget';
+import { GATHER_APPROACH_BUDGET_TICKS } from './gatherApproachBudget';
 import { sheepMoveOrdersCodec } from '../bridgeStateSerialize';
 
 // Wood/gather gridlock fix (campaign-4): villagers piled onto ONE nearest tree
 // (14/18 stuck) and to-resource had no give-up path, jamming forever. Fix: a
 // villager stuck walking to an OVER-SUBSCRIBED resource for
-// GATHER_APPROACH_TIMEOUT_TICKS reassigns to the nearest UNsaturated resource
+// GATHER_APPROACH_BUDGET_TICKS reassigns to the nearest UNsaturated resource
 // (fan-out). Surgical — normal idle→assign stays nearest-first (AI economy
 // untouched); the approach timer reuses gatherProgressTicks (no new save state).
 export const MAX_GATHERERS_PER_RESOURCE = 2;
-// The fan-out budget is TRAVEL, not a tick count — see gatherApproachBudget.
-// A flat 80 ticks was ~40 tiles under the old movement clock and is 6.4 tiles
-// under §12.4.2, which made a villager abandon a 7-tile target just before
-// arriving, forever.
+// The fan-out budget lives in gatherApproachBudget.ts, expressed in TILES so
+// it tracks the movement clock: a flat 80 ticks was ~40 tiles under the old
+// clock and only 6.4 under §12.4.2, which made villagers abandon ordinary
+// walks just before arriving.
 // The over-subscription timeout above only rescues a villager that is queueing
 // behind others. A villager walking ALONE to a target it never reaches waited
 // forever, because "a long walk to an uncontended resource is NOT abandoned"
@@ -78,13 +78,6 @@ export interface ToResourceStepDeps {
 }
 
 /** Advances one gatherer that is walking to its resource. */
-/** The fan-out budget for THIS villager's current walk, in ticks. */
-function approachBudgetFor(activeWorld: GameWorld, villagerId: number, destination: Position): number {
-  const here = activeWorld.getComponent<Position>(villagerId, 'position');
-  const distance = here ? Math.hypot(destination.x - here.x, destination.y - here.y) : 0;
-  return gatherApproachBudgetTicks(distance);
-}
-
 export function runToResourceStep(deps: ToResourceStepDeps): void {
   const {
     activeWorld,
@@ -222,9 +215,7 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
             });
           } else if (
             overSubscribed
-            && gatherer.gatherProgressTicks >= approachBudgetFor(
-              activeWorld, id, resourceApproachPlan.destination,
-            )
+            && gatherer.gatherProgressTicks >= GATHER_APPROACH_BUDGET_TICKS
           ) {
             // Reservation MOVE: release this villager's slot on the
             // over-subscribed target BEFORE reassigning. Once the excess

@@ -36,20 +36,22 @@ describe('villager wood-gather spread (to-resource gridlock fix)', () => {
       bridge.issueContextCommandAtEntity(targetTree.id);
     }
 
-    // Window sizing (measured via a tick-by-tick diagnostic, 2026-07-02): the
-    // forest's open approach cells force a ~30-cell detour AROUND the forest,
-    // so the piled villagers only reach the tree ~t80, fill their first
-    // carries ~t130, and complete the first deposit round-trip ~t180-200. The
-    // excess villager redistributes off the over-subscribed tree at the
-    // approach timeout (~t80+) and — under the v0.1.79 drop-off-locality sort —
-    // walks to a drop-off-proximate tree rather than the one adjacent to it,
-    // reaching and chopping it by ~t200. The §6.3 pacing retune (v0.3.159)
-    // slowed chopping to 1 wood / 26 ticks, so a full first carry (10 wood)
-    // finishes ~t460 and deposits by ~t520; 700 ticks covers that with margin
-    // while the piled tree (100 wood, cap-2 gatherers) is nowhere near
-    // depletion — after depletion even the buggy pre-campaign-4 code
+    // Window sizing, re-measured 2026-08-29 after the fan-out budget became a
+    // TILE allowance (v0.3.165: 32 tiles = 400 ticks, replacing a flat 80 that
+    // meant 40 tiles under the old movement clock and only 6.4 under §12.4.2).
+    // The excess villager now redistributes off the over-subscribed tree at
+    // ~t400 rather than ~t80, then walks to a drop-off-proximate tree and
+    // chops it: the second tree first shows damage at **tick 854**, measured
+    // by polling this same fixture tick by tick. 1,200 ticks covers that with
+    // ~40% margin while the piled tree (100 wood, cap-2 gatherers) is nowhere
+    // near depletion — after depletion even the buggy pre-campaign-4 code
     // reassigns villagers, which would mask the fix.
-    for (let i = 0; i < 700; i += 1) bridge.step(100);
+    //
+    // The slower fan-out is a deliberate trade, not drift: a budget short
+    // enough to redistribute promptly also abandons ordinary walks, which is
+    // the freeze this mechanism's own constant caused on two of three corpus
+    // seeds. Fan-out is the fallback for a pathological pile, not the hot path.
+    for (let i = 0; i < 1200; i += 1) bridge.step(100);
 
     const eco1 = bridge.getEconomyState();
 
