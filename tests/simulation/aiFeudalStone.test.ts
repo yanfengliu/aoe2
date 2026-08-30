@@ -47,15 +47,22 @@ describe('the Feudal AI mines the stone its own plans need', () => {
     expect(stoneOf(bridge, 2)).toBe(0);
 
     // §6.3 pacing retune (v0.3.159): stone is 1/28 ticks. §12.4.2 walk clock
-    // (v0.3.160): the 125-crossing moved to ~tick 8,300, so the horizon is
-    // 18 x 500-tick blocks. The assertion tracks the running PEAK, not the
+    // (v0.3.160): the 125-crossing moved to ~tick 8,300. The Feudal wood
+    // weight went 4 to 6 with the age-prerequisite reserve (2026-08-30), which
+    // takes stone's share of a fixed villager cap from 1/13 to 1/15 — 13%
+    // fewer stone villagers, which slows the observed per-tick rate by 22% —
+    // and moved the crossing to tick 9,500. Measured
+    // over 20,000 ticks on this fixture: peak stone 220, so the AI still banks
+    // what this test is about and only takes longer to get there. Horizon is
+    // 22 x 500-tick blocks, which keeps ~1,500 ticks of margin past the
+    // measured crossing. The assertion tracks the running PEAK, not the
     // closing balance: the AI SPENDS banked stone on
     // exactly the things this test exists to make affordable (measured: 130
     // banked at tick 5,000 became 60 by 6,000 — a ~100-stone purchase), and
     // a stockpile assertion would fail on that success.
     // (Calibrated on this fixture: steady ~10 stone/500 ticks.)
     let peakStone = 0;
-    for (let block = 0; block < 18; block += 1) {
+    for (let block = 0; block < 22; block += 1) {
       run(bridge, 500);
       peakStone = Math.max(peakStone, stoneOf(bridge, 2));
     }

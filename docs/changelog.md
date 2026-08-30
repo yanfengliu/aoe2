@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.169
+
+- The AI can finally reach the Castle Age. It never did before — on every map we test, both players sat in the Feudal Age for the whole match, so a game against the computer only ever showed you villagers, scouts, militia and spearmen out of a roster of ninety-three units. The cause was that its soldiers and its buildings were bidding for the same wood with nothing deciding between them, and the soldiers always won, so it could never afford the Blacksmith that unlocks the next age. It now sets that wood aside — never at the cost of its last few soldiers — and puts more villagers on wood to pay for it. On the map the game opens with, the AI now gets far enough to unlock the next age, builds nine kinds of building instead of eight and fields five kinds of unit instead of four; on another of our test maps it reaches the Castle Age outright. It gives up no army anywhere to do it.
+
 ## 0.3.168
 
 - A Dock counts toward advancing to the Feudal Age, as it does in Age of Empires II. It always should have — a water-map opening of a Dock and a Mill met the requirement everywhere except in this game, where it left you stuck in the Dark Age.

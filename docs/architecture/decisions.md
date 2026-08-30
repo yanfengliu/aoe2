@@ -625,3 +625,15 @@ Both are spec §5.6 required, and the first implementation gave each player two 
 Deer stay per-player, because a deer hunt is something a player does with their own villagers and each player needs their own. Wolves become a map-level pass placed in the ground between the bases, at least 16 tiles from any Town Center — beyond the widest scout wander box.
 
 Neither is seeded into generated maps yet: adding deer breaks an unrelated scout test on the canary map for a reason not yet root-caused (see the devlog for what was eliminated). The placement code was reverted with the spawns rather than left dead in the tree; the design is recorded here because it was reached by measurement and should not be re-derived when the blocker clears.
+
+## 2026-08-30 — The AI reserves wood for what makes it ELIGIBLE, not only for the age-up itself
+
+`ageUpReserveCost` protects the age-up research, and returns nothing until the owner already qualifies for the next age. That is the right shape for the research and the wrong shape for the problem: an AI that cannot become eligible is defending a purchase it cannot make while spending the money for the one it can.
+
+Measured over 20,000 ticks before the change: 715 wood reached buildings and 525 went to 21 spearmen out of 1,240 total, the stockpile never cleared 24, no AI ever accumulated the 150 for a first Blacksmith, and no match on any seed reached the Castle Age. The AI banked 980-1,922 food it had no way to spend, because the reserve that would have protected it never engaged.
+
+`agePrerequisiteWoodReserve` is the sibling one step earlier in the chain, and it lives beside the age-up reserve rather than in the build-order picker on purpose: the picker already wanted the right building — it was the production phase spending the wood out from under it. Scoped to the Feudal transition it was measured on, and lapsing the moment the owner holds two qualifying buildings, rather than generalised to Castle and Imperial on an assumption, since no match had ever reached those for their behaviour to be observed.
+
+It carries a three-unit military floor, and that is not a detail: without one the reserve is a training BAN, measured across eleven seeds at 21% of all peak military, on seeds where the building it saved for was never affordable either. The floor cannot be `attackGroupSize` (5) — `militaryGrowthPausedForAgeUp` already stops growth there, so everything this reserve competes with happens below it.
+
+The paired villager-split change (Feudal wood 4 to 6) is not separable from it and is documented as one rule in both files. Each half alone fails the end-to-end test: income alone is eaten by the spearman as it lands, and the reserve alone buys buildings by halving the army. The cost is a regression on `corpus-seed-b` and one unit type on the boot map's losing player, accepted on the stated ground that the metric changed from Feudal timing to what a match exercises. A future revisit should re-run the sweep — five reserve sizes against five weights across at least three seeds — rather than adjust one knob from memory.

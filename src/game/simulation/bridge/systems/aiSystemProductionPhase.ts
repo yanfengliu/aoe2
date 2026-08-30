@@ -5,13 +5,17 @@
 
 import type { ResearchableTechnologyType } from '../../types';
 import { canAfford, trainingCost } from '../../prototypeEconomyRules';
+import { ownerConstructionCost } from '../ownerCosts';
 import { effectiveResearchCost } from '../../civBonusEffects';
 import {
   AI_MONK_COUNT_CAP,
+  AGE_PREREQUISITE_MILITARY_FLOOR,
+  agePrerequisiteWoodReserve,
   ageUpReserveCost,
   ageUpResourceBuffer,
   canAffordWithReserve,
   militaryGrowthPausedForAgeUp,
+  QUALIFYING_FEUDAL_BUILDINGS,
   pickNextAgeResearch,
   pickUnitMix,
   villagerCapForAge,
@@ -52,6 +56,7 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
   const {
     owner,
     ownerTownCenterId,
+    activeWorld,
     currentAge,
     stockpile,
     populationBlocked,
@@ -82,14 +87,45 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
   // campaign-11 (c): reserve the next age-up's cost so military (sequenced
   // before the FIFO-later age-up research) trains only from the surplus
   // above it — else a Militia drains food below the cost and the research
-  // silently no-ops. Military is the only pre-age-up food/gold spend
-  // (builds spend wood/stone; villager/tech/monastery follow the age-up).
+  // silently no-ops. Military and CONSTRUCTION both spend wood — a spearman
+  // costs 25 of it — so `agePrerequisiteWoodReserve` holds back what the next
+  // qualifying building needs. This comment used to read "military is the only
+  // pre-age-up food/gold spend (builds spend wood/stone)", which the roster had
+  // made false, and the missing arbitration is what walled every AI into the
+  // Feudal Age.
   const qualifiesForNextAge =
     nextAgeTech === 'feudal-age' ? canAdvanceToFeudalAge(owner)
     : nextAgeTech === 'castle-age' ? canAdvanceToCastleAge(owner)
     : nextAgeTech === 'imperial-age' ? canAdvanceToImperialAge(owner)
     : false;
   const ageUpReserve = ageUpReserveCost(currentAge, qualifiesForNextAge, civOf(owner));
+  // COMPLETE buildings only, matching `countCompletedOwnedBuildings`, which is
+  // what the age-advance rule itself counts — a foundation is not a
+  // prerequisite and must not release the reserve.
+  const ownedQualifying = new Set<string>();
+  for (const id of activeWorld.query('building')) {
+    const building = activeWorld
+      .getComponent<{ owner: number; buildingType: string }>(id, 'building');
+    if (!building || building.owner !== owner) continue;
+    const construction = accessor.get(constructionStatesCodec).get(id);
+    if (construction && !construction.isComplete) continue;
+    ownedQualifying.add(building.buildingType);
+  }
+  const nextQualifying = QUALIFYING_FEUDAL_BUILDINGS
+    .find((type) => !ownedQualifying.has(type));
+  const prerequisiteWood = agePrerequisiteWoodReserve(
+    currentAge,
+    qualifiesForNextAge,
+    ownedMilitaryUnitIds(owner).size,
+    AGE_PREREQUISITE_MILITARY_FLOOR,
+    // The OWNER's discounted price, not the base table — the Malians build
+    // every building for 15% less, and the sibling age-up reserve was fixed
+    // for exactly this in v0.3.147. Over-reserving extends the training pause.
+    nextQualifying ? ownerConstructionCost(accessor, owner, nextQualifying).wood ?? 0 : 0,
+  );
+  const militaryReserve = prerequisiteWood > 0
+    ? { ...ageUpReserve, wood: (ageUpReserve.wood ?? 0) + prerequisiteWood }
+    : ageUpReserve;
 
   // Phase 1C: pickUnitMix BEFORE villager training (the +1-tick handler
   // delay otherwise mis-aligns the full-tcQueue corner case). Priority:
@@ -104,7 +140,7 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
       // Advisory base cost (gates intention only; validator+charge apply
       // the Goths discount, and the AI is never Goths yet).
       const cost = trainingCost(unitType);
-      if (!canAffordWithReserve(stockpile, cost, ageUpReserve)) continue;
+      if (!canAffordWithReserve(stockpile, cost, militaryReserve)) continue;
       if (!getTrainOptions(owner, producer).includes(unitType)) continue;
       pushQueueTrainIntention(producerId, unitType);
       // Phase 1C — increment so subsequent same-producer pushes (feudal+

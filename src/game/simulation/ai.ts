@@ -326,9 +326,12 @@ export function militaryGrowthPausedForAgeUp(
 // The age-up reserve lives in ./aiResourceReserve (extracted for the 500-LOC
 // budget); re-exported so existing `from './ai'` imports keep working.
 export {
+  AGE_PREREQUISITE_MILITARY_FLOOR,
+  agePrerequisiteWoodReserve,
   ageUpReserveCost,
   ageUpResourceBuffer,
   canAffordWithReserve,
+  QUALIFYING_FEUDAL_BUILDINGS,
 } from './aiResourceReserve';
 
 // Vision radius the AI considers as "near base" for scouting-response

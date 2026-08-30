@@ -68,7 +68,15 @@ export function villagerTargetsForAge(age: AgeType): Partial<Record<EconomyResou
       // villagers a weight of 1 in 13 puts one or two on stone, which is
       // what a Feudal build order going for a tower or a Castle does. Food
       // stays dominant — the 800-food age-up is still what Feudal is for.
-      return { food: 7, wood: 4, gold: 1, stone: 1 };
+      // Wood 6, raised from 4 together with the age-prerequisite wood reserve
+      // (2026-08-30) — the two only work as a pair and were measured as one.
+      // Alone, more wood villagers changed nothing on any seed, because the
+      // spearman ate every 25 wood the moment it arrived; alone, the reserve
+      // bought buildings by halving the army. Together they put the BOOT MAP
+      // into the Castle Age at tick 20,500 with peak military UP (8 to 9) and
+      // unit variety up from four types to six. Swept 4/5/6/7/8 against the
+      // reserve across three seeds; 6 gives the earliest boot-map Castle.
+      return { food: 7, wood: 6, gold: 1, stone: 1 };
     case 'castle-age':
       return { food: 4, wood: 4, gold: 3, stone: 1 };
     case 'imperial-age':

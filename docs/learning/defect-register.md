@@ -274,7 +274,7 @@ Raising opacity to 0.78 fixed the measured colour bar but none of the three caus
 
 **What this predicts.** Every other overlay that might reach for transparency has the same two traps waiting — the moebius quantiser and self-blending — and every two-colour ownership cue should be checked in BOTH colours against the palette it will sit on, not just the one the showcase fixture happens to spawn.
 
-## 2026-08-30 — The AI cannot leave the Feudal Age: wood-starved while banking everything else (OPEN)
+## 2026-08-30 — The AI cannot leave the Feudal Age: wood-starved while banking everything else (RESOLVED v0.3.169)
 
 **Symptom.** In a 40-minute all-AI match neither player ever reaches the Castle Age, on any of three seeds. The whole match exercises four unit types (villager, scout, militia, spearman) and eight or nine building types. Against a content audit that puts 137 of 138 technologies live with real effects and 93 units trainable, AI self-play exercises a small fraction of the game — which matters because self-play is the standing acceptance test for feature completeness.
 
@@ -318,6 +318,26 @@ That is the whole defect, and it was designed in by a comment that stopped being
 
 **A seventh experiment, testing the obvious pairing, and it is worse.** If the reserve costs military because the spearman is the AI's only Feudal unit and it costs wood, then give it a wood-free alternative: militia, at 60 food and 20 gold, both of which this AI has banked in the hundreds. Measured: peak military HALVED (8 to 4 on two seeds) and the Castle was lost. Militia's 60 food buys fewer units than the spearman's 35, so trading the wood cost for a food cost bought a smaller army and spent the food the age-up needs. The pairing that looks obvious from the cost table is wrong once the food side is measured.
 
+**RESOLVED, and the two halves only work as a pair.** The sweep the previous entry called for — reserve SIZE against the Feudal wood weight, across three seeds — found that neither lever works alone and together they clear it. Wood 4/5/6/7/8 against reserve sizes 0/60/75/150/175 and two stop conditions:
+
+    reserve 150, wood 4   boot map: no castle          default-seed: castle 21,500, peak military halved
+    reserve 0,   wood 6   boot map: no castle          (income alone: the spearman ate each 25 as it landed)
+    reserve 150, wood 6   BOOT MAP: eligible at 23,500   default-seed: castle 24,000
+    military floor 3      bldg types 8 -> 9              bldg types 7 -> 12
+                          unit types 4 -> 5              peak military unchanged
+                          peak military unchanged (8)    totals: 1 castle where baseline
+                                                         had 0, 50 bldg types vs 44,
+                                                         26 unit types vs 24, and peak
+                                                         military 37 vs 37 — no army cost
+
+Both halves red-check independently against the end-to-end test: reverting either one alone returns "no player reached the Castle Age". 150 and 175 are identical because the reserve clamps to the next building's cost and the Blacksmith is 150; wood 6 gives the earliest boot-map Castle of the family.
+
+**The reserve needed a floor, and review found that the hard way.** The first version had none. Across eleven seeds it cost 21% of all peak military, and on every seed whose peak wood never reached the reserve it blocked 100% of military training for the whole age while still never affording the building — pure loss, with the army pinned at 3 units against a baseline of 6-7. The obvious floor, `attackGroupSize` (5), makes the reserve a no-op: `militaryGrowthPausedForAgeUp` already stops GROWTH at 5, so the drain this reserve exists to stop happens entirely below it, in replacing losses. Swept 0/2/3/4/5 across three seeds; **3** costs nothing at all — peak military identical to baseline's 37, six more building types, two more unit types.
+
+**The cost, stated rather than buried.** `corpus-seed-b` still regresses, though far less than the floorless version: each owner loses one building type and one unit of peak military, and neither reaches Castle. The boot map does NOT regress on anything, which is what the older no-regression rule asks for. Recorded so it can be reversed on evidence rather than re-litigated from memory.
+
+**How it is checked from now on.** `tests/simulation/aiReachesCastleAge.test.ts` plays 24,000 ticks of all-AI self-play on the boot map and requires Castle-Age ELIGIBILITY (baseline never qualified there at all), peak military of at least 8, five unit types and nine building types. It red-checks against each half of the pair separately. A second seed is deliberately not gated — each match is ~2 minutes and heavy tests in this suite tipped an unrelated test into a CI timeout the same day — so `default-seed`'s numbers are recorded in the test header as evidence instead.
+
 **Where this leaves the tuning.** Reserve-alone remains the only configuration that has produced a Castle Age. Its scorecard against baseline, per owner, over three seeds: `default-seed` clearly better (owner 2 qualifies at 20,000, reaches Castle at 21,500, building types 7 to 9, unit types 4 to 5); `aoe2-prototype` mixed (owner 1 gains two building types and loses a unit type, owner 2 loses one building type); `corpus-seed-b` slightly worse (a unit type and a building type). One large win, two small losses, and a loss on the boot map is exactly what this repo's adoption rule refuses. Not adopted, and the remaining work is a proper sweep of the reserve's size and duration rather than another single-shot experiment.
 
 **Also measured: the match never resolves.** At 60,000 ticks — 100 minutes of game time — every number is byte-identical to 24,000: same buildings, same qualification, same peak wood. `default-seed` owner 1 ends with zero units, five buildings including a Town Center, and 43 food against a villager's 50, so it can never act again; `getMatchState().outcome` is still `running`. A player who cannot produce and cannot gather is not defeated, so an effectively decided match runs forever.
@@ -327,3 +347,15 @@ That is the whole defect, and it was designed in by a comment that stopped being
 **How it is checked from now on.** Not yet, and that is the honest state — this is registered rather than fixed. What a fix needs is stated here so the next attempt does not repeat these two: the acceptance metric is what a match EXERCISES (ages reached, distinct building and unit types), measured across at least the three seeds above, and not Feudal timing, which both failed hypotheses left untouched while changing nothing that matters. The repo has already withdrawn one economy tuning that won on one seed and lost on the boot map; rank on the worst owner across seeds.
 
 **What this predicts.** Any other fixed proportional allocation in the AI has the same failure mode available to it — the split is right for an assumed spend pattern and silently wrong when the actual bottleneck moves. The Castle and Imperial splits are untested against real play for exactly the reason this entry exists: no match has ever got there.
+
+## 2026-08-30 — `fog-memory-fixture`'s first assertion fails in isolation, passes in the full suite (OPEN)
+
+**Symptom.** `tests/browser/game-simulation-and-exploration-resources.spec.ts > remembers an enemy house with reduced-opacity memory rendering after the scout walks away` fails on its FIRST assertion: three ticks after boot the enemy house already reports `isMemory === true`, where the test expects `false` (it is meant to start in live vision and only become a memory after the scout leaves).
+
+**Investigation, and what it rules out.** It is not the change that was in flight when it surfaced. With all four AI source files reverted to HEAD and `dist/` rebuilt, it still fails — three runs out of three. It is not the stale `vite preview` server that had been squatting on port 4173 since early in the session (`reuseExistingServer: true` means every run had been reusing it): killed, re-run, still fails. It is not the wildlife system registration ORDER, which the v0.3.167 extraction changed by inserting the deer-flee system second — moving it back to last and rebuilding does not help.
+
+What it IS remains open, and the shape is the useful part: the test **passes inside the full browser suite** on some runs (135/135 twice today) and **fails in isolation** consistently. An assertion three ticks after boot is measuring how far visibility has propagated in three ticks, which is exactly the kind of thing that differs between a warm suite and a cold single-spec run.
+
+**Why this is registered rather than fixed.** It is pre-existing on `main` — it does not depend on the change that found it — and chasing it properly means understanding the visibility system's warm-up, which is its own piece of work. Recording the three eliminations so the next attempt does not repeat them.
+
+**What this predicts.** Any assertion pinned to a small tick count right after boot is measuring warm-up rather than behaviour, and will differ between an isolated run and a suite run. The fix shape is almost certainly to poll for the live-vision state rather than assert it at tick 3, the same way the same test already polls for the scout's arrival further down.
