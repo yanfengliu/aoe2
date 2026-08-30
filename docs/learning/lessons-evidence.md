@@ -782,6 +782,10 @@ Seven instrument errors in one session, every one of them SILENT — a plausible
 6. `v.targetResourceId` filtered on the villager SNAPSHOT, which carries no such field — so "no villager targets a boar" was structurally impossible to observe, not a measurement.
 7. `getRenderState()` used to watch a rival's units and wildlife — it is FOG-FILTERED to the human player, so the arrays were empty and the correlation read as "no evidence" rather than "wrong camera".
 
+8. `getEconomyState().units` counted as "how many villagers exist". It is built from `world.query('position', 'unit')`, and garrisoning REMOVES the `position` component — so sheltering villagers drop out and reappear. I read the resulting oscillation as ten villagers being killed, wrote a defect-register entry saying so, and had to retract it: measured against world entities, the snapshot showed 3 while 7 were alive.
+
 The shape is identical every time: the probe answered a question I had not asked, and answered it plausibly. A crash would have been kinder. Two cheap guards catch all seven — print the identifiers you are filtering ON (ids, keys, field names) before filtering, so an empty result is visibly distinguishable from a broken query; and for anything about another player, use the authoritative state (`getEconomyState`, world components), never a per-player view.
 
-The cost was six wasted probe runs on one defect, and three claims to the user that had to be retracted in successive messages.
+The cost was eight wasted probe runs on one defect, four claims to the user retracted in successive messages, and one defect-register entry that had to be rewritten after it was committed.
+
+The eighth is the most general and the least obvious: a VIEW assembled from `query(componentA, componentB)` silently omits every entity that has lost one of those components for an ordinary reason. Counting bodies through such a view measures visibility, not population. When the question is "how many are there", count from ownership in the authoritative world; when it is "how many are working", say so — and never let one stand in for the other.
