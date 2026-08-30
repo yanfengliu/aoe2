@@ -297,7 +297,28 @@ So wood income is not the constraint and the farm ordering is not the constraint
 
 **An instrument flaw caught before it became a conclusion.** The exercise metric counts DISTINCT building types across the whole match, which unions BOTH owners. A run showing a Blacksmith and an Archery Range therefore does not show that any single owner had two qualifying buildings, and the tempting reading — "it qualifies and still will not advance, so the blocker is elsewhere" — is not supported by it. Anything measuring qualification has to be per-owner. The union metric is still correct for what it claims (what the match exercises) and, if anything, understates the problem, since per owner the variety is lower still.
 
-**Root cause (open).** The villager allocation is a fixed per-age split that does not respond to which resource is actually binding. A player who has banked 1571 food and 1140 gold and cannot build a 150-wood building moves people onto wood; this AI cannot, because its split is a constant.
+**ROOT CAUSE, found by instrumenting the decision rather than guessing at it.** Tracing the AI's building phase directly on `aoe2-prototype`, owner 2, over 20,000 ticks:
+
+    next=farm  ongoing=0  max=21  wonder=false  vills=22  builder=2162     x164
+    WHY farm   builder=2162  anchor=SOME  afford=FALSE  wood=0..24  cost={wood:60}
+
+The AI decides to build, has a builder, has capacity and a valid anchor, and simply cannot pay. Tallying every spend it did manage over those ticks:
+
+    buildings   4 house(25) + 4 farm(60) + mining-camp(100) + mill(100)
+                + lumber-camp(100) + barracks(175)            =  715 wood
+    military    21 spearmen at 25 wood each                   =  525 wood
+                                                                -----------
+    total                                                       1,240 wood
+
+1,240 wood in 2,000 seconds is 0.62/s against a nominal 2.73/s for seven wood gatherers — **23% efficiency**, the rest of their time spent walking under the §12.4.2 clock. And **military takes 42% of what does arrive**.
+
+That is the whole defect, and it was designed in by a comment that stopped being true: `aiSystemProductionPhase` reads *"Military is the only pre-age-up food/gold spend (builds spend wood/stone)"*, and the age-up reserve is built on it. A **spearman costs 25 wood**. So military and construction compete for the one scarce resource, nothing arbitrates, and the 150 wood for a first Blacksmith is never accumulated — the AI cannot qualify, so `ageUpReserveCost` stays empty, so it also banks food and gold it has no way to spend. 980 to 1,922 food at the end of a match, and a stockpile that never clears 24 wood.
+
+**The intervention that works, measured.** Adding the next qualifying building's wood to the production-phase reserve — the exact pattern the file already uses for the age-up — produced `default-seed` owner 2 **qualifying at tick 20,000 and reaching the CASTLE AGE at 21,500**, the only time any player has reached it in this investigation, with unit variety up from four types to five. It is NOT adopted: it costs a unit type on `aoe2-prototype` and `corpus-seed-b` (four down to three), which is a regression on the boot map and fails this repo's own adoption rule. Gating it behind an established economy (15+ villagers) restores the military everywhere and loses the Castle everywhere — the reserve has to bite early to work at all. What remains is a tuning problem with a known mechanism, rather than an unknown.
+
+**Also measured: the match never resolves.** At 60,000 ticks — 100 minutes of game time — every number is byte-identical to 24,000: same buildings, same qualification, same peak wood. `default-seed` owner 1 ends with zero units, five buildings including a Town Center, and 43 food against a villager's 50, so it can never act again; `getMatchState().outcome` is still `running`. A player who cannot produce and cannot gather is not defeated, so an effectively decided match runs forever.
+
+**Superseded hypothesis (kept for the record).** The villager allocation is a fixed per-age split that does not respond to which resource is actually binding. A player who has banked 1571 food and 1140 gold and cannot build a 150-wood building moves people onto wood; this AI cannot, because its split is a constant.
 
 **How it is checked from now on.** Not yet, and that is the honest state — this is registered rather than fixed. What a fix needs is stated here so the next attempt does not repeat these two: the acceptance metric is what a match EXERCISES (ages reached, distinct building and unit types), measured across at least the three seeds above, and not Feudal timing, which both failed hypotheses left untouched while changing nothing that matters. The repo has already withdrawn one economy tuning that won on one seed and lost on the boot map; rank on the worst owner across seeds.
 
