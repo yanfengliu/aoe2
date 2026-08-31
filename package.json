@@ -17,6 +17,7 @@
     "playtest:self-improve": "tsx scripts/playtest-self-improve.mjs",
     "replay:inspect": "tsx scripts/replay-inspect.mjs",
     "ai:trajectory": "tsx scripts/aiTrajectory.mjs",
+    "ai:selfplay-audit": "tsx scripts/selfplay-audit.mjs",
     "ai:tickrate": "tsx scripts/aiTickRate.mjs",
     "prebuild": "npm run voxel:build && node scripts/build-content.mjs",
     "build": "tsc --noEmit && vite build",
