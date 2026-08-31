@@ -387,6 +387,18 @@ No Castle-Age benefit at all, and it costs unit variety and 10% of peak army. So
 
 **And the accident points somewhere real.** Displacing the Mining Camp helped because it spends 100 wood on wood rather than on gold and stone — and this AI banks gold and stone unspent all game (measured repeatedly: 790 gold and 440 stone against 20 wood at the end of a match). The next hypothesis is therefore not another camp: it is that the Mining Camp is itself a poor buy on these maps, and the AI should not build one while the resources it serves are accumulating unused. That is testable, cheap, and was found only because fixing a bug made a result worse.
 
+**The twelfth attempt was the never-build variant in disguise, and its win was a horizon artifact (2026-08-30).** The eleventh accident said the Mining Camp is a poor buy while gold and stone bank unspent, so the twelfth moved it out of the Dark Age into the Feudal arm, placed AFTER the age-up qualifying halls. Ten seeds gave Castle-Age slots 4 to 6 and the boot map reached the age at tick 22,250 where HEAD reached it never. Six gates green, reproducible.
+
+Review found three things, each fatal alone.
+
+- The insertion sits after a loop demanding blacksmith AND archery-range AND stable AND market, and the AI qualifies with two and rarely completes four. Camps built: 25 of 34 owner-slots at baseline, 4 of 34 under the change, all four in the last 17% of the match. A separately-built never-build arm is byte-identical on 10 of 12 slots. The rule that shipped is the one its own comment rejected.
+- The win is an artifact of the 24,000-tick horizon and REVERSES at 34,000: Castle slots 7 to 9 at the cut-off, 18 to 16 at the longer one, with five slots losing an age they otherwise reach.
+- The insertion is not age-gated, so in the Castle Age a missing camp outranks Siege Workshop, Monastery and Castle, and an unplaceable one blocks the whole order. That stall class did not exist at HEAD.
+
+Two of my own claims were wrong. The 790-gold-440-stone figure quoted in two tracked files is ONE cherry-picked slot; across 34 the gold range is 11 to 1,670, and the change RAISES the median hoard it was written to stop paying for (gold 575 to 614). And my prose and my test file stated building types moving in opposite directions.
+
+Review names the position nobody tried: keep the camp in the Dark Age and gate it on a gold or stone mine actually being within DROP_OFF_ANCHOR_RADIUS.
+
 That is eight measured negatives on this wall now. Every lever tried moves wood between things that all need it; none creates any. The remaining candidates are on the GATHER side rather than the spend side — walk distance, camp siting, and how many gatherers share one drop-off — and the measurement to beat is the 25% figure above, not the age timings.
 
 **What a future attempt needs.** Not a resource test at all — a POSITIVE signal that the player is doing something, rather than a proof that it can do nothing. The queue, the market, the trickle and tribute are all things this rule had to know about only because it was arguing from absence.

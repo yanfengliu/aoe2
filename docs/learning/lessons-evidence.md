@@ -819,3 +819,21 @@ Review then measured the same change three ways and none of them agreed:
 The change was reverted. Anchors: `docs/learning/defect-register.md` 2026-08-30 entry, and the engine ask in `docs/engine-feedback/current.md`.
 
 The repo already had a rule about verifying on the real default view rather than a showcase fixture, and I followed it — I captured both. It was not enough, because "the real view" is still ONE art style, ONE owner, ONE camera, and ONE background. For a change to a rendered CUE, the axes that matter are the ones the cue varies over: every art style that post-processes, both ownership colours, and a bright and a dark surface behind it. And where the change is a blend, solve the per-pixel alpha instead of trusting your eye — the seam artefact was invisible to me at every zoom I looked at and is arithmetic once measured.
+
+## A measurement horizon is an instrument, and 24,000 ticks was the wrong one (2026-08-30)
+
+Every economy measurement in this session ran to 24,000 ticks — forty minutes of game time, chosen because that is where the first self-play audit stopped. Twelve attempts at the AI's Feudal wall were judged on it.
+
+The twelfth looked like the first real win: moving the Mining Camp out of the Dark Age gave Castle-Age owner-slots 4 to 6 over ten seeds, with the boot map reaching the age at tick 22,250 where HEAD reached it never. Reproducible, all six gates green.
+
+Review ran the same seeds to 34,000 ticks:
+
+    horizon    Castle slots   building types   unit types   peak army
+    24,000        7 -> 9         258 -> 250      142 -> 150    179 -> 179
+    34,000       18 -> 16        291 -> 282      175 -> 173    266 -> 249
+
+**Every metric reverses.** Five owner-slots that reach the Castle Age at 34,000 lose it under the change — they were simply arriving after my cut-off, so my horizon could not see what I had taken from them, only what I had brought forward. The 24,000 mark was not neutral: it is close enough to when these matches resolve that a change which trades LATER outcomes for EARLIER ones scores as a pure gain.
+
+Two things generalise. A cut-off is part of the instrument, not part of the world, and any change that shifts WHEN something happens must be measured at two horizons before the direction is believed — one of them well past where the effect is expected to settle. And the tell was available without the second run: the change made things happen sooner and my metric counted only whether they happened at all, which is exactly the shape that a nearby horizon flatters.
+
+Anchor: `docs/learning/defect-register.md`, the 2026-08-30 Feudal-wall entry; the twelve attempts are listed there with what each one falsified.

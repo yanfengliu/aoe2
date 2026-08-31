@@ -10,6 +10,8 @@ When a lesson becomes a gate — a test, a lint rule, a fixed command — delete
 
 ## Rules
 
+- A measurement HORIZON is part of the instrument — anything that changes WHEN an outcome lands must be measured at two, or you count arrivals and miss losses ([evidence](lessons-evidence.md#a-measurement-horizon-is-an-instrument-and-24000-ticks-was-the-wrong-one-2026-08-30))
+
 - A rendered cue must be judged across the axes it VARIES over — every post-processing art style, both ownership colours, a bright and a dark background ([evidence](lessons-evidence.md#a-rendered-image-judged-from-one-capture-is-one-capture-not-a-verification-2026-08-30))
 
 - A profile's SELF TIME says where the process is, not why — get the CALL COUNT before optimising a hot function ([evidence](lessons-evidence.md#self-time-says-where-not-why-the-cost-may-be-the-call-count-not-the-work-2026-08-30))
