@@ -870,7 +870,7 @@ Still to come: the multi-unit civilizations whose `units.csv` rows have no indiv
 
 ### 9.2.2 Unique Technologies
 
-Each civilization has one or two signature technologies, researched at its **Castle**. Nineteen of the nineteen in `design/stats/technologies.csv` are implemented — the deferred list emptied in v0.3.70, when Atheism landed on the victory countdowns Spies made meaningful. The table below and `UNIQUE_TECHNOLOGIES` are checked against each other by `tests/architecture/specUniqueTechnologyTable.test.ts` — El Dorado shipped in v0.3.57 and this table did not learn about it for eight versions.
+Each civilization has one or two signature technologies, researched at its **Castle**. Twenty-two are implemented: all nineteen of the original civilizations', which the deferred list emptied in v0.3.70 when Atheism landed on the victory countdowns Spies made meaningful, plus the first three of the twelve EXPANSION civilizations' (v0.3.170). Those twelve — Berbers, Burmese, Ethiopians, Incas, Indians, Italians, Khmer, Magyars, Malians, Portuguese, Slavs, Vietnamese — arrived with 17 unique units and 22 unique technologies, none of them implemented; Shatagni, Recurve Bow and Farimba are the first closed, and every value in them was verified against the wiki rather than taken from memory (which would have made Shatagni +1 range instead of +2). The table below and `UNIQUE_TECHNOLOGIES` are checked against each other by `tests/architecture/specUniqueTechnologyTable.test.ts` — El Dorado shipped in v0.3.57 and this table did not learn about it for eight versions.
 
 They are DECLARED rather than coded (`src/game/simulation/uniqueTechnologies.ts`). Each names which units or buildings it touches and what it adds, and one loop applies them all — the alternative was sixteen more branches on a combat-state factory that was already a forty-line ladder, each harder to read than the CSV line it came from. The same declarations drive both halves: the units already on the field are bumped when the research completes, and everything trained afterwards derives it at creation.
 
@@ -895,6 +895,9 @@ They are DECLARED rather than coded (`src/game/simulation/uniqueTechnologies.ts`
 | Teutons | Crenellations | Imperial | Castles +3 range |
 | Turks | Artillery | Imperial | Bombard units +2 range |
 | Vikings | Berserkergang | Imperial | Berserks regenerate twice as fast |
+| Indians | Shatagni | Imperial | Hand Cannoneers +2 range |
+| Magyars | Recurve Bow | Imperial | Cavalry Archers +1 range, +1 attack |
+| Malians | Farimba | Imperial | Cavalry +5 attack |
 
 The Castle research menu opens in CASTLE age rather than Imperial, because Anarchy is a Castle-age technology; every other entry still carries its own age, so nothing else moved earlier.
 

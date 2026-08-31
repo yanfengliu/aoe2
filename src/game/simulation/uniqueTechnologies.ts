@@ -132,6 +132,53 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     summary: 'Eagle Warriors +40 hit points.',
     unitEffect: { applies: is('eagle-warrior', 'elite-eagle-warrior'), maxHp: 40 },
   },
+  // The first three of the twelve expansion civilizations' unique technologies.
+  // Every number here was verified against the wiki rather than written from
+  // memory, and memory would have been wrong twice: Shatagni gives +2 range,
+  // not +1, and the Incas' Couriers now grants armour rather than the +10%
+  // speed it originally did (not implemented here — it needs the Kamayuk and
+  // Slinger, which this roster does not have yet).
+  {
+    id: 'shatagni',
+    name: 'Shatagni',
+    civilization: 'Indians',
+    age: 'imperial-age',
+    cost: { food: 500, gold: 650 },
+    researchTicks: 400,
+    summary: 'Hand Cannoneers +2 range.',
+    unitEffect: { applies: is('hand-cannoneer'), attackRange: 2 },
+  },
+  {
+    id: 'recurve-bow',
+    name: 'Recurve Bow',
+    civilization: 'Magyars',
+    age: 'imperial-age',
+    cost: { wood: 600, gold: 400 },
+    researchTicks: 400,
+    summary: 'Cavalry Archers +1 range, +1 attack.',
+    unitEffect: {
+      applies: is('cavalry-archer', 'heavy-cavalry-archer'),
+      attackRange: 1,
+      attackDamage: 1,
+    },
+  },
+  {
+    id: 'farimba',
+    name: 'Farimba',
+    civilization: 'Malians',
+    age: 'imperial-age',
+    cost: { food: 650, gold: 400 },
+    researchTicks: 400,
+    // The wiki lists Scout Cavalry, Light Cavalry, Knight, Cavalier, Camel
+    // Rider and Heavy Camel Rider. This roster has no camels and no separate
+    // Scout Cavalry, so the set is the mounted melee line it does have —
+    // narrower than AoE2's, and narrower on purpose rather than by omission.
+    summary: 'Cavalry +5 attack.',
+    unitEffect: {
+      applies: is('scout', 'light-cavalry', 'hussar', 'knight', 'cavalier', 'paladin'),
+      attackDamage: 5,
+    },
+  },
   {
     id: 'garland-wars',
     name: 'Garland Wars',

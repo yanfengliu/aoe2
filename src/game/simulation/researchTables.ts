@@ -43,7 +43,14 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   banking: { food: 200, gold: 100 },
   // Vikings, Castle (technologies.csv): Berserks regenerate twice as fast.
   berserkergang: { food: 850, gold: 400 },
-  'el-dorado': { food: 750, gold: 450 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
+  'el-dorado': { food: 750, gold: 450 },
+  // The three below are the first of the twelve expansion civilizations'
+  // unique technologies. Costs and effects verified against the wiki rather
+  // than written from memory, per the standing lesson — and memory would have
+  // been wrong: Shatagni is +2 range, not +1.
+  shatagni: { food: 500, gold: 650 },
+  'recurve-bow': { wood: 600, gold: 400 },
+  farimba: { food: 650, gold: 400 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
   bracer: { food: 450, gold: 300 },
   'blast-furnace': { food: 275, gold: 225 },
   'plate-mail-armor': { food: 300, gold: 150 },
@@ -198,6 +205,9 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   banking: 500, // Market, Castle: 50 s x 10 TPS.
   berserkergang: 400, // Castle, Imperial: 40 s x 10 TPS.
   'el-dorado': 500, // Castle, Imperial: 50 s x 10 TPS.
+  shatagni: 400, // Castle, Imperial: 40 s x 10 TPS.
+  'recurve-bow': 400, // Castle, Imperial: 40 s x 10 TPS.
+  farimba: 400, // Castle, Imperial: 40 s x 10 TPS (wiki: 0:40).
   bracer: 500,
   'blast-furnace': 600,
   'plate-mail-armor': 600,

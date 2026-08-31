@@ -40,6 +40,12 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Hoardings';
     case 'el-dorado':
       return 'El Dorado';
+    case 'shatagni':
+      return 'Shatagni';
+    case 'recurve-bow':
+      return 'Recurve Bow';
+    case 'farimba':
+      return 'Farimba';
     case 'careening':
       return 'Careening';
     case 'dry-dock':

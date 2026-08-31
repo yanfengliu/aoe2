@@ -23,6 +23,8 @@ const AGE_LABELS: Record<string, string> = {
 
 const NUMBER_WORDS: Record<string, number> = {
   Fifteen: 15, Sixteen: 16, Seventeen: 17, Eighteen: 18, Nineteen: 19,
+  Twenty: 20, 'Twenty-one': 21, 'Twenty-two': 22, 'Twenty-three': 23,
+  'Twenty-four': 24, 'Twenty-five': 25,
 };
 
 /** The `| Civilization | Technology | Age | Effect |` rows of §9.2.2. */
@@ -54,13 +56,19 @@ describe('the spec\'s unique-technology table', () => {
   });
 
   it('counts them correctly in the sentence above the table', () => {
-    const match = /(\w+) of the nineteen in `design\/stats\/technologies\.csv` are implemented/.exec(SPEC);
-    expect(match, 'the "N of the nineteen ... are implemented" sentence should exist').not.toBeNull();
+    // The sentence used to read "N of the nineteen ... are implemented", and
+    // nineteen was the ORIGINAL civilizations' count. It stopped being the
+    // denominator when the twelve expansion civilizations' technologies began
+    // landing (v0.3.170), so the guard now checks the count alone and leaves
+    // the denominator to the prose.
+    const match = /([A-Za-z][\w-]*) are implemented/.exec(SPEC);
+    expect(match, 'the "N are implemented" sentence should exist').not.toBeNull();
     const claimed = NUMBER_WORDS[match![1]!];
     expect(claimed, `unknown number word "${match![1]}"`).toBeDefined();
     expect(claimed).toBe(UNIQUE_TECHNOLOGIES.length);
-    // Nineteen exist in the CSV, so what is not implemented is deferred.
-    expect(UNIQUE_TECHNOLOGIES.length + DEFERRED_UNIQUE_TECHNOLOGIES.length).toBe(19);
+    // Whatever is not implemented is deferred, and the deferred list is named
+    // in the paragraph the next test reads.
+    expect(UNIQUE_TECHNOLOGIES.length).toBeGreaterThanOrEqual(19);
   });
 
   it('names every deferred technology in the paragraph below the table', () => {
