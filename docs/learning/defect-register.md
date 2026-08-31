@@ -369,6 +369,24 @@ What destroys it is the APPROACH, and specifically its tail: at the 90th percent
 
 **And this is why the one-camp limitation matters.** A villager is assigned the nearest AVAILABLE tree, so once the near woodline is worked out the nearest one is far — and the AI cannot answer the way a DE player does, by planting a camp at the new woodline, because it owns one lumber camp for the whole game and cannot afford a second. The two findings are one finding: the approach tail is the cost, and the camp is the instrument for cutting it. The failed camp experiments above did not disprove the fix; they showed it is gated behind affording 100 wood, which is the same wall.
 
+**The tenth attempt LOOKED like the answer and was an artifact of its own bugs (2026-08-30).** Diagnosis said: cut the approach tail by planting a camp at the receding woodline. Allowing a second Lumber Camp, with `dropOffAnchorFor` skipping resources an existing camp already serves, took three seeds from 1 Castle-Age owner-slot to 3, with building types 50 to 55 and unit types 26 to 31. It reproduced exactly, passed all six gates, and did not regress the boot map.
+
+Review found two defects in it, both real:
+
+- *A null anchor fell back to the Town Center.* Null used to mean only "nothing in range"; with the filter it also means "everything is already served". The caller planted the camp on the Town Center — where `canDropOffAt` already accepts wood, so it shortens NO carry. 100 wood of the scarcest resource for nothing.
+- *The second Lumber Camp displaced the Mining Camp.* Both cost 100 wood and lumber is asked first inside the Dark-Age arm, which is the only place either is reachable. Over 12 seeds, mining camps fell 17 to 15 and owner-slots ending with no gold/stone drop-off at all rose 7 to 9 — permanently, since a slot that misses it in the Dark Age never gets one.
+
+**Fixing both destroyed the benefit, which is the finding.** With the null case refusing to build and the opening order putting the FIRST of each drop-off ahead of any second, a ten-seed sweep over 20 owner-slots says:
+
+    camps   Castle   building types   unit types   peak army
+    1           4         156              89          110
+    2           4         160              85           99
+    3           2         159              83           98
+
+No Castle-Age benefit at all, and it costs unit variety and 10% of peak army. So the three-seed win was not the mechanism working; it was the two defects. Reverted in full.
+
+**And the accident points somewhere real.** Displacing the Mining Camp helped because it spends 100 wood on wood rather than on gold and stone — and this AI banks gold and stone unspent all game (measured repeatedly: 790 gold and 440 stone against 20 wood at the end of a match). The next hypothesis is therefore not another camp: it is that the Mining Camp is itself a poor buy on these maps, and the AI should not build one while the resources it serves are accumulating unused. That is testable, cheap, and was found only because fixing a bug made a result worse.
+
 That is eight measured negatives on this wall now. Every lever tried moves wood between things that all need it; none creates any. The remaining candidates are on the GATHER side rather than the spend side — walk distance, camp siting, and how many gatherers share one drop-off — and the measurement to beat is the 25% figure above, not the age timings.
 
 **What a future attempt needs.** Not a resource test at all — a POSITIVE signal that the player is doing something, rather than a proof that it can do nothing. The queue, the market, the trickle and tribute are all things this rule had to know about only because it was arguing from absence.
