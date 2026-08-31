@@ -358,6 +358,17 @@ Conquest is not the gap — its rule is AoE2's own, every unit AND building dest
 
 **Two build-order hypotheses tested and both negative.** The AI builds **exactly one lumber camp and one mining camp for the entire game**: `missing(type)` means "owns none", and the camp branch sits inside the Dark-Age arm of `pickNextBuildTarget`, so past that age it is never reached at all. In AoE2 a player builds a camp per woodline as the near trees deplete, so this is a real divergence — and closing it does not help. Allowing a second camp changed nothing (the AI cannot afford the 100 wood); allowing camps past the Dark Age as well moved one seed by a single building type and no seed reached the Castle Age. Both reverted.
 
+**Where the 25% actually goes, measured (459 samples over 20,000 ticks on `corpus-seed-b`).** The two halves of a gather trip, in tiles:
+
+    villager -> target    median 6    p90 20    max 61
+    target   -> dropoff   median 6    p90 9     max 50
+
+The HAUL is healthy. Carry capacity is 10 and wood gathers at 0.385/s, so a full load is ~26 seconds of chopping against a median 6-tile haul — about 7.5 seconds each way at the §12.4.2 clock of 0.8 tiles/s. That alone predicts roughly 68% efficiency, not 25%.
+
+What destroys it is the APPROACH, and specifically its tail: at the 90th percentile a villager walks **20 tiles to reach its tree** — 25 seconds, as long as chopping the load it came for — and the worst case is 61 tiles, 76 seconds. The median approach is fine; one trip in ten costs more in walking than it returns in wood.
+
+**And this is why the one-camp limitation matters.** A villager is assigned the nearest AVAILABLE tree, so once the near woodline is worked out the nearest one is far — and the AI cannot answer the way a DE player does, by planting a camp at the new woodline, because it owns one lumber camp for the whole game and cannot afford a second. The two findings are one finding: the approach tail is the cost, and the camp is the instrument for cutting it. The failed camp experiments above did not disprove the fix; they showed it is gated behind affording 100 wood, which is the same wall.
+
 That is eight measured negatives on this wall now. Every lever tried moves wood between things that all need it; none creates any. The remaining candidates are on the GATHER side rather than the spend side — walk distance, camp siting, and how many gatherers share one drop-off — and the measurement to beat is the 25% figure above, not the age timings.
 
 **What a future attempt needs.** Not a resource test at all — a POSITIVE signal that the player is doing something, rather than a proof that it can do nothing. The queue, the market, the trickle and tribute are all things this rule had to know about only because it was arguing from absence.
