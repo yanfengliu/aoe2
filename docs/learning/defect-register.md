@@ -399,6 +399,22 @@ Two of my own claims were wrong. The 790-gold-440-stone figure quoted in two tra
 
 Review names the position nobody tried: keep the camp in the Dark Age and gate it on a gold or stone mine actually being within DROP_OFF_ANCHOR_RADIUS.
 
+**The wall is HALF a measurement artifact (2026-08-30, and this supersedes the framing above).** Every figure in this entry was taken at a 24,000-tick horizon. Measured at 34,000 on the same ten seeds, with no code change at all:
+
+    horizon    owner-slots reaching Castle Age    building types   unit types   peak army
+    24,000              4 of 20                        156             89          110
+    34,000             10 of 20                        176            115          168
+
+Half of all owner-slots reach the Castle Age. They arrive after minute 40, which is slow against DE, but "the AI cannot leave the Feudal Age" was never true as stated — it was true of the window being looked through. The honest claim is that the AI reaches the Castle Age late, and that self-play run to forty minutes cannot see it.
+
+**The thirteenth attempt was a no-op, and it falsified the hypothesis that suggested it (2026-08-30).** Review of the twelfth proposed the position nobody had tried: keep the Mining Camp in the Dark Age but only want one when a gold or stone mine is actually within `DROP_OFF_ANCHOR_RADIUS`, so the camp is never bought when it shortens nothing. Implemented, and measured in both arms at both horizons in a single job — after nearly corrupting the comparison by stashing the working tree while the first arm was still reading it.
+
+    arm        24,000                          34,000
+    gated      4 / 156 / 89 / 110              10 / 176 / 115 / 168
+    baseline   4 / 156 / 89 / 110              10 / 176 / 115 / 168
+
+Byte-identical. The gate never fires: on all ten seeds a mine is always within range when the camp is wanted, so the camp is never planted away from ore in the first place. The Town-Center-fallback hazard that motivated the idea is LATENT on these maps, not live — which is worth knowing, because it was carried forward from the second-lumber-camp revert as though it were an active cost.
+
 That is eight measured negatives on this wall now. Every lever tried moves wood between things that all need it; none creates any. The remaining candidates are on the GATHER side rather than the spend side — walk distance, camp siting, and how many gatherers share one drop-off — and the measurement to beat is the 25% figure above, not the age timings.
 
 **What a future attempt needs.** Not a resource test at all — a POSITIVE signal that the player is doing something, rather than a proof that it can do nothing. The queue, the market, the trickle and tribute are all things this rule had to know about only because it was arguing from absence.
