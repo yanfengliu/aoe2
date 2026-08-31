@@ -415,6 +415,17 @@ Half of all owner-slots reach the Castle Age. They arrive after minute 40, which
 
 Byte-identical. The gate never fires: on all ten seeds a mine is always within range when the camp is wanted, so the camp is never planted away from ore in the first place. The Town-Center-fallback hazard that motivated the idea is LATENT on these maps, not live — which is worth knowing, because it was carried forward from the second-lumber-camp revert as though it were an active cost.
 
+**WHERE THE TIME ACTUALLY GOES, measured at the corrected horizon (2026-08-30).** With the wall reframed, the arrival times can finally be decomposed. Ten seeds, 34,000 ticks, for the ten owner-slots that reach the Castle Age:
+
+    Feudal -> qualified (two buildings)      mean 10,225 ticks   17.0 min   median 10,500
+    qualified -> Castle (800 food, 200 gold) mean  3,800 ticks    6.3 min   median  2,250
+
+**73% of the post-Feudal delay is spent QUALIFYING, not accumulating.** Banking the age-up's own price takes about six minutes; putting up the two buildings that make the AI eligible takes seventeen. Of the other ten slots, two qualified and could not afford the advance inside the horizon, and eight never qualified at all.
+
+The two cheapest qualifying buildings are a Blacksmith at 150 wood and any of Archery Range / Stable / Market at 175 — 325 wood. Seventeen minutes for 325 wood is a NET rate near 0.32 wood per second, against a nominal 2.73 for the seven villagers assigned to it. That is the same wood starvation the first instrument found, now attached to the outcome it causes and priced.
+
+So the target is wood INCOME in the Feudal Age, and specifically the gathering efficiency rather than the allocation: the weights were already moved from 4 to 6 in v0.3.169, and the approach walk is where the rate goes. It is NOT the build order, which is what twelve of the thirteen attempts changed.
+
 That is eight measured negatives on this wall now. Every lever tried moves wood between things that all need it; none creates any. The remaining candidates are on the GATHER side rather than the spend side — walk distance, camp siting, and how many gatherers share one drop-off — and the measurement to beat is the 25% figure above, not the age timings.
 
 **What a future attempt needs.** Not a resource test at all — a POSITIVE signal that the player is doing something, rather than a proof that it can do nothing. The queue, the market, the trickle and tribute are all things this rule had to know about only because it was arguing from absence.
