@@ -50,7 +50,8 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   // been wrong: Shatagni is +2 range, not +1.
   shatagni: { food: 500, gold: 650 },
   'recurve-bow': { wood: 600, gold: 400 },
-  farimba: { food: 650, gold: 400 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
+  farimba: { food: 650, gold: 400 },
+  kasbah: { food: 250, gold: 250 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
   bracer: { food: 450, gold: 300 },
   'blast-furnace': { food: 275, gold: 225 },
   'plate-mail-armor': { food: 300, gold: 150 },
@@ -208,6 +209,7 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   shatagni: 400, // Castle, Imperial: 40 s x 10 TPS.
   'recurve-bow': 400, // Castle, Imperial: 40 s x 10 TPS.
   farimba: 400, // Castle, Imperial: 40 s x 10 TPS (wiki: 0:40).
+  kasbah: 400, // Castle, Castle Age: 40 s x 10 TPS (wiki: 0:40).
   bracer: 500,
   'blast-furnace': 600,
   'plate-mail-armor': 600,

@@ -4,7 +4,7 @@ This changelog lists user-visible behavior changes only. Pure refactors, doc swe
 
 ## 0.3.170
 
-- Three more civilizations get their signature technology at the Castle: the Hindustanis' **Shatagni** (Hand Cannoneers +2 range), the Magyars' **Recurve Bow** (Cavalry Archers +1 range and +1 attack), and the Malians' **Farimba** (cavalry +5 attack). Every civilization from the original game already had its own; these are the first three for the twelve added by the expansions, which had none.
+- Four more civilizations get their signature technology at the Castle: the Hindustanis' **Shatagni** (Hand Cannoneers +2 range), the Magyars' **Recurve Bow** (Cavalry Archers +1 range and +1 attack), the Malians' **Farimba** (cavalry +5 attack), and the Berbers' **Kasbah** (Castles work 25% faster — in Age of Empires II this helps your whole team, and here it helps the player who researches it). Every civilization from the original game already had its own; these are the first three for the twelve added by the expansions, which had none.
 
 ## 0.3.169
 

@@ -76,6 +76,7 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
     'shatagni',
     'recurve-bow',
     'farimba',
+    'kasbah',
     'garland-wars',
     'yeomen',
     'logistica',

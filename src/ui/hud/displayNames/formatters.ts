@@ -46,6 +46,8 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Recurve Bow';
     case 'farimba':
       return 'Farimba';
+    case 'kasbah':
+      return 'Kasbah';
     case 'careening':
       return 'Careening';
     case 'dry-dock':

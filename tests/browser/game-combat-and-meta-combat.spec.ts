@@ -75,6 +75,16 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (combat)', ()
     page,
   }) => {
     await game.waitForBootWithSeed(page, 'moving-enemy-attack-fixture');
+    // PAUSE, because this test aims at a MOVING target. Unpaused, the view's
+    // own frame loop advances the simulation in real time, so extra ticks pass
+    // between reading the scout's position and clicking beside it — and how
+    // many depends on how busy the machine is. That is why this failed twice
+    // inside the full suite in one session and passed 4/4 in isolation. Paused,
+    // `bridge.step` is a no-op and only `advanceTicks` moves the world, so the
+    // scout is exactly where the snapshot said it was. Same class as the
+    // fog-memory fixture defect: a browser assertion whose result depends on
+    // wall-clock rather than on the game.
+    await page.evaluate(() => { window.__AOE2_TEST__!.setPaused(true); });
 
     const stagedSnapshot = await page.evaluate(() => {
       const api = window.__AOE2_TEST__!;

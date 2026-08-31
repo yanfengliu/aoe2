@@ -180,6 +180,21 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     },
   },
   {
+    id: 'kasbah',
+    name: 'Kasbah',
+    civilization: 'Berbers',
+    age: 'castle-age',
+    cost: { food: 250, gold: 250 },
+    researchTicks: 400,
+    // AoE2 gives this to the whole TEAM. `uniqueTechTrainTimeMultiplier` reads
+    // one owner's researched set, so here it is the researching player only —
+    // identical in a 1v1 and narrower in a team game. Stated rather than left
+    // to look like the full bonus; widening it means teaching that seam about
+    // `teamHasCivilization`, which `civBuildingBonuses` already does.
+    summary: 'Castles work 25% faster.',
+    trainRate: { building: 'castle', multiplier: 1.25 },
+  },
+  {
     id: 'garland-wars',
     name: 'Garland Wars',
     civilization: 'Aztecs',
