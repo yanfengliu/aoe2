@@ -696,7 +696,22 @@ A hysteresis fix was built anyway before that trace was read properly — commit
 
 **The villagers counted as frozen belong to owner 2, the HEALTHY slot.** Four of them sit in `to-dropoff` holding full 10-loads while their `trafficProgressTick` is fresh — 16,462 to 16,499 at t=16,500 — so they are changing cells constantly and still not delivering. That is oscillation near a drop-off, not the starvation fixed in v0.3.175, and the 250-tick cell sampler that found them reports oscillation as a freeze. The metric and the mechanism disagree, and the metric is the one to distrust.
 
-**Owner 1's Dark Age stall is the economy wall in miniature and is unrelated to movement.** Ten villagers is exactly `DARK_AGE_TUNING.villagerCap`. It holds 5 wood and has a Mill but NO FARM; a farm costs 60 wood. No wood, so no farms; no farms, so food stalls at 210 against the 500 the Feudal advance needs; still Dark Age, so still capped at ten villagers. A closed loop whose only entry point is wood — the same wall the whole lumber-camp thread is about, in its clearest single-slot form.
+**CLOSED 2026-09-01: owner 1's Dark Age stall is NOT a defect. It is losing a war.** A death census over 20,000 ticks counts **twenty** owner-1 villagers killed, with `ENEMY2:militia` inside five tiles for most of them, clustered at t=6,800-8,400 — exactly the window where the villager count collapses from 7 to 3:
+
+```
+t=2000   vil=6   woodGained=10    woodSpent=200
+t=5000   vil=7   woodGained=60    woodSpent=200
+t=10000  vil=3   woodGained=80    woodSpent=225   <- after the raid
+t=20000  vil=10  woodGained=230   woodSpent=425
+```
+
+Owner 2 built a Barracks, trained militia, and raided owner 1's economy with them. An economy running three villagers cannot bank the 500 food the Feudal advance needs no matter how its gatherers are allocated, so the wood starvation and the ten-villager cap are CONSEQUENCES of the raid, not causes of anything.
+
+This closes the entry rather than fixing it, and it removes a phantom defect: the earlier framing — "the economy wall in miniature", a closed loop of no wood -> no farms -> no food — described a real state and attributed it to the wrong cause. Both AI slots run the same code; one out-aggressed the other. That is Age of Empires working, and it is evidence FOR the simulation rather than against it.
+
+**Worth keeping for whoever reads this next:** every allocation-side idea aimed at this slot (villager mix, drop-off routing, gather targeting) was aimed at a symptom. The remaining question here is not economic at all — it is whether a raided AI should defend its villagers better, which is an AI-quality question about `runDefensePhase`, not a bug. Four of the twenty deaths show no enemy within the five-tile window; that is either a ranged attacker outside it or a second cause, and it is unmeasured.
+
+**Superseded framing, kept for provenance: owner 1's Dark Age stall as an economy wall.** Ten villagers is exactly `DARK_AGE_TUNING.villagerCap`. It holds 5 wood and has a Mill but NO FARM; a farm costs 60 wood. No wood, so no farms; no farms, so food stalls at 210 against the 500 the Feudal advance needs; still Dark Age, so still capped at ten villagers. A closed loop whose only entry point is wood — the same wall the whole lumber-camp thread is about, in its clearest single-slot form.
 
 **Instrument gap, recorded so the next reader does not repeat it.** The probe printed `targetResourceId` for units in `to-dropoff`, where the field that matters is `dropOffBuildingId`. Which drop-off those four carriers were walking to is therefore UNKNOWN, and any claim about why they fail to deliver needs that field first.
 
