@@ -239,3 +239,34 @@ The gate fails by exactly one unit never trained. Deaths do not enter into it.
 **What it does not license.** The bar stays at 8. Reading a fresh measurement as permission to admit my own candidate is the first item on the playbook's audit list, and "it fails by only one" is the oldest version of that argument. The right move is to find out why one fewer unit is trained and fix that, which makes the candidate pass on its merits or proves it cannot.
 
 **Worth noting in the candidate's favour, as evidence rather than as an argument for adoption:** it mounts an assault on the enemy base at t=23,800 with spearmen and archers. The baseline reaches t=24,000 having fought one skirmish at t=1,205 and nothing since. Whatever the peak-army column says, only one of these two arms ever plays the game.
+
+---
+
+## The missing unit, located: the candidate is saving for an age the horizon never lets it reach
+
+Every military training event on the boot map, both arms, with the resources on hand at that moment.
+
+```
+BASELINE   n=1,2  t=1                       scouts
+           n=3    t=481                     militia
+           n=4,5,6  t=9431, 9651, 10571     spearmen
+           n=7,8,9  t=23711, 23841, 23951   spearman/archer/spearman
+                    food = 894, 889, 854 at those three moments
+           end: trained 9, buildings archery-range + barracks
+
+CANDIDATE  n=1,2  t=1                       scouts
+           n=3    t=481                     militia
+           n=4,5,6,7  t=10991, 11211, 12244, 12464   spearmen (FOUR, one more than baseline)
+           n=8    t=23091                   archer, food=60, wood=865
+           end: trained 8, buildings stable + barracks + archery-range
+```
+
+The candidate trains MORE military in the midgame — four spearmen against three — and one more military building type. It loses the peak comparison entirely in the last 300 ticks, where the baseline trains three units on ~890 banked food while the candidate holds food=60 and 865 unspent wood.
+
+**The mechanism is the age reserve.** The candidate qualifies for the Castle Age around t=16,500, seven thousand ticks before the baseline's ~23,500, and reserves 800 food from that moment. The baseline spends almost the entire match with food it has no claim on, and dumps it into spearmen at the end. Neither arm reaches Castle inside 24,000 ticks, so the candidate spends 7,500 ticks saving for an advance this horizon never sees it complete, while the arm that never advanced converts the same food into army.
+
+So the bar of 8 is set by three units trained in the final 1.25% of the match, out of food banked because that arm stayed in Feudal.
+
+**Stated as a property of the instrument, not as an argument for adoption.** This finding favours my own candidate, which is exactly when to be most careful with it. The bar stays at 8 and the candidate stays reverted. What is now known is narrower and checkable: the peak-army bar at a 24,000-tick horizon rewards banking food and penalises qualifying early, and the gate's own header already records that the baseline army is still growing at the horizon ("peak military is 6 at tick 22,000 and 9 at 24,000"). A bar whose value depends on the last 300 ticks of a 24,000-tick run is sensitive to the horizon in a way that was never re-justified when the thing being measured changed.
+
+**What would settle it**, and none of these is mine to choose unilaterally: run both arms to a horizon where each has either reached Castle or provably stalled, so neither is scored mid-investment; or gate on peak army at a FIXED tick before either arm qualifies, which removes the reserve from the comparison; or gate on something that is not peak count at all, since peak is a maximum that late deaths cannot lower and early banking inflates.
