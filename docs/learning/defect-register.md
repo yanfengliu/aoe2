@@ -441,6 +441,15 @@ Catastrophically worse, and both horizons agree on the direction. The reason is 
 
 **What this retires.** Every attempt on this wall that moved wood from one claimant to another is now ruled out as a class: military-to-buildings was the only one that helped, farms-to-buildings actively harms, and the villager weights were already swept. What is left is raising the wood a villager-second produces — the approach walk — which is the one thing measured repeatedly here and never attacked.
 
+**The approach walk is not pathological, which closes the last cheap hypothesis (2026-08-30).** With reallocation retired as a class, the remaining lever was the wood a villager-second produces. Two measurements on `corpus-seed-b`, owner 2, ticks 12,000-20,000:
+
+- *Task shares for wood villagers:* to-resource 42.3%, to-dropoff 37.7%, **gathering 20.0%**. Four fifths of a wood villager's life is walking.
+- *Effective movement while walking:* **0.259 fine units per tick against a nominal 0.320 — 81% of the movement clock.** Congestion and re-pathing cost about a fifth, and no more.
+
+So the walking is real but the walk itself is close to as fast as the clock allows. There is no 5x defect hiding in movement; the shape is simply that this map's trees are far enough from a drop-off that a round trip costs four times the gathering it enables. That is a map-and-clock property, not a bug, and it is what §12.4.2's honest movement speeds bought — the same trade that made the AI look broken in the first place.
+
+**One instrument error, and it is the recorded one again.** The first speed probe reported zero walking ticks. `EconomyState.villagers[]` carries owner, task and resource but NO `id`, so `getComponent(v.id, ...)` was asking about `undefined` for every villager — a query structurally incapable of finding anything, reported as a finding. The fix was to read `units[]`, which does carry ids, and cross-reference the `gatherer` component. Printing the shape of the object being filtered is what caught it, which is exactly what the lesson prescribes.
+
 That is eight measured negatives on this wall now. Every lever tried moves wood between things that all need it; none creates any. The remaining candidates are on the GATHER side rather than the spend side — walk distance, camp siting, and how many gatherers share one drop-off — and the measurement to beat is the 25% figure above, not the age timings.
 
 **What a future attempt needs.** Not a resource test at all — a POSITIVE signal that the player is doing something, rather than a proof that it can do nothing. The queue, the market, the trickle and tribute are all things this rule had to know about only because it was arguing from absence.
