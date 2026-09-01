@@ -616,3 +616,23 @@ Run to 60,000 on five of the same seeds:
 **How it is checked from now on.** Not by a test — a value's provenance is not something the suite can see, which is the point. What changes is the standard: a sourcing annotation is a claim about work performed, and if the work was not performed the annotation says UNVERIFIED. The effects of both technologies are right in kind and their tests pass on the mechanism, so nothing is broken; what was wrong was the confidence attached to two numbers.
 
 **What this predicts.** Any comment of the form "(source: ...)" written in the same motion as the code it annotates is worth doubting, because the natural time to write it is when the value feels obvious — which is exactly when it was not looked up.
+
+## 2026-09-01 — The Feudal wood ledger was wrong by an order of magnitude, and farms are the sink (CORRECTION)
+
+**What was published.** Repeatedly, in the register and the devlog: "715 wood reached buildings and 525 went to 21 spearmen out of 1,240 total" over 20,000 ticks. That figure has been the basis for calling military-versus-construction the contention that walls the AI in Feudal.
+
+**What is actually true.** Measured observationally — sum of stockpile DECREASES as ground truth, attributed by entity-id diffs and farm-refill jumps — over the Feudal window only, nine seeds and eighteen owner-slots:
+
+    7,500  41.4%  farm construction        1,650   9.1%  blacksmith
+    4,020  22.2%  farm reseeding           1,400   7.7%  archery range
+    1,775   9.8%  spearmen                 1,175   6.5%  houses
+                                             525   2.9%  stable
+                                             175   1.0%  market
+
+**Farms take 63.6% of all Feudal wood — three times what the qualifying halls get (20.7%).** The old figure did not count reseeds at all, and reseeds alone are 22%. Military is under 10%, not the co-equal claimant it was described as.
+
+**And the AI farms while free food stands next to it.** `default-seed` owner 1 held 2,125 food of gatherable natural food within gather range of its own Town Center, FLAT from tick 18,000 to the horizon, while its wood never passed 58 and it built up to seven farms. Every seed carries roughly 1,820 of sheep, boar and berries inside that radius. A farm gathers 0.333 food/s — level with sheep, better than berries at 0.3125, WORSE than boar and deer at 0.408 — so the soil is not even faster.
+
+**Why capping farm COUNT does not fix it, proved rather than assumed.** A branch built exactly that cap: it improved the headline at both horizons (Castle-Age slots 4→7 and 10→13) and was correctly rejected, because the wood ledger moved only 5.6%. Soil costs 60 wood per 175 food whether it is built or reseeded, so cutting plots does not cut wood — the same labour simply cycles fewer plots faster, and new-farm wood down 23% came straight back as reseeds up 25%. The headline gain was a build-order SEQUENCING effect (the picker stops returning `farm` and reaches `blacksmith`), not a demand reduction, and it failed on held-out seeds at 24,000 (Castle 1→0).
+
+**The two levers this points at, neither yet tested.** The reseed is ungated: it fires whenever affordable, even with 1,600 food banked, and is 22% of Feudal wood. And the assignment comparator prefers a 60-wood farm to free sheep ten tiles away, because farms are tier-1 and Town-Center-adjacent. The second is what would make the first pay.
