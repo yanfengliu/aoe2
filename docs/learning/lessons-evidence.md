@@ -879,3 +879,22 @@ Two eyeballed screen-coordinate derivations. A "band above the roof" scan that w
 A sixth near-miss belongs with them: scanning for the flag's `0x3f6fd8` tint found nothing, because the LIT colour is `rgb(53,68,81)` — shading moves a colour far outside any threshold set from the source tint.
 
 The fix is cheap and mechanical. Dump one record and read its real keys before filtering on any of them (`console.log(JSON.stringify(parts[1]))` settled the voxel case in one call). And for anything positional, prefer a differential measurement over a derived coordinate: removing the two flag parts, re-capturing and diffing gave `389 pixels, x 396-414, y 144-173` with no arithmetic at all, after three colour scans had failed to find it.
+
+
+### A guard safe on one resource can be ruinous on another (2026-09-01)
+
+`agePrerequisiteWoodReserve` carries a defensive military floor because review measured the UNFLOORED version across 11 seeds as a training ban — "pure loss, with the army pinned at 3 units against a baseline of 6-7, costing 21% of all peak military". Its sibling `ageUpReserveCost` is the same shape applied to FOOD and has no floor. Adding one looked obviously correct, symmetric, and helpful to both arms of an unrelated comparison, and it was justified by the repo's own prior measurement rather than by my judgement.
+
+It was catastrophic. Six seeds at 24,000 ticks, before and after:
+
+```
+aoe2-prototype  o1 feudal 22 vil, o2 feudal 22 vil  ->  o1 DARK 10 vil, o2 DARK 0 vil
+default-seed    o1 feudal 22,     o2 CASTLE 24      ->  o1 DARK 0 vil,  o2 DARK 10
+seed-2          o2 CASTLE 26 vil                     ->  o2 DARK 0 vil
+```
+
+Nearly every slot collapsed to the Dark Age and several finished with NO VILLAGERS.
+
+The asymmetry is the whole lesson. Wood is contended by military and buildings, and a spearman's 25 wood is small beside a building's, so releasing the reserve below a small army floor costs little. **Food is contended THREE ways — villagers, military, and the age-up itself.** Releasing it whenever the army dips below three sends food to military instead of villagers and the advance, which is exactly the failure `ageUpReserveCost` was written to stop: "the AI used to mass Dark-Age Militia on ~500 food and never advance."
+
+Two things worth carrying. A fix justified by a previous measurement is still an untested fix — the previous measurement was about a different resource with a different contention profile, and none of that transfers for free. And the unit tests all passed: six of them, covering the floor, the default, the non-qualifying case and the Imperial case. Only the population sweep showed it destroys the game, which is the third time in one session that a candidate looked correct in isolation and failed on population.
