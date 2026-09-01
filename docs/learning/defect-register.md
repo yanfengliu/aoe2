@@ -426,6 +426,21 @@ The two cheapest qualifying buildings are a Blacksmith at 150 wood and any of Ar
 
 So the target is wood INCOME in the Feudal Age, and specifically the gathering efficiency rather than the allocation: the weights were already moved from 4 to 6 in v0.3.169, and the approach walk is where the rate goes. It is NOT the build order, which is what twelve of the thirteen attempts changed.
 
+**The Feudal economy is not MISALLOCATED, it is short — which retires a whole class of attempts (2026-08-30).** Measuring gross wood separately from spend during the Feudal Age, over three seeds:
+
+    gross income   ~0.77 wood/s   (~1,100 wood across the age)
+    spend          ~0.90 wood/s   (drawing down the opening stock)
+
+The two qualifying buildings cost 325 of that 1,100, yet take seventeen minutes to appear — so they are losing the competition for wood. The obvious inference is to protect them, and v0.3.169 already does that against MILITARY. Extending the same reserve to FARMS was measured at both horizons:
+
+    arm             24,000                        34,000
+    farm reserve    0 Castle / 140 / 79 / 111     5 Castle / 163 / 98 / 146
+    baseline        4 Castle / 156 / 89 / 110    10 Castle / 176 / 115 / 168
+
+Catastrophically worse, and both horizons agree on the direction. The reason is the correction: starving farms starves FOOD, and the Castle advance costs 800 food against the 325 wood the reserve was protecting. The qualifying buildings lose the competition to something that is ALSO required for the same goal, so the premise — that this is a misallocation to be corrected — is false. The allocation is roughly right and the economy is simply short.
+
+**What this retires.** Every attempt on this wall that moved wood from one claimant to another is now ruled out as a class: military-to-buildings was the only one that helped, farms-to-buildings actively harms, and the villager weights were already swept. What is left is raising the wood a villager-second produces — the approach walk — which is the one thing measured repeatedly here and never attacked.
+
 That is eight measured negatives on this wall now. Every lever tried moves wood between things that all need it; none creates any. The remaining candidates are on the GATHER side rather than the spend side — walk distance, camp siting, and how many gatherers share one drop-off — and the measurement to beat is the 25% figure above, not the age timings.
 
 **What a future attempt needs.** Not a resource test at all — a POSITIVE signal that the player is doing something, rather than a proof that it can do nothing. The queue, the market, the trickle and tribute are all things this rule had to know about only because it was arguing from absence.
