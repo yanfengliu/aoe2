@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { gatherRateMultiplier } from '../../src/game/simulation/economyTechEffects';
 import { RESEARCH_COSTS, RESEARCH_TIME_TICKS } from '../../src/game/simulation/researchTables';
 import {
   UNIQUE_TECHNOLOGIES,
@@ -60,8 +61,15 @@ describe('the unique-technology roster', () => {
     // A technology that costs 750 food and does nothing is worse than one that
     // is honestly absent — the three we cannot express are listed as deferred,
     // not shipped as no-ops.
+    //
+    // An effect does not have to live on this record. A gather-rate technology
+    // belongs in `GATHER_RATE_TECH_FACTORS` with Gold Mining and the rest, so
+    // that it STACKS the way AoE2's economy techs stack — giving it a field
+    // here instead would have handed one entry different arithmetic. So the
+    // question is "does something read it", not "does this record carry a
+    // field", and the gather table is a legitimate answer.
     for (const technology of UNIQUE_TECHNOLOGIES) {
-      const hasEffect = Boolean(
+      const hasRecordEffect = Boolean(
         technology.unitEffect
         || technology.buildingEffect
         || technology.trainRate
@@ -69,7 +77,10 @@ describe('the unique-technology roster', () => {
         || technology.regenMultiplier
         || technology.countdownExtensionTicks,
       );
-      expect(hasEffect, technology.id).toBe(true);
+      const hasGatherEffect = (['food', 'wood', 'gold', 'stone'] as const).some(
+        (resource) => gatherRateMultiplier(new Set([technology.id]), resource) !== 1,
+      );
+      expect(hasRecordEffect || hasGatherEffect, technology.id).toBe(true);
     }
   });
 

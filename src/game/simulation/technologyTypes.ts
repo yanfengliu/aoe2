@@ -130,6 +130,7 @@ export type ResearchableTechnologyType =
   | 'recurve-bow'
   | 'farimba'
   | 'kasbah'
+  | 'sultans'
   // Projectile techs (spec §10.4), both DERIVED at the launch site via
   // projectileTechEffects. Ballistics (University, Castle): shots lead a moving
   // target instead of going where it stands — for units AND building arrows.

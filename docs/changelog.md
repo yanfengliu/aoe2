@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.172
+
+- The Indians can research Sultans at their Castle: their villagers gather gold 10% faster, and it stacks with the Gold Mining upgrades the way Age of Empires stacks its own gold technologies. The fifth of the twelve expansion civilizations' signature technologies to arrive, and the first of them that changes an economy rather than an army.
+
 ## 0.3.171
 
 - Enemy units hidden behind a building are far easier to spot. The cue that shows them was a warm coral, which is close enough to the colour of a roof that it all but disappeared against one — and since the cue exists to tell you whether the shapes behind a wall are yours or someone else's, that was the half that mattered. It is now a saturated magenta, which stands clear of every building colour in the game and cannot be mistaken for the blue used for your own units.

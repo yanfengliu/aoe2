@@ -180,6 +180,28 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     },
   },
   {
+    id: 'sultans',
+    name: 'Sultans',
+    civilization: 'Indians',
+    age: 'castle-age',
+    cost: { gold: 400 },
+    researchTicks: 500,
+    summary: 'Villagers gather gold 10% faster.',
+    // The EFFECT lives in `GATHER_RATE_TECH_FACTORS` (economyTechEffects),
+    // which is where every gather-rate technology lives — Gold Mining and Gold
+    // Shaft Mining included — so Sultans stacks with them exactly as AoE2
+    // stacks its own gold techs, and no new effect vocabulary is invented for
+    // one entry. Noted here because this file otherwise shows a technology's
+    // whole effect in one place, which is the reason `regenMultiplier` sits
+    // here rather than in the regeneration system.
+    //
+    // The civilization is "Indians" because that is the name
+    // `design/stats/civilizations.csv` carries; AoE2 DE renamed them to the
+    // Hindustanis in Dynasties of India. Following the CSV keeps the roster
+    // self-consistent, and the divergence is recorded rather than silently
+    // resolved either way.
+  },
+  {
     id: 'kasbah',
     name: 'Kasbah',
     civilization: 'Berbers',

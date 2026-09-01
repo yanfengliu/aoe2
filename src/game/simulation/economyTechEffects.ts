@@ -40,6 +40,10 @@ const GATHER_RATE_TECH_FACTORS: Partial<
   'two-man-saw': { resource: 'wood', factor: 1.1 },
   'gold-mining': { resource: 'gold', factor: 1.15 },
   'gold-shaft-mining': { resource: 'gold', factor: 1.15 },
+  // Sultans (Indians, Castle Age): +10% gold generation. A unique technology,
+  // but its effect is an ordinary gather-rate multiplier, so it belongs in the
+  // same table and stacks with the mining line as AoE2's gold techs do.
+  sultans: { resource: 'gold', factor: 1.1 },
   'stone-mining': { resource: 'stone', factor: 1.15 },
   'stone-shaft-mining': { resource: 'stone', factor: 1.15 },
 };
