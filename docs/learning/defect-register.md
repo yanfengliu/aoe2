@@ -659,7 +659,44 @@ Measured on the AI's live targets: wood villagers work trees at Manhattan 3.6-10
 
 **A near-miss worth recording.** The branch's first pass priced hauls at Manhattan and concluded the family was capped at 1.03-1.27x and should be abandoned. It caught itself because the modelled gathering fraction (70%) did not match the measured one (19%). The same wrong assumption that causes the defect nearly buried the evidence for it.
 
-## 2026-09-01 — Villagers latch on an OPEN cell when buildings move (OPEN)
+## 2026-09-01 — Villagers latch on an OPEN cell when buildings move (ROOT CAUSE FOUND: traffic-election starvation)
+
+**The cause is measured, and it is neither of the two things this entry previously proposed.** It is not containment and it is not an unreachable-target latch. The narrow-passage traffic arbiter elects `Math.min(...cycle)` — the single LOWEST unit id in the jam — and admits only that one. In a jam that is continuously replenished, high-id units are never admitted. Admission rate over 40 ticks in the frozen window on `seed-2`, every unit in the choke:
+
+```
+id     proceed   wait    admitted
+2432     2032     264      88%
+2434     2232    1091      67%
+2436     2255    1565      59%
+2443     1121    1658      40%
+2448      827    1668      33%
+2451      769    2126      27%
+2452      647    2335      22%
+2455      349    2673      12%
+2456      243    2543       9%
+2458       68    2080       3%
+2460       12    2092     0.6%
+```
+
+Monotonic in id, with no exceptions. The newest villager wins 12 of 2,104 attempts. Every unit moves sometimes, so this is STARVATION, not deadlock — which matters because a deadlock-breaker is the wrong fix.
+
+**The geometry.** A one-tile choke at (48,30): trees at (48,29) above, the 2x2 lumber camp at (48,31)-(49,32) below. Eleven villagers meet there head-on — five westbound to trees (2434 2443 2451 2456 2460) against five eastbound to drop-off 2186 (2432 2436 2448 2455 2458) — three deep in each of (45,30), (46,30), (47,30). All carry a CURRENT learned direction, so the wait-for closure is valid and the election runs normally; the election itself is the defect.
+
+**The target churn is a symptom, not the cause.** A frozen villager's `targetResourceId` cycles (2247 -> 2251 -> 2245 -> 2252 -> 2253) because the unreachable branch in `toResourceStep` keeps reassigning it. That branch is working as designed; it re-picks a DESTINATION, and this unit's problem is that it cannot take a STEP. Destination-side recovery can never fix an origin-side block.
+
+**A carrier is included.** 2458 holds a full 10 wood it cannot deliver, so a BUILDING is unreachable too, not only trees — which is why "every direction is blocked" earlier read as containment.
+
+**Reproduces on unmodified HEAD**, no camp patch: five villagers frozen simultaneously on `seed-2`, longest 2,750 ticks, ids 2460/2451/2458/2452/2455.
+
+**My own instrument error, caught before it was published.** The first map I drew used `b.width ?? 1`; the field is `footprintWidth`, so every building rendered 1x1 and a 4x4 Town Centre appeared as one cell. I had a complete chain ready to write from that map — not sealed, therefore the pathfinder is wrong, therefore the bug is in A* — and every step of it followed from a grid built on a guessed field name. Verified afterwards by drawing both anchor conventions and counting units standing inside buildings: TOP-LEFT gives 0, CENTER gives 3, so TOP-LEFT is correct. A probe that reconstructs game state from guessed field names is a hypothesis about the schema, not a measurement of the game.
+
+**Two prior characterisations in this entry were wrong and are corrected above:** "(51,28) is not a sealed pocket... this is a movement or assignment latch" was RIGHT about it not being containment and imprecise about the rest; the blocker is other UNITS, which never appear in a passability check, so open neighbours are entirely consistent with the freeze. The `isFree` placement guard has no hole — it was never the mechanism.
+
+**What the fix must preserve.** The current rule is stable-lowest-id specifically so that "ECS iteration order cannot decide who gets to enter first" (the file's own header). Any replacement must stay a pure function of tick and unit id, and must keep every member of one closure electing the SAME winner, or two units enter one cell. A fair rotation keyed on the tick satisfies both. This file already carries one scar from this family — "two wood carriers and two villagers sat one step from their lumber camp for ten thousand ticks" — whose fix added this very election, so the class needs a liveness property, not another special case.
+
+---
+
+## 2026-09-01 — Villagers latch on an OPEN cell when buildings move (superseded framing, kept for provenance)
 
 **Symptom, at its worst.** During branch A of the lumber-camp search, a candidate that relocated the Lumber Camp pushed the Mining Camp onto the Town Center's shoulder at (52,24). On `aoe2-prototype`, owner 2's economy then stopped dead at tick ~7,500 and never restarted: all ten villagers stood on a single cell, (51,28), every one in `to-resource`, none moving, from tick 9,000 to tick 20,000 — with the berry bushes REGROWING because nobody was eating them. Food 320, wood 157, gold 300, stone 200, byte-identical across twelve thousand ticks. No engine halt and no tick failure. Owner 2 never left the Dark Age.
 
