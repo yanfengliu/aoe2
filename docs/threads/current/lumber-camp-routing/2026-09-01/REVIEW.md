@@ -54,7 +54,31 @@ On open ground 4-connected walk distance IS Manhattan, so the metric is exact �
 
 **The branch caught an instrument error that would have ended the search.** Its first pass priced hauls at Manhattan distance and concluded "optimal is worth 1.03-1.27x, decaying to 1.0 — this family is capped, abandon it." Wrong, and wrong in the direction that stops the work. It was caught because the modelled gathering fraction (70%) did not match the measured one (19%). The same Manhattan assumption that causes the bug nearly hid it.
 
-## Branches A, B — running
+## Branch B — home range (CLOSED, blocked, blocker located)
+
+**Result: blocked, and the blocker is a property of the map rather than of the mechanism.** Its benefit is a function of camp-to-Town-Center SEPARATION, and nothing in the design knows that.
+
+    corpus-seed-b     camp 10 tiles from the TC   camp usage 0% -> 36.6%   wood +72%
+                      owner 2 goes from never qualifying to Castle at 22,250
+
+    aoe2-prototype o2 camp  5 tiles from the TC   camp usage 75% -> 69.8%  wood -19%
+                      walking share 73.3% -> 78.8%
+
+Where the camp is a genuinely separate neighbourhood, homing works and works hard. Where it overlaps the Town Center, splitting one forest between two anchors makes villagers walk MORE. The boot map is the second case, so disqualifier 1 is hit: aggregate Castle-Age slots rise (3→4 at 24,000, 6→7 at 34,000) while `aoe2-prototype` owner 2 regresses on five of six columns. Peak army falls about 10% at both horizons (disqualifier 5, partly).
+
+The branch built three corrective variants, all showing the identical boot-map slip — and one of them falsified its own traced hypothesis, which is worth more than the variants: an arm leaving food untouched still slipped, so the food-spill explanation it had traced was wrong. A fourth variant — merge drop-offs within 8 tiles into ONE site — is the shape that should fix the overlap case and **was never measured**; its threshold would also be tuned on these seeds.
+
+Its test is a real gate: it FAILS on clean HEAD (baseline picks the Town-Centre tree and deposits at the TC) and passes with the mechanism.
+
+## Two method errors of mine, corrected by the branches
+
+**1. My contention warning was half wrong, and the wrong half could have cost real work.** I told all three running branches that measurements taken under heavy CPU load might not be comparable to the DESIGN.md baseline. Branch B checked rather than accepting it: `bridge.step` is a fixed-step accumulator and `src/game/simulation/` contains no `Math.random` or `Date.now` (verified here — the only matches are a comment in `garrisonHealSystem` explaining their absence). Empirically it reproduced the baseline EXACTLY under 106-process load, and two independent 34,000-tick controls were byte-identical.
+
+So contention costs wall-clock, not validity. Had a branch discarded good numbers on my say-so, that would have been my error propagating. The correct warning was the narrower one: contention makes runs SLOW and can leave arms unfinished, which is what actually happened to branch C.
+
+**2. Fanning four branches at one working tree was a design mistake.** Branch B found another branch editing `src/` underneath it mid-run and moved to private worktrees to protect its own measurements; one artifact of the collision still reached its patch (an inert `export` picked up from a sibling). Independent branches need independent trees. Round 2 issues worktrees up front rather than leaving each branch to discover the hazard.
+
+## Branch A — running
 
 A: place the camp where villagers already work, leaving routing alone.
 B: home range — restrict a villager's option set to a site's neighbourhood.
