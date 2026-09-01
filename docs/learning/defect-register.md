@@ -481,6 +481,18 @@ The first candidate in sixteen attempts whose primary metric improves at BOTH ho
 
 **And the mechanism is still not understood, which matters more than the result.** Camp usage barely moved: 21 of 67 wood villagers served by a Lumber Camp before, 20 of 73 after. Two separate theories of the gate — the ranking comparator, then the home-range filter — were each implemented and each changed nothing, so whatever routes villagers away from a camp that sits on live trees is still unidentified. The Castle-Age gain therefore came from somewhere other than the mechanism it was aimed at, which is reason enough not to ship it even without the boot-map regression.
 
+**THE ROUTING GATE, identified by tracing the decision rather than theorising about it (2026-08-30).** Instrumenting `assignNearestResource` on `corpus-seed-b` owner 2 at tick 16,000:
+
+    TRACE vil=2481 at=50,23 refDropOff=2209@48,24 candidatesAfterHomeRange=101 of 232
+          nearest4= 2398(53,23)d6  2230(47,30)d7  2384(51,20)d7  2388(52,21)d7
+    CAMP  2211@57,25          TC 2209@48,24
+
+The villagers stand at (50,23). `findNearestDropOffBuilding` is asked from the VILLAGER's position, so it returns the Town Center at (48,24) — 3 tiles — and not the Lumber Camp at (57,25), 9 tiles. Every candidate is then ranked by distance to that Town Center, and the best available is 6 tiles away, while the camp sits on trees within 3 of itself.
+
+So the gate is: **the reference drop-off is chosen by proximity to the VILLAGER, and villagers cluster around the Town Center, so the Town Center is permanently the reference and no tree near a camp is ever preferred.** A camp can only ever serve a villager that already happens to stand beside it — which is why building a second one changed nothing.
+
+**And a flaw in my own measurement of it.** The "servedByCamp" probe attributed each target to whichever drop-off was nearest, breaking ties by array order. A tree at (53,23) is 6 from the Town Center and 6 from the camp — a tie — so the probe's verdict on such trees was arbitrary, and "camp usage barely moved" is not trustworthy as stated. The boot-map regression that actually caused the revert is an outcome metric and is unaffected by this.
+
 **Why the obvious gate was NOT adopted, measured rather than assumed.** `@typescript-eslint/no-use-before-define` with `functions: false` was configured and run: **24 violations repo-wide, 11 in `src/game/simulation`** — and every one inspected is the SAFE idiom, a function body referencing a `const` declared lower in the file, which runs after module initialisation. `PERSIAN_WORK_RATE_BY_AGE`, `EMBEDDED_TABLE`, `findNearestOwnedMonasteryToDeposit`, the UI controllers' `api` and `rafHandle` — all safe by construction.
 
 The rule cannot separate those from the case that actually crashed, where the helper was called in code executing immediately in the same synchronous flow. So adopting it means 24 refactors of correct code for a signal that is mostly noise, and it would NOT have specifically gated the hazard. Recorded as a rejected gate with its cost, so a future session does not re-derive the same answer: the config is one line, the price is 24 sites, and the discrimination is poor.
