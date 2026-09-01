@@ -192,6 +192,7 @@ export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerList
         const warn = s.closedNormally
           ? ''
           : '<span class="marker-list-panel__warn" title="session ended abnormally — likely browser refresh or crash">⚠</span>';
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
         const exportDisabled = s.schemaVersion !== getCurrentSchemaVersion();
         const exportTitle = exportDisabled
           ? `schema version ${s.schemaVersion} differs from current; export disabled`
@@ -282,6 +283,7 @@ export function createMarkerListPanel(config: MarkerListPanelConfig): MarkerList
     if (target.dataset.testid === 'marker-list-prior-export') {
       try {
         const blob = await recording.exportPriorSession(sessionId);
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
         triggerDownload(blob, `aoe2-session-${sessionId.slice(0, 8)}.json`);
       } catch (err) {
         if (err instanceof SchemaMismatchError) {

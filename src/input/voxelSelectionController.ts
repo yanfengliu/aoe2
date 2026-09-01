@@ -301,6 +301,8 @@ export function createVoxelSelectionController(
     if (!recentExactSelectionClick) return false;
     const deltaX = isoX - recentExactSelectionClick.isoX;
     const deltaY = isoY - recentExactSelectionClick.isoY;
+const EXACT_CLICK_REPEAT_RADIUS_ISO_PX = 4;
+
     return deltaX * deltaX + deltaY * deltaY
       <= EXACT_CLICK_REPEAT_RADIUS_ISO_PX * EXACT_CLICK_REPEAT_RADIUS_ISO_PX;
   }
@@ -312,7 +314,6 @@ export function createVoxelSelectionController(
   };
 }
 
-const EXACT_CLICK_REPEAT_RADIUS_ISO_PX = 4;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));

@@ -227,6 +227,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
 
     // Any order the PLAYER gives ends a patrol. The patrol system re-issues
     // its own walks with keepPatrol, so the route survives its own legs.
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
     if (!keepPatrol) clearPatrolRoute(unitId);
     clearGathererOrder(unitId);
     const monkTasks = accessor.get(monkTasksCodec);

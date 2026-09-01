@@ -152,6 +152,7 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
       toast.showToast(`Replay failed: ${result.error?.message ?? 'unknown error'}`);
       return;
     }
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
     api.close();
   };
 
@@ -177,6 +178,7 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
         toast.showToast(`Replay failed: ${result.error?.message ?? 'unknown error'}`);
         return;
       }
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
       api.close();
     } catch (err) {
       // Bail silently if the user dismissed the dialog mid-await; the
@@ -217,6 +219,7 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
     }
     try {
       replayController.enterReplay(result.bundle as unknown as ReplayBundle);
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
       api.close();
     } catch (err) {
       toast.showToast(`Replay failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -259,6 +262,7 @@ export function createReplayLoadDialog(config: ReplayLoadDialogConfig): ReplayLo
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
   const handleCancel = (): void => api.close();
 
   for (const tab of tabButtons) tab.addEventListener('click', handleTabClick);

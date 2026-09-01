@@ -119,20 +119,6 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
   const spawnMemo = createSpawnPassabilityMemo(worldWidth, worldHeight);
   const structuralEntities = new Set<EntityId>();
 
-  // The ONLY way an entity's claims come off, so no path can drop a structural
-  // blocker without bumping the revision (spawnPassabilityMemo.ts says why).
-  // `bumpOnStructural: false` is for a caller that releases and IMMEDIATELY
-  // re-claims (syncBuilding, syncResource) and bumps once itself; the second
-  // bump only costs a redundant full clear of the memo, which every moving
-  // resource paid on every step. A release that does NOT re-claim must bump.
-  const releaseClaims = (entity: EntityId, bumpOnStructural = true): void => {
-    binding.release(entity);
-    clearOverflowForEntity(entity);
-    unitSlotOffsets.delete(entity);
-    const wasStructural = structuralEntities.delete(entity);
-    if (wasStructural && bumpOnStructural) structuralRevisionCounter += 1;
-  };
-
   const clearOverflowForEntity = (entity: EntityId): void => {
     const blockedState = overflowBlockedByEntity.get(entity);
     if (blockedState) {
@@ -145,6 +131,20 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       removeClaimFromCellMap(overflowCrowdedByCell, [crowdedState.position], entity);
       overflowCrowdedByEntity.delete(entity);
     }
+  };
+
+  // The ONLY way an entity's claims come off, so no path can drop a structural
+  // blocker without bumping the revision (spawnPassabilityMemo.ts says why).
+  // `bumpOnStructural: false` is for a caller that releases and IMMEDIATELY
+  // re-claims (syncBuilding, syncResource) and bumps once itself; the second
+  // bump only costs a redundant full clear of the memo, which every moving
+  // resource paid on every step. A release that does NOT re-claim must bump.
+  const releaseClaims = (entity: EntityId, bumpOnStructural = true): void => {
+    binding.release(entity);
+    clearOverflowForEntity(entity);
+    unitSlotOffsets.delete(entity);
+    const wasStructural = structuralEntities.delete(entity);
+    if (wasStructural && bumpOnStructural) structuralRevisionCounter += 1;
   };
 
   const destroyCallback = (entity: EntityId): void => {

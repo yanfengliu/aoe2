@@ -116,6 +116,11 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
     return accepted;
   }
 
+  const planFormation = createFormationPlanner({
+    world,
+    formationOf: (unitId) => accessor.get(unitFormationsCodec).get(unitId),
+  });
+
   function issueMoveCommand(x: number, y: number, options?: { queue?: boolean }): boolean {
     if (!isMatchRunning()) return false;
 
@@ -393,11 +398,6 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
         unitId: id,
         target: { x: clamp(x, 0, mapWidth - 1), y: clamp(y, 0, mapHeight - 1) },
       }).accepted);
-
-  const planFormation = createFormationPlanner({
-    world,
-    formationOf: (unitId) => accessor.get(unitFormationsCodec).get(unitId),
-  });
 
   // M6 control: set the stance of every owned unit in the selection. Routes
   // through the recorded command channel so a replay reproduces the change.

@@ -346,6 +346,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     // `replayLoadDialog` binding is always defined by the time we read
     // it. (Same TDZ-safe pattern documented for slice 4's file-import
     // closure — moved here.)
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
     openReplayLoadDialog: () => { void replayLoadDialog.open(); },
     // v0.1.95: game-menu wiring. Pause the sim while the menu overlays it; Restart
     // reloads the same scenario. Quit drops the URL params — and a bare URL is

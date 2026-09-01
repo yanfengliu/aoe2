@@ -29,6 +29,10 @@ const BUILDING_SPEED_CIVS: ReadonlyArray<readonly [BuildingType, string, number]
   ['siege-workshop', 'Celts', TEAM_PRODUCTION_SPEED_MULTIPLIER],
 ];
 
+const PERSIAN_WORK_RATE_BY_AGE: Record<string, number> = {
+  'dark-age': 1 / 1.05, 'feudal-age': 1 / 1.1, 'castle-age': 1 / 1.15, 'imperial-age': 1 / 1.2,
+};
+
 export function teamTrainTimeMultiplier(
   accessor: BridgeStateAccessor,
   owner: number,
@@ -69,9 +73,9 @@ const VIETNAMESE_ECO_TECHS = new Set<string>([
   'gold-mining', 'gold-shaft-mining', 'stone-mining', 'stone-shaft-mining',
   'wheelbarrow', 'hand-cart', 'loom',
 ]);
-const PERSIAN_WORK_RATE_BY_AGE: Record<string, number> = {
-  'dark-age': 1 / 1.05, 'feudal-age': 1 / 1.1, 'castle-age': 1 / 1.15, 'imperial-age': 1 / 1.2,
-};
+
+// +25% speed = time × 1/1.25.
+export const PORTUGUESE_TEAM_RESEARCH_MULTIPLIER = 0.8;
 
 export function teamResearchTimeMultiplier(
   accessor: BridgeStateAccessor,
@@ -117,5 +121,3 @@ export function teamResearchTimeMultiplier(
   return multiplier;
 }
 
-// +25% speed = time × 1/1.25.
-export const PORTUGUESE_TEAM_RESEARCH_MULTIPLIER = 0.8;

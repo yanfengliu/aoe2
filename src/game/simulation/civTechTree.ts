@@ -18,34 +18,6 @@
 
 const DENIALS_BY_CIVILIZATION = new Map<string, ReadonlySet<string>>();
 
-function loadTable(): void {
-  // The embedded copy IS the runtime source — browser bundles cannot read
-  // files, and the content gate asserts it and the CSV are identical.
-  for (const line of EMBEDDED_TABLE.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('civilization')) continue;
-    const comma = trimmed.indexOf(',');
-    if (comma < 0) continue;
-    const civilization = trimmed.slice(0, comma).trim();
-    const denied = new Set(
-      trimmed.slice(comma + 1).split(';').map((id) => id.trim()).filter(Boolean),
-    );
-    DENIALS_BY_CIVILIZATION.set(civilization, denied);
-  }
-}
-
-/** Whether this civilization's tree DENIES the given technology or unit id. */
-export function civDenies(civilization: string | undefined, id: string): boolean {
-  if (!civilization) return false;
-  return DENIALS_BY_CIVILIZATION.get(civilization)?.has(id) ?? false;
-}
-
-export function deniedIdsFor(civilization: string | undefined): ReadonlySet<string> {
-  return (civilization && DENIALS_BY_CIVILIZATION.get(civilization)) || EMPTY;
-}
-
-const EMPTY: ReadonlySet<string> = new Set();
-
 // The browser build cannot read design/stats at runtime, so the table is
 // embedded verbatim; tests/content/techTreeDenials.test.ts asserts this copy
 // and the CSV are IDENTICAL, so the two can never drift.
@@ -81,5 +53,35 @@ Italians, camel;eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;go
 Portuguese, camel;demolition-ship;eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;fast-fire-ship;fast-fire-ship-upgrade;gold-shaft-mining;heavy-camel;heavy-camel-upgrade;heavy-cavalry-archer;heavy-cavalry-archer-upgrade;heavy-demolition-ship;heavy-demolition-ship-upgrade;heavy-scorpion;heavy-scorpion-upgrade;hoardings;hussar;hussar-upgrade;illumination;paladin;paladin-upgrade;parthian-tactics;shipwright;siege-onager;siege-onager-upgrade;siege-ram;siege-ram-upgrade;squires
 Spanish, arbalest;arbalest-upgrade;camel;crop-rotation;crossbowman;crossbowman-upgrade;eagle-warrior;elite-eagle-warrior;elite-eagle-warrior-upgrade;gold-shaft-mining;heated-shot;heavy-camel;heavy-camel-upgrade;heavy-scorpion;heavy-scorpion-upgrade;parthian-tactics;siege-engineers;siege-onager;siege-onager-upgrade
 `;
+
+function loadTable(): void {
+  // The embedded copy IS the runtime source — browser bundles cannot read
+  // files, and the content gate asserts it and the CSV are identical.
+  for (const line of EMBEDDED_TABLE.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('civilization')) continue;
+    const comma = trimmed.indexOf(',');
+    if (comma < 0) continue;
+    const civilization = trimmed.slice(0, comma).trim();
+    const denied = new Set(
+      trimmed.slice(comma + 1).split(';').map((id) => id.trim()).filter(Boolean),
+    );
+    DENIALS_BY_CIVILIZATION.set(civilization, denied);
+  }
+}
+
+/** Whether this civilization's tree DENIES the given technology or unit id. */
+export function civDenies(civilization: string | undefined, id: string): boolean {
+  if (!civilization) return false;
+  return DENIALS_BY_CIVILIZATION.get(civilization)?.has(id) ?? false;
+}
+
+const EMPTY: ReadonlySet<string> = new Set();
+
+export function deniedIdsFor(civilization: string | undefined): ReadonlySet<string> {
+  return (civilization && DENIALS_BY_CIVILIZATION.get(civilization)) || EMPTY;
+}
+
+
 
 loadTable();

@@ -376,6 +376,8 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     });
   }
 
+  let rafHandle: number | null = null;
+  let isDestroyed = false;
   function update(): void {
     // Iter-3 V3-11 follow-up: re-entrant safety. If destroy() fires
     // mid-tick (test teardown / HMR), the next scheduled RAF has
@@ -464,8 +466,6 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     rafHandle = requestAnimationFrame(update);
   }
 
-  let rafHandle: number | null = null;
-  let isDestroyed = false;
   rafHandle = requestAnimationFrame(update);
 
   return {

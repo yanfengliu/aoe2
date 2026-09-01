@@ -29,6 +29,7 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
       // The ambience bed starts with the context (i.e. on the first user
       // gesture) and honours the same mute switch as the cues.
       ambience = startAmbience(context);
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
       ambience.setMuted(controllerMutedRef());
     }
     if (context.state === 'suspended') void context.resume();

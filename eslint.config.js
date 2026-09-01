@@ -13,6 +13,18 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
+      // A `const` arrow used above its own definition is a runtime
+      // ReferenceError that BOTH gates pass clean: `tsc` accepts it and eslint
+      // did not check it. It bit for real on 2026-08-31 — moving a haul-cost
+      // helper put it below the filter that called it, every gather assignment
+      // threw, and the AI stopped gathering entirely with typecheck and lint
+      // green. A reviewer had flagged the same hazard on a different file
+      // hours earlier. Functions stay exempt: they hoist, and the codebase
+      // relies on that for mutually-recursive helpers.
+      '@typescript-eslint/no-use-before-define': [
+        'error',
+        { functions: false, classes: true, variables: true, typedefs: false },
+      ],
       // An underscore prefix marks a parameter a seam keeps deliberately
       // unused (e.g. a DE-dead bonus hook whose callers stay wired). The
       // codebase already used the convention; the rule now honors it.

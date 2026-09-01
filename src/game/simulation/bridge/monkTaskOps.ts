@@ -168,6 +168,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
 
       // Priority 1: deposit a carried relic.
       if (accessor.get(monkCarriedRelicCodec).has(monkId)) {
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
         const monasteryId = findNearestOwnedMonasteryToDeposit(owner, monkPosition);
         if (monasteryId !== null) {
           accept({ monkId, kind: 'deposit', targetEntityId: monasteryId });
@@ -176,6 +177,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       }
 
       // Priority 2: pick up the nearest visible neutral relic.
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
       const relicId = findNearestVisibleNeutralRelic(owner, monkPosition);
       if (relicId !== null) {
         accept({ monkId, kind: 'pickup', targetEntityId: relicId });
@@ -183,6 +185,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       }
 
       // Priority 3: heal the nearest wounded friendly military unit.
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
       const woundedId = findNearestWoundedFriendlyMilitary(owner, monkPosition);
       if (woundedId !== null) {
         accept({ monkId, kind: 'heal', targetEntityId: woundedId });

@@ -102,6 +102,7 @@ export class ClaudeCodeProvider implements LlmProvider {
 
   constructor(config: ClaudeCodeProviderConfig = {}) {
     this.claudeBinPath = config.claudeBinPath ?? 'claude';
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
     this.runFn = config.runFn ?? defaultClaudeRun;
     this.timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
