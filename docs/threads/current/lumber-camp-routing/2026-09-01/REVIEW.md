@@ -270,3 +270,29 @@ So the bar of 8 is set by three units trained in the final 1.25% of the match, o
 **Stated as a property of the instrument, not as an argument for adoption.** This finding favours my own candidate, which is exactly when to be most careful with it. The bar stays at 8 and the candidate stays reverted. What is now known is narrower and checkable: the peak-army bar at a 24,000-tick horizon rewards banking food and penalises qualifying early, and the gate's own header already records that the baseline army is still growing at the horizon ("peak military is 6 at tick 22,000 and 9 at 24,000"). A bar whose value depends on the last 300 ticks of a 24,000-tick run is sensitive to the horizon in a way that was never re-justified when the thing being measured changed.
 
 **What would settle it**, and none of these is mine to choose unilaterally: run both arms to a horizon where each has either reached Castle or provably stalled, so neither is scored mid-investment; or gate on peak army at a FIXED tick before either arm qualifies, which removes the reserve from the comparison; or gate on something that is not peak count at all, since peak is a maximum that late deaths cannot lower and early banking inflates.
+
+---
+
+## Stockpile-aware villager targets: measured, rejected, and it corrects my premise
+
+`villagerTargetsForAge` returns a FIXED ratio per age (Feudal food 7 : wood 6 : gold 1 : stone 1) and `villagerRebalance` walks villagers toward it. Neither reads the stockpile — verifiable by reading, not only by simulation. On the boot map at t=18,000 that leaves twelve villagers on wood with ZERO wood in stock while 1,071 food and 690 gold sit banked. The obvious correction is to bend the age's weights toward whatever is starved, easing off whatever is hoarded, symmetric so it favours neither arm.
+
+Built, mutation-checked (three mutants, each killed by the test that should catch it), wired in after the stockpile read, and swept over six seeds at 24,000 ticks against current HEAD.
+
+```
+                        HEAD                              +REBALANCE
+aoe2-prototype  o2 peakMil=8 bld=13 vil=22 f=864   ->  peakMil=5 bld=20 vil=16 f=537
+default-seed    o2 age=CASTLE bld=21 vil=25        ->  age=feudal bld=18 vil=22
+seed-2          o1 f=2034 bld=11                   ->  f=1303 bld=12
+corpus-seed-b   o1 f=1875 bld=11                   ->  f=1037 bld=15
+seed-7          o1 DARK-AGE vil=10 bld=7           ->  FEUDAL vil=11 bld=8
+seed-11         o1 f=2706 bld=11                   ->  f=565 bld=14
+```
+
+The mechanism works exactly as designed: every hoard falls and building counts rise almost everywhere, and `seed-7`'s owner 1 escapes the Dark Age. It is rejected anyway. The boot map loses three peak military and SIX villagers, and `default-seed` loses the Castle Age it reaches on HEAD. Peak military falls on five of the six seeds.
+
+**And it corrects the premise it was built on.** I described 864 banked food as "hoarded with nothing to spend it on". It is not idle: the training timeline in the previous section shows that exact food buying three spearmen at t=23,711-23,951, which is what sets the baseline's peak of 8. **The hoard IS the military reserve.** Moving villagers off food converts army into buildings — which is precisely the trade the sweep shows, army down and buildings up, and it is a trade the peak-army bar exists to refuse.
+
+So "the AI hoards food it cannot spend" is wrong as stated. The accurate version is narrower: the AI accumulates food for a long time and spends it late, in a burst, on military and the age-up. Whether that is bad play or correct saving is not answered by a stockpile reading at one horizon — which is the same horizon trap recorded two sections up.
+
+What survives: the fixed per-age split genuinely ignores the stockpile, and `seed-7`'s owner 1 escaping the Dark Age shows there IS real value in the idea for a starved slot. A version scoped to slots that are actually stalled — rather than a global correction applied to healthy economies — was not tried and is the next candidate here.
