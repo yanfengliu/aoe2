@@ -556,3 +556,15 @@ Three of the touched files crossed the 500-line cap once the markers went in, an
 **How it is checked from now on.** The rule itself, verified to bite: a fresh two-line use-before-define is rejected by `npm run lint`. New code cannot reintroduce the class.
 
 **What this predicts.** Any rule that TypeScript accepts and ESLint is not configured for is invisible to this repo's whole gate set, and the 24 hits say the assumption that "typecheck plus lint covers it" was already false. The seventeen marked sites are a standing list of where this class still lives.
+
+## 2026-09-01 — The expansion-civ tech gap is a DATA gap, not a code gap (OPEN)
+
+**What was believed.** An earlier audit called the remaining expansion-civilization content "~41 unwritten CSV rows"; a later correction called that wrong in kind and said the CSV is complete for all 30 civilizations with the gap entirely in code. The second claim is also wrong, and the distinction matters for how the work is scoped.
+
+**Measured.** `design/stats/civilizations.csv` does list the unique unit and unique technology NAMES for all 30 civilizations — that is the column the correction was reading. But `design/stats/technologies.csv`, which holds the age, host building, cost, build time and effect, contains **none of the 20 remaining expansion unique technologies**, and none of the four already shipped either. A grep appearing to find one was a false positive: "Double Bit Axe" matching a `^Double` pattern intended for "Double Crossbow".
+
+**Consequence.** Closing this gap is not writing 20 code entries against existing rows. Every one needs its age, host, cost and effect sourced from outside the repo and verified — which is what the four shipped ones did, and why two of them corrected values that memory had wrong (Shatagni is +2 range, not +1; the Incas' Couriers now grants armour rather than speed). It is per-technology research, not mechanical translation.
+
+**Current state, from an instrument validated against known-present and known-absent names:** 20 unique technologies and 17 unique units remain across 12 expansion civilizations. Several are additionally blocked on effect vocabulary the engine does not yet express — regeneration for Maghrabi Camels, splash for Druzhina, trade-cost and tribute seams for Silk Road and Paper Money — and five depend on unique units that do not exist yet.
+
+**Instrument note, the fifth of this class in two days.** The first run of that probe reported ZERO missing, because it searched the header for `unique unit` while the file uses `unique_unit`; both column indices resolved to -1, every cell read empty, and the answer was a claim about the query. It was caught only by printing the header and the column indices. The probe now asserts two known-present names resolve true and a fabricated one resolves false before it reports anything.
