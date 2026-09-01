@@ -851,3 +851,15 @@ It is not. Taking a screenshot advanced the clock. The pane services `requestAni
 What this means in practice: the pane is fine for verifying STATE and INTERACTION — selection, command cards, orders, hotkeys, rendering — and cannot be used to judge anything about rate, pacing, or real-time feel. For those, use `advanceTicks` and read the tick counter, or measure in a node harness where the clock is explicit.
 
 Two smaller traps from the same session, both mine and both mistaken for game defects at first. `computer{action:'key', text:'period'}` sends the literal string, not the `.` character — the idle-villager hotkey looked broken and works correctly when sent as `.`. And clicking a command-card button does NOT strand keyboard focus: `document.activeElement` is back on the canvas immediately afterwards, so hotkeys keep working, which I had briefly recorded as a UX defect before checking.
+
+### A gate's threshold and the message explaining it are two artifacts (2026-09-01)
+
+`tests/simulation/aiReachesCastleAge.test.ts` — "AI self-play exercises the game past the Feudal Age > becomes eligible for the Castle Age on the map the game boots".
+
+The peak-army bar was written against a real mechanism: a wood reserve with no defensive floor, measured blocking 100% of military training on wood-poor seeds. Its message said so — "the age was bought by disbanding the army". The next candidate to trip that bar was a Lumber-Camp siting change, and it did something completely different: it trained 8 against baseline 9 (a wash) and then LOST 6 where baseline lost 1, while holding 985 unspent wood. Nothing was disbanded and no age was bought. The bar was right to fire and its message sent a reader hunting a resource tradeoff that was not there.
+
+Two things follow, and the second was caught by red-checking the first.
+
+The message must report what it MEASURED, not the mechanism its author had in mind, because the author's mechanism is the one thing guaranteed to be true only at the time of writing. The fix reports the trained/lost split and lets the reader classify.
+
+And a message that restates the threshold as its own literal will drift from it. Forcing the bar to 99 to prove the new text rendered printed "peak military 8 below the bar of 8" — the message's hardcoded 8 against an assertion comparing to 99. That is the same staleness one level down, and it was invisible until the message was made to render. Both now read a single `PEAK_MILITARY_BAR`. A gate message is only verified when you have made it print; a green test says nothing about the text in its failure branch.

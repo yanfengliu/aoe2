@@ -151,3 +151,39 @@ That assertion was written earlier in this session, before this candidate existe
 **What round 2 establishes.** The mechanism is real and replicates on held-out seeds — camp placement at the work is worth Castle-Age slots on populations it was never tuned against. The cost is army, consistently: A alone 110→101 and 168→158, A plus mining-first 110→102 and 168→169 in aggregate but 8→7 on the boot map specifically. Every variant of this mechanism measured so far trades army for age.
 
 **The gap, stated exactly.** A version of this that does not cost boot-map peak army would pass every bar in DESIGN.md. Nobody has yet explained WHY the army falls — whether it is wood diverted from military, villagers idle during camp relocation, or the mining-camp displacement's residue. That explanation is the next piece of work, and it is a measurement rather than another candidate.
+
+
+---
+
+## Why the army falls: measured, and it is none of the three candidates
+
+Round 2's record named the gap: "Nobody has yet explained WHY the army falls — whether it is wood diverted from military, villagers idle during camp relocation, or the mining-camp displacement's residue." All three are now falsified, and the real mechanism is measured.
+
+Two independent probes on the boot map (`aoe2-prototype`), owner 2, 24,000 ticks, baseline against branch A + mining-camp-first.
+
+Sampled state:
+
+```
+                t=18000                      t=24000
+baseline   mil=6  bld=13 wood=0    food=?    mil=8 bld=13 wood=10  food=885
+candidate  mil=6  bld=19 wood=235  food=?    mil=2 bld=21 wood=985 food=210
+```
+
+Unit-identity ledger, every tick:
+
+```
+baseline    trained=9  lost=1  peak=8   feudal@9191
+candidate   trained=8  lost=6  peak=7   feudal@10751
+```
+
+**The army is trained at parity and then dies.** 8 against 9 is a wash; 6 lost against 1 is the entire effect. The candidate's final `mil=2` is 8 trained minus 6 lost, and the baseline's `mil=8` is 9 minus 1 — the ledger reconciles exactly against the independently-run sampled probe for both arms, which is what rules out reused or unstable unit ids.
+
+What that kills:
+
+- **Wood diverted to buildings** — dead. The candidate is holding **985 unspent wood**, 98x the baseline's 10. It is not wood-starved for military; it is not spending what it has.
+- **Villagers idle during relocation** — dead. Both arms field 22 villagers, and the candidate is *ahead* on buildings, 21 to 13.
+- **The age was bought with food** — dead, and this one was my own leading hypothesis walking in. **Neither arm reaches the Castle Age on the boot map inside 24,000 ticks**; both stop at Feudal. The 800-food advance never happened here, so it cannot explain the food gap.
+
+The surviving explanation, not yet proved: the mechanism sites the Lumber Camp on the medoid of the trees villagers actually target — forward, off the Town Centre, on exposed ground — and moves the economy out there with it. That is one coherent cause for what looked like three independent tunings, because *every* variant of this mechanism has traded army for age (A alone 110 -> 101, A+mining-first 8 -> 7).
+
+Consequence for the gate: `aiReachesCastleAge` was right to reject round 2 and wrong about why. Its message read "the age was bought by disbanding the army" — accurate for the mechanism it was written for (a wood reserve with no defensive floor, which really did halve the army to buy buildings) and a misdescription of the candidate that next tripped it. Nothing was disbanded and no age was bought. The threshold stays at 8; the message now reports the trained/lost split it measures, so a reader is sent after the right mechanism.

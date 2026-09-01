@@ -33,12 +33,25 @@ import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
  *  24,000), so a shorter run would gate the army bar on a half-built one. */
 const HORIZON_TICKS = 24000;
 
+/** The peak-army bar, named ONCE so the assertion and the message it prints
+ *  cannot drift apart. They were two separate literals and the red-check
+ *  caught them disagreeing — "below the bar of 8" printed against a threshold
+ *  of 99 — which is the same staleness that let this gate's old message
+ *  outlive the mechanism it described. */
+const PEAK_MILITARY_BAR = 8;
+
 interface MatchReport {
   castleAt: number | null;
   qualifiedAt: number | null;
   unitTypes: number;
   buildingTypes: number;
   peakMilitary: number;
+  /** Sampled every 250 ticks like everything else here, so a unit born and
+   *  killed inside one interval is invisible to both. The RATIO is what this
+   *  is for -- telling "never trained" apart from "trained and died" -- not an
+   *  exact count. */
+  militaryTrained: number;
+  militaryLost: number;
 }
 
 function playSelfPlay(seed: string): Record<number, MatchReport> {
@@ -49,9 +62,10 @@ function playSelfPlay(seed: string): Record<number, MatchReport> {
   const per: Record<number, {
     b: Set<string>; u: Set<string>; castleAt: number | null;
     qualifiedAt: number | null; peak: number;
+    live: Set<number>; trained: number; lost: number;
   }> = {
-    1: { b: new Set(), u: new Set(), castleAt: null, qualifiedAt: null, peak: 0 },
-    2: { b: new Set(), u: new Set(), castleAt: null, qualifiedAt: null, peak: 0 },
+    1: { b: new Set(), u: new Set(), castleAt: null, qualifiedAt: null, peak: 0, live: new Set(), trained: 0, lost: 0 },
+    2: { b: new Set(), u: new Set(), castleAt: null, qualifiedAt: null, peak: 0, live: new Set(), trained: 0, lost: 0 },
   };
   for (let tick = 1; tick <= HORIZON_TICKS; tick += 1) {
     bridge.step(100);
@@ -67,18 +81,24 @@ function playSelfPlay(seed: string): Record<number, MatchReport> {
       }
       if (qualifying >= 2 && p.qualifiedAt === null) p.qualifiedAt = tick;
       let military = 0;
+      const live = new Set<number>();
       for (const u of state.units) {
         if (u.owner !== owner) continue;
         p.u.add(u.unitType);
-        if (u.unitType !== 'villager') military += 1;
+        if (u.unitType === 'villager') continue;
+        military += 1;
+        live.add(u.id);
+        if (!p.live.has(u.id)) p.trained += 1;
       }
+      for (const id of p.live) if (!live.has(id)) p.lost += 1;
+      p.live = live;
       p.peak = Math.max(p.peak, military);
       if (state.ages[owner] === 'castle-age' && p.castleAt === null) p.castleAt = tick;
     }
   }
   return {
-    1: { castleAt: per[1]!.castleAt, qualifiedAt: per[1]!.qualifiedAt, unitTypes: per[1]!.u.size, buildingTypes: per[1]!.b.size, peakMilitary: per[1]!.peak },
-    2: { castleAt: per[2]!.castleAt, qualifiedAt: per[2]!.qualifiedAt, unitTypes: per[2]!.u.size, buildingTypes: per[2]!.b.size, peakMilitary: per[2]!.peak },
+    1: { castleAt: per[1]!.castleAt, qualifiedAt: per[1]!.qualifiedAt, unitTypes: per[1]!.u.size, buildingTypes: per[1]!.b.size, peakMilitary: per[1]!.peak, militaryTrained: per[1]!.trained, militaryLost: per[1]!.lost },
+    2: { castleAt: per[2]!.castleAt, qualifiedAt: per[2]!.qualifiedAt, unitTypes: per[2]!.u.size, buildingTypes: per[2]!.b.size, peakMilitary: per[2]!.peak, militaryTrained: per[2]!.trained, militaryLost: per[2]!.lost },
   };
 }
 
@@ -106,10 +126,23 @@ describe('AI self-play exercises the game past the Feudal Age', () => {
     // training on wood-poor seeds — 21% of all peak military across 11 seeds,
     // buying a building it then could not afford either. Baseline peak here is
     // 8; the bar is 8, so any return of that behaviour fails.
+    //
+    // The bar catches TWO different mechanisms and used to name only one. It
+    // read "the age was bought by disbanding the army", which described the
+    // reserve above and misdescribed the next candidate to trip it: a
+    // Lumber-Camp siting change that trained 8 against baseline 9 — a wash —
+    // and then LOST 6 where baseline lost 1, holding 985 unspent wood while it
+    // happened. Nothing was disbanded and no age was bought, so the message
+    // sent a reader looking for a resource tradeoff that was not there. It now
+    // reports the split it actually measured.
+    const cause = winner.militaryLost > winner.militaryTrained / 2
+      ? `trained ${winner.militaryTrained} but LOST ${winner.militaryLost} — the army died in the field`
+      : `only trained ${winner.militaryTrained} (lost ${winner.militaryLost}) — the army was never built`;
     expect(
       winner.peakMilitary,
-      `peak military ${winner.peakMilitary} — the age was bought by disbanding the army`,
-    ).toBeGreaterThanOrEqual(8);
+      `peak military ${winner.peakMilitary} below the bar of ${PEAK_MILITARY_BAR}: ${cause}. `
+        + 'Satisfy it by keeping peak army at or above baseline, not by moving the bar.',
+    ).toBeGreaterThanOrEqual(PEAK_MILITARY_BAR);
 
     // Variety is the actual goal. Measured 9 building types and 5 unit types
     // against a baseline of 8 and 4. The building bar is one BELOW the
