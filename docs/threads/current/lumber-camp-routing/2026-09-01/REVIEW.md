@@ -187,3 +187,21 @@ What that kills:
 The surviving explanation, not yet proved: the mechanism sites the Lumber Camp on the medoid of the trees villagers actually target — forward, off the Town Centre, on exposed ground — and moves the economy out there with it. That is one coherent cause for what looked like three independent tunings, because *every* variant of this mechanism has traded army for age (A alone 110 -> 101, A+mining-first 8 -> 7).
 
 Consequence for the gate: `aiReachesCastleAge` was right to reject round 2 and wrong about why. Its message read "the age was bought by disbanding the army" — accurate for the mechanism it was written for (a wood reserve with no defensive floor, which really did halve the army to buy buildings) and a misdescription of the candidate that next tripped it. Nothing was disbanded and no age was bought. The threshold stays at 8; the message now reports the trained/lost split it measures, so a reader is sent after the right mechanism.
+
+---
+
+## Round 3: the latch fix does not rescue branch A (falsified)
+
+With the villager latch fixed (v0.3.175), branch A + mining-camp-first was re-run against the boot-map gate. The prediction was that the army cost would ease, on two mechanisms: the register records branch A CAUSING a latch ("all ten villagers on ONE cell (51,28) ... unmoving from t=9,000 to t=20,000"), and traffic starvation applies to military units too, so units queueing through a contested gap would arrive piecemeal — which is what a 6-to-1 loss ratio looks like.
+
+Both are wrong. The result is IDENTICAL to round 2:
+
+```
+peak military 7 below the bar of 8: trained 8 but LOST 6 — the army died in the field
+```
+
+Trained 8, lost 6, peak 7 — the same three numbers. Branch A's army cost is independent of the traffic election, and the two mechanisms above are eliminated rather than merely unsupported: had either contributed, the loss count would have moved.
+
+What still stands: the army dies in the field, at training parity, holding 985 unspent wood, in a match where neither arm leaves Feudal on this map. The cause of the DEATHS remains unmeasured. The open question is now narrower than before — not "why does the army fall" (answered: it dies) and not "does traffic starvation kill it" (answered: no), but where and to what those six units are lost.
+
+Incidental confirmation: the gate message rewritten earlier the same day did its job on its first real failure, naming "trained 8 but LOST 6 — the army died in the field". The message it replaced would have read "the age was bought by disbanding the army" and sent the reader after a resource tradeoff that does not exist here.
