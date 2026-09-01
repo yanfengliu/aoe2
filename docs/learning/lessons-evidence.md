@@ -863,3 +863,19 @@ Two things follow, and the second was caught by red-checking the first.
 The message must report what it MEASURED, not the mechanism its author had in mind, because the author's mechanism is the one thing guaranteed to be true only at the time of writing. The fix reports the trained/lost split and lets the reader classify.
 
 And a message that restates the threshold as its own literal will drift from it. Forcing the bar to 99 to prove the new text rendered printed "peak military 8 below the bar of 8" — the message's hardcoded 8 against an assertion comparing to 99. That is the same staleness one level down, and it was invisible until the message was made to render. Both now read a single `PEAK_MILITARY_BAR`. A gate message is only verified when you have made it print; a green test says nothing about the text in its failure branch.
+
+### A probe that reconstructs game state from guessed field names is a hypothesis (2026-09-01)
+
+Five instances in one session, each producing a confident and wrong reading, none of them raising an error.
+
+`b.width` where the field is `footprintWidth`, so every building drew 1x1 and a 4x4 Town Centre rendered as a single cell. A complete chain was ready to publish from that map — villagers not sealed, therefore the pathfinder is wrong, therefore the bug is in A*. Caught only because a Town Centre visibly cannot be one cell.
+
+`playerAges` where the field is `ages`, reporting no age transitions at all.
+
+`p.y` / `p.height` on voxel parts, where the fields are `centerY` / `height`; the probe printed empty part ids and a bogus "highest point 1.28", which would have read as the flag being absent.
+
+Two eyeballed screen-coordinate derivations. A "band above the roof" scan that was actually sampling above the ENTIRE building and returned pure grass. And a px/unit scale putting the Town Centre flag at screen y 113-144 when a removal-diff located it at y 144-173.
+
+A sixth near-miss belongs with them: scanning for the flag's `0x3f6fd8` tint found nothing, because the LIT colour is `rgb(53,68,81)` — shading moves a colour far outside any threshold set from the source tint.
+
+The fix is cheap and mechanical. Dump one record and read its real keys before filtering on any of them (`console.log(JSON.stringify(parts[1]))` settled the voxel case in one call). And for anything positional, prefer a differential measurement over a derived coordinate: removing the two flag parts, re-capturing and diffing gave `389 pixels, x 396-414, y 144-173` with no arithmetic at all, after three colour scans had failed to find it.
