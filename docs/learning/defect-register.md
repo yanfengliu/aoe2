@@ -499,6 +499,18 @@ The rule cannot separate those from the case that actually crashed, where the he
 
 **A latent crash class found en route, and it is a gate gap.** Moving the haul-cost helper introduced a use-before-define: `haulCostOf` is a `const` arrow, and the filter that now called it ran above its own definition, so every gather assignment threw a TDZ `ReferenceError` and the AI stopped gathering entirely. `npm run typecheck` and `npm run lint` were both GREEN through it — `no-use-before-define` is not configured in `eslint.config.js` — and the only reason it surfaced is that a probe reported zero gathering villagers. A reviewer had flagged exactly this hazard earlier the same day on a different file.
 
+**Weighting the round trip does not recover the boot map, it just loses the gain (2026-08-31).** With the routing gate identified, the direct fix is to rank candidates by the haul each implies rather than by distance to whichever drop-off the villager stands near. Pure haul does that and improves the aggregate at both horizons, but costs `aoe2-prototype` three thousand ticks to the Castle Age — it sends villagers on migration walks without weighing the one-time approach. The obvious refinement is to price both legs, `approach + w * haul`, since the approach is paid once and the haul on every trip. Swept at both horizons over ten seeds:
+
+    arm                24,000                        34,000
+    baseline           4 Castle / 156 / 89 / 110     10 Castle / 176 / 115 / 168
+    w = 1              4 Castle / 162 / 86 /  96     10 Castle / 182 / 110 / 158
+    w = 2              3 Castle / 162 / 83 /  93      9 Castle / 179 / 101 / 123
+    pure haul          6 Castle / 162 / 88 / 105     11 Castle / 182 / 107 / 182
+
+There is no interior optimum. Weight 1 returns Castle slots exactly to baseline and weight 2 falls below it, while peak army drops in every weighted arm — so the approach term does not buy back the boot map, it only cancels the benefit. Only the unweighted extreme moves the primary metric, and that is the arm with the boot-map regression.
+
+**What that says about the fix.** The gate is real and correctly identified, but ranking is the wrong lever for it: any ranking that makes camp-adjacent trees attractive enough to use also makes distant trees attractive enough to walk to, and the two effects are not separable by a scalar weight. A fix has to distinguish the villager MIGRATING to a camp's neighbourhood from the villager choosing a node within its current one — which is a home-range or assignment-time question, not a comparator question. Two of the seventeen attempts already guessed at a home-range filter and changed nothing, so that needs the same tracing treatment that found the gate rather than a third guess.
+
 That is eight measured negatives on this wall now. Every lever tried moves wood between things that all need it; none creates any. The remaining candidates are on the GATHER side rather than the spend side — walk distance, camp siting, and how many gatherers share one drop-off — and the measurement to beat is the 25% figure above, not the age timings.
 
 **What a future attempt needs.** Not a resource test at all — a POSITIVE signal that the player is doing something, rather than a proof that it can do nothing. The queue, the market, the trickle and tribute are all things this rule had to know about only because it was arguing from absence.
