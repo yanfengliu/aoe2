@@ -13,6 +13,7 @@ import {
 } from './pureHelpers';
 import type { BuildingComponent } from '../types';
 import type { UnitMovementPlan } from './movementTypes';
+import { createApproachPlanCache } from './approachPlanCache';
 
 type CivWorld = GameWorld;
 
@@ -375,6 +376,11 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     unreachablePlans.set(key, revision);
   }
 
+  // See approachPlanCache.ts for why replaying a stored answer cannot change a
+  // decision: the key pins the unit's start CELL and the structural revision,
+  // and the search reads nothing else that varies.
+  const approachPlans = createApproachPlanCache<UnitMovementPlan>();
+
   function findResourceApproachPlan(
     unitId: number,
     resourceId: number,
@@ -388,6 +394,8 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
 
     const cacheKey = `r${unitId}:${resourceId}`;
     if (cachedUnreachable(cacheKey)) return null;
+    const reused = approachPlans.get(cacheKey, deps.structuralRevision?.(), position);
+    if (reused) return reused.plan;
     const plan = findMovementPlan(
       unitId,
       position,
@@ -397,6 +405,7 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     );
     if (!plan) rememberUnreachable(cacheKey);
     else unreachablePlans.delete(cacheKey);
+    approachPlans.set(cacheKey, deps.structuralRevision?.(), position, plan);
     return plan;
   }
 
@@ -416,6 +425,8 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     const footprint = buildingFootprint(building.buildingType);
     const cacheKey = `b${unitId}:${buildingId}:${range}`;
     if (cachedUnreachable(cacheKey)) return null;
+    const reused = approachPlans.get(cacheKey, deps.structuralRevision?.(), position);
+    if (reused) return reused.plan;
     const plan = findMovementPlan(
       unitId,
       position,
@@ -425,6 +436,7 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     );
     if (!plan) rememberUnreachable(cacheKey);
     else unreachablePlans.delete(cacheKey);
+    approachPlans.set(cacheKey, deps.structuralRevision?.(), position, plan);
     return plan;
   }
 
