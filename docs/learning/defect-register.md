@@ -471,6 +471,18 @@ So the walking is real but the walk itself is close to as fast as the clock allo
 
 **The shape of the fix.** Rank candidates by the round trip they actually imply — distance from the candidate to the candidate's OWN nearest drop-off — rather than to whichever drop-off the villager is standing near. Trees beside the camp then rank best, because their nearest drop-off is one to three tiles away.
 
+**The camp fix improves the aggregate and regresses the boot map, so it does not ship (2026-08-30).** Ranking gathering candidates by the haul each one actually implies — its distance to the drop-off nearest IT, rather than to whichever drop-off the villager happens to stand near — was measured in both arms at both horizons:
+
+    arm         24,000                          34,000
+    haul-rank   6 Castle / 162 / 88 / 105       11 Castle / 182 / 107 / 182
+    baseline    4 Castle / 156 / 89 / 110       10 Castle / 176 / 115 / 168
+
+The first candidate in sixteen attempts whose primary metric improves at BOTH horizons. But per seed, `aoe2-prototype` owner 2 takes the Castle Age at 28,250 against a baseline 25,250 — three thousand ticks LATER — with unit types 8 down to 5. The aggregate gain is real and the boot map pays for it, which is the exact shape of the Dark-Age tuning this repo already adopted and withdrew. Reverted.
+
+**And the mechanism is still not understood, which matters more than the result.** Camp usage barely moved: 21 of 67 wood villagers served by a Lumber Camp before, 20 of 73 after. Two separate theories of the gate — the ranking comparator, then the home-range filter — were each implemented and each changed nothing, so whatever routes villagers away from a camp that sits on live trees is still unidentified. The Castle-Age gain therefore came from somewhere other than the mechanism it was aimed at, which is reason enough not to ship it even without the boot-map regression.
+
+**A latent crash class found en route, and it is a gate gap.** Moving the haul-cost helper introduced a use-before-define: `haulCostOf` is a `const` arrow, and the filter that now called it ran above its own definition, so every gather assignment threw a TDZ `ReferenceError` and the AI stopped gathering entirely. `npm run typecheck` and `npm run lint` were both GREEN through it — `no-use-before-define` is not configured in `eslint.config.js` — and the only reason it surfaced is that a probe reported zero gathering villagers. A reviewer had flagged exactly this hazard earlier the same day on a different file.
+
 That is eight measured negatives on this wall now. Every lever tried moves wood between things that all need it; none creates any. The remaining candidates are on the GATHER side rather than the spend side — walk distance, camp siting, and how many gatherers share one drop-off — and the measurement to beat is the 25% figure above, not the age timings.
 
 **What a future attempt needs.** Not a resource test at all — a POSITIVE signal that the player is doing something, rather than a proof that it can do nothing. The queue, the market, the trickle and tribute are all things this rule had to know about only because it was arguing from absence.
