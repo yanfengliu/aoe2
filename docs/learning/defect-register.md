@@ -636,3 +636,25 @@ Run to 60,000 on five of the same seeds:
 **Why capping farm COUNT does not fix it, proved rather than assumed.** A branch built exactly that cap: it improved the headline at both horizons (Castle-Age slots 4→7 and 10→13) and was correctly rejected, because the wood ledger moved only 5.6%. Soil costs 60 wood per 175 food whether it is built or reseeded, so cutting plots does not cut wood — the same labour simply cycles fewer plots faster, and new-farm wood down 23% came straight back as reseeds up 25%. The headline gain was a build-order SEQUENCING effect (the picker stops returning `farm` and reaches `blacksmith`), not a demand reduction, and it failed on held-out seeds at 24,000 (Castle 1→0).
 
 **The two levers this points at, neither yet tested.** The reseed is ungated: it fires whenever affordable, even with 1,600 food banked, and is 22% of Feudal wood. And the assignment comparator prefers a 60-wood farm to free sheep ten tiles away, because farms are tier-1 and Town-Center-adjacent. The second is what would make the first pay.
+
+## 2026-09-01 — The gather comparator measures a distance the units cannot walk (OPEN, and it relocates the root cause)
+
+**What was believed.** Commit `5c31d4e8` identified the routing gate as the ANCHOR: `findNearestDropOffBuilding` is resolved from the VILLAGER's position, so villagers clustered near the Town Center always make the TC their reference, and a tree beside a Lumber Camp is never preferred. That is true, and it is the smaller half.
+
+**What is actually true.** The comparator ranks candidate resources by MANHATTAN distance, and movement is strictly 4-connected — `findGridPath` is called from `movementPlanOps.ts:236` with no `allowDiagonal`, and `civ-engine/src/path-service.ts:202` defaults it to `false`. Both verified directly.
+
+On open ground those agree exactly, so the metric is correct there. Around obstacles it is arbitrarily wrong — and a forest is a dense block of impassable resource cells, which is why the error concentrates almost entirely in wood.
+
+Measured on the AI's live targets: wood villagers work trees at Manhattan 3.6-10.1 whose true walk is **2.6 to 45.1 tiles**. On `aoe2-prototype` at tick 24,000, three villagers were on trees at walk 37 and 35 while trees at walk 0 and 3, holding 100 wood each, sat unused — every one reads as Manhattan 8-9 to the comparator, and two more at the same distance are UNREACHABLE.
+
+**The size of the prize, measured rather than assumed.** A near-optimal assignment is worth **1.49x** the AI's measured total gather throughput over 16 owner-snapshots on four seeds, three of them held out. By resource: wood **2.61x**, stone 1.22x, food 1.05x, gold **1.00x**. Gold sits in the open and has nothing to gain, which is the cleanest confirmation available that obstacles are the mechanism. A replica of the current policy scores 1.01x measured, which is what makes the model credible.
+
+**Which half to fix, ablated.** Ranking from the resource's own nearest drop-off (the anchor fix) recovers 1.16-7.63x on wood; ranking by TRUE WALK recovers 1.62-7.63x; both together equal the metric fix alone. **The metric dominates and is never worse.** This is why seventeen attempts at re-weighting the comparator all failed — every one re-weighted a broken measurement.
+
+**Corroborated by two shipped games, verified verbatim rather than summarised.** AoE2's own AI scripting language measures resource-to-dropsite and never villager-to-dropsite, and `sn-wood-dropsite-distance` targets a 3-tile wood haul against our 2.6-45.1. 0 A.D.'s Petra builds a new dropsite when the fraction of gatherers walking rather than gathering exceeds 0.15; our wood figure is 0.66-0.67, over four times that, against 0.10 for food and 0.00 for gold.
+
+**What this retires.** Camp PLACEMENT is the small family — an extra optimally-placed drop-off on top of good assignment is worth only 8-20%. And this search's own done-condition "camp usage rises" is WRONG: under a true-path optimum the camp's haul share FALLS on several bases, because the best trees sit beside whichever drop-off is nearest in walking terms, often the Town Center. The DESIGN file records that revision.
+
+**What it does not say.** 1.49x is a resource RATE. Nobody has shown that rate is what gates the Castle Age, and the disqualifiers about aggregate-versus-boot-map and improving-by-doing-less apply to any candidate unchanged. There is also a second, unmodelled loss: one base has a 2.6-tile walk, 17% gathering and 3.28 retargets per load, so churn costs something the distance model treats as neutral.
+
+**A near-miss worth recording.** The branch's first pass priced hauls at Manhattan and concluded the family was capped at 1.03-1.27x and should be abandoned. It caught itself because the modelled gathering fraction (70%) did not match the measured one (19%). The same wrong assumption that causes the defect nearly buried the evidence for it.

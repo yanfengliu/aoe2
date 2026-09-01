@@ -23,9 +23,20 @@ All four, together:
 
 1. Castle-Age owner-slots improve at BOTH horizons.
 2. `aoe2-prototype` regresses on nothing, per owner, at both horizons.
-3. Camp usage rises — the share of wood-gathering villagers whose nearest
-   drop-off is a Lumber Camp rather than the Town Centre. The MECHANISM has to
-   move, not just the outcome.
+3. ~~Camp usage rises — the share of wood-gathering villagers whose nearest
+   drop-off is a Lumber Camp rather than the Town Centre.~~ **REVISED after
+   round 1 (branch D).** This condition was wrong, and keeping it would have
+   rejected the correct fix. Under a true-path optimum the camp's share of
+   hauls FALLS on several bases (owner 2 on `aoe2-prototype`: 100% to 10-48%),
+   because the best trees sit beside whichever drop-off is nearest in WALKING
+   terms — and that is often the Town Centre. "Camp usage rises" and "wood
+   throughput rises" are different mechanisms and can point opposite ways.
+
+   The replacement, which measures the mechanism without assuming which
+   building wins: **wood throughput rises, and the gathering share of wood
+   villagers' time rises.** Measured baseline: wood villagers gather 8-51% of
+   the time (median ~24%) against 83-100% for gold, and retarget 1.4-6.2 times
+   per delivered load where the design implies 1.
 4. Total villager gather time does not fall (the economy is not paying for the
    camps by doing less work elsewhere).
 

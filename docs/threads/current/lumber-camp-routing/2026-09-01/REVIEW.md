@@ -25,7 +25,36 @@ And the AI farms while free food stands beside it: `default-seed` owner 1 held 2
 
 **Lead handed to round 2, untested:** the reseed is ungated — it fires whenever affordable, even at 1,600 banked food, and is 22% of Feudal wood — and the assignment comparator prefers a 60-wood Town-Center-adjacent farm to free sheep ten tiles away. The second is what would make the first pay.
 
-## Branches A, B, D — running
+## Branch D — prior art and the upper bound (CLOSED; it relocates the root cause)
+
+**The prize is real and bounded: a near-optimal assignment is worth 1.49x the AI's measured total gather throughput.** Not a few percent, so the family is not capped; not an order of magnitude either. Measured over 16 owner-snapshots across four seeds, three of them held out, at two ticks each. A replica of the CURRENT policy scores 1.01x measured, which is what validates the model.
+
+**93% of the headroom is wood:**
+
+    wood   3,518 -> 9,188   2.61x
+    food   6,451 -> 6,774   1.05x
+    gold   2,400 -> 2,396   1.00x
+    stone    550 ->   670   1.22x
+
+**The root cause is one layer below where this investigation put it.** The comparator ranks candidates by MANHATTAN distance, and the pathfinder is strictly 4-connected: `findGridPath` is called from `movementPlanOps.ts:236` with no `allowDiagonal`, and `civ-engine/src/path-service.ts:202` defaults it to `false`. I verified both call sites myself.
+
+On open ground 4-connected walk distance IS Manhattan, so the metric is exact — which is why gold, sitting in the open, has literally nothing to gain (1.00x). Around obstacles it is arbitrarily wrong, and a forest is a dense block of impassable resource cells. Measured on the AI's own live targets: wood villagers are assigned trees at Manhattan 3.6-10.1 whose TRUE walk is 2.6-45.1 tiles. On `aoe2-prototype` at tick 24,000, three villagers were working trees at walk 37 and 35 while trees at walk 0 and 3, each holding 100 wood, sat unused — all four look like Manhattan 8-9 to the comparator.
+
+**Which half matters, ablated separately (wood, true path costs):**
+
+    anchor only  (rank from the resource's own nearest drop-off)   1.16x - 7.63x
+    metric only  (rank by true walk)                               1.62x - 7.63x
+    both                                                           1.62x - 7.63x
+
+**The metric fix dominates and is never worse.** The anchor defect — the one identified in commit `5c31d4e8` and treated as THE root cause since — is the smaller half, and fixing it alone leaves value on the table on every base measured. That also explains why every comparator attempt failed: they all re-weighted a metric that was measuring the wrong quantity.
+
+**Camp placement is the small family.** One extra optimally-placed drop-off, on top of optimal assignment, adds only 8-20%. The camp is not the bottleneck; the choice is.
+
+**Independent corroboration from prior art, verified verbatim rather than summarised.** AoE2's own AI scripting language measures resource-to-dropsite distance and never villager-to-dropsite; its `sn-wood-dropsite-distance` targets a 3-tile wood haul against our measured 2.6-45.1; and `sn-max-retask-gather-amount` = 40 is explicit anti-churn hysteresis against our 1.4-6.2 retargets per load. 0 A.D.'s Petra builds a dropsite when `lost/total > 0.15` on exactly the two gatherer states we can sample — our wood ratio is 0.66-0.67, over four times its threshold, against 0.10 for food and 0.00 for gold.
+
+**The branch caught an instrument error that would have ended the search.** Its first pass priced hauls at Manhattan distance and concluded "optimal is worth 1.03-1.27x, decaying to 1.0 — this family is capped, abandon it." Wrong, and wrong in the direction that stops the work. It was caught because the modelled gathering fraction (70%) did not match the measured one (19%). The same Manhattan assumption that causes the bug nearly hid it.
+
+## Branches A, B — running
 
 A: place the camp where villagers already work, leaving routing alone.
 B: home range — restrict a villager's option set to a site's neighbourhood.
