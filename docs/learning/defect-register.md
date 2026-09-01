@@ -659,6 +659,23 @@ Measured on the AI's live targets: wood villagers work trees at Manhattan 3.6-10
 
 **A near-miss worth recording.** The branch's first pass priced hauls at Manhattan and concluded the family was capped at 1.03-1.27x and should be abandoned. It caught itself because the modelled gathering fraction (70%) did not match the measured one (19%). The same wrong assumption that causes the defect nearly buried the evidence for it.
 
+## 2026-09-01 — seed-7 is TWO defects, not one (OPEN)
+
+The remainder left by the villager-latch fix (v0.3.175) is not one defect and neither half is the one that was fixed.
+
+```
+o1  age=DARK-AGE  vil=10  f=210  w=5   bld: town-center, house, barracks, house, mill
+o2  age=feudal    vil=22  f=365  w=10  bld: ..., lumber-camp, mining-camp, ...
+```
+
+**The villagers counted as frozen belong to owner 2, the HEALTHY slot.** Four of them sit in `to-dropoff` holding full 10-loads while their `trafficProgressTick` is fresh — 16,462 to 16,499 at t=16,500 — so they are changing cells constantly and still not delivering. That is oscillation near a drop-off, not the starvation fixed in v0.3.175, and the 250-tick cell sampler that found them reports oscillation as a freeze. The metric and the mechanism disagree, and the metric is the one to distrust.
+
+**Owner 1's Dark Age stall is the economy wall in miniature and is unrelated to movement.** Ten villagers is exactly `DARK_AGE_TUNING.villagerCap`. It holds 5 wood and has a Mill but NO FARM; a farm costs 60 wood. No wood, so no farms; no farms, so food stalls at 210 against the 500 the Feudal advance needs; still Dark Age, so still capped at ten villagers. A closed loop whose only entry point is wood — the same wall the whole lumber-camp thread is about, in its clearest single-slot form.
+
+**Instrument gap, recorded so the next reader does not repeat it.** The probe printed `targetResourceId` for units in `to-dropoff`, where the field that matters is `dropOffBuildingId`. Which drop-off those four carriers were walking to is therefore UNKNOWN, and any claim about why they fail to deliver needs that field first.
+
+---
+
 ## 2026-09-01 — Villagers latch on an OPEN cell when buildings move (FIXED)
 
 **The fix.** The narrow-passage election keeps stable lowest-id as its ordinary rule, and yields to a unit that has not CHANGED CELL for `TRAFFIC_STARVATION_TICKS` (750). Gated by `tests/simulation/movementTrafficFairness.test.ts`.
