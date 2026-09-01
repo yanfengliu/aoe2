@@ -658,3 +658,27 @@ Measured on the AI's live targets: wood villagers work trees at Manhattan 3.6-10
 **What it does not say.** 1.49x is a resource RATE. Nobody has shown that rate is what gates the Castle Age, and the disqualifiers about aggregate-versus-boot-map and improving-by-doing-less apply to any candidate unchanged. There is also a second, unmodelled loss: one base has a 2.6-tile walk, 17% gathering and 3.28 retargets per load, so churn costs something the distance model treats as neutral.
 
 **A near-miss worth recording.** The branch's first pass priced hauls at Manhattan and concluded the family was capped at 1.03-1.27x and should be abandoned. It caught itself because the modelled gathering fraction (70%) did not match the measured one (19%). The same wrong assumption that causes the defect nearly buried the evidence for it.
+
+## 2026-09-01 — Villagers latch on an OPEN cell when buildings move (OPEN)
+
+**Symptom, at its worst.** During branch A of the lumber-camp search, a candidate that relocated the Lumber Camp pushed the Mining Camp onto the Town Center's shoulder at (52,24). On `aoe2-prototype`, owner 2's economy then stopped dead at tick ~7,500 and never restarted: all ten villagers stood on a single cell, (51,28), every one in `to-resource`, none moving, from tick 9,000 to tick 20,000 — with the berry bushes REGROWING because nobody was eating them. Food 320, wood 157, gold 300, stone 200, byte-identical across twelve thousand ticks. No engine halt and no tick failure. Owner 2 never left the Dark Age.
+
+**(51,28) is not a sealed pocket.** (50,28) and (52,28) are open grass in both arms, and there is a gold mine three tiles away the villagers never reach. The `isFree` guard in `findPlacementAnchorNear` exists to stop the AI walling itself in and does not prevent this. So this is not a containment bug; it is a movement or assignment latch that a building rearrangement can trigger.
+
+**Isolated rather than theorised.** Flipping the Dark-Age build order so the Mining Camp is requested first returns it to (46,31) and the deadlock disappears entirely — owner 2 has eleven villagers spread across farms and trees, all gathering. The trigger is the DISPLACEMENT, not the camp's own position.
+
+**How common is it on unmodified HEAD? Smaller than first reported, and the first measurement was mine and wrong.** Counting villagers whose CELL does not change over 250-tick samples gave 1-3 stuck villagers on every seed and freezes of 20,750 ticks. That probe was invalid: a villager with `task: 'gathering'` stands still BY DESIGN — it is chopping — so the query counted normal work as a freeze.
+
+Restricted to `to-resource` and `to-dropoff`, the states where a villager should be moving, over 34,000 ticks:
+
+    seed-2           4.2% of walking samples frozen >= 2000 ticks   longest 5,750
+    default-seed     0.3%                                          longest 2,500
+    aoe2-prototype   0.2%                                          longest 2,250
+    seed-1           0.0%                                          longest 1,500
+    corpus-seed-b    0.0%                                          longest 1,500
+
+So on HEAD this is largely one seed's problem and marginal elsewhere — NOT the widespread standing defect the first probe implied. What branch A found is a far more severe manifestation that a building rearrangement can provoke.
+
+**Why it is registered rather than fixed.** It is the gate in front of the largest prize measured on this wall: branch A's candidate moves camp usage from 39.7% to 51.9% and Castle-Age owner-slots from 4 to 7 and 10 to 14, and this latch is the only thing disqualifying it. A fix needs the latch understood first — a villager in `to-resource`, on open ground, with a reachable target, that never moves again.
+
+**What this predicts.** Any AI change that rearranges building placement can trip it, which makes it a hazard for a whole class of future work rather than for one candidate. It also means the placement guard's contract — "do not wall yourself in" — is weaker than it reads: a unit can be immobilised on ground that is not enclosed at all.

@@ -78,7 +78,25 @@ So contention costs wall-clock, not validity. Had a branch discarded good number
 
 **2. Fanning four branches at one working tree was a design mistake.** Branch B found another branch editing `src/` underneath it mid-run and moved to private worktrees to protect its own measurements; one artifact of the collision still reached its patch (an inert `export` picked up from a sibling). Independent branches need independent trees. Round 2 issues worktrees up front rather than leaving each branch to discover the hazard.
 
-## Branch A — running
+## Branch A — move the camp to the work (CLOSED; mechanism VALIDATED, candidate disqualified)
+
+**The first candidate in this investigation to move the mechanism.** Anchoring the Lumber Camp on the MEDOID of the nodes the owner's wood villagers currently target, rather than on the tree nearest the Town Center:
+
+    camp usage (delivery ground truth)   39.68% -> 51.90% at 24k, 40.76% -> 44.44% at 34k
+    median haul, tree to drop-off        9 -> 7 and 9 -> 8
+    total gather time                    +7% at both horizons
+    Castle owner-slots                   4 -> 7 at 24k, 10 -> 14 at 34k
+    building types                       156 -> 175 and 176 -> 190
+
+Measured before writing code: the camp is planted a median **14 tiles** from the woodline being cut; the candidate puts it a median **4.5** tiles away. Placement ticks are identical in both arms, so up to that moment it is a pure siting change.
+
+Disqualifiers 2, 3, 4 and 7 all CLEARED — the first time any candidate has cleared 2. Disqualifier 5 partly flagged (peak army falls 110→101 and 168→158, real and unexplained). Disqualifier 6 not run.
+
+**Disqualified by 1, and the cause is not the mechanism.** The relocated camp takes the ground the Mining Camp used, pushing it to (52,24), hard against the Town Center's footprint. On the boot map, owner 2's economy then stops dead at tick ~7,500 and never restarts: all ten villagers stand on **one cell, (51,28)**, every one in `to-resource`, none moving, from tick 9,000 to tick 20,000, with the berry bushes regrowing because nobody eats them. Owner 2 never leaves the Dark Age.
+
+The branch isolated it rather than theorising: flipping the Dark-Age build order so the Mining Camp is requested first returns it to (46,31) and **the deadlock disappears entirely**. So the stall is caused by the DISPLACEMENT, not by the camp's own position — the same failure mode the register already recorded for attempt 10.
+
+**And it found something bigger than its own mechanism.** (51,28) is NOT a sealed pocket: (50,28) and (52,28) are open grass in both arms. Ten units latched permanently on an open cell, with a gold mine three tiles away they never reach. That is a movement or assignment latch that any building rearrangement could trigger, and it is independent of camp siting entirely. It is now the gate in front of the largest prize measured on this wall.
 
 A: place the camp where villagers already work, leaving routing alone.
 B: home range — restrict a villager's option set to a site's neighbourhood.
