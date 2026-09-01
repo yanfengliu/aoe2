@@ -668,7 +668,21 @@ o1  age=DARK-AGE  vil=10  f=210  w=5   bld: town-center, house, barracks, house,
 o2  age=feudal    vil=22  f=365  w=10  bld: ..., lumber-camp, mining-camp, ...
 ```
 
-**CORRECTION 2026-09-01 (same day): there is no "drop-off oscillation". I named it from a probe that printed the wrong field, then traced it properly and the name did not survive.** Following one carrier tick by tick on `seed-7`:
+**RE-CORRECTED 2026-09-01, and the second correction is the right one. The oscillation IS real; my retraction of it was made on a sample too coarse to see it.** Tracing the arbiter every tick rather than every sixth:
+
+```
+t=16494-16500  pos=49,21  next=50,21  proceed
+t=16501-16503  pos=50,21  next=49,21  proceed   <- reversed
+t=16504-16506  pos=49,21  next=50,21  proceed
+t=16507-16509  pos=50,21  next=49,21  proceed
+   ... unchanged through t=16539
+```
+
+A two-cell limit cycle. Traffic returns `proceed` on EVERY tick, so nothing is blocking the carrier; the NEXT STEP ITSELF reverses with position — east from (49,21), west from (50,21) — and it paces between the two cells indefinitely holding ten wood. Destination selection runs from the carrier's current position with no memory, so two adjacent cells can disagree about where it should be going, and the carrier chases the disagreement.
+
+The retraction below was written from a 6-tick sample that happened to catch a stable target during a DIFFERENT stall at (49,20). Sampling every sixth tick cannot resolve a cycle whose period is about six ticks. Recorded rather than deleted because the failure is instructive: the coarse trace was not wrong about what it saw, it was wrong about what it could see, and I generalised from it anyway.
+
+**What the earlier trace did show, and still stands.** Following one carrier tick by tick on `seed-7`:
 
 ```
 t+6..t+36   pos=49,20   drop=2209 (town-centre)   <- 36 ticks, SAME cell, SAME target
