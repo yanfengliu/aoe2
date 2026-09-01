@@ -668,6 +668,18 @@ o1  age=DARK-AGE  vil=10  f=210  w=5   bld: town-center, house, barracks, house,
 o2  age=feudal    vil=22  f=365  w=10  bld: ..., lumber-camp, mining-camp, ...
 ```
 
+**CORRECTION 2026-09-01 (same day): there is no "drop-off oscillation". I named it from a probe that printed the wrong field, then traced it properly and the name did not survive.** Following one carrier tick by tick on `seed-7`:
+
+```
+t+6..t+36   pos=49,20   drop=2209 (town-centre)   <- 36 ticks, SAME cell, SAME target
+t+42        pos=49,21   drop=2209
+t+48        pos=50,21   drop=2221 (lumber-camp)   <- switches only AFTER it moves
+```
+
+The destination is STABLE through the entire stall. It changes only once the carrier reaches (50,21), where the Lumber Camp genuinely is closer (Manhattan 3 against the Town Centre's 5) — a correct switch, not a flip. So the carrier is stalled in MOVEMENT while holding a steady destination, which puts it in the traffic-contention family rather than in drop-off selection.
+
+A hysteresis fix was built anyway before that trace was read properly — commitment kept unless a rival is closer by a margin, extracted as a pure function with eight tests, all passing. Swept at margin 2 and margin 1 over six seeds: it cured `seed-7` (worst 3,500 -> 250/500, stuck 5 -> 0) and REGRESSED the boot map (owner 1 villagers 22 -> 19) and `default-seed` (owner 2 buildings 19 -> 15) at BOTH margins, so the cost is the hysteresis itself and not its tuning. Rejected on the adoption rule and reverted. Recorded because the passing unit tests and the cured target seed would both have read as success: only the six-seed comparison showed the change made the game worse.
+
 **The villagers counted as frozen belong to owner 2, the HEALTHY slot.** Four of them sit in `to-dropoff` holding full 10-loads while their `trafficProgressTick` is fresh — 16,462 to 16,499 at t=16,500 — so they are changing cells constantly and still not delivering. That is oscillation near a drop-off, not the starvation fixed in v0.3.175, and the 250-tick cell sampler that found them reports oscillation as a freeze. The metric and the mechanism disagree, and the metric is the one to distrust.
 
 **Owner 1's Dark Age stall is the economy wall in miniature and is unrelated to movement.** Ten villagers is exactly `DARK_AGE_TUNING.villagerCap`. It holds 5 wood and has a Mill but NO FARM; a farm costs 60 wood. No wood, so no farms; no farms, so food stalls at 210 against the 500 the Feudal advance needs; still Dark Age, so still capped at ten villagers. A closed loop whose only entry point is wood — the same wall the whole lumber-camp thread is about, in its clearest single-slot form.
