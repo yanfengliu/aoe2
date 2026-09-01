@@ -123,3 +123,31 @@ One multi-source BFS from every drop-off of the relevant kind fixes both, and su
 **Cost.** 2,160 cells on a 60x36 map, one BFS per owner per resource kind, recomputed only when the structural revision moves. Microseconds, against a comparator that currently runs a bounded A* probe loop per assignment.
 
 **What must still be proved, and is not yet.** 1.49x is a resource RATE. Nobody has shown that rate is what gates the Castle Age — every disqualifier in DESIGN.md applies to this candidate unchanged, and the two that killed round 1's candidates (aggregate-up-boot-map-down, and outcome-moves-mechanism-does-not) are the ones to watch. The revised done-condition 3 is the guard: wood throughput and the gathering share of wood villagers' time must both rise.
+
+# Round 2 — the closest candidate yet, rejected by a gate written before it existed
+
+Branch A's mechanism (anchor the Lumber Camp on the medoid of trees villagers actually target) paired with mining-camp-first ordering, which branch A proved by isolation removes the ten-villager deadlock.
+
+**Measured seeds (10 seeds, 20 owner-slots):**
+
+    24,000   baseline 4 Castle / 156 / 89 / 110    candidate 5 / 165 / 88 / 102
+    34,000   baseline 10 Castle / 176 / 115 / 168  candidate 11 / 187 / 121 / 169
+
+**Held-out seeds (6 never used for tuning, 12 owner-slots) — the bar round 1's candidates failed:**
+
+    24,000   baseline 2 Castle / 84 / 50 / 59     candidate 3 / 87 / 54 / 61
+    34,000   baseline 6 Castle / 103 / 63 / 97    candidate 8 / 103 / 72 / 91
+
+Castle-Age slots improve at both horizons on BOTH populations. Disqualifier 6 is cleared for the first time in the investigation, and the mechanism check (disqualifier 2) was already cleared by branch A.
+
+**Boot map, per owner at 34,000.** Owner 2 qualifies 7,000 ticks earlier (23,500 to 16,500), reaches Castle 750 earlier, and gains four building types and a unit type; owner 1 gains a building type. But Feudal arrives 1,750 ticks later and peak army falls 10 to 9.
+
+**Rejected, and by the right thing.** `aiReachesCastleAge.test.ts` fails:
+
+    peak military 7 — the age was bought by disbanding the army: expected 7 to be >= 8
+
+That assertion was written earlier in this session, before this candidate existed, for exactly this shape — a candidate that buys an age by giving up the army. It is measuring what it was built to measure and the candidate does what it was built to catch. Moving the bar to admit it is the first item on the hard-problem playbook's audit list ("the assertion moved rather than the behaviour"), so the bar stands and the candidate goes.
+
+**What round 2 establishes.** The mechanism is real and replicates on held-out seeds — camp placement at the work is worth Castle-Age slots on populations it was never tuned against. The cost is army, consistently: A alone 110→101 and 168→158, A plus mining-first 110→102 and 168→169 in aggregate but 8→7 on the boot map specifically. Every variant of this mechanism measured so far trades army for age.
+
+**The gap, stated exactly.** A version of this that does not cost boot-map peak army would pass every bar in DESIGN.md. Nobody has yet explained WHY the army falls — whether it is wood diverted from military, villagers idle during camp relocation, or the mining-camp displacement's residue. That explanation is the next piece of work, and it is a measurement rather than another candidate.
