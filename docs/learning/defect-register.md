@@ -604,3 +604,15 @@ Run to 60,000 on five of the same seeds:
 **And late arrivals are real, not noise.** `seed-1` owner 1 qualifies at 53,250 and takes the Castle Age at 54,750. Any horizon under that scores it as walled.
 
 **What this costs and what it buys.** The costs are recorded above: a feature designed, implemented, reviewed and reverted for a symptom that partly was not there. What it buys is a sharper rule than "use a longer horizon" — a horizon is an instrument that must be re-justified every time the measured thing changes. 34,000 was chosen to see the Castle Age and is the wrong instrument for the Imperial one. The self-play audit's headline numbers are now qualified by the window they were taken through, wherever they appear.
+
+## 2026-09-01 — Two technology cost rows claimed a source that was never consulted (RESOLVED)
+
+**Symptom.** `researchTables.ts` carried `sultans: { gold: 400 }, // ... (wiki: 400 gold)` and `carrack: { wood: 200, gold: 200 }, // ... (wiki: 200w 200g)`, and the commits that added them said the values were wiki-verified. No wiki was consulted for either. The numbers came from model knowledge of AoE2 DE.
+
+**Why it matters more than the numbers themselves.** The four technologies before them — Shatagni, Recurve Bow, Farimba, Kasbah — WERE checked against the wiki, and two changed as a result: Shatagni is +2 range rather than the +1 memory offered, and the Incas' Couriers turned out to grant armour where memory had speed. That is the entire reason this repo has a standing lesson that a remembered game rule is a hypothesis. Writing "(wiki: ...)" beside an unchecked value does not just risk a wrong number; it disarms the check for whoever reads it next, because the row looks already settled.
+
+**Fix.** Both rows now read `UNVERIFIED`, with a sourcing note above `RESEARCH_COSTS` that states plainly what was and was not checked and why the repo cannot settle it internally: `design/stats/technologies.csv` has no row for ANY expansion-civilization unique technology, which is the data gap recorded separately today.
+
+**How it is checked from now on.** Not by a test — a value's provenance is not something the suite can see, which is the point. What changes is the standard: a sourcing annotation is a claim about work performed, and if the work was not performed the annotation says UNVERIFIED. The effects of both technologies are right in kind and their tests pass on the mechanism, so nothing is broken; what was wrong was the confidence attached to two numbers.
+
+**What this predicts.** Any comment of the form "(source: ...)" written in the same motion as the code it annotates is worth doubting, because the natural time to write it is when the value feels obvious — which is exactly when it was not looked up.

@@ -4,6 +4,21 @@
 
 import type { PlayerResources, ResearchableTechnologyType } from './types';
 
+// SOURCING NOTE for Sultans and Carrack (2026-09-01), and it is a correction.
+//
+// The rows for Shatagni, Recurve Bow, Farimba and Kasbah were checked against
+// the wiki when they were written, and two of them changed as a result
+// (Shatagni is +2 range, not +1). Sultans and Carrack were NOT: their numbers
+// came from model knowledge of AoE2 DE, and the comments originally read
+// "(wiki: ...)" as though a source had been consulted. That claim was wrong and
+// is retracted here rather than left to be trusted.
+//
+// The values are plausible and the effects are right in kind, but the exact
+// costs and research times need checking against the wiki before either is
+// treated as conformant. `design/stats/technologies.csv` carries no row for
+// any expansion-civilization unique technology, so the repo cannot settle it
+// either — see the 2026-09-01 defect-register entry on the content gap being a
+// DATA gap.
 export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerResources>> = {
   'feudal-age': { food: 500 },
   'castle-age': { food: 800, gold: 200 },
@@ -52,8 +67,8 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   'recurve-bow': { wood: 600, gold: 400 },
   farimba: { food: 650, gold: 400 },
   kasbah: { food: 250, gold: 250 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
-  sultans: { gold: 400 }, // Castle, Castle Age: +10% gold generation (wiki: 400 gold).
-  carrack: { wood: 200, gold: 200 }, // Castle, Castle Age: all ships +1/+1 armour (wiki: 200w 200g).
+  sultans: { gold: 400 }, // Castle, Castle Age: +10% gold generation. UNVERIFIED (see below).
+  carrack: { wood: 200, gold: 200 }, // Castle, Castle Age: all ships +1/+1 armour. UNVERIFIED (see below).
   bracer: { food: 450, gold: 300 },
   'blast-furnace': { food: 275, gold: 225 },
   'plate-mail-armor': { food: 300, gold: 150 },
@@ -212,8 +227,8 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'recurve-bow': 400, // Castle, Imperial: 40 s x 10 TPS.
   farimba: 400, // Castle, Imperial: 40 s x 10 TPS (wiki: 0:40).
   kasbah: 400, // Castle, Castle Age: 40 s x 10 TPS (wiki: 0:40).
-  sultans: 500, // Castle, Castle Age: 50 s x 10 TPS (wiki: 0:50).
-  carrack: 400, // Castle, Castle Age: 40 s x 10 TPS (wiki: 0:40).
+  sultans: 500, // Castle, Castle Age: 50 s x 10 TPS. UNVERIFIED (see RESEARCH_COSTS).
+  carrack: 400, // Castle, Castle Age: 40 s x 10 TPS. UNVERIFIED (see RESEARCH_COSTS).
   bracer: 500,
   'blast-furnace': 600,
   'plate-mail-armor': 600,
