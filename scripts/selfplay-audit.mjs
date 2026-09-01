@@ -11,7 +11,7 @@
 // question and flatters the result.
 //
 // Usage:
-//   npx tsx scripts/selfplay-audit.mjs [--seeds a,b,c] [--ticks 24000]
+//   npx tsx scripts/selfplay-audit.mjs [--seeds a,b,c] [--ticks 45000]
 
 import { createSimulationBridge } from '../src/game/simulation/createSimulationBridge.ts';
 import { HUMAN_PLAYER_ID } from '../src/game/simulation/prototypeScenario.ts';
@@ -21,7 +21,24 @@ const arg = (name, fallback) => {
   return i === -1 ? fallback : process.argv[i + 1];
 };
 const SEEDS = String(arg('seeds', 'aoe2-prototype,default-seed,corpus-seed-b')).split(',');
-const TICKS = Number(arg('ticks', 24000));
+// 45,000 ticks — 75 minutes of game time — and the default is the whole point
+// of this constant rather than a convenience.
+//
+// It was 24,000, and that window produced three wrong conclusions that all
+// reached the register before anyone checked the instrument: that no player
+// reaches the Imperial Age, that decided matches never resolve, and (at 34,000)
+// that half the owner-slots are walled in Feudal. Measured to 60,000 on the
+// same seeds, Imperial lands at ticks 40,250 and 41,250, matches DO resolve by
+// conquest, and a slot can qualify as late as 53,250. A resignation feature was
+// designed, built, reviewed and reverted for the second of those.
+//
+// The ages arrive at roughly 9,500 (Feudal), 21,500-30,000 (Castle) and
+// 40,000-41,000 (Imperial), so a default under ~42,000 cannot see the game's
+// last age at all and reports its absence as a defect. 45,000 clears Imperial
+// with margin. Anything measuring WHEN something lands still needs its own
+// horizon justified against that thing — see the lessons entry; this default
+// only stops the common case from lying.
+const TICKS = Number(arg('ticks', 45000));
 const QUALIFYING = ['blacksmith', 'archery-range', 'stable', 'market'];
 
 const pad = (s, n) => String(s).padEnd(n);
