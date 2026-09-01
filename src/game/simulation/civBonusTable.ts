@@ -196,6 +196,19 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Indians',
+    // civilizations.csv team bonus: "Scout line and Camels have +2 attack vs.
+    // buildings". The Camel line does not exist in this roster, so the rule
+    // covers the Scout line that does — narrower than AoE2 on purpose rather
+    // than by omission, and it widens for free the day camels arrive.
+    //
+    // It is also a TEAM bonus in AoE2 and applies here only to the owner:
+    // `civBuildingAttackBonus` reads the attacker's own civilization, so this
+    // is identical in a 1v1 and narrower in a team game. Same shape and same
+    // stated limitation as Kasbah.
+    buildingAttack: [{
+      applies: (unit) => unit === 'scout' || unit === 'light-cavalry' || unit === 'hussar',
+      bonus: 2,
+    }],
     // DE (Hindustanis): villagers -8/13/18/23% by age; the old fisherman
     // bonus is DE-dead.
     cost: [{

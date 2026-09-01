@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.174
+
+- Indian Scouts, Light Cavalry and Hussars hit buildings for 2 more damage, the civilization bonus their stats table has always described. In Age of Empires this also covers their Camels and extends to allies; here it is the Scout line and the owning player, which is the same thing in a one-on-one game.
+
 ## 0.3.173
 
 - The Portuguese can research Carrack at their Castle: every one of their ships, warship and fishing boat alike, gains a point of melee and a point of pierce armour. The sixth of the twelve expansion civilizations' signature technologies.
