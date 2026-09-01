@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.176
+
+- Villagers carrying a load now pick the drop-off building that is genuinely closest. Distance was measured to a building's corner rather than to the nearest part of it, which for a Town Centre is out by up to three tiles and out by a different amount depending on which side you approach from — so two neighbouring tiles could disagree about which building was nearer. A villager standing on the boundary would walk one way, change its mind, walk back, and pace on the spot holding a full load. On one map that freed five villagers who had been stuck for minutes, and the same player finished with five more buildings.
+
 ## 0.3.175
 
 - Villagers no longer stand frozen in a crowded gap. Where a lane is one tile wide — the ground between a Lumber Camp and the trees it serves is the usual place — the queue is resolved in a fixed order, and a villager at the back of it could be passed over indefinitely while its neighbours filed through. On one map five villagers stood motionless for up to four and a half minutes of game time, one of them holding a full load of wood it never delivered. Whoever has genuinely stopped moving now goes next. Across six maps the number of villagers stalling for more than a minute and a half fell from 26 to 7.

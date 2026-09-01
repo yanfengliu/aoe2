@@ -25,6 +25,7 @@ import { canDropOffAt } from '../prototypeEconomyRules';
 import type {
   GameWorld,
 } from './pureHelpers';
+import { manhattanDistanceToFootprint } from './footprintDistance';
 import {
   distanceFromBuildingFootprint,
   isFootprintVisible,
@@ -325,7 +326,19 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
         continue;
       }
 
-      const distance = manhattanDistance(origin, position);
+      // To the building's nearest OCCUPIED cell, not its origin corner. A 4x4
+      // Town Centre's origin is up to three tiles from the cell a carrier
+      // actually walks to, and wrong by a different amount from each side —
+      // which let two adjacent cells disagree about which drop-off was
+      // nearest. Measured on `seed-7`: a carrier holding ten wood paced
+      // between (49,21) and (50,21) forever, traffic granting `proceed` every
+      // tick, because measured to origins the Town Centre went from tied to
+      // strictly worse across that one step.
+      const distance = manhattanDistanceToFootprint(
+        origin,
+        position,
+        getBuildingFootprint(building.buildingType),
+      );
       if (distance < nearestDistance) {
         nearestDistance = distance;
         nearestBuildingId = id;
