@@ -205,3 +205,37 @@ Trained 8, lost 6, peak 7 — the same three numbers. Branch A's army cost is in
 What still stands: the army dies in the field, at training parity, holding 985 unspent wood, in a match where neither arm leaves Feudal on this map. The cause of the DEATHS remains unmeasured. The open question is now narrower than before — not "why does the army fall" (answered: it dies) and not "does traffic starvation kill it" (answered: no), but where and to what those six units are lost.
 
 Incidental confirmation: the gate message rewritten earlier the same day did its job on its first real failure, naming "trained 8 but LOST 6 — the army died in the field". The message it replaced would have read "the age was bought by disbanding the army" and sent the reader after a resource tradeoff that does not exist here.
+
+---
+
+## Correction: the gate fails on ONE FEWER UNIT TRAINED, not on deaths
+
+A death census on the boot map (position at death, and everything within 4 tiles the tick before) corrects the framing published in commit `a3da7d86`.
+
+```
+BASELINE   deaths=1   t=1205 militia at 9,5      near 2 enemy villagers, 1 enemy scout
+
+CANDIDATE  deaths=6   t=1205  militia  at 9,5    (the SAME early skirmish)
+                      t=23798 spearman at 13,7   near 8 enemy villagers
+                      t=23839 archer   at 17,8   near 3 enemy spearmen, 4 villagers
+                      t=23880 spearman at 12,7   near 7 enemy villagers
+                      t=23892 spearman at 12,7   near 7 enemy villagers
+                      t=23911 spearman at 17,8   near 3 enemy spearmen
+```
+
+All five extra deaths land in a 113-tick window at the very end of the run, at (12-17, 7-8), surrounded by the enemy's villagers. That is not an army being lost — it is an army ATTACKING THE ENEMY BASE, which the baseline never does.
+
+**And peak military is a MAXIMUM over the match**, so deaths at t=23,800 cannot lower a peak set thousands of ticks earlier. Both arms lose the same militia at t=1,205, which gives:
+
+```
+baseline    trained 9 - 1 early death = peak 8
+candidate   trained 8 - 1 early death = peak 7
+```
+
+The gate fails by exactly one unit never trained. Deaths do not enter into it.
+
+**What this corrects.** `a3da7d86` concluded "the army is trained at parity and then dies". That is accurate for the FINAL count (mil=2 against 8 at t=24,000) and it is not the reason the gate fails. Trained 8 against 9 was recorded there as "a wash"; against a bar of 8 with one early death common to both arms, that single unit IS the whole failure. The death ledger in that commit is correct; the inference from it to the gate was not.
+
+**What it does not license.** The bar stays at 8. Reading a fresh measurement as permission to admit my own candidate is the first item on the playbook's audit list, and "it fails by only one" is the oldest version of that argument. The right move is to find out why one fewer unit is trained and fix that, which makes the candidate pass on its merits or proves it cannot.
+
+**Worth noting in the candidate's favour, as evidence rather than as an argument for adoption:** it mounts an assault on the enemy base at t=23,800 with spearmen and archers. The baseline reaches t=24,000 having fought one skirmish at t=1,205 and nothing since. Whatever the peak-army column says, only one of these two arms ever plays the game.
