@@ -78,6 +78,7 @@ export const RESEARCHES_BY_BUILDING = new Map<BuildingType, readonly Researchabl
     'farimba',
     'kasbah',
     'sultans',
+    'carrack',
     'garland-wars',
     'yeomen',
     'logistica',

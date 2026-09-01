@@ -53,6 +53,7 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   farimba: { food: 650, gold: 400 },
   kasbah: { food: 250, gold: 250 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
   sultans: { gold: 400 }, // Castle, Castle Age: +10% gold generation (wiki: 400 gold).
+  carrack: { wood: 200, gold: 200 }, // Castle, Castle Age: all ships +1/+1 armour (wiki: 200w 200g).
   bracer: { food: 450, gold: 300 },
   'blast-furnace': { food: 275, gold: 225 },
   'plate-mail-armor': { food: 300, gold: 150 },
@@ -212,6 +213,7 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   farimba: 400, // Castle, Imperial: 40 s x 10 TPS (wiki: 0:40).
   kasbah: 400, // Castle, Castle Age: 40 s x 10 TPS (wiki: 0:40).
   sultans: 500, // Castle, Castle Age: 50 s x 10 TPS (wiki: 0:50).
+  carrack: 400, // Castle, Castle Age: 40 s x 10 TPS (wiki: 0:40).
   bracer: 500,
   'blast-furnace': 600,
   'plate-mail-armor': 600,

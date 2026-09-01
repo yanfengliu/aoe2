@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.173
+
+- The Portuguese can research Carrack at their Castle: every one of their ships, warship and fishing boat alike, gains a point of melee and a point of pierce armour. The sixth of the twelve expansion civilizations' signature technologies.
+
 ## 0.3.172
 
 - The Indians can research Sultans at their Castle: their villagers gather gold 10% faster, and it stacks with the Gold Mining upgrades the way Age of Empires stacks its own gold technologies. The fifth of the twelve expansion civilizations' signature technologies to arrive, and the first of them that changes an economy rather than an army.

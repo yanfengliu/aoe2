@@ -12,6 +12,7 @@
 // the CSV line it came from. Instead each technology names which units or
 // buildings it touches and what it adds, and one loop applies them all.
 
+import { isWaterUnit } from './unitDomain';
 import { isInfantryUnit } from './prototypeUnitRules';
 import type { BuildingType } from './types';
 import type { ResearchableTechnologyType } from './technologyTypes';
@@ -177,6 +178,20 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     unitEffect: {
       applies: is('scout', 'light-cavalry', 'hussar', 'knight', 'cavalier', 'paladin'),
       attackDamage: 5,
+    },
+  },
+  {
+    id: 'carrack',
+    name: 'Carrack',
+    civilization: 'Portuguese',
+    age: 'castle-age',
+    cost: { wood: 200, gold: 200 },
+    researchTicks: 400,
+    summary: 'All ships gain +1 melee and +1 pierce armour.',
+    unitEffect: {
+      applies: isWaterUnit,
+      armor: 1,
+      pierceArmor: 1,
     },
   },
   {

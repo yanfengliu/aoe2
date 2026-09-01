@@ -61,7 +61,7 @@ const MISSING_UNITS: readonly string[] = [
 const MISSING_TECHS: readonly string[] = [
   'Maghrabi Camels', 'Howdah', 'Manipur Cavalry', 'Royal Heirs', 'Torsion Engines',
   'Couriers', 'Andean Sling', 'Pavise', 'Silk Road', 'Tusk Swords',
-  'Double Crossbow', 'Mercenaries', 'Tigui', 'Carrack', 'Arquebus',
+  'Double Crossbow', 'Mercenaries', 'Tigui', 'Arquebus',
   'Orthodoxy', 'Druzhina', 'Chatras', 'Paper Money',
 ];
 

@@ -50,6 +50,8 @@ export function formatTechnologyName(technologyType: ResearchableTechnologyType)
       return 'Kasbah';
     case 'sultans':
       return 'Sultans';
+    case 'carrack':
+      return 'Carrack';
     case 'careening':
       return 'Careening';
     case 'dry-dock':
