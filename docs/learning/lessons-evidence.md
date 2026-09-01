@@ -837,3 +837,13 @@ Review ran the same seeds to 34,000 ticks:
 Two things generalise. A cut-off is part of the instrument, not part of the world, and any change that shifts WHEN something happens must be measured at two horizons before the direction is believed — one of them well past where the effect is expected to settle. And the tell was available without the second run: the change made things happen sooner and my metric counted only whether they happened at all, which is exactly the shape that a nearby horizon flatters.
 
 Anchor: `docs/learning/defect-register.md`, the 2026-08-30 Feudal-wall entry; the twelve attempts are listed there with what each one falsified.
+
+## The Browser pane advances the game only when it renders a frame (2026-09-01)
+
+A hands-on play session on `aoe2-prototype` through the automated Browser pane looked like a catastrophic defect: `getHudState().tick` returned 59, and five seconds later it still returned 59. Calling `setPaused(false)` changed nothing. The game appeared completely frozen.
+
+It is not. Taking a screenshot advanced the clock. The pane services `requestAnimationFrame` only when it captures a frame, and the game's simulation is driven from that loop — so between captures the world genuinely does not move, and any elapsed-time measurement taken through this pane is meaningless.
+
+What this means in practice: the pane is fine for verifying STATE and INTERACTION — selection, command cards, orders, hotkeys, rendering — and cannot be used to judge anything about rate, pacing, or real-time feel. For those, use `advanceTicks` and read the tick counter, or measure in a node harness where the clock is explicit.
+
+Two smaller traps from the same session, both mine and both mistaken for game defects at first. `computer{action:'key', text:'period'}` sends the literal string, not the `.` character — the idle-villager hotkey looked broken and works correctly when sent as `.`. And clicking a command-card button does NOT strand keyboard focus: `document.activeElement` is back on the canvas immediately afterwards, so hotkeys keep working, which I had briefly recorded as a UX defect before checking.

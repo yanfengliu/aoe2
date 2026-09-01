@@ -10,6 +10,8 @@ When a lesson becomes a gate — a test, a lint rule, a fixed command — delete
 
 ## Rules
 
+- The Browser pane advances the game ONLY when it renders a frame — verify state and interaction there, never rate or pacing ([evidence](lessons-evidence.md#the-browser-pane-advances-the-game-only-when-it-renders-a-frame-2026-09-01))
+
 - A measurement HORIZON is part of the instrument — anything that changes WHEN an outcome lands must be measured at two, or you count arrivals and miss losses ([evidence](lessons-evidence.md#a-measurement-horizon-is-an-instrument-and-24000-ticks-was-the-wrong-one-2026-08-30))
 
 - A rendered cue must be judged across the axes it VARIES over — every post-processing art style, both ownership colours, a bright and a dark background ([evidence](lessons-evidence.md#a-rendered-image-judged-from-one-capture-is-one-capture-not-a-verification-2026-08-30))
