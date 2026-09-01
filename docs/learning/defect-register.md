@@ -450,6 +450,27 @@ So the walking is real but the walk itself is close to as fast as the clock allo
 
 **One instrument error, and it is the recorded one again.** The first speed probe reported zero walking ticks. `EconomyState.villagers[]` carries owner, task and resource but NO `id`, so `getComponent(v.id, ...)` was asking about `undefined` for every villager — a query structurally incapable of finding anything, reported as a finding. The fix was to read `units[]`, which does carry ids, and cross-reference the `gatherer` component. Printing the shape of the object being filtered is what caught it, which is exactly what the lesson prescribes.
 
+**THE AI BUILDS A LUMBER CAMP AND THEN DOES NOT USE IT (2026-08-30, OPEN — and this is the wall's structural cause).** Measured at tick 16,000 across five seeds, ten owner-slots, counting which drop-off is nearest to each wood villager's actual target:
+
+    seed/owner        camps  woodVils  servedByCamp  byTownCentre  medianHaul
+    aoe2-prototype 1    1       5            0            5            8
+    aoe2-prototype 2    1      12           12            0            7
+    default-seed   1    1       1            1            0            4
+    default-seed   2    1      10            0           10           10
+    corpus-seed-b  1    1       7            0            7           11
+    corpus-seed-b  2    1       4            0            4           10
+    seed-1         1    1       7            0            7            9
+    seed-2         1    1       7            0            7            8
+    seed-2         2    1       8            8            0            7
+
+**Six of the nine slots that own a Lumber Camp have ZERO villagers served by it.** On `corpus-seed-b` owner 2 the camp sits at (57,25) with **6 live trees within 3 tiles and 17 within 6**, and all four wood villagers are working trees a median of 10 tiles from the Town Center instead. Where the camp IS used the haul falls to 4-7.
+
+**Why.** `assignNearestResource` ranks candidates by proximity to a reference drop-off, and that reference is *the drop-off nearest the VILLAGER* — its own comment calls this "an accepted one-lookup approximation". A villager standing near the Town Center therefore ranks trees by Town-Centre proximity and picks one there, so it never migrates to the camp; the camp only ever serves villagers that happen to already be beside it. The deposit building is re-resolved correctly at haul time, which is why this never showed up as a wrong-destination bug — the villagers walk to the right drop-off, they were just sent to the wrong TREE.
+
+**Why it matters more than everything above it.** This is the structural cause the fifteen tuning attempts were working around. It explains the 20% gathering share, the 0.77 wood/s gross, the seventeen minutes to afford 325 wood of qualifying buildings — and it explains why a SECOND Lumber Camp changed nothing (attempt ten): a second camp cannot help when the first serves nobody.
+
+**The shape of the fix.** Rank candidates by the round trip they actually imply — distance from the candidate to the candidate's OWN nearest drop-off — rather than to whichever drop-off the villager is standing near. Trees beside the camp then rank best, because their nearest drop-off is one to three tiles away.
+
 That is eight measured negatives on this wall now. Every lever tried moves wood between things that all need it; none creates any. The remaining candidates are on the GATHER side rather than the spend side — walk distance, camp siting, and how many gatherers share one drop-off — and the measurement to beat is the 25% figure above, not the age timings.
 
 **What a future attempt needs.** Not a resource test at all — a POSITIVE signal that the player is doing something, rather than a proof that it can do nothing. The queue, the market, the trickle and tribute are all things this rule had to know about only because it was arguing from absence.
