@@ -836,6 +836,10 @@ Review ran the same seeds to 34,000 ticks:
 
 Two things generalise. A cut-off is part of the instrument, not part of the world, and any change that shifts WHEN something happens must be measured at two horizons before the direction is believed — one of them well past where the effect is expected to settle. And the tell was available without the second run: the change made things happen sooner and my metric counted only whether they happened at all, which is exactly the shape that a nearby horizon flatters.
 
+**It happened a second time the next day, on the conclusions drawn FROM the corrected horizon.** The self-play verification at 34,000 ticks reported "0 of 20 owner-slots reached Imperial", and I recorded that as the state of the game. Castle arrives between ticks 20,500 and 30,000, so those slots had as little as 4,000 ticks to bank 1,000 food and 800 gold and put up two Castle-Age buildings. Run to 60,000 on five of the same seeds: **two slots reach the Imperial Age**, at ticks 40,250 and 41,250 — and two matches RESOLVE by conquest, one victory and one defeat, where the shorter run had shown decided-but-running games and prompted a whole resignation feature that was built and reverted.
+
+So the rule is not "pick a longer horizon once". It is that a horizon must be justified against the thing being measured EVERY time the thing changes: 34,000 was chosen to see the Castle Age and is simply the wrong instrument for the Imperial one, which lands 6,000 ticks later than the window ends.
+
 Anchor: `docs/learning/defect-register.md`, the 2026-08-30 Feudal-wall entry; the twelve attempts are listed there with what each one falsified.
 
 ## The Browser pane advances the game only when it renders a frame (2026-09-01)

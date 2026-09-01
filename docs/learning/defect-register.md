@@ -584,3 +584,23 @@ Three of the touched files crossed the 500-line cap once the markers went in, an
 **A third instance of the load-dependent browser class, found while shipping this.** `game-progression-production > can train a Monk ... and earn gold income` measured 28 ticks elapsed against a 20-25 tolerance band. Its own comment named the cause — "the game view's own update loop running between evaluate() calls" — so the band existed to absorb real-time drift rather than to assert anything. Pausing makes the count EXACTLY the 20 requested, which is both stronger and load-independent, and the band is gone. That is now three specs fixed by the same move (fog memory, the moving-enemy click, this one), against the register's own prediction that only 4 of 34 browser specs pause.
 
 **What this predicts.** Any two-state visual cue whose fixture exercises one state is untested in the state that matters, and the untested one will be the one carrying the information. The pixel diff also showed a deterministic ±1-5 per channel shift across the minimap from the tint change alone — sub-perceptual, and worth knowing that a colour change in one lane moves rounding in another.
+
+## 2026-09-01 — Three recorded conclusions were all the same horizon artifact (CORRECTION)
+
+The AI self-play verification ran to 34,000 ticks and reported: no owner-slot reaches the Imperial Age, and decided matches sit unresolved. Both went into the record. Both are wrong, and so was a third conclusion built on the second.
+
+Run to 60,000 on five of the same seeds:
+
+    default-seed  o2   feudal 9,750   castle 24,000   IMPERIAL 40,250
+    seed-3        o2   feudal 9,500   castle 21,500   IMPERIAL 41,250
+    delta              match ended early: VICTORY
+    eta                match ended early: DEFEAT
+    seed-1        o1   qualified 53,250, castle 54,750
+
+**The Imperial Age is reached**, at ticks 40,250 and 41,250 — 6,000 past where the audit stopped looking. Castle arrives between 20,500 and 30,000, so a 34,000 horizon left as little as 4,000 ticks to bank 1,000 food and 800 gold AND put up two Castle-Age buildings. The game reaches all four ages.
+
+**Matches DO resolve by conquest**, given time: one victory and one defeat in five seeds. The 2026-08-30 register entry describing a decided match running forever, and the resignation feature built and reverted for it — which review proved would have declared living players dead — were both responses to a 60,000-tick behaviour observed through a 34,000-tick window.
+
+**And late arrivals are real, not noise.** `seed-1` owner 1 qualifies at 53,250 and takes the Castle Age at 54,750. Any horizon under that scores it as walled.
+
+**What this costs and what it buys.** The costs are recorded above: a feature designed, implemented, reviewed and reverted for a symptom that partly was not there. What it buys is a sharper rule than "use a longer horizon" — a horizon is an instrument that must be re-justified every time the measured thing changes. 34,000 was chosen to see the Castle Age and is the wrong instrument for the Imperial one. The self-play audit's headline numbers are now qualified by the window they were taken through, wherever they appear.
