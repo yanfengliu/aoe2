@@ -88,3 +88,20 @@ D: prior art, plus an offline optimiser to bound what assignment can achieve at 
 
 - **The disqualifier list earned its place immediately.** Branch C's candidate passes the fixed reproduction at both horizons. Without disqualifier 2 written in advance, it ships as the first real win in eighteen attempts, and the mechanism it claims to validate is untouched.
 - **Contention corrupts measurement.** 109 node processes were live across three branches; one branch measured its workers at ~2% of a core and lost a held-out arm. Round 2 should run branches with serialized measurement, or fewer branches at once. The DESIGN.md baseline was taken on an idle machine and is not comparable to a contended run.
+
+## Round 2's target, specified
+
+Branch D's ablation makes the choice for us: the METRIC fix dominates the anchor fix (1.62-7.63x against 1.16-7.63x on wood, and both together equal the metric alone). So round 2 is one focused change, not another portfolio.
+
+**Replace Manhattan with true 4-connected walk distance in the gather comparator.** Reading `villagerGatherAssignment.ts`, the error is in TWO places, which is more than the branch reports called out:
+
+- line 186, the home-range FILTER — `manhattanDistance(candidate, referenceDropOff) <= HOME_GATHER_RANGE`. An unreachable tree at Manhattan 8 passes this today.
+- lines 240-243, the primary RANKING by distance to the reference drop-off.
+
+One multi-source BFS from every drop-off of the relevant kind fixes both, and subsumes a third thing: the `MAX_REACHABILITY_PROBES = 16` per-call pathfinding that exists precisely because the comparator cannot tell reachable from unreachable. A BFS field returns Infinity for unreachable cells for free.
+
+**The invalidation signal already exists, and this is the third consumer.** `worldOccupancy.structuralRevision` is bumped by every claim and release and by `notePassabilityChange()`. It already keys the v0.3.160 unreachable-plan cache and the spawn-passability memo added earlier this session. The architecture decision written with that memo says: "A third consumer should be read as a signal that the counter deserves a named invalidation type rather than another comment." Round 2 is that third consumer, so it should introduce the named type rather than adding a third bare comment.
+
+**Cost.** 2,160 cells on a 60x36 map, one BFS per owner per resource kind, recomputed only when the structural revision moves. Microseconds, against a comparator that currently runs a bounded A* probe loop per assignment.
+
+**What must still be proved, and is not yet.** 1.49x is a resource RATE. Nobody has shown that rate is what gates the Castle Age — every disqualifier in DESIGN.md applies to this candidate unchanged, and the two that killed round 1's candidates (aggregate-up-boot-map-down, and outcome-moves-mechanism-does-not) are the ones to watch. The revised done-condition 3 is the guard: wood throughput and the gathering share of wood villagers' time must both rise.
