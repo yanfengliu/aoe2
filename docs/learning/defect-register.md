@@ -659,7 +659,38 @@ Measured on the AI's live targets: wood villagers work trees at Manhattan 3.6-10
 
 **A near-miss worth recording.** The branch's first pass priced hauls at Manhattan and concluded the family was capped at 1.03-1.27x and should be abandoned. It caught itself because the modelled gathering fraction (70%) did not match the measured one (19%). The same wrong assumption that causes the defect nearly buried the evidence for it.
 
-## 2026-09-01 — Villagers latch on an OPEN cell when buildings move (ROOT CAUSE FOUND: traffic-election starvation)
+## 2026-09-01 — Villagers latch on an OPEN cell when buildings move (FIXED)
+
+**The fix.** The narrow-passage election keeps stable lowest-id as its ordinary rule, and yields to a unit that has not CHANGED CELL for `TRAFFIC_STARVATION_TICKS` (750). Gated by `tests/simulation/movementTrafficFairness.test.ts`.
+
+Measured across six seeds at 20,000 ticks, villagers frozen >= 1,000 ticks while in a walking task:
+
+```
+seed              before            after
+aoe2-prototype     500 / 0     ->    500 / 0     preserved field-for-field
+seed-2            2750 / 6     ->    500 / 0
+default-seed      1750 / 3     ->    500 / 0     (o1 buildings 17 -> 19)
+corpus-seed-b     1250 / 5     ->   1000 / 2
+seed-7            5250 / 12    ->   3500 / 5     improved, NOT cured
+seed-11            500 / 0     ->    500 / 0
+  stuck villagers     26                7
+```
+
+`seed-7` is the honest remainder: five villagers still freeze there and its owner 1 is still walled in the Dark Age, so that seed holds a second cause this fix does not reach.
+
+**Two rejected attempts, which is where most of the information is.**
+
+*Attempt 1 — replace the election with a fair epoch-rotated rank.* Cured four seeds (26 stuck villagers down to 5) and regressed the boot map from ZERO stuck villagers to five, with owner 1 losing four villagers. Rejected on the adoption rule, the same bar that rejected branch A and round 2. A fix that perturbs a map with no pathology is trading a real regression for an aggregate.
+
+*Attempt 2 — yield only to a unit that has not been ADMITTED for 750 ticks.* Preserved the boot map and changed nothing else at all: `seed-2` stayed at 2750/6. The null result diagnosed the error precisely. `resolveMovementTraffic` is consulted about 44 times per unit per tick, so a villager frozen for 2,750 ticks still collected sporadic admissions — 12 in 40 ticks, measured — and every one reset the clock. **Permission is not progress:** crossing one cell needs ~3.2 CONSECUTIVE admissions at 0.32 tiles/tick, so an occasional yes buys no movement. Attempt 3 gates on the unit actually changing cell, and that is the only difference between them.
+
+**Why lowest-id was there.** The file's header: decisions must be derived so that "ECS iteration order cannot decide who gets to enter first." Any replacement must stay a pure function of tick, ids and per-unit state, and every member of one closure must elect the SAME winner or two units drive into one cell. The shipped fix keeps both properties.
+
+**Residual risks, named rather than discovered later.** 750 is a tuned constant standing on measurement — above every healthy figure (500) and below every pathological one (1,250+) across these six seeds; a map whose healthy waits exceed it would be perturbed, and no such map is proven absent. And two movers whose closures differ could still elect different winners; this degrades no worse than lowest-id did, which is an argument, not a proof. AGENTS.md routes concurrency-class work to multi-cli-review; that skill runs through subagents, which this session's instructions prohibit, so this was self-reviewed and the risks are recorded here instead.
+
+---
+
+## 2026-09-01 — Villagers latch on an OPEN cell when buildings move (root-cause record)
 
 **The cause is measured, and it is neither of the two things this entry previously proposed.** It is not containment and it is not an unreachable-target latch. The narrow-passage traffic arbiter elects `Math.min(...cycle)` — the single LOWEST unit id in the jam — and admits only that one. In a jam that is continuously replenished, high-id units are never admitted. Admission rate over 40 ticks in the frozen window on `seed-2`, every unit in the choke:
 

@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.175
+
+- Villagers no longer stand frozen in a crowded gap. Where a lane is one tile wide — the ground between a Lumber Camp and the trees it serves is the usual place — the queue is resolved in a fixed order, and a villager at the back of it could be passed over indefinitely while its neighbours filed through. On one map five villagers stood motionless for up to four and a half minutes of game time, one of them holding a full load of wood it never delivered. Whoever has genuinely stopped moving now goes next. Across six maps the number of villagers stalling for more than a minute and a half fell from 26 to 7.
+
 ## 0.3.174
 
 - Indian Scouts, Light Cavalry and Hussars hit buildings for 2 more damage, the civilization bonus their stats table has always described. In Age of Empires this also covers their Camels and extends to allies; here it is the Scout line and the owning player, which is the same thing in a one-on-one game.
