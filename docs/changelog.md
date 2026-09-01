@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.171
+
+- Enemy units hidden behind a building are far easier to spot. The cue that shows them was a warm coral, which is close enough to the colour of a roof that it all but disappeared against one — and since the cue exists to tell you whether the shapes behind a wall are yours or someone else's, that was the half that mattered. It is now a saturated magenta, which stands clear of every building colour in the game and cannot be mistaken for the blue used for your own units.
+
 ## 0.3.170
 
 - Four more civilizations get their signature technology at the Castle: the Hindustanis' **Shatagni** (Hand Cannoneers +2 range), the Magyars' **Recurve Bow** (Cavalry Archers +1 range and +1 attack), the Malians' **Farimba** (cavalry +5 attack), and the Berbers' **Kasbah** (Castles work 25% faster — in Age of Empires II this helps your whole team, and here it helps the player who researches it). Every civilization from the original game already had its own; these are the first three for the twelve added by the expansions, which had none.

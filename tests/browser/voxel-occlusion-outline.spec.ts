@@ -26,20 +26,30 @@ test.describe('voxel behind-building unit silhouette', () => {
       const hidden = villagers.find((entity) => Math.floor(entity.x) === 7
         && Math.floor(entity.y) === 7);
       const control = villagers.find((entity) => Math.floor(entity.x) === 3);
-      if (!hidden || !control) {
-        throw new Error('The occlusion fixture must boot one hidden and one control villager.');
+      // The ENEMY villager behind the same Town Center. The fixture gained it
+      // because it previously spawned only owner-1 units, so every capture of
+      // this cue was the friendly colour and the not-yours one — the half that
+      // answers "are those mine?" — went unexamined through three iterations.
+      const enemyHidden = villagers.find((entity) => Math.floor(entity.x) === 8
+        && Math.floor(entity.y) === 7);
+      if (!hidden || !control || !enemyHidden) {
+        throw new Error('The occlusion fixture must boot a hidden, a control and an ENEMY villager.');
       }
       return {
         hiddenId: hidden.id,
         controlId: control.id,
+        enemyHiddenId: enemyHidden.id,
         occluded: api.getOccludedUnitStates(),
         screen: api.worldToScreen(7, 7),
         batches: api.getWorldRendererState().metrics.instanceBatches,
       };
     });
 
-    expect(states.occluded.map((entry) => entry.id)).toEqual([states.hiddenId]);
-    expect(states.occluded[0]!.entityType).toBe('villager');
+    // BOTH hidden villagers are cued, and the control in the open is not.
+    expect(new Set(states.occluded.map((entry) => entry.id)))
+      .toEqual(new Set([states.hiddenId, states.enemyHiddenId]));
+    expect(states.occluded.map((entry) => entry.id)).not.toContain(states.controlId);
+    expect(states.occluded.every((entry) => entry.entityType === 'villager')).toBe(true);
     expect(states.batches).toBeLessThanOrEqual(9);
 
     // The cue is the owner's silhouette colour, not white — a flat white body

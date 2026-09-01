@@ -41,7 +41,20 @@ export interface OcclusionSilhouetteResult {
 // a unit that happens to be standing in front of a building. They are also
 // distinct from the yellow selection outline and the cyan drag rectangle.
 export const OCCLUSION_SILHOUETTE_TINT_OWN = 0x6fc8ff;
-export const OCCLUSION_SILHOUETTE_TINT_ENEMY = 0xff7a6a;
+// Magenta, and it replaced a warm coral (0xff7a6a) for a measured reason. The
+// cue exists to answer "are those mine?", so the NOT-yours colour is the half
+// that matters most — and coral shares a hue family with every roof in the
+// palette. Scored as the smallest RGB distance to any building colour, which
+// is what a cue's legibility is actually bounded by, coral managed 76 (against
+// thatch) where the friendly blue manages 105 (against steel). Magenta reaches
+// 137, better than either, while staying 192 from the blue so the two are never
+// confused, and far from both the yellow selection outline and the cyan drag
+// rectangle. Scored over BUILDING materials only — a silhouette is never
+// painted on water or foliage, and scoring the whole palette misleads: the blue
+// sits 67 from `waterGlint`, which no silhouette can ever land on.
+// `occlusionSilhouetteContrast.test.ts` pins the property; it red-checks
+// against the coral.
+export const OCCLUSION_SILHOUETTE_TINT_ENEMY = 0xff4de0;
 
 /** The flat colour a hidden unit is drawn in, by ownership. */
 export function occlusionSilhouetteTint(owner: number | null): number {

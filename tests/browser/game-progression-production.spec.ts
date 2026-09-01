@@ -189,6 +189,14 @@ test.describe('browser gameplay smoke tests - production', () => {
     // so a plain "advance 20, diff the gold totals" assertion would pick
     // up 1-2 extra ticks of jitter. Capturing the tick counter at both
     // endpoints pins the expectation to exactly the ticks that elapsed.
+    // PAUSE first, so the only thing that moves the world is this test.
+    // Unpaused, the game view's own frame loop advances the simulation in real
+    // time between `evaluate()` calls, and how many ticks it slips in depends
+    // on machine load — this assertion measured 28 against a 25 ceiling on a
+    // busy run. `setPaused` makes `bridge.step` a no-op while `advanceTicks`
+    // still works (it unpauses, steps, repauses), so the elapsed count becomes
+    // exactly what was asked for and the tolerance band is unnecessary.
+    await page.evaluate(() => { window.__AOE2_TEST__!.setPaused(true); });
     const depositBaseline = await page.evaluate(() => {
       const hud = window.__AOE2_TEST__!.getHudState();
       return { tick: hud.tick, gold: hud.playerResources.gold };
@@ -199,10 +207,10 @@ test.describe('browser gameplay smoke tests - production', () => {
       return { tick: hud.tick, gold: hud.playerResources.gold };
     });
     const ticksElapsed = depositAfter.tick - depositBaseline.tick;
-    // At least the 20 ticks from advanceTicks, allow up to a few more
-    // from the game view's own update loop running between evaluate() calls.
-    expect(ticksElapsed).toBeGreaterThanOrEqual(20);
-    expect(ticksElapsed).toBeLessThanOrEqual(25);
+    // EXACTLY the 20 requested, because the simulation is paused: nothing but
+    // `advanceTicks` can move it. This replaced a 20-25 tolerance band that
+    // existed only to absorb the frame loop's real-time drift.
+    expect(ticksElapsed).toBe(20);
     // Gold income is exactly +1 per tick per stored relic.
     expect(depositAfter.gold - depositBaseline.gold).toBe(ticksElapsed);
   });

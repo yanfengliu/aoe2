@@ -24,6 +24,17 @@ export function createOcclusionShowcaseFixture(seed: string): PrototypeScenario 
         startingResources: { food: 200, wood: 200, gold: 100, stone: 100 },
         disableAi: true,
       },
+      // An ENEMY owner, so the not-yours colour can be seen at all. Without
+      // one this fixture spawned only owner-1 villagers, so every capture ever
+      // taken of this cue was the friendly blue — and the enemy colour, which
+      // is the half the cue exists for ("are those mine?"), went unexamined
+      // through three iterations of it.
+      {
+        owner: 2,
+        townCenter: { x: 40, y: 24 },
+        startingResources: { food: 200, wood: 0, gold: 0, stone: 0 },
+        disableAi: true,
+      },
     ],
     spawns: [
       ownedSpawn('town-center', 1, 8, 8, { vision: 14 }),
@@ -31,6 +42,10 @@ export function createOcclusionShowcaseFixture(seed: string): PrototypeScenario 
       ownedSpawn('villager', 1, 7, 7, { vision: 6 }),
       // Control: in the open, must never receive the cue.
       ownedSpawn('villager', 1, 3, 12, { vision: 6 }),
+      // The enemy behind the same Town Center, one tile along, so both
+      // ownership colours appear against the SAME roof in one capture.
+      ownedSpawn('villager', 2, 8, 7, { vision: 6 }),
+      ownedSpawn('town-center', 2, 40, 24, { vision: 7 }),
     ],
   };
 }
