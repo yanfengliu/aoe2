@@ -45,7 +45,7 @@ This repo's own rules live in [docs/policies/local-rules.md](docs/policies/local
 
 ## Gates
 
-`npm test` · `npm run typecheck` · `npm run lint` · `npm run build` — all four before every code commit; only affected tests while iterating. Dependency audit gate: `npm audit --audit-level=high` (full tree and `--omit=dev`).
+`npm run verify` is THE gate: `content:validate && test && typecheck && test:browser && lint && build`, chained with `&&` so its EXIT CODE is the answer. Run it before every code commit. Reading a summary line out of a piped run is not running the gate — `npm test | tail` reports zero while the suite is red, and a look-alike summary has twice been quoted as green over a failing run. Only affected tests while iterating. Dependency audit gate: `npm audit --audit-level=high` (full tree and `--omit=dev`).
 
 ## Session start
 
@@ -68,7 +68,6 @@ Run `npm run ci:status` FIRST — it prints main's remote CI and playtest-corpus
 - Devlog: `docs/devlog/summary.md` (one line per task; compact past 50 lines — no cheating with mega-lines) + `docs/devlog/detailed/START_DATE_END_DATE.md` (per-task entry: timestamp, action, reviewer findings by provider/theme, result, reasoning, notes; archive via `git mv` when the active file passes 500 lines, starting a new file dated today).
 - Changelog `docs/changelog.md` + `package.json` version: user-visible changes only (external audience; migration focus). Bump `c` per non-breaking change, `b` (reset `c`) per breaking change, `a` only when the user says so; one bump per coherent shipped change; pure refactors/doc sweeps bump nothing.
 - Architecture: structural changes update `docs/architecture/ARCHITECTURE.md` and append a row to `docs/architecture/drift-log.md`; non-obvious tradeoffs append to `docs/architecture/decisions.md` (append-only — supersede, never delete). Non-structural fixes touch none of these.
-- Lessons: `docs/learning/lessons.md` per the fleet evidence-anchor rule; code lessons need a real test node id.
 - Debugging: one file per session, copied from `docs/debugging/template.md`, which owns the copy-and-cleanup mechanics; when a later session invalidates an old conclusion, update that old doc rather than leaving it to mislead.
 - Review threads: syntheses land in `docs/threads/current/<objective>/<date>/<n>/REVIEW.md` (synthesis only — no raw CLI output; temp captures go to gitignored `tmp/review-runs/`); `DESIGN.md`/`PLAN.md` live at the objective root; move the objective to `docs/threads/done/` when closed and keep it as audit trail. Archived threads carry synthesis only — strip any `raw/` when moving to `done/` (raw has zero downstream reuse; the `REVIEW.md` is the durable, cited record).
 - Canonical doc surfaces are README, ARCHITECTURE + decisions + drift-log, devlogs, and changelog. There is deliberately no `docs/api-reference.md` or guides tree — TypeScript types (e.g. `SimulationBridge` in `src/game/simulation/createSimulationBridge.ts`) are the API reference. README changes only when public surface or user-visible features change.
