@@ -94,12 +94,13 @@ describe('the Feudal AI mines the stone its own plans need', () => {
     // up as one orphaned deposit or none.
     //
     // DO NOT WIDEN THIS WINDOW to chase a bigger number. It was tried on
-    // 2026-09-02 and walked straight into a PRE-EXISTING freeze: this
-    // fixture's economy goes byte-identical at about tick 15,000 (all four
-    // resources, villagers pinned) and stays that way to 24,000, with the
-    // ordering change of that day both on AND off — so the freeze is older
-    // than it and is recorded in the defect register instead. The window
-    // ends at 14,000 and measures a live economy.
+    // 2026-09-02 and ran off the end of the GAME: this fixture's match is
+    // decided at tick 15,000 — `getMatchState()` returns conquest, owner 1
+    // wiped out, scores 1:70 2:1492 — and a finished match stops, so every
+    // resource goes static and every villager stands still. That looks
+    // exactly like an economy deadlock and was briefly filed as one (see the
+    // retraction in the defect register). The window ends at 14,000 because
+    // that is where this fixture still has a game to measure.
     expect(minedInWindow).toBeGreaterThanOrEqual(30);
     // 10,500 DE-paced ticks: ~19s alone, more under suite parallelism.
   }, 120_000);
