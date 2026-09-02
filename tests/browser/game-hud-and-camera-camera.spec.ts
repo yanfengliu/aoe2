@@ -25,17 +25,26 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
     const canvasBox = await gameCanvas.boundingBox();
     expect(canvasBox).not.toBeNull();
 
+    // The wheel zooms at the pointer, so any bare canvas point serves. The
+    // left edge carries the speaker toggle and the idle bell, which stand
+    // above the bar and rise with it (v0.3.180), so the probe walks inward
+    // from the edge until it finds canvas — and names what covered the rest.
     const zoomPoint = await gameCanvas.evaluate((canvas) => {
       const rect = canvas.getBoundingClientRect();
-      const x = rect.left + Math.min(48, rect.width * 0.1);
       const y = rect.top + rect.height * 0.5;
-      return {
-        x,
-        y,
-        targetsCanvas: document.elementFromPoint(x, y) === canvas,
-      };
+      const covered: string[] = [];
+      for (const inset of [48, 96, 160, 240]) {
+        const x = rect.left + Math.min(inset, rect.width * 0.4);
+        const hit = document.elementFromPoint(x, y);
+        if (hit === canvas) return { x, y, covered };
+        const label = hit instanceof HTMLElement ? (hit.dataset.hud ?? hit.className) : String(hit);
+        covered.push(`(${Math.round(x)},${Math.round(y)}) is under ${label}`);
+      }
+      return { x: null, y, covered };
     });
-    expect(zoomPoint.targetsCanvas).toBe(true);
+    if (zoomPoint.x === null) {
+      throw new Error(`No bare canvas point for the wheel zoom near the left edge: ${zoomPoint.covered.join('; ')}.`);
+    }
     await page.mouse.move(zoomPoint.x, zoomPoint.y);
     await page.mouse.wheel(0, -400);
 

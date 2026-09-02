@@ -2,10 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.180
+
+- The idle-villager badge no longer sits on the command bar. With a villager selected the bar is taller than the fixed height the badge was placed above, so the badge's bottom edge covered the bar's SELECTION label at every common window size (800x600, 1280x720 and 1440x900 alike). The badge — and the speaker toggle above it — now stand clear of the bar's top edge and follow it as the bar grows or shrinks, whatever is selected and whatever the window size.
+
 ## 0.3.179
 
 - Choosing a building to place no longer collapses the build palette. With a villager selected, clicking a build card used to squeeze the BUILD group to a sliver at the right edge of the command bar — at a 1280x720 window it went from 261px wide to 36px — because the "Placing: House" status was inserted as its own section of the bar and the palette paid for it. The status is now a pill in the Build heading, so the palette, stance and formation groups stay exactly where they were and the bar does not change height. Command-bar tooltips also float above the bar instead of above the card they describe, and never cover the minimap: hovering a right-hand build card used to put its tooltip over the minimap's frame at every window size, placement mode or not.
-
 
 ## 0.3.178
 

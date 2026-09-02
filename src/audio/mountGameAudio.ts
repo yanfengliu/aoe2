@@ -11,11 +11,18 @@ import { playProceduralCue } from './proceduralVoices';
 import { startAmbience, type AmbienceHandle } from './proceduralAmbience';
 import { unitRole } from '../rendering/roles/unitRole';
 import type { UnitType } from '../game/simulation/types';
+import { IDLE_BELL_BAR_GAP_PX } from '../ui/hud/idleVillagerBell';
 
 export interface MountedGameAudio {
   getLastHomeAttackPosition(): { x: number; y: number } | null;
   dispose(): void;
 }
+
+// The speaker toggle stacks this far above the idle-villager bell's top edge.
+const BELL_GAP_PX = 10;
+// Where it sits until the bell exists to stack on (the bell's own fallback is
+// 190px, so this is where both sat when they were fixed viewport offsets).
+const FALLBACK_BOTTOM = '244px';
 
 // A GETTER, not the bridge: createApp swaps the bridge on save-load, and a
 // captured reference would leave the horn listening to the dead world.
@@ -89,13 +96,17 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
     storage: window.localStorage,
   });
 
-  // Speaker toggle, styled and placed like the idle-villager bell's sibling.
+  // Speaker toggle, styled like the idle-villager bell and stacked ABOVE it:
+  // its `bottom` is measured every frame from the bottom bar plus the bell's
+  // height (the bell follows the bar the same way — idleVillagerBell.ts),
+  // because a fixed viewport offset collided with the bell once the bell
+  // moved with the bar.
   const button = document.createElement('button');
   button.type = 'button';
   button.dataset.hud = 'audio-mute';
   button.setAttribute('aria-label', 'Toggle sound');
   button.style.cssText = [
-    'position:absolute', 'left:12px', 'bottom:244px', 'z-index:6',
+    'position:absolute', 'left:12px', `bottom:${FALLBACK_BOTTOM}`, 'z-index:6',
     'pointer-events:auto',
     'min-width:44px', 'min-height:44px', 'padding:4px 10px',
     'border-radius:10px', 'border:1px solid rgba(255,255,255,0.18)',
@@ -122,8 +133,30 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
   });
   hudRoot.appendChild(button);
 
+  let bell: HTMLElement | null = null;
+  let bar: HTMLElement | null = null;
+  let lastBottom = FALLBACK_BOTTOM;
+  function stackAboveBell(): void {
+    // The bell mounts after the audio does, so both are looked up lazily —
+    // and again if the HUD was rebuilt under a cached, now-detached one.
+    if (!bell?.isConnected) bell = hudRoot.querySelector<HTMLElement>('[data-hud="idle-villager-bell"]');
+    if (!bar?.isConnected) bar = hudRoot.querySelector<HTMLElement>('.hud-bottom');
+    if (!bell || !bar) return;
+    // Measured from the BAR exactly as the bell measures itself, plus the
+    // bell's height: reading the bell's position instead would lag it by a
+    // frame on every bar change, because this loop registered first.
+    const clearance = hudRoot.getBoundingClientRect().bottom - bar.getBoundingClientRect().top
+      + bell.getBoundingClientRect().height;
+    const bottom = `${Math.round(clearance) + IDLE_BELL_BAR_GAP_PX + BELL_GAP_PX}px`;
+    if (bottom !== lastBottom) {
+      lastBottom = bottom;
+      button.style.bottom = bottom;
+    }
+  }
+
   let rafHandle: number | null = null;
   function loop(): void {
+    stackAboveBell();
     controller.poll();
     ambience?.tick(performance.now());
     rafHandle = requestAnimationFrame(loop);

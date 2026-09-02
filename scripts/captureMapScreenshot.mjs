@@ -1,5 +1,5 @@
 import { chromium } from 'playwright';
-import { mkdir, readdir, stat } from 'node:fs/promises';
+import { mkdir, readdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 const label = process.env.LABEL ?? 'screenshot';
@@ -28,6 +28,18 @@ const ticks = Number(process.env.TICKS ?? 0);
 // tree rather than into tracked docs; set OUT_DIR to promote one deliberately.
 const outputDir = process.env.OUT_DIR ?? 'tmp/captures';
 const outputPath = `${outputDir}/${label}.png`;
+// PREVIEW_PORT selects which `vite preview` to capture from (default 4173).
+// The freshness check below proves THIS checkout's dist is newer than its
+// sources, but only the port proves the server is serving it: with several
+// worktrees on one machine, a sibling's preview on 4173 would be captured as
+// if it were ours.
+const previewPort = Number(process.env.PREVIEW_PORT ?? 4173);
+if (!Number.isInteger(previewPort) || previewPort <= 0 || previewPort > 65535) {
+  throw new Error(
+    'PREVIEW_PORT must be a TCP port number from 1 to 65535 for the vite preview '
+    + `to capture from; got "${process.env.PREVIEW_PORT}"`,
+  );
+}
 
 function parseSize(value) {
   const match = /^(\d+)x(\d+)$/.exec(value.trim());
@@ -37,7 +49,7 @@ function parseSize(value) {
   return { width: Number(match[1]), height: Number(match[2]) };
 }
 
-// The page under capture is vite PREVIEW on 4173, which serves the built
+// The page under capture is vite PREVIEW (PREVIEW_PORT), which serves the built
 // `dist/` rather than the working tree. A capture taken after a source edit
 // but before a rebuild silently shows the PREVIOUS build — a screenshot that
 // looks like evidence and proves the opposite. It cost a session once: three
@@ -74,6 +86,32 @@ if (sourceAt > builtAt) {
     + 'PREVIOUS build. Run `npm run build` first.',
   );
 }
+// ...and prove the server on PREVIEW_PORT is serving THIS dist: vite names
+// every asset by its content hash — the JS bundle AND the extracted CSS, with
+// independent hashes, so a styles-only build is told apart too — and a
+// mismatch means another checkout's preview holds the port (vite preview reads
+// dist/ on every request, so one started from THIS checkout serves each rebuild
+// without a restart).
+const bundleOf = (html) => [...new Set(html.match(/assets\/[\w.-]+/g) ?? [])].sort().join(' ');
+const localBundle = bundleOf(await readFile('dist/index.html', 'utf8'));
+const servedHtml = await fetch(`http://127.0.0.1:${previewPort}/`).then(
+  (response) => response.text(),
+  (error) => {
+    throw new Error(
+      `No vite preview answered on port ${previewPort} (${error.message}). Start one from this `
+      + `checkout (npm run preview -- --host 127.0.0.1 --port ${previewPort} --strictPort) or set `
+      + 'PREVIEW_PORT to the port of the one that is running.',
+    );
+  },
+);
+const servedBundle = bundleOf(servedHtml);
+if (servedBundle !== localBundle) {
+  throw new Error(
+    `The preview on port ${previewPort} serves [${servedBundle || 'no hashed assets'}] but this `
+    + `checkout's dist/ holds [${localBundle}]: another checkout's (or a stale) vite preview holds `
+    + 'the port. Restart it from this checkout, or capture with PREVIEW_PORT=<its port>.',
+  );
+}
 
 await mkdir(dirname(outputPath), { recursive: true });
 
@@ -96,7 +134,20 @@ try {
   const query = `?seed=${seed}`
     + (players ? `&players=${players}` : '')
     + (civ ? `&civ=${encodeURIComponent(civ)}` : '');
-  await page.goto(`http://127.0.0.1:4173/${query}`);
+  // Pause the sim from the first moment the test API exists — the same
+  // init-script poll the browser suite's waitForPausedBootWithSeed uses —
+  // rather than only after isBooted() resolves: the ticks that slipped
+  // through in between varied run to run, so a before/after pair could land
+  // a second of game time apart (units, sheep and water moved) and the diff
+  // was not confined to the change (2026-09-02, idle-bell captures).
+  await page.addInitScript(() => {
+    const timer = window.setInterval(() => {
+      if (!window.__AOE2_TEST__) return;
+      window.__AOE2_TEST__.setPaused(true);
+      window.clearInterval(timer);
+    }, 0);
+  });
+  await page.goto(`http://127.0.0.1:${previewPort}/${query}`);
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true, {
     timeout: 60_000,
   });
@@ -126,6 +177,22 @@ try {
       return 'ok';
     }, [buildingType, bx, by]);
     if (placed !== 'ok') throw new Error(`BUILD ${build} failed: ${placed}`);
+  }
+  // SELECT="villager" selects the human's first unit of that type before the
+  // shot (no order is given), so a capture can show the command bar in its
+  // SELECTED state — where the 2026-09-02 idle-bell overlap lived, and which
+  // no boot capture can reach.
+  const select = process.env.SELECT ?? '';
+  if (select) {
+    const selected = await page.evaluate((unitType) => {
+      const api = window.__AOE2_TEST__;
+      const unit = api.getEconomyState().units.find((u) => u.owner === 1 && u.unitType === unitType);
+      if (!unit) return `the human owns no ${unitType}`;
+      return api.selectEntityAtCell(unit.x, unit.y) ? 'ok' : 'select failed';
+    }, select);
+    if (selected !== 'ok') {
+      throw new Error(`SELECT must name a unit type the human owns at boot (e.g. villager); "${select}" failed: ${selected}`);
+    }
   }
 
   if (focus) {
