@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
 import { unitAmbientAnimation } from '../../src/rendering/voxel/aoeVoxelUnitAmbientAnimation';
-import { interpolateProjectedEntities } from '../../src/rendering/interpolateProjectedEntities';
+import { createDisplayedPositionSmoother } from '../../src/rendering/displayedPositionSmoother';
 import { resolveUnitAnimationState } from '../../src/rendering/voxel/aoeVoxelUnitAnimation';
 import { createUnitParts } from '../../src/rendering/voxel/aoeVoxelUnitRecipes';
 import { matrixForPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
@@ -160,9 +160,12 @@ describe('AoE voxel unit attack lifecycle', () => {
       199,
     );
     const current = unit({ x: 0.4, attackAnimation: event });
-    const positions = new Map([['7:3', { x: 0.2, y: 0 }]]);
-    const atAlphaZero = interpolateProjectedEntities([current], positions, 0, 2)[0]!;
-    const atAlphaHalf = interpolateProjectedEntities([current], positions, 0.5, 2)[0]!;
+    // The drawn roots the presentation hands the animation: the smoother saw
+    // the unit at 0.2 on tick 1 and at 0.4 on tick 2, its first step.
+    const smoother = createDisplayedPositionSmoother();
+    smoother.apply([unit({ x: 0.2, attackAnimation: event })], 1, 0);
+    const atAlphaZero = smoother.apply([current], 2, 0)[0]!;
+    const atAlphaHalf = smoother.apply([current], 2, 0.5)[0]!;
     const warmZero = resolveUnitAnimationState(
       atAlphaZero,
       '7:3',

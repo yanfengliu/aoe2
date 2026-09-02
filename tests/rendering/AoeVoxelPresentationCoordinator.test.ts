@@ -4,7 +4,10 @@ import type {
   ProjectedEntityView,
   RenderState,
 } from '../../src/game/simulation/types';
-import { createAoeVoxelPresentationCoordinator } from '../../src/rendering/voxel/AoeVoxelPresentationCoordinator';
+import {
+  createAoeVoxelPresentationCoordinator,
+  type AoeVoxelPresentationCoordinator,
+} from '../../src/rendering/voxel/AoeVoxelPresentationCoordinator';
 
 function unit(x: number): ProjectedEntityView {
   return {
@@ -29,71 +32,112 @@ function unit(x: number): ProjectedEntityView {
   };
 }
 
-describe('AoeVoxelPresentationCoordinator interpolation', () => {
-  it('interpolates from the exact prior tick after the host coalesces multiple ticks', () => {
-    let alpha = 0;
-    let state: RenderState = {
-      tick: 0,
-      entities: [unit(1)],
-      frame: null,
-      previousPositionFrame: null,
-    };
-    const presented: ProjectedEntityView[][] = [];
-    const coordinator = createAoeVoxelPresentationCoordinator({
-      getBridge: () => ({
-        getRenderState: () => state,
-        getRenderInterpolationAlpha: () => alpha,
-      }),
-      isActive: () => true,
-      getPlacementPreviewState: () => null,
-      getSelectionBoxState: () => null,
-      screenToWorldPosition: (x, y) => ({ x, z: y }),
-      centerCameraOnWorldPosition: () => undefined,
-      present: (entities) => presented.push(entities.map((entity) => ({ ...entity }))),
-    });
+function harness(initial: RenderState): {
+  coordinator: AoeVoxelPresentationCoordinator;
+  set(next: RenderState, alpha: number): void;
+  presented(): readonly ProjectedEntityView[];
+} {
+  let state = initial;
+  let alpha = 0;
+  let displayed: readonly ProjectedEntityView[] = [];
+  const coordinator = createAoeVoxelPresentationCoordinator({
+    getBridge: () => ({
+      getRenderState: () => state,
+      getRenderInterpolationAlpha: () => alpha,
+    }),
+    isActive: () => true,
+    getPlacementPreviewState: () => null,
+    getSelectionBoxState: () => null,
+    screenToWorldPosition: (x, y) => ({ x, z: y }),
+    centerCameraOnWorldPosition: () => undefined,
+    present: (entities) => { displayed = entities.map((entity) => ({ ...entity })); },
+  });
+  return {
+    coordinator,
+    set(next, nextAlpha) {
+      state = next;
+      alpha = nextAlpha;
+    },
+    presented: () => displayed,
+  };
+}
+
+function renderState(tick: number, x: number): RenderState {
+  return { tick, entities: [unit(x)], frame: null };
+}
+
+describe('AoeVoxelPresentationCoordinator displayed positions', () => {
+  it('draws a unit that steps as continuously advancing, from the tick its first step lands', () => {
+    const { coordinator, set, presented } = harness(renderState(0, 1));
     coordinator.syncFromBridge(true);
+    expect(presented()[0]).toMatchObject({ x: 1, y: 4 });
 
-    state = {
-      tick: 2,
-      entities: [unit(3)],
-      frame: null,
-      previousPositionFrame: {
-        tick: 1,
-        positions: [{ id: 7, generation: 3, x: 2, y: 4 }],
-      },
-    };
-    alpha = 0.5;
+    // The sim's first fine step: motion is drawn at once, at cadence speed,
+    // strictly between the rest position and the new sim position.
+    set(renderState(1, 1.25), 0.25);
     coordinator.syncFromBridge();
+    const early = presented()[0]!.x;
+    expect(early).toBeGreaterThan(1);
+    expect(early).toBeLessThan(1.25);
 
-    expect(presented.at(-1)?.[0]).toMatchObject({ x: 2.5, y: 4 });
+    // Later in the same tick it has moved further, and still trails the sim.
+    set(renderState(1, 1.25), 0.75);
+    coordinator.syncFromBridge();
+    const later = presented()[0]!.x;
+    expect(later).toBeGreaterThan(early);
+    expect(later).toBeLessThan(1.25);
+
+    // A tick on which the sim did NOT step still draws the root moving —
+    // the pulse the owner saw was exactly this frame standing still.
+    set(renderState(2, 1.25), 0.5);
+    coordinator.syncFromBridge();
+    expect(presented()[0]!.x).toBeGreaterThan(later);
+    expect(presented()[0]!.x).toBeLessThanOrEqual(1.25);
   });
 
-  it('refuses a stale non-adjacent position frame instead of blending across skipped state', () => {
-    const state: RenderState = {
-      tick: 4,
-      entities: [unit(5)],
-      frame: null,
-      previousPositionFrame: {
-        tick: 2,
-        positions: [{ id: 7, generation: 3, x: 2, y: 4 }],
-      },
-    };
-    let displayed: readonly ProjectedEntityView[] = [];
-    const coordinator = createAoeVoxelPresentationCoordinator({
-      getBridge: () => ({
-        getRenderState: () => state,
-        getRenderInterpolationAlpha: () => 0.5,
-      }),
-      isActive: () => true,
-      getPlacementPreviewState: () => null,
-      getSelectionBoxState: () => null,
-      screenToWorldPosition: (x, y) => ({ x, z: y }),
-      centerCameraOnWorldPosition: () => undefined,
-      present: (entities) => { displayed = entities; },
-    });
-
+  it('draws a unit first sighted at a non-adjacent tick where the sim says, not sliding from any earlier state', () => {
+    // Presented at tick 0 without the unit (fogged), then at tick 4 with it:
+    // the ticks in between were never presented, so there is nothing honest
+    // to blend from and the sighting is drawn at its sim position.
+    const { coordinator, set, presented } = harness({ tick: 0, entities: [], frame: null });
     coordinator.syncFromBridge(true);
+    set(renderState(4, 5), 0.5);
+    coordinator.syncFromBridge();
+    expect(presented()[0]).toMatchObject({ x: 5, y: 4 });
+  });
 
-    expect(displayed[0]).toMatchObject({ x: 5, y: 4 });
+  it('snaps to the sim position when the host coalesces several ticks into one sync, then resumes from there', () => {
+    // The live frame loop coalesces up to 2.5 ticks a frame (250 ms bound; 5
+    // at double speed) and the test API's advanceTicks(N) any number. Where
+    // the steps inside the gap landed is unknown, so the gap snaps — the old
+    // adjacent-tick rule, kept — and motion resumes from the snapped root.
+    const { coordinator, set, presented } = harness(renderState(0, 1));
+    coordinator.syncFromBridge(true);
+    set(renderState(1, 1.25), 0.5);
+    coordinator.syncFromBridge();
+    expect(presented()[0]!.x).toBeLessThan(1.25);
+
+    set(renderState(4, 2), 0.5);
+    coordinator.syncFromBridge();
+    expect(presented()[0]).toMatchObject({ x: 2, y: 4 });
+
+    set(renderState(5, 2.25), 0.5);
+    coordinator.syncFromBridge();
+    const resumed = presented()[0]!.x;
+    expect(resumed).toBeGreaterThan(2);
+    expect(resumed).toBeLessThan(2.25);
+  });
+
+  it('snaps to the sim position after a bridge swap instead of gliding from the old game', () => {
+    const { coordinator, set, presented } = harness(renderState(0, 1));
+    coordinator.syncFromBridge(true);
+    set(renderState(1, 1.25), 0.5);
+    coordinator.syncFromBridge();
+    expect(presented()[0]!.x).toBeLessThan(1.25);
+
+    coordinator.resetForBridgeSwap();
+    set(renderState(0, 1.25), 0.5);
+    coordinator.syncFromBridge(true);
+    expect(presented()[0]).toMatchObject({ x: 1.25, y: 4 });
   });
 });

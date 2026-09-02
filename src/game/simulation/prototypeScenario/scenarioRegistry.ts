@@ -274,6 +274,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['boar-hunt-fixture', fixtures.createBoarHuntFixture],
   ['wolf-aggro-fixture', fixtures.createWolfAggroFixture],
   ['deer-flee-fixture', fixtures.createDeerFleeFixture],
+  ['deer-flight-fixture', fixtures.createDeerFlightFixture],
   ['deer-undisturbed-fixture', fixtures.createDeerUndisturbedFixture],
   ['wolf-idle-fixture', fixtures.createWolfIdleFixture],
   ['wolf-at-shoulder-fixture', fixtures.createWolfAtShoulderFixture],

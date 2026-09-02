@@ -214,7 +214,6 @@ export type {
   ProjectedUnitDeathView,
   ProjectedProjectileView,
   ProjectedFrameView,
-  RenderPositionFrame,
   RenderState,
 } from './renderViewTypes';
 

@@ -3,7 +3,8 @@ import type {
   ProjectedEntityView,
   RenderState,
 } from '../../game/simulation/types';
-import { interpolateProjectedEntities, renderIdentityKey } from '../interpolateProjectedEntities';
+import { createDisplayedPositionSmoother } from '../displayedPositionSmoother';
+import { renderIdentityKey } from '../renderIdentityKey';
 import { worldToIso } from '../isometricProjection';
 import { computeBaseFocusCell } from '../isoViewHelpers';
 import type {
@@ -137,7 +138,14 @@ export function createAoeVoxelPresentationCoordinator(
   let lastInterpolationAlpha = Number.NaN;
   let lastInteractionKey = '';
   let lastSelectionKey = '';
-  let previousPositions = new Map<string, { x: number; y: number }>();
+  // Where each live unit is DRAWN: the sim's sampled trajectory replayed a
+  // step cadence behind, so a walk reads as continuous motion rather than the
+  // move-and-stop pulse of blending only adjacent ticks (v0.3.182). The
+  // smoother keeps its own per-unit history, under the rule the render
+  // store's prior-position frame used to enforce: a unit absent from the
+  // previously presented tick, or a presentation that skipped a tick, starts
+  // fresh at the sim position.
+  const smoother = createDisplayedPositionSmoother();
   let displayedEntities: ProjectedEntityView[] = [];
   let hasCenteredOnBase = false;
   let lastPlacementVisual: PlacementPreviewVisualState | null = null;
@@ -173,27 +181,11 @@ export function createAoeVoxelPresentationCoordinator(
       && nextSelectionKey === lastSelectionKey
     ) return;
 
-    if (state.tick !== lastRenderedTick) {
-      const previousFrame = state.previousPositionFrame;
-      previousPositions = new Map(
-        previousFrame?.tick === state.tick - 1
-          ? previousFrame.positions.map((position) => [
-              renderIdentityKey(position),
-              { x: position.x, y: position.y },
-            ])
-          : [],
-      );
-    }
     lastRenderedTick = state.tick;
     lastInterpolationAlpha = alpha;
     lastInteractionKey = nextInteractionKey;
     lastSelectionKey = nextSelectionKey;
-    displayedEntities = interpolateProjectedEntities(
-      state.entities,
-      previousPositions,
-      alpha,
-      state.tick,
-    );
+    displayedEntities = smoother.apply(state.entities, state.tick, alpha);
 
     if (!hasCenteredOnBase) {
       const focus = computeBaseFocusCell(displayedEntities, HUMAN_PLAYER_ID);
@@ -229,7 +221,7 @@ export function createAoeVoxelPresentationCoordinator(
     lastInterpolationAlpha = Number.NaN;
     lastInteractionKey = '';
     lastSelectionKey = '';
-    previousPositions.clear();
+    smoother.reset();
     displayedEntities = [];
     lastPlacementVisual = null;
     lastBuildings = [];

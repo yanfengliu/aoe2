@@ -16,6 +16,7 @@ import type { Position } from 'civ-engine';
 
 import type { GathererComponent, ResourceComponent } from '../../types';
 import { manhattanDistance, type GameWorld } from '../pureHelpers';
+import { DEER_STEP_TICK_INTERVAL } from '../wildlifeCadence';
 
 type CivWorld = GameWorld;
 
@@ -45,11 +46,8 @@ export const DEER_CAUGHT_RADIUS = 1;
 // now, which needs no state at all. A tail can come back with a codec behind
 // it if it is ever worth the persistence.
 
-// units.csv:42 gives the Deer a speed of 0.737 tiles/s. At TPS 10 that is one
-// whole cell every 13.6 ticks; 14 lands on 0.714 tiles/s, 3% slow, and inside
-// the ±5% band the economy rates are held to. Whole cells rather than subgrid
-// steps because every other wildlife mover in the bridge works in whole cells.
-const DEER_STEP_TICK_INTERVAL = 14;
+// The hop clock (one whole cell every 14 ticks, units.csv 0.737 tiles/s) lives
+// in `wildlifeCadence.ts`, where the renderer's display delay reads it too.
 
 export interface DeerFleeSystemDeps {
   world: GameWorld;

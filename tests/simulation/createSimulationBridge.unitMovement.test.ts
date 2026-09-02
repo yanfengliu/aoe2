@@ -213,10 +213,6 @@ describe('createSimulationBridge core systems', () => {
     }
     const tickOneTownCenter = tickOneState.entities
       .find((entity) => entity.owner === 1 && entity.entityType === 'town-center');
-    const previousScout = tickOneState.previousPositionFrame?.positions.find((position) => (
-      position.id === scout?.id && position.generation === initialScoutRender?.generation
-    ));
-
     // At the scout's first moving tick its render position differs from the
     // start by LESS than a cell (it moves on the sub-grid). The TC, a
     // building, never moves on the sub-grid and keeps an integer position.
@@ -226,13 +222,6 @@ describe('createSimulationBridge core systems', () => {
     ).toBeLessThan(1);
     expect(tickOneTownCenter?.x).toBe(townCenter?.x);
     expect(Number.isInteger(tickOneTownCenter?.x ?? NaN)).toBe(true);
-    // The previous frame is the tick BEFORE the first moving tick, where the
-    // scout still sat at its starting position.
-    expect(tickOneState.previousPositionFrame?.tick).toBe(tickOneState.tick - 1);
-    expect(previousScout).toMatchObject({
-      x: initialScoutRender?.x,
-      y: initialScoutRender?.y,
-    });
   });
 
   it('does not publish monkTasks diffs for ordinary unit moves with no prior Monk task', () => {

@@ -143,7 +143,6 @@ describe('unit attack animation visibility lifetime', () => {
     store.apply(renderMessage(6, false));
     const hidden = renderState.getRenderState();
     expect(hidden.entities).toEqual([]);
-    expect(hidden.previousPositionFrame?.positions).toEqual([]);
 
     visibility.setSource(1, 99, { x: 5, y: 5, radius: 2 });
     visibility.update();
@@ -157,7 +156,12 @@ describe('unit attack animation visibility lifetime', () => {
     expect(renderState.getRenderState().entities[0]?.attackAnimation?.tick).toBe(8);
   });
 
-  it('does not interpolate a newly revealed enemy from its prior fogged position', () => {
+  it('hands a newly revealed enemy on at its current sim position, with no prior-position field to slide from', () => {
+    // The slide itself is the displayed-position smoother's contract (an
+    // entity absent from the previously presented tick starts fresh —
+    // tests/rendering/displayedPositionSmoother.test.ts); what the render
+    // state must guarantee is that a reveal presents the CURRENT projection
+    // and carries nothing about where the entity stood while fogged.
     const visibility = new VisibilityMap(20, 20);
     const store = new RenderStore();
     const renderState = createRenderStateOps({
@@ -192,6 +196,6 @@ describe('unit attack animation visibility lifetime', () => {
 
     const revealed = renderState.getRenderState();
     expect(revealed.entities[0]).toMatchObject({ id: 7, x: 6, y: 5 });
-    expect(revealed.previousPositionFrame?.positions).toEqual([]);
+    expect(Object.keys(revealed)).toEqual(['tick', 'entities', 'frame']);
   });
 });

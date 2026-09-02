@@ -56,14 +56,8 @@ export interface ProjectedFrameView {
   projectiles: ProjectedProjectileView[];
 }
 
-export interface RenderPositionFrame {
-  tick: number;
-  positions: Array<{ id: number; generation: number; x: number; y: number }>;
-}
-
 export interface RenderState {
   tick: number;
   entities: ProjectedEntityView[];
   frame: ProjectedFrameView | null;
-  previousPositionFrame?: RenderPositionFrame | null;
 }

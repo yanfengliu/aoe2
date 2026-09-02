@@ -93,9 +93,10 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       signal for it), `selectionActivity.ts`
       (structured activity payload for the HUD selection panel), and
       `renderStore.ts` (the per-tick render-message store the projector
-      writes into, including the exact immediately prior forward-tick unit and
-      moving-resource positions used only for display interpolation plus
-      indexed reconciliation of transient attack overlays),
+      writes into, with indexed reconciliation of transient attack overlays;
+      the prior-tick position frame it captured for display interpolation
+      until v0.3.182 is gone — the displayed-root smoother keeps its own
+      per-unit history under the same visible-last-tick rule),
       `attackAnimationTypes.ts` (the projected successful-hit contract), and
       `renderMetricsCapture.ts` (the lightweight alive-count/world-metrics HUD
       capture that deliberately avoids full-world debug serialization).
@@ -186,9 +187,11 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     never enters a save. `rendering/voxel/` owns the sole world adapter,
     procedural art, feedback parts, and Three runtime integration.
     `AoeVoxelPresentationCoordinator.ts` converts displayed bridge and
-    interaction state into snapshots, accepts prior positions only from the
-    exact adjacent simulation tick, and drives AoE-owned smooth root/facing
-    presentation; `aoeVoxelBuildingDetails.ts` owns the exhaustive concrete-type
+    interaction state into snapshots, draws unit roots through the
+    displayed-position smoother (`rendering/displayedPositionSmoother.ts`: the
+    sim's sampled trajectory replayed one step cadence behind, so a walk is
+    continuous motion rather than a move-and-stop pulse), and drives AoE-owned
+    smooth root/facing presentation; `aoeVoxelBuildingDetails.ts` owns the exhaustive concrete-type
     facade/prop layer appended to completed role recipes, keeping construction
     generic and using the same prepared parts for drawing and silhouette hits;
     `aoeVoxelUnitRecipeContext.ts` centralizes scaled procedural part authorship;
@@ -269,10 +272,12 @@ design/stats ──build──► generated/content.json ──load──► Sim
 - Seeds are reproducible from `?seed=<name>` URL parameters for fixtures.
 - Commands and fixed-step ticks are the only sources of state change.
 - Render interpolation is a display concern; it does not feed back into simulation
-  state. It consumes only the exact immediately preceding forward-tick projection;
-  gaps, rewinds, and generation changes snap instead of extrapolating across
-  unrelated state. Click hit-testing prefers the displayed entity so the player's
-  perceived target matches the authoritative target.
+  state. Each live unit's drawn root replays that unit's own recent sim samples a
+  step cadence behind (`rendering/displayedPositionSmoother.ts`, delay from
+  `rendering/unitStepCadence.ts`) and never extrapolates past the latest sample;
+  teleports, gaps, rewinds, bridge swaps and generation changes snap instead of
+  gliding across unrelated state. Click hit-testing prefers the displayed entity so
+  the player's perceived target matches the authoritative target.
 - Units belong to a **domain** (`src/game/simulation/unitDomain.ts`): land or water, and the two are complementary — no cell admits both, and water admits only ships. Terrain passability, pathing, trained-unit spawn placement, and scenario spawn validation all read the domain rather than testing for specific unit types. A new water unit needs no naval branch anywhere; it needs an entry in `WATER_UNITS`.
 - Randomness is **counter-based, never a stored stream.** The only chance in the simulation is the projectile to-hit roll (spec §10.4), and it is a pure hash of the shot's identity — launch tick, attacker id, target id, projectile id. There is no seeded RNG object and no RNG state in saves. Any future chance mechanic must follow the same rule: derive it from already-serialized facts, because a stateful stream desynchronises replays the moment the number or order of draws changes.
 - Fine-grid transforms remain authoritative simulation components. Systems must publish replacements through `World.setComponent`; modifying a retrieved component object in place is outside the diff/render/replay contract and is prohibited.

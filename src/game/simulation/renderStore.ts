@@ -6,7 +6,6 @@ import type {
 import type {
   ProjectedEntityView,
   ProjectedFrameView,
-  RenderPositionFrame,
 } from './types';
 import type { RenderMetricsSnapshot } from './renderMetricsCapture';
 
@@ -27,30 +26,6 @@ function destroyedKey(id: number, generation: number): string {
   return `${id}:${generation}`;
 }
 
-function wasVisibleInFrame(
-  view: ProjectedEntityView,
-  frame: ProjectedFrameView | null,
-  visibleCells: ReadonlySet<number> | null,
-): boolean {
-  if (!frame || !visibleCells || view.owner === frame.playerId) return true;
-  const anchorX = Math.floor(view.x);
-  const anchorY = Math.floor(view.y);
-  for (let offsetY = 0; offsetY < view.footprintHeight; offsetY += 1) {
-    for (let offsetX = 0; offsetX < view.footprintWidth; offsetX += 1) {
-      const x = anchorX + offsetX;
-      const y = anchorY + offsetY;
-      if (
-        x >= 0
-        && y >= 0
-        && x < frame.mapWidth
-        && y < frame.mapHeight
-        && visibleCells.has(y * frame.mapWidth + x)
-      ) return true;
-    }
-  }
-  return false;
-}
-
 export class RenderStore {
   private readonly entities = new Map<string, RenderEntity<ProjectedEntityView>>();
   private readonly attackAnimationKeys = new Set<string>();
@@ -59,31 +34,15 @@ export class RenderStore {
   private frame: ProjectedFrameView | null = null;
   private debug: RenderMetricsSnapshot | null = null;
   private initialized = false;
-  private previousPositionFrame: RenderPositionFrame | null = null;
 
   apply(message: RenderMessage): void {
     const nextTick = message.data.render.tick;
-    if (this.initialized && nextTick > this.tick) {
-      // Capture interpolation history through the PRIOR tick's perspective.
-      // The raw store intentionally retains fogged entities so a stationary
-      // one can reveal later, but its unseen prior position must never become
-      // a movement interpolation source when it first enters line of sight.
-      const visibleCells = this.frame ? new Set(this.frame.visibleCells) : null;
-      const positions = [...this.entities.values()]
-        .filter(({ view }) => (
-          !view.isMemory && (view.kind === 'unit' || view.kind === 'resource')
-          && wasVisibleInFrame(view, this.frame, visibleCells)
-        ))
-        .map(({ ref, view }) => ({
-          id: ref.id,
-          generation: ref.generation,
-          x: view.x,
-          y: view.y,
-        }))
-        .sort((left, right) => left.id - right.id || left.generation - right.generation);
-      this.previousPositionFrame = { tick: this.tick, positions };
-    } else if (this.initialized && nextTick < this.tick) {
-      this.previousPositionFrame = null;
+    if (this.initialized && nextTick < this.tick) {
+      // A rewind (replay scrub, rollback): the suppression ledger belongs to
+      // the timeline being left. The prior-tick position frame that display
+      // interpolation once read was captured here too; since v0.3.182 the
+      // presentation keeps its own per-unit history (displayedPositionSmoother)
+      // under the same visible-last-tick rule, so the store no longer does.
       this.suppressedAttackAnimationTicks.clear();
     }
 
@@ -206,12 +165,5 @@ export class RenderStore {
 
   getDebug(): RenderMetricsSnapshot | null {
     return this.debug;
-  }
-
-  getPreviousPositionFrame(): RenderPositionFrame | null {
-    const frame = this.previousPositionFrame;
-    return frame
-      ? { tick: frame.tick, positions: frame.positions.map((position) => ({ ...position })) }
-      : null;
   }
 }

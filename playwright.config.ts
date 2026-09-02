@@ -1,5 +1,18 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// PLAYWRIGHT_PORT moves the preview server off 4173 for one run. Several
+// agents share this machine, each in its own worktree with its own dist/; with
+// `reuseExistingServer` a suite started while another worktree's preview holds
+// 4173 would silently test THAT build. A port of one's own is what makes the
+// gate honest here, and the default keeps CI and single-session runs unchanged.
+const port = Number(process.env.PLAYWRIGHT_PORT ?? 4173);
+if (!Number.isInteger(port) || port <= 0 || port > 65_535) {
+  throw new Error(
+    `PLAYWRIGHT_PORT must be a TCP port number; got "${process.env.PLAYWRIGHT_PORT ?? ''}".`,
+  );
+}
+const baseURL = `http://127.0.0.1:${String(port)}`;
+
 export default defineConfig({
   testDir: './tests/browser',
   testIgnore: ['**/_*.spec.ts'],
@@ -8,7 +21,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'line',
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     headless: true,
@@ -21,8 +34,8 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: 'npm.cmd run preview -- --host 127.0.0.1 --port 4173 --strictPort',
-    url: 'http://127.0.0.1:4173',
+    command: `npm.cmd run preview -- --host 127.0.0.1 --port ${String(port)} --strictPort`,
+    url: baseURL,
     reuseExistingServer: true,
     timeout: 120_000,
   },
