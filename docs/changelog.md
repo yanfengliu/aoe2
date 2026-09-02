@@ -2,14 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## 0.3.178
-
-- Reverts the Lumber Camp siting change from 0.3.177. An independent review ran the match past the point where the previous check stopped, and the change loses the game it used to win: on the map the game boots into, the AI's villagers range out to gather beside the enemy Town Centre once their own woodline thins, and thirty of them are shot from its walls between minutes 60 and 75 — the player that reached the Castle Age sooner ends with a quarter of its workforce and no army, where before it won by conquest at minute 66. Camps go back beside the tree nearest the Town Centre and the Mining Camp is requested after the Lumber Camp again. The underlying flaw the review exposed — villagers will walk into an enemy Town Centre's range to gather — is present in the old behaviour too and is recorded as its own defect.
-
 ## 0.3.179
 
 - Choosing a building to place no longer collapses the build palette. With a villager selected, clicking a build card used to squeeze the BUILD group to a sliver at the right edge of the command bar — at a 1280x720 window it went from 261px wide to 36px — because the "Placing: House" status was inserted as its own section of the bar and the palette paid for it. The status is now a pill in the Build heading, so the palette, stance and formation groups stay exactly where they were and the bar does not change height. Command-bar tooltips also float above the bar instead of above the card they describe, and never cover the minimap: hovering a right-hand build card used to put its tooltip over the minimap's frame at every window size, placement mode or not.
 
+
+## 0.3.178
+
+- Reverts the Lumber Camp siting change from 0.3.177. An independent review ran the match past the point where the previous check stopped, and the change loses the game it used to win: on the map the game boots into, the AI's villagers range out to gather beside the enemy Town Centre once their own woodline thins, and thirty of them are shot from its walls between minutes 60 and 75 — the player that reached the Castle Age sooner ends with a quarter of its workforce and no army, where before it won by conquest at minute 66. Camps go back beside the tree nearest the Town Centre and the Mining Camp is requested after the Lumber Camp again. The underlying flaw the review exposed — villagers will walk into an enemy Town Centre's range to gather — is present in the old behaviour too and is recorded as its own defect.
 
 ## 0.3.177
 
