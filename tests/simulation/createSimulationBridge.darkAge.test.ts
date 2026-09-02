@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { DEFAULT_SEED } from '../../src/game/simulation/prototypeScenario';
-import { placeBuildingNearTownCenter, stepBridgeUntil } from './createSimulationBridge.helpers';
+import {
+  placeBuildingNearTownCenter,
+  stepBridgeUntil,
+  stepUntilBuildingComplete,
+} from './createSimulationBridge.helpers';
 
 describe('createSimulationBridge dark age economy progression', () => {
   it('queues a villager at the Town Center and increases population when training completes', () => {
@@ -66,9 +70,7 @@ describe('createSimulationBridge dark age economy progression', () => {
       isComplete: false,
     });
 
-    for (let index = 0; index < 400; index += 1) {
-      bridge.step(100);
-    }
+    expect(stepUntilBuildingComplete(bridge, 1, 'house')).toBe(true);
 
     const completedHouse = bridge
       .getEconomyState()
@@ -100,9 +102,7 @@ describe('createSimulationBridge dark age economy progression', () => {
       visualVariant: 'construction',
     });
 
-    for (let index = 0; index < 400; index += 1) {
-      bridge.step(100);
-    }
+    expect(stepUntilBuildingComplete(bridge, 1, 'house')).toBe(true);
 
     const completedHouse = bridge
       .getRenderState()

@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.187
+
+- Buildings take as long to put up as they do in Age of Empires II. The whole Dark Age had been running at about half the real game's pace — a House went up in 12 seconds against the real 25, a Barracks in 24 against 50, a Town Center in 30 against 150 — because the build-time table was maintained by hand and sixteen of its rows were wrong. Every one now comes from `design/stats/structures.csv`. Three prices were wrong too: a Watch Tower was not charging its 25 wood, a Wonder was charging 1000 food it should not, and the Outpost's 10 stone should have been 5.
+- Extra villagers on a building now help the way they do in the real game — a crew of five builds 2.3x as fast as one, not 5x. They used to stack in a straight line, so a building's time simply divided by the number of builders.
+- A villager sent to build walks to the nearest free edge of the site. It used to walk to whatever edge came first in an internal list, so a villager standing two tiles west of a House site would walk all the way around to the east edge and take 22 seconds of game time to start a job it should begin in two.
+- The AI puts a crew on a big building instead of one villager. It used to assign exactly one builder to everything it built, which meant its Wonder — the win condition — went up at one villager's pace while dozens stood idle.
+
 ## 0.3.186
 
 - The idle-villager badge no longer sits on the command bar. With a villager selected the bar is taller than the fixed height the badge was placed above, so the badge's bottom edge covered the bar's SELECTION label at every common window size (800x600, 1280x720 and 1440x900 alike). The badge — and the speaker toggle above it — now stand clear of the bar's top edge and follow it as the bar grows or shrinks, whatever is selected and whatever the window size.

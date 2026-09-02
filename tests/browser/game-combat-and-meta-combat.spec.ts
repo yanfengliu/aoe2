@@ -15,7 +15,7 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (combat)', ()
     await game.clickCell(page, barracksPlacement.x, barracksPlacement.y);
     await expect(page.locator('[data-hud="wood"]')).toHaveText('25');
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
+    await game.advanceUntilBuildingComplete(page, 1, 'barracks');
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Barracks');

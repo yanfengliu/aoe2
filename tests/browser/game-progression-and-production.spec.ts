@@ -22,22 +22,11 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     await expect(page.locator('[data-hud="wood"]')).toHaveText('562');
     await expect(page.locator('[data-hud="stone"]')).toHaveText('250');
 
-    await page.evaluate(() => {
-      const api = window.__AOE2_TEST__!;
-      for (let index = 0; index < 420; index += 1) {
-        const snapshot = api.advanceTicks(1, 100);
-        const townCenter = snapshot.economyState.buildings.find(
-          (building) =>
-            building.owner === 1
-            && building.buildingType === 'town-center'
-            && building.x === 14
-            && building.y === 8,
-        );
-        if (townCenter?.isComplete) {
-          break;
-        }
-      }
-    });
+    // A DE Town Center is 1,500 ticks (structures.csv 150 s) plus the walk, so
+    // the old 420-tick cap fell out with the foundation still up — and a
+    // foundation SELECTS, so the failure surfaced three assertions later as
+    // "food 200, expected 150" (an incomplete TC trains nothing).
+    await game.advanceUntilBuildingComplete(page, 1, 'town-center', 6_000, townCenterPlacement);
     await game.clickCell(page, 18, 10, 'right');
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(80, 100));
 
@@ -93,23 +82,19 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     ).toBe(true);
     await expect(page.locator('[data-hud="stone"]')).toHaveText('75');
 
-    const postTowerSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(520, 100),
-    );
+    await game.advanceUntilBuildingComplete(page, 1, 'watch-tower');
 
-    expect(
-      postTowerSnapshot.economyState.buildings.some(
-        (building) =>
-          building.owner === 1
-          && building.buildingType === 'watch-tower'
-          && building.isComplete,
-      ),
-    ).toBe(true);
-    expect(
-      postTowerSnapshot.economyState.units.some(
+    // Completion is the START of the tower's job: it still has to see the
+    // Scout and shoot it, so this waits for the KILL rather than assuming a
+    // fixed number of ticks covers both the build and the shooting.
+    let scoutDead = false;
+    for (let advanced = 0; advanced < 1_200 && !scoutDead; advanced += 100) {
+      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(100, 100));
+      scoutDead = !snapshot.economyState.units.some(
         (unit) => unit.owner === 2 && unit.unitType === 'scout',
-      ),
-    ).toBe(false);
+      );
+    }
+    expect(scoutDead).toBe(true);
   });
 
   test('can garrison and ungarrison a villager through the Town Center in the live game', async ({

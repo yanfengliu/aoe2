@@ -55,35 +55,41 @@ const BUILDING_POPULATION_PROVIDED: Record<BuildingType, number> = {
   'fish-trap': 0,
 };
 
+// DE build times, one for one from structures.csv `build_time` x TPS (10).
+// Hand-maintained until 2026-09-02, when the whole Dark Age was found running
+// at roughly HALF DE's pace — house 120 ticks against DE's 250, Barracks 240
+// against 500, Town Center 300 against 1500. `structureCostsAndBuildTimes`
+// holds every row against the CSV now, so a divergence is a red test rather
+// than a play-test finding. These are ONE-builder times: `builderWorkStep`
+// applies AoE2's multi-builder curve (spec §16: 3 x base / (builders + 2)).
 const BUILDING_BUILD_TIME_TICKS: Record<BuildingType, number> = {
-  'town-center': 300,
-  house: 120,
-  mill: 180,
-  'lumber-camp': 180,
-  'mining-camp': 180,
-  barracks: 240,
-  'watch-tower': 220,
-  'bombard-tower': 800, // structures.csv build_time 80s
-  stable: 240,
-  'archery-range': 240,
-  blacksmith: 200,
-  market: 200,
-  'siege-workshop': 260,
-  monastery: 280,
+  'town-center': 1500,
+  house: 250,
+  mill: 350,
+  'lumber-camp': 350,
+  'mining-camp': 350,
+  barracks: 500,
+  'watch-tower': 800,
+  'bombard-tower': 800,
+  stable: 500,
+  'archery-range': 500,
+  blacksmith: 400,
+  market: 600,
+  'siege-workshop': 400,
+  monastery: 400,
   university: 600,
-  castle: 560,
-  wonder: 1200,
+  castle: 2000,
+  // structures.csv "Wonder": 3503 s -- DE's own oddly precise number. With a
+  // full crew and the multi-builder curve that is minutes, not an hour.
+  wonder: 35030,
   'stone-wall': 80,
-  'palisade-wall': 40,
-  // structures.csv "Gate": 70 s. The Palisade Gate matches its own wall's
-  // pace, scaled for a far larger structure.
+  'palisade-wall': 50,
   'stone-gate': 700,
   'palisade-gate': 200,
-  // M1 Farms: structures.csv build_time 15 seconds × 10 TPS = 150 ticks.
   farm: 150,
-  dock: 350, // structures.csv: 35 s x 10 TPS.
-  outpost: 150, // structures.csv: 15 s x 10 TPS.
-  'fish-trap': 530, // structures.csv: 53 s x 10 TPS.
+  dock: 350,
+  outpost: 150,
+  'fish-trap': 530,
 };
 
 const BUILDING_SIZES: Record<BuildingType, number> = {

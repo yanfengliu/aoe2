@@ -1,5 +1,5 @@
 // The Outpost is the cheapest thing in Age of Empires II that sees for you:
-// 25 wood and 10 stone for a 1x1 post with 500 hit points, a long line of
+// 25 wood and 5 stone for a 1x1 post with 500 hit points, a long line of
 // sight, and no attack at all (structures.csv "Outpost", Dark Age). It is how
 // you watch ground you do not hold, and it completes the building roster.
 
@@ -21,12 +21,12 @@ import { getBuildingFootprint } from '../../src/game/content/buildingFootprints'
 import { outpostVisionRadiusForAge } from '../../src/game/simulation/visionTechEffects';
 
 describe('Outpost', () => {
-  it('is a Dark-Age villager build costing 25 wood and 10 stone', () => {
+  it('is a Dark-Age villager build costing 25 wood and 5 stone', () => {
     const bridge = createSimulationBridge('aoe2-prototype');
     // Available from the very first age, unlike every other defensive building.
     expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
     expect(bridge.getSelectionState().buildOptions).toContain('outpost');
-    expect(constructionCost('outpost')).toEqual({ wood: 25, stone: 10 });
+    expect(constructionCost('outpost')).toEqual({ wood: 25, stone: 5 });
     expect(getBuildingFootprint('outpost')).toEqual({ width: 1, height: 1 });
   });
 

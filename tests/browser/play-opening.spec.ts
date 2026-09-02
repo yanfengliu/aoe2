@@ -16,28 +16,30 @@
 //   05-tc.png  06-house-done.png
 //
 // FINDINGS (2026-09-02) — what does NOT match DE, measured by this test and
-// by a headless companion probe of the same order on the same map. Each is
-// pinned below AS OBSERVED, so the test stays green until a fix lands and
-// then fails, which is the moment to move the pin. Not fixed in this task.
-//   F1 Outpost costs 25 wood + 10 stone (BUILD card; structures.csv row 52
-//      agrees). DE: 25 wood + 5 stone (aoe2techtree data.json — the source
-//      the stats CSVs name — building 598). The CSV row contradicts its
-//      own source.
-//   F2 A villager 1-2 tiles from the House site takes ~22 s of GAME time to
-//      START building (04-foundation.png -> 06-house-done.png; this run's
-//      annotation gives walk vs build in ticks). Headless, same order: a
-//      House at (7, 6) ordered to villager 2205 at (6, 8) walks
-//      (2,8)->(2,5)->(5,4)->(9,5)->(9,6) to build from the EAST edge (22 s);
-//      2206 at (6, 9) the same (22.6 s); only 2207 at (7, 9) builds at once
-//      from (7, 8) (1.4 s). DE builds from the nearest free edge in a second.
-//   F3 The construction itself takes 120 ticks = 11.9 s (prototypeBuilding
-//      Rules.BUILDING_BUILD_TIME_TICKS.house). DE: 25 s (structures.csv
-//      build_time 25; aoe2techtree TrainTime 25). The same table runs the
-//      whole Dark Age at about half of DE — Mill/camps 18 s (DE 35),
-//      Barracks 24 s (DE 50), Town Center 30 s (DE 100). Villager training
-//      measured 24.5-27.9 s against DE's 25 s, which is fine.
-//   F4 structures.csv row 6 prices a House at 30 wood; the game charges 25
-//      and DE is 25 — that CSV row is the wrong one.
+// by a headless companion probe of the same order on the same map.
+//
+// F1-F4 are FIXED (2026-09-02, same day) and this file now ASSERTS them, so
+// each is a gate rather than a note:
+//   F1 Outpost cost. Was 25 wood + 10 stone in the BUILD card and in
+//      structures.csv row 52, against DE's 25 wood + 5 stone (aoe2techtree
+//      data.json, building 598 — the source the CSVs name). The CSV row was
+//      wrong; EXPECTED_BUILD_PANEL below now pins DE's price.
+//   F2 A villager 1-2 tiles from a House site took ~22 s of GAME time to
+//      START building, because the approach search returned the first
+//      candidate cell the footprint enumeration named rather than the nearest
+//      reachable one, and walked around to the far edge. Approaches now sort
+//      nearest-first (`approachOrdering.ts`); step 7 asserts the walk.
+//   F3 The whole Dark Age ran at about half DE's pace — House 120 ticks
+//      against DE's 250, Mill and camps 180 against 350, Barracks 240 against
+//      500, Town Center 300 against 1500 — because BUILDING_BUILD_TIME_TICKS
+//      was hand-maintained. Every row now comes from structures.csv, gated by
+//      `tests/content/structureCostsAndBuildTimes.test.ts`, and AoE2's
+//      multi-builder curve (3 x base / (builders + 2)) is implemented; step 7
+//      asserts the House's build time.
+//   F4 structures.csv row 6 priced a House at 30 wood while the game charged
+//      25 and DE charges 25. The CSV row was the wrong one and is fixed.
+//
+// STILL OPEN, both UI:
 //   F5 UI, viewport-scoped (01-select.png, 04-foundation.png): at this
 //      suite's 800x600 the command deck wraps and the BUILD group lands at
 //      y 675-743, below the panel's 588 px bottom edge (max-height 208px,
@@ -72,7 +74,7 @@ const HUMAN = 1;
 
 // The BUILD panel a Dark Age Britons villager shows, as read from the cards
 // in panel order. Palisade Wall (2 wood/tile) and Palisade Gate (30 wood)
-// are DE's Dark Age options too; the Outpost's stone is finding F1 above.
+// are DE's Dark Age options too.
 const EXPECTED_BUILD_PANEL: play.BuildCard[] = [
   { name: 'House', cost: { wood: 25 } },
   { name: 'Mill', cost: { wood: 100 } },
@@ -83,7 +85,7 @@ const EXPECTED_BUILD_PANEL: play.BuildCard[] = [
   { name: 'Palisade Gate', cost: { wood: 30 } },
   { name: 'Farm', cost: { wood: 60 } },
   { name: 'Dock', cost: { wood: 150 } },
-  { name: 'Outpost', cost: { wood: 25, stone: 10 } },
+  { name: 'Outpost', cost: { wood: 25, stone: 5 } },
 ];
 
 test('the opening plays like AoE2 DE through the lobby, the mouse, and the HUD', {
@@ -315,6 +317,20 @@ test('the opening plays like AoE2 DE through the lobby, the mouse, and the HUD',
       + `${watched.samples} samples); villager queued tick ${ticks.villagerQueued} -> spawned tick `
       + `${ticks.villagerSpawned} (${(ticks.villagerSpawned - ticks.villagerQueued) / 10} s game time); `
       + `HUD ${(await play.readHud(page)).time}; shot ${await play.screenshot(page, '06-house-done.png')}`);
+
+    // F2 and F3 as GATES. Measured here after the fixes: walk 2.5 s (it was
+    // 22.0 s when the builder rounded the House to its far edge), build 24.8 s
+    // against DE's 25.0 (structures.csv House build_time 25; it was 11.9 s).
+    // The walk bound is generous — this is a real match with real traffic —
+    // but a lap of the building cannot fit inside it. The build bound is
+    // tight, because one villager on a House is exactly the CSV number.
+    const walkSeconds = (started - ticks.housePlaced) / 10;
+    const buildSeconds = (completed - started) / 10;
+    expect(walkSeconds, `builder took ${walkSeconds} s to reach a House site two tiles away (F2)`)
+      .toBeLessThan(8);
+    expect(buildSeconds, `House built in ${buildSeconds} s; DE is 25 s (F3)`)
+      .toBeGreaterThan(23);
+    expect(buildSeconds).toBeLessThan(28);
   });
 
   // ---- 8. Nothing threw --------------------------------------------------

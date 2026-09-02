@@ -16,6 +16,7 @@ export type {
 } from './gameTestHelpers/types';
 
 export {
+  advanceUntilBuildingComplete,
   getSnapshot,
   waitForBoot,
   waitForBootWithSeed,

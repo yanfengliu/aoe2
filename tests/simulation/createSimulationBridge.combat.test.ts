@@ -96,7 +96,9 @@ describe('createSimulationBridge combat and outcomes', () => {
             economyState.units.filter((unit) => unit.owner === 1 && unit.unitType === 'villager').length < 3;
           return aiBarracksComplete && villagerLossOccurred;
         },
-        { maxSteps: 2_000 },
+        // A DE Barracks is 500 ticks of building (structures.csv 50 s) on top
+        // of the AI's gathering, then the Militia has to walk and kill.
+        { maxSteps: 4_000 },
       ),
     ).toBe(true);
 

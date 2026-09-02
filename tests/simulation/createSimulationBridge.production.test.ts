@@ -39,7 +39,8 @@ describe('createSimulationBridge production progression', () => {
               && building.y === 8
               && building.isComplete,
           ),
-        { maxSteps: 900 }, // §12.4.2 clock (v0.3.160): walks run ~6x longer.
+        // Walk + a DE Town Center's 1500-tick build (structures.csv 150 s).
+        { maxSteps: 2_400 },
       ),
     ).toBe(true);
 

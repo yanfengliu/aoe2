@@ -61,6 +61,17 @@ const HORIZON_TICKS = 45000;
  *  outlive the mechanism it described. */
 const PEAK_MILITARY_BAR = 19;
 
+/* BASELINE RE-MEASURED 2026-09-02, after DE build times (structures.csv, the
+ * whole Dark Age had been running at about half DE's pace), AoE2's
+ * multi-builder curve, AI construction crews, and nearest-first approaches.
+ * The WINNER FLIPPED: owner 1 now takes the boot map — castle 29,500,
+ * qualified 27,750, peak military 40 (trained 51, lost 11), 8 building types,
+ * 7 unit types — while owner 2 is wiped out (no Castle, peak military 3, and
+ * zero villagers by 30,000). Previously owner 2 won it at castle 25,250 with
+ * peak army 20. The bars below are unchanged and all still clear on the new
+ * winner; the variety pair clears exactly, so a candidate that loses a
+ * building or unit type fails, which is what they are for. */
+
 interface MatchReport {
   castleAt: number | null;
   qualifiedAt: number | null;
@@ -136,7 +147,15 @@ describe('AI self-play exercises the game past the Feudal Age', () => {
     // gating the boot map on an age it reaches just past this horizon would be
     // pinning the horizon rather than the behaviour.
     const report = playSelfPlay('aoe2-prototype');
-    const winner = report[2]!;
+    // WHICHEVER SLOT WINS. This read `report[2]` because owner 2 was the side
+    // that won on the boot map; DE build times and nearest-first approaches
+    // (2026-09-02) flipped it — owner 1 now reaches Castle at 29,500 and has
+    // wiped owner 2 off the map by 45,000, so a fixed slot reported "walled
+    // into Feudal" about a match one side had already won. The test is named
+    // for self-play reaching the Castle Age, not for a colour.
+    const winner = (report[1]!.castleAt ?? Infinity) <= (report[2]!.castleAt ?? Infinity)
+      ? report[1]! : report[2]!;
+    console.log(`SELFPLAY aoe2-prototype ${String(HORIZON_TICKS)}: p1 ${JSON.stringify(report[1])} p2 ${JSON.stringify(report[2])}`);
     expect(
       winner.qualifiedAt,
       'no player became eligible for the Castle Age — still walled into Feudal',
@@ -178,10 +197,11 @@ describe('AI self-play exercises the game past the Feudal Age', () => {
     ).toBeGreaterThanOrEqual(PEAK_MILITARY_BAR);
 
     // Variety is the actual goal. Measured 9 building types and 5 unit types
-    // against a baseline of 8 and 4. The building bar is one BELOW the
-    // measured value on purpose: an exact pin is a change-detector rather than
-    // a contract, and this suite already learned that from a bar copied off a
-    // symptom.
+    // against a baseline of 8 and 4 when these bars were set; the 2026-09-02
+    // winner clears them exactly at 8 and 7. The building bar was set one
+    // BELOW the then-measured value on purpose: an exact pin is a
+    // change-detector rather than a contract, and this suite already learned
+    // that from a bar copied off a symptom.
     expect(winner.buildingTypes, 'building variety did not improve').toBeGreaterThanOrEqual(8);
     expect(winner.unitTypes, 'unit variety did not improve').toBeGreaterThanOrEqual(7);
   }, 600_000);

@@ -192,7 +192,7 @@ const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>
   'lumber-camp': { wood: 100 },
   'mining-camp': { wood: 100 },
   barracks: { wood: 175 },
-  'watch-tower': { stone: 125 },
+  'watch-tower': { wood: 25, stone: 125 }, // csv: the wood half was missing.
   'bombard-tower': { wood: 25, stone: 125 },
   stable: { wood: 175 },
   'archery-range': { wood: 175 },
@@ -202,10 +202,10 @@ const CONSTRUCTION_COSTS: Record<BuildableBuildingType, Partial<PlayerResources>
   monastery: { wood: 175 },
   university: { wood: 200 }, // structures.csv: Castle Age, 200 wood.
   dock: { wood: 150 }, // structures.csv: Dark Age, 150 wood.
-  outpost: { wood: 25, stone: 10 }, // structures.csv: Dark Age.
+  outpost: { wood: 25, stone: 5 }, // structures.csv: Dark Age.
   'fish-trap': { wood: 100 }, // structures.csv: Dark Age.
   castle: { stone: 650 },
-  wonder: { food: 1000, wood: 1000, gold: 1000, stone: 1000 },
+  wonder: { wood: 1000, gold: 1000, stone: 1000 }, // csv: DE charges no food.
   'stone-wall': { stone: 5 },
   'palisade-wall': { wood: 2 },
   // structures.csv "Gate": 30 stone. The Palisade Gate is its wooden

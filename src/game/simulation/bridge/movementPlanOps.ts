@@ -5,12 +5,9 @@
 // or the next step gets blocked.
 
 import { findGridPath, type Position } from 'civ-engine';
-import {
-  buildingFootprint,
-  clonePosition,
-  isAtTarget,
-  type GameWorld,
-} from './pureHelpers';
+
+import { orderApproachCandidates } from './approachOrdering';
+import { buildingFootprint, clonePosition, isAtTarget, type GameWorld } from './pureHelpers';
 import type { BuildingComponent } from '../types';
 import type { UnitMovementPlan } from './movementTypes';
 import { createApproachPlanCache } from './approachPlanCache';
@@ -217,6 +214,8 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     activeWorld: CivWorld = world,
     isPassable: IsPassable = isCellPassableForUnit,
   ): ResolvedMovementPath | null {
+    // Candidate ORDER is the choice (first reachable wins) and belongs to the
+    // caller: approaches sort nearest-first, moves keep their slot allocation.
     const uniqueCandidates = uniquePositions(candidates).filter((candidate) =>
       isPassable(unitId, candidate.x, candidate.y, activeWorld),
     );
@@ -400,7 +399,7 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     const plan = findMovementPlan(
       unitId,
       position,
-      getApproachCellsForFootprint(resourcePosition, 1, 1, 1),
+      orderApproachCandidates(position, getApproachCellsForFootprint(resourcePosition, 1, 1, 1)),
       true,
       activeWorld,
     );
@@ -431,7 +430,9 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     const plan = findMovementPlan(
       unitId,
       position,
-      getApproachCellsForFootprint(buildingPosition, footprint.width, footprint.height, range),
+      orderApproachCandidates(position, getApproachCellsForFootprint(
+        buildingPosition, footprint.width, footprint.height, range,
+      )),
       true,
       activeWorld,
     );

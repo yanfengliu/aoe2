@@ -77,8 +77,8 @@ describe('prototype economy rules', () => {
     expect(trainingTimeTicks('trebuchet')).toBe(500);
     expect(researchCost('chemistry')).toEqual({ food: 300, gold: 200 });
     expect(researchTimeTicks('imperial-age')).toBe(1900);
+    // structures.csv "Wonder": wood + stone + gold. DE charges no food.
     expect(constructionCost('wonder')).toEqual({
-      food: 1000,
       wood: 1000,
       gold: 1000,
       stone: 1000,
@@ -109,7 +109,7 @@ describe('prototype economy rules', () => {
 describe('prototype building rules', () => {
   it('keeps existing build, population, and train or research eligibility rules', () => {
     expect(buildingPopulationProvided('house')).toBe(5);
-    expect(buildingBuildTimeTicks('castle')).toBe(560);
+    expect(buildingBuildTimeTicks('castle')).toBe(2000); // structures.csv: 200 s.
     expect(canTrainAt('castle', 'trebuchet')).toBe(true);
     expect(canTrainAt('town-center', 'trebuchet')).toBe(false);
     expect(canResearchAt('university', 'chemistry')).toBe(true);

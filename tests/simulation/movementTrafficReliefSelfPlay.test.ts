@@ -44,6 +44,20 @@
 // halves are asserted: no phantom relief, and the rule still engages on this
 // map past the old census horizon (a mutant that never relieves anyone —
 // stamping on every consult, the rejected attempt 2 — fails the second one).
+//
+// SEED MOVED to `default-seed`, 2026-09-02. The boot map stopped starving at
+// all: with DE build times and nearest-first approaches, owner 1 wins the
+// self-play match outright (Castle at 29,500, peak army 40) and owner 2 is off
+// the map by 30,000, so there are too few units left to contest a passage —
+// measured 0 admissions across 0 units at 30,000, and 0 again with the
+// nearest-first ordering disabled, which is how it was established that the
+// changed MATCH is the cause and not the pathing. A guard that grants zero
+// admissions asserts nothing about phantoms either, so both halves moved to
+// the seed that still contests: `default-seed` gives 181 admissions across 10
+// units, first at tick 18,006, phantom 0. The arbiter's own rules stay gated
+// directly by movementTrafficStarvationClock and movementTrafficReplenishedJam;
+// this file is the end-to-end "in a real match" check, and a real match is
+// what it now runs.
 
 import { describe, expect, it, vi } from 'vitest';
 import type { Position } from 'civ-engine';
@@ -120,9 +134,12 @@ import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 /** Past the 20,000-tick census that missed the rule engaging (review I3). */
 const HORIZON_TICKS = 30_000;
 
-describe('the starvation rule on the boot map', () => {
+/** `default-seed`, not the boot map — see the note above the describe block. */
+const SEED = 'default-seed';
+
+describe('the starvation rule in self-play', () => {
   it('relieves only units that were attempting to move on the previous tick, and still engages', () => {
-    const bridge = createSimulationBridge('aoe2-prototype', {
+    const bridge = createSimulationBridge(SEED, {
       forceAiForOwners: new Set([HUMAN_PLAYER_ID]),
     });
     for (let tick = 1; tick <= HORIZON_TICKS; tick += 1) bridge.step(100);
@@ -131,7 +148,7 @@ describe('the starvation rule on the boot map', () => {
       + ` (first at tick ${String(ledger.firstTick)}), phantom ${String(ledger.phantom)}`
       + ` across ${String(ledger.phantomUnits.size)} units`
       + (ledger.phantomExamples.length > 0 ? `\n  ${ledger.phantomExamples.join('\n  ')}` : '');
-    console.log(`RELIEF aoe2-prototype ${String(HORIZON_TICKS)} ticks: ${summary}`);
+    console.log(`RELIEF ${SEED} ${String(HORIZON_TICKS)} ticks: ${summary}`);
 
     expect(
       ledger.phantom,
@@ -139,7 +156,7 @@ describe('the starvation rule on the boot map', () => {
     ).toBe(0);
     expect(
       ledger.admissions,
-      `the starvation rule never engaged on the boot map by ${String(HORIZON_TICKS)} ticks, where it fired 2,800 times when measured — ${summary}`,
+      `the starvation rule never engaged on ${SEED} by ${String(HORIZON_TICKS)} ticks, where it granted 181 admissions when measured — ${summary}`,
     ).toBeGreaterThan(0);
   }, 1_800_000);
 });

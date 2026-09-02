@@ -614,6 +614,16 @@ Use the standard AoE2 multi-builder formula:
 
 - actual_time = 3 * base_time / (builders + 2)
 
+**Implemented v0.3.187 (2026-09-02).** Three rules of construction that were spec text without code until a play test measured them.
+
+**Build times are the CSV's, one for one.** `BUILDING_BUILD_TIME_TICKS` is `structures.csv` `build_time` x TPS (10) for every structure, with no hand-maintained row. It had been hand-maintained, and sixteen rows were wrong — the whole Dark Age ran at about HALF DE's pace (House 120 ticks against 250, Mill and both camps 180 against 350, Barracks 240 against 500, Town Center 300 against 1500, Castle 560 against 2000, Wonder 1200 against 35,030). `tests/content/structureCostsAndBuildTimes.test.ts` differentials the build-time AND cost columns for every structure against the CSV, which is what makes the table's provenance a gate rather than a comment. The same sweep corrected three costs: the Watch Tower's 25 wood was missing, the Wonder charged 1000 food DE does not ask for, and `structures.csv` itself carried two rows that contradicted the aoe2techtree dataset it cites — House 30 wood (DE 25, and the game already charged 25) and Outpost 10 stone (DE 5).
+
+**The multi-builder curve is real.** Builders used to stack LINEARLY — five villagers built five times as fast — so the formula above was written and unimplemented for the project's whole life. Each builder that works a site within one tick now contributes a FULL tick of progress if it is the first and a THIRD if it is not, which telescopes to exactly `(n + 2) / 3` without counting the crew, and needs no persisted state. Treadmill Crane and the Incas' farm bonus multiply each builder's own share as before.
+
+**A builder walks to the NEAREST free edge.** The approach search path-searches candidate cells in list order and takes the first it can reach, so the ORDER is the choice; unordered, it took whatever cell the footprint enumeration named first and a villager two tiles west of a House site walked around to the east edge — 22 s of game time before the first hammer blow. `approachOrdering.ts` sorts approach candidates by Chebyshev distance from the builder (straight-line distance and then x/y break ties, so the pick is deterministic and replay-safe). Plain MOVE orders are deliberately not sorted: their candidate list is arrival slots, and the caller's order is the allocation.
+
+**The AI crews a big building.** `aiBuildCrewPhase` reinforces the AI's in-progress sites, longest remaining job first, to `ceil(3 * total / 600) - 2` builders — a House wants nobody extra, a Town Center wants six, a Wonder wants everyone who can be spared (capped at 90% of the workforce for a Wonder, 50% for anything else). Before it, the AI put one villager on everything it built; with a 1200-tick Wonder that finished inside any test budget, and at DE's 35,030 it meant 42 idle villagers watching one of their own build the win condition for 58 minutes.
+
 Repair rules:
 
 - Villagers can repair buildings and repairable units such as siege
