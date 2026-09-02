@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.178
+
+- Reverts the Lumber Camp siting change from 0.3.177. An independent review ran the match past the point where the previous check stopped, and the change loses the game it used to win: on the map the game boots into, the AI's villagers range out to gather beside the enemy Town Centre once their own woodline thins, and thirty of them are shot from its walls between minutes 60 and 75 — the player that reached the Castle Age sooner ends with a quarter of its workforce and no army, where before it won by conquest at minute 66. Camps go back beside the tree nearest the Town Centre and the Mining Camp is requested after the Lumber Camp again. The underlying flaw the review exposed — villagers will walk into an enemy Town Centre's range to gather — is present in the old behaviour too and is recorded as its own defect.
+
 ## 0.3.177
 
 - The AI now builds its Lumber Camp on the woodline its villagers are actually cutting, and requests its Mining Camp before its Lumber Camp in the Dark Age. Camps used to go beside whichever tree was nearest the Town Centre, which was a median fourteen tiles from the trees being felled; they now go on the trees themselves, four and a half tiles out, within twelve of the Town Centre. On the map the game boots into, the AI becomes eligible for the Castle Age seven thousand ticks sooner, reaches it a thousand sooner, and finishes with four more building types and a larger army. Across six maps, two more players reach the Castle Age than before, including three who never did. The build-order change is what makes the placement safe: a camp planted on the woodline could evict the Mining Camp onto the Town Centre's doorstep and freeze every villager, which the reversed order prevents. One map (`seed-2`) becomes a contested match instead of a one-sided one — the previously walled player now reaches the Castle Age and raids the other's economy — so that map's leading player ends with fewer villagers than before.

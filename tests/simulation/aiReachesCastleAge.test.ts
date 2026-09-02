@@ -27,7 +27,18 @@ import { describe, expect, it } from 'vitest';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 
-/** 30,000 ticks — 50 minutes of game time.
+/** 45,000 ticks — 75 minutes of game time, MATCH RESOLUTION on the boot map.
+ *
+ *  RAISED AGAIN from 30,000 on 2026-09-02 after an independent critic showed
+ *  the 30,000 horizon sat inside the one window (25-36k) where a candidate led
+ *  the baseline, while at 45,000 that candidate LOST the match the baseline
+ *  wins by conquest at 39,890 (peak army 10 against 20). A horizon has to
+ *  include the match resolving, or it scores a half-built army — which is
+ *  what this file's own 24k comment already said. Bars are one below the 45k
+ *  baseline (peak 20, 9 building types, 8 unit types) so they are contracts
+ *  rather than change-detectors.
+ *
+ *  Superseded rationale for 30,000, kept for provenance:
  *
  *  RAISED from 24,000 on 2026-09-01, with the owner's approval, because 24,000
  *  scored this match BEFORE IT RESOLVED. The boot map qualifies at 23,500 and
@@ -41,14 +52,14 @@ import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
  *  and this match ends in conquest). The horizon is part of the instrument and
  *  has to be re-justified whenever the measured thing changes; this one had
  *  not been. */
-const HORIZON_TICKS = 30000;
+const HORIZON_TICKS = 45000;
 
 /** The peak-army bar, named ONCE so the assertion and the message it prints
  *  cannot drift apart. They were two separate literals and the red-check
  *  caught them disagreeing — "below the bar of 8" printed against a threshold
  *  of 99 — which is the same staleness that let this gate's old message
  *  outlive the mechanism it described. */
-const PEAK_MILITARY_BAR = 9;
+const PEAK_MILITARY_BAR = 19;
 
 interface MatchReport {
   castleAt: number | null;
@@ -171,7 +182,7 @@ describe('AI self-play exercises the game past the Feudal Age', () => {
     // measured value on purpose: an exact pin is a change-detector rather than
     // a contract, and this suite already learned that from a bar copied off a
     // symptom.
-    expect(winner.buildingTypes, 'building variety did not improve').toBeGreaterThanOrEqual(9);
+    expect(winner.buildingTypes, 'building variety did not improve').toBeGreaterThanOrEqual(8);
     expect(winner.unitTypes, 'unit variety did not improve').toBeGreaterThanOrEqual(7);
   }, 600_000);
 

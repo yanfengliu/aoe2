@@ -4,6 +4,14 @@ The standing list of what the gates could not see. One entry per defect that rea
 
 Unlike a lesson, an entry stays after it becomes a gate. The register is not a to-do list — it is the record of where defects came from, which is the best available guide to where the next one is.
 
+## 2026-09-02 — Villagers gather inside an enemy Town Centre's range and die there (OPEN)
+
+**Symptom.** Found by an independent critic reviewing v0.3.177, not by play: at 45,000 ticks on `aoe2-prototype` the candidate's owner 2 lost thirty villagers between ticks 35,750 and 45,000 — every death inside owner 1's Town Centre range (enemy TC within 9 cells; owner 1 had at most one soldier), 29 of 30 in `to-resource`, fourteen of them walking to the same boar beside the enemy TC at (12,7-9). On `seed-2` the same: of 27 late deaths, 24 were en route to or inside owner 1's base (gold at (13,9) and (8,15), trees along y=14). Nobody raided; the villagers were sent.
+
+**Why it is a baseline defect, not a candidate one.** Neither the gather comparator (`villagerGatherAssignment.ts`) nor the hunt phase (`aiSystemHuntPhase.ts`) knows where enemy static defences are. Baseline owner 2 lost zero villagers by 45k only because its smaller economy had not exhausted the resources near home; the candidate's larger economy (40 villagers, 26 buildings by 30k) thinned the home woodline sooner and the assignment then reached for the nearest remaining nodes, which were the enemy's. Any economy that grows enough hits this.
+
+**How it is checked from now on.** The Castle gate (`aiReachesCastleAge.test.ts`) now runs to match resolution at 45,000 ticks with a peak-army bar from the baseline there, so a candidate that trades a late army for an early age cannot pass. A direct gate for THIS defect — no owner-slot loses more than N villagers inside enemy TC range over a 45k match — is the fix's job, together with the fix: exclude resources (and hunt targets) within an enemy Town Centre's or tower's attack range from automatic assignment unless no other reachable node of that kind exists.
+
 ## 2026-08-23 — Two buttons that did nothing: the Transport Ship, and the Goths' Huskarl at the Barracks
 
 **Symptom.** Clicking `Train Transport Ship` at a Dock did nothing at all: no unit, no queue entry, no resources spent, no error, no toast. The button rendered as enabled. In a browser probe on `naval-imperial-fixture`, wood stayed at 2000 across the click while the same click on `Train Fishing Ship` charged 75. The Transport Ship is the only way a land army crosses water, so the effect was that a documented, menu-visible mechanic could not be used at all in a real game. The same defect was live for the Goths' Huskarl: their Anarchy unique technology is supposed to move the Huskarl into the Barracks, and the button appeared there and did nothing.

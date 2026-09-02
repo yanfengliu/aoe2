@@ -344,3 +344,20 @@ Per seed at 45k: Castle-Age slots 1 -> 2, buildings 20 -> 22, peak army 16 -> 12
 Recorded as a cost because it IS one from owner 2's chair, and because an aggregate of "more contested matches" is exactly the kind of story that could be told to excuse a regression. What keeps it honest: the protected map improves on every column, all four held-out seeds improve, and the one regressing seed is a MEASURED one — the opposite of tuning to pass.
 
 **Gather time (done-condition 4 / disqualifier 7), measured for this exact candidate:** boot map gatherTicks 49,715 -> 58,544 (+17.8%; gather share 46.7% -> 55.2%, walk 51.3% -> 41.4%) and corpus-seed-b 34,666 -> 48,470 (+39.8%; walk 60.9% -> 44.5%). Idle rises 2.0% -> 3.4% and 2.0% -> 4.2%, a small named cost. Villagers walk LESS and extract MORE. The ship threshold was boot-map gatherTicks >= 48,721, fixed and timestamped before the candidate arm reported.
+
+---
+
+## Round 5: independent critic — two blocking findings, candidate REVERTED (v0.3.178)
+
+Verification, run by me on the shipped HEAD before reverting: boot map at 45,000 ticks on the shipped HEAD (scripts/selfplay-audit.mjs): owner 2 Castle 24,250, peak army 10, match UNRESOLVED (13 building types, 9 unit types); the baseline on the same script: Castle 25,250, peak army 20, match ended by conquest at 39,890.
+
+Critic findings (method re-runnable; it reproduced every author number at 30k first):
+
+1. BLOCKS — disqualifier 3 on the PROTECTED map. Boot-map o2 peak army by horizon, baseline/candidate: 24k 8/7, 30k 9/10, 34k 9/10, 40-45k 20/10. Baseline conquest at 39,890 with zero villager deaths; candidate unresolved, villagers 40 -> 12, thirty killed from 35,750 on, every one inside owner 1's Town Centre range, 29/30 in `to-resource`, fourteen walking to the same boar beside the enemy TC. The candidate leads only in the 25-36k window the gate had been moved into.
+2. BLOCKS — the seed-2 "war" attribution was inferred and false. Arms identical to tick 10,000; the candidate's Mining Camp took the Lumber Camp's slot and the Lumber Camp landed five cells further out; farms 1 vs 3 at 15k, food delivered 1,989 vs 3,017 at 22.5k, villagers stuck at 22 from 17.5k. Zero deaths in either arm before 32,800; of 27 later deaths 24 were en route to or inside owner 1's base. Gather share 46.0 -> 39.7%: done-condition 4 FAILS on this seed, and it was measured only on the two seeds where it rose.
+3. WEAKENS — "bars derived before the candidate" is unverifiable from the repo (one commit; the timestamped threshold was in a scratchpad). Bars were not fitted to the candidate (it scored 10/13/8 against 9/9/7) but the process claim cannot be checked.
+4. WEAKENS — baseline drift: the 08-30 tree measures o2 peak 10 at 30k, c47436cf^ measures 9; the candidate's 10 is parity with 08-30.
+5. WEAKENS — default-seed and corpus-seed-b are in DESIGN.md's fixed ten-seed set, not held out; undisclosed regressions: seed-2 o1 peak 5 -> 4, default-seed o2 qualifies 18,250 -> 23,500 and Castle 23,250 -> 25,000.
+6. HOLDS — boot-map throughput through 30k (wood 2,170 -> 3,950, gold 1,840 -> 2,892). 7. HOLDS — Nomad unaffected. 8. COSMETIC — the test's trained/lost ledger counts garrison flickers as losses.
+
+**Disposition.** Code reverted; gate moved to match resolution (45,000) with bars from the 45k baseline; the exposed defect (villagers gather inside enemy TC range) registered OPEN as the prerequisite for any retry. The mechanism is not dead — its larger economy is what exposed the flaw — but it does not ship over a lost match.

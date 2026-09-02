@@ -181,8 +181,8 @@ export function pickNextBuildTarget(
     return 'mill';
   }
   if (age === 'dark-age') {
-    if (missing('mining-camp')) return 'mining-camp';
     if (missing('lumber-camp')) return 'lumber-camp';
+    if (missing('mining-camp')) return 'mining-camp';
     return null;
   }
 
