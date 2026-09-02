@@ -222,6 +222,17 @@ const WATCH_TOWER_GLYPH =
   '<path d="M7.5 8V5.5h1.6V7h1.6V5.5h1.6V7h1.6V5.5h1.6V8"/>' +
   '<path d="M10.5 19v-4h3v4"/>';
 
+// Bombard Tower: the same crenellated tower with a cannon barrel out of the
+// embrasure and a puff of shot leaving it — the Imperial tower that FIRES.
+// It shared the Watch Tower's picture until v0.3.187, which was survivable
+// while a card carried its name and is not now the card is an icon tile.
+const BOMBARD_TOWER_GLYPH =
+  '<path d="M8 19V9h8v10"/>' +
+  '<path d="M7.5 9V6.5h1.6V8h1.6V6.5h1.6V8h1.6V6.5h1.6V9"/>' +
+  '<path d="M15.6 13.4h4.4"/>' +
+  '<circle cx="21.2" cy="13.4" r="0.9"/>' +
+  '<path d="M10.5 19v-3.4h3V19"/>';
+
 // Stable: a horse head/arch silhouette under a roof.
 const STABLE_GLYPH =
   '<path d="M4 10 12 5l8 5"/>' +
@@ -349,7 +360,7 @@ const BUILDING_GLYPH_BODY: Record<BuildableBuildingType, string> = {
   'mining-camp': MINING_CAMP_GLYPH,
   barracks: BARRACKS_GLYPH,
   'watch-tower': WATCH_TOWER_GLYPH,
-  'bombard-tower': WATCH_TOWER_GLYPH,
+  'bombard-tower': BOMBARD_TOWER_GLYPH,
   stable: STABLE_GLYPH,
   'archery-range': ARCHERY_RANGE_GLYPH,
   blacksmith: BLACKSMITH_GLYPH,

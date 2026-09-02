@@ -222,7 +222,7 @@ test.describe('browser gameplay smoke tests - production', () => {
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
-    await page.locator('[data-command="build-stable"]').click();
+    await game.clickBuildCommand(page, 'stable');
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Stable');
     const stablePlacement = await game.findValidPlacementNearTownCenter(page, 'stable', 1, [{ x: 17, y: 8 }]);
     expect(

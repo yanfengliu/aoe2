@@ -66,9 +66,18 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
-    await page.locator('[data-command="build-watch-tower"]').click();
+    await game.clickBuildCommand(page, 'watch-tower');
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Watch Tower');
+    // Anchors ordered by distance to the enemy Scout at (18, 8): the tower has
+    // to SEE it (line of sight 6) as well as be in range, and the first anchor
+    // the helper accepts is the one that gets built. The list leads with cells
+    // high on the isometric screen (a small x+y), because the ones lower down
+    // are where the command bar sits at this suite's 800x600 and the helper
+    // rejects a cell the mouse cannot reach — which is exactly what happened
+    // when the bar grew to stop clipping its own contents (v0.3.187).
     const watchTowerPlacement = await game.findValidPlacementNearTownCenter(page, 'watch-tower', 1, [
+      { x: 16, y: 8 },
+      { x: 15, y: 7 },
       { x: 14, y: 11 },
       { x: 12, y: 10 },
       { x: 12, y: 11 },
@@ -82,6 +91,10 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     ).toBe(true);
     await expect(page.locator('[data-hud="stone"]')).toHaveText('75');
 
+    // Waits on the CONDITION rather than a tick count. A fixed budget here was
+    // a knife edge — 520 ticks measured the tower finishing at ~400 with the
+    // Scout dying at ~600 — so any change to where the builder walks from
+    // turned into a mystery failure about combat.
     await game.advanceUntilBuildingComplete(page, 1, 'watch-tower');
 
     // Completion is the START of the tower's job: it still has to see the

@@ -15,7 +15,7 @@ import type {
   SelectionState,
   TrainableUnitType,
 } from '../../game/simulation/types';
-import { canAfford } from '../../game/simulation/prototypeEconomyRules';
+
 import { effectiveConstructionCost } from '../../game/simulation/civBonusEffects';
 import {
   formatEntityName,
@@ -24,20 +24,30 @@ import {
   formatSelectionName,
 } from './displayNames';
 import {
-  formatBuildTooltip,
-  formatResourceCost,
-} from './tooltips';
-import {
   renderFormationButtons,
   renderStanceButtons,
   renderSelectionActivity,
   renderSelectionDetails,
   renderSelectionIcons,
 } from './selectionPanel/render';
-import { buildingGlyph, resourceGlyph } from './icons/glyphs';
+import {
+  buildAvailabilitySignature,
+  renderBuildButtons,
+  renderBuildPageTabs,
+  renderBuildSlots,
+} from './selectionPanel/buildPalette';
+import {
+  isBuildPageId,
+  partitionBuildOptions,
+  resolveActiveBuildPage,
+  type BuildPageId,
+} from './selectionPanel/buildPages';
 // Test surfaces use renderSelectionIcons directly; preserve the export
 // path for backward compatibility with existing test imports.
 export { renderSelectionIcons } from './selectionPanel/render';
+// The build palette moved to `selectionPanel/buildPalette.ts` when DE's two
+// build pages landed; the re-export keeps the import path tests already use.
+export { renderBuildButtons } from './selectionPanel/buildPalette';
 // The command-card button markup lives in `selectionPanel/buttons.ts`; the
 // re-exports keep the import path tests and callers already use.
 export {
@@ -55,105 +65,6 @@ import {
   renderTributeButtons,
 } from './selectionPanel/buttons';
 
-// M7 UI-icons slice 1 (v0.1.39): build a build-command button with an
-// original procedural glyph BEFORE its text label (icons augment, do not
-// replace — the "Build <Name>" text + the `data-command="build-<type>"`
-// hook the click handler and the browser tests rely on are preserved).
-// Exported so it is unit-testable in isolation.
-const BUILD_COST_ORDER: readonly (keyof PlayerResources)[] = [
-  'food',
-  'wood',
-  'gold',
-  'stone',
-];
-
-function buildCostMarkup(
-  cost: Partial<PlayerResources>,
-  resources: PlayerResources,
-): string {
-  return BUILD_COST_ORDER
-    .filter((resource) => (cost[resource] ?? 0) > 0)
-    .map((resource) => {
-      const amount = cost[resource]!;
-      const covered = resources[resource] >= amount;
-      return `
-        <span
-          class="hud-build-cost"
-          data-build-cost-resource="${resource}"
-          data-build-cost-covered="${covered}"
-        >
-          ${resourceGlyph(resource, 'hud-build-cost__glyph')}
-          <span class="hud-build-cost__value">${amount}</span>
-        </span>`;
-    })
-    .join('');
-}
-
-function formatMissingBuildResources(
-  cost: Partial<PlayerResources>,
-  resources: PlayerResources,
-): string {
-  return BUILD_COST_ORDER
-    .filter((resource) => resources[resource] < (cost[resource] ?? 0))
-    .join(' and ');
-}
-
-function buildAvailabilitySignature(
-  buildOptions: BuildableBuildingType[],
-  resources: PlayerResources,
-  costOf: (buildingType: BuildableBuildingType) => Partial<PlayerResources>,
-): string {
-  return buildOptions
-    .map((buildingType) => {
-      const cost = costOf(buildingType);
-      return BUILD_COST_ORDER
-        .filter((resource) => (cost[resource] ?? 0) > 0)
-        .map((resource) => `${resource}:${resources[resource] >= (cost[resource] ?? 0)}`)
-        .join(',');
-    })
-    .join('|');
-}
-
-export function renderBuildButtons(
-  buildOptions: BuildableBuildingType[],
-  resources: PlayerResources,
-  placementMode: BuildableBuildingType | null,
-  costOf: (buildingType: BuildableBuildingType) => Partial<PlayerResources>
-    = (buildingType) => effectiveConstructionCost(undefined, buildingType),
-): string {
-  return buildOptions
-    .map((buildingType) => {
-      const displayName = formatEntityName(buildingType);
-      // The OWNER's price (Franks castles, Mayan walls…): display = charge.
-      const cost = costOf(buildingType);
-      const affordable = canAfford(resources, cost);
-      const active = placementMode === buildingType;
-      const readiness = affordable ? 'Ready' : 'Short';
-      const missingResources = affordable ? '' : formatMissingBuildResources(cost, resources);
-      const accessibleStatus = affordable ? 'ready' : `short on ${missingResources}`;
-      return `
-          <button
-            class="hud-command-button hud-build-card"
-            data-command="build-${buildingType}"
-            data-command-affordable="${affordable}"
-            data-command-active="${active}"
-            data-tooltip="${formatBuildTooltip(buildingType, displayName, cost)}"
-            type="button"
-            aria-label="Build ${displayName}. Cost: ${formatResourceCost(cost)}. ${accessibleStatus}."
-            aria-pressed="${active}"
-          >
-            <span class="hud-build-card__visual">${buildingGlyph(buildingType)}</span>
-            <span class="hud-command-label hud-build-card__name"><span class="hud-build-card__verb">Build </span>${displayName}</span>
-            <span class="hud-build-card__readiness" data-build-readiness>${readiness}</span>
-            <span class="hud-build-card__costs" aria-hidden="true">
-              ${buildCostMarkup(cost, resources)}
-            </span>
-          </button>
-        `;
-    })
-    .join('');
-}
-
 type CommandGroupKind =
   | 'action'
   | 'stance'
@@ -164,15 +75,22 @@ type CommandGroupKind =
   | 'research'
   | 'build';
 
-// `headingStatus` is optional markup that sits in the heading row between the
-// title and the count — the Build group's "Placing: …" pill — so a mode can be
-// announced without adding a section to the bar.
+// `headingControls` is optional markup that LEADS the heading row — the Build
+// group's page toggle — and `headingStatus` sits between the title and the
+// count: the Build group's "Placing: …" pill. Both live in the heading so a
+// mode or a page can be offered without adding a section to the bar (a sibling
+// of the bar takes its width out of the palette; a row of its own takes its
+// height). The toggle leads because the title and the count step aside for the
+// pill on a narrow group, and a control that moves when a mode starts is the
+// defect the pill itself was moved here to avoid.
 function renderCommandGroup(
   kind: CommandGroupKind,
   label: string,
   content: string,
   count: number,
   headingStatus = '',
+  headingControls = '',
+  sectionAttributes = '',
 ): string {
   if (!content) {
     return '';
@@ -184,9 +102,11 @@ function renderCommandGroup(
       class="hud-command-group hud-command-group--${kind}"
       data-command-group="${kind}"
       data-command-group-count="${count}"
+      ${sectionAttributes}
       aria-labelledby="${headingId}"
     >
       <div class="hud-command-group__heading">
+        ${headingControls}
         <span class="hud-command-group__title" id="${headingId}">${label}</span>
         ${headingStatus}
         <span class="hud-command-group__count" aria-hidden="true">${count}</span>
@@ -244,32 +164,61 @@ export function createSelectionPanel(
   }
 
   let lastSelectionSignature = '';
+  // Which of DE's two build pages the player last chose. UI state, so it lives
+  // in the closure rather than in the simulation's selection state — but it is
+  // part of the render signature, because a page change has to redraw a
+  // selection that has not otherwise moved.
+  // Null until the player presses a page tab. A selection change resets it, so
+  // a new unit's palette opens on its own first page rather than on whatever
+  // the last one was left showing (DE opens on page 1).
+  let chosenBuildPage: BuildPageId | null = null;
+  let lastSelectionKey = '';
+  let lastSelectionState: SelectionState | null = null;
+  let lastPlayerResources: PlayerResources | null = null;
 
   function update(selectionState: SelectionState, playerResources: PlayerResources): void {
     const el = selectionPanel;
     if (!el) {
       return;
     }
+    lastSelectionState = selectionState;
+    lastPlayerResources = playerResources;
 
     const costOf = (buildingType: BuildableBuildingType): Partial<PlayerResources> =>
       deps.getConstructionCost?.(buildingType)
         ?? effectiveConstructionCost(undefined, buildingType);
+    const buildPages = partitionBuildOptions(selectionState.buildOptions);
+    const selectionKey = JSON.stringify([
+      selectionState.selectedEntityIds, selectionState.selectedEntityType,
+    ]);
+    if (selectionKey !== lastSelectionKey) {
+      lastSelectionKey = selectionKey;
+      chosenBuildPage = null;
+    }
+    const activeBuildPage = resolveActiveBuildPage(
+      chosenBuildPage,
+      buildPages,
+      selectionState.placementMode,
+    );
     const signature = JSON.stringify([
       selectionState,
       selectionState.buildOptions.length > 0
         ? buildAvailabilitySignature(
             selectionState.buildOptions, playerResources, costOf)
         : null,
+      activeBuildPage,
     ]);
     if (signature === lastSelectionSignature) {
       return;
     }
     lastSelectionSignature = signature;
 
-    const focusedCommand = el.contains(document.activeElement)
+    const focusedElement = el.contains(document.activeElement)
       && document.activeElement instanceof HTMLElement
-      ? document.activeElement.dataset.command ?? null
+      ? document.activeElement
       : null;
+    const focusedCommand = focusedElement?.dataset.command ?? null;
+    const focusedBuildPage = focusedElement?.dataset.buildPage ?? null;
 
     const economyState = deps.getEconomyState();
     const selectionIcons = renderSelectionIcons(selectionState, economyState);
@@ -311,12 +260,27 @@ export function createSelectionPanel(
         </div>`
       : '';
 
-    const buildButtons = renderBuildButtons(
-      selectionState.buildOptions,
-      playerResources,
-      selectionState.placementMode,
-      costOf,
+    // DE's command card shows ONE build page at a time (spec §14.1), so only
+    // the active page's cards are drawn; the toggle in the heading is what
+    // reaches the other page.
+    const activePageOptions = buildPages[activeBuildPage];
+    // Both pages fill the same number of slots, so the palette keeps its height
+    // and the page toggle above it does not move when the player switches.
+    const widestPage = Math.max(
+      buildPages.economic.length,
+      buildPages.military.length,
     );
+    const buildButtons = activePageOptions.length > 0
+      ? renderBuildButtons(
+        activePageOptions,
+        playerResources,
+        selectionState.placementMode,
+        costOf,
+      ) + renderBuildSlots(widestPage - activePageOptions.length)
+      : '';
+    const buildPageTabs = selectionState.buildOptions.length > 0
+      ? renderBuildPageTabs(buildPages, activeBuildPage)
+      : '';
     // Only a selection with a build palette can be placing; the fallback keeps
     // the status visible if that ever stops being true.
     const placementOutsideDeck = buildButtons ? '' : placementMarkup;
@@ -362,8 +326,10 @@ export function createSelectionPanel(
         'build',
         'Build',
         buildButtons,
-        selectionState.buildOptions.length,
+        activePageOptions.length,
         placementMarkup,
+        buildPageTabs,
+        `data-build-page="${activeBuildPage}"`,
       ),
     ].join('');
 
@@ -463,10 +429,33 @@ export function createSelectionPanel(
       });
     });
 
+    el.querySelectorAll<HTMLButtonElement>('button[data-build-page]').forEach((button) => {
+      const page = button.dataset.buildPage;
+      if (!isBuildPageId(page)) {
+        return;
+      }
+      button.addEventListener('click', () => {
+        if (chosenBuildPage === page) {
+          return;
+        }
+        chosenBuildPage = page;
+        // The signature carries the page, so re-running update() with the same
+        // selection redraws exactly the palette and nothing else.
+        if (lastSelectionState && lastPlayerResources) {
+          update(lastSelectionState, lastPlayerResources);
+        }
+      });
+    });
+
     if (focusedCommand) {
       const replacement = [...el.querySelectorAll<HTMLButtonElement>('[data-command]')]
         .find((button) => button.dataset.command === focusedCommand);
       replacement?.focus({ preventScroll: true });
+    } else if (focusedBuildPage) {
+      // Switching pages replaces the tab that was clicked; keyboard focus has
+      // to survive it or a Tab-driven player is thrown back to the top.
+      el.querySelector<HTMLButtonElement>(`button[data-build-page="${focusedBuildPage}"]`)
+        ?.focus({ preventScroll: true });
     }
   }
 

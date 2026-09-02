@@ -1,6 +1,6 @@
 {
   "name": "aoe2",
-  "version": "0.3.188",
+  "version": "0.3.189",
   "private": true,  "type": "module",  "scripts": {
     "voxel:build": "node scripts/voxel-build-if-stale.mjs",
     "predev": "npm run voxel:build",

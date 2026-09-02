@@ -114,9 +114,7 @@ export interface BuildCard {
   cost: Record<string, number>;
 }
 
-/** The BUILD panel as the player reads it: each card's name and the cost
- *  chips it shows, in panel order. */
-export async function readBuildPanel(page: Page): Promise<BuildCard[]> {
+function readBuildPage(page: Page): Promise<BuildCard[]> {
   return page.evaluate(() =>
     Array.from(document.querySelectorAll<HTMLButtonElement>('[data-command^="build-"]'))
       .map((button) => {
@@ -130,6 +128,34 @@ export async function readBuildPanel(page: Page): Promise<BuildCard[]> {
           ?.replace(/\s+/g, ' ').trim().replace(/^Build /, '') ?? '';
         return { name, cost };
       }));
+}
+
+/** The BUILD panel as the DOM carries it: each card's name and cost, across
+ *  BOTH of DE's build pages (Economic first, then Military). Since v0.3.187 a
+ *  card is an icon tile and this text is not drawn — it is what a screen
+ *  reader gets and what the tooltip repeats, not what the eye reads;
+ *  each page in palette order. Only one page is on screen at a time, so this
+ *  visits each tab and leaves the palette on the page it found it. */
+export async function readBuildPanel(page: Page): Promise<BuildCard[]> {
+  const tabs = page.locator('button[data-build-page]');
+  if (await tabs.count() === 0) {
+    return readBuildPage(page);
+  }
+  const openedOn = await page.locator('[data-command-group="build"]')
+    .getAttribute('data-build-page');
+  const cards: BuildCard[] = [];
+  for (const pageId of ['economic', 'military']) {
+    const tab = page.locator(`button[data-build-page="${pageId}"]`);
+    if (!(await tab.isEnabled())) continue;
+    await tab.click();
+    await expect(page.locator('[data-command-group="build"]'))
+      .toHaveAttribute('data-build-page', pageId);
+    cards.push(...await readBuildPage(page));
+  }
+  if (openedOn) {
+    await page.locator(`button[data-build-page="${openedOn}"]`).click();
+  }
+  return cards;
 }
 
 export interface MouseTarget {
@@ -178,6 +204,55 @@ export async function findMouseReachableEntity(
     }
     return null;
   }, query);
+}
+
+/**
+ * The same search, but scrolling the view first when the entity's centre is
+ * behind a HUD panel — what a player does when their base has drifted under
+ * the command bar. Keyboard camera movement only: no test API moves the
+ * camera here, because "can the mouse reach it" is the thing being measured.
+ */
+export async function findMouseReachableEntityAfterScrolling(
+  page: Page,
+  query: MouseTargetQuery,
+  attempts = 10,
+): Promise<MouseTarget | null> {
+  let found = await findMouseReachableEntity(page, query);
+  if (found) return found;
+
+  const screenY = async (): Promise<number | null> => page.evaluate((q) => {
+    const api = window.__AOE2_TEST__!;
+    for (const entity of api.getRenderState().entities) {
+      if (entity.kind !== q.kind || entity.entityType !== q.entityType) continue;
+      if (entity.owner !== q.owner || entity.isMemory) continue;
+      const cellX = entity.kind === 'building'
+        ? entity.x + entity.footprintWidth / 2 - 0.5 : entity.x;
+      const cellY = entity.kind === 'building'
+        ? entity.y + entity.footprintHeight / 2 - 0.5 : entity.y;
+      return api.worldToScreen(cellX, cellY).y;
+    }
+    return null;
+  }, query);
+
+  const scroll = async (key: string): Promise<void> => {
+    await page.keyboard.down(key);
+    await page.waitForTimeout(220);
+    await page.keyboard.up(key);
+    await page.waitForTimeout(80);
+  };
+
+  // Which arrow raises it on screen depends on where the camera drifted to;
+  // measure rather than assume.
+  const before = await screenY();
+  await scroll('ArrowUp');
+  const after = await screenY();
+  const key = before !== null && after !== null && after > before ? 'ArrowDown' : 'ArrowUp';
+  found = await findMouseReachableEntity(page, query);
+  for (let attempt = 0; attempt < attempts && !found; attempt += 1) {
+    await scroll(key);
+    found = await findMouseReachableEntity(page, query);
+  }
+  return found;
 }
 
 /** A real left or right click on the canvas — the same path a player's mouse

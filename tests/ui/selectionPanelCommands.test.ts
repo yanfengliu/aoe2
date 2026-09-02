@@ -128,8 +128,19 @@ describe('villager build palette', () => {
     expect(group).not.toBeNull();
     expect(group.getAttribute('aria-labelledby')).toBeTruthy();
     expect(group.textContent).toContain('Build');
-    expect(group.dataset.commandGroupCount).toBe('2');
+    // DE's two build pages: the palette opens on Economic, so the Barracks is
+    // one tab away rather than on screen (spec §14.1). The count describes the
+    // page that is showing.
+    expect(group.dataset.buildPage).toBe('economic');
+    expect(group.dataset.commandGroupCount).toBe('1');
+    expect(host.querySelector('[data-command="build-house"]')).not.toBeNull();
+    expect(host.querySelector('[data-command="build-barracks"]')).toBeNull();
     expect(host.querySelector('[data-command-group="train"]')).toBeNull();
+
+    host.querySelector<HTMLButtonElement>('button[data-build-page="military"]')!.click();
+    const militaryGroup = host.querySelector<HTMLElement>('[data-command-group="build"]')!;
+    expect(militaryGroup.dataset.buildPage).toBe('military');
+    expect(host.querySelector('[data-command="build-house"]')).toBeNull();
 
     const before = host.querySelector<HTMLButtonElement>('[data-command="build-barracks"]')!;
     expect(before.dataset.commandAffordable).toBe('false');

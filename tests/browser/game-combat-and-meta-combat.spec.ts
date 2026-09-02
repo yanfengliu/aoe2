@@ -9,7 +9,7 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (combat)', ()
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
-    await page.locator('[data-command="build-barracks"]').click();
+    await game.clickBuildCommand(page, 'barracks');
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Barracks');
     const barracksPlacement = await game.findValidPlacementNearTownCenter(page, 'barracks');
     await game.clickCell(page, barracksPlacement.x, barracksPlacement.y);

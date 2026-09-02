@@ -49,10 +49,15 @@ const VIEWPORTS = [
   { width: 800, height: 600 },
 ];
 
-// Below this group width the Build heading's title and count step aside for
-// the placement pill (hudCommandPanel.css, `@container`); at or above it all
-// three share the row.
-const HEADING_FULL_ROW_MIN_WIDTH = 380;
+// The Build heading's `@container` steps, in CONTAINER pixels — the group's
+// content box, which is what a container query measures. Above the first, the
+// title, the page toggle, the placement pill and the count all share the row;
+// between the two, the title and count step aside; below the second, the
+// pill's hint is dropped WHOLE as well rather than cut mid-word. The numbers
+// are the measured requirement for the longest name ("Placing: Siege
+// Workshop"): 438 / 379 / 266 container pixels.
+const HEADING_FULL_ROW_MIN_WIDTH = 440;
+const HEADING_HINT_MIN_WIDTH = 380;
 
 function intersects(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.width
@@ -64,6 +69,20 @@ function intersects(a: Rect, b: Rect): boolean {
 function describeRect(rect: Rect): string {
   return `x ${Math.round(rect.x)}..${Math.round(rect.x + rect.width)}, `
     + `y ${Math.round(rect.y)}..${Math.round(rect.y + rect.height)}`;
+}
+
+/** An element's CONTENT box width — what its own container queries see. */
+async function containerWidthOf(page: Page, selector: string): Promise<number> {
+  return page.evaluate((sel) => {
+    const element = document.querySelector<HTMLElement>(sel);
+    if (!element) return 0;
+    const style = getComputedStyle(element);
+    return Math.round(
+      element.getBoundingClientRect().width
+      - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight)
+      - Number.parseFloat(style.borderLeftWidth) - Number.parseFloat(style.borderRightWidth),
+    );
+  }, selector);
 }
 
 async function rectOf(page: Page, selector: string): Promise<Rect> {
@@ -174,16 +193,28 @@ for (const viewport of VIEWPORTS) {
         'the hint is never truncated',
       ).toBe(false);
       await expect(page.locator('.hud-placement-status__hint')).toHaveText('Choose a clear map tile');
+      const container = await containerWidthOf(page, '[data-command-group="build"]');
       const title = page.locator('[data-command-group="build"] .hud-command-group__title');
       const count = page.locator('[data-command-group="build"] .hud-command-group__count');
-      if (group.width >= HEADING_FULL_ROW_MIN_WIDTH) {
-        await expect(title, `title shown at ${Math.round(group.width)}px`).toBeVisible();
-        await expect(count, `count shown at ${Math.round(group.width)}px`).toBeVisible();
-        await expect(page.locator('.hud-placement-status__hint')).toBeVisible();
+      const hint = page.locator('.hud-placement-status__hint');
+      if (container >= HEADING_FULL_ROW_MIN_WIDTH) {
+        await expect(title, `title shown at ${container}px`).toBeVisible();
+        await expect(count, `count shown at ${container}px`).toBeVisible();
       } else {
-        await expect(title, `title steps aside at ${Math.round(group.width)}px`).toBeHidden();
-        await expect(count, `count steps aside at ${Math.round(group.width)}px`).toBeHidden();
+        await expect(title, `title steps aside at ${container}px`).toBeHidden();
+        await expect(count, `count steps aside at ${container}px`).toBeHidden();
       }
+      if (container >= HEADING_HINT_MIN_WIDTH) {
+        await expect(hint, `hint shown at ${container}px`).toBeVisible();
+      } else {
+        await expect(hint, `hint steps aside whole at ${container}px`).toBeHidden();
+      }
+      // The page toggle never steps aside: a page the player cannot reach is
+      // half the palette gone.
+      await expect(
+        page.locator('[data-command-group="build"] .hud-build-pages'),
+        `the build page toggle stays at ${container}px`,
+      ).toBeVisible();
 
       // The clicked card keeps focus, so its tooltip stays (the §14.2
       // ownership rule — whether a mouse click should keep it is an open

@@ -212,7 +212,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     display deltas, freezes on pause, and rebases without decrement on a bridge
     swap or replay rewind. AoE semantics remain here rather than entering the
     reusable package.
-  - `ui/` — DOM HUD controller. `ui/hud/` hosts `createHudController.ts` (top-bar + side panels), `hudTemplate.ts` (extracted HTML template), `saveLoadPanel.ts`, `selectionPanel/`, `minimap.ts`, etc. `ui/annotation/` hosts the annotation form + marker-list panel (Spec 2 v0.1.5 + replay-mode flips from v0.1.8). `ui/replay/` (NEW v0.1.12) hosts `replayLoadDialog.ts`, the unified `ReplayLoadDialog` modal that consolidates the three replay-load sources (live session, prior session, file import) under a single HUD entry point.
+  - `ui/` — DOM HUD controller. `ui/hud/` hosts `createHudController.ts` (top-bar + side panels), `hudTemplate.ts` (extracted HTML template), `saveLoadPanel.ts`, `selectionPanel/` (render helpers, command buttons, and — v0.3.187 — `buildPages.ts`/`buildPalette.ts` for DE's two-page command card), `minimap.ts`, etc. `ui/annotation/` hosts the annotation form + marker-list panel (Spec 2 v0.1.5 + replay-mode flips from v0.1.8). `ui/replay/` (NEW v0.1.12) hosts `replayLoadDialog.ts`, the unified `ReplayLoadDialog` modal that consolidates the three replay-load sources (live session, prior session, file import) under a single HUD entry point.
 - `tests/` — Vitest unit/integration tests and Playwright browser tests
 - `scripts/` — content and build scripts
 - `design/` — game design spec, stat CSVs, implementation plan
