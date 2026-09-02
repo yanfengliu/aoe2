@@ -150,4 +150,43 @@ describe('villager build palette', () => {
     expect(host.querySelector('[data-command="build-barracks"]')).toBe(after);
     expect(document.activeElement).toBe(after);
   });
+
+  // Placement mode is announced inside the Build group's heading. Rendered as
+  // a sibling of the command deck it took its width out of the build palette,
+  // the only section of the bar that shrinks (defect register, 2026-09-02);
+  // the browser suite measures the pixels, this pins the structure.
+  it('announces placement inside the build group instead of adding a section to the bar', () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    const panel = createSelectionPanel(host, {
+      getEconomyState: () => economyState(READY_RESOURCES),
+      issueAction: vi.fn(() => true),
+      setSelectionStance: vi.fn(() => true),
+      setSelectionFormation: vi.fn(() => true),
+      queueTrainUnit: vi.fn(() => true),
+      queueResearch: vi.fn(() => true),
+      issueMarketAction: vi.fn(() => true),
+      sendTribute: vi.fn(() => true),
+      getTributeTargets: vi.fn(() => ({ owners: [], feeRate: 0 })),
+      beginBuildingPlacement: vi.fn(() => true),
+    });
+
+    panel.update(villagerSelection({ placementMode: 'house' }), READY_RESOURCES);
+
+    const status = host.querySelector<HTMLElement>('[data-placement-mode]')!;
+    expect(status.textContent).toBe('Placing: House');
+    const heading = status.closest('.hud-command-group__heading');
+    expect(heading, 'the status lives in a group heading').not.toBeNull();
+    expect(heading!.closest('[data-command-group]')?.getAttribute('data-command-group')).toBe('build');
+    expect(heading!.querySelector('.hud-placement-status__hint')?.textContent).toBe('Choose a clear map tile');
+    expect(heading!.querySelector('.hud-command-group__title')?.textContent).toBe('Build');
+    expect(
+      [...host.children].some((child) => child.matches('.hud-placement-status')),
+      'no placement status as a direct child of the panel',
+    ).toBe(false);
+    expect(host.querySelector('[data-command="build-house"]')?.getAttribute('aria-pressed')).toBe('true');
+
+    panel.update(villagerSelection(), READY_RESOURCES);
+    expect(host.querySelector('[data-placement-mode]')).toBeNull();
+  });
 });

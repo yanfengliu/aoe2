@@ -201,13 +201,41 @@ export function createTooltipController(
       }
     } else {
       left = rect.left + rect.width * 0.5 - tooltipRect.width * 0.5;
-      top = rect.top - tooltipRect.height - margin;
+      // A control in the bottom command bar gets its tooltip above the BAR,
+      // not above the control: the bar is a dense grid of cards under a
+      // heading row, and a tooltip above a first-row card covered that row —
+      // including the "Placing: …" status the click had just revealed.
+      const commandBar = target.closest('.hud-panel--selection');
+      const above = commandBar ? commandBar.getBoundingClientRect() : rect;
+      top = above.top - tooltipRect.height - margin;
       if (top < margin) {
         top = rect.bottom + margin;
       }
     }
     left = Math.max(margin, Math.min(left, viewportWidth - tooltipRect.width - margin));
     top = Math.max(margin, Math.min(top, viewportHeight - tooltipRect.height - margin));
+    // The minimap is the one HUD surface a tooltip must never cover: it is the
+    // player's view of the whole map, and the build palette sits right beside
+    // it, so a tooltip centred above a right-hand card ran over its frame
+    // (defect register, 2026-09-02). Slide left of the frame; when there is no
+    // room on that side, go above it. Not for a tooltip anchored in the game
+    // menu: the modal's backdrop covers the minimap, and dodging a surface the
+    // player cannot see pushed a menu tooltip onto the modal itself at 390px.
+    const minimapPanel = menuPanel ? null : root.querySelector('.hud-panel--map');
+    if (minimapPanel && !minimapPanel.contains(target)) {
+      const avoid = minimapPanel.getBoundingClientRect();
+      const overlapsMinimap = avoid.width > 0 && avoid.height > 0
+        && left < avoid.right && avoid.left < left + tooltipRect.width
+        && top < avoid.bottom && avoid.top < top + tooltipRect.height;
+      if (overlapsMinimap) {
+        const leftOfMinimap = avoid.left - tooltipRect.width - margin;
+        if (leftOfMinimap >= margin) {
+          left = Math.min(left, leftOfMinimap);
+        } else {
+          top = Math.max(margin, avoid.top - tooltipRect.height - margin);
+        }
+      }
+    }
     tooltip.style.left = `${Math.round(left)}px`;
     tooltip.style.top = `${Math.round(top)}px`;
   }

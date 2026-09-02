@@ -146,6 +146,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* A grid item's auto minimum is its content, so a heading that carries the
+     placement pill would widen its track past the group and push the count
+     under the bar's clipped edge. Zero lets the row shrink with its group. */
+  min-width: 0;
   min-height: 20px;
   padding: 0 2px 4px;
   border-bottom: 1px solid var(--hud-hairline);
@@ -290,26 +294,62 @@
     inset 0 0 12px rgba(244, 215, 140, 0.16);
 }
 
+/* Placement mode is a pill in the Build group's heading row, between the title
+   and the count, so entering it adds nothing to the bar: the palette keeps its
+   width and the stance/formation groups stay put. It is the one thing in the
+   heading allowed to shrink — the hint truncates before the title or the count
+   move. The pill is 17px tall, the height of the count badge beside it, so the
+   row does not grow either — and does not shrink when the badge steps aside
+   below (a 20px pill grew the build group by 3px; a 16px one lost 1px). */
 .hud-placement-status {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 7px 9px;
-  border: 1px solid rgba(237, 207, 131, 0.52);
-  border-radius: 7px;
-  background: var(--hud-hairline);
+  flex: 0 1 auto;
+  gap: 8px;
+  min-width: 0;
+  margin: 0 auto 0 8px;
+  padding: 0 9px;
+  border: 1px solid var(--hud-accent-dim);
+  border-radius: 999px;
+  background: var(--hud-accent-dim);
+  font-size: 11px;
+  line-height: 15px;
+  white-space: nowrap;
 }
 
-.hud-placement-status .hud-selection-meta {
-  color: #f6e6b9;
+.hud-placement-status__mode {
+  color: var(--hud-accent);
   font-weight: 700;
 }
 
 .hud-placement-status__hint {
-  color: rgba(244, 234, 209, 0.7);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--hud-text-muted);
   font-size: 10px;
-  text-align: right;
+}
+
+/* Where the build group is too narrow for title, pill and count together — a
+   1280px window gives it 261px; the three need about 285 for "House" and
+   about 350 for the longest names ("Siege Workshop", "Archery Range") — the
+   pill IS the heading while placing: the title and the count step aside,
+   rather than the hint being cut mid-word. 380 leaves the longest name ~30px
+   of slack for font differences. The group is its own inline-size container,
+   so the rule follows the group's width and not the window's. */
+.hud-command-group--build {
+  container-type: inline-size;
+}
+
+@container (max-width: 379px) {
+  .hud-command-group__heading:has(.hud-placement-status) > .hud-command-group__title,
+  .hud-command-group__heading:has(.hud-placement-status) > .hud-command-group__count {
+    display: none;
+  }
+
+  .hud-command-group__heading:has(.hud-placement-status) > .hud-placement-status {
+    margin-left: 0;
+  }
 }
 
 .hud-command-button:focus-visible,
