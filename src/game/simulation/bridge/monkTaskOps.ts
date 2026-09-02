@@ -63,6 +63,9 @@ export interface MonkTaskDeps {
     ref: EntityRef | undefined | null,
   ) => number | null;
   unitTint: (unitType: UnitType, owner: number) => number;
+  /** worldOccupancy.notePassabilityChange, announced at every conversion
+   *  flip: ownership is an input of gate admittance (see monkTaskAppliers). */
+  notePassabilityChange: () => void;
   // Constants passed through as deps so tests could tweak them without
   // rewiring the module-level imports here.
   aiMonkHealHpFraction: number;
@@ -135,6 +138,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     isVisibleToOwner,
     currentEntityId,
     unitTint,
+    notePassabilityChange,
     aiMonkHealHpFraction,
     monkHealTickInterval,
     monkHealHpPerInterval,
@@ -241,6 +245,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     currentEntityId,
     unitTint,
     clearMonkTask,
+    notePassabilityChange,
     monkHealTickInterval,
     monkHealHpPerInterval,
     monkConvertProgressPerTick,

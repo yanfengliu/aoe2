@@ -116,6 +116,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['monk-double-convert-fixture', fixtures.createMonkDoubleConvertFixture],
   ['monk-flip-flop-fixture', fixtures.createMonkFlipFlopFixture],
   ['monk-convert-cleanup-fixture', fixtures.createMonkConvertCleanupFixture],
+  ['converted-unit-gate-fixture', fixtures.createConvertedUnitGateFixture],
   ['monk-relic-drop-fixture', fixtures.createMonkRelicDropFixture],
   ['monk-relic-drop-cramped-fixture', fixtures.createMonkRelicDropCrampedFixture],
   ['castle-unique-fixture', fixtures.createCastleUniqueFixture],

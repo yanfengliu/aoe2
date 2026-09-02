@@ -2,13 +2,23 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## 0.3.182
+## 0.3.187
 
 - Units now walk smoothly, and deer run. A walking villager used to move for a tenth of a second and then stand still for two or three tenths, over and over — the simulation advances it a quarter tile only every third tick or so, and the screen blended only between one tick and the next, so the picture pulsed. The drawn unit now replays the simulation's own path a few tenths of a second behind, always inside a stretch whose far end is already known, so it advances on every frame at the speed it is actually walking; measured on the boot map, the share of mid-walk frames with the villager standing still fell from 67% to 0%. A unit still starts moving the moment the simulation does — the delay is paid at the end of the walk, where the drawn unit settles a few tenths of a second after the simulation has it stopped. A fleeing deer, which the simulation moves a whole tile every 1.4 seconds, used to stand for thirteen ticks and then jump the tile in one; it is now drawn running across it (during a flight, the deer stood still on 91% of frames before and 0% after). Sheep smooth on their own herd cadence. Teleports (garrison, transport unload, replay scrub) and a frame that had to catch up several ticks at once still snap.
+
+## 0.3.186
+
+- The idle-villager badge no longer sits on the command bar. With a villager selected the bar is taller than the fixed height the badge was placed above, so the badge's bottom edge covered the bar's SELECTION label at every common window size (800x600, 1280x720 and 1440x900 alike). The badge — and the speaker toggle above it — now stand clear of the bar's top edge and follow it as the bar grows or shrinks, whatever is selected and whatever the window size.
+
+
+## 0.3.183
+
+- A unit converted by an enemy monk no longer walks into, and jams in, its old side's gate. A route through the gate that the unit had planned before it changed hands was still being followed afterwards, so a converted villager standing beside the gate stepped into a door that no longer opened for it and stood inside the enemy's wall until something else on the map changed. It now re-plans the moment it changes hands: the gate is an enemy gate, there is no route, and it stays put outside.
+- A builder just back from a long construction, a unit leaving a garrison, or a soldier that has stood parked no longer jumps a traffic queue on its first step. The crowded-gap rule from 0.3.175, which lets a villager go next once it has genuinely waited a minute and a quarter, was counting any standing still as waiting, so a unit that had stood by choice for longer than that was admitted ahead of villagers that had been trying to move the whole time. Only time spent actually trying to move counts now, and every unit in the gap judges the queue from the same moment, so who goes next no longer depends on which unit happened to ask first.
+
 ## 0.3.179
 
 - Choosing a building to place no longer collapses the build palette. With a villager selected, clicking a build card used to squeeze the BUILD group to a sliver at the right edge of the command bar — at a 1280x720 window it went from 261px wide to 36px — because the "Placing: House" status was inserted as its own section of the bar and the palette paid for it. The status is now a pill in the Build heading, so the palette, stance and formation groups stay exactly where they were and the bar does not change height. Command-bar tooltips also float above the bar instead of above the card they describe, and never cover the minimap: hovering a right-hand build card used to put its tooltip over the minimap's frame at every window size, placement mode or not.
-
 
 ## 0.3.178
 

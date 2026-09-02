@@ -43,6 +43,11 @@ export function createMonkBuildingConversion(deps: {
   spendFaith: (monkId: number, owner: number, targetId: number) => void;
   isVisibleToOwner: (owner: number, x: number, y: number) => boolean;
   markOutOfBandRenderChange: () => void;
+  /** worldOccupancy.notePassabilityChange — a building changing hands changes
+   *  who its gate would admit. No gate can change hands today (the wall line
+   *  refuses conversion), so this is the rule kept mechanical rather than a
+   *  live defect: see the KNOWN BOUNDARY note on `structuralRevision`. */
+  notePassabilityChange: () => void;
   monkConvertProcessedThisTick: Map<number, number>;
   monkConvertProgressPerTick: number;
   monkConvertFlipThreshold: number;
@@ -53,6 +58,7 @@ export function createMonkBuildingConversion(deps: {
     spendFaith,
     isVisibleToOwner,
     markOutOfBandRenderChange,
+    notePassabilityChange,
     monkConvertProcessedThisTick,
     monkConvertProgressPerTick,
     monkConvertFlipThreshold,
@@ -138,6 +144,7 @@ export function createMonkBuildingConversion(deps: {
   ): void {
     const previousOwner = targetBuilding.owner;
     targetBuilding.owner = monkUnit.owner;
+    notePassabilityChange();
 
     // POPULATION SUPPLY travels with the roof: subtract what this building
     // contributed to its old owner (their civ bonus included) and add what it

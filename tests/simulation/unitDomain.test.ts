@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { UnitType } from '../../src/game/simulation/types';
+import { UNIT_LINE_UPGRADES } from '../../src/game/simulation/bridge/unitLineUpgrades';
 import { UNIT_MAX_HP } from '../../src/game/simulation/prototypeUnitRules/statTables';
 import {
   isWaterUnit,
@@ -112,6 +113,28 @@ describe('terrain passability by domain', () => {
       const water = terrainPassableForDomain(kind, 'water');
       expect(land && water).toBe(false);
       if (water) expect(kind).toBe('water');
+    }
+  });
+});
+
+describe('in-place unit-type rewrites keep their domain', () => {
+  it('every unit-line upgrade stays in the domain of the unit it replaces', () => {
+    // `upgradeOwnedUnits` rewrites `unit.unitType` in place, and the domain is
+    // an input of `isCellPassableForUnit`. The approach-plan cache keys on the
+    // structural revision and replays a stored step without re-checking
+    // passability, so an upgrade that turned a land unit into a ship would be
+    // the next instance of review C1 (2026-09-02: monk conversion flipped the
+    // asking unit's OWNER in place with no revision bump, and a converted
+    // villager replayed a step into its old side's gate). No upgrade crosses a
+    // domain, which is what keeps the sweep free of a bump; this is the check
+    // that says so rather than assumes it.
+    for (const [technology, upgrade] of Object.entries(UNIT_LINE_UPGRADES)) {
+      for (const from of upgrade.from) {
+        expect(
+          unitDomain(from),
+          `${technology}: ${from} -> ${upgrade.to} would change the unit's domain in place`,
+        ).toBe(unitDomain(upgrade.to));
+      }
     }
   });
 });

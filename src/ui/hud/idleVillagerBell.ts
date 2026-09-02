@@ -1,9 +1,13 @@
 // The idle villager bell (v0.3.103): AoE2's little button that answers "who
-// is standing around?". Anchored bottom-left above the selection panel,
-// always in the DOM (the countdown-chip rule — appearing elements must never
-// reflow the HUD): it dims to near-invisible at zero and wakes with the
-// count. Click = select the next idle villager round-robin and centre the
-// camera on them; the '.' hotkey does the same.
+// is standing around?". Anchored bottom-left ABOVE the bottom bar: its
+// `bottom` is measured from the bar's top edge every frame, because the bar's
+// height depends on what is selected and on the viewport, and a fixed viewport
+// offset (`bottom:190px`) put the bell ON the bar, over its SELECTION label,
+// whenever a villager was selected (defect register 2026-09-02). Always in the
+// DOM (the countdown-chip rule — appearing elements must never reflow the
+// HUD): it dims to near-invisible at zero and wakes with the count. Click =
+// select the next idle villager round-robin and centre the camera on them; the
+// '.' hotkey does the same.
 
 export interface IdleVillagerBellDeps {
   countIdleVillagers: () => number;
@@ -15,6 +19,13 @@ export interface IdleVillagerBell {
   dispose(): void;
 }
 
+// Gap between the bar's top edge and the bell's bottom edge. Exported so the
+// speaker toggle (mountGameAudio.ts) stacks on the bell from the SAME bar
+// measurement, in the same frame, whichever rAF loop happens to run first.
+export const IDLE_BELL_BAR_GAP_PX = 8;
+// Where the bell sits when the mount root has no bottom bar to anchor to.
+const FALLBACK_BOTTOM = '190px';
+
 export function createIdleVillagerBell(deps: IdleVillagerBellDeps): IdleVillagerBell {
   const button = document.createElement('button');
   button.type = 'button';
@@ -22,7 +33,7 @@ export function createIdleVillagerBell(deps: IdleVillagerBellDeps): IdleVillager
   button.title = 'Select next idle villager (.)';
   button.setAttribute('aria-label', 'Select next idle villager');
   button.style.cssText = [
-    'position:absolute', 'left:12px', 'bottom:190px', 'z-index:6',
+    'position:absolute', 'left:12px', `bottom:${FALLBACK_BOTTOM}`, 'z-index:6',
     // #hud-root is pointer-events:none; interactive children opt back in.
     'pointer-events:auto',
     'min-width:44px', 'min-height:44px', 'padding:4px 10px',
@@ -42,7 +53,25 @@ export function createIdleVillagerBell(deps: IdleVillagerBellDeps): IdleVillager
 
   let rafHandle: number | null = null;
   let lastShown = -1;
+  let bar: HTMLElement | null = null;
+  let lastBottom = FALLBACK_BOTTOM;
+  // The bottom bar (command panel + minimap) is the anchor: `bottom` is the
+  // distance from the root's bottom edge up to the bar's top edge, plus the
+  // gap. Written only when it changes, so a still frame costs one rect read.
+  function reposition(): void {
+    const root = button.parentElement;
+    if (!root) return;
+    // Looked up lazily, and again if the HUD was rebuilt under a detached one.
+    if (!bar?.isConnected) bar = root.querySelector<HTMLElement>('.hud-bottom');
+    if (!bar) return;
+    const bottom = `${Math.round(root.getBoundingClientRect().bottom - bar.getBoundingClientRect().top) + IDLE_BELL_BAR_GAP_PX}px`;
+    if (bottom !== lastBottom) {
+      lastBottom = bottom;
+      button.style.bottom = bottom;
+    }
+  }
   function refresh(): void {
+    reposition();
     const idle = deps.countIdleVillagers();
     if (idle !== lastShown) {
       lastShown = idle;

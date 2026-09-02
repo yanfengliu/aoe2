@@ -197,6 +197,8 @@ export {
   createMonkHealOverConvertFixture,
 } from './monastery/heal';
 
+export { createConvertedUnitGateFixture } from './convertedUnitGate';
+
 export {
   createMonkConvertFixture,
   createMonkConvertHeresyFixture,
