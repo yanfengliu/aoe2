@@ -189,7 +189,9 @@ export interface SerializedSideMaps {
         visualVariant: string;
         /** Building set at snapshot (v0.3.105); absent on older saves. */
         architecture?: string;
-        lastSeenTick: number;
+        /** @deprecated Removed 2026-09-02 — written every tick, read nowhere.
+         *  Present on older saves and ignored; see memoryTypes.ts. */
+        lastSeenTick?: number;
       }
     >
   >;

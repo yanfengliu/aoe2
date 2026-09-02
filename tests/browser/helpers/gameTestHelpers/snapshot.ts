@@ -40,3 +40,46 @@ export async function waitForPausedBootWithSeed(page: Page, seed: string): Promi
   await expect.poll(async () => (await getSnapshot(page)).hudState.seed).toBe(seed);
   await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
 }
+
+/**
+ * Advances until `owner` has a COMPLETE building of this type, in chunks, and
+ * returns the snapshot that first saw it.
+ *
+ * Prefer this over `advanceTicks(<a number someone measured once>)` around a
+ * construction. A fixed count silently encodes today's build time and the
+ * walk that precedes it: when DE build times landed on 2026-09-02 (Barracks
+ * 240 -> 500 ticks, Watch Tower 220 -> 800, Town Center 300 -> 1500) three
+ * browser specs failed at once, each on a number that had been right when it
+ * was written. Waiting on the CONDITION says what the test means.
+ *
+ * Pass `at` whenever the fixture ALREADY has a complete building of this type
+ * — a second Town Center is the case that caught this — or the wait is
+ * satisfied by the one that was there at boot and returns instantly.
+ */
+export async function advanceUntilBuildingComplete(
+  page: Page,
+  owner: number,
+  buildingType: string,
+  maxTicks = 4_000,
+  at?: { x: number; y: number },
+): Promise<BrowserTestSnapshot> {
+  const chunk = 250;
+  let snapshot = await getSnapshot(page);
+  for (let advanced = 0; advanced < maxTicks; advanced += chunk) {
+    const done = snapshot.economyState.buildings.some(
+      (building) => building.owner === owner
+        && building.buildingType === buildingType
+        && building.isComplete
+        && (at === undefined || (building.x === at.x && building.y === at.y)),
+    );
+    if (done) return snapshot;
+    snapshot = await page.evaluate(
+      ([ticks, ms]) => window.__AOE2_TEST__!.advanceTicks(ticks, ms),
+      [chunk, 100] as const,
+    );
+  }
+  const where = at === undefined ? '' : ` at (${String(at.x)},${String(at.y)})`;
+  throw new Error(
+    `no complete ${buildingType} for owner ${String(owner)}${where} after ${String(maxTicks)} ticks`,
+  );
+}

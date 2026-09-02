@@ -2,7 +2,8 @@
 
 Copy this file into `docs/debugging/<YYYY-MM-DD>-<slug>.md` at the start of a new
 debugging session. Iterate on it as you investigate. Write learnings into
-`docs/learning/lessons.md` when the session is resolved. Clean up any dump files
+the gate that prevents a recurrence when the session is resolved — the knowledge
+goes in that gate's own header, not into a list. Clean up any dump files
 created during the session, but keep this `.md` file.
 
 ## Symptom
@@ -43,5 +44,5 @@ rather than the symptom.
 
 ## Follow-ups
 - Engine-level gaps worth flagging in `docs/engine-feedback/current.md`.
-- Lessons to persist in `docs/learning/lessons.md`.
+- The gate that now prevents this, and where its header carries the reasoning.
 - Architecture implications, if any.

@@ -5,6 +5,7 @@ import { DEFAULT_SEED } from '../../src/game/simulation/prototypeScenario';
 import {
   placeBuildingNearTownCenter,
   selectOwnedBuildingDirect,
+  stepUntilBuildingComplete,
 } from './createSimulationBridge.helpers';
 
 describe('createSimulationBridge barracks production', () => {
@@ -15,9 +16,7 @@ describe('createSimulationBridge barracks production', () => {
     placeBuildingNearTownCenter(bridge, 'barracks');
     expect(bridge.getHudState().playerResources.wood).toBe(25);
 
-    for (let index = 0; index < 500; index += 1) {
-      bridge.step(100);
-    }
+    expect(stepUntilBuildingComplete(bridge, 1, 'barracks')).toBe(true);
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'barracks')).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({

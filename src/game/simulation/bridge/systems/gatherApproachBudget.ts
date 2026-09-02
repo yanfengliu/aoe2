@@ -42,5 +42,15 @@ const APPROACH_TILES = 32;
  * queued behind others — and comfortably under `GATHER_UNREACHABLE_TIMEOUT_TICKS`
  * (600), so a genuinely unreachable target still falls to that backstop rather
  * than being churned by the fan-out.
+ *
+ * ONE EXCEPTION, since v0.3.191 (§6.4, enemy static defences): when the
+ * over-subscription reroute refuses to move a villager because every other
+ * node of its kind stands under enemy arrows, it leaves the villager on its
+ * current target with this clock reset — so that villager cycles at this
+ * budget and never reaches the 600-tick backstop. That is deliberate and
+ * harmless here: the branch is only entered when an approach plan EXISTS, so
+ * the target is reachable and the backstop has nothing to add; and resetting
+ * is what a successful reroute does anyway. Without the reset the branch would
+ * re-run a full assignment pass every tick instead of every 400.
  */
 export const GATHER_APPROACH_BUDGET_TICKS = Math.round(APPROACH_TILES * TICKS_PER_TILE);

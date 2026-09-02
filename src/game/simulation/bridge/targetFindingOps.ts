@@ -26,6 +26,7 @@ import type {
   GameWorld,
 } from './pureHelpers';
 import { manhattanDistanceToFootprint } from './footprintDistance';
+import { createEnemyDefenceLookup, isFootprintInsideDefenceReach } from './enemyDefenceRange';
 import {
   distanceFromBuildingFootprint,
   isFootprintVisible,
@@ -118,6 +119,10 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
   // state, and a stale copy would have a unit firing on a new ally.
   const teams = (): ReadonlyMap<number, number> => deps.accessor.get(playerTeamsCodec);
   const { world, visibility, accessor } = deps;
+  // A carrier keeps out of the enemy's arrows on the way home as well (§6.4):
+  // the nearest drop-off is the nearest SAFE one, and the nearest of all only
+  // when no drop-off for the resource stands outside their reach.
+  const enemyStaticDefences = createEnemyDefenceLookup(accessor);
 
   // Per-buildingType targeting priority for AI / unit-vs-building target
   // selection. Lower numbers are picked first (after the priority sort,
@@ -307,6 +312,9 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
   ): number | null {
     let nearestBuildingId: number | null = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
+    let nearestSafeBuildingId: number | null = null;
+    let nearestSafeDistance = Number.POSITIVE_INFINITY;
+    const defences = enemyStaticDefences(activeWorld, owner);
 
     for (const id of activeWorld.query('position', 'building')) {
       // `excludeIds` lets the drop-off reroute skip ones already found unreachable.
@@ -334,18 +342,22 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
       // between (49,21) and (50,21) forever, traffic granting `proceed` every
       // tick, because measured to origins the Town Centre went from tied to
       // strictly worse across that one step.
-      const distance = manhattanDistanceToFootprint(
-        origin,
-        position,
-        getBuildingFootprint(building.buildingType),
-      );
+      const footprint = getBuildingFootprint(building.buildingType);
+      const distance = manhattanDistanceToFootprint(origin, position, footprint);
       if (distance < nearestDistance) {
         nearestDistance = distance;
         nearestBuildingId = id;
       }
+      if (
+        distance < nearestSafeDistance
+        && !isFootprintInsideDefenceReach(position, footprint, defences)
+      ) {
+        nearestSafeDistance = distance;
+        nearestSafeBuildingId = id;
+      }
     }
 
-    return nearestBuildingId;
+    return nearestSafeBuildingId ?? nearestBuildingId;
   }
 
   function findNearestHostileWildlifeTarget(

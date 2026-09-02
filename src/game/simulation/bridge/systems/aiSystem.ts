@@ -20,6 +20,7 @@ import {
 } from '../bridgeStateSerialize';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
 import { buildPendingIntentionMaps, createOwnerProducerHelpers } from './aiSystemGating';
+import { runBuildCrewPhase } from './aiBuildCrewPhase';
 import { runBuildingPhase } from './aiSystemBuildingPhase';
 import { runDefensePhase } from './aiSystemDefensePhase';
 import { runProductionPhase } from './aiSystemProductionPhase';
@@ -181,7 +182,13 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         // ate the bank while the dock queue stayed empty).
         const ferrying = runFerryPhase(deps, ctx);
         runDefensePhase(deps, ctx);
-        if (!ferrying) runBuildingPhase(deps, ctx);
+        if (!ferrying) {
+          runBuildingPhase(deps, ctx);
+          // Reinforce the sites already going up. Runs AFTER placement so a
+          // freshly placed foundation is crewed on the next decision tick
+          // rather than competing with its own placement for the pool.
+          runBuildCrewPhase(deps, ctx);
+        }
         runProductionPhase(deps, ctx);
         runTradePhase(deps, ctx);
         runTributePhase(deps, ctx);

@@ -16,6 +16,7 @@ export type {
 } from './gameTestHelpers/types';
 
 export {
+  advanceUntilBuildingComplete,
   getSnapshot,
   waitForBoot,
   waitForBootWithSeed,
@@ -69,5 +70,6 @@ export {
 } from './gameTestHelpers/hud';
 
 export {
+  clickBuildCommand,
   findValidPlacementNearTownCenter,
 } from './gameTestHelpers/placement';

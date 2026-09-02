@@ -22,7 +22,7 @@ test.describe('browser gameplay smoke tests - age up', () => {
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
-    await page.locator('[data-command="build-archery-range"]').click();
+    await game.clickBuildCommand(page, 'archery-range');
     await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: Archery Range');
     const archeryRangePlacement = await game.findValidPlacementNearTownCenter(page, 'archery-range');
     expect(

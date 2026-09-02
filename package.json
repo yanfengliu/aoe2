@@ -1,6 +1,6 @@
 {
   "name": "aoe2",
-  "version": "0.3.187",
+  "version": "0.3.192",
   "private": true,
   "type": "module",
   "scripts": {
@@ -37,7 +37,6 @@
     "content:validate:strict": "node scripts/validate-content.mjs --strict",
     "verify": "npm run content:validate && npm run test && npm run typecheck && npm run test:browser && npm run lint && npm run build",
     "playtest:canary": "tsx scripts/playtest-canary.mjs",
-    "lessons:check": "node scripts/check-lessons.mjs",
     "ci:status": "node scripts/ci-status.mjs",
     "ai:sweep": "tsx scripts/ai-dark-age-sweep.mjs"
   },

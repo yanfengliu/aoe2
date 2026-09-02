@@ -255,7 +255,6 @@ export function hydrateFromSavedGame(deps: SaveLoadHydrationDeps): void {
           visualVariant: entry.visualVariant as MemoryEntry['visualVariant'],
           // Absent on pre-v0.3.105 saves — the renderer reads the default set.
           ...(entry.architecture ? { architecture: entry.architecture as MemoryEntry['architecture'] } : {}),
-          lastSeenTick: entry.lastSeenTick,
         });
       }
       outer.set(playerId, inner);

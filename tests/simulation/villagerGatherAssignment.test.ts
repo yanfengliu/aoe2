@@ -67,6 +67,7 @@ function deps(reach: ReadonlySet<number>): GatherAssignmentDeps {
     isLandCell: () => true,
     isHarvestableResource: (_id, resource) => resource.amount > 0,
     findNearestDropOffBuilding: () => 99,
+    enemyStaticDefences: () => [],
     findResourceApproachPlan: (_villagerId, resourceId) =>
       reach.has(resourceId)
         ? ({ destination: { x: 4, y: 5 }, nextStep: { x: 1, y: 1 } } as UnitMovementPlan)
@@ -148,6 +149,7 @@ describe('assignNearestResource reachability-aware reroute', () => {
     });
     const localityDeps: GatherAssignmentDeps = {
       isLandCell: () => true,
+      enemyStaticDefences: () => [],
     isHarvestableResource: (_id, resource) => resource.amount > 0,
       findNearestDropOffBuilding: () => DROP_OFF,
       findResourceApproachPlan: () =>
@@ -203,6 +205,7 @@ describe('assignNearestResource reachability-aware reroute', () => {
     }
     const pocketDeps: GatherAssignmentDeps = {
       isLandCell: () => true,
+      enemyStaticDefences: () => [],
     isHarvestableResource: (_id, resource) => resource.amount > 0,
       findNearestDropOffBuilding: () => DROP,
       findResourceApproachPlan: (_v, resourceId) =>
@@ -225,6 +228,7 @@ describe('assignNearestResource reachability-aware reroute', () => {
     let dropOffLookups = 0;
     const countingDeps: GatherAssignmentDeps = {
       isLandCell: () => true,
+      enemyStaticDefences: () => [],
     isHarvestableResource: () => false, // everything depleted
       findNearestDropOffBuilding: () => {
         dropOffLookups += 1;
@@ -262,6 +266,7 @@ describe('assignNearestResource reachability-aware reroute', () => {
     let probes = 0;
     const countingDeps: GatherAssignmentDeps = {
       isLandCell: () => true,
+      enemyStaticDefences: () => [],
     isHarvestableResource: (_id, resource) => resource.amount > 0,
       findNearestDropOffBuilding: () => 99,
       findResourceApproachPlan: () => {

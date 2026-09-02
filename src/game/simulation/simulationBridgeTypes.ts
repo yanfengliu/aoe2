@@ -22,6 +22,7 @@ import type {
   PlacementPreviewState,
   PlayerResources,
   PopulationState,
+  ProjectedUnitDeathView,
   ResearchableTechnologyType,
   RenderState,
   SelectionState,
@@ -53,6 +54,9 @@ export interface SimulationBridge {
   /** The map this match is played on, in tiles — a per-match answer since §4's
    *  size ladder, so a camera or a click asks rather than assuming. */
   getMapSize(): MapSize;
+  /** Every unit death of the last ten ticks, unfiltered by fog — what the
+   *  self-play audit and its villager-death gate count. */
+  getRecentUnitDeaths(): readonly ProjectedUnitDeathView[];
   /** The owners whose vision this player also sees — allies via Cartography,
    *  everyone via Spies. Empty without either technology. */
   getSharedVisionOwners(playerId: number): number[];

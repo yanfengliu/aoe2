@@ -152,6 +152,32 @@ export function stepUntilGarrisoned(
 }
 
 /**
+ * Steps until `owner` has a COMPLETE building of this type, or the cap runs
+ * out. Prefer this over a fixed `for (let i = 0; i < 400; i += 1)` around a
+ * construction: a fixed count silently encodes today's build time, and every
+ * pacing change since has had to walk the suite bumping those numbers — the
+ * DE build-time correction of 2026-09-02 broke a dozen at once (house 120 ->
+ * 250 ticks, Barracks 240 -> 500, Town Center 300 -> 1500). Waiting on the
+ * CONDITION says what the test means and survives the next retune.
+ */
+export function stepUntilBuildingComplete(
+  bridge: Bridge,
+  owner: number,
+  buildingType: string,
+  maxSteps = 3_000,
+): boolean {
+  return stepBridgeUntil(
+    bridge,
+    () => bridge.getEconomyState().buildings.some(
+      (building) => building.owner === owner
+        && building.buildingType === buildingType
+        && building.isComplete,
+    ),
+    { maxSteps },
+  );
+}
+
+/**
  * The most fine units a unit of this type can advance in one tick.
  *
  * Before per-unit base speeds every unit moved exactly UNIT_SUBGRID_STEP_PER_TICK

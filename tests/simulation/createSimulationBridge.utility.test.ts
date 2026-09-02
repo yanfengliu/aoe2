@@ -6,6 +6,7 @@ import {
   selectOwnedBuildingDirect,
   selectOwnedUnitDirect,
   stepBridgeUntil,
+  stepUntilBuildingComplete,
   stepUntilGarrisoned,
 } from './createSimulationBridge.helpers';
 
@@ -108,9 +109,7 @@ describe('createSimulationBridge utility progression', () => {
     ]);
     expect(bridge.getHudState().playerResources.stone).toBe(75);
 
-    for (let index = 0; index < 520; index += 1) {
-      bridge.step(100);
-    }
+    expect(stepUntilBuildingComplete(bridge, 1, 'watch-tower')).toBe(true);
 
     expect(
       bridge.getEconomyState().buildings.some(
@@ -120,11 +119,18 @@ describe('createSimulationBridge utility progression', () => {
           && building.isComplete,
       ),
     ).toBe(true);
+    // Completion is the START of the tower's job, not the end: it still has to
+    // see the Scout and shoot it. Waiting on the KILL rather than on a fixed
+    // tick count keeps this honest whatever the tower's build time becomes.
     expect(
-      bridge.getEconomyState().units.some(
-        (unit) => unit.owner === 2 && unit.unitType === 'scout',
+      stepBridgeUntil(
+        bridge,
+        () => !bridge.getEconomyState().units.some(
+          (unit) => unit.owner === 2 && unit.unitType === 'scout',
+        ),
+        { maxSteps: 600 },
       ),
-    ).toBe(false);
+    ).toBe(true);
   }, 45_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
 
   it('can garrison and ungarrison a villager through the Town Center', () => {
@@ -205,9 +211,7 @@ describe('createSimulationBridge utility progression', () => {
       { x: 16, y: 10 },
     ]);
 
-    for (let index = 0; index < 360; index += 1) {
-      bridge.step(100);
-    }
+    expect(stepUntilBuildingComplete(bridge, 1, 'watch-tower')).toBe(true);
 
     const villager = bridge
       .getEconomyState()
@@ -272,9 +276,7 @@ describe('createSimulationBridge utility progression', () => {
     placeBuildingNearTownCenter(bridge, 'market', 1, [{ x: 17, y: 8 }]);
     expect(bridge.getHudState().playerResources.wood).toBe(275);
 
-    for (let index = 0; index < 700; index += 1) { // §12.4.2 clock (v0.3.160): walks run ~6x longer.
-      bridge.step(100);
-    }
+    expect(stepUntilBuildingComplete(bridge, 1, 'market')).toBe(true);
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'market')).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({

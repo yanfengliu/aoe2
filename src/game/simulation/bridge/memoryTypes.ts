@@ -23,5 +23,15 @@ export interface MemoryEntry {
   visualVariant: ProjectedEntityView['visualVariant'];
   /** Building set at snapshot time (v0.3.105); absent = pre-architecture save. */
   architecture?: ProjectedEntityView['architecture'];
-  lastSeenTick: number;
 }
+
+// REMOVED 2026-09-02: `lastSeenTick`. It was written for every visible entity
+// every tick and READ NOWHERE in game logic — only round-tripped through the
+// save. That per-tick write was two thirds of a 537 MB replay bundle (the
+// codec diffs a slot whole), and the v0.3.188 fix — write an entry only when
+// its APPEARANCE changes — left the field recording the first tick the current
+// appearance was seen rather than the last time it was seen, so its name was a
+// lie that round-tripped through saves. A future "last seen N seconds ago" or
+// an age-out of stale memory would have read it and been silently wrong.
+// Deleted rather than renamed: dead data with a truthful name is still dead.
+// Old saves carrying the key load fine; it is ignored.

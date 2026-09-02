@@ -19,6 +19,7 @@ import {
   isUnitType,
 } from '../displayNames';
 import { selectionGlyph } from '../icons/unitGlyphs';
+import { formationGlyph, stanceGlyph } from '../icons/commandGlyphs';
 import { SELECTION_DETAIL_TOOLTIPS } from '../tooltips';
 
 // Types that can appear as first-class entries in the multi-select icon
@@ -328,6 +329,11 @@ const FORMATION_TOOLTIPS: Record<UnitFormation, string> = {
   flank: 'Flank — two wings with a gap between them, to part around what you are walking into.',
 };
 
+// v0.3.187: stance and formation are ICON buttons, as DE's command card is —
+// a compact square grid with the meaning in the tooltip. The visible text label
+// is gone, so each button carries an `aria-label`; the `hud-command-label` span
+// stays in the DOM (visually hidden by `hudCommandPanel.css`) so the accessible
+// name, the reachability suite and `textContent` readers are unchanged.
 export function renderFormationButtons(
   formationOptions: UnitFormation[],
   current: UnitFormation | null,
@@ -336,13 +342,14 @@ export function renderFormationButtons(
     .map(
       (formation) => `
           <button
-            class="hud-command-button hud-command-button--stance"
+            class="hud-command-button hud-command-button--stance hud-command-button--icon"
             data-command="formation-${formation}"
             data-tooltip="${FORMATION_TOOLTIPS[formation]}"
             aria-pressed="${String(formation === current)}"
+            aria-label="${FORMATION_LABELS[formation]} formation"
             type="button"
           >
-            <span class="hud-command-label">${FORMATION_LABELS[formation]}</span>
+            ${formationGlyph(formation)}<span class="hud-command-label">${FORMATION_LABELS[formation]}</span>
           </button>
         `,
     )
@@ -357,13 +364,14 @@ export function renderStanceButtons(
     .map(
       (stance) => `
           <button
-            class="hud-command-button hud-command-button--stance"
+            class="hud-command-button hud-command-button--stance hud-command-button--icon"
             data-command="stance-${stance}"
             data-tooltip="${STANCE_TOOLTIPS[stance]}"
             aria-pressed="${String(stance === current)}"
+            aria-label="${STANCE_LABELS[stance]} stance"
             type="button"
           >
-            <span class="hud-command-label">${STANCE_LABELS[stance]}</span>
+            ${stanceGlyph(stance)}<span class="hud-command-label">${STANCE_LABELS[stance]}</span>
           </button>
         `,
     )

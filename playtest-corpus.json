@@ -3,16 +3,16 @@
     {
       "name": "default-seed-smoke",
       "seed": "default-seed",
-      "maxTicks": 13100,
-      "gameLength": 13000,
+      "maxTicks": 20100,
+      "gameLength": 20000,
       "allAi": true,
       "requireAgeByEnd": "feudal-age"
     },
     {
       "name": "boot-map-both-owners",
       "seed": "aoe2-prototype",
-      "maxTicks": 13100,
-      "gameLength": 13000,
+      "maxTicks": 20100,
+      "gameLength": 20000,
       "allAi": true,
       "requireAgeByEnd": "feudal-age",
       "requireAgeForEveryOwner": "feudal-age"

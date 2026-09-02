@@ -1,4 +1,28 @@
-import { type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+
+import type { BuildableBuildingType } from '../../../../src/game/simulation/types';
+import { buildPageOf } from '../../../../src/ui/hud/selectionPanel/buildPages';
+
+/**
+ * Click a BUILD card the way a player does. DE's villager command card has two
+ * pages — Economic and Military — and only the active one is on screen, so a
+ * card on the other page is reached by its tab first (spec §14.1).
+ */
+export async function clickBuildCommand(
+  page: Page,
+  buildingType: BuildableBuildingType,
+): Promise<void> {
+  const card = page.locator(`[data-command="build-${buildingType}"]`);
+  if (await card.count() === 0) {
+    const tab = page.locator(`button[data-build-page="${buildPageOf(buildingType)}"]`);
+    await expect(
+      tab,
+      `no ${buildPageOf(buildingType)} build page tab to reach ${buildingType} through`,
+    ).toHaveCount(1);
+    await tab.click();
+  }
+  await card.click();
+}
 
 export async function findValidPlacementNearTownCenter(
   page: Page,

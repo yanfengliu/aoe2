@@ -14,6 +14,15 @@
 // falls through from an unreachable owned sheep to a reachable berry instead
 // of latching. Default behaviour (neither option set) is byte-identical to the
 // pre-extraction inline function, so the two hot call sites are unchanged.
+//
+// Enemy static defences (2026-09-02): a candidate inside an enemy Town
+// Centre's, tower's or Castle's reach plus one cell is filtered out before
+// anything else ranks it, because thirty villagers died walking to such nodes
+// on the boot map. When NOTHING of the kind is safe the dangerous nodes are
+// the candidates again — the exception the spec grants a kind that has no
+// other node left anywhere — unless the caller passes `requireSafe`, which
+// the kind fallback uses to ask "is there safe work of this kind?" before it
+// accepts the exception on any kind.
 
 import type { Position } from 'civ-engine';
 import type {
@@ -28,6 +37,7 @@ import { canGatherResource, resourceKindToEconomyResource } from '../prototypeEc
 import { canGathererHarvest } from '../gatherDomain';
 import { isShoreFish } from '../shoreFishing';
 import type { UnitMovementPlan } from './movementTypes';
+import { isInsideDefenceReach, type EnemyStaticDefenceLookup } from './enemyDefenceRange';
 
 // Cap on how many candidates the reachability-aware reroute pathfinds against
 // per call. The success case (a reachable resource exists) short-circuits at
@@ -57,6 +67,9 @@ export interface GatherAssignmentDeps {
     resourceId: number,
     activeWorld: GameWorld,
   ) => UnitMovementPlan | null;
+  /** The complete static defences of the players `owner` is at war with,
+   *  with their effective ranges — what the villager must keep out of. */
+  enemyStaticDefences: EnemyStaticDefenceLookup;
 }
 
 // How far from its drop-off a villager will be sent to gather on its own. Wide
@@ -75,7 +88,15 @@ export interface AssignNearestResourceOptions {
   // honoured ONLY under `requireReachable` (its sole caller passes both).
   requireReachable?: boolean;
   excludeResourceId?: number | null;
+  // When true, a node under enemy static defences is never chosen, even when
+  // it is all that is left of the kind: the gatherer is parked instead and the
+  // outcome says why, so the caller can try another kind first.
+  requireSafe?: boolean;
 }
+
+/** What an assignment did: work found; nothing of the kind at all (or nothing
+ *  reachable); or only nodes under enemy arrows, refused under `requireSafe`. */
+export type AssignmentOutcome = 'assigned' | 'none' | 'dangerous-only';
 
 // Assigns `gatherer` (owned by `owner`) to a resource, mutating it in place to
 // `to-resource` + the chosen target (or `idle` if none qualifies). The chosen
@@ -92,6 +113,12 @@ function parkOrDeliver(gatherer: GathererComponent): void {
   gatherer.targetResourceId = null;
 }
 
+interface Candidate {
+  id: number;
+  position: Position;
+  resource: ResourceComponent;
+}
+
 export function assignNearestResource(
   deps: GatherAssignmentDeps,
   activeWorld: GameWorld,
@@ -100,11 +127,11 @@ export function assignNearestResource(
   owner: number,
   gatherTargetCounts: Map<number, number>,
   options: AssignNearestResourceOptions,
-): void {
+): AssignmentOutcome {
   const villagerPosition = activeWorld.getComponent<Position>(villagerId, 'position');
-  if (!villagerPosition) return;
+  if (!villagerPosition) return 'none';
   const gathererUnit = activeWorld.getComponent<UnitComponent>(villagerId, 'unit');
-  if (!gathererUnit) return;
+  if (!gathererUnit) return 'none';
   const gathererUnitType = gathererUnit.unitType;
 
   const { preferUnsaturated, spreadCap } = options;
@@ -112,11 +139,7 @@ export function assignNearestResource(
 
   // V4-9: filter inline before allocating wrappers — only resources that pass
   // the type + harvestability + ownership gates get a wrapper.
-  const matchingResources: Array<{
-    id: number;
-    position: Position;
-    resource: ResourceComponent;
-  }> = [];
+  const matchingResources: Candidate[] = [];
   for (const id of activeWorld.query('position', 'resource')) {
     const position = activeWorld.getComponent<Position>(id, 'position');
     const resource = activeWorld.getComponent<ResourceComponent>(id, 'resource');
@@ -146,7 +169,37 @@ export function assignNearestResource(
   // 2026-07-02 low finding).
   if (matchingResources.length === 0) {
     parkOrDeliver(gatherer);
-    return;
+    return 'none';
+  }
+
+  // Enemy static defences. A node under the enemy's arrows leaves the list
+  // before distance ever ranks it; it comes back only as the exception, when
+  // the kind has no safe node anywhere — and never under `requireSafe`. The
+  // `requireReachable` probe below keeps the dangerous nodes as its last
+  // resort for the same exception, because "no other REACHABLE node" is what
+  // the rule says.
+  let candidates: Candidate[] = matchingResources;
+  let dangerousFallback: Candidate[] = [];
+  // Whether any node of this kind was refused for standing under enemy
+  // arrows. Needed as its own flag because "no safe node" and "no safe node
+  // this villager can REACH" both have to answer `dangerous-only` — see the
+  // return below.
+  let refusedForDanger = false;
+  const defences = deps.enemyStaticDefences(activeWorld, owner);
+  if (defences.length > 0) {
+    const safe: Candidate[] = [];
+    const dangerous: Candidate[] = [];
+    for (const candidate of matchingResources) {
+      (isInsideDefenceReach(candidate.position, defences) ? dangerous : safe).push(candidate);
+    }
+    refusedForDanger = dangerous.length > 0;
+    if (safe.length > 0) {
+      candidates = safe;
+      dangerousFallback = options.requireSafe ? [] : dangerous;
+    } else if (options.requireSafe) {
+      parkOrDeliver(gatherer);
+      return 'dangerous-only';
+    }
   }
 
   // Steady-state gather throughput is dominated by the resource↔drop-off
@@ -180,14 +233,14 @@ export function assignNearestResource(
   // the enemy's base, and were killed there — twenty of them over one match,
   // which is what emptied the AI's economy. A villager gathers near home, and
   // the whole map is still available when home has nothing left.
-  const everyMatch = [...matchingResources];
+  const everyMatch = candidates;
+  let homeCandidates = candidates;
   if (referenceDropOff) {
-    const withinHomeRange = matchingResources.filter((candidate) => (
+    const withinHomeRange = candidates.filter((candidate) => (
       manhattanDistance(candidate.position, referenceDropOff) <= HOME_GATHER_RANGE
     ));
     if (withinHomeRange.length > 0) {
-      matchingResources.length = 0;
-      matchingResources.push(...withinHomeRange);
+      homeCandidates = withinHomeRange;
     }
   }
 
@@ -201,8 +254,8 @@ export function assignNearestResource(
   // medium finding, refuting repro included). Owner preference and the
   // unsaturated fan-out dominate both orders.
   const compareCandidates = (
-    left: { id: number; position: Position; resource: ResourceComponent },
-    right: { id: number; position: Position; resource: ResourceComponent },
+    left: Candidate,
+    right: Candidate,
     useDropOffLocality: boolean,
   ): number => {
     // Owner preference FIRST (own > home-base neutral > other), so fan-out
@@ -255,7 +308,7 @@ export function assignNearestResource(
     return left.id - right.id;
   };
 
-  matchingResources.sort((l, r) => compareCandidates(l, r, true));
+  const ranked = [...homeCandidates].sort((l, r) => compareCandidates(l, r, true));
 
   // Pick the target. Default: the sorted first. With `requireReachable`: probe
   // candidates in VILLAGER-proximity order (the pre-locality legacy order — see
@@ -265,11 +318,9 @@ export function assignNearestResource(
   // (MAX_REACHABILITY_PROBES) so a fully-boxed villager does a BOUNDED amount of
   // pathfinding per tick. Pathfinding (and the extra re-sort) runs ONLY on this
   // requireReachable recovery path, never on the hot default path.
-  let target: { id: number; position: Position; resource: ResourceComponent } | undefined;
+  let target: Candidate | undefined;
   if (options.requireReachable) {
-    const probeFrom = (
-      candidates: ReadonlyArray<{ id: number; position: Position; resource: ResourceComponent }>,
-    ): typeof target => {
+    const probeFrom = (candidates: readonly Candidate[]): Candidate | undefined => {
       const probeOrder = [...candidates].sort((l, r) => compareCandidates(l, r, false));
       let probes = 0;
       for (const candidate of probeOrder) {
@@ -285,17 +336,25 @@ export function assignNearestResource(
     // Home first. Widening only when nothing at home can be reached is what
     // keeps a villager beside a reachable resource from starving behind a
     // walled pocket next to its drop-off, without turning the ordinary
-    // fan-out into a walk across the map.
-    target = probeFrom(matchingResources) ?? (
-      matchingResources.length === everyMatch.length ? undefined : probeFrom(everyMatch)
-    );
+    // fan-out into a walk across the map. The nodes under enemy arrows come
+    // last of all, and only when no safe node of the kind can be reached.
+    target = probeFrom(homeCandidates)
+      ?? (homeCandidates.length === everyMatch.length ? undefined : probeFrom(everyMatch))
+      ?? (dangerousFallback.length === 0 ? undefined : probeFrom(dangerousFallback));
   } else {
-    target = matchingResources[0];
+    target = ranked[0];
   }
 
   if (!target) {
     parkOrDeliver(gatherer);
-    return;
+    // Under `requireSafe` the safe nodes may exist and simply be unreachable
+    // — a walled pocket, the case the probe above was built for. That is
+    // still "no safe work of this kind", so it must answer `dangerous-only`
+    // and not `none`: `assignIdleGatherer`'s second pass revisits only the
+    // kinds that said `dangerous-only`, so answering `none` here would hide
+    // this kind's reachable-but-dangerous nodes for good and could leave the
+    // villager with no work at all.
+    return options.requireSafe && refusedForDanger ? 'dangerous-only' : 'none';
   }
 
   // Reserve the chosen resource so other villagers assigned later THIS tick
@@ -310,4 +369,5 @@ export function assignNearestResource(
     target.position,
   );
   gatherer.gatherProgressTicks = 0;
+  return 'assigned';
 }

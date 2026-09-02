@@ -59,6 +59,7 @@ export interface PlayerCommandsSystemDeps {
     targetId: number,
     range: number,
     activeWorld: CivWorld,
+    nearestFirst?: boolean,
   ) => UnitMovementPlan | null;
   moveUnitOneSubgridStep: (
     entityId: number,
@@ -137,6 +138,11 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     after: ['prototypeAi', 'prototypeAutoAggression'],
     execute(activeWorld) {
       const unitCommands = accessor.get(unitCommandsCodec);
+      // Per-TICK builder tally, keyed by building id: the first villager to
+      // work a site this tick adds a full tick of progress and the rest add a
+      // third each, which is AoE2's 3 * base / (n + 2) curve. Rebuilt every
+      // tick on purpose — nothing about the curve is persisted state.
+      const buildersCreditedThisTick = new Map<number, number>();
       // Map iteration is delete-safe per spec: clearUnitCommand needs no snapshot.
       for (const [id, command] of unitCommands.entries()) {
         const position = activeWorld.getComponent<Position>(id, 'position');
@@ -295,6 +301,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           isUnitAtTarget,
           moveUnitOneSubgridStep,
           clearUnitCommand,
+          buildersCreditedThisTick,
         });
         if (!advanced) continue;
 

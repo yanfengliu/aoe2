@@ -22,6 +22,12 @@
   --hud-gold: #e9c46a;
   --hud-stone: #9fb0c0;
   --hud-danger: #e2685f;
+  /* Command-card tile geometry (v0.3.187). DE's command card is a grid of
+     square icon buttons; one token drives the tile, its glyph and every grid
+     that holds them, so a viewport can shrink the whole deck by shrinking
+     this. */
+  --hud-command-tile: 44px;
+  --hud-command-gap: 6px;
   --hud-radius-lg: 16px;
   --hud-radius-md: 11px;
   --hud-radius-sm: 8px;
@@ -244,8 +250,17 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   pointer-events: none;
 }
 
+.hud-panel--selection .hud-command-deck,
+.hud-panel--selection .hud-command-group,
 .hud-panel--selection .hud-command-list,
+.hud-panel--selection .hud-build-menu,
+.hud-panel--selection .hud-selection-summary,
+.hud-panel--selection .hud-build-pages,
+.hud-panel--selection .hud-build-page-tab,
 .hud-panel--selection .hud-command-button {
+  /* Every scroll region in the bar takes pointer events too: a region the
+     panel clips and the wheel cannot reach is content with no way to it
+     (play-test finding F5, 2026-09-02). */
   pointer-events: auto;
 }
 

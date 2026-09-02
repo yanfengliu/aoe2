@@ -167,6 +167,18 @@ export function createAiRushFixture(seed: string): PrototypeScenario {
       ownedSpawn('villager', 2, 22, 8, { vision: 4 }),
       ownedSpawn('villager', 2, 22, 9, { vision: 4 }),
       ownedSpawn('villager', 2, 23, 9, { vision: 4 }),
+      // Food for the rusher (2026-09-02). This map is bare grass, so before
+      // these the AI ran the whole rush off its 200 starting food and the
+      // test measured opening-spend arithmetic rather than rush behaviour:
+      // once DE build times landed (Barracks 240 -> 500 ticks) the AI spent
+      // its food on villagers while the Barracks went up and could never
+      // afford the 60-food Militia at all. A gathering economy makes the
+      // rush depend on the AI's PLAN, which is what the test is named for.
+      // Clear of the AI Town Center's 4x4 footprint (anchor 24,8 spans 24-27).
+      gaiaSpawn('sheep', 29, 10, { baseOwner: 2, amount: 100 }),
+      gaiaSpawn('sheep', 29, 11, { baseOwner: 2, amount: 100 }),
+      gaiaSpawn('sheep', 30, 10, { baseOwner: 2, amount: 100 }),
+      gaiaSpawn('sheep', 30, 11, { baseOwner: 2, amount: 100 }),
     ],
   };
 }

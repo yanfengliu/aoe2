@@ -38,6 +38,17 @@ import { currentEntityId, type GameWorld } from '../pureHelpers';
 
 const EMPTY_TECH_SET: ReadonlySet<never> = new Set();
 
+// AoE2's multi-builder curve (spec §7/§16): a crew of n builds in
+// 3 * base_time / (n + 2), so the crew's combined rate is (n + 2) / 3 of one
+// villager's. Expressed per builder that gets credited within one tick, that
+// is a FULL share for the first and a THIRD for each of the rest — the sum
+// telescopes to (n + 2) / 3 exactly, with no need to count the crew.
+//
+// `index` is how many builders have already worked THIS site THIS tick.
+export function builderProgressShare(index: number): number {
+  return index === 0 ? 1 : 1 / 3;
+}
+
 export interface BuilderWorkStepContext {
   world: GameWorld;
   accessor: BridgeStateAccessor;
@@ -51,6 +62,10 @@ export interface BuilderWorkStepContext {
   isUnitAtTarget: (unitId: number, target: Position, world: GameWorld) => boolean;
   moveUnitOneSubgridStep: (unitId: number, step: Position, world: GameWorld) => void;
   clearUnitCommand: (unitId: number) => void;
+  // Building ids already credited a builder this tick, so the second and later
+  // builders on one site take the reduced share above. Owned by the caller's
+  // per-tick pass; a fresh set every tick is what makes the curve stateless.
+  buildersCreditedThisTick: Map<number, number>;
 }
 
 export type BuilderWorkResult = ConstructionState | null;
@@ -141,7 +156,9 @@ export function runBuilderWorkStep(ctx: BuilderWorkStepContext): BuilderWorkResu
   // so a fractional step is the honest way to express it — rounding the
   // multiplier to a whole tick would be a silent no-op (the v0.1.26
   // gather-rate lesson).
-  construction.buildProgressTicks += buildRateMultiplier(
+  const alreadyCredited = ctx.buildersCreditedThisTick.get(buildingId) ?? 0;
+  ctx.buildersCreditedThisTick.set(buildingId, alreadyCredited + 1);
+  construction.buildProgressTicks += builderProgressShare(alreadyCredited) * buildRateMultiplier(
     accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET,
     accessor.get(playerCivilizationsCodec).get(unit.owner),
     {

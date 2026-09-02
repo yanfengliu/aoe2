@@ -140,6 +140,38 @@ export function createTooltipController(
   let pointerHost: Element | null = null;
   let focusHost: Element | null = null;
   let describedHost: Element | null = null;
+  // Whether the focus that is about to land was put there by a POINTER. A
+  // click focuses the button it pressed, and a tooltip owned by that focus
+  // outlives the pointer: "Place a House foundation…" stayed over the bar
+  // while the player was already out on the map choosing the tile (play-test
+  // finding F6, 2026-09-02). DE hides a tooltip when the cursor leaves the
+  // button, and a keyboard user still needs one — so only a focus the player
+  // reached with the KEYBOARD owns a tooltip. Sticky until the next key,
+  // because the selection panel re-renders after a click and restores focus
+  // programmatically a frame later.
+  // Which CONTROL the pointer last pressed, by its logical id rather than by
+  // element identity: the panel re-renders after a click and restores focus to
+  // a NEW button carrying the same `data-command`, so an object comparison
+  // suppresses the tooltip for one frame and hands it straight back.
+  //
+  // Deliberately NOT `:focus-visible`: that reads the element's live focus
+  // state, and a synthetic `focusin` (the shape every unit test of this
+  // controller has) does not focus anything, so the check would answer "not
+  // keyboard" for every test and "keyboard" for nothing.
+  //
+  // Deliberately NOT cleared by a keystroke either: any key would do it, and
+  // the panel's own re-render then re-focused the clicked card with the claim
+  // released — so pressing a camera key after clicking a card put its tooltip
+  // back over the world with the cursor 500px away. The claim is released when
+  // focus lands on a DIFFERENT control, which is what a Tab does.
+  let pointerPressedKey: string | null = null;
+
+  function tooltipHostKey(host: Element): string {
+    return host.getAttribute('data-command')
+      ?? host.getAttribute('data-build-page')
+      ?? host.getAttribute('data-tooltip')
+      ?? '';
+  }
 
   function clearTooltipDescription(): void {
     if (!describedHost) {
@@ -301,6 +333,18 @@ export function createTooltipController(
     if (!host) {
       return;
     }
+    if (pointerPressedKey !== null && tooltipHostKey(host) === pointerPressedKey) {
+      // A clicked control keeps focus — a player may act on it again from the
+      // keyboard — but it does not keep a tooltip. Whatever the pointer is
+      // hovering still owns one.
+      focusHost = null;
+      if (!pointerHost) {
+        hideTooltip();
+      }
+      return;
+    }
+    // Focus reached a different control, so the keyboard owns tooltips again.
+    pointerPressedKey = null;
     focusHost = host;
     const text = host.getAttribute('data-tooltip') ?? '';
     showTooltipFor(host, text);
@@ -316,6 +360,7 @@ export function createTooltipController(
     if (focusHost === host) {
       focusHost = null;
     }
+
     if (pointerHost && root.contains(pointerHost)) {
       showTooltipFor(pointerHost, pointerHost.getAttribute('data-tooltip') ?? '');
     } else {
@@ -358,8 +403,26 @@ export function createTooltipController(
   });
   ownerObserver.observe(root, { childList: true, subtree: true });
 
+  const onPointerDown = (event: PointerEvent): void => {
+    const target = event.target instanceof Element ? event.target : null;
+    const host = target?.closest('[data-tooltip]');
+    // A press somewhere with no tooltip — the map, a panel's background — does
+    // not release the claim: the click that ENDS placement is such a press, and
+    // releasing it there would let the panel's next re-render hand the card
+    // its tooltip back.
+    // Touch is exempt: a finger has no hover, so a tap is the ONLY way a touch
+    // user can ask what a tile is, and suppressing the focus tooltip there
+    // would leave them with an icon and no name at all.
+    if (host && event.pointerType !== 'touch') {
+      pointerPressedKey = tooltipHostKey(host);
+    }
+  };
+
   root.addEventListener('pointerover', onPointerOver);
   root.addEventListener('pointerout', onPointerOut);
+  // Watched on the document, not on the HUD: the press that decides whether a
+  // focus is a pointer focus can land anywhere on the page.
+  document.addEventListener('pointerdown', onPointerDown, true);
   root.addEventListener('focusin', onFocusIn);
   root.addEventListener('focusout', onFocusOut);
   let resizeFrame: number | null = null;
@@ -388,6 +451,7 @@ export function createTooltipController(
     destroy: () => {
       root.removeEventListener('pointerover', onPointerOver);
       root.removeEventListener('pointerout', onPointerOut);
+      document.removeEventListener('pointerdown', onPointerDown, true);
       root.removeEventListener('focusin', onFocusIn);
       root.removeEventListener('focusout', onFocusOut);
       window.removeEventListener('resize', repositionAfterResponsiveLayout);
@@ -399,6 +463,7 @@ export function createTooltipController(
       ownerObserver.disconnect();
       pointerHost = null;
       focusHost = null;
+      pointerPressedKey = null;
       hideTooltip();
     },
   };

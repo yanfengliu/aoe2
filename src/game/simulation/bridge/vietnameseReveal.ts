@@ -68,7 +68,6 @@ export function applyVietnameseReveal(
             owner: townCenter.owner,
             size: renderable.size,
             visualVariant: renderable.visualVariant,
-            lastSeenTick: world.tick,
           };
           accessor.mutate(lastSeenStaticCodec, (outer) => {
             const inner = outer.get(revealOwner) ?? new Map<number, MemoryEntry>();
