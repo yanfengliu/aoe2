@@ -12,6 +12,14 @@ The interface chrome targets a **modern** look — translucent dark-glass panels
 
 Authoritative description: `design/spec-final.md` §14.1 "HUD chrome".
 
+## The HUD holds its shape, and nothing floats over the minimap (2026-09-02, owner)
+
+Entering a mode — placement, a menu, a queue filling up — must not move, shrink, or hide the controls the player was just using (a label may make room for the mode's own pill; a button may not move), and no floating element (tooltip, toast, badge) may cover the minimap.
+
+**Why:** the owner asked for the UI to be "elegant" the day they found, by playing, that clicking a build card collapsed the build palette to a sliver and put its tooltip on the minimap. The bar is a flex row with exactly one member that absorbs width changes, so a status rendered as a sibling took its width from the palette; and a positioner that clamps to the viewport does not clamp to the HUD. Both are the kind of defect a boot screenshot never shows and a player finds in the first minute.
+
+**How to apply:** a mode's announcement goes INSIDE the group it describes (the placement pill lives in the Build heading), never as a new sibling of the bar. Floating elements are positioned against the HUD's surfaces, not only the viewport — `tooltips.ts` floats a command-bar tooltip above the bar and slides it clear of `.hud-panel--map`. A change to the bar is checked at both its regimes (wrapped below 1120px, unwrapped above) and at 1280x720, the laptop width where the palette is narrowest; `tests/browser/placement-mode-hud-layout.spec.ts` is the shape of that check, and it measures VISIBLE width (the rect clipped by the scrolling panel), because a layout box keeps its min-width after the panel has clipped it. Register entry: 2026-09-02.
+
 ## Rendering is inspected from several angles and zoom levels (2026-08-23, owner)
 
 Whenever the rendering changes, look at the result from **multiple camera angles and multiple zoom levels** before calling it done — not one framing, and not only the region that was edited.

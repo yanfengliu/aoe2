@@ -164,11 +164,15 @@ type CommandGroupKind =
   | 'research'
   | 'build';
 
+// `headingStatus` is optional markup that sits in the heading row between the
+// title and the count — the Build group's "Placing: …" pill — so a mode can be
+// announced without adding a section to the bar.
 function renderCommandGroup(
   kind: CommandGroupKind,
   label: string,
   content: string,
   count: number,
+  headingStatus = '',
 ): string {
   if (!content) {
     return '';
@@ -184,6 +188,7 @@ function renderCommandGroup(
     >
       <div class="hud-command-group__heading">
         <span class="hud-command-group__title" id="${headingId}">${label}</span>
+        ${headingStatus}
         <span class="hud-command-group__count" aria-hidden="true">${count}</span>
       </div>
       <div class="${listClass}">${content}</div>
@@ -294,10 +299,15 @@ export function createSelectionPanel(
         })
         .join('')
       : '';
+    // Placement mode is announced INSIDE the Build group's heading, never as a
+    // sibling section of the bar. As a third flex sibling between the summary
+    // and the deck it took its width out of the build palette — the only thing
+    // in the bar allowed to shrink — and a 269px palette became a 31px sliver
+    // at 1280x720 (defect register, 2026-09-02).
     const placementMarkup = selectionState.placementMode
-      ? `<div class="hud-placement-status">
-          <div class="hud-selection-meta" data-placement-mode>Placing: ${formatEntityName(selectionState.placementMode)}</div>
-          <div class="hud-placement-status__hint">Choose a clear map tile</div>
+      ? `<div class="hud-placement-status" data-placement-status>
+          <span class="hud-placement-status__mode" data-placement-mode>Placing: ${formatEntityName(selectionState.placementMode)}</span>
+          <span class="hud-placement-status__hint">Choose a clear map tile</span>
         </div>`
       : '';
 
@@ -307,6 +317,9 @@ export function createSelectionPanel(
       selectionState.placementMode,
       costOf,
     );
+    // Only a selection with a build palette can be placing; the fallback keeps
+    // the status visible if that ever stops being true.
+    const placementOutsideDeck = buildButtons ? '' : placementMarkup;
     const actionButtons = renderActionButtons(selectionState.actionOptions);
     const trainButtons = renderTrainButtons(selectionState.trainOptions);
     const marketButtons = renderMarketButtons(selectionState.marketOptions);
@@ -345,7 +358,13 @@ export function createSelectionPanel(
         researchButtons,
         selectionState.visibleResearchOptions.length,
       ),
-      renderCommandGroup('build', 'Build', buildButtons, selectionState.buildOptions.length),
+      renderCommandGroup(
+        'build',
+        'Build',
+        buildButtons,
+        selectionState.buildOptions.length,
+        placementMarkup,
+      ),
     ].join('');
 
     // Who is selected and what they are — one block, so the command deck beside
@@ -362,7 +381,7 @@ export function createSelectionPanel(
         ${selectionDetails}
       </div>
       ${queueItems ? `<div class="hud-queue-list" data-selection-queue-list>${queueItems}</div>` : ''}
-      ${placementMarkup}
+      ${placementOutsideDeck}
       ${commandGroups ? `<div class="hud-command-deck" data-command-deck>${commandGroups}</div>` : ''}
     `;
 
