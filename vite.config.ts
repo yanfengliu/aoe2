@@ -4,6 +4,14 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     port: 5173,
+    watch: {
+      // Agent worktrees live at .claude/worktrees/<agent>/ INSIDE this root,
+      // and tmp/ holds task-run evidence. Vite watched both, so every file an
+      // agent wrote or built in its worktree full-reloaded the dev server —
+      // measured 2026-09-02: a live match reset to boot state mid-play the
+      // moment a worktree agent started. Neither path is ever imported.
+      ignored: ['**/.claude/**', '**/tmp/**'],
+    },
   },
   resolve: {
     // Local `voxel` is linked during development. Pin every import to the
