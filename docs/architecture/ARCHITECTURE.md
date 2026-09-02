@@ -95,7 +95,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       `renderStore.ts` (the per-tick render-message store the projector
       writes into, with indexed reconciliation of transient attack overlays;
       the prior-tick position frame it captured for display interpolation
-      until v0.3.182 is gone — the displayed-root smoother keeps its own
+      until v0.3.187 is gone — the displayed-root smoother keeps its own
       per-unit history under the same visible-last-tick rule),
       `attackAnimationTypes.ts` (the projected successful-hit contract), and
       `renderMetricsCapture.ts` (the lightweight alive-count/world-metrics HUD

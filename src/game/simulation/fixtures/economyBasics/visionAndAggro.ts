@@ -196,10 +196,6 @@ export function createDeerFleeFixture(seed: string): PrototypeScenario {
   };
 }
 
-// The control for the fixture above: the SAME deer, on the same terrain, with
-// every unit far away. A deer that wandered on its own would move here too, so
-// this is what makes the flee assertion evidence of the approach rather than
-// evidence that deer move at all.
 /** A deer with a SCOUT five tiles off and twelve tiles of sight, for the
  *  renderer's flight gate (`tests/browser/unit-motion-smoothness.spec.ts`).
  *  `deer-flee-fixture` seats a villager three tiles from its deer with four
@@ -228,6 +224,10 @@ export function createDeerFlightFixture(seed: string): PrototypeScenario {
   };
 }
 
+// The control for `deer-flee-fixture`: the SAME deer, on the same terrain, with
+// every unit far away. A deer that wandered on its own would move here too, so
+// this is what makes the flee assertion evidence of the approach rather than
+// evidence that deer move at all.
 export function createDeerUndisturbedFixture(seed: string): PrototypeScenario {
   return {
     seed,

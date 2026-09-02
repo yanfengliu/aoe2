@@ -140,7 +140,7 @@ export function createAoeVoxelPresentationCoordinator(
   let lastSelectionKey = '';
   // Where each live unit is DRAWN: the sim's sampled trajectory replayed a
   // step cadence behind, so a walk reads as continuous motion rather than the
-  // move-and-stop pulse of blending only adjacent ticks (v0.3.182). The
+  // move-and-stop pulse of blending only adjacent ticks (v0.3.187). The
   // smoother keeps its own per-unit history, under the rule the render
   // store's prior-position frame used to enforce: a unit absent from the
   // previously presented tick, or a presentation that skipped a tick, starts

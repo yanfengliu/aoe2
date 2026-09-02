@@ -88,7 +88,7 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
     const liveEntitiesRaw = renderStore.getEntities();
     // Only entities visible to the human perspective NOW are handed on. The
     // prior-tick position frame that display interpolation once read was
-    // filtered through the same rule here; since v0.3.182 the presentation
+    // filtered through the same rule here; since v0.3.187 the presentation
     // keeps its own per-unit history (displayedPositionSmoother), and an
     // entity absent from the previously presented tick starts fresh there,
     // so nothing about the prior tick leaves this function any more.
