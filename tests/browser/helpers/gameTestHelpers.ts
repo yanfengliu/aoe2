@@ -69,5 +69,6 @@ export {
 } from './gameTestHelpers/hud';
 
 export {
+  clickBuildCommand,
   findValidPlacementNearTownCenter,
 } from './gameTestHelpers/placement';

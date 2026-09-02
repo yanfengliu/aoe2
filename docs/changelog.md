@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.187
+
+- The villager build menu now has DE's two pages — **Economic Buildings** and **Military Buildings** — with a toggle at the head of the Build heading. Every building is on exactly one page. Starting a placement shows the page its building is on, and the toggle still works while placing; switching pages never moves the palette or the toggle, and picking a different unit opens its palette on the first page.
+- The command card is a grid of square icons. Orders, Stance and Formation were wide labelled boxes and are now compact icon buttons with the meaning in the tooltip, and build cards are icon tiles with the cost in the tooltip rather than printed on the card. Every button keeps a spoken name for screen readers.
+- **The command bar no longer hides what it holds.** At an 800x600 window it used to wrap and leave the whole BUILD group below the panel's bottom edge — invisible, with no way to scroll to it — and a unit's last stat rows went the same way. Everything now fits inside the bar at 800x600, 1280x720 and 1920x1080 for a villager (on both build pages), a military unit, a Town Centre, a Blacksmith and a Monastery; nothing ever runs off the side of the bar at any window size; and the few late-game cards still too tall for an 800x600 bar — an Imperial Castle's, a Market's with its tribute rows — can now be scrolled to with the mouse wheel, which was impossible before. The bar is also only as wide as what it holds, instead of stretching most of the way across a wide screen.
+- The Bombard Tower has its own icon. It shared the Watch Tower's picture, which did not matter while a card carried its name and does now that the card is an icon.
+- A command card's tooltip now leaves with the cursor. Clicking a build card used to leave "Place a House foundation…" sitting over the bar while the mouse was already out on the map picking the tile — and it stayed there through camera keys and through the panel redrawing itself. The card still keeps keyboard focus, and a button reached with Tab still shows its tooltip.
+
 ## 0.3.186
 
 - The idle-villager badge no longer sits on the command bar. With a villager selected the bar is taller than the fixed height the badge was placed above, so the badge's bottom edge covered the bar's SELECTION label at every common window size (800x600, 1280x720 and 1440x900 alike). The badge — and the speaker toggle above it — now stand clear of the bar's top edge and follow it as the bar grows or shrinks, whatever is selected and whatever the window size.

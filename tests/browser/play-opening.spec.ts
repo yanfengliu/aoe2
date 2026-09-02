@@ -38,22 +38,26 @@
 //      measured 24.5-27.9 s against DE's 25 s, which is fine.
 //   F4 structures.csv row 6 prices a House at 30 wood; the game charges 25
 //      and DE is 25 — that CSV row is the wrong one.
-//   F5 UI, viewport-scoped (01-select.png, 04-foundation.png): at this
-//      suite's 800x600 the command deck wraps and the BUILD group lands at
-//      y 675-743, below the panel's 588 px bottom edge (max-height 208px,
-//      overflow-y hidden) — invisible, and a wheel cannot reach it; the HP
-//      row sits at y 556 outside its 104 px summary box. The cards are only
-//      reachable here because locator.click() scrolls hidden overflow. At
-//      1280x720 and 1920x1080 everything is in view. DE never clips the
-//      command card.
-//   F6 UI (03-placement-ghost.png): a clicked command card keeps keyboard
-//      focus (document.activeElement stays BUTTON[data-command=build-house])
-//      and the tooltip re-shows for the focused card when the pointer leaves
-//      it, so "Place a House foundation…" stays over the panel while the
-//      pointer is on the map — still active after a 12-step sweep across the
-//      canvas. DE hides a tooltip when the cursor leaves the button. (The
-//      2026-09-01 lessons-evidence note says a card click does NOT keep
-//      focus; measured otherwise here.)
+//   F5 FIXED in v0.3.187. Was: at this suite's 800x600 the command deck
+//      wrapped and the BUILD group landed at y 675-743, below the panel's
+//      588 px bottom edge (max-height 208px, overflow-y hidden) — invisible,
+//      and a wheel could not reach it (the panel's own scroll regions took no
+//      pointer events); the stat rows ran past the 104 px summary box the same
+//      way. The cards were only reachable here because locator.click() scrolls
+//      hidden overflow. Now: icon tiles, DE's two build pages, a summary laid
+//      out across the bar, and a ceiling the content fits under — measured 0
+//      clipped elements at 800x600, 1280x720 and 1920x1080 for a villager
+//      (both pages), a scout and a Town Centre. Gate:
+//      tests/browser/command-deck-fits.spec.ts.
+//   F6 FIXED in v0.3.187. Was: a clicked command card kept keyboard focus
+//      (document.activeElement stays BUTTON[data-command=build-house]) and the
+//      tooltip re-showed for the focused card when the pointer left it, so
+//      "Place a House foundation…" stayed over the panel while the pointer was
+//      on the map — still active after a 12-step sweep across the canvas. Now:
+//      a POINTER focus does not own a tooltip (a keyboard focus still does), so
+//      the card keeps focus and the tooltip goes with the cursor, as DE's does.
+//      Gates: tests/browser/command-deck-fits.spec.ts and the jsdom rule in
+//      tests/ui/tooltipFocus.test.ts.
 // Matches DE, measured: villager 50 food, Loom 50 gold, Town Center 2400 HP
 // and 0/15 garrison, House 25 wood and +5 pop, Palisade Wall 2 / Gate 30
 // wood, first sheep drop-off of 10 food after ~31 s of game time (~20.5 s
@@ -73,16 +77,18 @@ const HUMAN = 1;
 // The BUILD panel a Dark Age Britons villager shows, as read from the cards
 // in panel order. Palisade Wall (2 wood/tile) and Palisade Gate (30 wood)
 // are DE's Dark Age options too; the Outpost's stone is finding F1 above.
+// Economic page first, then Military — DE's two build pages, each in palette
+// order (v0.3.187; `readBuildPanel` visits both tabs).
 const EXPECTED_BUILD_PANEL: play.BuildCard[] = [
   { name: 'House', cost: { wood: 25 } },
   { name: 'Mill', cost: { wood: 100 } },
   { name: 'Lumber Camp', cost: { wood: 100 } },
   { name: 'Mining Camp', cost: { wood: 100 } },
+  { name: 'Farm', cost: { wood: 60 } },
+  { name: 'Dock', cost: { wood: 150 } },
   { name: 'Barracks', cost: { wood: 175 } },
   { name: 'Palisade Wall', cost: { wood: 2 } },
   { name: 'Palisade Gate', cost: { wood: 30 } },
-  { name: 'Farm', cost: { wood: 60 } },
-  { name: 'Dock', cost: { wood: 150 } },
   { name: 'Outpost', cost: { wood: 25, stone: 10 } },
 ];
 
@@ -229,7 +235,10 @@ test('the opening plays like AoE2 DE through the lobby, the mouse, and the HUD',
 
   // ---- 6. The Town Center ----------------------------------------------
   await test.step('6. a click on the Town Center shows its card; Train Villager and Loom spend', async () => {
-    const townCenter = await play.findMouseReachableEntity(page, {
+    // The camera has drifted while the House was placed, and at 800x600 the
+    // command bar holds the bottom ~227px of the window, so the Town Centre's
+    // centre can be behind it. A player scrolls the view; so does this.
+    const townCenter = await play.findMouseReachableEntityAfterScrolling(page, {
       kind: 'building', entityType: 'town-center', owner: HUMAN,
     });
     expect(townCenter, 'the Town Center footprint centre is not on the canvas').not.toBeNull();

@@ -51,16 +51,20 @@ export function renderResearchButtons(
 }
 
 // M7 UI-icons (v0.1.76): the command-card "action" buttons (the Ungarrison
-// order) get a per-action glyph before the label. Augment-not-replace: the
-// `data-command="action-<type>"` hook + the action-name text are preserved.
+// order) get a per-action glyph before the label. v0.3.187: the Orders group
+// became an ICON grid like DE's command card, so the label is visually hidden
+// (CSS) and the button carries an `aria-label` instead. The
+// `data-command="action-<type>"` hook and the action-name text in the DOM are
+// both preserved.
 export function renderActionButtons(actionOptions: ActionType[]): string {
   return actionOptions
     .map(
       (actionType) => `
           <button
-            class="hud-command-button"
+            class="hud-command-button hud-command-button--icon"
             data-command="action-${actionType}"
             data-tooltip="${formatActionTooltip(actionType)}"
+            aria-label="${formatActionName(actionType)}"
             type="button"
           >
             ${actionGlyph(actionType)}<span class="hud-command-label">${formatActionName(actionType)}</span>
