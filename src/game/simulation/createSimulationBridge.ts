@@ -367,6 +367,7 @@ export function createSimulationBridge(
     // path. Useful for AI-driven heal / convert / damage assertions
     // against entities the HUMAN_PLAYER_ID can't see.
     getEntityHealth,
+    getRecentUnitDeaths,
     selectEntityAtCell,
     selectEntityById,
     selectOwnedUnitsByTypeInRect,

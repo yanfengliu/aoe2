@@ -24,9 +24,12 @@ import {
 } from '../../prototypeEconomyRules';
 import {
   assignNearestResource,
+  type AssignmentOutcome,
   type AssignNearestResourceOptions,
   type GatherAssignmentDeps,
 } from '../villagerGatherAssignment';
+import { createEnemyDefenceLookup } from '../enemyDefenceRange';
+import { retargetOutOfEnemyDefence } from '../enemyDefenceRetarget';
 import {
   type DropOffAssignmentDeps,
 } from '../villagerDropOffAssignment';
@@ -141,11 +144,15 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     ensurePlayerScoreCounters,
   } = deps;
 
+  // The enemy's static defences, cached per tick: every assignment below keeps
+  // its target out of their reach (§6.4, the 2026-09-02 register entry).
+  const enemyStaticDefences = createEnemyDefenceLookup(accessor);
   const assignmentDeps: GatherAssignmentDeps = {
     isHarvestableResource,
     isLandCell,
     findNearestDropOffBuilding,
     findResourceApproachPlan,
+    enemyStaticDefences,
   };
   const dropOffDeps: DropOffAssignmentDeps = {
     findNearestDropOffBuilding,
@@ -162,8 +169,8 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     owner: number,
     gatherTargetCounts: Map<number, number>,
     options: AssignNearestResourceOptions,
-  ): void {
-    assignNearestResource(
+  ): AssignmentOutcome {
+    return assignNearestResource(
       assignmentDeps,
       activeWorld,
       villagerId,
@@ -246,12 +253,13 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         }
 
         if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer, aiStates.has(unit.owner))) {
-          assignIdleGatherer(gatherer, () => {
+          assignIdleGatherer(gatherer, (safeOnly) => (
             assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
               preferUnsaturated: true,
               spreadCap: IDLE_ASSIGN_SPREAD_CAP,
-            });
-          });
+              requireSafe: safeOnly,
+            })
+          ));
         }
         if (gatherer.task === 'idle') {
           popQueuedEntityOrder(id);
@@ -271,6 +279,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             isUnitAtTarget,
             moveUnitOneSubgridStep,
             assignResource,
+            enemyStaticDefences,
           });
         }
 
@@ -283,6 +292,17 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
               gatherer.targetResourceId,
               'position',
             );
+            // A node that came under enemy arrows since this villager
+            // started on it — a tower or Castle completed beside it — is
+            // left for a safe one now, not after the load that would get
+            // it killed. Any partial carry goes home with it.
+            if (targetPosition && retargetOutOfEnemyDefence({
+              activeWorld, id, owner: unit.owner, gatherer, gatherTargetCounts,
+              targetPosition, enemyDefences: enemyStaticDefences(activeWorld, unit.owner),
+              spreadCap: IDLE_ASSIGN_SPREAD_CAP, assignResource,
+            })) {
+              continue;
+            }
             const targetResource = activeWorld.getComponent<ResourceComponent>(
               gatherer.targetResourceId,
               'resource',
@@ -404,11 +424,23 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
           if (result === 'handled') continue;
         }
 
+        // The SECOND idle-assign site: a villager that has just delivered its
+        // load is idle again this same tick, and this is where its next trip
+        // is chosen. It used to call `assignResource` bare, which skipped the
+        // safe-first walk over the other kinds — so a gold villager whose only
+        // remaining gold stood under the enemy Town Centre was handed it again
+        // on every delivery. That was ALL NINE of the deaths still inside
+        // enemy reach on the boot map at 45,000 ticks (t=38,793-39,191, every
+        // one `desired=gold`, target a mine three cells from owner 1's Town
+        // Centre). It takes the same walk as the first site now.
         if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer, aiStates.has(unit.owner))) {
-          assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
-            preferUnsaturated: true,
-            spreadCap: IDLE_ASSIGN_SPREAD_CAP,
-          });
+          assignIdleGatherer(gatherer, (safeOnly) => (
+            assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
+              preferUnsaturated: true,
+              spreadCap: IDLE_ASSIGN_SPREAD_CAP,
+              requireSafe: safeOnly,
+            })
+          ));
         }
         if (gatherer.task === 'idle') {
           popQueuedEntityOrder(id);

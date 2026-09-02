@@ -41,6 +41,7 @@ const deps: GatherAssignmentDeps = {
   // Every cell is land in these fakes: the shore test only matters for fish.
   isLandCell: () => true,
   findNearestDropOffBuilding: () => DROP_OFF,
+  enemyStaticDefences: () => [],
   findResourceApproachPlan: () => (
     { destination: { x: 1, y: 1 }, nextStep: { x: 1, y: 1 } } as UnitMovementPlan
   ),

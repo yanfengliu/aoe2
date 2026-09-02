@@ -24,7 +24,12 @@ import type {
 import { canGathererHarvest } from '../../gatherDomain';
 import { canGatherResource } from '../../prototypeEconomyRules';
 import { isShoreFish } from '../../shoreFishing';
-import { wildlifeStatesCodec } from '../bridgeStateSerialize';
+import { playerTeamsCodec, wildlifeStatesCodec } from '../bridgeStateSerialize';
+import {
+  collectStaticDefences,
+  enemyStaticDefencesOf,
+  isInsideDefenceReach,
+} from '../enemyDefenceRange';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
 
 /** How many villagers go, and the fewest that make it worth starting. A boar
@@ -87,9 +92,22 @@ export function runHuntPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
     return;
   }
 
+  // The nearest boar, but never one under the enemy's arrows while another
+  // stands clear of them (§6.4): fourteen villagers on the boot map walked to
+  // one boar beside the enemy Town Centre. Only when every boar in reach is
+  // under a defence is the nearest of them hunted anyway — the exception the
+  // rule grants a kind with nothing else left.
+  const enemyDefences = enemyStaticDefencesOf(
+    collectStaticDefences(activeWorld, accessor),
+    owner,
+    accessor.get(playerTeamsCodec),
+  );
   let boarId: number | null = null;
   let boarPosition: Position | null = null;
   let boarDistance = Number.POSITIVE_INFINITY;
+  let safeBoarId: number | null = null;
+  let safeBoarPosition: Position | null = null;
+  let safeBoarDistance = Number.POSITIVE_INFINITY;
   for (const id of activeWorld.query('position', 'resource')) {
     const resource = activeWorld.getComponent<ResourceComponent>(id, 'resource');
     if (!resource || resource.resourceType !== 'boar' || resource.amount <= 0) continue;
@@ -99,10 +117,21 @@ export function runHuntPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
     const distance =
       Math.abs(position.x - ownerTownCenterPosition.x)
       + Math.abs(position.y - ownerTownCenterPosition.y);
-    if (distance > HUNT_RADIUS || distance >= boarDistance) continue;
-    boarId = id;
-    boarPosition = position;
-    boarDistance = distance;
+    if (distance > HUNT_RADIUS) continue;
+    if (distance < boarDistance) {
+      boarId = id;
+      boarPosition = position;
+      boarDistance = distance;
+    }
+    if (distance < safeBoarDistance && !isInsideDefenceReach(position, enemyDefences)) {
+      safeBoarId = id;
+      safeBoarPosition = position;
+      safeBoarDistance = distance;
+    }
+  }
+  if (safeBoarId !== null && safeBoarPosition !== null) {
+    boarId = safeBoarId;
+    boarPosition = safeBoarPosition;
   }
   if (boarId === null || boarPosition === null) return;
 

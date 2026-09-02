@@ -143,6 +143,9 @@ export function makeReplayBridge(
     getInFlightProjectiles() {
       return api.getInFlightProjectiles();
     },
+    getRecentUnitDeaths() {
+      return api.getRecentUnitDeaths();
+    },
     getRecentUnitAttacks() {
       return api.getRecentUnitAttacks();
     },

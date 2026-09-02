@@ -11,10 +11,10 @@ import type { BuildingComponent, UnitComponent } from '../../types';
 import { buildingFootprint, type GameWorld } from '../pureHelpers';
 import { buildingArrowCount } from '../../prototypeBuildingRules';
 import { isArcherLineUnit } from '../../prototypeUnitRules';
-import { towerAttackBonus, towerRangeBonus } from '../../towerTechEffects';
-import { buildingArrowAttackBonus, buildingArrowRangeBonus } from '../../buildingArrowTechEffects';
-import { koreanTowerRangeBonus } from '../../civBonusEffects';
+import { towerAttackBonus } from '../../towerTechEffects';
+import { buildingArrowAttackBonus } from '../../buildingArrowTechEffects';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
+import { effectiveStaticDefenceRange } from '../enemyDefenceRange';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
   buildingCombatStatesCodec,
@@ -128,15 +128,17 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
         // (Britons' Yeomen, Teutons' Crenellations) add here, derived from the
         // researched set at the fire site like every other building bonus.
         const uniqueBonus = uniqueBuildingBonus(ownerTechs, building.buildingType);
-        const effectiveRange =
-          buildingCombat.attackRange + buildingArrowRangeBonus(ownerTechs)
-          + towerRangeBonus(towerTechs) + uniqueBonus.attackRange
-          // Koreans: watch towers reach +1 in Castle / +2 in Imperial.
-          + koreanTowerRangeBonus(
-            accessor.get(playerCivilizationsCodec).get(building.owner),
-            building.buildingType,
-            accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age',
-          );
+        // Shared with the villagers' keep-out rule (enemyDefenceRange), so the
+        // reach a villager avoids is exactly the reach these arrows have —
+        // arrow techs, Keep, the unique technologies, and Koreans' towers
+        // (+1 in Castle / +2 in Imperial) included.
+        const effectiveRange = effectiveStaticDefenceRange(
+          building.buildingType,
+          buildingCombat.attackRange,
+          ownerTechs,
+          accessor.get(playerCivilizationsCodec).get(building.owner),
+          accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age',
+        );
         const effectiveAttackDamage =
           buildingCombat.attackDamage + buildingArrowAttackBonus(ownerTechs)
           + towerAttackBonus(towerTechs) + uniqueBonus.attackDamage;

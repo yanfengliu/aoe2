@@ -12,8 +12,10 @@ import type {
 } from '../../types';
 import type { GameWorld } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
-import type { AssignNearestResourceOptions } from '../villagerGatherAssignment';
+import type { AssignmentOutcome, AssignNearestResourceOptions } from '../villagerGatherAssignment';
 import { assignIdleGatherer, shouldRetryReachability } from '../idleGatherAssignment';
+import type { EnemyStaticDefenceLookup } from '../enemyDefenceRange';
+import { retargetOutOfEnemyDefence } from '../enemyDefenceRetarget';
 import { GATHER_APPROACH_BUDGET_TICKS } from './gatherApproachBudget';
 import { sheepMoveOrdersCodec } from '../bridgeStateSerialize';
 
@@ -74,7 +76,9 @@ export interface ToResourceStepDeps {
     owner: number,
     gatherTargetCounts: Map<number, number>,
     options: AssignNearestResourceOptions,
-  ) => void;
+  ) => AssignmentOutcome;
+  /** The enemy's complete static defences, cached per tick (§6.4). */
+  enemyStaticDefences: EnemyStaticDefenceLookup;
 }
 
 /** Advances one gatherer that is walking to its resource. */
@@ -92,10 +96,25 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
     isUnitAtTarget,
     moveUnitOneSubgridStep,
     assignResource,
+    enemyStaticDefences,
   } = deps;
         const targetResource = gatherer.targetResourceId === null
           ? null
           : activeWorld.getComponent<ResourceComponent>(gatherer.targetResourceId, 'resource');
+        // Walking into enemy arrows — a target that was safe when assigned,
+        // or one from before the rule — turns around for a safe node of the
+        // same kind on its next probe tick (§6.4). Nothing safe of the kind
+        // leaves the walk exactly as it was: the exception, not a stall.
+        const targetPosition = gatherer.targetResourceId === null
+          ? null
+          : activeWorld.getComponent<Position>(gatherer.targetResourceId, 'position');
+        if (targetResource && targetPosition && retargetOutOfEnemyDefence({
+          activeWorld, id, owner: unit.owner, gatherer, gatherTargetCounts, targetPosition,
+          enemyDefences: enemyStaticDefences(activeWorld, unit.owner),
+          spreadCap: MAX_GATHERERS_PER_RESOURCE, assignResource,
+        })) {
+          return;
+        }
         const resourceApproachPlan = gatherer.targetResourceId === null
           ? null
           : findResourceApproachPlan(id, gatherer.targetResourceId, activeWorld);
@@ -150,14 +169,15 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
               // nineteen. The kind fallback is the same one an idle gatherer
               // already uses, and it runs on the staggered probe tick only,
               // so the bounded pathfinding cost is unchanged.
-              assignIdleGatherer(gatherer, () => {
+              assignIdleGatherer(gatherer, (safeOnly) => (
                 assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
                   preferUnsaturated: true,
                   spreadCap: MAX_GATHERERS_PER_RESOURCE,
                   requireReachable: true,
                   excludeResourceId: unreachableTarget,
-                });
-              });
+                  requireSafe: safeOnly,
+                })
+              ));
             }
           }
         } else if (isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)) {
@@ -207,12 +227,19 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
               );
             }
             gatherer.gatherProgressTicks = 0;
-            assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
-              preferUnsaturated: true,
-              spreadCap: MAX_GATHERERS_PER_RESOURCE,
-              requireReachable: true,
-              excludeResourceId: abandoned,
-            });
+            // Same safe-first walk as the unreachable-target branch above: a
+            // give-up is an automatic re-assignment, and an automatic
+            // re-assignment takes safe work of any kind before it accepts a
+            // node under enemy arrows (§6.4).
+            assignIdleGatherer(gatherer, (safeOnly) => (
+              assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
+                preferUnsaturated: true,
+                spreadCap: MAX_GATHERERS_PER_RESOURCE,
+                requireReachable: true,
+                excludeResourceId: abandoned,
+                requireSafe: safeOnly,
+              })
+            ));
           } else if (
             overSubscribed
             && gatherer.gatherProgressTicks >= GATHER_APPROACH_BUDGET_TICKS
@@ -229,11 +256,37 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
                 Math.max(0, (gatherTargetCounts.get(previousTarget) ?? 1) - 1),
               );
             }
+            const previousTask = gatherer.task;
             gatherer.gatherProgressTicks = 0;
-            assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
-              preferUnsaturated: true,
-              spreadCap: MAX_GATHERERS_PER_RESOURCE,
-            });
+            // The FIFTH automatic-assignment site, and the only one that must
+            // not change the villager's resource KIND: it is redistributing
+            // within one kind, and swapping the kind here would fight the AI's
+            // allocation. So instead of the cross-kind walk it refuses a
+            // dangerous node outright (§6.4) and stays where it is — a
+            // crowded safe node beats an empty one under enemy arrows, and
+            // the villager's next ordinary decision takes the kind walk.
+            const outcome = assignResource(
+              activeWorld, id, gatherer, unit.owner, gatherTargetCounts,
+              {
+                preferUnsaturated: true,
+                spreadCap: MAX_GATHERERS_PER_RESOURCE,
+                requireSafe: true,
+              },
+            );
+            if (outcome === 'dangerous-only') {
+              gatherer.task = previousTask;
+              gatherer.targetResourceId = previousTarget;
+              // The approach clock stays reset, exactly as on a SUCCESSFUL
+              // redistribution: restoring it would leave the villager over
+              // the budget and re-attempting this whole assignment on every
+              // tick for as long as its kind has nothing safe left.
+              if (previousTarget !== null) {
+                gatherTargetCounts.set(
+                  previousTarget,
+                  (gatherTargetCounts.get(previousTarget) ?? 0) + 1,
+                );
+              }
+            }
           } else {
             moveUnitOneSubgridStep(id, resourceApproachPlan.nextStep, activeWorld);
           }

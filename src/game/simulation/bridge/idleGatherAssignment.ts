@@ -8,6 +8,7 @@
 // another kind rather than standing still.
 
 import type { EconomyResourceKind, GathererComponent } from '../types';
+import type { AssignmentOutcome } from './villagerGatherAssignment';
 
 // How often a gatherer with no reachable target re-probes for one. The probe
 // costs bounded pathfinding, so running it every tick for every stuck villager
@@ -35,19 +36,36 @@ const GATHER_KIND_FALLBACK_ORDER: readonly EconomyResourceKind[] = [
  * caller's assignment step; it is re-run once per alternative kind, and the
  * gatherer's `desiredResource` is left on whichever kind produced work (or on
  * the last one tried, when none did).
+ *
+ * Safe work first, of any kind (2026-09-02): the first pass over the kinds
+ * refuses nodes under enemy static defences (`safeOnly`), so a villager whose
+ * home gold is gone chops wood rather than mining under the enemy's Town
+ * Centre. Only when no kind has a safe node does the second pass accept the
+ * exception — the wanted kind first — and it visits only the kinds the first
+ * pass reported as dangerous-only, so a map with nothing left costs no more
+ * scans than before.
  */
 export function assignIdleGatherer(
   gatherer: GathererComponent,
-  assign: () => void,
+  assign: (safeOnly: boolean) => AssignmentOutcome,
 ): void {
-  assign();
-  if (gatherer.targetResourceId !== null) return;
-
   const wanted = gatherer.desiredResource;
+  const dangerousOnly: EconomyResourceKind[] = [];
+  const trySafe = (kind: EconomyResourceKind): boolean => {
+    gatherer.desiredResource = kind;
+    const outcome = assign(true);
+    if (outcome === 'dangerous-only') dangerousOnly.push(kind);
+    return outcome === 'assigned';
+  };
+  if (trySafe(wanted)) return;
   for (const kind of GATHER_KIND_FALLBACK_ORDER) {
     if (kind === wanted) continue;
-    gatherer.desiredResource = kind;
-    assign();
-    if (gatherer.targetResourceId !== null) return;
+    if (trySafe(kind)) return;
   }
+  for (const kind of dangerousOnly) {
+    gatherer.desiredResource = kind;
+    if (assign(false) === 'assigned') return;
+  }
+  // Nothing anywhere: leave the desire where the caller's last try put it,
+  // as before — the AI's rebalance resets it on its next decision.
 }
