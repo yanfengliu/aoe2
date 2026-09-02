@@ -95,18 +95,21 @@ describe('BridgeStateAccessor', () => {
       const { lastSeenStaticCodec } = await import(
         '../../src/game/simulation/bridge/bridgeStateSerialize'
       );
-      const entry = (lastSeenTick: number, owner: number | null) => ({
+      // `tint` stands in as the per-entry value this round-trip distinguishes.
+      // It was `lastSeenTick` until that field was deleted (2026-09-02: written
+      // every tick, read nowhere) — the test is about the nested map codec, not
+      // about any one field, so it needed a field that still exists.
+      const entry = (tint: number, owner: number | null) => ({
         kind: 'building' as const,
         entityType: 'town-center' as const,
         generation: 1,
         position: { x: 8, y: 8 },
         footprintWidth: 4,
         footprintHeight: 4,
-        tint: 0xff0000,
+        tint,
         owner,
         size: 4,
         visualVariant: 'default' as const,
-        lastSeenTick,
       });
       const original = new Map([
         [
@@ -121,8 +124,8 @@ describe('BridgeStateAccessor', () => {
       const json = lastSeenStaticCodec.serialize(original);
       const stringified = JSON.parse(JSON.stringify(json));
       const restored = lastSeenStaticCodec.deserialize(stringified);
-      expect(restored.get(1)?.get(101)?.lastSeenTick).toBe(50);
-      expect(restored.get(1)?.get(102)?.lastSeenTick).toBe(200);
+      expect(restored.get(1)?.get(101)?.tint).toBe(50);
+      expect(restored.get(1)?.get(102)?.tint).toBe(200);
       expect(restored.get(2)?.get(201)?.owner).toBe(null);
       expect(restored.size).toBe(2);
       expect(restored.get(1)?.size).toBe(2);

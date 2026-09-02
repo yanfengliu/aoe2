@@ -30,12 +30,12 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
     world, humanPlayerId, visibility, getOrCreateMemoryMap, noteMemoryChanged, getCivilizationOf,
   } = deps;
 
-  // Everything a memory entry says about how the thing LOOKS. `lastSeenTick`
-  // is deliberately excluded: it changes every tick for anything in vision and
-  // nothing in the game reads it, so refreshing an otherwise identical entry
-  // only rewrites the map — and a dirty map is re-serialised WHOLE into that
-  // tick's replay diff. Measured 2026-09-02: 358 MB of a 537 MB corpus bundle,
-  // past V8's string ceiling, from a field with no consumer.
+  // Everything a memory entry says about how the thing LOOKS — which since
+  // 2026-09-02 is every field it has. An entry is rewritten only when this
+  // changes, because a dirty slot is re-serialised WHOLE into that tick's
+  // replay diff: refreshing identical entries every tick was 358 MB of a
+  // 537 MB corpus bundle, past V8's string ceiling. (The field that made them
+  // differ, `lastSeenTick`, had no consumer and is gone; see memoryTypes.ts.)
   const sameAppearance = (a: MemoryEntry | undefined, b: MemoryEntry): boolean =>
     a !== undefined
     && a.kind === b.kind
@@ -98,7 +98,6 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
           owner: building.owner,
           size: renderable.size,
           visualVariant: renderable.visualVariant,
-          lastSeenTick: activeWorld.tick,
         });
       }
 
@@ -132,7 +131,6 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
           owner: resource.owner,
           size: renderable.size,
           visualVariant: renderable.visualVariant,
-          lastSeenTick: activeWorld.tick,
         });
       }
 
