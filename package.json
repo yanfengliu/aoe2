@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "voxel:build": "npm --prefix ../voxel run build",
+    "voxel:build": "node scripts/voxel-build-if-stale.mjs",
     "predev": "npm run voxel:build",
     "dev": "vite",
     "playtest": "tsx scripts/playtest.mjs",
