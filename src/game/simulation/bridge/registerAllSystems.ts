@@ -144,6 +144,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     garrisonUnit,
     isMatchRunning,
     getOrCreateMemoryMap,
+    noteMemoryChanged,
     currentRelicHoldingOwner,
     finalizeMatchEnd,
     computePlayerScore,
@@ -417,6 +418,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     visibility,
     getCivilizationOf: (owner) => accessor.get(playerCivilizationsCodec).get(owner),
     getOrCreateMemoryMap,
+    noteMemoryChanged,
   });
 
   registerTowerCombatSystem({

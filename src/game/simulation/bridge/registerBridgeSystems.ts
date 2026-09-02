@@ -115,6 +115,7 @@ export interface RegisterBridgeSystemsDeps {
   isGarrisonedUnit: RegisterAllSystemsArg['isGarrisonedUnit'];
   isPlacementBlocked: (x: number, y: number, w: number, h: number) => boolean;
   getOrCreateMemoryMap: RegisterAllSystemsArg['getOrCreateMemoryMap'];
+  noteMemoryChanged: RegisterAllSystemsArg['noteMemoryChanged'];
   // Post-register factory inputs
   getSelectedEntityId: () => number | null;
   selectUnitsByIds: (ids: number[]) => boolean;
@@ -229,6 +230,7 @@ export function registerBridgeSystems(
     garrisonUnit,
     isPlacementBlocked,
     getOrCreateMemoryMap,
+    noteMemoryChanged,
     getSelectedEntityId,
     selectUnitsByIds,
     getSelectedEntityIds,
@@ -308,6 +310,7 @@ export function registerBridgeSystems(
     garrisonUnit,
     isMatchRunning,
     getOrCreateMemoryMap,
+    noteMemoryChanged,
   });
 
   syncVisibilitySources(

@@ -7,8 +7,19 @@
 // hammer blow — and a 37-villager AI crew all queued for that one cell while
 // the Wonder crept up at a single builder's rate.
 //
-// Only APPROACHES order by distance. A plain move's candidate list is arrival
-// SLOTS, where the caller's order IS the allocation and must be honoured.
+// Only BUILDING approaches order by distance. Two other callers deliberately
+// do not:
+//
+//  - A plain MOVE's candidate list is arrival SLOTS, where the caller's order
+//    IS the allocation and must be honoured.
+//  - A RESOURCE approach keeps its enumeration order because ordering it
+//    nearest-first DEADLOCKED the gather economy: on the boot map all nine of
+//    owner 2's villagers ended stacked on one cell (51,28), every one latched
+//    in `to-resource` and motionless across a 60-tick trace, its stockpile
+//    byte-identical from tick 8,000, and it never left the Dark Age. Both the
+//    finding this ordering exists for and the crew cap it also fixed are about
+//    BUILDING sites, so the gather path was left alone. Making it nearest-first
+//    is its own change and needs its own measurement.
 
 import type { Position } from 'civ-engine';
 

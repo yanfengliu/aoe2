@@ -19,12 +19,37 @@ export interface FogMemorySystemDeps {
   humanPlayerId: number;
   visibility: VisibilityMap;
   getOrCreateMemoryMap: (owner: number) => Map<number, MemoryEntry>;
+  /** Announce that this tick actually wrote to the memory map. */
+  noteMemoryChanged: () => void;
   /** Owner → civilization, for the building-set snapshot (v0.3.105). */
   getCivilizationOf: (owner: number) => string | undefined;
 }
 
 export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
-  const { world, humanPlayerId, visibility, getOrCreateMemoryMap, getCivilizationOf } = deps;
+  const {
+    world, humanPlayerId, visibility, getOrCreateMemoryMap, noteMemoryChanged, getCivilizationOf,
+  } = deps;
+
+  // Everything a memory entry says about how the thing LOOKS. `lastSeenTick`
+  // is deliberately excluded: it changes every tick for anything in vision and
+  // nothing in the game reads it, so refreshing an otherwise identical entry
+  // only rewrites the map — and a dirty map is re-serialised WHOLE into that
+  // tick's replay diff. Measured 2026-09-02: 358 MB of a 537 MB corpus bundle,
+  // past V8's string ceiling, from a field with no consumer.
+  const sameAppearance = (a: MemoryEntry | undefined, b: MemoryEntry): boolean =>
+    a !== undefined
+    && a.kind === b.kind
+    && a.entityType === b.entityType
+    && a.architecture === b.architecture
+    && a.generation === b.generation
+    && a.position.x === b.position.x
+    && a.position.y === b.position.y
+    && a.footprintWidth === b.footprintWidth
+    && a.footprintHeight === b.footprintHeight
+    && a.tint === b.tint
+    && a.owner === b.owner
+    && a.size === b.size
+    && a.visualVariant === b.visualVariant;
 
   world.registerSystem({
     name: 'prototypeFogMemory',
@@ -32,6 +57,12 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
     after: ['prototypeVisibility'],
     execute(activeWorld) {
       const humanMemory = getOrCreateMemoryMap(humanPlayerId);
+      let changed = false;
+      const remember = (id: number, entry: MemoryEntry): void => {
+        if (sameAppearance(humanMemory.get(id), entry)) return;
+        humanMemory.set(id, entry);
+        changed = true;
+      };
 
       // Refresh every building the human player currently sees. Visibility is
       // tested over the full footprint to match the projector and the iter-2
@@ -55,7 +86,7 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
         ) {
           continue;
         }
-        humanMemory.set(id, {
+        remember(id, {
           kind: 'building',
           entityType: building.buildingType,
           architecture: architectureStyleFor(getCivilizationOf(building.owner)),
@@ -90,7 +121,7 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
         if (!visibility.isVisible(humanPlayerId, position.x, position.y)) {
           continue;
         }
-        humanMemory.set(id, {
+        remember(id, {
           kind: 'resource',
           entityType: resource.resourceType,
           generation: activeWorld.getEntityGeneration(id),
@@ -131,8 +162,11 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
           )
         ) {
           humanMemory.delete(entityId);
+          changed = true;
         }
       }
+
+      if (changed) noteMemoryChanged();
     },
   });
 }

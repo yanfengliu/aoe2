@@ -2,6 +2,11 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.188
+
+- Fixes an AI economy deadlock introduced in 0.3.187. Sending a villager to the NEAREST free edge — the change that stopped builders walking around a House to its far side — was applied to every walk, including walking to a resource and back to a drop-off, and that converged a whole workforce onto one cell: on the boot map all nine of one AI's villagers ended stacked on a single tile, motionless, and its economy stopped completely. The nearest-edge rule now applies only to the walk it was made for, a builder going to a construction site.
+- Long games no longer produce a recorded session too large to save. A match's replay grew by about 27 KB every tick with a record of what the player had last seen — re-saved in full each tick even when nothing about it had changed — which put a 22-minute match past the largest file the recorder can write. A 13,000-tick match's recording is 181 MB where it was 537 MB.
+
 ## 0.3.187
 
 - Buildings take as long to put up as they do in Age of Empires II. The whole Dark Age had been running at about half the real game's pace — a House went up in 12 seconds against the real 25, a Barracks in 24 against 50, a Town Center in 30 against 150 — because the build-time table was maintained by hand and sixteen of its rows were wrong. Every one now comes from `design/stats/structures.csv`. Three prices were wrong too: a Watch Tower was not charging its 25 wood, a Wonder was charging 1000 food it should not, and the Outpost's 10 stone should have been 5.

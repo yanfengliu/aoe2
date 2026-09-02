@@ -77,6 +77,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
 
   const {
     getOrCreateMemoryMap,
+    noteMemoryChanged,
     getFogMemoryEntities,
     getHumanFogMemorySize,
   } = createFogMemoryOps({
@@ -252,6 +253,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     visibilityFingerprints,
     trebuchetStateOps,
     getOrCreateMemoryMap,
+    noteMemoryChanged,
     getFogMemoryEntities,
     getHumanFogMemorySize,
     getDebugSnapshot,

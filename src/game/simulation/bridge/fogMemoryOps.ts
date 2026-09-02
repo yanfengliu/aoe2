@@ -14,12 +14,22 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { lastSeenStaticCodec } from './bridgeStateSerialize';
 
 export interface FogMemoryOps {
-  // Return (creating if missing) the per-player memory map. Used by the
-  // per-tick refresh pathway that writes last-seen snapshots. Marks
-  // `lastSeenStatic` dirty up-front so any subsequent in-place mutation
-  // of the returned inner Map (set / delete) is captured by the accessor's
-  // end-of-tick flush.
+  // Return (creating if missing) the per-player memory map. Reading it does
+  // NOT mark `lastSeenStatic` dirty — creating a missing inner map does,
+  // because that IS a change. A caller that mutates the returned Map must
+  // call `noteMemoryChanged()`, or the write will not be persisted.
+  //
+  // It used to mark dirty up front, on the reasoning that the caller mutates
+  // the returned Map in place where the accessor cannot see it. That was safe
+  // and very expensive: the codec re-serialises the WHOLE nested map into
+  // every tick it is dirty, and the only per-tick caller marked it on every
+  // tick whether or not anything changed. Measured 2026-09-02 on the corpus's
+  // 13,000-tick boot-map run: `aoe2.lastSeenStatic` was 358 MB of a 537 MB
+  // replay bundle, which is past V8's ~537 MB string ceiling — the corpus gate
+  // died on `RangeError: Invalid string length` in JSON.stringify.
   getOrCreateMemoryMap(playerId: number): Map<number, MemoryEntry>;
+  // Announce an in-place write to a Map handed out above.
+  noteMemoryChanged(): void;
   // Build `ProjectedEntityView` entries for every memory record whose
   // position is explored-but-not-visible, deduped against any live entity
   // the renderer is already drawing for the same entity id. Returned views
@@ -46,15 +56,18 @@ export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
   const { accessor, humanPlayerId, visibility } = deps;
 
   function getOrCreateMemoryMap(playerId: number): Map<number, MemoryEntry> {
-    let inner: Map<number, MemoryEntry> | undefined;
+    const existing = accessor.get(lastSeenStaticCodec).get(playerId);
+    if (existing) return existing;
+    let created: Map<number, MemoryEntry> | undefined;
     accessor.mutate(lastSeenStaticCodec, (outer) => {
-      inner = outer.get(playerId);
-      if (!inner) {
-        inner = new Map<number, MemoryEntry>();
-        outer.set(playerId, inner);
-      }
+      created = new Map<number, MemoryEntry>();
+      outer.set(playerId, created);
     });
-    return inner!;
+    return created!;
+  }
+
+  function noteMemoryChanged(): void {
+    accessor.markDirty(lastSeenStaticCodec);
   }
 
   function getFogMemoryEntities(liveEntityIds: Set<number>): ProjectedEntityView[] {
@@ -127,6 +140,7 @@ export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
 
   return {
     getOrCreateMemoryMap,
+    noteMemoryChanged,
     getFogMemoryEntities,
     getHumanFogMemorySize,
   };

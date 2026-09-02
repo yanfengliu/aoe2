@@ -92,6 +92,14 @@ describe('the Feudal AI mines the stone its own plans need', () => {
     // "a miner banks ~50 per 150s" figure was teleport-clock math). Three
     // deposits inside 300s proves a miner is STAYING on stone; churn shows
     // up as one orphaned deposit or none.
+    //
+    // DO NOT WIDEN THIS WINDOW to chase a bigger number. It was tried on
+    // 2026-09-02 and walked straight into a PRE-EXISTING freeze: this
+    // fixture's economy goes byte-identical at about tick 15,000 (all four
+    // resources, villagers pinned) and stays that way to 24,000, with the
+    // ordering change of that day both on AND off — so the freeze is older
+    // than it and is recorded in the defect register instead. The window
+    // ends at 14,000 and measures a live economy.
     expect(minedInWindow).toBeGreaterThanOrEqual(30);
     // 10,500 DE-paced ticks: ~19s alone, more under suite parallelism.
   }, 120_000);

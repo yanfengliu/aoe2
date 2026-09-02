@@ -59,6 +59,7 @@ export interface PlayerCommandsSystemDeps {
     targetId: number,
     range: number,
     activeWorld: CivWorld,
+    nearestFirst?: boolean,
   ) => UnitMovementPlan | null;
   moveUnitOneSubgridStep: (
     entityId: number,
@@ -247,7 +248,13 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
 
         const building = activeWorld.getComponent<BuildingComponent>(buildingId, 'building');
         const construction = accessor.get(constructionStatesCodec).get(buildingId);
-        const buildingApproachPlan = findBuildingApproachPlan(id, buildingId, 1, activeWorld);
+        // Nearest-first for a walk to a CONSTRUCTION SITE only (finding F2):
+        // that is the walk that took 22 s of game time to the far edge, and
+        // the one that capped a crew at a single working builder.
+        const buildingApproachPlan = findBuildingApproachPlan(
+          id, buildingId, 1, activeWorld,
+          command.type === 'build' && construction !== undefined && !construction.isComplete,
+        );
         if (!building || !buildingApproachPlan) {
           clearUnitCommand(id);
           continue;

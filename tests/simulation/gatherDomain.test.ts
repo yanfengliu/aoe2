@@ -115,7 +115,12 @@ describe('an AI whose wild food runs out', () => {
       bridge,
       () => bridge.getEconomyState().units
         .filter((unit) => unit.owner === 2 && unit.unitType === 'villager').length >= 15,
-      { maxSteps: 14000 },
+      // 20,000, from measurement: with DE build times (v0.3.187) the AI
+      // reaches 15 villagers at tick 16,000 on this map, where 14,000 was
+      // ample before — villagers spend far longer building, so the economy
+      // grows to the same size later. Measured 10 at 5,000 and 10,000,
+      // 14 at 15,000, 15 at 16,000.
+      { maxSteps: 20000 },
     ), 'the AI never got past 14 villagers').toBe(true);
   }, 300_000);
 });

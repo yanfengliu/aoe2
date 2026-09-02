@@ -399,7 +399,7 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     const plan = findMovementPlan(
       unitId,
       position,
-      orderApproachCandidates(position, getApproachCellsForFootprint(resourcePosition, 1, 1, 1)),
+      getApproachCellsForFootprint(resourcePosition, 1, 1, 1), // never sorted
       true,
       activeWorld,
     );
@@ -414,6 +414,8 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     buildingId: number,
     range = 1,
     activeWorld: CivWorld = world,
+    // Construction walks only; see approachOrdering.ts.
+    nearestFirst = false,
   ): UnitMovementPlan | null {
     const position = activeWorld.getComponent<Position>(unitId, 'position');
     const buildingPosition = activeWorld.getComponent<Position>(buildingId, 'position');
@@ -423,16 +425,16 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     }
 
     const footprint = buildingFootprint(building.buildingType);
-    const cacheKey = `b${unitId}:${buildingId}:${range}`;
+    const { width, height } = footprint;
+    const cells = getApproachCellsForFootprint(buildingPosition, width, height, range);
+    const cacheKey = `b${unitId}:${buildingId}:${range}:${nearestFirst ? 'n' : 'e'}`;
     if (cachedUnreachable(cacheKey)) return null;
     const reused = approachPlans.get(cacheKey, deps.structuralRevision?.(), position);
     if (reused) return reused.plan;
     const plan = findMovementPlan(
       unitId,
       position,
-      orderApproachCandidates(position, getApproachCellsForFootprint(
-        buildingPosition, footprint.width, footprint.height, range,
-      )),
+      nearestFirst ? orderApproachCandidates(position, cells) : cells,
       true,
       activeWorld,
     );

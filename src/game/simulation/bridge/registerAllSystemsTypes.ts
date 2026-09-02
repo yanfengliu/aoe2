@@ -216,6 +216,7 @@ export interface RegisterAllSystemsDeps {
     buildingId: number,
     range?: number,
     activeWorld?: CivWorld,
+    nearestFirst?: boolean,
   ) => UnitMovementPlan | null;
   moveUnitOneSubgridStep: (
     entityId: number,
@@ -342,6 +343,7 @@ export interface RegisterAllSystemsDeps {
   garrisonUnit: (unitId: number, buildingId: number) => boolean;
   isMatchRunning: () => boolean;
   getOrCreateMemoryMap: (owner: number) => Map<number, MemoryEntry>;
+  noteMemoryChanged: () => void;
   currentRelicHoldingOwner: () => number | null;
   finalizeMatchEnd: (
     outcome: 'victory' | 'defeat' | 'draw',

@@ -3,13 +3,12 @@
 // a remembered one.
 //
 // This lives in the simulation suite, not the browser spec that consumes it,
-// because the browser cannot check it at a fixed tick. It ALSO used to be
-// tick-sensitive here: the fixture's scout auto-engaged this very house and
-// walked out of its own radius-4 vision within a few ticks, so asserting after
-// three ticks failed in isolation and passed in the full suite. Nearest-first
-// approaches (2026-09-02) ended the wander — a unit already in range no longer
-// walks — so the premise is now stable at every tick, which the second case
-// pins so a future movement change cannot quietly restore the flapping.
+// because the browser cannot check it at a fixed tick. Boot there advances a
+// variable number of ticks under load, and the fixture's scout auto-engages
+// this very house and steps out of its own radius-4 vision almost immediately:
+// asserting after three ticks failed in isolation and passed in the full suite,
+// and asserting after none did exactly the reverse. Here the tick count is
+// deterministic, so the premise can be stated once and stated honestly.
 
 import { describe, expect, it } from 'vitest';
 
@@ -34,18 +33,20 @@ describe('fog-memory-fixture premise', () => {
       .toBe(false);
   });
 
-  it('and the scout holds its ground, so the premise is stable to assert', () => {
-    // It used to WANDER: the scout auto-engaged this house four tiles away and
-    // the approach search sent it to whatever cell the enumeration named first,
-    // which stepped it off (10,10) and out of its own radius-4 vision — false
-    // at ticks 0-3, true at 4-6, false again by 12. Since approaches pick the
-    // NEAREST cell (2026-09-02, play-test finding F2) a unit already in range
-    // does not walk at all, so the house stays in LIVE vision indefinitely and
-    // a consumer may assert the premise at any tick, browser boot included.
+  it('and the scout leaves on its own, which is why nothing may assume it stays', () => {
+    // Not a defect — a scout auto-engaging an enemy building four tiles away is
+    // ordinary behaviour. It is recorded because it is the reason the browser
+    // spec cannot pin the premise at a fixed tick: measured false at ticks 0-3,
+    // true at 4-6, and false again by 12 as the scout drifts back.
     const bridge = createSimulationBridge('fog-memory-fixture');
-    for (let tick = 1; tick <= 300; tick += 1) {
+    let becameMemory: number | null = null;
+    for (let tick = 1; tick <= 8 && becameMemory === null; tick += 1) {
       bridge.step(100);
-      expect(enemyHouse(bridge)?.isMemory, `tick ${String(tick)}`).toBe(false);
+      if (enemyHouse(bridge)?.isMemory === true) becameMemory = tick;
     }
+    expect(
+      becameMemory,
+      'the scout no longer wanders off — the browser spec may be able to pin the premise directly again',
+    ).not.toBeNull();
   });
 });
