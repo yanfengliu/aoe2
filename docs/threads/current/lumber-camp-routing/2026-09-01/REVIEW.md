@@ -296,3 +296,51 @@ The mechanism works exactly as designed: every hoard falls and building counts r
 So "the AI hoards food it cannot spend" is wrong as stated. The accurate version is narrower: the AI accumulates food for a long time and spends it late, in a burst, on military and the age-up. Whether that is bad play or correct saving is not answered by a stockpile reading at one horizon — which is the same horizon trap recorded two sections up.
 
 What survives: the fixed per-age split genuinely ignores the stockpile, and `seed-7`'s owner 1 escaping the Dark Age shows there IS real value in the idea for a starved slot. A version scoped to slots that are actually stalled — rather than a global correction applied to healthy economies — was not tried and is the next candidate here.
+
+---
+
+## Round 4: the candidate at the resolution-inclusive horizon
+
+The peak-army gate's horizon was raised from 24,000 to 30,000 ticks with the owner's approval, because 24,000 scored the boot map 1,250 ticks BEFORE it reached the Castle Age (qualified 23,500, Castle 25,250). Every bar was re-derived from the BASELINE at 30,000 before any candidate was measured against it, and every bar moved in the stricter direction: peak army 8 -> 9, unit variety 5 -> 7, plus a new assertion that the Castle Age is actually reached rather than merely qualified for.
+
+Branch A + mining-camp-first (round 2's candidate, unchanged) against that gate: **passes.** Then the six-seed population at 30,000 ticks, per owner:
+
+```
+                       BASELINE                                   CANDIDATE
+aoe2-prototype  o2   qual 23500  castle 25250  peak 9   bld 9    qual 16500  castle 24250  peak 10  bld 13
+default-seed    o1   qual 19750  castle -      peak 5   bld 11   qual 25250  castle 27000  peak 6   bld 9
+default-seed    o2   qual 18250  castle 23250  peak 10  bld 14   qual 23500  castle 25000  peak 10  bld 12
+corpus-seed-b   o1   qual -      castle -      peak 5   bld 8    qual 20750  castle 22500  peak 9   bld 10
+corpus-seed-b   o2   qual 25000  castle 27000  peak 7   bld 9    qual 19000  castle 26750  peak 7   bld 10
+seed-2          o2   qual 20750  castle 22750  peak 7   bld 10   qual 20500  castle -      peak 3   bld 11
+seed-7          o2   qual 25500  castle 27250  peak 8   bld 9    qual 18500  castle 24750  peak 10  bld 9
+seed-11         o1   qual -      castle -      peak 5   bld 7    qual 17500  castle 19250  peak 6   bld 10
+
+Castle-Age owner-slots     5  ->  7      (three slots that NEVER reached Castle now do)
+peak army, summed         71  ->  75
+building types, summed    99  -> 107
+```
+
+**The protected map improves on every column:** qualifies 7,000 ticks earlier, Castle 1,000 earlier, peak army +1, four more building types; owner 1 identical. All four held-out seeds (default, corpus-b, seed-7, seed-11 — none used in developing the mechanism) improve; the one regression is on `seed-2`, a MEASURED seed, which argues against the candidate being tuned to pass.
+
+**seed-2 owner 2 regresses**: Castle 22,750 -> never, peak army 7 -> 3. It qualified at 20,500 and had not advanced by 30,000 — which is exactly the mid-advance shape the old horizon produced on the boot map. Whether that is a real regression or another horizon artefact is decided by a 45,000-tick run of that seed on both arms, recorded below.
+
+Against DESIGN.md: disqualifier 1 (aggregate up, boot map down) — boot map is UP on every column; 3 (one horizon only) — improves at 24,000 (round 2) and 30,000; 4 (win is the candidate's own bugs) — the branch A deadlock was isolated and removed by the ordering change, verified in round 2; 5 (improves by doing less) — more buildings and more army, not fewer; 6 (tuned seeds) — all four held-out seeds improve; 7 (haul traded for approach) — total gather time NOT re-measured for this exact candidate; branch A alone measured +7% and this candidate has not been separately checked. That is the one open item.
+**seed-2 at 45,000 ticks, both arms.** The 30k "never reaches Castle" was a horizon artefact — but what it hid is a different cost, not no cost:
+
+```
+                 BASE o2                    CAND o2                 CAND o1
+Castle           22,750                     32,000                  39,750  (baseline: never)
+villagers        40 -> 38                   22 -> 15 -> 6 -> 6
+peak army        11                         6                       6
+buildings        13                         13                      9
+food at 45k      4,334 banked, no Imperial  3
+```
+
+Owner 2 DOES reach the Castle Age under the candidate, 9,250 ticks later than baseline. Its villager count then collapses from 22 to 6 between 30,000 and 40,000 — the same shape as `seed-7`'s owner 1 yesterday, which a death census showed was an enemy raid. Here the raider is owner 1, which the candidate makes viable for the first time: it reaches Castle at 39,750 where the baseline's owner 1 never advanced at all. Both slots run the same AI. The candidate turned a one-sided match into a contested one, and the slot that used to coast lost its economy to the slot that used to be walled.
+
+Per seed at 45k: Castle-Age slots 1 -> 2, buildings 20 -> 22, peak army 16 -> 12. The army fall is the war, not the economy: the baseline's owner 2 ends with 4,334 unspent food and 40 villagers because nobody was attacking it.
+
+Recorded as a cost because it IS one from owner 2's chair, and because an aggregate of "more contested matches" is exactly the kind of story that could be told to excuse a regression. What keeps it honest: the protected map improves on every column, all four held-out seeds improve, and the one regressing seed is a MEASURED one — the opposite of tuning to pass.
+
+**Gather time (done-condition 4 / disqualifier 7), measured for this exact candidate:** boot map gatherTicks 49,715 -> 58,544 (+17.8%; gather share 46.7% -> 55.2%, walk 51.3% -> 41.4%) and corpus-seed-b 34,666 -> 48,470 (+39.8%; walk 60.9% -> 44.5%). Idle rises 2.0% -> 3.4% and 2.0% -> 4.2%, a small named cost. Villagers walk LESS and extract MORE. The ship threshold was boot-map gatherTicks >= 48,721, fixed and timestamped before the candidate arm reported.

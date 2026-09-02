@@ -27,18 +27,28 @@ import { describe, expect, it } from 'vitest';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 
-/** 24,000 ticks — 40 minutes of game time, the horizon every measurement in
- *  this investigation used. The boot map reaches Castle at 20,500, but its
- *  army keeps growing after that (peak military is 6 at tick 22,000 and 9 at
- *  24,000), so a shorter run would gate the army bar on a half-built one. */
-const HORIZON_TICKS = 24000;
+/** 30,000 ticks — 50 minutes of game time.
+ *
+ *  RAISED from 24,000 on 2026-09-01, with the owner's approval, because 24,000
+ *  scored this match BEFORE IT RESOLVED. The boot map qualifies at 23,500 and
+ *  reaches the Castle Age at 25,250, so the old horizon stopped 1,250 ticks
+ *  short of the age this test is named for, and every number it read was of a
+ *  match mid-advance: peak army 8 at 24,000 against 9 at 30,000.
+ *
+ *  That short window also produced a claim repeated for a whole session — that
+ *  the boot map is "walled into Feudal" — which the full 45,000-tick audit
+ *  disproves outright (6 of 8 owner-slots reach Castle, 1 reaches Imperial,
+ *  and this match ends in conquest). The horizon is part of the instrument and
+ *  has to be re-justified whenever the measured thing changes; this one had
+ *  not been. */
+const HORIZON_TICKS = 30000;
 
 /** The peak-army bar, named ONCE so the assertion and the message it prints
  *  cannot drift apart. They were two separate literals and the red-check
  *  caught them disagreeing — "below the bar of 8" printed against a threshold
  *  of 99 — which is the same staleness that let this gate's old message
  *  outlive the mechanism it described. */
-const PEAK_MILITARY_BAR = 8;
+const PEAK_MILITARY_BAR = 9;
 
 interface MatchReport {
   castleAt: number | null;
@@ -121,11 +131,23 @@ describe('AI self-play exercises the game past the Feudal Age', () => {
       'no player became eligible for the Castle Age — still walled into Feudal',
     ).not.toBeNull();
 
+    // The AGE ITSELF, not just eligibility. The previous horizon could only
+    // assert eligibility — "gating the boot map on an age it reaches just past
+    // this horizon would be pinning the horizon rather than the behaviour" —
+    // and at 30,000 ticks that concession is no longer needed: the baseline
+    // reaches Castle at 25,250. This is the assertion the test is named for.
+    expect(
+      winner.castleAt,
+      'the boot map never reached the Castle Age within the horizon',
+    ).not.toBeNull();
+
     // And it costs no army. An earlier version of this reserve had no
     // defensive floor and review measured it blocking 100% of military
     // training on wood-poor seeds — 21% of all peak military across 11 seeds,
     // buying a building it then could not afford either. Baseline peak here is
-    // 8; the bar is 8, so any return of that behaviour fails.
+    // 9 at the 30,000-tick horizon (it was 8 at 24,000, mid-advance); the bar
+    // is 9, so any return of that behaviour fails. Derived from the BASELINE
+    // at the new horizon before any candidate was measured against it.
     //
     // The bar catches TWO different mechanisms and used to name only one. It
     // read "the age was bought by disbanding the army", which described the
@@ -150,7 +172,7 @@ describe('AI self-play exercises the game past the Feudal Age', () => {
     // a contract, and this suite already learned that from a bar copied off a
     // symptom.
     expect(winner.buildingTypes, 'building variety did not improve').toBeGreaterThanOrEqual(9);
-    expect(winner.unitTypes, 'unit variety did not improve').toBeGreaterThanOrEqual(5);
+    expect(winner.unitTypes, 'unit variety did not improve').toBeGreaterThanOrEqual(7);
   }, 600_000);
 
   // A SECOND seed is deliberately not gated, and that is a cost decision

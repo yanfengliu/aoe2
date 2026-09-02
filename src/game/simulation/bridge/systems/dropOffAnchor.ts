@@ -16,7 +16,13 @@
 
 import type { Position } from 'civ-engine';
 
-import type { BuildingType, ResourceComponent, ResourceKind } from '../../types';
+import type {
+  BuildingType,
+  GathererComponent,
+  ResourceComponent,
+  ResourceKind,
+  UnitComponent,
+} from '../../types';
 import type { GameWorld } from '../pureHelpers';
 
 /** Which resource kinds each drop-off building is worth standing beside. */
@@ -42,20 +48,90 @@ export function isDropOffBuilding(buildingType: BuildingType): boolean {
   return SERVES[buildingType] !== undefined;
 }
 
+const manhattan = (left: Position, right: Position): number =>
+  Math.abs(left.x - right.x) + Math.abs(left.y - right.y);
+
 /**
- * The position a drop-off building should be placed beside — the nearest
- * harvestable resource it serves, measured from the Town Center and bounded to
- * `DROP_OFF_ANCHOR_RADIUS`. Returns null when the building is not a drop-off,
- * or when nothing it serves is in range, so callers fall back to their own
- * anchor rather than inventing a placement.
+ * Where the owner's gatherers for this building's resources are ALREADY
+ * working: the MEDOID of the resource nodes they currently target — the
+ * targeted node with the smallest total distance to the others.
+ *
+ * A medoid rather than a centroid because the answer has to be a real node on
+ * the woodline: a centroid can land in a lake, on a cliff, or in a gap between
+ * two forests, and the placement ring-search would then plant the camp beside
+ * nothing. Targeted nodes only, so it reads the work the economy is actually
+ * doing rather than the map's geometry.
+ */
+function workAnchorFor(
+  activeWorld: GameWorld,
+  kinds: readonly ResourceKind[],
+  owner: number,
+): Position | null {
+  const worked: Array<{ id: number; position: Position }> = [];
+  for (const id of activeWorld.query('unit', 'gatherer')) {
+    const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
+    const gatherer = activeWorld.getComponent<GathererComponent>(id, 'gatherer');
+    if (!unit || !gatherer || unit.owner !== owner) continue;
+    const targetId = gatherer.targetResourceId;
+    if (targetId === null) continue;
+    const resource = activeWorld.getComponent<ResourceComponent>(targetId, 'resource');
+    const position = activeWorld.getComponent<Position>(targetId, 'position');
+    if (!resource || !position || resource.amount <= 0) continue;
+    // The kind filter is what keeps a Mill off a wandering sheep: a food
+    // villager on a sheep is not berry work, so it never votes on where the
+    // Mill goes.
+    if (!kinds.includes(resource.resourceType)) continue;
+    worked.push({ id: targetId, position });
+  }
+  if (worked.length === 0) return null;
+
+  let best: Position | null = null;
+  let bestTotal = Number.POSITIVE_INFINITY;
+  for (const candidate of worked) {
+    let total = 0;
+    for (const other of worked) total += manhattan(candidate.position, other.position);
+    // Strict `<` plus the id-ordered scan makes the tie deterministic.
+    if (total < bestTotal) {
+      bestTotal = total;
+      best = candidate.position;
+    }
+  }
+  return best;
+}
+
+/**
+ * The position a drop-off building should be placed beside. Returns null when
+ * the building is not a drop-off, or when nothing it serves is in range, so
+ * callers fall back to their own anchor rather than inventing a placement.
+ *
+ * With an `owner`, the camp is sent to the WORK rather than the work to the
+ * camp: the anchor is where that owner's gatherers of this resource are
+ * already standing (`workAnchorFor`). Measured on ten seeds at the tick each
+ * Lumber Camp was placed, the trees the wood villagers were actually working
+ * sat a median 14 tiles from the nearest-tree-to-the-Town-Centre anchor this
+ * function used before — so the camp was planted on a woodline nobody was
+ * cutting, and the routing that would have to move villagers to it never does.
+ *
+ * Without an `owner`, or when nobody is working the resource yet, it falls
+ * back to the nearest harvestable resource it serves, measured from the Town
+ * Center. Both answers stay bounded to `DROP_OFF_ANCHOR_RADIUS`: a camp across
+ * the map costs more in exposure than the shorter carry saves.
  */
 export function dropOffAnchorFor(
   activeWorld: GameWorld,
   buildingType: BuildingType,
   townCenterPosition: Position,
+  owner?: number,
 ): Position | null {
   const kinds = SERVES[buildingType];
   if (!kinds) return null;
+
+  if (owner !== undefined && buildingType === 'lumber-camp') {
+    const work = workAnchorFor(activeWorld, kinds, owner);
+    if (work && manhattan(work, townCenterPosition) <= DROP_OFF_ANCHOR_RADIUS) {
+      return work;
+    }
+  }
 
   let best: Position | null = null;
   let bestDistance = Number.POSITIVE_INFINITY;
@@ -64,8 +140,7 @@ export function dropOffAnchorFor(
     const position = activeWorld.getComponent<Position>(id, 'position');
     if (!resource || !position || resource.amount <= 0) continue;
     if (!kinds.includes(resource.resourceType)) continue;
-    const distance = Math.abs(position.x - townCenterPosition.x)
-      + Math.abs(position.y - townCenterPosition.y);
+    const distance = manhattan(position, townCenterPosition);
     if (distance > DROP_OFF_ANCHOR_RADIUS || distance >= bestDistance) continue;
     bestDistance = distance;
     best = position;

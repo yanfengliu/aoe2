@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.177
+
+- The AI now builds its Lumber Camp on the woodline its villagers are actually cutting, and requests its Mining Camp before its Lumber Camp in the Dark Age. Camps used to go beside whichever tree was nearest the Town Centre, which was a median fourteen tiles from the trees being felled; they now go on the trees themselves, four and a half tiles out, within twelve of the Town Centre. On the map the game boots into, the AI becomes eligible for the Castle Age seven thousand ticks sooner, reaches it a thousand sooner, and finishes with four more building types and a larger army. Across six maps, two more players reach the Castle Age than before, including three who never did. The build-order change is what makes the placement safe: a camp planted on the woodline could evict the Mining Camp onto the Town Centre's doorstep and freeze every villager, which the reversed order prevents. One map (`seed-2`) becomes a contested match instead of a one-sided one — the previously walled player now reaches the Castle Age and raids the other's economy — so that map's leading player ends with fewer villagers than before.
+
 ## 0.3.176
 
 - Villagers carrying a load now pick the drop-off building that is genuinely closest. Distance was measured to a building's corner rather than to the nearest part of it, which for a Town Centre is out by up to three tiles and out by a different amount depending on which side you approach from — so two neighbouring tiles could disagree about which building was nearer. A villager standing on the boundary would walk one way, change its mind, walk back, and pace on the spot holding a full load. On one map that freed five villagers who had been stuck for minutes, and the same player finished with five more buildings.

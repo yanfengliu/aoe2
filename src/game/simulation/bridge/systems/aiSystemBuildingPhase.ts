@@ -194,10 +194,15 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       const builderId = findAvailableVillagerForBuild(owner);
       // A drop-off building exists to shorten a carry, so it belongs beside
       // what it serves rather than beside the Town Center like everything
-      // else. `dropOffAnchorFor` returns null for non-drop-offs and for a
-      // resource too far to be worth walking to, so both fall back here.
+      // else. Passing the owner sends the camp to the WORK — the nodes this
+      // owner's gatherers are already on — instead of to the node nearest the
+      // Town Centre, which measurement showed is a different woodline from
+      // the one being cut. `dropOffAnchorFor` returns null for non-drop-offs
+      // and for a resource too far to be worth walking to, so both fall back
+      // here.
       const anchor = findBuildPlacementNear(
-        dropOffAnchorFor(activeWorld, nextBuild, ownerTownCenterPosition) ?? ownerTownCenterPosition,
+        dropOffAnchorFor(activeWorld, nextBuild, ownerTownCenterPosition, owner)
+          ?? ownerTownCenterPosition,
         nextBuild,
       );
       const buildCost = ownerConstructionCost(accessor, owner, nextBuild);
