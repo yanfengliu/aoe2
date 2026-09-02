@@ -2,11 +2,15 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.186
+
+- The idle-villager badge no longer sits on the command bar. With a villager selected the bar is taller than the fixed height the badge was placed above, so the badge's bottom edge covered the bar's SELECTION label at every common window size (800x600, 1280x720 and 1440x900 alike). The badge — and the speaker toggle above it — now stand clear of the bar's top edge and follow it as the bar grows or shrinks, whatever is selected and whatever the window size.
+
+
 ## 0.3.183
 
 - A unit converted by an enemy monk no longer walks into, and jams in, its old side's gate. A route through the gate that the unit had planned before it changed hands was still being followed afterwards, so a converted villager standing beside the gate stepped into a door that no longer opened for it and stood inside the enemy's wall until something else on the map changed. It now re-plans the moment it changes hands: the gate is an enemy gate, there is no route, and it stays put outside.
 - A builder just back from a long construction, a unit leaving a garrison, or a soldier that has stood parked no longer jumps a traffic queue on its first step. The crowded-gap rule from 0.3.175, which lets a villager go next once it has genuinely waited a minute and a quarter, was counting any standing still as waiting, so a unit that had stood by choice for longer than that was admitted ahead of villagers that had been trying to move the whole time. Only time spent actually trying to move counts now, and every unit in the gap judges the queue from the same moment, so who goes next no longer depends on which unit happened to ask first.
-
 
 ## 0.3.179
 
