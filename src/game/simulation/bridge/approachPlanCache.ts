@@ -7,20 +7,29 @@ import type { Position } from 'civ-engine';
  * succeeding one re-ran in full on every tick: measured on `default-seed`
  * warmed 33,000 ticks, 32.8 resource + 7.9 building A* per tick at 50 units —
  * about one per unit per tick — while `movePathCache`, the pre-existing
- * positive cache, recorded ZERO hits because it only covers explicit move
- * commands and an AI never issues one. Pathfinding was 23% of tick self time.
+ * positive cache, recorded ZERO hits in that window. It covers explicit move
+ * commands only; the AI does issue those (rally points walk units by move
+ * command), but not on a warmed `default-seed` where nothing trains, so the
+ * zero is the window's, not a rule. Pathfinding was 23% of tick self time.
  *
- * Behaviour-preserving BY CONSTRUCTION, not by measurement. A* is
- * deterministic, and the approach search reads only the unit's start CELL, the
- * target's approach cells, and durable topology — never other units, which do
- * not block passability. So for an unchanged (unit, start cell, target,
- * structuralRevision) a fresh search returns exactly what the previous one
- * did, and replaying the stored answer cannot change a decision.
+ * Behaviour-preserving for everything the key pins. A* is deterministic, and
+ * the approach search reads the unit's start CELL, the target's approach
+ * cells, durable topology, and — through gate admittance — the asking unit's
+ * OWNER and movement domain; never other units, which do not block
+ * passability. Topology changes bump `structuralRevision`; the one in-place
+ * owner change, monk conversion, announces itself through
+ * `notePassabilityChange` (review C1 — before it did, a converted villager
+ * replayed a step into its old side's gate). So for an unchanged (unit, start
+ * cell, target, structuralRevision) a fresh search returns exactly what the
+ * previous one did, and replaying the stored answer cannot change a decision.
  *
- * Keying on the start CELL is what makes that true. The entry stops applying
- * the moment the unit crosses into a new cell, which at 0.32 tiles/tick is
- * roughly every third tick — so this removes about two searches in three
- * without ever answering for a position the search was not run from.
+ * Keying on the start CELL is what bounds an entry's life for a MOVING unit:
+ * it stops applying the moment the unit crosses into a new cell, every ~12.5
+ * ticks at the base 0.32 fine units per tick (4 per cell — 0.08 tiles/tick),
+ * so the hit rate on a walk is over 90%. A STATIONARY unit's entry lives
+ * until the next revision bump, measured in play at a median of 97-746 ticks
+ * between bumps and up to ~2,000 (review I2) — which is why every input the
+ * search reads has to be either in the key or announced as a bump.
  */
 export interface ApproachPlanCache<TPlan> {
   /** The stored answer, or null when nothing applies to this exact state. */

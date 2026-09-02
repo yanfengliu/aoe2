@@ -64,6 +64,10 @@ export interface MonkTaskAppliersDeps {
   ) => number | null;
   unitTint: (unitType: UnitType, owner: number) => number;
   clearMonkTask: (monkId: number) => void;
+  /** worldOccupancy.notePassabilityChange — REQUIRED. A conversion changes
+   *  who a unit is, and gate admittance is keyed on who is asking, so every
+   *  owner flip is a passability change the reachability caches must hear. */
+  notePassabilityChange: () => void;
   monkHealTickInterval: number;
   monkHealHpPerInterval: number;
   monkConvertProgressPerTick: number;
@@ -101,6 +105,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     currentEntityId,
     unitTint,
     clearMonkTask,
+    notePassabilityChange,
     monkHealTickInterval,
     monkHealHpPerInterval,
     monkConvertProgressPerTick,
@@ -182,6 +187,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     spendFaith,
     isVisibleToOwner,
     markOutOfBandRenderChange,
+    notePassabilityChange,
     monkConvertProcessedThisTick,
     monkConvertProgressPerTick,
     monkConvertFlipThreshold,
@@ -308,6 +314,13 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
   ): void {
     const previousOwner = targetUnit.owner;
     targetUnit.owner = monkUnit.owner;
+    // The unit's owner is an input of `isCellPassableForUnit` — a gate admits
+    // its owner's units — and the approach-plan cache keys on the structural
+    // revision, not the owner. Without this bump a villager converted beside
+    // its old side's gate replayed its remembered step INTO that gate and
+    // stood in the enemy's wall until the next unrelated structural change
+    // (review C1; gated by `convertedUnitGateReplan.test.ts`).
+    notePassabilityChange();
     const populationMap = accessor.get(populationCodec);
     const previousPopulation = populationMap.get(previousOwner);
     if (previousPopulation) {

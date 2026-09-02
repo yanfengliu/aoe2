@@ -341,6 +341,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     isVisibleToOwner: (owner, x, y) => visibility.isVisible(owner, x, y),
     currentEntityId,
     unitTint,
+    notePassabilityChange: () => { worldOccupancy.notePassabilityChange(); },
     aiMonkHealHpFraction: AI_MONK_HEAL_HP_FRACTION,
     monkHealTickInterval: MONK_HEAL_TICK_INTERVAL,
     monkHealHpPerInterval: MONK_HEAL_HP_PER_INTERVAL,

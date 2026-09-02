@@ -68,18 +68,16 @@ export interface WorldOccupancy {
    *
    *  KNOWN BOUNDARY: gate admittance (cellPassability.admitsThroughGate) also
    *  depends on completion, team membership, and the ASKING unit's owner —
-   *  none of which claim or release a cell. Gate COMPLETION is handled
-   *  (v0.3.161): finalizeBuildingConstruction calls notePassabilityChange(),
-   *  so a route that opens when a gate finishes invalidates the cache like
-   *  any structural change. The remaining boundary is per-owner and currently
-   *  closed by other rules: a unit changing owner (monk conversion) inherits
-   *  its old owner's cached verdicts since the key carries no owner, and a
-   *  BUILDING changing owner would change who its gate admits, which cannot
-   *  happen only because monk conversion refuses every wall-line building
-   *  (monasteryTechEffects). Teams are seed-only. Any future capture mechanic,
-   *  or any owner-keyed passability, must call notePassabilityChange().
-   *  Recycled entity ids are tolerated only because every structural death
-   *  bumps the revision, flushing the dead id's entries. */
+   *  none of which claim or release a cell — so each announces itself here:
+   *  gate completion (finalizeBuildingConstruction, v0.3.161) and both
+   *  conversion flips (`flipConvertedUnit`, `flipConvertedBuilding` — review
+   *  C1: the approach-plan cache had replayed a converted villager's step
+   *  into its old side's gate). Teams are seed-only. Any future capture
+   *  mechanic, or any owner-keyed passability, must call
+   *  notePassabilityChange(). Recycled ids are safe for RESOURCES and
+   *  BUILDINGS (every structural death bumps); a UNIT's death does not bump,
+   *  so a recycled unit id can inherit its predecessor's entries until the
+   *  next bump (review C2, low — same cell, same target, different owner). */
   structuralRevision(): number;
   /** Bump `structuralRevision` for a change that alters WHO may pass a cell
    *  without changing which cells are claimed — a gate finishing for its

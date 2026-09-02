@@ -59,15 +59,17 @@ export function createGatesFixture(seed: string): PrototypeScenario {
 
 // x=20 from edge to edge. `gateRow` says what stands on y=12: a seeded Gate
 // here, or nothing at all for the fixture whose player builds its own.
-export function gateWallLine(gateRow: 'seeded-gate' | 'open'): ScenarioSpawnSpec[] {
+// `owner` is whose wall it is — player 1's unless a fixture needs the wall on
+// the other side of the match (the converted-villager fixture).
+export function gateWallLine(gateRow: 'seeded-gate' | 'open', owner = 1): ScenarioSpawnSpec[] {
   const line: ScenarioSpawnSpec[] = [];
   for (let y = 0; y < MAP_HEIGHT; y += 1) {
     if (y === GATE_ROW) {
       if (gateRow === 'open') continue;
-      line.push(ownedSpawn('stone-gate', 1, WALL_COLUMN, y, { vision: 4 }));
+      line.push(ownedSpawn('stone-gate', owner, WALL_COLUMN, y, { vision: 4 }));
       continue;
     }
-    line.push(ownedSpawn('stone-wall', 1, WALL_COLUMN, y));
+    line.push(ownedSpawn('stone-wall', owner, WALL_COLUMN, y));
   }
   return line;
 }

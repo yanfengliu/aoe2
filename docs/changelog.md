@@ -2,6 +2,11 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.183
+
+- A unit converted by an enemy monk no longer walks into, and jams in, its old side's gate. A route through the gate that the unit had planned before it changed hands was still being followed afterwards, so a converted villager standing beside the gate stepped into a door that no longer opened for it and stood inside the enemy's wall until something else on the map changed. It now re-plans the moment it changes hands: the gate is an enemy gate, there is no route, and it stays put outside.
+- A builder just back from a long construction, a unit leaving a garrison, or a soldier that has stood parked no longer jumps a traffic queue on its first step. The crowded-gap rule from 0.3.175, which lets a villager go next once it has genuinely waited a minute and a quarter, was counting any standing still as waiting, so a unit that had stood by choice for longer than that was admitted ahead of villagers that had been trying to move the whole time. Only time spent actually trying to move counts now, and every unit in the gap judges the queue from the same moment, so who goes next no longer depends on which unit happened to ask first.
+
 ## 0.3.178
 
 - Reverts the Lumber Camp siting change from 0.3.177. An independent review ran the match past the point where the previous check stopped, and the change loses the game it used to win: on the map the game boots into, the AI's villagers range out to gather beside the enemy Town Centre once their own woodline thins, and thirty of them are shot from its walls between minutes 60 and 75 — the player that reached the Castle Age sooner ends with a quarter of its workforce and no army, where before it won by conquest at minute 66. Camps go back beside the tree nearest the Town Centre and the Mining Camp is requested after the Lumber Camp again. The underlying flaw the review exposed — villagers will walk into an enemy Town Centre's range to gather — is present in the old behaviour too and is recorded as its own defect.
