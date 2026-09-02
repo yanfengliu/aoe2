@@ -378,7 +378,8 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
 
   // See approachPlanCache.ts for why replaying a stored answer cannot change a
   // decision: the key pins the unit's start CELL and the structural revision,
-  // and the search reads nothing else that varies.
+  // and the only other input the search reads that can change — the asking
+  // unit's owner, at a gate — is announced as a revision bump when it does.
   const approachPlans = createApproachPlanCache<UnitMovementPlan>();
 
   function findResourceApproachPlan(

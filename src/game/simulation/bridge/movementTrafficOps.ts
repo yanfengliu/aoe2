@@ -1,8 +1,12 @@
 // Local traffic arbitration for narrow passages. Global A* deliberately sees
 // only durable topology (terrain, resources, and buildings); this layer keeps
 // active friendly movers from using subcell slots to pass each other in
-// a one-cell choke. Decisions are derived from a tick-start snapshot so ECS
-// iteration order cannot decide who gets to enter first.
+// a one-cell choke. Every input an election reads — positions, headings and
+// each member's starvation clock — comes from a tick-start snapshot, so all
+// members of one jam elect the same winner whatever order the systems consult
+// the arbiter in. Iteration order is STABLE across live play, save/load and
+// replay (dense id-indexed stores, sorted query caches, systems by phase then
+// registration); the snapshot is what makes the decision independent of it.
 
 import type { Position } from 'civ-engine';
 
@@ -10,6 +14,7 @@ import type { GathererComponent, UnitComponent, UnitTransformComponent } from '.
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { monkTasksCodec, unitCommandsCodec } from './bridgeStateSerialize';
 import type { GameWorld } from './pureHelpers';
+import { electTrafficWinnerDetailed, trafficProgressClock } from './movementTrafficElection';
 
 export type MovementLaneAxis = 'horizontal' | 'vertical';
 
@@ -26,6 +31,16 @@ interface TrafficUnitSnapshot {
   readonly activeIntent: boolean;
   readonly direction: Position | null;
   readonly recentAttempt: boolean;
+  /** The starvation clock the election reads for this unit — see
+   *  `trafficProgressClock`. Snapshotted with everything else. */
+  readonly progressTick: number | undefined;
+}
+
+/** One admission through the starvation rule rather than lowest-id. */
+export interface TrafficReliefEvent {
+  readonly unitId: number;
+  readonly tick: number;
+  readonly waited: number;
 }
 
 interface TrafficIntent {
@@ -42,6 +57,9 @@ interface MovementTrafficOpsDeps {
     y: number,
     activeWorld: GameWorld,
   ) => boolean;
+  /** Fired for every admission the starvation rule grants. Production wires
+   *  nothing here; the boot-map relief gate injects a counter through it. */
+  readonly onStarvationRelief?: (event: TrafficReliefEvent) => void;
 }
 
 function cardinalDirection(from: Position, to: Position): Position | null {
@@ -68,72 +86,6 @@ function projection(unit: TrafficUnitSnapshot, direction: Position): number {
   return unit.fineX * direction.x + unit.fineY * direction.y;
 }
 
-/**
- * Elects the single unit admitted from a closed jam.
- *
- * Two properties are load-bearing and a replacement must keep both. It is a
- * pure function of the jam's ids and the tick, so ECS iteration order cannot
- * decide who enters first (the reason the original rule was a stable
- * lowest-id). And every member of one closure must elect the SAME winner, or
- * two units drive into one cell.
- */
-/**
- * Ticks a unit may sit in a contested passage before the election prefers it
- * over the standing lowest-id winner.
- *
- * Chosen against measurement, not taste. Across six seeds the healthy maps
- * never hold a walking villager still for more than 500 ticks, while the
- * pathological ones reached 1,250-5,250. A threshold of 750 is above every
- * healthy figure and below every pathological one, so maps that do not
- * starve keep their exact previous behaviour.
- */
-const TRAFFIC_STARVATION_TICKS = 750;
-
-/**
- * Elects the single unit admitted from a closed jam.
- *
- * Two properties are load-bearing. It is a pure function of the jam, the tick
- * and each member's last admission, so ECS iteration order cannot decide who
- * enters first (the reason the original rule was a stable lowest-id). And
- * every member of one closure must elect the SAME winner, or two units drive
- * into one cell.
- *
- * The shipped rule was `Math.min(...cycle)` alone, which is stable but unfair:
- * it admits only the lowest id, so in a continuously-replenished jam the high
- * ids are never admitted at all. Measured on `seed-2` — eleven villagers
- * head-on in a one-tile choke — admission was monotonic in id from 88% down to
- * 0.6%, and five villagers stood still for up to 2,750 ticks.
- *
- * Lowest-id is KEPT as the ordinary rule, because replacing it outright
- * regressed the boot map from zero stuck villagers to five. It yields only to
- * a member that has actually starved past TRAFFIC_STARVATION_TICKS, which is a
- * state healthy maps never reach.
- */
-export function electTrafficWinner(
-  cycle: Iterable<number>,
-  tick: number,
-  lastProgressTick: (id: number) => number | undefined,
-): number {
-  const ids = [...cycle].sort((left, right) => left - right);
-  if (ids.length === 0) return -1;
-  if (ids.length === 1) return ids[0]!;
-  let starved = -1;
-  let longestWait = TRAFFIC_STARVATION_TICKS;
-  for (const id of ids) {
-    const since = lastProgressTick(id);
-    // A unit with no record has never been arbitrated; it is not starving.
-    if (since === undefined) continue;
-    const waited = tick - since;
-    // Strictly greater keeps the winner stable when two units tie: the sorted
-    // scan reaches the lower id first and later ties do not displace it.
-    if (waited > longestWait) {
-      longestWait = waited;
-      starved = id;
-    }
-  }
-  return starved === -1 ? ids[0]! : starved;
-}
-
 export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
   resolveMovementTraffic(
     unitId: number,
@@ -141,9 +93,10 @@ export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
     activeWorld?: GameWorld,
   ): MovementTrafficDecision;
 } {
-  const { world, accessor, isCellPassableForUnit } = deps;
+  const { world, accessor, isCellPassableForUnit, onStarvationRelief } = deps;
   let snapshotTick: number | null = null;
   let snapshot: TrafficUnitSnapshot[] = [];
+  const snapshotById = new Map<number, TrafficUnitSnapshot>();
   const attemptedDirections = new Map<number, Position>();
   const originReservations = new Map<string, number>();
 
@@ -201,6 +154,7 @@ export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
   function snapshotForTick(activeWorld: GameWorld): readonly TrafficUnitSnapshot[] {
     if (snapshotTick === activeWorld.tick) return snapshot;
     snapshot = [];
+    snapshotById.clear();
     attemptedDirections.clear();
     originReservations.clear();
     for (const id of activeWorld.query('position', 'unit', 'unitTransform')) {
@@ -236,9 +190,11 @@ export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
             ? dominantDirection(position, intent.target)
             : null,
         recentAttempt: rememberedIsCurrent && rememberedDirection !== null,
+        progressTick: trafficProgressClock(transform, position, activeWorld.tick),
       });
     }
     snapshot.sort((left, right) => left.id - right.id);
+    for (const unit of snapshot) snapshotById.set(unit.id, unit);
     snapshotTick = activeWorld.tick;
     return snapshot;
   }
@@ -268,15 +224,21 @@ export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
   }
 
   /**
-   * Records PROGRESS — the last tick this unit changed cell — so the election
-   * can find a unit that is not moving.
+   * Keeps the unit's starvation clock — the record `trafficProgressClock`
+   * reads — so the election can find a unit that is waiting and not moving.
    *
-   * Recording admissions instead detected nothing, and the reason is worth
-   * keeping: the arbiter is consulted ~44 times per unit per tick, so a
-   * villager frozen for 2,750 ticks still collected sporadic admissions (12 in
-   * 40 ticks) that reset an admission clock. Crossing a cell needs ~3.2
-   * CONSECUTIVE admissions, so occasional permission buys no movement. Only
-   * cell change proves the unit is actually getting somewhere.
+   * The clock restarts on a cell change (progress) and when the unit resumes
+   * asking after a gap (it was standing still by choice), and is seeded the
+   * first time a unit is arbitrated so it starts from a known tick rather
+   * than reading as infinitely old. Recording ADMISSIONS instead detected
+   * nothing, and the reason is worth keeping straight: the arbiter is
+   * consulted about once per unit per tick (~44 consults per tick across the
+   * ~44 units then moving — an earlier note mislabelled that total as
+   * per-unit), an admitted tick credits 0.32 fine units and a cell is 4, so a
+   * villager frozen for 2,750 ticks that still collected sporadic admissions
+   * (12 in 40 ticks — under one cell of movement) reset an admission clock
+   * every time. Crossing a cell needs ~12.5 CONSECUTIVE admissions; only a
+   * cell change proves the unit is getting somewhere.
    */
   function resolveMovementTraffic(
     unitId: number,
@@ -286,15 +248,15 @@ export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
     const transform = activeWorld.getComponent<UnitTransformComponent>(unitId, 'unitTransform');
     const position = activeWorld.getComponent<Position>(unitId, 'position');
     if (transform && position) {
-      const moved = transform.trafficProgressCellX !== position.x
-        || transform.trafficProgressCellY !== position.y;
-      // Stamp on a real cell change, and seed a baseline the first time a unit
-      // is arbitrated so its clock starts running from a known tick rather
-      // than reading as infinitely old.
-      if (moved || transform.trafficProgressTick === undefined) {
+      const clock = trafficProgressClock(transform, position, activeWorld.tick) ?? activeWorld.tick;
+      if (
+        clock !== transform.trafficProgressTick
+        || transform.trafficProgressCellX !== position.x
+        || transform.trafficProgressCellY !== position.y
+      ) {
         activeWorld.setComponent(unitId, 'unitTransform', {
           ...transform,
-          trafficProgressTick: activeWorld.tick,
+          trafficProgressTick: clock,
           trafficProgressCellX: position.x,
           trafficProgressCellY: position.y,
         });
@@ -309,7 +271,7 @@ export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
     activeWorld: GameWorld = world,
   ): MovementTrafficDecision {
     const units = snapshotForTick(activeWorld);
-    const mover = units.find((unit) => unit.id === unitId);
+    const mover = snapshotById.get(unitId);
     if (!mover) return { kind: 'proceed' };
     const direction = cardinalDirection(mover.position, nextStep);
     if (!direction) return { kind: 'proceed' };
@@ -404,11 +366,16 @@ export function createMovementTrafficOps(deps: MovementTrafficOpsDeps): {
       // A normal occupied lane has no directed cycle, so its follower waits.
       // A fully learned head-on pair or longer occupied loop admits only the
       // stable lowest-id caller when every blocking branch closes back to it.
-      const lastProgressTick = (id: number): number | undefined => (
-        activeWorld.getComponent<UnitTransformComponent>(id, 'unitTransform')?.trafficProgressTick
-      );
-      if (!cycle || mover.id !== electTrafficWinner(cycle, activeWorld.tick, lastProgressTick)) {
-        return { kind: 'wait' };
+      // Clocks come from the snapshot like every other input. A member's own
+      // consult re-stamps its record mid-tick, and reading that live made the
+      // members that asked before it elect a different winner (review E2).
+      const lastProgressTick = (id: number): number | undefined => snapshotById.get(id)?.progressTick;
+      const election = cycle
+        ? electTrafficWinnerDetailed(cycle, activeWorld.tick, lastProgressTick)
+        : null;
+      if (!election || mover.id !== election.winner) return { kind: 'wait' };
+      if (election.starved) {
+        onStarvationRelief?.({ unitId: mover.id, tick: activeWorld.tick, waited: election.waited });
       }
       // The election is final. It is the only rule here that weighs the whole
       // jam, and it names exactly one winner; the co-located rules below judge
