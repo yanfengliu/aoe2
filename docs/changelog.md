@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.190
+
+- Every walk to a building now takes the nearest free edge, not just a builder's. Repairing a damaged Castle, running into a Town Centre when the bell rings, carrying wood back to a lumber camp, closing on a building to attack it, a monk walking to a relic — all of them used to head for whatever edge came first in an internal list, which on a large building can be a full lap around it. The nearest-edge rule shipped in 0.3.188 for construction only; it now covers the class. Measured on the boot map in AI-vs-AI: the leading side reaches the Castle Age at tick 26,750 instead of 35,250, and builds 14 kinds of building where it built 9.
+- Gathering still uses the old rule deliberately — sending villagers to the nearest cell of a resource is what deadlocked the economy in 0.3.187, and it is left alone until it can be measured on its own.
+- The AI no longer puts more than half its villagers on construction at once. The limit was applied to each building separately, so two large buildings could take the whole workforce between them.
+
 ## 0.3.189
 
 - The villager build menu now has DE's two pages — **Economic Buildings** and **Military Buildings** — with a toggle at the head of the Build heading. Every building is on exactly one page. Starting a placement shows the page its building is on, and the toggle still works while placing; switching pages never moves the palette or the toggle, and picking a different unit opens its palette on the first page.

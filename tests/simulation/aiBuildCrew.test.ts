@@ -12,6 +12,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import {
+  CREW_TARGET_TICKS,
+  WONDER_WORKFORCE_SHARE,
+  WORKFORCE_SHARE,
+  targetCrewSize,
+} from '../../src/game/simulation/bridge/systems/aiBuildCrewPhase';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
 
@@ -44,4 +50,22 @@ describe('AI construction crews', () => {
     expect(rate, `wonder build rate ${String(rate)} — a lone builder is 1.0`)
       .toBeGreaterThan(2);
   }, 180_000);
+
+  it('never wants more of the workforce than the cap allows, per site or across sites', () => {
+    // The cap is named for leaving half the workforce on economy, and until a
+    // critic checked it (2026-09-02) it was applied PER SITE with no running
+    // total — two long sites could each take half. This pins both halves: the
+    // per-site arithmetic here, and the across-sites budget in the phase.
+    for (const villagers of [2, 5, 10, 20, 42]) {
+      const houseLike = targetCrewSize(250, villagers, false);
+      expect(houseLike, `house crew with ${String(villagers)} villagers`).toBe(1);
+
+      const townCentre = targetCrewSize(1500, villagers, false);
+      expect(townCentre).toBeLessThanOrEqual(Math.max(1, Math.floor(villagers * WORKFORCE_SHARE)));
+      expect(townCentre).toBeLessThanOrEqual(Math.ceil((3 * 1500) / CREW_TARGET_TICKS - 2));
+
+      const wonder = targetCrewSize(35_030, villagers, true);
+      expect(wonder).toBe(Math.max(1, Math.floor(villagers * WONDER_WORKFORCE_SHARE)));
+    }
+  });
 });

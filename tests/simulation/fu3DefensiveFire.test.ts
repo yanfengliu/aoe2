@@ -31,6 +31,49 @@ function getUnitHp(bridge: Bridge, unitId: number): number | null {
   return bridge.getSelectionState().health?.current ?? null;
 }
 
+/**
+ * Garrisons every archer, then reports the damage the Castle's FIRST volley
+ * deals to `enemyId`. Both arrow-count cases used to garrison and then step a
+ * fixed 15 ticks, which silently encoded how long the archers took to walk in:
+ * when nearest-first approaches changed that walk (2026-09-02) the fifth
+ * archer arrived at tick 12 and the volley landed after the window, so a test
+ * about the ARROW CAP failed on a movement change. Waiting on the two events
+ * it actually depends on — everyone inside, then the volley — says what the
+ * test means. It refuses to measure at all if the Castle fires before the
+ * crew is in, which would make the count wrong rather than late.
+ */
+function damageOfFirstVolleyAfterGarrison(
+  bridge: ReturnType<typeof createSimulationBridge>,
+  castleId: number,
+  enemyId: number,
+): number {
+  const archers = bridge.getEconomyState().units
+    .filter((u) => u.owner === 1 && u.unitType === 'archer');
+  const beforeHp = getUnitHp(bridge, enemyId);
+  for (const archer of archers) {
+    expect(bridge.selectEntityAtCell(archer.x, archer.y)).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(castleId, { garrison: true })).toBe(true);
+  }
+
+  let inside = false;
+  for (let tick = 0; tick < 120 && !inside; tick += 1) {
+    bridge.step(100);
+    inside = bridge.getEconomyState().units.filter((u) => u.unitType === 'archer').length === 0;
+    expect(
+      getUnitHp(bridge, enemyId),
+      'the Castle fired before the crew was in — this measures the wrong arrow count',
+    ).toBe(beforeHp);
+  }
+  expect(inside, 'archers never garrisoned').toBe(true);
+
+  for (let tick = 0; tick < 40; tick += 1) {
+    bridge.step(100);
+    const now = getUnitHp(bridge, enemyId);
+    if (now !== beforeHp) return beforeHp! - now!;
+  }
+  throw new Error('the Castle never fired within two reload cycles');
+}
+
 describe('FU3 Castle garrisoned-archer extra arrows', () => {
   it('Castle with no garrisoned archers fires a single arrow per reload', () => {
     // fu3-castle-no-archers-fixture plants a Castle with the target at
@@ -78,51 +121,22 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
     const beforeHp = getUnitHp(bridge, enemy!.id);
     expect(beforeHp).toBe(70);
 
-    // Drive the 3 archers into the Castle via the context-command path.
-    for (const archer of archers) {
-      expect(bridge.selectEntityAtCell(archer.x, archer.y)).toBe(true);
-      expect(bridge.issueContextCommandAtEntity(castle!.id, { garrison: true })).toBe(true);
-    }
+    // Castle fires 4 arrows (1 base + 3 archers). The Champion has 1 pierce
+    // armor, so each pierce arrow deals 10 — 4 arrows = 40 damage.
+    const damage = damageOfFirstVolleyAfterGarrison(bridge, castle!.id, enemy!.id);
 
-    // 15 ticks < one reload (20 ticks), so exactly one reload fires.
-    // Castle should fire 4 arrows (1 base + 3 archers). Champion has 1 pierce
-    // armor, so each pierce arrow deals 10 damage. 4 arrows = 40 damage.
-    // First step's processCommands drains the garrison commands; same
-    // step's combat phase fires the reload with all 3 archers garrisoned
-    // (handlers run at processCommands at the START of the step, before
-    // combat-state resolution).
-    for (let i = 0; i < 15; i += 1) {
-      bridge.step(100);
-    }
-
-    // Confirm all three archers garrisoned (no longer on the map).
     expect(
       bridge.getEconomyState().units.filter((u) => u.unitType === 'archer').length,
     ).toBe(0);
-
-    // Verify the inventory count matches the garrisoned archers.
     expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
-    const inventory = bridge.getSelectionState().inventory ?? '';
-    expect(inventory).toContain('3 / 20 garrisoned');
-
-    const afterHp = getUnitHp(bridge, enemy!.id);
-    expect(afterHp).toBe(beforeHp! - 40);
+    expect(bridge.getSelectionState().inventory ?? '').toContain('3 / 20 garrisoned');
+    expect(damage).toBe(40)
   });
 
   it('Castle with 5 archers garrisoned caps at 5 arrows per reload cycle', () => {
     // fu3-castle-five-archers-fixture: 5 archers pre-garrisoned. Canonical
     // AoE2 DE caps Castle arrow count at 5 (1 base + 4 archer bonus),
     // not 1 + 5. Verifying the cap.
-    //
-    // KNOWN WEAKNESS, measured 2026-09-02 while rewriting this: the Castle
-    // fires on its own reload and on this fixture it fires at tick 10 with
-    // only FOUR archers in, which already yields the capped five arrows
-    // (1 base + 4). So the 50 damage read below cannot tell "five garrisoned,
-    // capped at five" from "four garrisoned, five arrows" — it excludes
-    // 1 + 5 = 6, which is what the cap is about, and nothing more. Measuring
-    // the next volley instead does not help: the Champion is at 20 HP by then
-    // and dies to it, so the damage is clamped by its remaining health. A
-    // stronger form of this test needs a target that survives two volleys.
     const bridge = createSimulationBridge('fu3-castle-five-archers-fixture');
 
     const castle = findOwnedBuilding(bridge, 1, 'castle');
@@ -138,17 +152,9 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
     const beforeHp = getUnitHp(bridge, enemy!.id);
     expect(beforeHp).toBe(70);
 
-    for (const archer of archers) {
-      expect(bridge.selectEntityAtCell(archer.x, archer.y)).toBe(true);
-      expect(bridge.issueContextCommandAtEntity(castle!.id, { garrison: true })).toBe(true);
-    }
-
-    // 15 ticks < one reload (20 ticks). 5 arrows per shot × 10 pierce damage
-    // (11 attack − Champion's 1 pierce armor) = 50 damage. HP 70 → 20. If the
-    // cap were 1+5=6 the damage would be 60 and we'd overshoot toward death.
-    for (let i = 0; i < 15; i += 1) {
-      bridge.step(100);
-    }
+    // 5 arrows (capped at 1 base + 4) x 10 pierce damage = 50. At 1 + 5 = 6
+    // arrows it would be 60, which is what the cap exists to prevent.
+    const damage = damageOfFirstVolleyAfterGarrison(bridge, castle!.id, enemy!.id);
 
     expect(
       bridge.getEconomyState().units.filter((u) => u.unitType === 'archer').length,
@@ -157,8 +163,7 @@ describe('FU3 Castle garrisoned-archer extra arrows', () => {
     expect(selectOwnedBuildingDirect(bridge, 1, 'castle')).toBe(true);
     expect(bridge.getSelectionState().inventory ?? '').toContain('5 / 20 garrisoned');
 
-    const afterHp = getUnitHp(bridge, enemy!.id);
-    expect(afterHp).toBe(beforeHp! - 50);
+    expect(damage).toBe(50)
   });
 });
 

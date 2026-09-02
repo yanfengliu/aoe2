@@ -46,39 +46,34 @@ describe('the Feudal AI mines the stone its own plans need', () => {
     const bridge = createSimulationBridge('ai-feudal-stone-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
     expect(stoneOf(bridge, 2)).toBe(0);
 
-    // §6.3 pacing retune (v0.3.159): stone is 1/28 ticks. §12.4.2 walk clock
-    // (v0.3.160): the 125-crossing moved to ~tick 8,300. The Feudal wood
-    // weight went 4 to 6 with the age-prerequisite reserve (2026-08-30), which
-    // takes stone's share of a fixed villager cap from 1/13 to 1/15 — 13%
-    // fewer stone villagers, which slows the observed per-tick rate by 22% —
-    // and moved the crossing to tick 9,500. Measured
-    // over 20,000 ticks on this fixture: peak stone 220, so the AI still banks
-    // what this test is about and only takes longer to get there. Horizon is
-    // 22 x 500-tick blocks, which keeps ~1,500 ticks of margin past the
-    // measured crossing. The assertion tracks the running PEAK, not the
-    // closing balance: the AI SPENDS banked stone on
-    // exactly the things this test exists to make affordable (measured: 130
-    // banked at tick 5,000 became 60 by 6,000 — a ~100-stone purchase), and
-    // a stockpile assertion would fail on that success.
-    // (Calibrated on this fixture: steady ~10 stone/500 ticks.)
-    let peakStone = 0;
-    for (let block = 0; block < 22; block += 1) {
-      run(bridge, 500);
-      peakStone = Math.max(peakStone, stoneOf(bridge, 2));
-    }
-
-    // 125 is the Watch Tower's stone half, straight from structures.csv: the
-    // cheapest thing Feudal stone is for, and the floor for this to have been
-    // worth doing at all.
+    // Waits on the CONDITION — stone crossing the Watch Tower's 125, the
+    // cheapest thing Feudal stone is for — instead of a fixed warm-up. Every
+    // fixed warm-up this test has carried went stale with the next pacing
+    // change (§6.3 gather retune, the §12.4.2 walk clock, the Feudal wood
+    // reweight, DE build times), and the last one, 22 x 500 ticks, ran off the
+    // END OF THE MATCH: this fixture resolves by conquest at tick 11,442, and
+    // a finished match reads exactly like a deadlocked economy — a mistake
+    // this repo filed as a defect and then retracted (see the register,
+    // 2026-09-02). Measured at v0.3.190: the crossing is tick 6,139.
     const watchTower = constructionCost('watch-tower').stone ?? 0;
     expect(watchTower).toBe(125);
-    expect(peakStone).toBeGreaterThanOrEqual(watchTower);
+
+    let peakStone = 0;
+    let crossedAt = -1;
+    for (let tick = 1; tick <= 11_000 && crossedAt < 0; tick += 1) {
+      run(bridge, 1);
+      peakStone = Math.max(peakStone, stoneOf(bridge, 2));
+      if (peakStone >= watchTower) crossedAt = tick;
+    }
+    expect(crossedAt, `stone never reached ${String(watchTower)} — peak ${String(peakStone)}`)
+      .toBeGreaterThan(0);
 
     // Sustained, not a single early trip: the stone villagers stay on stone
     // rather than being churned onto other resources and never returning.
     // Measured as MINING (the sum of positive stockpile deltas), because the
     // balance itself keeps dropping every time the AI buys the next stone
-    // thing — which is stone doing its job, not mining stopping.
+    // thing — which is stone doing its job, not mining stopping. Measured 100
+    // in this window at v0.3.190, against a bar of 30 (three deposits).
     let minedInWindow = 0;
     let previous = stoneOf(bridge, 2);
     for (let block = 0; block < 30; block += 1) {
@@ -87,21 +82,14 @@ describe('the Feudal AI mines the stone its own plans need', () => {
       if (current > previous) minedInWindow += current - previous;
       previous = current;
     }
-    // At DE pacing a steady miner lands a 10-stone deposit every ~75-90s
-    // (gathering a carry is 280 ticks; the camp walk is the rest — the old
-    // "a miner banks ~50 per 150s" figure was teleport-clock math). Three
-    // deposits inside 300s proves a miner is STAYING on stone; churn shows
-    // up as one orphaned deposit or none.
-    //
-    // DO NOT WIDEN THIS WINDOW to chase a bigger number. It was tried on
-    // 2026-09-02 and ran off the end of the GAME: this fixture's match is
-    // decided at tick 15,000 — `getMatchState()` returns conquest, owner 1
-    // wiped out, scores 1:70 2:1492 — and a finished match stops, so every
-    // resource goes static and every villager stands still. That looks
-    // exactly like an economy deadlock and was briefly filed as one (see the
-    // retraction in the defect register). The window ends at 14,000 because
-    // that is where this fixture still has a game to measure.
     expect(minedInWindow).toBeGreaterThanOrEqual(30);
-    // 10,500 DE-paced ticks: ~19s alone, more under suite parallelism.
+
+    // THE MATCH MUST STILL BE RUNNING. Without this the window can drift past
+    // the end of the game and measure a decided match's stillness as a
+    // healthy economy's — or, worse, as a deadlock.
+    expect(
+      bridge.getMatchState().outcome,
+      'the window ran past the end of the match; move it earlier, do not widen it',
+    ).toBe('running');
   }, 120_000);
 });

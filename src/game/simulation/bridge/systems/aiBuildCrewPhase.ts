@@ -21,6 +21,10 @@ import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
 
 /** How long a crewed building should take, in ticks (60 s at 10 TPS). */
 export const CREW_TARGET_TICKS = 600;
+/** The most of the workforce that may be building at once. A Wonder is a win
+ *  condition rather than a building, so it may take nearly everyone. */
+export const WORKFORCE_SHARE = 0.5;
+export const WONDER_WORKFORCE_SHARE = 0.9;
 
 /**
  * How many builders a site of this size deserves, given how many villagers the
@@ -33,7 +37,10 @@ export function targetCrewSize(
   isWonder: boolean,
 ): number {
   const needed = Math.ceil((3 * totalBuildTicks) / CREW_TARGET_TICKS - 2);
-  const cap = Math.max(1, Math.floor(villagerCount * (isWonder ? 0.9 : 0.5)));
+  const cap = Math.max(
+    1,
+    Math.floor(villagerCount * (isWonder ? WONDER_WORKFORCE_SHARE : WORKFORCE_SHARE)),
+  );
   return Math.min(Math.max(1, needed), cap);
 }
 
@@ -76,10 +83,25 @@ export function runBuildCrewPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void
   }
   sites.sort((a, b) => b.remaining - a.remaining);
 
+  // A WORKFORCE budget, not just a per-site one. `targetCrewSize` caps each
+  // site at half the workforce (nine tenths for a Wonder), but applying that
+  // per site with no running total lets two crewed sites exceed it together —
+  // the "leaves at least half on economy" the cap is named for was never
+  // enforced across sites. Counted over builders ALREADY out plus the ones
+  // this pass adds, so a second Town Center cannot quietly take the other
+  // half. Found by a critic, 2026-09-02: latent rather than observed, because
+  // the boot map's AI never has two long sites at once.
+  const wonderInProgress = sites.some((site) => site.isWonder);
+  const workforceCap = Math.max(
+    1,
+    Math.floor(villagerCount * (wonderInProgress ? WONDER_WORKFORCE_SHARE : WORKFORCE_SHARE)),
+  );
+  let committed = [...buildersBySite.values()].reduce((sum, count) => sum + count, 0);
+
   for (const site of sites) {
     const wanted = targetCrewSize(site.total, villagerCount, site.isWonder);
     let onSite = buildersBySite.get(site.id) ?? 0;
-    while (onSite < wanted) {
+    while (onSite < wanted && committed < workforceCap) {
       const villagerId = findAvailableVillagerForBuild(owner);
       if (villagerId === null) return; // pool exhausted — later sites wait too
       const villagerPosition = activeWorld.getComponent<Position>(villagerId, 'position');
@@ -87,6 +109,7 @@ export function runBuildCrewPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void
       pushUnitContextAtEntityIntention(villagerId, site.id, false);
       claimedVillagers.add(villagerId);
       onSite += 1;
+      committed += 1;
     }
   }
 }
