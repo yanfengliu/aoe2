@@ -4,6 +4,34 @@ The standing list of what the gates could not see. One entry per defect that rea
 
 Unlike a lesson, an entry stays after it becomes a gate. The register is not a to-do list — it is the record of where defects came from, which is the best available guide to where the next one is.
 
+## 2026-09-03 — The AI hoards the resource it cannot spend and starves on the one that gates every unit (ROOT CAUSE FOUND, unfixed; three prior hypotheses refuted here)
+
+**Symptom.** The user's standing priority 1, "THE AI NEVER FIELDS AN ARMY", and priority 2, "MATCHES DO NOT RESOLVE". After the wood-spawn fix the best slot reached an army of 105, but `fortress` owner 2 still ends the Imperial age with an army of ZERO, and `coastal` owner 1 ends the Castle age with an army of 20 while holding 8,545 food.
+
+**What the AI is actually holding**, measured at 60,000 ticks, `SAMPLE=500`, both slots AI (`tmp/probe/whyidle.ts`, which evaluates `pickUnitMix` + `trainingCost` + `canAffordWithReserve` directly rather than approximating them):
+
+    owner          age       army   food   wood   gold  stone   unaffordable   starved on
+    fortress o1    imperial     2    595   1231     35   1478            53%   gold 62%
+    fortress o2    imperial     0    335   1218     13   1428            63%   gold 110%
+    coastal  o1    castle      20   8545     10    655   1600            57%   wood 42%
+    coastal  o2    dark         0     26   3388    700    200            99%   food 99%
+
+Every slot is sitting on 1,200-8,500 of resources its units do not need while the one resource they DO need is near zero. Fortress banks 1,478 stone and 1,231 wood with THIRTEEN GOLD. Coastal owner 1 banks 8,545 food with TEN WOOD. `noProducer` is 1% and military buildings are 100% present and 100% idle — the army is not blocked by population, by the age-up reserve, or by having nothing to train from. It is blocked because it cannot pay.
+
+**Root cause.** `aiEconomyPlan.ts` splits villagers across resources by a FIXED PER-AGE WEIGHT — dark `food 4, wood 3, gold 0, stone 0`, feudal `7/6/1/1`, castle `4/4/3/1`, imperial `4/3/5/1` — and the weights never read the stockpile. So the split cannot notice that 8,545 food has accumulated unspent, and cannot move a single villager onto the resource that is actually gating production. Coastal owner 1 is the clean case: the Castle weights rank food and wood EQUALLY, 7 to 12 villagers are assigned to wood for the whole match, and the wood bank never clears 50 while food climbs to 8,545. Assignment is not the failure; a demand-blind ratio is.
+
+**A second signal in the same measurement, not yet explained.** At tick 45,000 coastal owner 1 has 16 of its 22 villagers in `to-resource` and only 3 `gathering`. Villagers walking rather than working is the signature of the user's priority 3, "THE GATHER COMPARATOR MEASURES A DISTANCE THE UNITS CANNOT WALK". If that is what it is, priorities 1, 2 and 3 are ONE defect: wood targets that cannot be reached starve wood, wood starvation blocks Castle units (25 wood each), no army means no resolution. This entry does not prove that link — the stockpile is also consistent with wood arriving and being spent on buildings — and it should be measured before it is believed.
+
+**Three hypotheses refuted on the way here.** Each was measured, and each was wrong for a different reason, all three of them instrument failures rather than reasoning failures:
+
+1. *Villagers eat the population the army needs.* Implemented as a villager target bounded by a share of the population cap, then A/B'd across four seeds with an identical invocation. Fortress owner 2 went from 60 villagers to 21 — 39 population freed — and its army stayed at ZERO; fortress owner 1 ended at pop 22/35 with 13 population free and an army of 1. Armies got SMALLER on three seeds and flat on two, never larger. The rule is self-defeating: it bounds villagers by a share of the current cap, but the cap is PRODUCED by those villagers, so fewer villagers means fewer houses means a tighter bound. Reverted.
+2. *The age-up reserve blocks military while villagers bypass it.* `ageUpReserveCost` returns `{}` when there is no next age, and both fortress slots are IMPERIAL. The `food<1060` column that made this look true is computed unconditionally by `tmp/probe/army-block.ts` against an assumption its own header scopes to the Castle Age — it is vacuous for exactly the owners it was being read against.
+3. *The AI has nothing to train from.* `hasProducer` 100%, `peakProducers` 4 (barracks, archery range, stable and castle all built), `idleProducer` 100% in every sample.
+
+**How this class is checked from now on.** No gate yet — the fix is not written, and a gate on an unfixed defect would be red on `main`. The check this needs is a self-play assertion that no owner ends a match holding more than a threshold of any single resource while `UNAFFORDABLE` for its age's unit mix, because that is the defect's whole class: the specific starved resource differs per seed (gold on fortress, wood on coastal owner 1, food on coastal owner 2) and a gate naming one of them would pass on the other two. Its bound must be stated as the seed set and the tick horizon, since three of these four slots only reveal the imbalance after 30,000 ticks.
+
+**Instrument note, because it nearly cost the whole measurement twice.** `tmp/probe/army-block.ts` reports peaks and percentages OVER SAMPLES. Run at `SAMPLE=15000` it takes 2-4 samples per match, and it reported arena's population cap as 50 against the true 145 and its army as 21 against the true 105 — a collapse large enough to look like a catastrophic regression from the code under test. Any before/after with this probe must hold `SAMPLE`, `TICKS` and `SEEDS` identical across both arms, and the control must be re-run rather than remembered.
+
 ## 2026-09-03 — A decided match never ends, because the AI can only aim at a Town Center (PARTLY FIXED: 1 of 4 seeds now resolves)
 
 **Symptom.** The standing acceptance-test failure "matches do not resolve": at 60,000 ticks — 100 minutes of game time — every seed is still running. Measured on four seeds after the wood fix, all four still ran to the horizon.
