@@ -4,6 +4,41 @@ The standing list of what the gates could not see. One entry per defect that rea
 
 Unlike a lesson, an entry stays after it becomes a gate. The register is not a to-do list — it is the record of where defects came from, which is the best available guide to where the next one is.
 
+## 2026-09-03 — A decided match never ends, because the AI can only aim at a Town Center (PARTLY FIXED: 1 of 4 seeds now resolves)
+
+**Symptom.** The standing acceptance-test failure "matches do not resolve": at 60,000 ticks — 100 minutes of game time — every seed is still running. Measured on four seeds after the wood fix, all four still ran to the horizon.
+
+**Investigation.** `gold-rush` gave the clean case. From tick 48,000 to 60,000, sampled every 4,000 and byte-identical at every sample, owner 2 held:
+
+    pop 0/5   villagers 0   army 0   buildings: blacksmith x1, house x1
+
+Zero units. No Town Center, so it can never produce a unit again. It is functionally dead and cannot recover. Meanwhile owner 1 stood at 130 population with an army of 90, building farms.
+
+**Root cause.** Two rules that are each correct and together deadlock.
+
+`conquestOutcomeSystem` ends a match only when a player has NO UNITS **AND NO BUILDINGS** — which is right; a player with a building standing has not been conquered.
+
+`pickAttackTarget` chooses the AI's march target from `townCentersByOwner`, a map keyed on owners that still HAVE a Town Center. Raze it and that owner drops out of the target list entirely: `targetOwner` becomes null, the attack phase's push branch has nothing to march on, and the surviving buildings are attacked only if they happen to fall inside somebody's vision. The AI is structurally unable to finish what it started.
+
+So the winner cannot satisfy the condition the loser is being kept alive by.
+
+**Fix, and the first version of it was WRONG in a way worth recording.** The obvious shape — give `pickAttackTarget` a fallback map and let it return the surviving building in `targetOwner` / `targetTownCenterId` / `targetTownCenterPosition` — passed its own unit gate, resolved `gold-rush`, and REGRESSED THE AGE-UP: `aiPlayer.test.ts` :: "ages up through the ages within a generous tick budget" went red, the AI reaching Feudal at 2,061 and never Castle within 8,000 ticks. Cause: `targetTownCenterPosition` is not private to the attack phase. `aiFerryPhase` reads it too, and when it is set with the target not land-reachable it stands down the ordinary march AND discretionary building to fund a Transport Ship — so filling that field for a Town-Center-less enemy stalled the economy. Isolated by disabling only the fallback and re-running: 24 of 24 passed.
+
+The shipped fix is therefore SURGICAL. `pickAttackTarget` is byte-identical to what it was. A separate `lastResortTargetId` / `lastResortTargetPosition` pair is computed alongside it and read by the attack phase and nothing else, in its final push branch, only when no enemy Town Center is left. Deterministic — owners and entity ids both sorted, so a replay picks the same building. `gold-rush` still resolves at exactly tick 41,967, and the age-up test is green.
+
+**The lesson, which is about the FIELD and not the feature.** A context field named for one thing (`targetTownCenterPosition`) had a second reader with different semantics, and reusing it to mean "the place to march" was correct for the phase being edited and wrong for the phase that was not. The cost of finding that was one full gate run; the cost of not finding it would have been a shipped economy regression that the resolution measurement would have applauded.
+
+**Effect, measured on four seeds at 60,000 ticks, before and after.** `gold-rush` goes from running-at-60,000 to **victory at tick 41,967**. The other three still run, and the reasons are DIFFERENT defects rather than this one failing:
+
+- `arena` and `coastal`: owner 2 still HAS a Town Center, so the fallback never engages. Owner 1 has an army of 105 and does not finish it — on arena that base sits inside the script's own stone wall ring, which points at attack EXECUTION (pathing to or breaching a walled base) rather than at targeting.
+- `fortress`: neither side has an army to attack with (2 and 0 in the Imperial age). That is the villager-target-versus-population-cap chain in the entry above, not this one.
+
+**How it is checked from now on.** `tests/simulation/aiAttacksAnyEnemy.test.ts` :: `an enemy with no Town Center is still a target` — four cases: the fallback fires when the enemy has lost its Town Center; a Town Center still outranks a much closer bare building; the two-argument form is unchanged; and an ALLY without a Town Center is never targeted. Red-checked by reintroducing the defect (iterating an empty list instead of the fallback map): the first case fails with `expected null to be 2`, and all four pass again on revert.
+
+**Bound of that gate, named.** It is a unit test on the TARGET CHOICE. It does not prove the army reaches the building, kills it, or that the match ends — arena and coastal are live proof that a correct target is not sufficient. The end-to-end claim rests on the `gold-rush` seed alone, at one horizon.
+
+**What this predicts.** The remaining two causes are both "the army exists and does not close": walls it will not breach, and an army too small to matter. Both are about what the military DOES rather than what it is pointed at, and neither is touched here.
+
 ## 2026-09-03 — Four of the nine playable maps shipped with no wood, so no game could happen on them
 
 **Symptom.** The AI "never fields an army" and "matches do not resolve" — the two standing acceptance-test failures. On `arena` specifically, both AI players sit in the Dark Age at population 10/10 for the entire 75-minute audit, peak armies of 4 and 2, holding 701 food and 3,184 gold they cannot spend.

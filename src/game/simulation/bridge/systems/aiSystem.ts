@@ -2,7 +2,7 @@
 // macro plan, production/research intentions, monk tasks, and attack pushes.
 
 import { type Position } from 'civ-engine';
-import type { UnitComponent } from '../../types';
+import type { BuildingComponent, UnitComponent } from '../../types';
 import {
   AI_BASE_VISION_RADIUS,
   decisionIntervalTicks,
@@ -59,6 +59,20 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         const id = currentEntityId(activeWorld, ref);
         if (id === null) continue;
         townCentersByOwner.set(refOwner, {
+          id,
+          position: activeWorld.getComponent<Position>(id, 'position'),
+        });
+      }
+      // The nearest surviving building of an enemy that has NO Town Center —
+      // the only thing left to march on once one is razed. Deterministic:
+      // owners and ids both sorted, so a replay picks the same building.
+      const buildingsOfTownCenterlessOwners = new Map<number, { id: number; position: Position | undefined }>();
+      for (const id of [...activeWorld.query('building')].sort((a, b) => a - b)) {
+        const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
+        if (!building) continue;
+        if (townCentersByOwner.has(building.owner)) continue;
+        if (buildingsOfTownCenterlessOwners.has(building.owner)) continue;
+        buildingsOfTownCenterlessOwners.set(building.owner, {
           id,
           position: activeWorld.getComponent<Position>(id, 'position'),
         });
@@ -162,6 +176,12 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           targetOwner,
           targetTownCenterId,
           targetTownCenterPosition,
+          ...lastResortTargetFor(
+            owner,
+            ownerTownCenterPosition,
+            buildingsOfTownCenterlessOwners,
+            accessor.get(playerTeamsCodec),
+          ),
           currentAge,
           stockpile,
           populationBlocked,
@@ -214,6 +234,37 @@ export function registerAiSystem(deps: AiSystemDeps): void {
  * it always picks the other one, so the ordinary human-versus-AI match is
  * unchanged.
  */
+/**
+ * The nearest surviving building of an enemy with no Town Center left, or
+ * nulls. Only the attack phase reads this — see `AiOwnerContext`.
+ */
+export function lastResortTargetFor(
+  owner: number,
+  ownerPosition: Position | null | undefined,
+  buildingsOfTownCenterlessOwners: ReadonlyMap<number, { id: number; position: Position | undefined }>,
+  teams: ReadonlyMap<number, number>,
+): { lastResortTargetId: number | null; lastResortTargetPosition: Position | null | undefined } {
+  let best: { id: number; position: Position | undefined } | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const candidateOwner of [...buildingsOfTownCenterlessOwners.keys()].sort((a, b) => a - b)) {
+    if (!isEnemyOwner(teams, owner, candidateOwner)) continue;
+    const building = buildingsOfTownCenterlessOwners.get(candidateOwner)!;
+    const distance =
+      ownerPosition && building.position
+        ? Math.abs(ownerPosition.x - building.position.x)
+          + Math.abs(ownerPosition.y - building.position.y)
+        : Number.POSITIVE_INFINITY;
+    if (best === null || distance < bestDistance) {
+      best = building;
+      bestDistance = distance;
+    }
+  }
+  return {
+    lastResortTargetId: best?.id ?? null,
+    lastResortTargetPosition: best?.position ?? null,
+  };
+}
+
 export function pickAttackTarget(
   owner: number,
   townCentersByOwner: ReadonlyMap<number, { id: number; position: Position | undefined }>,

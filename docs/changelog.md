@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.197
+
+- A player who has lost their Town Centre can now actually be finished off, so matches end. The computer only ever marched on an enemy Town Centre, so once it razed one it had nothing left to aim at — it would stand next to the last blacksmith and house of a player who had no units and no way to build any, forever, and the match could never end because a conquest win needs every enemy building gone. On the Gold Rush map that match now ends in victory at about 70 minutes instead of running past 100. It still does not end on Arena, Coastal or Fortress, for other reasons.
+
 ## 0.3.196
 
 - The Painted art style is gone; the game is Moebius only. The game-menu row that switched between them goes with it, and so does the remembered preference — there is nothing left to remember. Nothing about how Moebius looks has changed.

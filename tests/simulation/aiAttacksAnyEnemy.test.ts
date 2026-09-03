@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
-import { pickAttackTarget } from '../../src/game/simulation/bridge/systems/aiSystem';
+import { lastResortTargetFor, pickAttackTarget } from '../../src/game/simulation/bridge/systems/aiSystem';
 
 // The AI used to attack `humanPlayerId` and nothing else: its target villager
 // and its target Town Center were both looked up on that one owner. So an AI
@@ -131,5 +131,58 @@ describe('which enemy an AI picks', () => {
     // base must still have somewhere to take it.
     const townCenters = new Map([[2, { id: 20, position: position(40, 8) }]]);
     expect(pickAttackTarget(1, townCenters).targetOwner).toBe(2);
+  });
+});
+
+// A conquest match ends only when a player has NO UNITS AND NO BUILDINGS. The
+// AI's march target was chosen from the map of owners that still HAVE a Town
+// Center, so razing one removed that player from the target list entirely and
+// its surviving buildings were attacked only if they wandered into vision.
+//
+// Measured on `gold-rush` at 60,000 ticks before the fallback existed: owner 2
+// held zero units and no Town Center — it could never produce anything again —
+// and kept a blacksmith and a house, byte-identical from tick 48,000 onward,
+// while owner 1 stood beside it with an army of 90 and nothing to aim at. With
+// the fallback the same seed ends in victory at tick 41,967.
+describe('an enemy with no Town Center is still a target', () => {
+  const at = (id: number, x: number, y: number) => ({ id, position: { x, y } });
+
+  it('marches on a surviving building when the enemy has lost its Town Center', () => {
+    const buildings = new Map([[2, at(77, 30, 30)]]);
+
+    expect(lastResortTargetFor(1, { x: 4, y: 4 }, buildings, new Map())).toEqual({
+      lastResortTargetId: 77,
+      lastResortTargetPosition: { x: 30, y: 30 },
+    });
+  });
+
+  it('takes the nearest of several, deterministically', () => {
+    const buildings = new Map([[3, at(99, 40, 40)], [2, at(77, 8, 8)]]);
+
+    expect(lastResortTargetFor(1, { x: 4, y: 4 }, buildings, new Map()).lastResortTargetId).toBe(77);
+  });
+
+  it('never targets an ally that has lost its Town Center', () => {
+    const buildings = new Map([[2, at(77, 30, 30)]]);
+    // Owners 1 and 2 on the same team.
+    const teams = new Map([[1, 1], [2, 1]]);
+
+    expect(lastResortTargetFor(1, { x: 4, y: 4 }, buildings, teams)).toEqual({
+      lastResortTargetId: null,
+      lastResortTargetPosition: null,
+    });
+  });
+
+  it('leaves pickAttackTarget exactly as it was', () => {
+    // The last resort is a SEPARATE field on purpose. Folding it into
+    // `targetTownCenterPosition` regressed the age-up, because `aiFerryPhase`
+    // reads that field and stands down discretionary building when it is set.
+    const townCenters = new Map([[1, at(10, 4, 4)]]);
+
+    expect(pickAttackTarget(1, townCenters, new Map())).toEqual({
+      targetOwner: null,
+      targetTownCenterId: null,
+      targetTownCenterPosition: null,
+    });
   });
 });

@@ -34,6 +34,8 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
     targetOwner,
     targetTownCenterId,
     targetTownCenterPosition,
+    lastResortTargetId,
+    lastResortTargetPosition,
   } = ctx;
 
   const liveMilitary = ownedMilitaryUnitIds(owner);
@@ -108,6 +110,20 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
 
       if (targetTownCenterPosition) {
         submitUnitMoveIntention(id, targetTownCenterPosition);
+        continue;
+      }
+
+      // Nothing with a Town Center left to march on. An enemy that still holds
+      // a BUILDING is still alive by the conquest rule, so it is still a
+      // target — without this the army idles beside a base it cannot finish
+      // and the match never ends (`gold-rush`: owner 2 held a blacksmith and a
+      // house with zero units from tick 48,000 to the horizon).
+      if (lastResortTargetId !== null) {
+        submitUnitAttackIntention(id, lastResortTargetId, 'building');
+        continue;
+      }
+      if (lastResortTargetPosition) {
+        submitUnitMoveIntention(id, lastResortTargetPosition);
       }
     }
   }

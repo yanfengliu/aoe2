@@ -143,6 +143,23 @@ export interface AiOwnerContext {
   targetOwner: number | null;
   targetTownCenterId: number | null;
   targetTownCenterPosition: Position | null | undefined;
+  /**
+   * Where to march when NO enemy Town Center is left anywhere — the nearest
+   * surviving enemy building.
+   *
+   * READ BY THE ATTACK PHASE AND NOTHING ELSE, deliberately. A conquest match
+   * ends only when a player has no units AND no buildings, so an AI that can
+   * only aim at Town Centers stands beside a base it cannot finish and the
+   * match never ends. Folding this into `targetTownCenterPosition` instead
+   * looked simpler and REGRESSED the age-up: that field is also read by
+   * `aiFerryPhase`, which stands down the ordinary march AND discretionary
+   * building to fund a Transport Ship, so handing it a position stalled the
+   * economy (`aiPlayer.test.ts` :: "ages up through the ages within a generous
+   * tick budget" went red, reaching Feudal and never Castle). Keeping it in its
+   * own field is what makes this change reach only the thing it is about.
+   */
+  lastResortTargetId: number | null;
+  lastResortTargetPosition: Position | null | undefined;
   currentAge: AgeType;
   stockpile: PlayerResources | undefined;
   populationBlocked: boolean;
