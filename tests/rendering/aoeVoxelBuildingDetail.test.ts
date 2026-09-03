@@ -108,7 +108,10 @@ describe('building detail pass (spec §14.5)', () => {
   it('keeps every completed building part inside its footprint', () => {
     for (const entityType of Object.keys(AUTHORITATIVE_BUILDING_FOOTPRINTS) as BuildingType[]) {
       const footprint = AUTHORITATIVE_BUILDING_FOOTPRINTS[entityType];
-      for (const part of parts(entityType)) {
+      // The cast shadow is the one part that is MEANT to leave the footprint:
+      // it falls on the neighbouring ground, is never picked, and is pinned
+      // by tests/rendering/aoeVoxelCastShadows.test.ts instead.
+      for (const part of parts(entityType).filter((candidate) => candidate.surface !== 'shadow')) {
         for (const corner of voxelPartWorldCorners(part)) {
           expect(corner.x, `${entityType}:${part.key} escapes -x`)
             .toBeGreaterThanOrEqual(8 - 0.02);
@@ -146,9 +149,9 @@ describe('building detail pass (spec §14.5)', () => {
     }
   });
 
-  it('adds no shadow-surface parts beyond the authored contact shadow', () => {
+  it('adds no shadow-surface parts beyond the three slabs of the cast shadow', () => {
     for (const entityType of WALLED) {
-      expect(parts(entityType).filter((part) => part.surface === 'shadow')).toHaveLength(1);
+      expect(parts(entityType).filter((part) => part.surface === 'shadow')).toHaveLength(3);
     }
   });
 

@@ -198,12 +198,28 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (c
     }
     expect(await page.evaluate(() => window.__AOE2_TEST__!.clearSelection())).toBeUndefined();
 
-    await expect.poll(async () => {
-      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
-      return snapshot.economyState.units.filter(
-        (unit) => unit.owner === 1 && unit.x === 7 && unit.y === 10,
-      ).length;
-    }).toBe(2);
+    // Poll the DISPLAYED positions, which is what this test is about. Polling
+    // the SIM state and then reading the displayed state once was a race the
+    // smoother made real (v0.3.192): a displayed position now lags its sim
+    // position on purpose, by more when frames are slower, so the sim could
+    // have both units on (7,10) while one was still visibly walking in. It
+    // passed in isolation and failed inside the full suite — the shape that
+    // goes red on a CI machine and green on the author's.
+    const displayedAtTarget = async (): Promise<number> => {
+      await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+      return page.evaluate(() =>
+        window.__AOE2_TEST__!
+          .getDisplayedEntities()
+          .filter(
+            (entity) =>
+              entity.kind === 'unit'
+              && entity.owner === 1
+              && Math.floor(entity.x) === 7
+              && Math.floor(entity.y) === 10,
+          ).length,
+      );
+    };
+    await expect.poll(displayedAtTarget, { timeout: 30_000 }).toBe(2);
 
     const displayedUnits = await page.evaluate(() =>
       window.__AOE2_TEST__!

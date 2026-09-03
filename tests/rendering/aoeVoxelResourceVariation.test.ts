@@ -138,7 +138,10 @@ describe('resource visual variation (spec §14.5)', () => {
 
   it('keeps rotated tree geometry inside the existing one-cell-radius presentation envelope', () => {
     for (const [x, y] of CELLS) {
-      for (const part of parts('tree', x, y)) {
+      // The cast shadow is meant to fall on the neighbouring ground; the
+      // envelope is a claim about the tree's BODY (aoeVoxelCastShadows.test.ts
+      // pins the shadow).
+      for (const part of parts('tree', x, y).filter((candidate) => candidate.surface !== 'shadow')) {
         for (const corner of voxelPartWorldCorners(part)) {
           expect(Math.abs(corner.x - (x + 0.5))).toBeLessThan(1);
           expect(Math.abs(corner.z - (y + 0.5))).toBeLessThan(1);
@@ -190,7 +193,7 @@ describe('resource visual variation (spec §14.5)', () => {
 
     it(`keeps every ${kind} variant inside its cell and above ground`, () => {
       for (const [x, y] of CELLS) {
-        for (const part of parts(kind, x, y)) {
+        for (const part of parts(kind, x, y).filter((candidate) => candidate.surface !== 'shadow')) {
           expect(Math.abs(part.centerX - (x + 0.5)), `${kind} at ${String(x)},${String(y)} escapes its cell`)
             .toBeLessThan(0.85);
           expect(Math.abs(part.centerZ - (y + 0.5))).toBeLessThan(0.85);

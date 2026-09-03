@@ -1,8 +1,6 @@
 import type { ProjectedEntityView, UnitType } from '../../game/simulation/types';
-import {
-  contactShadow,
-  type VoxelPart,
-} from './aoeVoxelRecipeTypes';
+import { castShadowParts } from './aoeVoxelCastShadows';
+import { type VoxelPart } from './aoeVoxelRecipeTypes';
 import {
   animateUnitParts,
   phaseForUnitIdentity,
@@ -49,21 +47,26 @@ export function createUnitParts(
     centerZ: entity.y + 0.5,
     scale,
     team: entity.tint,
-    parts: [...contactShadow(
-      entity,
-      identity,
-      'unit-shadow',
-      entity.x + 0.5,
-      ground,
-      entity.y + 0.5,
-      scale * 0.78,
-      scale * 0.58,
-    )],
+    parts: [],
   };
+  const shadow = (): VoxelPart[] => castShadowParts(
+    entity,
+    identity,
+    'unit-shadow',
+    ground,
+    context.parts,
+    // The slab a body-less fallback keeps, so it still touches the ground.
+    {
+      centerX: entity.x + 0.5,
+      centerZ: entity.y + 0.5,
+      width: scale * 0.78,
+      depth: scale * 0.58,
+    },
+  );
   // Adapter characterization intentionally permits a unit-layer fallback
   // whose entityType is not a UnitType. Preserve the old shadow-only result
   // instead of inventing an archetype for malformed/legacy projections.
-  if (!profile) return context.parts;
+  if (!profile) return shadow();
   if (profile.role === 'villager' || profile.role === 'infantry' || profile.role === 'archer') {
     addHumanoidUnitParts(context, unitType, profile);
   } else if (profile.role === 'cavalry' || profile.role === 'cavalry-archer') {
@@ -75,5 +78,8 @@ export function createUnitParts(
   } else {
     addMonkUnitParts(context);
   }
+  // The shadow is cast from the REST pose, before the gait and attack poses
+  // move limbs: a swinging arm must not make the shadow flicker.
+  context.parts.push(...shadow());
   return animateUnitParts(context.parts, entity, animationState);
 }

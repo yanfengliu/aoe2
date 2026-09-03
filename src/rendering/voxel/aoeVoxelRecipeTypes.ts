@@ -38,6 +38,13 @@ export interface VoxelPart {
   readonly pitchHeadingRadians?: number;
   readonly roll?: number;
   readonly animation?: VoxelPartAnimation;
+  /** World-space horizontal edge vectors of a sheared ground slab (a cast
+   *  shadow's swept edge). When present the part is that parallelogram,
+   *  `height` thick, and yaw/pitch/roll do not apply. */
+  readonly groundAxes?: {
+    readonly x: { readonly x: number; readonly z: number };
+    readonly z: { readonly x: number; readonly z: number };
+  };
 }
 
 export const VOXEL_COLORS = {
@@ -206,34 +213,19 @@ function rotationZ(angle: number): Matrix3 {
   return [cosine, -sine, 0, sine, cosine, 0, 0, 0, 1];
 }
 
-export function contactShadow(
-  entity: ProjectedEntityView,
-  identity: string,
-  suffix: string,
-  centerX: number,
-  ground: number,
-  centerZ: number,
-  width: number,
-  depth: number,
-): VoxelPart[] {
-  if (entity.isMemory) return [];
-  return [makePart(
-    entity,
-    identity,
-    suffix,
-    'shadow',
-    VOXEL_COLORS.shadow,
-    centerX,
-    ground + 0.018,
-    centerZ,
-    width,
-    0.036,
-    depth,
-  )];
-}
-
-/** Column-major transform for a centred unit cube: translation * yaw * pitch * roll * scale. */
+/** Column-major transform for a centred unit cube: translation * yaw * pitch * roll * scale.
+ *  A part with `groundAxes` is a horizontal parallelogram instead: its X and
+ *  Z columns are the given edge vectors and rotation fields are ignored. */
 export function matrixForPart(part: VoxelPart): readonly number[] {
+  if (part.groundAxes) {
+    const { x: axisX, z: axisZ } = part.groundAxes;
+    return [
+      axisX.x, 0, axisX.z, 0,
+      0, part.height, 0, 0,
+      axisZ.x, 0, axisZ.z, 0,
+      part.centerX, part.centerY, part.centerZ, 1,
+    ];
+  }
   const yaw = part.yaw ?? 0;
   const pitch = part.pitch ?? 0;
   const roll = part.roll ?? 0;

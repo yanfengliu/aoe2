@@ -140,6 +140,29 @@ try {
   // through in between varied run to run, so a before/after pair could land
   // a second of game time apart (units, sheep and water moved) and the diff
   // was not confined to the change (2026-09-02, idle-bell captures).
+  // STYLE=moebius|painted captures under a chosen art style. The style is a
+  // localStorage preference with no URL form, so a sweep that only ever boots
+  // the default sees one of the two looks the game ships — and they differ in
+  // kind, not degree: Moebius quantises shading into tone bands, so it can hide
+  // or exaggerate a change Painted renders as a smooth gradient. Written before
+  // the first navigation so the renderer reads it at construction.
+  const style = process.env.STYLE ?? '';
+  if (style) {
+    if (style !== 'moebius' && style !== 'painted') {
+      throw new Error(
+        `STYLE selects the art style to capture under and must be "moebius" or "painted" `
+        + `(the two styles the game ships); got "${style}".`,
+      );
+    }
+    await page.addInitScript((chosen) => {
+      try {
+        window.localStorage.setItem('aoe2:art-style', chosen);
+      } catch {
+        // Storage disabled for the origin: the game falls back to its default
+        // style, so the capture is of that style rather than of nothing.
+      }
+    }, style);
+  }
   await page.addInitScript(() => {
     const timer = window.setInterval(() => {
       if (!window.__AOE2_TEST__) return;
@@ -195,6 +218,25 @@ try {
     }
   }
 
+  // GATHER="x,y" orders every unit the human owns to one cell before the TICKS
+  // run, so a capture can show a CROWD. Units share cells here (four villagers
+  // on one tile is ordinary), and a crowd is where per-entity ground art —
+  // shadows, selection rings, health bars — either composes or piles up; no
+  // boot capture reaches that state.
+  const gather = process.env.GATHER ?? '';
+  if (gather) {
+    const [gatherX, gatherY] = gather.split(',').map(Number);
+    if (!Number.isFinite(gatherX) || !Number.isFinite(gatherY)) {
+      throw new Error(`GATHER must be "x,y" world cells to send the human's units to; got "${gather}"`);
+    }
+    const gathered = await page.evaluate(([x, y]) => {
+      const api = window.__AOE2_TEST__;
+      const size = api.getMapSize();
+      if (!api.selectUnitsInBox(0, 0, size.width, size.height)) return 'no units selected';
+      return api.issueMoveCommand(x, y) ? 'ok' : 'move command rejected';
+    }, [gatherX, gatherY]);
+    if (gathered !== 'ok') throw new Error(`GATHER ${gather} failed: ${gathered}`);
+  }
   if (focus) {
     const [focusX, focusY] = focus.split(',').map(Number);
     if (!Number.isFinite(focusX) || !Number.isFinite(focusY)) {

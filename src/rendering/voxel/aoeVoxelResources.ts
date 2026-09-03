@@ -7,6 +7,7 @@ import type {
 import { MAX_ACTIVE_INSTANCE_ANIMATIONS_V1 } from 'voxel/core';
 import { DensePaletteChunk, meshVisibleFaces } from 'voxel/meshing';
 
+import { resolveShadowLevels } from './aoeVoxelCastShadows';
 import {
   compareParts,
   matrixForPart,
@@ -216,7 +217,12 @@ export function makePartBatches(
   const enabled = enabledAnimationKeys(parts);
   const batches: InstanceBatchV1[] = [];
   for (const surface of SURFACES) {
-    const surfaceParts = parts.filter((part) => part.surface === surface);
+    let surfaceParts = parts.filter((part) => part.surface === surface);
+    // Instances draw in array order. The translucent shadow lane is lifted
+    // onto per-caster depth levels and ordered top-down, so that where two
+    // casters' shadows overlap the lower slab fails the depth test: the pixel
+    // blends exactly once and the pair cannot z-fight into stripes.
+    if (surface === 'shadow') surfaceParts = resolveShadowLevels(surfaceParts);
     const staticParts = surfaceParts
       .filter((part) => !enabled.has(part.key))
       .map((part) => part.animation ? { ...part, animation: undefined } : part);

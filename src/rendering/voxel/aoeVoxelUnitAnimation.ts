@@ -362,6 +362,8 @@ function orientUnitParts(
   const rootX = entity.x + 0.5;
   const rootZ = entity.y + 0.5;
   return parts.map((part) => {
+    // The cast shadow falls away from the sun, not along the heading.
+    if (part.surface === 'shadow') return part;
     const offsetX = part.centerX - rootX;
     const offsetZ = part.centerZ - rootZ;
     return {
