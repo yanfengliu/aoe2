@@ -67,7 +67,10 @@ function applyReachCorrection(
   const lean = Math.min(Math.max(0, deficit), maxLean * scale) * lunge;
   if (!(lean > 1e-4)) return posed;
   return posed.map((part) => (
-    unitAttackRigControlsPart(rig, unitPartSuffix(part))
+    // A cast shadow is cast from the rest pose and never leans with a weapon;
+    // no rig's pattern matches a `*-shadow*` suffix today, so this guard is
+    // the rule rather than the accident of naming that was holding.
+    part.surface !== 'shadow' && unitAttackRigControlsPart(rig, unitPartSuffix(part))
       ? {
         ...part,
         centerX: part.centerX + state.directionX * lean,

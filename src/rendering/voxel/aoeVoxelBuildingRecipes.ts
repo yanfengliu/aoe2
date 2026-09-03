@@ -2,8 +2,8 @@ import type { BuildingType, ProjectedEntityView } from '../../game/simulation/ty
 import { buildingRole } from '../roles/buildingRole';
 import { construction, createBuildingDetailParts, damageFlames, monasteryFinial, townCenterCrown } from './aoeVoxelBuildingDetails';
 import { architectureDoorBoxes, architectureMerlonBoxes, architectureRoofGeometry, architectureRoofTint, architectureWallTint } from './aoeVoxelArchitecture';
+import { castShadowParts } from './aoeVoxelCastShadows';
 import {
-  contactShadow,
   makePart,
   mixTint,
   shade,
@@ -99,9 +99,6 @@ function steppedRoof(
   }
   return bottom + shapedLayers * layerHeight;
 }
-
-
-
 
 function townCenter(context: BuildingContext): void {
   add(context, 'town-center-plinth', 'matte', VOXEL_COLORS.stone, 0.5, 0, 0.5, 0.86, 0.18, 0.82);
@@ -461,11 +458,16 @@ export function createBuildingParts(
     depth,
     team: entity.tint,
     ...(entity.architecture ? { architecture: entity.architecture } : {}),
-    parts: [...contactShadow(entity, identity, 'building-shadow', entity.x + width / 2, ground, entity.y + depth / 2, width * 0.82, depth * 0.78)],
+    parts: [],
   };
+  // The sun-cast shadow comes from the finished body (scaffold or hall), so it is appended last.
+  const withShadow = (): VoxelPart[] => [
+    ...context.parts,
+    ...castShadowParts(entity, identity, 'building-shadow', ground, context.parts),
+  ];
   if (entity.visualVariant === 'construction') {
     construction(context);
-    return context.parts;
+    return withShadow();
   }
   switch (buildingRole(entity.entityType as BuildingType)) {
     // (role dispatch below; a 'damaged' building renders its normal body and
@@ -492,6 +494,6 @@ export function createBuildingParts(
   if (entity.visualVariant === 'damaged') {
     context.parts.push(...damageFlames(entity, identity, ground, width, depth));
   }
-  return context.parts;
+  return withShadow();
 }
 

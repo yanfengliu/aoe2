@@ -114,6 +114,19 @@ describe('AoE voxel unit recipe characterization', () => {
         targetDistance: 1.4,
       })),
       memory: digestParts(state(), true),
+      // Re-recorded 2026-09-02 for the sun-cast shadows (v0.3.193): every
+      // live unit's one contact slab became three shadow slabs, so all seven
+      // live digests moved and `memory` (which casts nothing) did not. Proved
+      // the slice first with a per-unit digest keyed by TYPE over the parts
+      // EXCLUDING the shadow surface: 93 units x 3 states, 279 of 279
+      // byte-identical, shadow parts 1 -> 3 for every one.
+      // Re-recorded again the same day, after review, when the caster box
+      // stopped sweeping mass BELOW the ground plane (a boot bottom sitting a
+      // hair under 0 shortened every unit's sweep) and `water` left the
+      // casting surfaces. Same proof: a digest over every unit, resource and
+      // building recipe's NON-shadow parts is byte-identical across the change
+      // (367b992ed23c2fc274261f2f4d9878d0b9c6ed25c6188ba35b9f67728c2a9169)
+      // while the shadow-only digest moves.
       // Re-recorded 2026-08-24 for the Missionary (v0.3.71: one additive
       // profile row plus the mounted-staff branch replacing its lance
       // fallback). Before that for the Trade Cog (v0.3.69, one additive
@@ -132,13 +145,13 @@ describe('AoE voxel unit recipe characterization', () => {
       // insertion shift every later unit's identity, which is why 56 units
       // first looked changed and none of them were.
     }).toEqual({
-      idle: '1468e1ab4d1c2ec1d4805ed1fd78f7395b6a4348621d4d90068948c0aa763f25',
-      locomotion: 'f7d823e055efebfbd39a3d076b5c6865fd55eb6486fa9aac45127ee21420d229',
-      builderWork: 'ccaa34289e92019affa72a163b6f37fd5a936a9c1254521e8f2fedb6e8d6b6ff',
-      attackCoil: '9c344bb614ae08c46dcde3d20ce4b2752efdb81f72704c9b02640c194e0041bf',
-      attackImpact: 'de63e347508096e722fe6c8bce8a0b37eb07baef55c0428a347edb34f77021ea',
-      attackSnap: '0986c963bac16e3b7db583f4a88e84f912b4f8fdd953afc44a649a9629aa8951',
-      attackRecovery: 'e545e6a596b95cc255ae250d2d26cb8130a6529fd7de94472f581bd189a38bc9',
+      idle: '98538ae2c013f29ef4b9895456b29565fc6d3a06b23ef61baa8add1c47f021c6',
+      locomotion: '8f87e9c21b4e92035dc4bdadf3bd5b17ccfc32c354263c82b257a32fc7d5dba9',
+      builderWork: '25940096ca372b524b646caf2b795c55c0f9691818f6a31c43d757a8b4ebef51',
+      attackCoil: '41eadc744b46562eefbdcd517ce2c3e545cd9b121bb7a6690b075a938dc78574',
+      attackImpact: '73824071a203bf5390795ff7f4cc32212a4c5153c20e401ef7f072993f22b4a7',
+      attackSnap: '2666e565c2a833e442ff651e2d27fb86f5054e97c78670513534a4174c837cd4',
+      attackRecovery: 'd6a37fe85193841be65cf5c052c99515c7fcf982c3d988d3dc48003176a6212d',
       memory: 'd0f5d53c2ee044c3e80e7fff8250d58fbd49a2dd4f44bc606dc3fd04450ca46a',
     });
   });

@@ -239,7 +239,7 @@ function deathParts(frame: ProjectedFrameView | null): VoxelPart[] {
       isMemory: false,
     } as unknown as ProjectedEntityView;
     const body = staticVoxelPartsForEntity(corpseView, prefix)
-      // The recipe's contact shadow makes no sense under a toppling body,
+      // The recipe's cast shadow makes no sense under a toppling body,
       // and a dying soldier DROPS his gear — a spear riding the fall reads
       // as a flying plank (the first capture proved it), so weapons, tools,
       // and shields vanish with the killing blow.

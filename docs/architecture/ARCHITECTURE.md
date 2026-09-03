@@ -187,6 +187,14 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     frame measurement it was chosen against. Style is never world state and
     never enters a save. `rendering/voxel/` owns the sole world adapter,
     procedural art, feedback parts, and Three runtime integration.
+    `aoeVoxelDaylight.ts` is the one source for the daylight rig the renderer
+    hands to the runtime AND for the sun projection `aoeVoxelCastShadows.ts`
+    draws every entity's ground shadow from: one mass box per caster, three
+    non-overlapping slabs on the translucent shadow lane. That file also owns
+    the lane's draw heights — a per-cell level, plus `resolveShadowLevels`,
+    the whole-lane pass that lifts casters the cell rule cannot separate
+    (two in one cell) — and `aoeVoxelResources.ts` runs it while batching, so
+    two overlapping shadows never rasterise at one height.
     `AoeVoxelPresentationCoordinator.ts` converts displayed bridge and
     interaction state into snapshots, draws unit roots through the
     displayed-position smoother (`rendering/displayedPositionSmoother.ts`: the

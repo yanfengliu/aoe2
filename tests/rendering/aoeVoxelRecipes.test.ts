@@ -177,6 +177,12 @@ describe('AoE voxel unit recipes', () => {
     for (let index = 0; index < east.length; index += 1) {
       const eastPart = east[index]!;
       const southPart = south[index]!;
+      if (eastPart.surface === 'shadow') {
+        // The cast shadow falls away from the sun, whichever way the unit
+        // faces: it is the one part that must NOT turn with the heading.
+        expect(southPart).toEqual(eastPart);
+        continue;
+      }
       const eastMatrix = matrixForPart(eastPart);
       const southMatrix = matrixForPart(southPart);
       expect(southPart.centerX - rootX).toBeCloseTo(-(eastPart.centerZ - rootZ));

@@ -431,7 +431,9 @@ describe('specialized unit adapter parity', () => {
       }
 
       expect(prepared.parts.map((part) => part.key).sort()).toEqual(
-        [...presented.keys()].filter((key) => key.startsWith('91:4:') && !key.endsWith(':unit-shadow')).sort(),
+        // Every slab of the cast shadow (foot and both sweeps) is presented
+        // but never picked.
+        [...presented.keys()].filter((key) => key.startsWith('91:4:') && !key.includes(':unit-shadow')).sort(),
       );
       for (const preparedPart of prepared.parts) {
         const presentedMatrix = presented.get(preparedPart.key);

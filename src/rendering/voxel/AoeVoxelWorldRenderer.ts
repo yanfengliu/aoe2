@@ -14,6 +14,7 @@ import { readArtStylePreference } from '../artStylePreference';
 import type { CameraState } from '../viewTypes';
 import { cameraStateToVoxelView } from './aoeCameraSync';
 import { AoeVoxelAdapter } from './aoeVoxelAdapter';
+import { AOE_DAYLIGHT } from './aoeVoxelDaylight';
 import type { AoeVoxelOverlayInput } from './aoeVoxelOverlayParts';
 import type { AoeUnitMotionHistory } from './aoeVoxelUnitAnimation';
 import { matrixForPart } from './aoeVoxelRecipeTypes';
@@ -100,14 +101,9 @@ export class AoeVoxelWorldRenderer {
       stylizedResolve: artStyleById(this.artStyle).resolve ?? undefined,
       tileWidthPixels: 64,
       tileHeightPixels: 32,
-      daylight: {
-        skyColor: 0xcfe7f1,
-        groundColor: 0x4a3826,
-        fillIntensity: 1.45,
-        sunColor: 0xffdfa3,
-        sunIntensity: 2.65,
-        sunOffset: { x: -22, y: 36, z: -18 },
-      },
+      // Shared with the cast-shadow projector, so the sun that lights a roof
+      // is the sun its shadow falls away from.
+      daylight: AOE_DAYLIGHT,
       rendererParameters: {
         alpha: true,
         antialias: true,

@@ -1,6 +1,6 @@
 import type { ProjectedEntityView, ResourceKind } from '../../game/simulation/types';
+import { castShadowParts } from './aoeVoxelCastShadows';
 import {
-  contactShadow,
   hash01,
   makePart,
   shade,
@@ -325,14 +325,14 @@ function farm(context: ResourceContext): void {
 // it reads as dead at default zoom, for as long as the simulation keeps its
 // gatherable corpse. Render-only — the part SET is unchanged (the hit
 // silhouette derives from these same parts), every part stays inside the
-// footprint cell, and the ground shadow stays planted.
+// footprint cell, and the cast shadow is taken from the felled body, so a
+// carcass throws a low shadow rather than a standing animal's.
 const CARCASS_ROLL = Math.PI / 2;
 
 function fellWildlifeParts(parts: VoxelPart[], entity: ProjectedEntityView): VoxelPart[] {
   const rootX = entity.x + 0.5;
   const rootZ = entity.y + 0.5;
   return parts.map((part) => {
-    if (part.surface === 'shadow') return part;
     // Rotate the body about the root's forward axis: height becomes lateral
     // spread and the mass settles at ground level.
     const localY = part.centerY;
@@ -360,7 +360,7 @@ export function createResourceParts(
     centerX: entity.x + 0.5,
     centerZ: entity.y + 0.5,
     scale,
-    parts: [...contactShadow(entity, identity, 'resource-shadow', entity.x + 0.5, ground, entity.y + 0.5, scale * 0.88, scale * 0.64)],
+    parts: [],
   };
   switch (entity.entityType as ResourceKind) {
     case 'tree': tree(context); break;
@@ -375,7 +375,8 @@ export function createResourceParts(
     case 'relic': relic(context); break;
     case 'farm': farm(context); break;
   }
-  return entity.wildlifeAlive === false
+  const body = entity.wildlifeAlive === false
     ? fellWildlifeParts(context.parts, entity)
     : context.parts;
+  return [...body, ...castShadowParts(entity, identity, 'resource-shadow', ground, body)];
 }

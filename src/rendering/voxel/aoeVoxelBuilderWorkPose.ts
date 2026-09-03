@@ -81,7 +81,7 @@ const WORK_PART_PATTERN = /(tool|arm-left|arm-right|apron)/u;
  * parts the attack pose owns, about the same tool pivot, so the two channels
  * never fight: the caller runs this only when the unit is stationary, is
  * building, and has no attack pose active. Roots, boots, legs, and the
- * contact shadow never move.
+ * cast shadow never move.
  */
 export function poseBuilderWorkParts(
   parts: readonly VoxelPart[],
