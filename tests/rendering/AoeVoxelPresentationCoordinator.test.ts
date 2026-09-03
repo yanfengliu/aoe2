@@ -106,25 +106,32 @@ describe('AoeVoxelPresentationCoordinator displayed positions', () => {
     expect(presented()[0]).toMatchObject({ x: 5, y: 4 });
   });
 
-  it('snaps to the sim position when the host coalesces several ticks into one sync, then resumes from there', () => {
+  it('keeps gliding when the host coalesces several ticks into one sync', () => {
     // The live frame loop coalesces up to 2.5 ticks a frame (250 ms bound; 5
-    // at double speed) and the test API's advanceTicks(N) any number. Where
-    // the steps inside the gap landed is unknown, so the gap snaps — the old
-    // adjacent-tick rule, kept — and motion resumes from the snapped root.
+    // at double speed) and the test API's advanceTicks(N) any number — and on
+    // a machine drawing slower than 10 fps, EVERY frame does. A gap is
+    // bracketed by two observed sim positions, so it is ordinary walking seen
+    // at its endpoints, not a discontinuity: the drawn root keeps its history
+    // and keeps gliding, still trailing the sim. Snapping here was the first
+    // cut's defect and it stood the picture still on exactly those machines
+    // (v0.3.192; only a jump past 1.5 tiles or a rewind snaps now).
     const { coordinator, set, presented } = harness(renderState(0, 1));
     coordinator.syncFromBridge(true);
     set(renderState(1, 1.25), 0.5);
     coordinator.syncFromBridge();
-    expect(presented()[0]!.x).toBeLessThan(1.25);
+    const beforeGap = presented()[0]!.x;
+    expect(beforeGap).toBeLessThan(1.25);
 
     set(renderState(4, 2), 0.5);
     coordinator.syncFromBridge();
-    expect(presented()[0]).toMatchObject({ x: 2, y: 4 });
+    const acrossGap = presented()[0]!.x;
+    expect(acrossGap).toBeGreaterThan(beforeGap);
+    expect(acrossGap).toBeLessThan(2);
 
     set(renderState(5, 2.25), 0.5);
     coordinator.syncFromBridge();
     const resumed = presented()[0]!.x;
-    expect(resumed).toBeGreaterThan(2);
+    expect(resumed).toBeGreaterThan(acrossGap);
     expect(resumed).toBeLessThan(2.25);
   });
 

@@ -40,9 +40,11 @@ export class RenderStore {
     if (this.initialized && nextTick < this.tick) {
       // A rewind (replay scrub, rollback): the suppression ledger belongs to
       // the timeline being left. The prior-tick position frame that display
-      // interpolation once read was captured here too; since v0.3.187 the
+      // interpolation once read was captured here too; since v0.3.192 the
       // presentation keeps its own per-unit history (displayedPositionSmoother)
-      // under the same visible-last-tick rule, so the store no longer does.
+      // under its own version of that rule — visible in the previously
+      // PRESENTED frame rather than the previous tick, which a frame that
+      // coalesces ticks makes strictly weaker — so the store no longer does.
       this.suppressedAttackAnimationTicks.clear();
     }
 

@@ -50,3 +50,54 @@ export function displayDelayTicksFor(
   }
   return unitStepCadenceTicks(entity.entityType);
 }
+
+/** Whole-cell movers: the sim relocates these a full CELL at a time rather
+ *  than a quarter-tile fine step, so one tick of theirs is one diagonal cell.
+ *  Enumerated from every `setPositionAndSyncOccupancy` call site rather than
+ *  from memory, because the list is the whole correctness of the ceiling
+ *  below: a fleeing deer (`deerFleeSystem`), a charging boar or wolf
+ *  (`wildlifeCombatSystem`, every tick), and a RELIC being carried by a monk
+ *  — `monkBehaviorSystem` puts it on the monk's integer CELL, not the monk's
+ *  fine transform, so it moves a whole cell every time the monk crosses a
+ *  boundary while the monk beside it glides. A sheep is NOT one: it takes a
+ *  single subgrid step (`SHEEP_SUBGRID_STEP_PER_TICK` = one quarter tile)
+ *  every sixth tick through `moveUnitOneSubgridStep`, so it belongs with the
+ *  units. Its cadence is still its own — that is `displayDelayTicksFor`. */
+const WHOLE_CELL_MOVERS = new Set(['deer', 'boar', 'wolf', 'relic']);
+/** The furthest one tick of simulation can move a whole-cell mover: a
+ *  diagonal cell, plus slack. */
+export const WHOLE_CELL_TILES_PER_TICK = 1.5;
+/** The furthest one tick can move anything else, and it is PROVABLE rather
+ *  than observed. `movementTechEffects.moveCarryCapHundredths(perTick)` is
+ *  `max(100 + perTick, round(perTick * 1.5))`, so a tick can grant at most
+ *  `floor((cap + perTick) / 100)` fine steps; sweeping every unit type in
+ *  `unitBaseSpeed` against every movement-technology multiplier, the worst is
+ *  the Demolition Ship at 260% (200% base, Dry Dock and then some) earning 83
+ *  hundredths a tick, which grants TWO fine steps — half a tile — and nothing
+ *  in the game grants three. The other unit movers are further inside it: a
+ *  path corner and an occupancy recentre are one fine step each (0.354
+ *  diagonal), the AI scout's wander is `wanderStepUnits = 1` (0.354), and a
+ *  blocked unit freed after banking is still the carry cap's two steps. 0.75
+ *  is the worst of those with 50% of slack. ONE INVARIANT holds it up and is
+ *  named here because nothing else names it: `scoutMovementSystem`'s legacy
+ *  branch for a unit with NO `unitTransform` steps a whole cell per tick, and
+ *  it is unreachable only because `entityCreateOps` gives every unit a
+ *  transform at creation. A unit that could reach that branch would belong
+ *  above, not here. */
+export const UNIT_TILES_PER_TICK = 0.75;
+
+/** How far this entity's own simulation can move it in ONE tick, which is
+ *  what makes a longer move a teleport rather than a step. The renderer's
+ *  displayed-position smoother is the only caller: it snaps a sample that is
+ *  further from the last one than the gap between them could have carried it,
+ *  and a single global bound cannot serve both a villager (half a tile a tick
+ *  at its absolute fastest) and a charging wolf (a whole diagonal cell every
+ *  tick) — a bound loose enough for the wolf lets a villager slide seven
+ *  tiles across a five-tick frame. */
+export function maxTilesPerTickFor(
+  entity: Pick<ProjectedEntityView, 'kind' | 'entityType'>,
+): number {
+  return entity.kind === 'resource' && WHOLE_CELL_MOVERS.has(entity.entityType)
+    ? WHOLE_CELL_TILES_PER_TICK
+    : UNIT_TILES_PER_TICK;
+}

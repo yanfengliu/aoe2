@@ -140,11 +140,13 @@ export function createAoeVoxelPresentationCoordinator(
   let lastSelectionKey = '';
   // Where each live unit is DRAWN: the sim's sampled trajectory replayed a
   // step cadence behind, so a walk reads as continuous motion rather than the
-  // move-and-stop pulse of blending only adjacent ticks (v0.3.187). The
+  // move-and-stop pulse of blending only adjacent ticks (v0.3.192). The
   // smoother keeps its own per-unit history, under the rule the render
   // store's prior-position frame used to enforce: a unit absent from the
-  // previously presented tick, or a presentation that skipped a tick, starts
-  // fresh at the sim position.
+  // previously presented tick starts fresh at the sim position. A frame that
+  // COALESCED several ticks does not — a forward gap is bracketed by two
+  // observed sim positions, so it is ordinary walking seen at its endpoints
+  // and it glides, bounded by the smoother's own 1.5-tile distance guard.
   const smoother = createDisplayedPositionSmoother();
   let displayedEntities: ProjectedEntityView[] = [];
   let hasCenteredOnBase = false;
