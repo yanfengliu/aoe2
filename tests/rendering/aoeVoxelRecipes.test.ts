@@ -8,6 +8,7 @@ import {
   type VoxelPart,
 } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 import { createTerrainDetailParts } from '../../src/rendering/voxel/aoeVoxelTerrain';
+import { MAX_SHADOW_PIECES } from '../../src/rendering/voxel/aoeVoxelShadowShape';
 import { createUnitParts } from '../../src/rendering/voxel/aoeVoxelUnitRecipes';
 
 const TEAM_BLUE = 0x3568c0;
@@ -40,9 +41,15 @@ function suffixes(parts: readonly VoxelPart[]): string[] {
   return parts.map((part) => part.key.split(':').slice(2).join(':'));
 }
 
+/** `min`/`max` bound the recipe's own DETAIL — the solid parts. The cast
+ *  shadow's piece count is the silhouette's business and is bounded on its
+ *  own by `MAX_SHADOW_PIECES`, because it follows the caster's shape rather
+ *  than the recipe's part list. */
 function expectValidParts(parts: readonly VoxelPart[], min: number, max: number): void {
-  expect(parts.length).toBeGreaterThanOrEqual(min);
-  expect(parts.length).toBeLessThanOrEqual(max);
+  const solid = parts.filter((part) => part.surface !== 'shadow');
+  expect(solid.length).toBeGreaterThanOrEqual(min);
+  expect(solid.length).toBeLessThanOrEqual(max);
+  expect(parts.length - solid.length).toBeLessThanOrEqual(MAX_SHADOW_PIECES);
   expect(new Set(parts.map((part) => part.key)).size).toBe(parts.length);
   for (const part of parts) {
     expect([part.centerX, part.centerY, part.centerZ, part.width, part.height, part.depth]

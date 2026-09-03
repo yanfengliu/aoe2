@@ -203,10 +203,15 @@ describe('resource visual variation (spec §14.5)', () => {
     });
 
     it(`keeps the ${kind} part SET identical (hit silhouette source unchanged)`, () => {
+      // Scoped to the SOLID parts, which are what the hit proxy reads. Two
+      // cells vary the same resource's proportions, and the cast shadow is
+      // that shape's silhouette, so its piece count is allowed to differ.
       const suffixes = (x: number, y: number) => parts(kind, x, y)
+        .filter((part) => part.surface !== 'shadow')
         .map((part) => part.key.slice(part.key.lastIndexOf(':') + 1))
         .sort();
       expect(suffixes(3, 4)).toEqual(suffixes(9, 2));
+      expect(parts(kind, 3, 4).some((part) => part.surface === 'shadow')).toBe(true);
     });
 
     it(`bounds ${kind} height variation so silhouettes stay readable`, () => {

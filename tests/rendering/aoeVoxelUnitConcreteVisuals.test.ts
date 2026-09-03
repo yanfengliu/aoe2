@@ -6,6 +6,7 @@ import { AoeVoxelAdapter } from '../../src/rendering/voxel/aoeVoxelAdapter';
 import { voxelPartWorldCorners } from '../../src/rendering/voxel/aoeVoxelGeometry';
 import type { AoeUnitAnimationState } from '../../src/rendering/voxel/aoeVoxelUnitAnimation';
 import { matrixForPart, type VoxelPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
+import { MAX_SHADOW_PIECES } from '../../src/rendering/voxel/aoeVoxelShadowShape';
 import { createUnitParts } from '../../src/rendering/voxel/aoeVoxelUnitRecipes';
 
 interface WeaponExpectation {
@@ -272,7 +273,13 @@ describe('concrete unit visual recipes', () => {
       const rootZ = entity.y + 0.5;
 
       expect(repeat, unitType).toEqual(idle);
-      expect(idle.length, unitType).toBeLessThanOrEqual(32);
+      // Bounded separately: the body's detail budget, and the cast shadow's
+      // silhouette budget (`MAX_SHADOW_PIECES`).
+      expect(visible.length, unitType).toBeLessThanOrEqual(32);
+      expect(
+        idle.length - visible.length,
+        unitType,
+      ).toBeLessThanOrEqual(MAX_SHADOW_PIECES);
       expect(new Set(keys).size, unitType).toBe(keys.length);
       expect(suffixes(moving), unitType).toEqual(suffixes(idle));
       expect(suffixes(attacking), unitType).toEqual(suffixes(idle));
@@ -297,7 +304,9 @@ describe('concrete unit visual recipes', () => {
       targetDistance: 1.25,
     }));
 
-    expect(suffixes(parts)).toEqual(['unit-shadow']);
+    expect(parts.every((part) => part.surface === 'shadow')).toBe(true);
+    expect(suffixes(parts).every((suffix) => /^unit-shadow(-\d+)?$/.test(suffix))).toBe(true);
+    expect(suffixes(parts)).toContain('unit-shadow');
     expect(parts[0]?.animation).toBeUndefined();
   });
 

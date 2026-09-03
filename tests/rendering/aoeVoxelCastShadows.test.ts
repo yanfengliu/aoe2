@@ -1,18 +1,15 @@
-// Sun-cast ground shadows (v0.3.193): the contract of what a caster throws
-// on the ground, where, and how overlapping shadows are kept to one layer.
+// The SHAPE half of sun-cast ground shadows: what silhouette a caster throws
+// on the ground, and that it is the caster's own shape rather than a
+// rectangle. The DEPTH half is `aoeVoxelShadowLayering.test.ts`.
 import { describe, expect, it } from 'vitest';
 
 import type { ProjectedEntityView, UnitType } from '../../src/game/simulation/types';
 import { createBuildingParts } from '../../src/rendering/voxel/aoeVoxelBuildingRecipes';
 import {
   castShadowParts,
-  compareShadowDrawOrder,
-  resolveShadowLevels,
   SHADOW_LEVEL_STEP,
   SHADOW_LEVELS,
   SHADOW_SLAB_THICKNESS,
-  shadowCasterBox,
-  shadowLevel,
 } from '../../src/rendering/voxel/aoeVoxelCastShadows';
 import {
   AOE_DAYLIGHT,
@@ -22,7 +19,10 @@ import {
 import { voxelPartWorldCorners } from '../../src/rendering/voxel/aoeVoxelGeometry';
 import { matrixForPart, type VoxelPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 import { createResourceParts } from '../../src/rendering/voxel/aoeVoxelResourceRecipes';
-import { makePartBatches } from '../../src/rendering/voxel/aoeVoxelResources';
+import {
+  shadowCasterBands,
+  type ShadowCasterBand,
+} from '../../src/rendering/voxel/aoeVoxelShadowShape';
 import { createUnitParts } from '../../src/rendering/voxel/aoeVoxelUnitRecipes';
 
 function entity(overrides: Partial<ProjectedEntityView>): ProjectedEntityView {
@@ -63,18 +63,7 @@ function tree(x: number, y: number, overrides: Partial<ProjectedEntityView> = {}
   return entity({ kind: 'resource', layer: 'resource', entityType: 'tree', x, y, ...overrides });
 }
 
-/** The caster a slab belongs to — the same rule production groups by. */
-function ownerOf(part: VoxelPart): string {
-  return part.key.slice(0, part.key.lastIndexOf(':'));
-}
 
-function groundFootprint(part: VoxelPart) {
-  const corners = voxelPartWorldCorners(part);
-  return {
-    x0: Math.min(...corners.map((c) => c.x)), x1: Math.max(...corners.map((c) => c.x)),
-    z0: Math.min(...corners.map((c) => c.z)), z1: Math.max(...corners.map((c) => c.z)),
-  };
-}
 
 function shadows(parts: readonly VoxelPart[]): VoxelPart[] {
   return parts.filter((part) => part.surface === 'shadow');
@@ -84,45 +73,108 @@ function solids(parts: readonly VoxelPart[]): VoxelPart[] {
   return parts.filter((part) => part.surface !== 'shadow');
 }
 
-/** Whether the slab's ground footprint contains the point (its horizontal
- *  axes may be sheared, so solve for the local coordinates). */
+
+/** Whether the wedge's ground TRIANGLE contains the point. The wedge's local
+ *  footprint is the half of the unit square below its diagonal, so the local
+ *  coordinates must also sum to at most one. */
 function coversGround(part: VoxelPart, px: number, pz: number): boolean {
   const m = matrixForPart(part);
   const ax = m[0]!; const az = m[2]!;
   const bx = m[8]!; const bz = m[10]!;
   const det = ax * bz - bx * az;
   const dx = px - m[12]!; const dz = pz - m[14]!;
-  const a = (dx * bz - bx * dz) / det;
-  const c = (ax * dz - az * dx) / det;
-  return Math.abs(a) <= 0.5 && Math.abs(c) <= 0.5;
+  const a = (dx * bz - bx * dz) / det + 0.5;
+  const c = (ax * dz - az * dx) / det + 0.5;
+  const eps = 1e-9;
+  return a > eps && c > eps && a + c < 1 - eps;
 }
 
 function coverage(parts: readonly VoxelPart[], px: number, pz: number): number {
   return shadows(parts).filter((part) => coversGround(part, px, pz)).length;
 }
 
-/** The exact swept-box shadow predicate, with the box grown (`margin` > 0)
- *  or shrunk (`margin` < 0) so edge samples are not disputed. */
-function inSweptShadow(
-  box: { x0: number; x1: number; z0: number; z1: number; y0: number; y1: number },
+/** The exact swept shadow of a caster's bands, with each band grown
+ *  (`margin` > 0) or shrunk (`margin` < 0) so edge samples are not disputed.
+ *  Marching the sun ray is the independent check: it never touches the
+ *  silhouette tiling's own envelope maths. */
+function inBandShadow(
+  bands: readonly ShadowCasterBand[],
   px: number,
   pz: number,
   margin: number,
 ): boolean {
   const v = SHADOW_PROJECTION;
   const steps = 400;
-  const lo = box.y0 - margin;
-  const hi = box.y1 + margin;
-  for (let i = 0; i <= steps; i += 1) {
-    const t = lo + (hi - lo) * (i / steps);
-    const x = px - v.x * t;
-    const z = pz - v.z * t;
-    if (
-      x >= box.x0 - margin && x <= box.x1 + margin
-      && z >= box.z0 - margin && z <= box.z1 + margin
-    ) return true;
+  for (const band of bands) {
+    const lo = band.lift - margin;
+    const hi = band.lift + band.height + margin;
+    for (let i = 0; i <= steps; i += 1) {
+      const t = lo + (hi - lo) * (i / steps);
+      if (t < 0) continue;
+      const x = px - v.x * t;
+      const z = pz - v.z * t;
+      if (
+        x >= band.x0 - margin && x <= band.x1 + margin
+        && z >= band.z0 - margin && z <= band.z1 + margin
+      ) return true;
+    }
   }
   return false;
+}
+
+/** Width of the drawn shadow ACROSS the sun ray, at `along` of the way along
+ *  it. Measured in the sun's own frame, because that is the only frame where
+ *  a swept box has a constant width and a shape-matched shadow does not. */
+function crossWidth(
+  parts: readonly VoxelPart[],
+  bands: readonly ShadowCasterBand[],
+  along: number,
+): number {
+  const reach = Math.hypot(SHADOW_PROJECTION.x, SHADOW_PROJECTION.z);
+  const forward = { x: SHADOW_PROJECTION.x / reach, z: SHADOW_PROJECTION.z / reach };
+  const across = { x: -forward.z, z: forward.x };
+  const corners = bands.flatMap((band) => [band.x0, band.x1].flatMap(
+    (x) => [band.z0, band.z1].flatMap((z) => [
+      { u: x * across.x + z * across.z, w: x * forward.x + z * forward.z + band.lift * reach },
+      {
+        u: x * across.x + z * across.z,
+        w: x * forward.x + z * forward.z + (band.lift + band.height) * reach,
+      },
+    ]),
+  ));
+  const w = Math.min(...corners.map((corner) => corner.w))
+    + along * (Math.max(...corners.map((corner) => corner.w))
+      - Math.min(...corners.map((corner) => corner.w)));
+  const uLo = Math.min(...corners.map((corner) => corner.u)) - 0.5;
+  const uHi = Math.max(...corners.map((corner) => corner.u)) + 0.5;
+  let lo = Number.POSITIVE_INFINITY;
+  let hi = Number.NEGATIVE_INFINITY;
+  for (let u = uLo; u <= uHi; u += 0.004) {
+    const px = u * across.x + w * forward.x;
+    const pz = u * across.z + w * forward.z;
+    if (coverage(parts, px, pz) > 0) { lo = Math.min(lo, u); hi = Math.max(hi, u); }
+  }
+  return hi > lo ? hi - lo : 0;
+}
+
+function bandsFootprint(bands: readonly ShadowCasterBand[]) {
+  return {
+    x0: Math.min(...bands.map((band) => band.x0)),
+    x1: Math.max(...bands.map((band) => band.x1)),
+    z0: Math.min(...bands.map((band) => band.z0)),
+    z1: Math.max(...bands.map((band) => band.z1)),
+  };
+}
+
+/** The THREE ground corners of a shadow wedge. `voxelPartWorldCorners` gives
+ *  the enclosing box, whose fourth ground corner is outside the triangle, so
+ *  a reach measured from it overstates by the full sweep. */
+function triangleCorners(part: VoxelPart): { x: number; z: number }[] {
+  const m = matrixForPart(part);
+  return [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5]].map(([lx, lz]) => ({
+    x: m[0]! * lx! + m[8]! * lz! + m[12]!,
+    z: m[2]! * lx! + m[10]! * lz! + m[14]!,
+  }));
 }
 
 describe('cast shadow projection', () => {
@@ -140,90 +192,195 @@ describe('cast shadow projection', () => {
 });
 
 describe('cast shadow shape', () => {
-  it('tiles the swept footprint of a house with three non-overlapping slabs', () => {
+  it('tiles the swept silhouette of a house without gaps or double cover', () => {
     const parts = createBuildingParts(house(), '60:1', 0);
     const slabs = shadows(parts);
-    expect(slabs.map((part) => part.key.split(':').at(-1))).toEqual([
-      'building-shadow', 'building-shadow-sweep-x', 'building-shadow-sweep-z',
-    ]);
+    expect(slabs.length).toBeGreaterThan(2);
+    expect(slabs[0]!.key).toBe('60:1:building-shadow');
+    const bands = shadowCasterBands(solids(parts), 0);
+    expect(bands.length).toBeGreaterThan(1);
+    // Two layers: the ground, and the top of the plinth this house stands on.
+    const heights = [...new Set(slabs.map((slab) => slab.centerY))].sort((a, b) => a - b);
+    expect(heights).toHaveLength(2);
+    expect(heights[1]! - heights[0]!).toBeCloseTo(bands[0]!.lift + bands[0]!.height, 10);
     for (const slab of slabs) {
       expect(slab.height).toBeCloseTo(SHADOW_SLAB_THICKNESS, 10);
       // As EMITTED, before the lane is resolved: the recipe's own cell level,
       // which is always one of the nine. `resolveShadowLevels` may lift it
       // past the band later, and does in a dense crowd.
-      expect(slab.centerY).toBeGreaterThanOrEqual(SHADOW_SLAB_THICKNESS / 2);
-      expect(slab.centerY).toBeLessThan(SHADOW_SLAB_THICKNESS / 2 + SHADOW_LEVELS * SHADOW_LEVEL_STEP);
+      expect(heights[0]!).toBeGreaterThanOrEqual(SHADOW_SLAB_THICKNESS / 2);
+      expect(heights[0]!).toBeLessThan(SHADOW_SLAB_THICKNESS / 2 + SHADOW_LEVELS * SHADOW_LEVEL_STEP);
     }
-    const box = shadowCasterBox(solids(parts))!;
-    expect(box.y0).toBeCloseTo(0, 6);
-    expect(box.y1).toBeGreaterThan(0.8);
+    // The ground layer is the one that must tile the whole silhouette. The
+    // plinth layer sits above it and is checked on its own below; the plinth
+    // is opaque, so the ground layer under it is never blended.
+    const groundLayer = slabs.filter((slab) => slab.centerY === heights[0]!);
     let inside = 0;
-    for (let px = 3; px <= 7; px += 0.04) {
-      for (let pz = 5; pz <= 9; pz += 0.04) {
-        const count = coverage(parts, px, pz);
+    // Offsets keep samples off the recipe's own rational lattice, where a
+    // sample can land EXACTLY on the diagonal two triangles share — which no
+    // strict inside-test can attribute to either, and which the rasteriser's
+    // fill rule settles at draw time.
+    for (let px = 3.0137; px <= 8; px += 0.04) {
+      for (let pz = 5.0071; pz <= 10; pz += 0.04) {
+        const count = coverage(groundLayer, px, pz);
         expect(count, `double shadow at ${String(px)},${String(pz)}`).toBeLessThanOrEqual(1);
-        if (inSweptShadow(box, px, pz, -0.03)) {
+        if (inBandShadow(bands, px, pz, -0.05)) {
           expect(count, `hole at ${String(px)},${String(pz)}`).toBe(1);
           inside += 1;
-        } else if (!inSweptShadow(box, px, pz, 0.03)) {
+        } else if (!inBandShadow(bands, px, pz, 0.06)) {
           expect(count, `stray shadow at ${String(px)},${String(pz)}`).toBe(0);
         }
       }
     }
     expect(inside).toBeGreaterThan(200);
     // The sweep reaches beyond the footprint toward +x,+z only.
-    expect(coverage(parts, box.x1 + 0.3, box.z1 + 0.25)).toBe(1);
-    expect(coverage(parts, box.x0 - 0.1, box.z0 - 0.1)).toBe(0);
+    const ground = bandsFootprint(bands);
+    expect(coverage(groundLayer, ground.x1 + 0.3, ground.z1 + 0.25)).toBe(1);
+    expect(coverage(groundLayer, ground.x0 - 0.1, ground.z0 - 0.1)).toBe(0);
   });
 
-  it('casts from the mass of a Town Center, not its tower or flag pole', () => {
+  it('lands a building’s own shadow on the plinth it stands on', () => {
+    // Almost every building here sits on a plinth wider than its walls, and
+    // the sun is 52 degrees up, so the WHOLE of a building's shadow falls
+    // inside its own plinth. Drawing shadows on the ground alone left the
+    // largest objects in the game with none at all — measured on the Town
+    // Center: 0.82 tiles of shadow beyond a 3.44 tile plinth.
     const parts = createBuildingParts(entity({
-      kind: 'building',
-      layer: 'building',
-      entityType: 'town-center',
-      visualVariant: 'complete',
-      footprintWidth: 4,
-      footprintHeight: 4,
+      kind: 'building', layer: 'building', entityType: 'town-center',
+      visualVariant: 'complete', footprintWidth: 4, footprintHeight: 4,
+    }), '62:1', 0);
+    const bands = shadowCasterBands(solids(parts), 0);
+    const plinth = bands[0]!;
+    const slabs = shadows(parts);
+    const heights = [...new Set(slabs.map((slab) => slab.centerY))].sort((a, b) => a - b);
+    expect(heights).toHaveLength(2);
+    const onPlinth = slabs.filter((slab) => slab.centerY === heights[1]!);
+    expect(onPlinth.length).toBeGreaterThan(0);
+    // It sits on the plinth's top face, not on the ground.
+    expect(heights[1]! - heights[0]!).toBeCloseTo(plinth.lift + plinth.height, 10);
+    // Every corner of it is inside the plinth: past that edge the shadow
+    // belongs to the ground layer, and a piece drawn here would float.
+    for (const corner of onPlinth.flatMap(triangleCorners)) {
+      expect(corner.x).toBeGreaterThanOrEqual(plinth.x0 - 1e-6);
+      expect(corner.x).toBeLessThanOrEqual(plinth.x1 + 1e-6);
+      expect(corner.z).toBeGreaterThanOrEqual(plinth.z0 - 1e-6);
+      expect(corner.z).toBeLessThanOrEqual(plinth.z1 + 1e-6);
+    }
+    // ...and it covers a real part of the plinth rather than a sliver.
+    let covered = 0;
+    for (let px = plinth.x0 + 0.0137; px <= plinth.x1; px += 0.05) {
+      for (let pz = plinth.z0 + 0.0071; pz <= plinth.z1; pz += 0.05) {
+        const hits = coverage(onPlinth, px, pz);
+        expect(hits, `double shadow on the plinth at ${String(px)},${String(pz)}`).toBeLessThanOrEqual(1);
+        covered += hits;
+      }
+    }
+    expect(covered).toBeGreaterThan(200);
+  });
+
+  it('leaves a caster with no exposed pad on one layer', () => {
+    // A tree's trunk is the lowest band, and nothing stands exposed on top of
+    // it, so a second layer would draw a patch inside the crown that no one
+    // can see. The rule is the pad's own geometry: short, and wider in plan
+    // than the mass above it.
+    const parts = createResourceParts(tree(4, 6), '8:9', 0);
+    expect(new Set(shadows(parts).map((slab) => slab.centerY)).size).toBe(1);
+    const villager = createUnitParts(entity({ entityType: 'villager' }), '7:9', 0);
+    expect(new Set(shadows(villager).map((slab) => slab.centerY)).size).toBe(1);
+  });
+
+  it('follows a recipe shape change with no shadow-side edit', () => {
+    // The standing requirement: the shadow is DERIVED, never authored beside
+    // the shape. Nothing in the shadow code names a part, so raising a body
+    // moves the shadow that body throws — and a recipe that grows a taller
+    // roof next year gets a longer shadow for free.
+    const body = (height: number): VoxelPart[] => [{
+      key: 'x:body', surface: 'matte', tint: 0x808080,
+      centerX: 5.5, centerY: height / 2, centerZ: 5.5, width: 1, height, depth: 1,
+    }];
+    const reachOf = (height: number): number => {
+      const cast = castShadowParts(entity({ x: 5, y: 5 }), 'x', 's', 0, body(height));
+      return Math.max(...cast.flatMap(triangleCorners).map((corner) => corner.x));
+    };
+    // A box twice as tall throws its far edge twice as far along the sun ray.
+    expect(reachOf(2) - 6).toBeCloseTo(2 * SHADOW_PROJECTION.x, 6);
+    expect(reachOf(1) - 6).toBeCloseTo(1 * SHADOW_PROJECTION.x, 6);
+    // ...and widening the body widens the shadow, on the same derivation.
+    const wide = castShadowParts(entity({ x: 5, y: 5 }), 'x', 's', 0, [{
+      ...body(1)[0]!, width: 2,
+    }]);
+    expect(Math.max(...wide.flatMap(triangleCorners).map((c) => c.x))
+      - Math.min(...wide.flatMap(triangleCorners).map((c) => c.x))).toBeCloseTo(2 + SHADOW_PROJECTION.x, 6);
+  });
+
+  it('lets a Town Center’s tower streak past the roof it stands on', () => {
+    // The single-box caster dropped every part under a quarter of the largest
+    // footprint, so a tower and a flag pole cast nothing at all and the roof's
+    // rectangle was the whole shadow. The profile keeps them: they are a thin
+    // band at the top, and a thin band high up throws a long thin streak.
+    const parts = createBuildingParts(entity({
+      kind: 'building', layer: 'building', entityType: 'town-center',
+      visualVariant: 'complete', footprintWidth: 4, footprintHeight: 4,
     }), '61:1', 0);
-    const box = shadowCasterBox(solids(parts))!;
-    const flagTop = Math.max(...solids(parts).map((part) => part.centerY + part.height / 2));
-    expect(flagTop).toBeGreaterThan(3);
-    expect(box.y1).toBeGreaterThan(1.5);
-    expect(box.y1).toBeLessThan(2.2);
-    expect(box.x1 - box.x0).toBeGreaterThan(3);
+    const bands = shadowCasterBands(solids(parts), 0);
+    const top = bands.at(-1)!;
+    const base = bands[0]!;
+    expect(top.lift).toBeGreaterThan(1.5);
+    expect(top.x1 - top.x0).toBeLessThan(base.x1 - base.x0);
+    const corners = shadows(parts).flatMap(triangleCorners);
+    const reach = Math.max(...corners.map((corner) => corner.x));
+    // The tallest mass sets the reach, so the shadow runs past where the
+    // roof alone would have ended.
+    expect(reach).toBeCloseTo(
+      Math.max(...bands.map((band) => band.x1 + (band.lift + band.height) * SHADOW_PROJECTION.x)),
+      6,
+    );
+    // ...and past where the widest band alone would have ended, which is all
+    // the single-box caster ever drew.
+    expect(reach).toBeGreaterThan(base.x1 + (base.lift + base.height) * SHADOW_PROJECTION.x + 0.5);
   });
 
-  it('casts a tree from its crown, wider than the trunk and above it', () => {
+  it('narrows a tree’s shadow at the trunk and widens it at the crown', () => {
     const parts = createResourceParts(tree(4, 6), '8:2', 0);
-    const box = shadowCasterBox(solids(parts))!;
-    expect(box.x1 - box.x0).toBeGreaterThan(0.6);
-    expect(box.z1 - box.z0).toBeGreaterThan(0.6);
-    expect(box.y1).toBeGreaterThan(1.4);
-    // The leaning trunk's rotated corner dips a hair under the ground.
-    expect(Math.abs(box.y0)).toBeLessThan(0.05);
-    expect(shadows(parts)).toHaveLength(3);
+    const bands = shadowCasterBands(solids(parts), 0);
+    expect(bands.length).toBeGreaterThan(1);
+    expect(bands[0]!.x1 - bands[0]!.x0).toBeLessThan(bands.at(-1)!.x1 - bands.at(-1)!.x0);
+    // The gate on "not a rectangle": measure the shadow ACROSS the sun ray at
+    // several distances along it. A single box's swept shadow is a hexagon,
+    // whose width across the ray is CONSTANT between its two end caps — so a
+    // taper here cannot be produced by any one caster box, only by a caster
+    // that genuinely narrows with height. This tree does: 1.12 tiles of crown
+    // over a 0.4 tile top.
+    const lowest = Math.min(...shadows(parts).map((slab) => slab.centerY));
+    const groundLayer = shadows(parts).filter((slab) => slab.centerY === lowest);
+    const widths = [0.2, 0.4, 0.6, 0.8].map((along) => crossWidth(groundLayer, bands, along));
+    expect(widths[0]!).toBeGreaterThan(1.0);
+    expect(widths[1]!).toBeGreaterThan(1.0);
+    // Far along the ray only the narrow top of the tree is still casting.
+    expect(widths[3]!).toBeLessThan(widths[1]! * 0.8);
+    expect(widths[3]!).toBeLessThan(0.95);
   });
 
-  it('gives units a shadow from the rest pose, and a flat slab when no recipe exists', () => {
+  it('gives units a shadow from the rest pose, and a flat one when no recipe exists', () => {
     const villager = createUnitParts(entity({ entityType: 'villager' }), '7:4', 0);
-    expect(shadows(villager)).toHaveLength(3);
-    const box = shadowCasterBox(solids(villager))!;
-    expect(box.y1).toBeGreaterThan(0.5);
+    expect(shadows(villager).length).toBeGreaterThan(2);
+    const bands = shadowCasterBands(solids(villager), 0);
+    expect(bands.at(-1)!.lift + bands.at(-1)!.height).toBeGreaterThan(0.5);
     const unknown = createUnitParts(entity({ entityType: 'mystery' as UnitType }), '7:5', 0);
-    expect(unknown).toHaveLength(1);
-    expect(unknown[0]!.surface).toBe('shadow');
+    expect(unknown.every((part) => part.surface === 'shadow')).toBe(true);
     expect(unknown[0]!.key).toBe('7:5:unit-shadow');
+    // No parts means no height: the fallback is a flat contact patch, so it
+    // has no sweep and stays inside the footprint it was handed.
+    const flat = unknown.flatMap(triangleCorners);
+    expect(Math.max(...flat.map((corner) => corner.x))).toBeCloseTo(4.5 + 0.39, 6);
   });
 
   it('sweeps only the mass ABOVE the ground, so a carcass does not overshoot', () => {
     // `fellWildlifeParts` rotates the body about its root, so a felled
-    // animal's caster box dips below the ground plane — a boar's by 0.317.
-    // Sweeping that depth added a quarter tile of shadow to every dead
-    // animal on the map.
-    // Live entities whose lowest part dips under the ground are the same rule:
-    // a gold or stone mine's lowest facet sits below zero, and before the
-    // clamp its shadow ran 0.037 world units long — 5.8 px at the closest
-    // camera zoom, more than a carcass's error.
+    // animal's parts dip below the ground plane — a boar's by 0.317. Sweeping
+    // that depth added a quarter tile of shadow to every dead animal on the
+    // map. Live entities whose lowest part dips under are the same rule: a
+    // gold or stone mine's lowest facet sits below zero.
     const cases = [
       { kind: 'boar', alive: false }, { kind: 'deer', alive: false },
       { kind: 'sheep', alive: false }, { kind: 'wolf', alive: false },
@@ -236,13 +393,17 @@ describe('cast shadow shape', () => {
         x: 5, y: 5, ...(alive ? {} : { wildlifeAlive: false }),
       });
       const parts = createResourceParts(carcass, `${kind}:0`, 0);
-      const box = shadowCasterBox(solids(parts))!;
-      expect(box.y0, `${kind} should have mass below the ground plane`).toBeLessThan(0);
-      const reach = Math.max(...shadows(parts).flatMap(
-        (part) => voxelPartWorldCorners(part).map((corner) => corner.x),
-      )) - box.x1;
+      const lowest = Math.min(...solids(parts).map((part) => (
+        Math.min(...voxelPartWorldCorners(part).map((corner) => corner.y))
+      )));
+      expect(lowest, `${kind} should have mass below the ground plane`).toBeLessThan(0);
+      const bands = shadowCasterBands(solids(parts), 0);
+      expect(bands.every((band) => band.lift >= 0)).toBe(true);
+      const reach = Math.max(...shadows(parts).flatMap(triangleCorners).map((c) => c.x));
+      const widest = Math.max(...bands.map((band) => band.x1));
+      const tallest = Math.max(...bands.map((band) => band.lift + band.height));
       // Only the above-ground height is swept.
-      expect(reach).toBeCloseTo(Math.max(0, box.y1) * SHADOW_PROJECTION.x, 6);
+      expect(reach).toBeLessThanOrEqual(widest + tallest * SHADOW_PROJECTION.x + 1e-9);
     }
   });
 
@@ -251,235 +412,5 @@ describe('cast shadow shape', () => {
     expect(shadows(createResourceParts(tree(4, 6, { isMemory: true }), '8:m', 0))).toEqual([]);
     expect(shadows(createUnitParts(entity({ isMemory: true }), '7:m', 0))).toEqual([]);
     expect(castShadowParts(house({ isMemory: true }), 'x', 'shadow', 0, [])).toEqual([]);
-  });
-});
-
-describe('cast shadow layering', () => {
-  it('gives casters that SHARE a cell different levels', () => {
-    // The rule this replaced took the level from the anchor CELL, so units on
-    // one tile drew coplanar slabs that z-fight into stripes. Units share
-    // cells routinely: an AI-vs-AI run on the boot map had four villagers on
-    // one tile at tick 4,500, and 16 same-level overlapping slab pairs.
-    const crowd = [7, 8, 9, 10].flatMap((id) => shadows(createUnitParts(
-      entity({ id, x: 12.2 + (id - 7) * 0.12, y: 9.3 + (id - 7) * 0.09 }),
-      `${String(id)}:0`,
-      0,
-    )));
-    const laneHeights = new Map<string, number>();
-    for (const part of resolveShadowLevels(crowd)) {
-      laneHeights.set(part.key.slice(0, part.key.lastIndexOf(':')), part.centerY);
-    }
-    expect(laneHeights.size).toBe(4);
-    expect(new Set(laneHeights.values()).size).toBe(4);
-    // Four casters need four heights, so this one stays inside the band; the
-    // woodline test below is where a crowd is dense enough to leave it.
-    for (const height of laneHeights.values()) {
-      expect(height).toBeGreaterThanOrEqual(SHADOW_SLAB_THICKNESS / 2 - 1e-12);
-      expect(height).toBeLessThan(SHADOW_SLAB_THICKNESS / 2 + SHADOW_LEVELS * SHADOW_LEVEL_STEP);
-    }
-  });
-
-  it('never lifts a caster nothing overlaps off its cell level', () => {
-    // The cell rule stays the colouring; the resolver is only a repair.
-    const lonely = shadows(createResourceParts(tree(40, 41), '900:0', 0));
-    expect(lonely.length).toBeGreaterThan(0);
-    const expected = SHADOW_SLAB_THICKNESS / 2 + shadowLevel(40, 41) * SHADOW_LEVEL_STEP;
-    for (const part of resolveShadowLevels(lonely)) {
-      expect(part.centerY).toBeCloseTo(expected, 12);
-    }
-  });
-
-  it('keeps every caster of a dense forest on its own cell level, unlifted', () => {
-    // Greedy colouring WITHOUT the cell seed exhausted all nine levels here
-    // and dropped casters back onto a neighbour's: a tree's shadow reaches
-    // 2.4 tiles, so a 3x3 block of trees is a nine-clique.
-    const forest = [];
-    for (let x = 0; x < 6; x += 1) {
-      for (let z = 0; z < 6; z += 1) {
-        forest.push(...shadows(createResourceParts(
-          tree(x, z, { id: 300 + x * 6 + z }), `${String(300 + x * 6 + z)}:0`, 0,
-        )));
-      }
-    }
-    const before = new Map(forest.map((part) => [part.key, part.centerY]));
-    for (const part of resolveShadowLevels(forest)) {
-      expect(part.centerY).toBeCloseTo(before.get(part.key)!, 12);
-    }
-  });
-
-  it('leaves no two casters overlapping at one height in a mixed scene', () => {
-    // The class gate. Two slabs of DIFFERENT casters at the same drawn height
-    // z-fight: the overlap tears into stripes as the rasteriser picks a winner
-    // per pixel, which is what forcing SHADOW_LEVEL_STEP to 0 produces across
-    // a whole frame. Measured on a 12,000-tick AI-vs-AI run of the boot map
-    // before this pass existed: up to 13 such pairs at once, every one of them
-    // villagers sharing a tile. Resolved: 0.
-    const scene: VoxelPart[] = [];
-    scene.push(...shadows(createBuildingParts(entity({
-      kind: 'building', layer: 'building', entityType: 'town-center',
-      visualVariant: 'complete', x: 6, y: 6, footprintWidth: 4, footprintHeight: 4,
-    }), '500:0', 0)));
-    for (let x = 0; x < 5; x += 1) {
-      for (let z = 0; z < 5; z += 1) {
-        scene.push(...shadows(createResourceParts(
-          tree(x, z, { id: 600 + x * 5 + z }), `${String(600 + x * 5 + z)}:0`, 0,
-        )));
-      }
-    }
-    // A crowd on ONE tile beside the Town Center, plus its neighbours.
-    for (let index = 0; index < 6; index += 1) {
-      scene.push(...shadows(createUnitParts(entity({
-        id: 700 + index,
-        x: 5.2 + (index % 3) * 0.2,
-        y: 10.15 + Math.floor(index / 3) * 0.25,
-      }), `${String(700 + index)}:0`, 0)));
-    }
-    const lane = resolveShadowLevels(scene);
-    expect(lane).toHaveLength(scene.length);
-    let overlapping = 0;
-    for (let i = 0; i < lane.length; i += 1) {
-      for (let j = i + 1; j < lane.length; j += 1) {
-        const a = lane[i]!; const b = lane[j]!;
-        if (ownerOf(a) === ownerOf(b)) continue;
-        const fa = groundFootprint(a); const fb = groundFootprint(b);
-        if (!(fa.x0 < fb.x1 && fb.x0 < fa.x1 && fa.z0 < fb.z1 && fb.z0 < fa.z1)) continue;
-        overlapping += 1;
-        expect(
-          Math.abs(a.centerY - b.centerY),
-          `${a.key} and ${b.key} would z-fight at height ${String(a.centerY)}`,
-        ).toBeGreaterThanOrEqual(SHADOW_LEVEL_STEP - 1e-9);
-      }
-    }
-    // The scene has to actually exercise the rule.
-    expect(overlapping).toBeGreaterThan(60);
-  });
-
-  it('keeps a woodline full of gathering villagers off one height', () => {
-    // An independent review broke the first version of the resolver here. It
-    // searched only nine levels and then fell back on the EMITTED height —
-    // which is taken by construction, since the search only starts when it is
-    // — so a dense cluster reproduced the z-fighting the pass exists to
-    // prevent: 34 coincident overlapping slab pairs across 7 casters on this
-    // scene. The search is unbounded now and steps above the band instead.
-    const scene: VoxelPart[] = [];
-    for (let x = 0; x < 6; x += 1) {
-      for (let z = 0; z < 6; z += 1) {
-        scene.push(...shadows(createResourceParts(
-          tree(x, z, { id: 800 + x * 6 + z }), `${String(800 + x * 6 + z)}:0`, 0,
-        )));
-      }
-    }
-    for (let index = 0; index < 12; index += 1) {
-      scene.push(...shadows(createUnitParts(entity({
-        id: 900 + index,
-        x: 2 + (index % 4) * 0.3,
-        y: 2 + Math.floor(index / 4) * 0.3,
-      }), `${String(900 + index)}:0`, 0)));
-    }
-    const lane = resolveShadowLevels(scene);
-    expect(lane).toHaveLength(scene.length);
-    let overlapping = 0;
-    for (let i = 0; i < lane.length; i += 1) {
-      for (let j = i + 1; j < lane.length; j += 1) {
-        const a = lane[i]!; const b = lane[j]!;
-        if (ownerOf(a) === ownerOf(b)) continue;
-        const fa = groundFootprint(a); const fb = groundFootprint(b);
-        if (!(fa.x0 < fb.x1 && fb.x0 < fa.x1 && fa.z0 < fb.z1 && fb.z0 < fa.z1)) continue;
-        overlapping += 1;
-        expect(
-          Math.abs(a.centerY - b.centerY),
-          `${a.key} and ${b.key} would z-fight at height ${String(a.centerY)}`,
-        ).toBeGreaterThanOrEqual(SHADOW_LEVEL_STEP - 1e-9);
-      }
-    }
-    expect(overlapping).toBeGreaterThan(200);
-    // A lift ABOVE the nine-level band is allowed here and is the price of not
-    // tearing: a clique of K mutually overlapping casters needs K distinct
-    // heights, and 12 villagers packed at 0.3 tiles inside a woodline is a
-    // clique of about twenty. What is bounded is the SCREEN cost. This scene
-    // measures 0.058 — 0.040 of lift, which at the closest camera zoom (2.4,
-    // about 94 px per world unit vertically) is under four pixels of offset
-    // between the highest shadow and the ground. The bar is set just above the
-    // measurement so a scheme that starts stacking levels fails here.
-    const highest = Math.max(...lane.map((part) => part.centerY));
-    expect(highest).toBeLessThan(SHADOW_SLAB_THICKNESS / 2 + 22 * SHADOW_LEVEL_STEP);
-  });
-
-  it('draws overlapping shadows of a forest top-down so no pixel blends twice', () => {
-    const forest: VoxelPart[] = [];
-    for (let x = 0; x < 6; x += 1) {
-      for (let z = 0; z < 6; z += 1) {
-        forest.push(...createResourceParts(tree(x, z, { id: 100 + x * 6 + z }), `${String(100 + x * 6 + z)}:0`, 0));
-      }
-    }
-    const slabs = resolveShadowLevels(shadows(forest));
-    expect(slabs).toHaveLength(36 * 3);
-    const footprint = (part: VoxelPart) => {
-      const corners = voxelPartWorldCorners(part);
-      return {
-        x0: Math.min(...corners.map((c) => c.x)), x1: Math.max(...corners.map((c) => c.x)),
-        z0: Math.min(...corners.map((c) => c.z)), z1: Math.max(...corners.map((c) => c.z)),
-      };
-    };
-    let overlappingPairs = 0;
-    for (const a of slabs) {
-      const fa = footprint(a);
-      for (const b of slabs) {
-        if (ownerOf(a) === ownerOf(b) || a.key >= b.key) continue;
-        const fb = footprint(b);
-        const overlaps = fa.x0 < fb.x1 && fb.x0 < fa.x1 && fa.z0 < fb.z1 && fb.z0 < fa.z1;
-        if (!overlaps) continue;
-        overlappingPairs += 1;
-        expect(Math.abs(a.centerY - b.centerY)).toBeGreaterThanOrEqual(SHADOW_LEVEL_STEP - 1e-9);
-      }
-    }
-    expect(overlappingPairs).toBeGreaterThan(50);
-
-    // The batcher must present exactly this resolved lane, not the raw parts.
-    const byKey = new Map(slabs.map((part) => [part.key, part]));
-    const batch = makePartBatches(forest, 1).find((candidate) => candidate.key === 'aoe2:batch:shadow-parts')!;
-    expect(batch.instanceKeys).toHaveLength(slabs.length);
-    for (let index = 1; index < batch.instanceKeys.length; index += 1) {
-      const previous = byKey.get(batch.instanceKeys[index - 1]!)!;
-      const current = byKey.get(batch.instanceKeys[index]!)!;
-      expect(compareShadowDrawOrder(previous, current)).toBeLessThanOrEqual(0);
-      expect(previous.centerY).toBeGreaterThanOrEqual(current.centerY);
-    }
-    // The matrices are the parts' own, in that order.
-    const first = byKey.get(batch.instanceKeys[0]!)!;
-    expect([...batch.matrices.slice(0, 16)]).toEqual([...matrixForPart(first)].map((v) => Math.fround(v)));
-  });
-});
-
-describe('ground parallelogram parts', () => {
-  it('place their corners on the sheared edge vectors', () => {
-    const part: VoxelPart = {
-      key: 'x:slab',
-      surface: 'shadow',
-      tint: 0x172019,
-      centerX: 10,
-      centerY: 0.018,
-      centerZ: 20,
-      width: Math.hypot(1, 0.5),
-      height: 0.036,
-      depth: 2,
-      groundAxes: { x: { x: 1, z: 0.5 }, z: { x: 0, z: 2 } },
-    };
-    const corners = voxelPartWorldCorners(part).map((c) => [
-      Number(c.x.toFixed(6)), Number(c.y.toFixed(6)), Number(c.z.toFixed(6)),
-    ].join(','));
-    const expected: string[] = [];
-    for (const sx of [-0.5, 0.5]) {
-      for (const sy of [-0.5, 0.5]) {
-        for (const sz of [-0.5, 0.5]) {
-          expected.push([
-            Number((10 + sx * 1 + sz * 0).toFixed(6)),
-            Number((0.018 + sy * 0.036).toFixed(6)),
-            Number((20 + sx * 0.5 + sz * 2).toFixed(6)),
-          ].join(','));
-        }
-      }
-    }
-    expect(new Set(corners)).toEqual(new Set(expected));
   });
 });

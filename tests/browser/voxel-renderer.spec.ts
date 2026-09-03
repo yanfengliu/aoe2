@@ -58,7 +58,10 @@ test.describe('voxel world renderer', () => {
       chunks: 12,
       visibleChunks: 12,
       materialResources: 7,
-      geometryResources: 1,
+      // Two: the shared cube every solid part instances, and the flat
+      // triangle the shadow lane draws its silhouettes on (v0.3.194 — a
+      // silhouette is a polygon and a box can only be a parallelogram).
+      geometryResources: 2,
       instanceBatches: 9,
       animatedBatches: 3,
       contextLosses: 0,

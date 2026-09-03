@@ -68,9 +68,12 @@ describe('wildlife carcass look (spec §14.5)', () => {
   });
 
   it('keeps the same part set (hit silhouette source) and a ground shadow', () => {
-    const liveSuffixes = parts(live).map((part) => part.key).sort();
-    const corpseSuffixes = parts(corpse).map((part) => part.key).sort();
-    expect(corpseSuffixes).toEqual(liveSuffixes);
+    // Scoped to the SOLID parts, which are what the hit proxy reads. The cast
+    // shadow's piece count follows the carcass's own silhouette and so differs
+    // from the standing animal's on purpose.
+    const solid = (view: typeof live) => parts(view)
+      .filter((part) => part.surface !== 'shadow').map((part) => part.key).sort();
+    expect(solid(corpse)).toEqual(solid(live));
     expect(parts(corpse).some((part) => part.surface === 'shadow')).toBe(true);
   });
 

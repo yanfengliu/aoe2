@@ -188,13 +188,21 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     never enters a save. `rendering/voxel/` owns the sole world adapter,
     procedural art, feedback parts, and Three runtime integration.
     `aoeVoxelDaylight.ts` is the one source for the daylight rig the renderer
-    hands to the runtime AND for the sun projection `aoeVoxelCastShadows.ts`
-    draws every entity's ground shadow from: one mass box per caster, three
-    non-overlapping slabs on the translucent shadow lane. That file also owns
-    the lane's draw heights — a per-cell level, plus `resolveShadowLevels`,
-    the whole-lane pass that lifts casters the cell rule cannot separate
-    (two in one cell) — and `aoeVoxelResources.ts` runs it while batching, so
-    two overlapping shadows never rasterise at one height.
+    hands to the runtime AND for the sun projection every entity's ground
+    shadow is drawn from. The shadow splits in two: `aoeVoxelShadowShape.ts`
+    owns the SHAPE — it reads a caster's solid parts as a vertical profile of
+    at most four height bands and tiles the union of their swept footprints
+    with non-overlapping triangles, so nothing in the shadow path names a
+    recipe or an entity type and a shape change moves its own shadow —
+    and `aoeVoxelCastShadows.ts` owns WHERE the pieces sit in depth: a
+    per-cell level, plus `resolveShadowLevels`, the whole-lane pass that
+    lifts casters the cell rule cannot separate (two in one cell), which
+    `aoeVoxelResources.ts` runs while batching, so two overlapping shadows
+    never rasterise at one height. The lane draws on its own flat triangle
+    geometry (`aoeVoxelShadowWedge.ts`) rather than the shared cube, because a
+    silhouette is a polygon and a box instance can only be a parallelogram;
+    a caster standing on a flat pad wider than itself also draws the part of
+    its shadow that lands on that pad, at the pad's height, clipped to it.
     `AoeVoxelPresentationCoordinator.ts` converts displayed bridge and
     interaction state into snapshots, draws unit roots through the
     displayed-position smoother (`rendering/displayedPositionSmoother.ts`: the

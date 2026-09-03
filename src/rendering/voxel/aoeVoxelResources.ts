@@ -14,9 +14,25 @@ import {
   type VoxelPart,
   type VoxelSurface,
 } from './aoeVoxelRecipeTypes';
+import {
+  SHADOW_WEDGE_GEOMETRY_KEY,
+  shadowWedgeGeometry,
+} from './aoeVoxelShadowWedge';
 import { TERRAIN_MATERIAL_KEY } from './aoeVoxelTerrain';
 
 export const CUBE_GEOMETRY_KEY = 'aoe2:geometry:centered-cube';
+
+// The shadow lane draws triangles, because a caster's silhouette is a polygon
+// and a box instance can only ever be a parallelogram. Every other lane draws
+// the cube.
+const GEOMETRY_KEYS = {
+  matte: CUBE_GEOMETRY_KEY,
+  metal: CUBE_GEOMETRY_KEY,
+  water: CUBE_GEOMETRY_KEY,
+  shadow: SHADOW_WEDGE_GEOMETRY_KEY,
+  memory: CUBE_GEOMETRY_KEY,
+  ui: CUBE_GEOMETRY_KEY,
+} as const satisfies Record<VoxelSurface, string>;
 
 const MATERIAL_KEYS = {
   matte: 'aoe2:material:matte',
@@ -126,7 +142,7 @@ export function copyAoeVoxelResources(): readonly (
   | MaterialResourceV1
   | GeometryResourceV1
 )[] {
-  return [...MATERIALS.map(copyMaterial), copyGeometry()];
+  return [...MATERIALS.map(copyMaterial), copyGeometry(), shadowWedgeGeometry()];
 }
 
 function tintToBytes(tint: number): readonly [number, number, number, number] {
@@ -195,7 +211,7 @@ function makeBatch(
       : `aoe2:batch:${surface}-animated-parts`,
     incarnation: 1,
     revision,
-    geometryKey: CUBE_GEOMETRY_KEY,
+    geometryKey: GEOMETRY_KEYS[surface],
     materialKey: MATERIAL_KEYS[surface],
     instanceKeys: parts.map((part) => part.key),
     matrices,

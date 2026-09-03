@@ -149,9 +149,16 @@ describe('building detail pass (spec §14.5)', () => {
     }
   });
 
-  it('adds no shadow-surface parts beyond the three slabs of the cast shadow', () => {
+  it('puts no shadow-surface part anywhere but the cast shadow', () => {
+    // The detail pass adds accents, never shade: every `shadow` part a walled
+    // building emits belongs to the one cast shadow, whose piece count is the
+    // silhouette's own business (`aoeVoxelShadowShape`).
     for (const entityType of WALLED) {
-      expect(parts(entityType).filter((part) => part.surface === 'shadow')).toHaveLength(3);
+      const shade = parts(entityType).filter((part) => part.surface === 'shadow');
+      expect(shade.length).toBeGreaterThan(0);
+      for (const part of shade) {
+        expect(part.key).toMatch(/:building-shadow(-\d+)?$/);
+      }
     }
   });
 
