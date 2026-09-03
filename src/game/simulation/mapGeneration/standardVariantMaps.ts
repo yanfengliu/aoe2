@@ -25,6 +25,7 @@ import {
 } from './startingOffsets';
 import { MAP_HEIGHT, MAP_WIDTH } from './constants';
 import { createSpawnList } from './spawnList';
+import { paintWoodlines, seedForestTrees } from './seedForestTrees';
 import {
   createBaseTerrain,
   createTerrainCell,
@@ -57,6 +58,7 @@ export function createCoastalMap(seed: string): PrototypeScenario {
   const starts = createPlayerStarts();
   const spawns = createSpawnList();
   applyStandardPlayerOpening(terrain, starts, spawns, seed);
+  seedForestTrees(terrain, spawns, { width: MAP_WIDTH, height: MAP_HEIGHT });
   return { seed, width: MAP_WIDTH, height: MAP_HEIGHT, terrain, starts, spawns: spawns.toArray() };
 }
 
@@ -119,6 +121,8 @@ export function createFortressMap(seed: string): PrototypeScenario {
       break;
     }
   }
+  paintWoodlines(terrain, starts, { width: MAP_WIDTH, height: MAP_HEIGHT }, seed);
+  seedForestTrees(terrain, spawns, { width: MAP_WIDTH, height: MAP_HEIGHT });
   return { seed, width: MAP_WIDTH, height: MAP_HEIGHT, terrain, starts, spawns: spawns.toArray() };
 }
 
@@ -145,6 +149,8 @@ export function createGoldRushMap(seed: string): PrototypeScenario {
       amount: 1600,
     });
   }
+  paintWoodlines(terrain, starts, { width: MAP_WIDTH, height: MAP_HEIGHT }, seed);
+  seedForestTrees(terrain, spawns, { width: MAP_WIDTH, height: MAP_HEIGHT });
   return { seed, width: MAP_WIDTH, height: MAP_HEIGHT, terrain, starts, spawns: spawns.toArray() };
 }
 

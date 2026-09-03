@@ -11,6 +11,7 @@ import {
   isInBounds,
   type TerrainCellSpec,
 } from './sharedTerrainHelpers';
+import { paintWoodlines, seedForestTrees } from './seedForestTrees';
 import { createSpawnList } from './spawnList';
 
 // Slice 11: Arena-style map. Each start is ringed by a stone wall, with
@@ -70,6 +71,12 @@ export function createArenaMap(seed: string): PrototypeScenario {
     }
   }
 
+  // The woodline goes on LAST and stays 14 cells clear of every start, so it
+  // cannot touch the ring that is this script's identity. Without it Arena
+  // shipped with no wood at all: both AI players sat in the Dark Age at 10/10
+  // population for a 75-minute audit.
+  paintWoodlines(terrain, starts, { width: MAP_WIDTH, height: MAP_HEIGHT }, seed);
+  seedForestTrees(terrain, spawns, { width: MAP_WIDTH, height: MAP_HEIGHT });
   return {
     seed,
     width: MAP_WIDTH,

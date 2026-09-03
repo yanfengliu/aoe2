@@ -6,7 +6,7 @@ import { AoeVoxelAdapter } from '../../src/rendering/voxel/aoeVoxelAdapter';
 import { voxelPartWorldCorners } from '../../src/rendering/voxel/aoeVoxelGeometry';
 import type { AoeUnitAnimationState } from '../../src/rendering/voxel/aoeVoxelUnitAnimation';
 import { matrixForPart, type VoxelPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
-import { MAX_SHADOW_PIECES } from '../../src/rendering/voxel/aoeVoxelShadowShape';
+import { MAX_SHADOW_PIECES } from '../../src/rendering/voxel/aoeVoxelShadowTiling';
 import { createUnitParts } from '../../src/rendering/voxel/aoeVoxelUnitRecipes';
 
 interface WeaponExpectation {

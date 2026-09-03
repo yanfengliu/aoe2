@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.195
+
+- **Arena, Coastal, Fortress and Gold Rush are playable.** All four shipped with no trees anywhere on the map, and there is no other source of wood. A house costs 25 wood and every building that lets you advance an age costs wood, so with the 200 you start with you could put up one barracks and one house and that was the end of it — forever. The population limit stayed at 10, no age was ever reached, and the game could not end. On Arena both players sat in the Dark Age for the full 75 minutes with thousands of food and gold they had no way to spend. Every map now has woodlines, kept clear of the walled starts on Arena and Fortress so they do not open a hole in the wall.
+- The difference this makes, measured on Arena over the same 75 minutes: the strongest player went from stuck in the Dark Age with 9 villagers, one house and a peak army of 4, to reaching the Castle Age with 22 villagers, five houses, farms, a lumber camp, a mining camp, a mill and a blacksmith — and a peak army of **63**. Maps that already had trees are untouched and play exactly as before.
+- Shadows: several corrections to the shape-matched shadows added in 0.3.194, all found by review before release. A building's shadow now lands ON the base it stands on rather than a few pixels above it; shadows no longer appear in gaps where the sun actually reaches the ground (a watch tower was drawing two solid wedges of shadow down its flanks that should not have been there); and a tower no longer loses a quarter of its shadow to a piece budget that was too small.
+
 ## 0.3.194
 
 - Shadows now have the shape of the thing casting them. Every shadow used to be the same rectangle stretched away from the sun, whatever threw it — a tree, a villager and a Town Center all put down the same slab — because the game worked out one box around each object and drew that box's shadow. It now works out the object's own outline: how wide it is at each height, from the ground to its highest point. A tree is narrow at the trunk and tapers to its crown-tip at the far end of the shadow. A house shows walls under a wider roof. A Town Center's tower streaks out past the roof it stands on, where before the tower cast nothing at all. A dead animal's shadow is the shape of the animal lying down. Bushes, gold and stone piles, sheep, boar and every unit get the same treatment.

@@ -1,7 +1,3 @@
-import {
-  AUTHORITATIVE_BUILDING_FOOTPRINTS,
-  getBuildingFootprint,
-} from '../../content/buildingFootprints';
 import type { PrototypeScenario } from '../prototypeScenario';
 import {
   applyShoreFishPatchesProcedural,
@@ -10,6 +6,8 @@ import {
 } from './applyStandardPlayerOpening';
 import { type MapSize, standardMapSize } from './constants';
 import { createBaseTerrain, paintDisc } from './sharedTerrainHelpers';
+import { getBuildingFootprint } from '../../content/buildingFootprints';
+import { seedForestTrees } from './seedForestTrees';
 import { createSpawnList } from './spawnList';
 import {
   DEFAULT_RELIC_POSITIONS,
@@ -104,43 +102,10 @@ export function createDefaultMap(seed: string, playerCount = 2): PrototypeScenar
 
   applyShoreFishPatchesProcedural(terrain, starts, seed, spawns);
 
-  // Every forest cell carries a tree, the way Black Forest already builds and
-  // the way Age of Empires II works — the forest IS the trees, so cutting one
-  // opens its tile and the woodline is consumed from the outside in. Without
-  // this, the noise terrain painted 197 forest cells and only 48 of them held
-  // wood; the remaining 149 were permanent walls, and once the AI had cut the
-  // rim of a woodline every surviving tree was walled in by them. Measured at
-  // tick 6000 on this map: 18 of 27 live trees had NO walkable neighbour, 83
-  // of their blocked faces were bare forest terrain, and all 15 of the AI's
-  // villagers had given up on wood. Runs last, so first-write-wins leaves every
-  // curated spawn above untouched.
-  const claimedByBuilding = new Set<string>();
-  for (const spawn of spawns.toArray()) {
-    if (!(spawn.kind in AUTHORITATIVE_BUILDING_FOOTPRINTS)) continue;
-    const footprint = getBuildingFootprint(spawn.kind as keyof typeof AUTHORITATIVE_BUILDING_FOOTPRINTS);
-    for (let dy = 0; dy < footprint.height; dy += 1) {
-      for (let dx = 0; dx < footprint.width; dx += 1) {
-        claimedByBuilding.add(`${String(spawn.x + dx)},${String(spawn.y + dy)}`);
-      }
-    }
-  }
-  for (let y = 0; y < size.height; y += 1) {
-    for (let x = 0; x < size.width; x += 1) {
-      if (terrain[y]?.[x]?.kind !== 'forest') continue;
-      // A building spawn's footprint is not a resource claim, so first-write-
-      // wins would happily drop a tree under a Town Center and fail the
-      // scenario validator.
-      if (claimedByBuilding.has(`${String(x)},${String(y)}`)) continue;
-      spawns.addResourceSpawn({
-        kind: 'tree',
-        x,
-        y,
-        owner: null,
-        baseOwner: null,
-        amount: 100,
-      });
-    }
-  }
+  // Every forest cell carries a tree. Extracted to `seedForestTrees` so every
+  // map runs it: leaving it here is what left four of the nine playable maps
+  // with no wood at all.
+  seedForestTrees(terrain, spawns, size);
 
   return {
     seed,

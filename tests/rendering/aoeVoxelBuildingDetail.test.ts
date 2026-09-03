@@ -9,6 +9,7 @@ import type { BuildingType, ProjectedEntityView } from '../../src/game/simulatio
 import { AUTHORITATIVE_BUILDING_FOOTPRINTS } from '../../src/game/content/buildingFootprints';
 import { AoeVoxelAdapter } from '../../src/rendering/voxel/aoeVoxelAdapter';
 import { createBuildingParts } from '../../src/rendering/voxel/aoeVoxelBuildingRecipes';
+import { MAX_SHADOW_PIECES } from '../../src/rendering/voxel/aoeVoxelShadowTiling';
 import { voxelPartWorldCorners } from '../../src/rendering/voxel/aoeVoxelGeometry';
 import {
   matrixForPart,
@@ -92,7 +93,17 @@ describe('building detail pass (spec §14.5)', () => {
       );
       expect(detailSuffixes.length, `${entityType} detail instance budget`).toBeGreaterThanOrEqual(2);
       expect(detailSuffixes.length, `${entityType} detail instance budget`).toBeLessThanOrEqual(7);
-      expect(parts(entityType).length, `${entityType} total instance budget`).toBeLessThanOrEqual(48);
+      // The DETAIL budget is on the building's own parts. Its cast shadow is
+      // the silhouette's business and is bounded separately by
+      // `MAX_SHADOW_PIECES`, because it follows the building's shape rather
+      // than its part list — folding the two into one number made a shadow
+      // change read as a detail-budget regression.
+      const solid = parts(entityType).filter((part) => part.surface !== 'shadow');
+      expect(solid.length, `${entityType} detail budget`).toBeLessThanOrEqual(48);
+      expect(
+        parts(entityType).length - solid.length,
+        `${entityType} shadow budget`,
+      ).toBeLessThanOrEqual(MAX_SHADOW_PIECES);
     }
   });
 

@@ -9,6 +9,48 @@ import { createPrototypeScenario } from '../../src/game/simulation/prototypeScen
 
 const NAMED_MAPS = ['arabia', 'arena', 'black-forest', 'coastal', 'fortress', 'gold-rush'] as const;
 
+// Wood a player can actually reach. A house is 25 wood and every age-up
+// prerequisite building costs wood, so a map with none is not a hard map — it
+// is an unplayable one: the population cap never leaves 10, no second house is
+// ever built, no age is ever reached, and the match cannot resolve.
+//
+// This is not hypothetical and it is why the bar is here. Measured 2026-09-03,
+// FOUR of the nine playable maps shipped with zero tree resources — arena,
+// coastal, fortress and gold-rush — and on arena both AI players sat in the
+// Dark Age at population 10/10 for the full 75-minute audit, holding 701 food
+// and 3,184 gold they could not spend, with `wood 0` at every sample from tick
+// 4,000 onward. The roster gate above could not see it: booting and running
+// fifty ticks is a horizon that ends long before the starting 200 wood does.
+const STARTING_WOOD = 200;
+
+describe('every playable map supplies wood', () => {
+  for (const name of NAMED_MAPS) {
+    it(`gives '${name}' a woodline each player can reach`, () => {
+      const scenario = createPrototypeScenario(name);
+      const trees = scenario.spawns.filter((spawn) => spawn.kind === 'tree');
+      const wood = trees.reduce((total, tree) => total + (tree.amount ?? 0), 0);
+
+      // Enough to matter: a player who spends the starting wood on the
+      // opening must be able to keep building. The floor is deliberately low
+      // — this is a playability bar, not a balance one.
+      expect(wood, `${name} has ${String(trees.length)} trees`).toBeGreaterThan(STARTING_WOOD * 10);
+
+      // ...and reachable from each start, because wood only one player can
+      // walk to is the same defect wearing a map shape.
+      for (const start of scenario.starts) {
+        const near = trees.filter((tree) => (
+          Math.hypot(tree.x - start.townCenter.x, tree.y - start.townCenter.y) <= 30
+        ));
+        expect(
+          near.length,
+          `${name}: no woodline within 30 tiles of the start at `
+          + `${String(start.townCenter.x)},${String(start.townCenter.y)}`,
+        ).toBeGreaterThan(8);
+      }
+    });
+  }
+});
+
 describe('the named map roster', () => {
   for (const name of NAMED_MAPS) {
     it(`boots '${name}' and runs fifty ticks`, () => {

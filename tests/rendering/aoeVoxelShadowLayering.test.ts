@@ -223,6 +223,13 @@ describe('cast shadow layering', () => {
         y: 2 + Math.floor(index / 4) * 0.3,
       }), `${String(900 + index)}:0`, 0)));
     }
+    // A pad-bearing caster in the same scene, because its second layer sits
+    // tens of level-steps up and an earlier version of the bar below counted
+    // that as lift.
+    scene.push(...shadows(createBuildingParts(entity({
+      id: 950, kind: 'building', layer: 'building', entityType: 'house',
+      visualVariant: 'complete', footprintWidth: 2, footprintHeight: 2, x: 3, y: 3,
+    }), '950:0', 0)));
     const lane = resolveShadowLevels(scene);
     expect(lane).toHaveLength(scene.length);
     let overlapping = 0;
@@ -247,7 +254,19 @@ describe('cast shadow layering', () => {
     // about 94 px per world unit vertically) is under four pixels of offset
     // between the highest shadow and the ground. The bar is set just above the
     // measurement so a scheme that starts stacking levels fails here.
-    const highest = Math.max(...lane.map((part) => part.centerY));
+    // LIFT, not absolute height. A caster that stands on a pad draws a second
+    // layer at the pad's own top, which is tens of level-steps up and has
+    // nothing to do with how far the resolver pushed anything: a review showed
+    // that adding one pad-bearing caster to this scene takes the absolute
+    // maximum from 0.058 to 0.2913 and fails this bar for the wrong reason.
+    // What is bounded here is how far the LOWEST piece of a caster was pushed
+    // above the level its own cell seeded.
+    const byOwner = new Map<string, number>();
+    for (const part of lane) {
+      const owner = ownerOf(part);
+      byOwner.set(owner, Math.min(byOwner.get(owner) ?? Infinity, part.centerY));
+    }
+    const highest = Math.max(...byOwner.values());
     expect(highest).toBeLessThan(SHADOW_SLAB_THICKNESS / 2 + 22 * SHADOW_LEVEL_STEP);
   });
 

@@ -52,13 +52,12 @@ import {
   type VoxelPart,
 } from './aoeVoxelRecipeTypes';
 import {
-  MAX_PAD_STRIPS,
   shadowCasterBands,
   shadowReceiverPad,
-  silhouetteTriangles,
   type ShadowCasterBand,
   type ShadowTriangle,
 } from './aoeVoxelShadowShape';
+import { MAX_PAD_STRIPS, silhouetteTriangles } from './aoeVoxelShadowTiling';
 
 /** Thickness of a shadow piece; its bottom face rests on the ground. */
 export const SHADOW_SLAB_THICKNESS = 0.036;

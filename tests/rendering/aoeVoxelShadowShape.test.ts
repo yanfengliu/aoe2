@@ -7,9 +7,9 @@ import type { VoxelPart } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 import {
   MAX_SHADOW_BANDS,
   shadowCasterBands,
-  silhouetteTriangles,
   type ShadowCasterBand,
 } from '../../src/rendering/voxel/aoeVoxelShadowShape';
+import { silhouetteTriangles } from '../../src/rendering/voxel/aoeVoxelShadowTiling';
 
 function box(
   key: string,

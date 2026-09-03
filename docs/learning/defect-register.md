@@ -4,6 +4,38 @@ The standing list of what the gates could not see. One entry per defect that rea
 
 Unlike a lesson, an entry stays after it becomes a gate. The register is not a to-do list — it is the record of where defects came from, which is the best available guide to where the next one is.
 
+## 2026-09-03 — Four of the nine playable maps shipped with no wood, so no game could happen on them
+
+**Symptom.** The AI "never fields an army" and "matches do not resolve" — the two standing acceptance-test failures. On `arena` specifically, both AI players sit in the Dark Age at population 10/10 for the entire 75-minute audit, peak armies of 4 and 2, holding 701 food and 3,184 gold they cannot spend.
+
+**Investigation.** The register's existing entry blamed `villagerCapForAge` (40) against a population cap that reaches only 50, bounding the army at 10. Measuring across three seeds instead of one showed that chain describes the BEST slot on the BEST seed. The real distribution: of six owner-slots, three never reach the Castle Age at all, two never reach Feudal, and none reaches Imperial. A player still in the Dark Age at 75 minutes cannot be bounded by a Castle-Age villager cap.
+
+Tracing `arena` per 4,000 ticks showed the actual shape: **wood 0 at every sample from tick 4,000 onward**, while gold climbed 90 → 3,184 and food sat at 636 unspent. Buildings: one Town Center, one barracks, one house, 31 stone walls — and never a second house. Nine villagers, none idle, population pinned at 10/10 in 80% of samples.
+
+Then the instrument was checked before the conclusion was drawn, which is what turned a plausible story into the right one. A first probe reported `trees alive 0` on arena; run against controls, the same filter reported `tree x246` on `aoe2-prototype` and `tree x1718` on `black-forest`. The filter was sound and the map really had none.
+
+**Root cause.** The pass that gives every forest cell a tree lived INLINE in `defaultMap.ts`. Only maps built from that generator ever ran it. Enumerating the whole roster at tick 0:
+
+| map | trees | | map | trees |
+| --- | --- | --- | --- | --- |
+| aoe2-prototype | 246 | | arena | **0** |
+| arabia | 199 | | coastal | **0** |
+| black-forest | 1,718 | | fortress | **0** |
+| nomad | 40 | | gold-rush | **0** |
+| islands | 40 | | | |
+
+A house costs 25 wood and every age-up prerequisite building costs wood. With 200 starting wood a player buys exactly one barracks and one house — precisely what the arena trace shows — and the economy is then dead forever: the population cap never leaves 10, no age is ever reached, and no conquest can end the match. `createFortressMap` even carried code to fell "a TREE on the wall line", which could never fire because it builds on a bare grass world.
+
+**Fix.** `seedForestTrees` is extracted to its own module and run by every generator. The three grass-world scripts (arena, fortress, gold-rush) also get `paintWoodlines`, which paints forest patches onto plain grass only and stays 14 cells clear of every start — measured from the scripts' own ring radii (Arena 7, Fortress 11), so a woodline can never punch a hole in the wall that is the script's identity. After: arena 346 trees, coastal 198, fortress 348, gold-rush 344.
+
+**Effect, measured on arena at the same ticks.** Owner 1 went from Dark Age / 10 population / 9 villagers / 1 house / wood 0, to **Feudal Age / 28 of 30 population / 22 villagers / 5 houses / 3 farms**, with a lumber camp, mining camp, mill, blacksmith and barracks — and is destroying owner 2's wall ring. A game now happens where none could before.
+
+**How it is checked from now on.** `tests/simulation/mapRoster.test.ts` :: `every playable map supplies wood` asserts, for every named map, total tree wood above ten times the starting stock AND more than eight trees within 30 tiles of each start — the second half because wood only one player can walk to is the same defect wearing a map shape. Red-checked by the defect itself: it fails on exactly arena, coastal, fortress and gold-rush before the fix and passes on arabia and black-forest.
+
+**Bound of that gate, named.** It counts spawns and straight-line distance. It does not prove the wood is REACHABLE — a woodline walled off by terrain would pass it, which is the open gather-comparator defect's territory. It also says nothing about whether the amount is balanced.
+
+**What this predicts, and it is the uncomfortable part.** The roster gate that already existed boots every named map and runs fifty ticks. It was green throughout. Fifty ticks is a horizon that ends long before 200 starting wood does, so the gate measured "does this map crash" and was read as "does this map work". The next defect of this shape is another property nobody asked a map to have — reachable gold, a walkable route between starts, a dock site on a water map — behind a gate whose horizon is shorter than the property's own timescale.
+
 ## 2026-09-03 — Every shadow in the game was the same rectangle, whatever threw it (owner-reported, v0.3.194)
 
 **Symptom, as the owner saw it.** "The shadow from units, and buildings, and environment objects such as trees and bushes and ores, they all need to look more realistic. As a start, they need to roughly match the shape of the thing that created the shadow instead of always being a rectangular." Reported one day after v0.3.193 shipped the shadows.

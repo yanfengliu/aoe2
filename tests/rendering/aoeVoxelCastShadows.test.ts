@@ -55,6 +55,12 @@ function house(overrides: Partial<ProjectedEntityView> = {}): ProjectedEntityVie
     layer: 'building',
     entityType: 'house',
     visualVariant: 'complete',
+    // The footprint the GAME builds (`src/game/content/buildingFootprints.ts`),
+    // not `entity()`'s 1x1 default. A review found the coverage assertions
+    // below passing on the 1x1 and failing six times on the 2x2 — the gate's
+    // bound was a size that is never placed.
+    footprintWidth: 2,
+    footprintHeight: 2,
     ...overrides,
   });
 }
@@ -157,6 +163,37 @@ function crossWidth(
   return hi > lo ? hi - lo : 0;
 }
 
+/** The highest solid top face under `(px, pz)` — read from the parts
+ *  themselves, so an assertion about where a shadow LANDS shares no expression
+ *  with the code that decides where to draw it. The first version of the pad
+ *  test asserted `plinth.lift + plinth.height`, the identical expression
+ *  production used, and so proved only that the code agreed with itself while
+ *  every pad layer floated up to 0.147 world units above its surface. */
+function solidSurfaceUnder(
+  parts: readonly VoxelPart[],
+  px: number,
+  pz: number,
+  /** Ignore anything above the layer: the roof is over the plinth in plan, and
+   *  the surface a shadow lands ON is the highest one it is not under. */
+  ceiling: number,
+): number | null {
+  let top: number | null = null;
+  for (const part of solids(parts)) {
+    const corners = voxelPartWorldCorners(part);
+    const xs = corners.map((corner) => corner.x);
+    const zs = corners.map((corner) => corner.z);
+    // A corner lands ON the part's own edge, so the containment test needs the
+    // float slack: the house's pad corner reads 5.780000000000001 against a
+    // plinth edge of 5.78.
+    if (px < Math.min(...xs) - 1e-6 || px > Math.max(...xs) + 1e-6) continue;
+    if (pz < Math.min(...zs) - 1e-6 || pz > Math.max(...zs) + 1e-6) continue;
+    const y = Math.max(...corners.map((corner) => corner.y));
+    if (y > ceiling + 1e-6) continue;
+    if (top === null || y > top) top = y;
+  }
+  return top;
+}
+
 function bandsFootprint(bands: readonly ShadowCasterBand[]) {
   return {
     x0: Math.min(...bands.map((band) => band.x0)),
@@ -202,7 +239,16 @@ describe('cast shadow shape', () => {
     // Two layers: the ground, and the top of the plinth this house stands on.
     const heights = [...new Set(slabs.map((slab) => slab.centerY))].sort((a, b) => a - b);
     expect(heights).toHaveLength(2);
-    expect(heights[1]! - heights[0]!).toBeCloseTo(bands[0]!.lift + bands[0]!.height, 10);
+    // The raised layer sits ON a real surface, checked against the parts.
+    for (const corner of slabs
+      .filter((slab) => slab.centerY === heights[1]!)
+      .flatMap(triangleCorners)) {
+      const layer = heights[1]! - heights[0]!;
+      const surface = solidSurfaceUnder(parts, corner.x, corner.z, layer);
+      expect(surface, `nothing under the plinth layer at ${String(corner.x)},${String(corner.z)}`)
+        .not.toBeNull();
+      expect(layer).toBeCloseTo(surface!, 6);
+    }
     for (const slab of slabs) {
       expect(slab.height).toBeCloseTo(SHADOW_SLAB_THICKNESS, 10);
       // As EMITTED, before the lane is resolved: the recipe's own cell level,
@@ -256,10 +302,17 @@ describe('cast shadow shape', () => {
     expect(heights).toHaveLength(2);
     const onPlinth = slabs.filter((slab) => slab.centerY === heights[1]!);
     expect(onPlinth.length).toBeGreaterThan(0);
-    // It sits on the plinth's top face, not on the ground.
-    expect(heights[1]! - heights[0]!).toBeCloseTo(plinth.lift + plinth.height, 10);
-    // Every corner of it is inside the plinth: past that edge the shadow
-    // belongs to the ground layer, and a piece drawn here would float.
+    // It sits ON a real top face, and every corner of it has one underneath.
+    // Measured from the parts, never from the band expression production uses:
+    // that assertion passed while the layer floated 0.093 above the plinth.
+    for (const corner of onPlinth.flatMap(triangleCorners)) {
+      const layer = heights[1]! - heights[0]!;
+      const surface = solidSurfaceUnder(parts, corner.x, corner.z, layer);
+      expect(surface, `the plinth layer hangs over air at ${String(corner.x)},${String(corner.z)}`)
+        .not.toBeNull();
+      expect(layer).toBeCloseTo(surface!, 6);
+    }
+    // ...and it stays within the caster's own base in plan.
     for (const corner of onPlinth.flatMap(triangleCorners)) {
       expect(corner.x).toBeGreaterThanOrEqual(plinth.x0 - 1e-6);
       expect(corner.x).toBeLessThanOrEqual(plinth.x1 + 1e-6);

@@ -8,7 +8,7 @@ import {
   type VoxelPart,
 } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 import { createTerrainDetailParts } from '../../src/rendering/voxel/aoeVoxelTerrain';
-import { MAX_SHADOW_PIECES } from '../../src/rendering/voxel/aoeVoxelShadowShape';
+import { MAX_SHADOW_PIECES } from '../../src/rendering/voxel/aoeVoxelShadowTiling';
 import { createUnitParts } from '../../src/rendering/voxel/aoeVoxelUnitRecipes';
 
 const TEAM_BLUE = 0x3568c0;
