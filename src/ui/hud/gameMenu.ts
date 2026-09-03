@@ -24,9 +24,7 @@ export interface GameMenuDeps {
     listener: (mode: DebugOverlayMode) => void,
   ) => () => void;
   // Advance the art style; returns the new style's label to render in the row.
-  cycleArtStyle?: () => string;
   // The label to show before the player has cycled anything.
-  artStyleLabel?: () => string;
 }
 
 export interface GameMenuHandle {
@@ -66,21 +64,9 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
   };
   const unsubscribeDebugMode = deps.subscribeDebugOverlayModeChange?.(renderDebugMode);
 
-  const artStyleButton = root.querySelector<HTMLButtonElement>('[data-hud="menu-art-style-cycle"]');
-  const artStyleState = root.querySelector<HTMLElement>('[data-hud="menu-art-style"]');
 
-  const renderArtStyle = (label: string): void => {
-    if (artStyleState) {
-      artStyleState.textContent = label;
-    }
-    artStyleButton?.setAttribute('aria-label', `Art style: ${label}`);
-  };
   // The markup ships a label, but the live style comes from a persisted
   // preference, so the row would lie about the frame until first clicked.
-  const initialArtStyle = deps.artStyleLabel?.();
-  if (initialArtStyle !== undefined) {
-    renderArtStyle(initialArtStyle);
-  }
 
   const isOpen = (): boolean => !menu.hidden;
 
@@ -133,12 +119,6 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
   const onQuit = (): void => {
     deps.onQuit?.();
   };
-  const onArtStyleCycle = (): void => {
-    const label = deps.cycleArtStyle?.();
-    if (label !== undefined) {
-      renderArtStyle(label);
-    }
-  };
   const onDebugCycle = (): void => {
     const mode = deps.cycleDebugOverlay?.();
     if (mode !== undefined) {
@@ -171,7 +151,6 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
   restartButton?.addEventListener('click', onRestart);
   quitButton?.addEventListener('click', onQuit);
   debugCycleButton?.addEventListener('click', onDebugCycle);
-  artStyleButton?.addEventListener('click', onArtStyleCycle);
   menu.addEventListener('keydown', onMenuKeyDown);
 
   return {
@@ -186,7 +165,6 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
       restartButton?.removeEventListener('click', onRestart);
       quitButton?.removeEventListener('click', onQuit);
       debugCycleButton?.removeEventListener('click', onDebugCycle);
-      artStyleButton?.removeEventListener('click', onArtStyleCycle);
       menu.removeEventListener('keydown', onMenuKeyDown);
       unsubscribeDebugMode?.();
     },

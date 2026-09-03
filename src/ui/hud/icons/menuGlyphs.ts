@@ -11,7 +11,6 @@ export const GAME_MENU_ICON_KINDS = [
   'restart',
   'quit',
   'debug',
-  'artStyle',
   'techTree',
 ] as const;
 
@@ -53,11 +52,6 @@ const GAME_MENU_ICON_BODY: Record<GameMenuIconKind, string> = {
     <path d="M12 7v2m0 0-4.5 1.7M12 9l4.5 1.7M6 14v3m12-3v3" />`,
   // A drawing nib over a flat field: the two halves of the look this setting
   // switches between — the contour, and the unmodulated colour under it.
-  artStyle: `
-    <path d="M4.6 19.4 8 11.6l7.2-7.2a2 2 0 0 1 2.8 2.8l-7.2 7.2z" />
-    <path d="M8 11.6 10.8 14.4" />
-    <path d="M4.6 19.4 7.3 18.3" />
-    <path d="M14.4 19.9h5.2" />`,
 };
 
 export function gameMenuGlyph(kind: GameMenuIconKind): string {

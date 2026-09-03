@@ -9,7 +9,7 @@ import type {
 } from 'voxel/three';
 
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
-import { artStyleById } from '../../src/rendering/artStyles';
+import { MOEBIUS_RESOLVE } from '../../src/rendering/artStyles';
 import { worldToIso } from '../../src/rendering/isometricProjection';
 import {
   AoeVoxelWorldRenderer,
@@ -317,7 +317,10 @@ describe('AoeVoxelWorldRenderer', () => {
 });
 
 describe('AoeVoxelWorldRenderer art style', () => {
-  it('starts in the requested style and hands its options to the runtime', () => {
+  it('always hands the Moebius resolve to the runtime', () => {
+    // One style, so there is nothing to select: what is worth asserting is
+    // that the pass actually reaches the runtime, and that it is the tuned
+    // options object rather than the library preset.
     const runtime = new FakeRuntime();
     let seen: ThreeRenderRuntimeOptions | null = null;
     const host = document.createElement('div');
@@ -326,57 +329,11 @@ describe('AoeVoxelWorldRenderer art style', () => {
       host,
       width: 320,
       height: 200,
-      artStyleId: 'moebius',
       createRuntime: (options) => { seen = options; return runtime; },
     });
 
-    expect(renderer.artStyleId()).toBe('moebius');
-    expect(seen!.stylizedResolve).toEqual(artStyleById('moebius').resolve);
-
-    renderer.dispose();
-  });
-
-  it('asks for no pass at all in Painted', () => {
-    // Painted is the absence of the pass; passing a configured-off pass would
-    // still cost a second scene render every frame.
-    const runtime = new FakeRuntime();
-    let seen: ThreeRenderRuntimeOptions | null = null;
-    const host = document.createElement('div');
-
-    const renderer = new AoeVoxelWorldRenderer({
-      host,
-      width: 320,
-      height: 200,
-      artStyleId: 'painted',
-      createRuntime: (options) => { seen = options; return runtime; },
-    });
-
-    expect(seen!.stylizedResolve).toBeUndefined();
-
-    renderer.dispose();
-  });
-
-  it('switches style through the runtime without rebuilding the world', () => {
-    const runtime = new FakeRuntime();
-    const host = document.createElement('div');
-
-    const renderer = new AoeVoxelWorldRenderer({
-      host,
-      width: 320,
-      height: 200,
-      artStyleId: 'moebius',
-      createRuntime: () => runtime,
-    });
-
-    renderer.setArtStyle('painted');
-
-    expect(renderer.artStyleId()).toBe('painted');
-    expect(runtime.setStylizedResolve).toHaveBeenCalledWith(null);
-    // Switching the look must not touch voxel content.
-    expect(runtime.acceptSnapshot).not.toHaveBeenCalled();
-
-    renderer.setArtStyle('moebius');
-    expect(runtime.setStylizedResolve).toHaveBeenLastCalledWith(artStyleById('moebius').resolve);
+    expect(seen!.stylizedResolve).toBe(MOEBIUS_RESOLVE);
+    expect(seen!.stylizedResolve).not.toBeUndefined();
 
     renderer.dispose();
   });

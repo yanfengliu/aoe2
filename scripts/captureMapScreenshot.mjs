@@ -140,29 +140,6 @@ try {
   // through in between varied run to run, so a before/after pair could land
   // a second of game time apart (units, sheep and water moved) and the diff
   // was not confined to the change (2026-09-02, idle-bell captures).
-  // STYLE=moebius|painted captures under a chosen art style. The style is a
-  // localStorage preference with no URL form, so a sweep that only ever boots
-  // the default sees one of the two looks the game ships — and they differ in
-  // kind, not degree: Moebius quantises shading into tone bands, so it can hide
-  // or exaggerate a change Painted renders as a smooth gradient. Written before
-  // the first navigation so the renderer reads it at construction.
-  const style = process.env.STYLE ?? '';
-  if (style) {
-    if (style !== 'moebius' && style !== 'painted') {
-      throw new Error(
-        `STYLE selects the art style to capture under and must be "moebius" or "painted" `
-        + `(the two styles the game ships); got "${style}".`,
-      );
-    }
-    await page.addInitScript((chosen) => {
-      try {
-        window.localStorage.setItem('aoe2:art-style', chosen);
-      } catch {
-        // Storage disabled for the origin: the game falls back to its default
-        // style, so the capture is of that style rather than of nothing.
-      }
-    }, style);
-  }
   await page.addInitScript(() => {
     const timer = window.setInterval(() => {
       if (!window.__AOE2_TEST__) return;

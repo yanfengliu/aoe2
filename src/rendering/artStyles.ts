@@ -1,27 +1,17 @@
-// The art styles the player can switch between, and the tuning each one
-// applies to voxel's stylized resolve pass.
+// The art style, and the tuning it applies to voxel's stylized resolve pass.
 //
-// `moebius` is a preset over that pass; `painted` is the *absence* of the pass
-// rather than a neutral configuration of it, so choosing it costs nothing — no
-// second scene render, no fullscreen resolve, no offscreen targets.
+// There is ONE. A second style ("Painted", the absence of the pass) shipped
+// alongside it and was withdrawn on owner direction 2026-09-03 — "I only want
+// the moebius art style, remove the other style" — and the machinery that
+// existed only because there were two went with it: the menu's cycle row, the
+// persisted preference, and the capture script's STYLE override. A one-entry
+// roster behind a button that cycles to itself is worse than no button.
 //
-// Adding a style is adding an entry here. The menu row, the persisted
-// preference and the renderer all read this list, so none of them needs
-// touching.
+// What stays is this file, because it is where every constant records the
+// frame measurement it was chosen against. That provenance is the reason not
+// to inline these numbers at the call site.
 
 import { MOEBIUS_RESOLVE_PRESET, type StylizedResolveOptions } from 'voxel/three';
-
-export type ArtStyleId = 'painted' | 'moebius';
-
-export interface ArtStyle {
-  readonly id: ArtStyleId;
-  /** What the menu row shows. */
-  readonly label: string;
-  /** One line on what the style does, used as the row's tooltip. */
-  readonly description: string;
-  /** How the frame is resolved; null renders straight to the canvas. */
-  readonly resolve: StylizedResolveOptions | null;
-}
 
 /**
  * The Moebius tuning, measured against this game's frames rather than
@@ -85,45 +75,6 @@ const MOEBIUS: StylizedResolveOptions = {
   brightness: 1.12,
 };
 
-export const ART_STYLES: readonly ArtStyle[] = [
-  {
-    id: 'moebius',
-    label: 'Moebius',
-    description: 'Ink contours over flat colour.',
-    resolve: MOEBIUS,
-  },
-  {
-    id: 'painted',
-    label: 'Painted',
-    description: 'Plain voxel shading, no outlines.',
-    resolve: null,
-  },
-];
-
-export const DEFAULT_ART_STYLE_ID: ArtStyleId = 'moebius';
-
-export function isArtStyleId(value: unknown): value is ArtStyleId {
-  return typeof value === 'string' && ART_STYLES.some((style) => style.id === value);
-}
-
-export function artStyleById(id: string): ArtStyle {
-  const style = ART_STYLES.find((candidate) => candidate.id === id);
-
-  if (!style) {
-    throw new Error(
-      `Unknown art style "${id}". Available: ${ART_STYLES.map((s) => s.id).join(', ')}.`,
-    );
-  }
-
-  return style;
-}
-
-/** The style after this one, wrapping — what the menu row's click does. */
-export function nextArtStyleId(id: ArtStyleId): ArtStyleId {
-  const index = ART_STYLES.findIndex((style) => style.id === id);
-  const next = ART_STYLES[(index + 1) % ART_STYLES.length];
-
-  if (!next) throw new Error('ART_STYLES is empty; there is no style to advance to.');
-
-  return next.id;
-}
+/** How the frame is resolved. The renderer hands this straight to the voxel
+ *  runtime; there is no other option to choose between. */
+export const MOEBIUS_RESOLVE: StylizedResolveOptions = MOEBIUS;

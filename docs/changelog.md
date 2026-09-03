@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.196
+
+- The Painted art style is gone; the game is Moebius only. The game-menu row that switched between them goes with it, and so does the remembered preference — there is nothing left to remember. Nothing about how Moebius looks has changed.
+
 ## 0.3.195
 
 - **Arena, Coastal, Fortress and Gold Rush are playable.** All four shipped with no trees anywhere on the map, and there is no other source of wood. A house costs 25 wood and every building that lets you advance an age costs wood, so with the 200 you start with you could put up one barracks and one house and that was the end of it — forever. The population limit stayed at 10, no age was ever reached, and the game could not end. On Arena both players sat in the Dark Age for the full 75 minutes with thousands of food and gold they had no way to spend. Every map now has woodlines, kept clear of the walled starts on Arena and Fortress so they do not open a hole in the wall.

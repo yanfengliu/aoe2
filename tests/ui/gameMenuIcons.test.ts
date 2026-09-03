@@ -18,11 +18,10 @@ const MENU_ACTIONS = [
   { hook: 'menu-restart', label: 'Restart match', icon: 'restart', state: '' },
   { hook: 'menu-quit', label: 'Quit to title', icon: 'quit', state: '' },
   { hook: 'menu-debug-cycle', label: 'Debug overlay: off', icon: 'debug', state: 'off' },
-  { hook: 'menu-art-style-cycle', label: 'Art style: Moebius', icon: 'artStyle', state: 'Moebius' },
 ] as const;
 
 // Every toggle's state must be announced, not just rendered.
-const LIVE_STATE_HOOKS = ['menu-debug-mode', 'menu-art-style'] as const;
+const LIVE_STATE_HOOKS = ['menu-debug-mode'] as const;
 
 function mountTemplate(): HTMLElement {
   const root = document.createElement('div');

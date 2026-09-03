@@ -118,7 +118,6 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
       // The live row, not the markup default: the label is republished on
       // mount from the persisted preference, so this also pins that the
       // default style really is the one the canvas is drawn in.
-      { hook: 'menu-art-style-cycle', name: 'Art style: Moebius', icon: 'artStyle', text: 'Moebius' },
     ] as const;
 
     for (const action of actions) {

@@ -9,8 +9,7 @@ import {
 } from 'voxel/three';
 
 import type { ProjectedEntityView } from '../../game/simulation/types';
-import { artStyleById, type ArtStyleId } from '../artStyles';
-import { readArtStylePreference } from '../artStylePreference';
+import { MOEBIUS_RESOLVE } from '../artStyles';
 import type { CameraState } from '../viewTypes';
 import { cameraStateToVoxelView } from './aoeCameraSync';
 import { AoeVoxelAdapter } from './aoeVoxelAdapter';
@@ -43,7 +42,6 @@ export interface AoeVoxelWorldRendererOptions {
   readonly pixelRatio?: number;
   readonly createRuntime?: (options: ThreeRenderRuntimeOptions) => AoeVoxelRuntime;
   /** Defaults to the persisted preference, then to `DEFAULT_ART_STYLE_ID`. */
-  readonly artStyleId?: ArtStyleId;
 }
 
 export interface AoeVoxelRendererState {
@@ -76,7 +74,6 @@ export class AoeVoxelWorldRenderer {
   private lastSimulationDisplayTimeMs: number | null = null;
   private presentedNowMs = 0;
   private disposed = false;
-  private artStyle: ArtStyleId;
 
   constructor(options: AoeVoxelWorldRendererOptions) {
     this.width = options.width;
@@ -90,15 +87,12 @@ export class AoeVoxelWorldRenderer {
     this.canvas.dataset.worldRenderer = 'voxel';
 
     const createRuntime = options.createRuntime ?? defaultRuntime;
-    this.artStyle = options.artStyleId ?? readArtStylePreference();
     this.runtime = createRuntime({
       canvas: this.canvas,
       width: this.width,
       height: this.height,
       pixelRatio: this.pixelRatio,
-      // Omitted when the style resolves to null, so Painted costs nothing
-      // rather than paying for a pass configured to do nothing.
-      stylizedResolve: artStyleById(this.artStyle).resolve ?? undefined,
+      stylizedResolve: MOEBIUS_RESOLVE,
       tileWidthPixels: 64,
       tileHeightPixels: 32,
       // Shared with the cast-shadow projector, so the sun that lights a roof
@@ -111,30 +105,6 @@ export class AoeVoxelWorldRenderer {
       },
     });
     options.host.append(this.canvas);
-  }
-
-  /** The style the canvas is currently drawn in. */
-  artStyleId(): ArtStyleId {
-    return this.artStyle;
-  }
-
-  /**
-   * Switches the look without rebuilding the world.
-   *
-   * The pass is a resolve step over the finished frame, so swapping it touches
-   * no voxel content — the alternative, recreating the renderer, would
-   * re-upload every chunk to change an outline.
-   */
-  setArtStyle(id: ArtStyleId): void {
-    this.assertActive();
-    // Recorded only after the runtime accepts it. The swap can throw — a
-    // refused renderer, a disposed or failed runtime — and the voxel side
-    // deliberately keeps the old pass drawing when it does. Assigning first
-    // would leave `artStyleId()` and the menu label naming a style the canvas
-    // is not in, and the next cycle would advance from that wrong base and
-    // skip a style.
-    this.runtime.setStylizedResolve(artStyleById(id).resolve);
-    this.artStyle = id;
   }
 
   present(

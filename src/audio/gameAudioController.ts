@@ -216,9 +216,10 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
       try {
         storage.setItem(MUTED_KEY, next ? '1' : '0');
       } catch {
-        // Private browsing or a full quota must never break the game (the
-        // art-style setting establishes this rule); the choice just does not
-        // persist.
+        // Private browsing or a full quota must never break the game; the
+        // choice just does not persist. (The art-style preference set this
+        // precedent and was withdrawn in v0.3.196 with the second style, so
+        // this is now the rule's only live example rather than its second.)
       }
     },
   };
