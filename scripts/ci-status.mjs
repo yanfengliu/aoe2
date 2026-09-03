@@ -16,9 +16,36 @@ const limit = limitFlag === -1 ? 20 : Number(process.argv[limitFlag + 1] ?? 20);
 function runsForWorkflow(workflow) {
   const out = execFileSync('gh', [
     'run', 'list', '--branch', 'main', '--workflow', workflow,
-    '--limit', String(limit), '--json', 'conclusion,displayTitle,createdAt',
+    '--limit', String(limit), '--json', 'conclusion,displayTitle,createdAt,databaseId',
   ], { encoding: 'utf8' });
   return JSON.parse(out);
+}
+
+// A run that FAILED and a run that could never START look identical in the
+// conclusion field — both say "failure". They mean opposite things: the first
+// is a verdict on the code and is the next task; the second is a verdict on
+// the ACCOUNT (Actions minutes exhausted or a spending limit reached) and says
+// nothing about the code at all. The owner confirmed the quota runs out some
+// weeks and told us to ignore it when it does (2026-09-03).
+//
+// The signature is unambiguous and comes from the jobs API rather than a
+// guess: every job finished with ZERO steps executed and an empty runner_name,
+// i.e. no runner was ever assigned. A real test failure always has steps and a
+// runner. Measured on run 33729682386, which failed this way five times across
+// push, rerun, rerun --failed and workflow_dispatch while GitHub itself
+// reported all systems operational.
+function neverGotARunner(runId) {
+  let jobs;
+  try {
+    const out = execFileSync('gh', [
+      'api', `repos/{owner}/{repo}/actions/runs/${String(runId)}/jobs`,
+      '--jq', '[.jobs[] | {steps: (.steps | length), runner: (.runner_name // "")}]',
+    ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    jobs = JSON.parse(out);
+  } catch {
+    return false; // Can't tell — fall back to treating the red as real.
+  }
+  return jobs.length > 0 && jobs.every((job) => job.steps === 0 && job.runner === '');
 }
 
 let anyRed = false;
@@ -42,8 +69,18 @@ for (const workflow of ['CI', 'playtest-corpus']) {
   let streak = 0;
   while (streak < finished.length && finished[streak].conclusion === latest.conclusion) streak += 1;
   const green = latest.conclusion === 'success';
-  if (!green) anyRed = true;
   const tail = streak === finished.length ? `${streak}+` : String(streak);
+  if (!green && neverGotARunner(latest.databaseId)) {
+    console.log(
+      `${workflow}: COULD NOT RUN — no runner was assigned to any job (every job`
+      + ` finished with zero steps). This is the Actions quota, not the code, so`
+      + ` it is NOT a red gate and NOT the next task. The local gate`
+      + ` (\`npm run verify\`) is what carries the weight until the allowance`
+      + ` resets. Latest "${latest.displayTitle}" at ${latest.createdAt}.`,
+    );
+    continue;
+  }
+  if (!green) anyRed = true;
   console.log(
     `${workflow}: ${green ? 'GREEN' : `RED (${latest.conclusion})`}`
     + ` — ${tail} consecutive, latest "${latest.displayTitle}" at ${latest.createdAt}`,
