@@ -34,6 +34,7 @@ export {
   createBoarHuntFixture,
   createWolfAggroFixture,
   createDeerFleeFixture,
+  createDeerFlightFixture,
   createDeerUndisturbedFixture,
   createWolfIdleFixture,
   createWolfAtShoulderFixture,

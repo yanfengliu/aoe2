@@ -1,8 +1,8 @@
 // Render-state assembly + per-tick memo. Caller drives `getRenderState()`
 // from multiple sites (HUD RAF, AoeVoxelGameView, browserTestApi
 // getSnapshot); the work below — filter every entity by isFootprintVisible,
-// build a dedupe Set, possibly merge memory entries, possibly re-sort —
-// is not free. The cache invalidates on (tick, renderStoreVersion,
+// possibly merge memory entries, possibly re-sort — is not free. The cache
+// invalidates on (tick, renderStoreVersion,
 // fogMemorySize) so any meaningful state change re-runs the projection.
 
 import { VisibilityMap } from 'civ-engine';
@@ -10,7 +10,6 @@ import type {
   ProjectedEntityView,
   ProjectedFrameView,
   ProjectedUnitAttackView,
-  RenderPositionFrame,
 } from '../types';
 import { compareProjectedRenderEntities, isFootprintVisible } from './pureHelpers';
 import type { RenderStore } from '../renderStore';
@@ -30,7 +29,6 @@ export interface RenderStateValue {
   tick: number;
   entities: ProjectedEntityView[];
   frame: ProjectedFrameView | null;
-  previousPositionFrame: RenderPositionFrame | null;
 }
 
 export function createRenderStateOps(deps: RenderStateOpsDeps): {
@@ -88,21 +86,15 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
       isCurrentlyVisible,
     );
     const liveEntitiesRaw = renderStore.getEntities();
+    // Only entities visible to the human perspective NOW are handed on. The
+    // prior-tick position frame that display interpolation once read was
+    // filtered through the same rule here; since v0.3.192 the presentation
+    // keeps its own per-unit history (displayedPositionSmoother), and an
+    // entity absent from the previously PRESENTED tick starts fresh there
+    // (weaker than the store's old per-tick rule when a frame coalesces
+    // ticks — named in that module's header), so nothing about the prior
+    // tick leaves this function any more.
     const liveEntities = liveEntitiesRaw.filter(isCurrentlyVisible);
-    const visiblePositionKeys = new Set(
-      liveEntities
-        .filter((entity) => entity.kind === 'unit' || entity.kind === 'resource')
-        .map((entity) => `${entity.id}:${entity.generation ?? 0}`),
-    );
-    const rawPreviousPositionFrame = renderStore.getPreviousPositionFrame();
-    const previousPositionFrame = rawPreviousPositionFrame
-      ? {
-        tick: rawPreviousPositionFrame.tick,
-        positions: rawPreviousPositionFrame.positions.filter((position) => (
-          visiblePositionKeys.has(`${position.id}:${position.generation}`)
-        )),
-      }
-      : null;
 
     // Fog-memory ghosts are merged in only when there are any; with none
     // (the common case, and always when fogMemorySize is 0) the live set is
@@ -129,7 +121,6 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
       tick: currentTick,
       entities,
       frame: renderStore.getFrame(),
-      previousPositionFrame,
     };
     cache = {
       tick: currentTick,

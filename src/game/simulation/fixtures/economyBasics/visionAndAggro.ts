@@ -196,7 +196,35 @@ export function createDeerFleeFixture(seed: string): PrototypeScenario {
   };
 }
 
-// The control for the fixture above: the SAME deer, on the same terrain, with
+/** A deer with a SCOUT five tiles off and twelve tiles of sight, for the
+ *  renderer's flight gate (`tests/browser/unit-motion-smoothness.spec.ts`).
+ *  `deer-flee-fixture` seats a villager three tiles from its deer with four
+ *  tiles of sight: a deer fleeing diagonally covers 1.41 tiles a hop, faster
+ *  than a villager walks, so it leaves that sight within a tick of bolting
+ *  and the render state has nothing to draw (measured 2026-09-02: the deer
+ *  was live for five of every fourteen ticks of the chase). A scout is what
+ *  a player lures deer with, it keeps pace with the flight, and the sight
+ *  keeps the whole flight on screen; nothing about the deer differs. */
+export function createDeerFlightFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 4, y: 4 } },
+      { owner: 2, townCenter: { x: 50, y: 30 } },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('scout', 1, 17, 18, { vision: 12 }),
+      gaiaSpawn('deer', 22, 18, { amount: 140 }),
+      ownedSpawn('house', 2, 50, 30, { vision: 4 }),
+    ],
+  };
+}
+
+// The control for `deer-flee-fixture`: the SAME deer, on the same terrain, with
 // every unit far away. A deer that wandered on its own would move here too, so
 // this is what makes the flee assertion evidence of the approach rather than
 // evidence that deer move at all.

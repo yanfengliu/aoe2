@@ -1,7 +1,6 @@
 import type { ProjectedEntityView, UnitType } from '../../game/simulation/types';
 import { TPS } from '../../game/simulation/prototypeScenario';
-import { unitBaseSpeedPercent } from '../../game/simulation/prototypeUnitRules/unitBaseSpeed';
-import { UNIT_SUBGRID_STEP_PER_TICK } from '../../game/simulation/bridge/pureHelpers';
+import { unitStepCadenceTicks } from '../unitStepCadence';
 import { unitRole, type UnitRole } from '../roles/unitRole';
 import type { VoxelPart } from './aoeVoxelRecipeTypes';
 import type { AoeUnitAnimationState } from './aoeVoxelUnitAnimationState';
@@ -55,13 +54,11 @@ const MAX_SMOOTHING_DELTA_MS = 250;
 // cadence is invariant across game speeds). Movement techs only SHORTEN the
 // cadence, so the untech'd base is the upper bound. The slowest §12.4.2
 // mover (Battering Ram, 62% = 20 hundredths/tick) steps every 5 ticks; its
-// window is 1,100 ms, a villager's 900, a scout's 700.
+// window is 1,100 ms, a villager's 900, a scout's 700. The cadence itself is
+// shared with the displayed-position smoother (unitStepCadence).
 const MS_PER_TICK = 1_000 / TPS;
 function motionWindowMsFor(entity: ProjectedEntityView): number {
-  const percent = unitBaseSpeedPercent(entity.entityType as UnitType) ?? 100;
-  const hundredthsPerTick = Math.max(1, Math.round(UNIT_SUBGRID_STEP_PER_TICK * percent));
-  const stepIntervalTicks = Math.ceil(100 / hundredthsPerTick);
-  return (2 * stepIntervalTicks + 1) * MS_PER_TICK;
+  return (2 * unitStepCadenceTicks(entity.entityType) + 1) * MS_PER_TICK;
 }
 const FULL_LOCOMOTION_SPEED = 2.5;
 const START_RESPONSE_MS = 90;

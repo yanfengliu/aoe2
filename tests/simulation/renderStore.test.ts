@@ -73,45 +73,18 @@ function tick(
   };
 }
 
-describe('RenderStore interpolation frame', () => {
-  it('retains the exact immediately preceding tick when multiple ticks arrive between reads', () => {
-    const store = new RenderStore();
-    store.apply(snapshot(0, [entity(1)]));
-    store.apply(tick(1, [entity(2)]));
-    store.apply(tick(2, [entity(3)]));
-
-    const previous = store.getPreviousPositionFrame();
-
-    expect(previous).toEqual({
-      tick: 1,
-      positions: [{ id: 7, generation: 3, x: 2, y: 4 }],
-    });
-    expect(structuredClone(previous)).toEqual(previous);
-  });
-
-  it('does not overwrite the prior tick during a same-tick snapshot refresh', () => {
+describe('RenderStore tick tracking', () => {
+  it('follows forward ticks and a rewinding snapshot', () => {
     const store = new RenderStore();
     store.apply(snapshot(10, [entity(1)]));
     store.apply(tick(11, [entity(2)]));
-    store.apply(snapshot(11, [entity(2, { selected: true })]));
-
-    expect(store.getPreviousPositionFrame()).toEqual({
-      tick: 10,
-      positions: [{ id: 7, generation: 3, x: 1, y: 4 }],
-    });
-  });
-
-  it('clears prior-position history when a snapshot rewinds the render tick', () => {
-    const store = new RenderStore();
-    store.apply(snapshot(10, [entity(1)]));
-    store.apply(tick(11, [entity(2)]));
-
-    expect(store.getPreviousPositionFrame()?.tick).toBe(10);
+    expect(store.getTick()).toBe(11);
+    expect(store.getEntities()[0]).toMatchObject({ x: 2, y: 4 });
 
     store.apply(snapshot(4, [entity(8)]));
 
     expect(store.getTick()).toBe(4);
-    expect(store.getPreviousPositionFrame()).toBeNull();
+    expect(store.getEntities()[0]).toMatchObject({ x: 8, y: 4 });
   });
 });
 
