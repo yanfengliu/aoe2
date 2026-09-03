@@ -808,6 +808,14 @@ Run to 60,000 on five of the same seeds:
 
 **The two levers this points at, neither yet tested.** The reseed is ungated: it fires whenever affordable, even with 1,600 food banked, and is 22% of Feudal wood. And the assignment comparator prefers a 60-wood farm to free sheep ten tiles away, because farms are tier-1 and Town-Center-adjacent. The second is what would make the first pay.
 
+**Verified 2026-09-03, so the next attempt starts from facts rather than re-deriving them.** Three things were checked directly against the code and the running sim:
+
+1. *The seeds this entry measured are not contaminated by the wood-less maps.* `default-seed`, `corpus-seed-b` and `seed-1` carry 197, 244 and 271 trees at tick 0. The 2026-09-03 finding that four of the nine PLAYABLE maps shipped with zero wood does not touch this analysis — it was measured on standard-generator seeds that have plenty. The 63.6% figure stands.
+2. *A farm is NOT in the comparator's top owner tier, and a plausible-sounding theory that it is, is wrong.* `entityCreateOps.ts` gives a farm `owner: null, baseOwner: owner`, which lands it in `compareCandidates`'s tier ONE (`owner === null && baseOwner === owner`), the same tier as the player's own home resource patches — not tier zero (`resource.owner === owner`). So farms do NOT structurally outrank natural food regardless of distance. This was checked because the opposite reading is easy to reach from the entry's own phrasing and would send an attempt at the tiering, which is not where the defect is.
+3. *What actually decides it is drop-off proximity WITHIN that tier.* Once two candidates share an owner tier, the first ranking key is Manhattan distance to the reference drop-off. A farm is built Town-Center-adjacent, so it wins that key against a berry patch or a boar ten tiles out, every time.
+
+**Which reshapes the fix.** It is not a tiering bug and not a distance bug: the comparator's round-trip cost is CORRECT as a measure of walking, and it is the only thing being measured. What it does not price is that a farm's food cost 60 wood and a boar's cost nothing. Any fix therefore has to put a price on the node, not a thumb on the distance — and it has to do so without making a distant free node beat a near one, which is the failure mode the seventeen attempts above already found by ranking alone.
+
 ## 2026-09-01 — The gather comparator measures a distance the units cannot walk (OPEN, and it relocates the root cause)
 
 **What was believed.** Commit `5c31d4e8` identified the routing gate as the ANCHOR: `findNearestDropOffBuilding` is resolved from the VILLAGER's position, so villagers clustered near the Town Center always make the TC their reference, and a tree beside a Lumber Camp is never preferred. That is true, and it is the smaller half.
