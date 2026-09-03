@@ -174,3 +174,67 @@ export function architectureMerlonBoxes(
   }
   return boxes;
 }
+
+/**
+ * A wall's crest, laid so it reads whichever way the line runs.
+ *
+ * The per-set rows above run along X, which is right for an east-west wall and
+ * wrong for a north-south one — the teeth then cross the wall's thickness
+ * instead of running along its top. A segment cannot know which way its line
+ * goes: it is a per-entity recipe with no neighbours.
+ *
+ * So the teeth go on the four CORNERS. Along a straight run in either
+ * direction, the two teeth either side of a shared edge overlap into one tooth
+ * centred on the joint, and the middle of every tile is left open — which is
+ * exactly a tooth-embrasure-tooth crest, at any orientation, with no segment
+ * needing to know anything about its neighbours. A corner tile shows teeth on
+ * both runs, which is what a real corner does.
+ *
+ * Laying the set's own row on BOTH axes was tried first and is much worse: the
+ * two rows union into a nearly solid lid with a grid of small holes punched in
+ * it, which reads as perforated stone rather than as battlements.
+ *
+ * The set still shapes the crest — that is v0.3.154's rule and it survives —
+ * but through the tooth's PROPORTIONS rather than its layout.
+ */
+export function architectureMerlonRing(
+  architecture: ArchitectureStyle | undefined,
+  stoneLight: number,
+  stoneDark: number,
+): DoorBox[] {
+  const set = architecture ?? 'western-european';
+  // width, height, and an optional cap (width, height) for the sets that taper.
+  const tooth: Record<string, { size: number; height: number; cap?: [number, number] }> = {
+    'western-european': { size: 0.34, height: 0.30 },
+    'central-european': { size: 0.26, height: 0.42 },
+    'middle-eastern': { size: 0.30, height: 0.24, cap: [0.16, 0.12] },
+    'east-asian': { size: 0.28, height: 0.22, cap: [0.36, 0.08] },
+    mediterranean: { size: 0.40, height: 0.20 },
+    mesoamerican: { size: 0.36, height: 0.16, cap: [0.24, 0.14] },
+  };
+  const shape = tooth[set] ?? tooth['western-european']!;
+  const boxes: DoorBox[] = [];
+  // 0.17 from each edge with a 0.34 tooth spans exactly 0.00-0.34 and
+  // 0.66-1.00, so two neighbours' teeth meet flush across the shared edge and
+  // read as one tooth centred on the joint. Flush rather than overlapping
+  // because a building part may not leave its own footprint by more than 0.02
+  // (`aoeVoxelBuildingDetail.test.ts`), and flush is safe here: the two faces
+  // that meet point away from each other, so one is always backface-culled and
+  // the other is buried inside its neighbour's volume.
+  const offsets = [0.17, 0.83];
+  let index = 0;
+  for (const x of offsets) {
+    for (const z of offsets) {
+      boxes.push([`merlon-${index}`, stoneLight, x, 0.72, z, shape.size, shape.height, shape.size]);
+      if (shape.cap) {
+        boxes.push([
+          `merlon-cap-${index}`, stoneDark, x, 0.72 + shape.height, z,
+          shape.cap[0], shape.cap[1], shape.cap[0],
+        ]);
+      }
+      index += 1;
+    }
+  }
+  return boxes;
+}
+

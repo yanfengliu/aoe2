@@ -1,65 +1,17 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
 import { buildingRole } from '../roles/buildingRole';
 import { construction, createBuildingDetailParts, damageFlames, monasteryFinial, townCenterCrown } from './aoeVoxelBuildingDetails';
-import { architectureDoorBoxes, architectureMerlonBoxes, architectureRoofGeometry, architectureRoofTint, architectureWallTint } from './aoeVoxelArchitecture';
+import { architectureRoofGeometry, architectureRoofTint } from './aoeVoxelArchitecture';
+import { add, setDoor, type BuildingContext } from './aoeVoxelBuildingContext';
+import { gate, wall } from './aoeVoxelWallRecipes';
 import { castShadowParts } from './aoeVoxelCastShadows';
 import {
-  makePart,
   mixTint,
   shade,
   VOXEL_COLORS,
   type VoxelPart,
-  type VoxelSurface,
 } from './aoeVoxelRecipeTypes';
 
-export interface BuildingContext {
-  architecture?: import('../../game/simulation/architectureStyles').ArchitectureStyle;
-  readonly entity: ProjectedEntityView;
-  readonly identity: string;
-  readonly ground: number;
-  readonly x: number;
-  readonly z: number;
-  readonly width: number;
-  readonly depth: number;
-  readonly team: number;
-  readonly parts: VoxelPart[];
-}
-
-export function add(
-  context: BuildingContext,
-  suffix: string,
-  surface: VoxelSurface,
-  tint: number,
-  xFraction: number,
-  bottom: number,
-  zFraction: number,
-  widthFraction: number,
-  height: number,
-  depthFraction: number,
-  rotation: { readonly yaw?: number; readonly roll?: number } = {},
-): void {
-  context.parts.push(makePart(
-    context.entity,
-    context.identity,
-    suffix,
-    surface,
-    // v0.3.108: wall plaster follows the building's architecture set; every
-    // other colour passes through (roofs re-key at their own sites).
-    architectureWallTint(context.architecture, tint),
-    context.x + context.width * xFraction,
-    context.ground + bottom + height / 2,
-    context.z + context.depth * zFraction,
-    Math.max(0.045, context.width * widthFraction),
-    height,
-    Math.max(0.045, context.depth * depthFraction),
-    rotation,
-  ));
-}
-
-// Per-set door forms (v0.3.143): one call replaces a raw door box.
-function setDoor(context: BuildingContext, prefix: string, xF: number, bottom: number, zF: number, wF: number, h: number, dF: number): void {
-  for (const [sfx, tint, ...box] of architectureDoorBoxes(context.architecture, xF, bottom, zF, wF, h, dF)) add(context, `${prefix}-${sfx}`, 'matte', tint, ...box);
-}
 function steppedRoof(
   context: BuildingContext,
   prefix: string,
@@ -398,47 +350,6 @@ function tower(context: BuildingContext): void {
     add(context, `tower-merlon-${String(index)}`, 'matte', VOXEL_COLORS.stoneLight, x, 2.09, z, 0.12, 0.28, 0.12);
   }
   add(context, 'tower-banner', 'matte', context.team, 0.5, 2.2, 0.5, 0.12, 0.3, 0.035);
-}
-
-function wall(context: BuildingContext): void {
-  if (context.entity.entityType === 'palisade-wall') {
-    for (let index = 0; index < 5; index += 1) {
-      add(context, `palisade-stake-${String(index)}`, 'matte', index % 2 ? VOXEL_COLORS.timber : VOXEL_COLORS.timberDark, 0.14 + index * 0.18, 0, 0.5, 0.11, 1.02 + (index % 2) * 0.12, 0.28);
-    }
-    add(context, 'palisade-team-knot', 'matte', context.team, 0.5, 0.62, 0.66, 0.62, 0.08, 0.04);
-    return;
-  }
-  add(context, 'wall-base', 'matte', VOXEL_COLORS.stone, 0.5, 0, 0.5, 0.92, 0.76, 0.5);
-  // Per-set merlon forms (v0.3.154): the set shapes the wall's crest.
-  for (const [sfx, tint, ...box] of architectureMerlonBoxes(context.architecture, VOXEL_COLORS.stoneLight, VOXEL_COLORS.stoneDark)) add(context, `wall-${sfx}`, 'matte', tint, ...box);
-  add(context, 'wall-team-shield', 'matte', context.team, 0.5, 0.34, 0.77, 0.18, 0.28, 0.035);
-}
-
-// A gate reads as a wall with a way through it: two piers carrying a lintel,
-// with the road left open between them. The piers are taller and heavier than
-// the wall's own mass so a long line's opening is findable at a glance, which is
-// the whole point of building one.
-function gate(context: BuildingContext): void {
-  const timber = context.entity.entityType === 'palisade-gate';
-  const pier = timber ? VOXEL_COLORS.timberDark : VOXEL_COLORS.stone;
-  const cap = timber ? VOXEL_COLORS.timber : VOXEL_COLORS.stoneLight;
-  // Two piers carrying a lintel, with one door hung between them. The piers
-  // stand taller than the wall they interrupt and the lintel bridges them, so
-  // the opening in a long line reads as a portal from across the map — which is
-  // the only reason to look for a gate in the first place. A first attempt hung
-  // two half-doors and read as two dark slots instead of one way through.
-  // Every part stays inside the 1x1 footprint: the caps are the widest thing
-  // here, so they set the pier centres rather than the other way round.
-  for (const [side, centerX] of [['left', 0.15], ['right', 0.85]] as const) {
-    add(context, `gate-pier-${side}`, 'matte', pier, centerX, 0, 0.5, 0.26, 1.12, 0.62);
-    add(context, `gate-pier-cap-${side}`, 'matte', cap, centerX, 1.12, 0.5, 0.3, 0.14, 0.68);
-  }
-  add(context, 'gate-lintel', 'matte', cap, 0.5, 1.0, 0.5, 0.78, 0.16, 0.56);
-  // The door sits back from the piers' faces so the opening keeps a visible
-  // depth rather than reading as one flat wall.
-  setDoor(context, 'gate', 0.5, 0.04, 0.5, 0.5, 0.96, 0.2);
-  add(context, 'gate-door-band', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.62, 0.5, 0.52, 0.08, 0.24);
-  add(context, 'gate-team-banner', 'matte', context.team, 0.5, 1.02, 0.79, 0.26, 0.22, 0.04);
 }
 
 export function createBuildingParts(

@@ -75,8 +75,15 @@ const TYPE_DETAIL_SIGNATURES = {
   'fish-trap': ['detail-fish-trap-net', 'detail-fish-trap-float'],
   castle: ['detail-castle-portcullis-bar-left', 'detail-castle-arrow-slit'],
   wonder: ['detail-wonder-relief-left', 'detail-wonder-finial'],
-  'stone-wall': ['detail-stone-wall-course-low', 'detail-stone-wall-cap'],
-  'palisade-wall': ['detail-palisade-wall-lashing', 'detail-palisade-wall-brace'],
+  // The cap is GONE: it was a slab laid over the merlons that fused the crest
+  // into a flat lid, so the crenellation was in the recipe and invisible. The
+  // courses moved to the two faces the fixed isometric camera can see, because
+  // the wall fills its tile now and the old z = 0.755 plane is inside it.
+  'stone-wall': ['detail-stone-wall-course-low-x', 'detail-stone-wall-course-low-z'],
+  // The lashing moved into the recipe (onto both visible faces) and the
+  // diagonal brace is gone — against stakes that span the tile it read as a
+  // black slash across the timber rather than a prop behind it.
+  'palisade-wall': ['detail-palisade-wall-rail-x', 'detail-palisade-wall-rail-z'],
   'stone-gate': ['detail-stone-gate-hinge-band', 'detail-stone-gate-track'],
   'palisade-gate': ['detail-palisade-gate-lashing', 'detail-palisade-gate-track'],
   farm: ['detail-farm-scarecrow-post', 'detail-farm-scarecrow-head'],

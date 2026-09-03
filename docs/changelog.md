@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.198
+
+- Stone walls look like walls. A wall line used to be a row of separate grey boxes with grass showing between them — a segment only covered about half its tile, so a wall running north-south left half a tile of bare ground at every joint. Segments now fill their tile and meet, so a line reads as one wall and the Arena map's ring encloses the base the way it is supposed to.
+- Walls have visible battlements. The teeth were in the game already and could not be seen: a stone slab was being drawn straight over the top of them, flattening the crest into a lid. The slab is gone and the teeth sit on the corners, so they line up into a proper tooth-and-gap crest whichever way the wall runs.
+- Palisades read as timber stakes rather than charcoal posts. They were drawn in the darkest timber colour, which against this map's sun came out almost black, and like stone walls they left most of their tile empty so a run did not join up. The gaps BETWEEN the stakes are kept — that is what makes a palisade a palisade.
+
 ## 0.3.197
 
 - A player who has lost their Town Centre can now actually be finished off, so matches end. The computer only ever marched on an enemy Town Centre, so once it razed one it had nothing left to aim at — it would stand next to the last blacksmith and house of a player who had no units and no way to build any, forever, and the match could never end because a conquest win needs every enemy building gone. On the Gold Rush map that match now ends in victory at about 70 minutes instead of running past 100. It still does not end on Arena, Coastal or Fortress, for other reasons.

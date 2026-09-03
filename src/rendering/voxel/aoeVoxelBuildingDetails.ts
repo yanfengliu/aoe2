@@ -1,6 +1,6 @@
 import type { BuildingType, ProjectedEntityView } from '../../game/simulation/types';
 import { architectureRoofTint } from './aoeVoxelArchitecture';
-import { add as addBuildingPart, type BuildingContext } from './aoeVoxelBuildingRecipes';
+import { add as addBuildingPart, type BuildingContext } from './aoeVoxelBuildingContext';
 import {
   hash01,
   mixTint,
@@ -197,15 +197,39 @@ function wonder(context: DetailContext): void {
 }
 
 function stoneWall(context: DetailContext): void {
-  add(context, 'stone-wall-course-low', 'matte', VOXEL_COLORS.stoneDark, 0.5, 0.24, 0.755, 0.88, 0.05, 0.025);
-  add(context, 'stone-wall-course-high', 'matte', VOXEL_COLORS.stoneLight, 0.5, 0.52, 0.755, 0.88, 0.05, 0.025);
-  add(context, 'stone-wall-cap', 'matte', VOXEL_COLORS.stoneDark, 0.5, 1.03, 0.5, 0.94, 0.08, 0.56);
+  // Courses on the two faces the fixed isometric camera can see. They used to
+  // sit at z = 0.755, which was the face of a 0.5-deep wall; the wall fills its
+  // tile now, so that plane is buried inside it. They PROTRUDE by 0.015: set
+  // flush they are coplanar with the wall face and z-fight, and set inside
+  // they are buried and read as a dotted line rather than a course. The
+  // footprint invariant allows 0.02. Mind that `add` FLOORS every extent at
+  // 0.045, so a band asked for at 0.02 is really 0.045 wide and a centre of
+  // 1.005 escapes by 0.0275 — 0.995 is the centre that clears both bounds.
+  for (const [suffix, y, tint] of [
+    ['low', 0.24, VOXEL_COLORS.stoneDark],
+    ['high', 0.52, VOXEL_COLORS.stoneLight],
+  ] as const) {
+    add(context, `stone-wall-course-${suffix}-x`, 'matte', tint, 0.995, y, 0.5, 0.045, 0.05, 0.96);
+    add(context, `stone-wall-course-${suffix}-z`, 'matte', tint, 0.5, y, 0.995, 0.96, 0.05, 0.045);
+  }
+  // NO CAP. There used to be a slab here at y = 1.03 spanning 0.94 x 0.56 —
+  // straight over the top of the merlons, fusing the crest into one flat lid.
+  // The crenellation was in the recipe the whole time and could not be seen.
 }
 
 function palisadeWall(context: DetailContext): void {
-  add(context, 'palisade-wall-lashing', 'matte', VOXEL_COLORS.thatch, 0.5, 0.68, 0.65, 0.7, 0.07, 0.035);
-  add(context, 'palisade-wall-brace', 'matte', VOXEL_COLORS.timberDark, 0.5, 0.2, 0.66, 0.055, 0.72, 0.04, { roll: Math.PI / 4 });
+  // The recipe carries the lashing now, on both visible faces, because the
+  // stakes span the tile and the old z = 0.65 plane sits inside them. The
+  // diagonal brace is gone with it: against stakes this deep it read as a
+  // black slash across the timber rather than as a prop behind them.
+  for (const [suffix, cx, cz, w, d] of [
+    ['x', 0.995, 0.5, 0.045, 0.94],
+    ['z', 0.5, 0.995, 0.94, 0.045],
+  ] as const) {
+    add(context, `palisade-wall-rail-${suffix}`, 'matte', VOXEL_COLORS.timberDark, cx, 0.26, cz, w, 0.05, d);
+  }
 }
+
 
 // The two things that say "this opens": iron hinges on the doors, and the road
 // worn through the threshold.
