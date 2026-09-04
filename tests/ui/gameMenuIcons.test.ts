@@ -14,6 +14,7 @@ const MENU_ACTIONS = [
   { hook: 'save-button', label: 'Save game', icon: 'save', state: '' },
   { hook: 'load-button', label: 'Load game', icon: 'load', state: '' },
   { hook: 'menu-tech-tree', label: 'Technology tree', icon: 'techTree', state: '' },
+  { hook: 'menu-civilizations', label: 'Civilizations', icon: 'civilizations', state: '' },
   { hook: 'replay-load-button', label: 'Watch a replay…', icon: 'replay', state: '' },
   { hook: 'menu-restart', label: 'Restart match', icon: 'restart', state: '' },
   { hook: 'menu-quit', label: 'Quit to title', icon: 'quit', state: '' },

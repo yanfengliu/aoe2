@@ -37,7 +37,7 @@ import {
 } from '../../game/replay/ReplayController';
 import { createTimelinePanel } from '../../game/replay/TimelinePanel';
 import { createIdleVillagerBell } from '../../ui/hud/idleVillagerBell';
-import { createTechTreePanel } from '../../ui/hud/techTreePanel';
+import { mountReferencePanels } from './referencePanels';
 import { registerDePlayHotkeys } from './dePlayHotkeys';
 import { registerSelectionRecallHotkeys } from './selectionRecallHotkeys';
 import { mountGameAudio } from '../../audio/mountGameAudio';
@@ -403,17 +403,14 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   const selectNextIdleVillagerAndCenter = registerSelectionRecallHotkeys(hotkeyRegistry, bridgeRef, view);
   // Audio cues (v0.3.109): horn, age-up fanfare, match stings, mute toggle.
   const gameAudio = mountGameAudio(bridgeRef, hudRoot);
-  // Technology tree viewer (v0.3.157): §11.3's browse-the-tree modal, on the
-  // menu button and F1 (F2 belongs to the debug overlay). Opens OVER the
-  // menu, so closing it returns there and the menu's pause holds.
-  const techTree = createTechTreePanel(hudRoot, {
+  // The look-it-up panels: technology tree on F1, civilizations on F4. Both
+  // live in `referencePanels.ts` — see its header for why they are one role.
+  const referencePanels = mountReferencePanels({
+    hudRoot,
+    hotkeyRegistry,
     getCivilization: () => bridgeRef().getPlayerCivilization(1),
   });
-  cleanupCallbacks.push(() => techTree.destroy());
-  hudRoot.querySelector('[data-hud="menu-tech-tree"]')?.addEventListener('click', () => {
-    techTree.open();
-  });
-  hotkeyRegistry.register({ key: 'F1' }, () => { techTree.toggle(); });
+  cleanupCallbacks.push(() => referencePanels.dispose());
   cleanupCallbacks.push(() => gameAudio.dispose());
   const idleBell = createIdleVillagerBell({
     countIdleVillagers: () => bridge.countIdleVillagers(),

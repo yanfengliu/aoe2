@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.201
+
+- **A Civilizations panel, so you can see how the thirty of them differ without leaving the match.** It opens from its own game-menu button or `F4`, and it shows all thirty at once — army type, unique unit and team bonus on one row each — rather than one at a time. Pick a row and it opens in place for that civilization's expansion, unique technologies and full bonus list. Your own civilization is marked. The search box reads the bonus text as well as the names, so "which civilizations have elephants" or "which get something cheaper" is one word to type. Where this game has not finished a civilization yet, it says so: the unique unit or technology it cannot give you is struck through and the civilization is marked partial, rather than being listed as though it worked.
+
 ## 0.3.200
 
 - The computer gathers far more wood on Arena, Fortress and Gold Rush, because its Lumber Camp finally goes up at the trees. It would only consider a woodline within 12 tiles of its Town Centre, and those three maps deliberately keep every woodline at least 14 tiles clear of a start so a patch of forest cannot punch a hole in Arena's wall — so it never found one, planted its camp beside the Town Centre, and then walked every load fifteen tiles home. On Arena it had 19.6 villagers assigned to wood and only 3 of them ever actually chopping; that is now 5.4, and the wood it gathers over a 100-minute match goes from 2,964 to 4,076. On Fortress the same figure goes from 1,862 to 8,829. Maps whose trees were already close by — Standard, Coastal — play exactly as they did.

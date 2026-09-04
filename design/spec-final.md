@@ -1440,6 +1440,19 @@ Note: because the training-time seam applies its multipliers at the moment a uni
 
 The player must be able to choose which civilization they play as, so the passive bonuses (§11.11) actually take effect in a game. The first implementation (v0.1.87) is a `?civ=<name>` URL parameter that sets the human player's (owner 1) civilization; the name is validated case-insensitively against the canonical 30-civilization list (`civilizationNames.CIVILIZATION_NAMES`), and an unknown or absent value falls back to the default (Britons). The choice overrides the scenario start's civilization at world-build time (closure-local, not a separate save field) and therefore enters the persisted `playerCivilizations` map through the normal seed path — so a game saved after choosing a civilization reloads with that civilization, and a load is never overridden by the parameter. A full in-game civilization-picker UI (at match setup) is the intended follow-up; the URL parameter is the minimal reachable mechanism.
 
+### 11.14 Civilizations compendium
+
+The player must be able to see, in a match, how the thirty civilizations DIFFER — not one at a time, but side by side. Implemented v0.3.201: a modal opened from its own game-menu button or `F4` (F1 is the technology tree, F2 the debug overlay, F3 the DE pause key), rendering OVER the menu the same way §11.3's viewer does, so closing it returns there and the menu's pause holds.
+
+It lists every civilization at once — one row each, giving army archetype, unique unit(s) and team bonus — and a row expands in place for its expansion label, unique technologies and full civilization-bonus list. The player's own civilization is marked. A free-text search filters across every line INCLUDING the bonus text, because "how do the civilizations differ" is most often asked as "which of them do X".
+
+Two rules govern what it may say:
+
+- The text is the CSV's (§11.4), read at runtime through an embedded copy, because the browser build cannot open `design/stats/`. The embedded copy is gated byte-for-byte against the file, and the runtime parser is gated to agree with the content pipeline's own.
+- It never promises what the game cannot deliver. A unique unit or technology the simulation does not implement is rendered struck through and dimmed, and its civilization carries a "partial" mark. This is the §11.6 local-coverage policy made visible to the player rather than only to the build.
+
+Below a four-column width the row folds to two lines rather than stacking every cell, so a small screen still compares several civilizations at once.
+
 ## 12. Fog of War, Line of Sight, Pathfinding, and Movement
 
 ### 12.1 Visibility States

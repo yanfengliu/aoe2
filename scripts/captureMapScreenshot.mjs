@@ -251,6 +251,17 @@ try {
       done += chunk;
     }
   }
+  // HOTKEY="F4" (or "F4,Escape") presses keys before the shot, so a capture can
+  // show a HUD PANEL — a modal the world view never reaches on its own. Without
+  // it every panel in this game had to be photographed by a one-off script,
+  // which is what this file exists to replace: the freshness and port checks
+  // above are the whole reason a capture can be trusted, and a bespoke script
+  // has neither.
+  const hotkeys = (process.env.HOTKEY ?? '').split(',').map((key) => key.trim()).filter(Boolean);
+  for (const key of hotkeys) {
+    await page.keyboard.press(key);
+    await page.waitForTimeout(120);
+  }
   await page.waitForTimeout(1500);
   await page.screenshot({ path: outputPath, fullPage: false });
   console.log(`saved ${outputPath}`);

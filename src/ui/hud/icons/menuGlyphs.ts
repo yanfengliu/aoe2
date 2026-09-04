@@ -12,6 +12,7 @@ export const GAME_MENU_ICON_KINDS = [
   'quit',
   'debug',
   'techTree',
+  'civilizations',
 ] as const;
 
 export type GameMenuIconKind = (typeof GAME_MENU_ICON_KINDS)[number];
@@ -50,8 +51,12 @@ const GAME_MENU_ICON_BODY: Record<GameMenuIconKind, string> = {
     <circle cx="6" cy="19" r="2" />
     <circle cx="18" cy="19" r="2" />
     <path d="M12 7v2m0 0-4.5 1.7M12 9l4.5 1.7M6 14v3m12-3v3" />`,
-  // A drawing nib over a flat field: the two halves of the look this setting
-  // switches between — the contour, and the unmodulated colour under it.
+  // Three standards of different heights on one ground line: the civilizations
+  // side by side, which is what this panel is for.
+  civilizations: `
+    <path d="M4 20.25h16" />
+    <path d="M6.5 20.25V7.5M12 20.25V4.5M17.5 20.25V9.5" />
+    <path d="M6.5 7.5h4v3h-4M12 4.5h4.5v3.2H12M17.5 9.5h-4v3h4" fill="currentColor" stroke="none" />`,
 };
 
 export function gameMenuGlyph(kind: GameMenuIconKind): string {
