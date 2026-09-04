@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.203
+
+- **Arena and Fortress have a woodline inside the walls.** Neither did. You started with sheep, berries, gold and stone behind your wall and not one tree — and since every house and every building that lets you advance an age costs wood, you had to send villagers outside in the first minutes and keep sending them. The computer paid for that on Arena: it lost four of its seven villagers on the walk, rang the town bell, and then sat with three villagers hiding inside and nothing on the map from about eight minutes in, while its wall was taken apart segment by segment. It never left the Dark Age. It now reaches the Feudal Age with a real economy. The woodline sits against one edge of the enclosure so the middle of your base is still free to build on — putting it next to the Town Centre was tried and it strangles the base instead.
+
 ## 0.3.202
 
 - The computer finishes off an opponent that has nothing left, even with a small force. It waits for a full attack group before committing to a march — sensible against an army, pointless against a player whose last units are gone and whose buildings cannot move — and that wait applied to both. A force cut below the threshold would sit at its own base while the opponent it had already beaten stayed technically alive, and the match could not end. The wait no longer applies when the enemy has no units left on the map.

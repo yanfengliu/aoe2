@@ -4,6 +4,34 @@ The standing list of what the gates could not see. One entry per defect that rea
 
 Unlike a lesson, an entry stays after it becomes a gate. The register is not a to-do list — it is the record of where defects came from, which is the best available guide to where the next one is.
 
+
+## 2026-09-04 — Neither walled map enclosed a single tree, so its player had to leave the wall to play (FIXED)
+
+**Symptom.** The user's priority 4: `arena` owner 2 sits at 3 population with no army for a whole 60,000-tick match and never leaves the Dark Age.
+
+**Investigation.** Sampled every 1,000 ticks, the story is a death spiral rather than a stall. Owner 2 grows to seven villagers by tick 4,000. At 5,000 its villagers start GARRISONING — the town bell, because owner 1 is raiding. By 7,000 it has **no unit on the map at all** and three villagers inside, and it stays that way to tick 16,000 while its wall is taken apart one segment at a time (34 buildings down to 26). Food 10, no income, no way back.
+
+The raid is not the root cause either. It is that arena's ring encloses **no wood**. Reading each walled start's contents: `arena` holds a Town Centre, 2 sheep, a boar, 6 berries, gold and stone behind its wall, and **zero trees**; `fortress` holds four of each mine, four sheep, two boar, six berries, a Castle — and **zero trees**. Every building that raises the population cap costs wood, and so does every age-up prerequisite, so a walled player has to leave the wall in the first minutes and keep leaving it. On `arena` the nearest tree was 15 cells away, outside the ring, and that walk is where owner 2 lost four of its seven villagers.
+
+**Root cause.** `paintWoodlines` holds every patch at least `MIN_START_GAP` = 14 cells clear of every start, deliberately, so a patch cannot punch a hole in Arena's ring or Fortress's square. Nothing then put wood back INSIDE. The walls were built and the maps shipped with a base you cannot boom in — which is the opposite of what Arena means.
+
+**Fix.** `paintEnclosedWoodline` paints a woodline inside the wall of each walled start, before the wall goes up, so no segment can land on a tree. Trees are IMPASSABLE, so it refuses any cell that would cut the enclosure in two, checked by flooding the enclosure with the patch treated as solid rather than approximated with a margin.
+
+**The ORDER the cells are taken in decides the whole result, and the intuitive one is the worst of the three.** All measured on six seeds at 60,000 ticks:
+
+    ordering                        arena owner 1        arena owner 2                  arena outcome
+    (no enclosed woodline)          castle, army 35      DARK AGE, dead, cap 10         victory 31,694
+    nearest the Town Centre         DARK AGE, cap 10     DARK AGE, cap 10               running
+    farthest, grown from a seed     castle, army 16      DARK AGE, cap 10               running
+    row-major band at one edge      castle, army 39      FEUDAL, 786 food, cap 25       victory 50,770
+
+Nearest-first gives the shortest carry and spends the only ground a walled base has to build on: both owners were population-capped in 98% of samples at 10/10 with a peak cap of 10, holding 1,000 food they had nowhere to spend. Farthest-from-the-Town-Centre grows a blob in a corner that fans inward and fragments what is left. What works is a band pushed against ONE EDGE, which leaves the rest of the enclosure as one contiguous piece of building ground — halls in the middle, trees at the edge, which is what a real base looks like.
+
+**Effect.** `arena` owner 2 goes from the Dark Age at 10 population, dead, to the FEUDAL age with 786 food and a 25 cap and 82% of samples unblocked; owner 1's army goes 35 to 39 and its cap 70 to 80. `fortress` owner 2 goes from 0/35 population to 63/65. Every map WITHOUT a wall — `aoe2-prototype`, `arabia`, `gold-rush`, `coastal` — is **byte-identical on every column of both owners**, which is the instrument check: this change can only reach a map that has a wall.
+
+**Still open.** `fortress` does not resolve either way, and its two owners simply swapped which one is wiped out. `arena` resolves 19,000 ticks later now, because owner 2 defends itself.
+
+**How this class is checked from now on.** `tests/simulation/walledMapEconomy.test.ts`: for both seats of both walled maps, the enclosure must hold food, WOOD, gold and stone, and must stay one connected place. RED-CHECKED before the fix — all four seats reported `trees inside: 0`. The connectivity half is not decoration: it caught the first placement cutting two cells off arena seat 2's base.
 ## 2026-09-04 — The AI's lumber camp cannot reach the woodline on three of the maps it ships (FIXED)
 
 **Symptom.** The user's priority 1, wood income. `arena` owner 1 runs a whole 60,000-tick match at 13-69 wood with roughly 13 villagers assigned to wood, so `pickNextBuild` stalls on a 175-wood Stable for the match and no seed has ever built a Siege Workshop.

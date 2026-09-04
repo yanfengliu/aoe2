@@ -24,6 +24,7 @@ import type { Position } from 'civ-engine';
 import type { MapSize } from './constants';
 import type { SpawnList } from './spawnList';
 import {
+  createTerrainCell,
   isInBounds,
   paintDisc,
   seedToNumber,
@@ -72,6 +73,121 @@ export function seedForestTrees(
       });
     }
   }
+}
+
+/**
+ * Paint a small woodline INSIDE a walled start, so the base a script seals off
+ * contains wood as well as food, gold and stone.
+ *
+ * Arena and Fortress shipped with none, and wood is the resource a start
+ * cannot do without: every house that raises the population cap costs it and
+ * so does every age-up prerequisite building. A walled player therefore had to
+ * leave the wall in the first minutes and keep leaving it — which on `arena`
+ * cost owner 2 four of its seven villagers to a raid, after which it rang the
+ * town bell and sat with three villagers garrisoned and NO unit on the map
+ * from tick 7,000 to tick 16,000 while its wall was taken apart. It never left
+ * the Dark Age in a 60,000-tick match.
+ *
+ * The block is placed at the FIRST anchor in row-major order whose every cell
+ * is plain unclaimed grass strictly inside `radius`, so it is deterministic
+ * and does not depend on the order the caller seeded anything else. Trees are
+ * IMPASSABLE, so `walledMapEconomy.test.ts` checks the enclosure is still one
+ * connected place afterwards — a woodline that cuts a base in two strands the
+ * villagers on the wrong side of it as surely as a wall would.
+ *
+ * Returns the number of cells painted, so a caller can fail loudly rather than
+ * ship a base with no wood in it again.
+ */
+export function paintEnclosedWoodline(
+  terrain: TerrainCellSpec[][],
+  townCenter: Position,
+  size: MapSize,
+  options: { readonly radius: number; readonly target: number },
+  claimed: ReadonlySet<string>,
+  blocking: ReadonlySet<string>,
+): number {
+  const { radius, target } = options;
+  const span = Math.ceil(radius);
+  const inside = (x: number, y: number): boolean =>
+    isInBounds(x, y, size) && Math.hypot(x - townCenter.x, y - townCenter.y) < radius;
+
+  const painted = new Set<string>();
+  // Would the enclosure still be ONE place? Trees are impassable, and a
+  // villager on the far side of a woodline is as stranded as one outside the
+  // wall. Checked directly rather than approximated with a margin, because
+  // connectivity is the property wanted: flood from the Town Centre with the
+  // patch so far treated as solid, and see whether anything open is left out.
+  const strands = (candidate: string): boolean => {
+    const solid = (x: number, y: number): boolean => {
+      const key = `${String(x)},${String(y)}`;
+      return key === candidate || painted.has(key) || blocking.has(key);
+    };
+    const open: string[] = [];
+    for (let y = townCenter.y - span; y <= townCenter.y + span; y += 1) {
+      for (let x = townCenter.x - span; x <= townCenter.x + span; x += 1) {
+        if (inside(x, y) && !solid(x, y)) open.push(`${String(x)},${String(y)}`);
+      }
+    }
+    const seen = new Set<string>();
+    // Start from the first open cell rather than the Town Centre, whose own
+    // footprint is solid ground: what matters is that the open cells are one
+    // region, not which of them the fill happens to begin at.
+    const first = open[0];
+    if (first === undefined) return true;
+    const [firstX, firstY] = first.split(',').map(Number);
+    seen.add(first);
+    const queue: Position[] = [{ x: firstX!, y: firstY! }];
+    while (queue.length > 0) {
+      const cell = queue.pop()!;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        const x = cell.x + dx;
+        const y = cell.y + dy;
+        const key = `${String(x)},${String(y)}`;
+        if (!inside(x, y) || seen.has(key) || solid(x, y)) continue;
+        seen.add(key);
+        queue.push({ x, y });
+      }
+    }
+    return open.some((key) => !seen.has(key));
+  };
+
+  // ROW-MAJOR, and the three orderings this was measured against are the
+  // reason. What a walled base needs is its woodline pushed against ONE EDGE,
+  // leaving the rest of the enclosure as one contiguous piece of building
+  // ground; row-major fills the top rows and does exactly that. The two
+  // alternatives both fail, in opposite ways, and both were run to a result on
+  // six seeds:
+  //
+  //   nearest the Town Centre  — the shortest carry, and it spends the ground
+  //     the base builds on. BOTH `arena` owners sat in the Dark Age for the
+  //     whole match, population-capped in 98% of samples at 10/10 with a peak
+  //     cap of 10, holding 1,000 food they had nowhere to spend.
+  //   farthest, grown from a seed — a blob in one corner that fans inward and
+  //     fragments what is left. `arena` owner 1 fell from army 35 to 16 and
+  //     the match stopped resolving.
+  //
+  // Row-major: owner 2 reaches the FEUDAL age with 786 food and a 25 cap,
+  // where it had been dead in the Dark Age at 10, and owner 1's army goes 35
+  // to 39. A cell joins only if the enclosure survives it.
+  for (let y = townCenter.y - span; y <= townCenter.y + span && painted.size < target; y += 1) {
+    for (let x = townCenter.x - span; x <= townCenter.x + span && painted.size < target; x += 1) {
+      const key = `${String(x)},${String(y)}`;
+      if (!inside(x, y)) continue;
+      if (terrain[y]?.[x]?.kind !== 'grass') continue;
+      if (claimed.has(key) || blocking.has(key)) continue;
+      if (strands(key)) continue;
+      painted.add(key);
+    }
+  }
+
+  for (const key of painted) {
+    const [x, y] = key.split(',').map(Number);
+    // Through `createTerrainCell`, not a spread: a forest cell is NOT
+    // buildable, and copying a grass cell's flags would leave a patch of
+    // forest you could put a house on.
+    terrain[y!]![x!] = createTerrainCell(x!, y!, 'forest');
+  }
+  return painted.size;
 }
 
 /**

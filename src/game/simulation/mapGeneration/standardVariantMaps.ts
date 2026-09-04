@@ -25,7 +25,11 @@ import {
 } from './startingOffsets';
 import { MAP_HEIGHT, MAP_WIDTH } from './constants';
 import { createSpawnList } from './spawnList';
-import { paintWoodlines, seedForestTrees } from './seedForestTrees';
+import { paintEnclosedWoodline, paintWoodlines, seedForestTrees } from './seedForestTrees';
+import {
+  AUTHORITATIVE_BUILDING_FOOTPRINTS,
+  getBuildingFootprint,
+} from '../../content/buildingFootprints';
 import {
   createBaseTerrain,
   createTerrainCell,
@@ -74,6 +78,50 @@ export function createFortressMap(seed: string): PrototypeScenario {
   applyStandardPlayerOpening(terrain, starts, spawns, seed);
 
   const HALF = 11;
+
+  // A woodline inside each square, before the wall goes up, for the same
+  // reason Arena has one: a walled start with no wood cannot build a house or
+  // advance an age, so its player has to leave the wall in the first minutes.
+  // See `paintEnclosedWoodline`. The radius is the INSCRIBED circle of the
+  // square rather than its half-width, so the patch stays clear of the corners
+  // where the wall is nearest in the diagonal.
+  const claimed = new Set<string>();
+  const impassable = new Set<string>();
+  const IMPASSABLE_KINDS = new Set(['tree', 'gold-mine', 'stone-mine', 'stone-wall']);
+  for (const spawn of spawns.toArray()) {
+    claimed.add(`${spawn.x},${spawn.y}`);
+    const isBuilding = spawn.kind in AUTHORITATIVE_BUILDING_FOOTPRINTS;
+    if (isBuilding || IMPASSABLE_KINDS.has(spawn.kind)) impassable.add(`${spawn.x},${spawn.y}`);
+    if (!isBuilding) continue;
+    const footprint = getBuildingFootprint(
+      spawn.kind as keyof typeof AUTHORITATIVE_BUILDING_FOOTPRINTS,
+    );
+    for (let dy = 0; dy < footprint.height; dy += 1) {
+      for (let dx = 0; dx < footprint.width; dx += 1) {
+        claimed.add(`${spawn.x + dx},${spawn.y + dy}`);
+        impassable.add(`${spawn.x + dx},${spawn.y + dy}`);
+      }
+    }
+  }
+  for (const start of starts) {
+    const painted = paintEnclosedWoodline(
+      terrain,
+      start.townCenter,
+      { width: MAP_WIDTH, height: MAP_HEIGHT },
+      { radius: HALF, target: 18 },
+      claimed,
+      impassable,
+    );
+    if (painted < 12) {
+      throw new Error(
+        `Fortress: only ${String(painted)} cells of woodline fit inside the square at `
+        + `(${String(start.townCenter.x)},${String(start.townCenter.y)}), and a walled start `
+        + 'needs at least 12. A base with no wood cannot build a house or advance an age.',
+      );
+    }
+  }
+  seedForestTrees(terrain, spawns, { width: MAP_WIDTH, height: MAP_HEIGHT });
+
   for (const start of starts) {
     const { townCenter } = start;
     const towardCenterX = townCenter.x < MAP_WIDTH / 2 ? 1 : -1;

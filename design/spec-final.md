@@ -1743,6 +1743,11 @@ A target that cannot be ENGAGED is not a target. The AI prefers to hunt the targ
 
 The attack-group threshold does not apply to an enemy with no units on the map. It exists so a single lost unit does not commit the AI to a base walk; there is nothing to be caught by when the enemy has no army, the buildings do not move, and by the conquest rule that enemy is alive ONLY because those buildings still stand. Without the exception the last-resort branch — which exists precisely for "an enemy that still holds a building is still alive" — could never fire below the threshold, and an army cut down under it idled at its own base for the rest of the match.
 
+
+**A walled start encloses an economy (v0.3.203).** Arena's ring and Fortress's square exist to let a player boom safely behind them, so what they enclose has to be playable on its own: food, WOOD, gold and stone. Both shipped with no wood at all — sheep, berries, gold and stone behind the wall and not one tree — and since every house and every age-up prerequisite building costs wood, a walled player had to leave the wall in the first minutes and keep leaving it. On `arena` that walk cost the AI four of its seven villagers, after which it rang the town bell and sat with three villagers garrisoned and NO unit on the map from tick 7,000 to tick 16,000 while its wall was taken apart. It never left the Dark Age in a 60,000-tick match.
+
+The woodline is painted inside the wall before the wall goes up, so no segment can land on a tree, and no cell is taken that would cut the enclosure in two — trees are impassable, and a villager on the far side of one is as stranded as one outside. It sits as a band against ONE EDGE of the enclosure, leaving the middle as one contiguous piece of building ground. That last part is not a detail: placing it nearest the Town Centre instead, for the shortest carry, left both `arena` owners population-capped at 10/10 for the whole match holding 1,000 food they had nowhere to spend, because a walled base's binding constraint is ground rather than distance.
+
 ### 13.3 Military Behavior
 
 Minimum AI military capabilities:

@@ -11,8 +11,12 @@ import {
   isInBounds,
   type TerrainCellSpec,
 } from './sharedTerrainHelpers';
-import { paintWoodlines, seedForestTrees } from './seedForestTrees';
+import { paintEnclosedWoodline, paintWoodlines, seedForestTrees } from './seedForestTrees';
 import { createSpawnList } from './spawnList';
+import {
+  AUTHORITATIVE_BUILDING_FOOTPRINTS,
+  getBuildingFootprint,
+} from '../../content/buildingFootprints';
 
 // Slice 11: Arena-style map. Each start is ringed by a stone wall, with
 // a gap on the side facing the map center so the player can break out.
@@ -34,13 +38,71 @@ export function createArenaMap(seed: string): PrototypeScenario {
   // silently ate these because `stone-mine` wasn't a building.
   applyStandardPlayerOpening(terrain, starts, spawns, seed);
 
+  // Every cell a spawn stands on, FOOTPRINTS INCLUDED. A building spawn is one
+  // entry at its anchor, so a set built from the spawn list alone leaves the
+  // other fifteen cells of a Town Centre looking free — which let the first
+  // enclosed woodline overlap one, and `seedForestTrees` then dropped nine of
+  // its sixteen trees on the floor because it does honour footprints.
   const occupiedCells = new Set<string>();
   for (const spawn of spawns.toArray()) {
     occupiedCells.add(`${spawn.x},${spawn.y}`);
+    if (!(spawn.kind in AUTHORITATIVE_BUILDING_FOOTPRINTS)) continue;
+    const footprint = getBuildingFootprint(
+      spawn.kind as keyof typeof AUTHORITATIVE_BUILDING_FOOTPRINTS,
+    );
+    for (let dy = 0; dy < footprint.height; dy += 1) {
+      for (let dx = 0; dx < footprint.width; dx += 1) {
+        occupiedCells.add(`${spawn.x + dx},${spawn.y + dy}`);
+      }
+    }
   }
 
   const RING_INNER_RADIUS = 6;
   const RING_OUTER_RADIUS = 7;
+
+  // The woodline goes INSIDE the ring, before the wall is laid, so the ring
+  // loop sees the trees' cells as taken and cannot lay a segment on one. Arena
+  // means a base you can boom in; without wood behind the wall it was a base
+  // you had to leave. See `paintEnclosedWoodline` for what that cost.
+  // What a villager cannot walk through, for the woodline's connectivity check.
+  // A sheep or a villager is passable and must not count.
+  const IMPASSABLE_KINDS = new Set(['tree', 'gold-mine', 'stone-mine', 'stone-wall']);
+  const impassableCells = new Set<string>();
+  for (const spawn of spawns.toArray()) {
+    const isBuilding = spawn.kind in AUTHORITATIVE_BUILDING_FOOTPRINTS;
+    if (!isBuilding && !IMPASSABLE_KINDS.has(spawn.kind)) continue;
+    impassableCells.add(`${spawn.x},${spawn.y}`);
+    if (!isBuilding) continue;
+    const footprint = getBuildingFootprint(
+      spawn.kind as keyof typeof AUTHORITATIVE_BUILDING_FOOTPRINTS,
+    );
+    for (let dy = 0; dy < footprint.height; dy += 1) {
+      for (let dx = 0; dx < footprint.width; dx += 1) {
+        impassableCells.add(`${spawn.x + dx},${spawn.y + dy}`);
+      }
+    }
+  }
+  for (const start of starts) {
+    const painted = paintEnclosedWoodline(
+      terrain,
+      start.townCenter,
+      { width: MAP_WIDTH, height: MAP_HEIGHT },
+      { radius: RING_INNER_RADIUS, target: 18 },
+      occupiedCells,
+      impassableCells,
+    );
+    if (painted < 12) {
+      throw new Error(
+        `Arena: only ${String(painted)} cells of woodline fit inside the ring at `
+        + `(${String(start.townCenter.x)},${String(start.townCenter.y)}), and a walled start `
+        + 'needs at least 12. A base with no wood cannot build a house or advance an age, so '
+        + 'this would be a map that cannot be played rather than a hard one.',
+      );
+    }
+  }
+  seedForestTrees(terrain, spawns, { width: MAP_WIDTH, height: MAP_HEIGHT });
+  for (const spawn of spawns.toArray()) occupiedCells.add(`${spawn.x},${spawn.y}`);
+
   for (const start of starts) {
     const ringedCells = collectRingCells(
       start.townCenter,
@@ -71,10 +133,11 @@ export function createArenaMap(seed: string): PrototypeScenario {
     }
   }
 
-  // The woodline goes on LAST and stays 14 cells clear of every start, so it
-  // cannot touch the ring that is this script's identity. Without it Arena
-  // shipped with no wood at all: both AI players sat in the Dark Age at 10/10
-  // population for a 75-minute audit.
+  // The OUTER woodlines go on last and stay 14 cells clear of every start, so
+  // they cannot touch the ring that is this script's identity. Without any wood
+  // at all Arena shipped unplayable: both AI players sat in the Dark Age at
+  // 10/10 population for a 75-minute audit. The enclosed woodline above is the
+  // start's own; these are what it expands to.
   paintWoodlines(terrain, starts, { width: MAP_WIDTH, height: MAP_HEIGHT }, seed);
   seedForestTrees(terrain, spawns, { width: MAP_WIDTH, height: MAP_HEIGHT });
   return {
