@@ -2,9 +2,17 @@
 //
 // BOUND: this reads the real generated spawns of every seed in `PLAYABLE_MAPS`
 // at both player starts, and it checks the ANCHOR — where the AI aims the
-// camp — not where the placement search finally puts it. It says nothing
-// about a map added outside that roster, and nothing about the camp the AI
-// builds SECOND (there is none; see the register entry).
+// camp — not where the placement search finally puts it, which lands one to
+// two cells further out. It says nothing about a map added outside that
+// roster, and nothing about the camp the AI builds SECOND (there is none; see
+// the register entry).
+//
+// NOMAD IS MEASURED AGAINST A TOWN CENTRE IT DOES NOT HAVE. A nomad start
+// carries a `townCenter` field but the scenario spawns none, so in play
+// `aiSystemBuildingPhase` anchors the bootstrap camp at the BUILDER'S FEET
+// instead. That case therefore proves the map has a woodline in range of the
+// nominal start, and nothing about where nomad's first camp actually goes.
+// (Found by a critic.)
 //
 // What it caught, 2026-09-03: `DROP_OFF_ANCHOR_RADIUS` was 12, and
 // `paintWoodlines` keeps every woodline at least 14 cells from every start so

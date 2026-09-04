@@ -30,6 +30,15 @@ export function createFu3CastleNoArchersFixture(seed: string): PrototypeScenario
     spawns: [
       ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
       ownedSpawn('castle', 1, 14, 6),
+      // Owner 1 keeps ONE unit on the map, well clear of the Castle and the
+      // target. These fixtures measure the Castle's ARROWS, and an owner with
+      // no unit at all is a different question: from v0.3.202 the AI's
+      // attack-group threshold does not apply to an enemy that has none, so
+      // owner 2 would commit its lone Champion immediately and march it out of
+      // range before the first arrow landed. A player with a villager is the
+      // ordinary case, and it holds the Champion where an arrow count means
+      // something.
+      ownedSpawn('villager', 1, 6, 9, { vision: 4 }),
       // Champion at (20, 8). Closest Castle footprint cell is (17, 8),
       // distance 3 — well within range 8. Champion HP 70, 0 armor, so
       // one 11-damage arrow drops it to 59.
@@ -65,6 +74,15 @@ export function createFu3CastleThreeArchersFixture(seed: string): PrototypeScena
     spawns: [
       ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
       ownedSpawn('castle', 1, 14, 6),
+      // Owner 1 keeps ONE unit on the map, well clear of the Castle and the
+      // target. These fixtures measure the Castle's ARROWS, and an owner with
+      // no unit at all is a different question: from v0.3.202 the AI's
+      // attack-group threshold does not apply to an enemy that has none, so
+      // owner 2 would commit its lone Champion immediately and march it out of
+      // range before the first arrow landed. A player with a villager is the
+      // ordinary case, and it holds the Champion where an arrow count means
+      // something.
+      ownedSpawn('villager', 1, 6, 9, { vision: 4 }),
       // 3 archers against the Castle's south edge — the footprint runs to
       // y=9, so y=10 is genuinely adjacent and the garrison order lands
       // immediately instead of spending ticks walking (v0.3.42 made
@@ -102,6 +120,15 @@ export function createFu3CastleFiveArchersFixture(seed: string): PrototypeScenar
     spawns: [
       ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
       ownedSpawn('castle', 1, 14, 6),
+      // Owner 1 keeps ONE unit on the map, well clear of the Castle and the
+      // target. These fixtures measure the Castle's ARROWS, and an owner with
+      // no unit at all is a different question: from v0.3.202 the AI's
+      // attack-group threshold does not apply to an enemy that has none, so
+      // owner 2 would commit its lone Champion immediately and march it out of
+      // range before the first arrow landed. A player with a villager is the
+      // ordinary case, and it holds the Champion where an arrow count means
+      // something.
+      ownedSpawn('villager', 1, 6, 9, { vision: 4 }),
       ownedSpawn('archer', 1, 14, 10, { vision: 5 }),
       ownedSpawn('archer', 1, 15, 10, { vision: 5 }),
       ownedSpawn('archer', 1, 16, 10, { vision: 5 }),

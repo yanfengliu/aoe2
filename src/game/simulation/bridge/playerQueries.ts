@@ -45,6 +45,8 @@ export interface PlayerQueries {
   /** The first unit of this type this owner has ON THE MAP — a garrisoned
    *  one has no position and cannot be engaged, so it is never returned. */
   findOwnedUnitOnMap(owner: number, unitType: UnitType): number | null;
+  /** Whether this owner has any unit at all standing on the map. */
+  ownerHasUnitOnMap(owner: number): boolean;
   countQueuedUnits(buildingId: number, unitType: TrainableUnitType): number;
   countOwnedUnits(owner: number, unitType: UnitType): number;
   countCompletedOwnedBuildings(
@@ -94,6 +96,16 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
   // Measured on `gold-rush` at 60,000 ticks: owner 2 held 14 buildings and two
   // garrisoned villagers, owner 1 held 151 units, and every one of them was
   // idle from tick 30,000 to the horizon while the match could not resolve.
+  /** Whether this owner has ANY unit standing on the map — the question the
+   *  conquest rule leaves over once its buildings are all that keep it alive. */
+  function ownerHasUnitOnMap(owner: number): boolean {
+    for (const id of world.query('unit', 'position')) {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (unit?.owner === owner) return true;
+    }
+    return false;
+  }
+
   function findOwnedUnitOnMap(owner: number, unitType: UnitType): number | null {
     for (const id of world.query('unit', 'position')) {
       const unit = world.getComponent<UnitComponent>(id, 'unit');
@@ -269,6 +281,7 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
     hasTechnology,
     findOwnedBuilding,
     findOwnedUnitOnMap,
+    ownerHasUnitOnMap,
     countQueuedUnits,
     countOwnedUnits,
     countCompletedOwnedBuildings,

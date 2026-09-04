@@ -40,6 +40,8 @@ export interface AiDecisionOps {
   // Returns every owned military unit's id as a set for fast membership
   // tests during attack-group pruning.
   ownedMilitaryUnitIds(owner: number): Set<number>;
+  /** Only the ones that can march — a garrisoned unit has no position. */
+  ownedMilitaryUnitIdsOnMap(owner: number): Set<number>;
   // Choose a Watch Tower placement anchor between the AI's Town Center
   // and the most recent enemy sighting. Steps the anchor one
   // AI_WATCH_TOWER_FORWARD_STEP toward the sighting so the tower sits
@@ -173,6 +175,26 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       results.push({ id, position });
     }
     return results;
+  }
+
+  // Two questions that look like one. `ownedMilitaryUnitIds` answers "how much
+  // military do I OWN", which is what the production phase's growth pause needs
+  // — a garrisoned soldier still exists and still costs population.
+  // `ownedMilitaryUnitIdsOnMap` answers "how much can MARCH", which is what the
+  // attack group is: `garrisonUnit` strips a unit's position, and one with no
+  // position is skipped by every branch of the attack phase's loop, so counting
+  // it toward the group's threshold reports an army that cannot move as
+  // mustered. Reachable on `islands`, where the AI garrisons its army into a
+  // Transport Ship (`aiFerryPhase`).
+  function ownedMilitaryUnitIdsOnMap(owner: number): Set<number> {
+    const ids = new Set<number>();
+    for (const id of world.query('unit', 'position')) {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (unit && unit.owner === owner && isAiMilitaryUnit(unit.unitType)) {
+        ids.add(id);
+      }
+    }
+    return ids;
   }
 
   function ownedMilitaryUnitIds(owner: number): Set<number> {
@@ -338,6 +360,7 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
     isAiMilitaryUnit,
     findOwnedMilitaryUnits,
     ownedMilitaryUnitIds,
+    ownedMilitaryUnitIdsOnMap,
     pickWatchTowerPlacement,
     villagerRebalance,
   };

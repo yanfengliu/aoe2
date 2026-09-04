@@ -39,9 +39,11 @@ export interface AiSystemDeps {
   villagerRebalance: (owner: number, targets: AiState['villagerTargets']) => void;
   findOwnedBuilding: (owner: number, buildingType: BuildingType) => number | null;
   findOwnedUnitOnMap: (owner: number, unitType: UnitType) => number | null;
+  ownerHasUnitOnMap: (owner: number) => boolean;
   /** Whether a land unit can stand on this cell — the shore test for fish. */
   isLandCell: (x: number, y: number) => boolean;
   ownedMilitaryUnitIds: (owner: number) => Set<number>;
+  ownedMilitaryUnitIdsOnMap: (owner: number) => Set<number>;
   findOwnedMilitaryUnits: (owner: number) => Array<{ id: number }>;
   hasOwnedWonder: (owner: number) => boolean;
   isConstructingBuilding: (owner: number, buildingType: BuildingType) => boolean;

@@ -116,6 +116,13 @@ export function createImperialCastleFixture(seed: string): PrototypeScenario {
     spawns: [
       ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
       ownedSpawn('castle', 1, 14, 14, { vision: 11 }),
+      // Owner 1 keeps ONE unit on the map. A player with buildings and NO
+      // units is a player who has been wiped out, and from v0.3.202 the AI's
+      // attack-group threshold does not apply to one — owner 2 committed its
+      // first trained units immediately and killed the freshly trained Petard
+      // this fixture exists to see (reproduced: the Petard appears at tick 300
+      // and is dead by 399). A villager is the ordinary case.
+      ownedSpawn('villager', 1, 6, 12, { vision: 4 }),
       ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
       ownedSpawn('castle', 2, 34, 14, { vision: 11 }),
     ],

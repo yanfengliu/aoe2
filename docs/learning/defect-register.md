@@ -26,17 +26,34 @@ Unlike a lesson, an entry stays after it becomes a gate. The register is not a t
 
 Alone the radius change costs `gold-rush` the one resolution the baseline had. Together the two reach `arena`, which neither reaches alone, and lose `fortress`, which the garrison fix alone reaches. WHICH seeds resolve is a knife-edge of a deterministic trajectory and moves under any change; how MANY is the number worth reading, and it goes 1 -> 3.
 
+**One number in the first write-up was not comparable, and a critic caught it.** `fortress` owner 1's wood over a match reads 1,862 -> 8,829, and that is NOT a carry-distance measurement: in the baseline arm that slot ends at **pop 0/40 with zero villagers** — it is wiped out — while in the other it ends at 51/65 with 46. The 4.7x is dominated by the slot surviving. The `arena` pair (2,964 -> 4,076, same owner alive in both arms, villagers on wood 19.6 -> 15.3) is the one that measures what this entry claims.
+
+**RE-MEASURED CLEANLY 2026-09-04, and the earlier table above was contaminated.** That four-arm table was taken by flipping the constant between runs while other work was in flight, so its arms differ by more than the radius, and it never included the boot map. The clean comparison — final code, six seeds, both arms run back to back with the source verified unchanged between them (`SEEDS=aoe2-prototype,arabia,arena,fortress,gold-rush,coastal TICKS=60000 SAMPLE=500 npm run ai:army-block`):
+
+    seed              radius 12          radius 20 (shipped)
+    aoe2-prototype    running            running            <- BYTE-IDENTICAL, every column
+    arabia            running            running            <- BYTE-IDENTICAL, every column
+    arena             running            victory 31,694
+    fortress          running            running
+    gold-rush         victory 37,837     victory 34,885
+    coastal           defeat  43,236     defeat  43,236
+    resolved          2 of 6             3 of 6
+
+**This answers the standing objection to any camp-siting change.** v0.3.177 was reverted because it lost at match resolution on the BOOT MAP, and §13.2 made the boot map the bar for a retry. `aoe2-prototype` and `arabia` are byte-identical here on every column of both owners — the change cannot touch them, because their nearest tree is 5 to 7 cells and the anchor already found it at radius 12. That is not luck; it is the same property the `coastal` instrument check turns on, now stated over the map the objection was about.
+
 **Instrument check that makes the attribution safe.** The change can only bite where the anchor was null, so `coastal` — whose nearest tree is 5 to 7 — must be untouched. It is **byte-identical** across both arms on every column, both owners. A change there would have refuted the reasoning rather than confirming it.
 
 **This corrects the entry below.** "The AI's build order stalls on the first thing it cannot afford" closed by pointing at the villager SPLIT — "a split that moved villagers onto wood would let the AI afford the buildings AND the army". The split was already fine. Nineteen villagers were on wood; they were walking thirty cells a round trip. The lever was the CARRY, not the allocation.
 
 **How this class is checked from now on.** `tests/simulation/dropOffAnchorReach.test.ts` walks every seed in `PLAYABLE_MAPS` — the same roster the setup screen offers, so a new map is covered the day it is added — and asserts the lumber-camp anchor is found from every start and IS the nearest tree. A second case ties the two constants together, so the gate goes red when either one moves rather than only when a map changes. RED-CHECKED at radius 12: Arena, Fortress and Gold Rush all failed by name.
 
-**Still open, and measured here rather than guessed.** The AI builds ONE lumber camp, ever — `pickNextBuildTarget` asks for one only in the DARK age and only when it has none, so `fortress` owner 2 and `gold-rush` owner 2 finish a match with zero camps. And the carry creeps back: on `arena` the nearest tree to a drop-off goes 4 -> 9 between ticks 7,500 and 30,000 as the local woodline is eaten. AoE2 plants a fresh camp at the new woodline; this AI cannot.
+**Still open, and corrected 2026-09-04.** The AI builds ONE lumber camp, ever — `pickNextBuildTarget` asks for one only in the DARK age and only when it has none — so a camp that is DESTROYED is never replaced. That is why `fortress` owner 2 and `gold-rush` owner 2 finish a match with none, and the first write-up was wrong to say they never build one: fortress o2 completes a camp at tick 7,800 and loses it at 11,600; gold-rush o2 completes one at 15,300 and loses it at 23,600. For fortress o2 the zero-camp ending is CAUSED BY THIS CHANGE — at radius 12 its camp stands two cells from its own Town Centre and survives the match; at 20 it stands sixteen cells out, in reach of a raid, and dies. Found by a critic running the counterfactual, not by the author. And the carry creeps back: on `arena` the nearest tree to a drop-off goes 4 -> 9 between ticks 7,500 and 30,000 as the local woodline is eaten. AoE2 plants a fresh camp at the new woodline; this AI cannot.
 
 ## 2026-09-04 — An enemy that garrisons its last villagers pins the attacker's whole army forever (FIXED)
 
 **Symptom.** The user's priority 2, "matches still do not resolve". On `gold-rush` at 60,000 ticks owner 1 holds **151 units, every one of them idle since tick 30,000**, 45 cells from owner 2's 14 remaining buildings. Owner 2 has no unit on the map. The match reports `running`.
+
+**Which arm that reading came from, corrected 2026-09-04 after a critic asked.** It was taken with the camp-anchor radius ALREADY at 20 — the two changes in this session shipped together, and this one was investigated on top of the other. In the true baseline `gold-rush` resolves at 34,704 with an army of 17, so the 151-unit tableau never existed in a shipped build. It is the symptom of an army this AI can now field, and it does not weaken the defect: the mechanism is arm-independent and the mutation proof below is taken on a fixture that has no camp at all.
 
 **Investigation, including two hypotheses that were wrong.** The attack phase was reached and wanted to push: tracing it every decision tick from tick 27,000 gives `group=136 thr=7 push=true targetOwner=2 tcId=2185`, so the army was mustered and the enemy Town Centre was a live target. The first hypothesis was the army being sealed inside its own base by 58 buildings; ordering units by hand through `bridge.pendingCommands` refuted it — a Knight walked **49 cells to distance 2 of that very Town Centre**, and every one of owner 2's 14 buildings was reachable. The second was the `!buildingApproachPlan -> clearUnitCommand` path in `attackCommandStep`; instrumenting it caught **zero** clears. Instrumenting `setUnitCommand` and `clearUnitCommand` then showed the command was never SET in the first place.
 
@@ -50,6 +67,35 @@ Alone the radius change costs `gold-rush` the one resolution the baseline had. T
 
 **A note on the instrument, because it wasted an hour.** Two rounds of tracing printed nothing and were read as findings. Both times the file had been patched with a broken string escape and `tsx` failed to transform it — and the run was piped through `grep`, so the shell reported exit 0. A trace that prints nothing and a build that never ran look identical. Every later trace was checked by confirming a control line printed first.
 
+
+## 2026-09-04 — The AI waits for a full attack group against an enemy that has no army left (FIXED, found by a critic)
+
+**Symptom.** None reported — this is a defect an independent critic found in the very change that was supposed to close its class, before anyone played it. It is registered anyway, because the entry above claims to have fixed "the army stands idle beside a base it could raze" and only half of that was true.
+
+**Investigation.** The critic built a control of the garrisoned-defender fixture with the villagers left ON the map and six attackers, and got the same tableau the garrison defect produced: owner 2 with zero units and two buildings standing, owner 1's six-unit army idle **at its own base** for 8,000 ticks, match `running`.
+
+**Root cause.** `shouldPush = state.attackGroup.length >= attackGroupSize(currentAge)` gates EVERY fallback in `runAttackPhase` — the visible-building branch, the Town-Centre branch, and the `lastResortTargetId` branch that v0.3.197 added for exactly this case ("an enemy that still holds a BUILDING is still alive by the conquest rule"). One unit short of seven in the Castle Age and none of them can fire. The threshold is there so a single lost unit does not commit the AI to a base walk; it has nothing to hold back against an opponent with no army to be caught by, whose buildings do not move.
+
+**Fix.** The threshold does not apply when the target enemy has no unit on the map. `ownerHasUnitOnMap` is the predicate, beside `findOwnedUnitOnMap` in `playerQueries`.
+
+**Two more instances of the SAME position-blind query, also found by the critic and also fixed.** The rename in the entry above did not close the class, and the architecture decision record has been corrected to say so.
+
+- `ownedMilitaryUnitIds` prunes the attack group, and `state.attackGroup.length` is what the threshold compares — so garrisoned military read as mustered. It is SPLIT rather than filtered, because its two callers ask different questions: the production phase's growth pause wants "how much military do I OWN" (a garrisoned soldier still costs population), the attack group wants "how much can MARCH". `ownedMilitaryUnitIdsOnMap` is the second. Reachable on `islands`, where the AI garrisons its army into a Transport Ship.
+- `findAvailableVillagerForBuild` could hand a foundation to a villager sheltering under the town bell. The `building.placeConfirm` validator asks only that the builder is alive and is a unit, so the site is placed and the concurrent-build slot is spent on a builder that can never walk to it. Not reproduced end to end; the trap is confirmed present.
+
+**How this class is checked from now on.** A second case in `tests/simulation/aiGarrisonedDefender.test.ts` on `ai-garrisoned-defender-few-fixture` — four attackers against a Castle-age threshold of seven. RED-CHECKED with the exception removed: `closest approach 21 cells; 4 of 4 attackers idle`. The full proof, including why that fixture has to be BROKE and why it measures the march rather than the win, is in `gate-proofs.md`.
+
+## 2026-09-04 — A browser gate 0.2 seconds from its own timeout (FIXED)
+
+**Symptom.** `npm run verify` went red on `game-hud-and-camera-hud.spec.ts` :: `keeps top status-bar chip positions stable as live values change`, with `Test timeout of 30000ms exceeded` and no assertion failure. It had passed in the previous full run of the same code.
+
+**Investigation.** Four runs in isolation all passed — and the test reported **29.8s against a 30-second budget** on an idle machine. Per-step timings placed the whole cost in one line: boot 1.2s, chip rects 0.02s, the first `train-villager` click 0.9s, and the click after the population cap is reached **25.5s**.
+
+**Root cause.** The test queued THREE villagers to drive food from 200 down to exactly 50. The default scenario opens at 4/5 population, so a queued villager fills the cap and the card becomes unavailable; Playwright then waits out its actionability check on the next click. Nothing was wrong with the game — the card is correctly unavailable — and nothing was wrong with the assertions. The test simply spent 85% of its budget waiting for a button it did not need.
+
+**Fix.** One villager, and an assertion that the food chip CHANGED rather than that it reads a particular number. The test is about the chips not MOVING while their values change, and it now says that. 29.8s to 2.4s, and it cannot be broken by a future change to what a villager costs.
+
+**How this class is checked from now on.** No new gate; the fix is inside the gate. What this and the flaky trade-route spec have in common is the lesson: **a browser assertion bounded by WALL CLOCK is bounded by the machine's load, and that bound is invisible until a slower machine finds it.** Every runner this repo has is slower than the one it is authored on. A spec whose reported duration is within a few seconds of the timeout is red on somebody's machine already.
 ## 2026-09-04 — The suite's one flaky spec, and what it was really asking (FIXED)
 
 **Symptom.** `npm run verify` went red on `tests/browser/trade-route-reach.spec.ts`: the Trade Cart's selection panel read `Idle` where the spec wanted `Trading`, after nine polls over five seconds.

@@ -21,9 +21,22 @@ import { createGrassFixtureTerrain, ownedSpawn } from './common';
 // garrisoned one, and `setUnitAttackCommandDirect` no-ops silently on a target
 // with no position — so the order was re-issued and dropped on every decision
 // tick for 30,000 ticks and the match could not resolve.
+// `-few-fixture` seats FOUR attackers instead of ten, which is UNDER the
+// Castle-age attack-group threshold of seven. That is the harder half of the
+// same defect and it was found by a critic, not by the author: `shouldPush`
+// gates every fallback in the attack phase, including the last-resort branch
+// added for "an enemy that still holds a BUILDING is still alive", so an army
+// cut down below the threshold used to idle at its own base against an
+// opponent that had nothing left to be caught by.
 export function createAiGarrisonedDefenderFixture(seed: string): PrototypeScenario {
-  const attackers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) =>
-    ownedSpawn('man-at-arms', 1, 20 + (index % 5), 18 + Math.floor(index / 5), { vision: 5 }));
+  const few = seed.includes('-few');
+  const attackerCount = few ? 4 : 10;
+  // At HOME, not on the enemy's doorstep. An army that starts beside its target
+  // makes "did it march?" unanswerable — the distance it would have to cover is
+  // the same either way. From owner 1's own base the two answers are 34 cells
+  // apart.
+  const attackers = Array.from({ length: attackerCount }, (_, index) =>
+    ownedSpawn('man-at-arms', 1, 14 + (index % 5), 12 + Math.floor(index / 5), { vision: 5 }));
   return {
     seed,
     width: MAP_WIDTH,
@@ -34,7 +47,14 @@ export function createAiGarrisonedDefenderFixture(seed: string): PrototypeScenar
         owner: 1,
         townCenter: { x: 8, y: 8 },
         startingAge: 'castle-age',
-        startingResources: { food: 2000, wood: 2000, gold: 2000, stone: 500 },
+        // The `-few` arm is BROKE on purpose. With resources it trains its way
+        // back over the attack-group threshold within a couple of thousand
+        // ticks — measured: four attackers became eleven — and the case the
+        // fixture exists for is never reached. There is nothing to gather on a
+        // bare grass map, so zero stays zero.
+        startingResources: few
+          ? { food: 0, wood: 0, gold: 0, stone: 0 }
+          : { food: 2000, wood: 2000, gold: 2000, stone: 500 },
       },
       {
         owner: 2,

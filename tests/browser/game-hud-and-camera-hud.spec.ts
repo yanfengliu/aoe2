@@ -83,12 +83,22 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
     const trackedKeys = ['food', 'wood', 'gold', 'stone', 'age', 'pop', 'time'];
     const initialRects = await game.getHudChipRects(page, trackedKeys);
 
+    // ONE villager, and the count is load-bearing. This used to queue THREE
+    // and wait for food to read exactly "50", and it cost 29.8 SECONDS of a
+    // 30-second budget on an IDLE machine — the suite failed on that 0.2s of
+    // headroom the first time a loaded machine ran it. Per-step timings
+    // (2026-09-04): boot 1.2s, the first click 0.9s, and the click after the
+    // population cap is reached 25.5s, because the card is unavailable by then
+    // and Playwright waits out its actionability check. One click is 2.4s.
+    //
+    // What this test is about is that the chips do not MOVE while their values
+    // change, so it asks for a CHANGE rather than for one particular number —
+    // which also means a future villager cost cannot silently break it.
+    const foodBefore = await page.locator('[data-hud="food"]').textContent();
     expect(await game.selectOwnedBuildingDirect(page, 1, 'town-center')).toBe(true);
     await page.locator('[data-command="train-villager"]').click();
-    await page.locator('[data-command="train-villager"]').click();
-    await page.locator('[data-command="train-villager"]').click();
 
-    await expect(page.locator('[data-hud="food"]')).toHaveText('50');
+    await expect(page.locator('[data-hud="food"]')).not.toHaveText(foodBefore ?? '');
     await expect(page.locator('[data-hud="time"]')).toHaveText(/\d{2}:\d{2}/);
 
     const updatedRects = await game.getHudChipRects(page, trackedKeys);

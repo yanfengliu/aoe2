@@ -119,11 +119,17 @@ export function createOwnerProducerHelpers(
   // pushing watch-tower AND wonder/nextBuild could dispatch the SAME
   // villager to two foundations (the second overwrites the first, leaving
   // foundation A builderless). Track claimed villagers locally + exclude.
+  // ON THE MAP, both passes: `garrisonUnit` strips a villager's position, and
+  // the town bell shelters villagers under a raid, so without this the AI can
+  // hand a foundation to a builder that is inside a building. The command is
+  // accepted — the validator asks only that the builder is alive and is a unit
+  // — so the site is placed, the builder is set to a `build` command it can
+  // never walk to, and the concurrent-build slot is spent.
   const claimedVillagers = new Set<number>();
   const findAvailableVillagerForBuild = (
     ownerId: number,
   ): number | null => {
-    for (const id of activeWorld.query('unit')) {
+    for (const id of activeWorld.query('unit', 'position')) {
       const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
       if (
         unit?.owner === ownerId
@@ -141,7 +147,7 @@ export function createOwnerProducerHelpers(
     // uncapped watch-tower push could yank the SOLE builder off an in-progress
     // foundation and leave it builderless. Reassigning a gatherer/mover is fine;
     // abandoning a foundation is not — return null instead (skip the build).
-    for (const id of activeWorld.query('unit')) {
+    for (const id of activeWorld.query('unit', 'position')) {
       const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
       if (
         unit?.owner === ownerId

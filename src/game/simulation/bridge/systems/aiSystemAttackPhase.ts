@@ -18,7 +18,8 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
     accessor,
     currentEntityId,
     findOwnedUnitOnMap,
-    ownedMilitaryUnitIds,
+    ownerHasUnitOnMap,
+    ownedMilitaryUnitIdsOnMap,
     findOwnedMilitaryUnits,
     findPreferredVisibleEnemyUnit,
     findPreferredVisibleEnemyBuilding,
@@ -38,7 +39,7 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
     lastResortTargetPosition,
   } = ctx;
 
-  const liveMilitary = ownedMilitaryUnitIds(owner);
+  const liveMilitary = ownedMilitaryUnitIdsOnMap(owner);
   state.attackGroup = state.attackGroup.filter((id) => liveMilitary.has(id));
   const militaryUnits = findOwnedMilitaryUnits(owner);
   for (const { id } of militaryUnits) {
@@ -48,7 +49,19 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
   }
 
   const threshold = attackGroupSize(currentAge);
-  const shouldPush = state.attackGroup.length >= threshold;
+  // The group threshold exists so a single lost unit does not commit the AI to
+  // a base walk. It has nothing to hold back against an enemy that has NO UNITS
+  // LEFT ON THE MAP: there is no army to be caught by, the buildings do not
+  // move, and by the conquest rule that enemy is alive only because those
+  // buildings still stand. Without this exception the last-resort branch below
+  // — added in v0.3.197 for exactly that case — could never fire below the
+  // threshold, and an AI whose army was cut down to six in the Castle Age idled
+  // at its own base for the rest of the match. Reproduced on the garrisoned-
+  // defender fixture with the attackers reduced under the threshold: owner 2
+  // with zero units and two buildings, owner 1 idle for 8,000 ticks.
+  const targetHasNothingOnTheMap =
+    targetOwner !== null && !ownerHasUnitOnMap(targetOwner);
+  const shouldPush = state.attackGroup.length >= threshold || targetHasNothingOnTheMap;
 
   for (const id of state.attackGroup) {
     const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
