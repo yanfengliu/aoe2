@@ -31,9 +31,15 @@ function garrisonedCount(bridge: Bridge, buildingId: number): number {
   return match ? Number(match[1]) : 0;
 }
 
-function isAlive(bridge: Bridge, unitId: number): boolean {
-  return bridge.world.getComponent<UnitComponent>(unitId, 'unit') !== undefined
-    && bridge.world.isAlive(unitId);
+// IDENTITY, not a bare id. `world.isAlive` takes an id with no generation and
+// the engine recycles ids from a free list, so a villager that died and whose
+// id was reused reads as alive — and so does its `unit` component. A ref
+// carries the generation, which is the only thing that answers "is this still
+// the SAME entity". Taken before the step, checked after it.
+function stillTheSameUnit(bridge: Bridge, ref: ReturnType<Bridge['world']['getEntityRef']>): boolean {
+  if (!ref) return false;
+  return bridge.world.isCurrent(ref)
+    && bridge.world.getComponent<UnitComponent>(ref.id, 'unit') !== undefined;
 }
 
 describe('right-click never garrisons (spec §9.3)', () => {
@@ -41,6 +47,7 @@ describe('right-click never garrisons (spec §9.3)', () => {
     const bridge = createSimulationBridge('castle-garrison-fixture');
     const { castle, villager } = castleAndVillager(bridge);
 
+    const villagerRef = bridge.world.getEntityRef(villager.id);
     expect(bridge.selectUnitsByIds([villager.id])).toBe(true);
     expect(bridge.issueContextCommandAtEntity(castle.id)).toBe(true);
     bridge.step(100);
@@ -48,7 +55,7 @@ describe('right-click never garrisons (spec §9.3)', () => {
     expect(garrisonedCount(bridge, castle.id), 'a plain right-click garrisoned the villager')
       .toBe(0);
     // The unit is still on the field and has been given a destination.
-    expect(isAlive(bridge, villager.id)).toBe(true);
+    expect(stillTheSameUnit(bridge, villagerRef)).toBe(true);
   });
 
   it('garrisons when the player explicitly asks (Alt+right-click)', () => {

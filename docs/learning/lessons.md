@@ -10,7 +10,9 @@ When the gate lands, prove it red by reintroducing the defect, record that in [g
 
 ## Rules
 
-_Empty._ The queue was emptied on 2026-09-03 when the depth-precision gate landed
-(`tests/browser/shadow-depth-precision.spec.ts`); its proof is in
-[gate-proofs.md](gate-proofs.md). An entry belongs here only if it names the gate
-that will retire it.
+- **A browser spec whose duration is within a few seconds of the timeout is already red on somebody's machine.** GATE: a per-spec duration budget in `playwright.config.ts`, set below the 30s test timeout once the current distribution has been measured with `--reporter=list`, so a spec that creeps toward the budget goes red while there is still headroom. Evidence: two were found on 2026-09-04, and both had been passing. `keeps top status-bar chip positions stable` ran **29.8s against a 30-second budget** on an idle machine and timed out the first time a loaded one ran it — 25.5s of it was a single click on a card the population cap had made unavailable, waiting out Playwright's actionability check. `trade-route-reach` failed about one run in six against an identical build, on two separate races. Both are FIXED and both are in the register; what is not gated is the class, and every runner this repo has is slower than the one it is authored on.
+
+(The queue was emptied on 2026-09-03 when the depth-precision gate landed —
+`tests/browser/shadow-depth-precision.spec.ts`, proof in
+[gate-proofs.md](gate-proofs.md). An entry belongs here only if it names the
+gate that will retire it.)

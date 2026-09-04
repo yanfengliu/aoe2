@@ -61,6 +61,36 @@ export default tseslint.config(
     },
   },
   {
+    // A TEST may not ask `world.isAlive`. It takes a bare entity id with no
+    // generation, and the engine recycles ids from a free list
+    // (`../civ-engine/src/entity-manager.ts`), so an entity that DIED and
+    // whose id was reused reads back as alive — and carries the same
+    // components, so a follow-up `getComponent` check does not catch it
+    // either. A test is exactly where that bites, because a test captures an
+    // id, steps the simulation, and then asks whether the thing it captured
+    // survived. Measured 2026-09-04: a critic reproduced `alive: false,true`
+    // in `aiGarrisonedDefender.test.ts` for a villager that had been killed,
+    // and the assertion it was closing an escape with was closing nothing.
+    //
+    // Production code is NOT restricted, and the boundary is deliberate: its
+    // 27 call sites take the id from a live query and ask in the same tick,
+    // where there is no time for a recycle. It is holding an id ACROSS a step
+    // that makes the question unanswerable.
+    files: ['tests/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[property.name='isAlive']",
+          message:
+            'world.isAlive(id) cannot tell a recycled id from a surviving entity. '
+            + 'Take a ref BEFORE the step — world.getEntityRef(id) — and ask '
+            + 'world.isCurrent(ref) after it; the ref carries the generation.',
+        },
+      ],
+    },
+  },
+  {
     // The dynamic-import file itself + its tests need to reference the
     // SDK to type the stub client. Vite never bundles this module's
     // graph because the import inside it is dynamic and Node-only.
