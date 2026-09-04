@@ -5,6 +5,16 @@ The standing list of what the gates could not see. One entry per defect that rea
 Unlike a lesson, an entry stays after it becomes a gate. The register is not a to-do list — it is the record of where defects came from, which is the best available guide to where the next one is.
 
 
+
+## 2026-09-04 — A unit's shadow does not turn when the unit turns (owner-reported, OPEN)
+
+**Symptom, as the owner reported it.** "Unit shadows do not rotate with the unit — pre-existing since v0.3.193, made visible by the silhouette work."
+
+**What is known.** Nothing beyond the report: this was handed over at the start of the 2026-09-04 session, the session spent itself on the AI and the walled maps, and the shadow was never opened. It is recorded now because a reported defect is recorded whether or not it is fixed, and because it was at risk of surviving only in a handoff prompt — which is not a place knowledge lives. No investigation, no root cause, no reproduction beyond the owner's own.
+
+**Where it will start.** `src/rendering/voxel/aoeVoxelShadowShape.ts` derives the caster's vertical profile and the triangle tiling of the silhouette it throws; `aoeVoxelShadowTiling.ts` and `aoeVoxelCastShadows.ts` are the other two halves. v0.3.193-194 replaced a bounding-box parallelogram with a real silhouette (see the entry below), so a silhouette that is computed once per RECIPE rather than per drawn orientation is the shape of the suspicion — but that is a guess and is written here as one.
+
+**How this class is checked from now on.** Not yet. The gate this needs is a rendering test that turns one unit through several headings and asserts the shadow's silhouette turns with it — the class being "a derived visual follows its source", not "this unit's shadow is right at this angle". A capture pair alone will not do it: the defect is invisible from any single framing, which is why it survived two versions.
 ## 2026-09-04 — Neither walled map enclosed a single tree, so its player had to leave the wall to play (FIXED)
 
 **Symptom.** The user's priority 4: `arena` owner 2 sits at 3 population with no army for a whole 60,000-tick match and never leaves the Dark Age.

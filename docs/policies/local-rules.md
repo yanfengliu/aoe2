@@ -10,6 +10,17 @@ Repo-scoped directions that outlive the task that produced them. Fleet-wide rule
 
 **How to apply:** start EMPTY — do not restore the deleted files from history. That audit found the large majority of the 84 were instances of a rule the constitution or these local rules already state, narrow notes about code since rewritten (three concerned Phaser, which this repo no longer depends on), or lessons whose gates already existed and whose headers already carried the war story. Write a new entry only when this repo pays for something AND you can name the check that will retire it; if you cannot name one, it is not a lesson — fleet-wide knowledge stages in `canon-candidates.md` for the constitution, repo-only knowledge comes here, and the rest is dropped. The one promotion from that audit stands: `npm run verify` is named in Gates as THE gate, because its `&&` chain makes the exit code the answer, which retired three separate lessons about piped output masking a gate's exit code.
 
+
+## What "done" means for this project (2026-09-03/04, owner, standing)
+
+The game is built **to completion**, matching Age of Empires II: Definitive Edition. Feature-complete means all five of rendering, technology, playability, freedom from bugs, and performance — and it is verified with **AI self-play**, not with a passing suite.
+
+The acceptance test is a sentence, and it is re-checked every time the work looks finished: **"can we play this and feel like we're playing DE?"**
+
+**Why:** the owner has restated this at the head of every standing-loop session, and it kept arriving as prompt text rather than as anything the repo held — which is the one place it cannot survive. It is the tiebreak above every other rule here: the [§1 source-of-truth order](../../design/spec-final.md) says what a rule IS, "Behaviour matches the real Age of Empires II" above says which edition wins, and this says when the work is over.
+
+**How to apply:** a change is not done because its gate is green. It is done when a match has been played with it (see "Every feature is playtested the way a human plays" above) and the whole rendered result has been swept for what is WRONG rather than for what was touched. All visual work is ORIGINAL or procedural art and all audio is procedural or original — no reproduced AoE assets — which is the one place this project deliberately does not match DE, alongside the modern HUD.
+
 ## HUD styling: modern, not medieval (2026-08-18, owner)
 
 The interface chrome targets a **modern** look — translucent dark-glass panels, one hairline border, soft two-part elevation, a token palette, generous radii — and explicitly NOT the AoE2-era framed wood-and-stone treatment that shipped in v0.1.38.
