@@ -4,6 +4,34 @@ The standing list of what the gates could not see. One entry per defect that rea
 
 Unlike a lesson, an entry stays after it becomes a gate. The register is not a to-do list — it is the record of where defects came from, which is the best available guide to where the next one is.
 
+## 2026-09-03 — The AI's build order stalls on the first thing it cannot afford, so no seed has ever built a Siege Workshop (PROVEN, fix measured and NOT shipped)
+
+**Symptom.** The user's priority 2, "matches do not resolve". `fortress` owner 2 ends a 100-minute match with 63 units, unable to finish an opponent that has ZERO units left, behind 27 stone walls. It has no siege. Neither does any other seed.
+
+**Investigation.** `pickNextBuild` walks an ordered list and returns the FIRST missing entry, so one permanently-unaffordable entry starves everything behind it. Measured on `arena` at 45,000 ticks: owner 1 is in the CASTLE age with **no Stable and no Market** — both still in the FEUDAL part of that order — holding 13-69 wood and **1,601 stone**. It had been asking for that 175-wood Stable, and failing, for the entire match, and therefore never reached the Castle-age part of the order where the Siege Workshop is.
+
+**Root cause.** Nothing arbitrates wood between military and construction past the Feudal age. `agePrerequisiteWoodReserve` does exactly this arbitration, and returns 0 outside `feudal-age`. Military spends wood in 25-unit bites as fast as it arrives, so a 175 or 200 lump never forms. This is the same failure the Feudal reserve was written for — the spec records it as "a spearman costs 25 wood, so military and construction bid for the same resource, and with nothing arbitrating the AI could never accumulate the 150 for a first Blacksmith" — reappearing one building later. It became visible now because the v0.3.199 unit-line fix made the AI actually train units, which is what started draining the wood.
+
+**This also corrects the hoarding entry below.** That entry blamed a demand-blind gather split for `arena` banking 1,601 stone. The stone was not misallocated — it was UNSPENDABLE, because the 650-stone Castle sits behind three unaffordable entries in the build order. With the order unblocked the AI spent it: stone fell 1,601 to 251 as it finally bought the Castle. The split may still be worth fixing; it is not what was wrong here.
+
+**The fix, and why it is NOT shipped.** Handing the building phase's unaffordable wish forward to the production phase — they already run in that order on the same context — and reserving its wood from military, with the sibling's military floor. It works, completely: `arena` owner 1 goes from `[barracks, archery-range, blacksmith, ...]` to `[stable, market, monastery, siege-workshop, castle, ...]`, the first Siege Workshop ever built on any seed, and reaches the Imperial age.
+
+It was reverted because it does not pay for itself on the priorities that matter, measured with `npm run ai:army-block` over four seeds:
+
+    slot            army before -> after      note
+    arena    o1        95 -> 37               reached Imperial, cap 155 -> 95
+    coastal  o1        21 -> 14
+    fortress o2         3 ->  7
+    gold-rush o1       17 -> 23               victory 34,704 -> 46,509 (LATER)
+
+Army across slots 136 to 81, no seed newly resolves, and the only seed that does resolve takes 11,805 ticks longer. The base is far more DE-like and the AI finally has siege, but priority 1 is "the AI never fields an army" and this halves it on the strongest seed.
+
+**Why tuning does not rescue it, so the next attempt does not repeat this one.** The military floor gates SMALL armies (`if (militaryCount < floor) return 0`), and arena's is 95, so the reserve is on for the whole match whatever the floor is — raising it changes nothing there. A PARTIAL reserve cannot work either: military drains everything above the reserve, so holding back 100 of a 200-wood building means wood never passes ~125 and the building is never affordable. The reserve has to be the full cost, and on low wood income that means a long pause in training. The trade is intrinsic to arbitration.
+
+**What that points at instead.** The wood INCOME, not its arbitration. `arena` runs the whole match at 13-69 wood with roughly 13 villagers on wood, while banking stone it could not spend. A split that moved villagers onto wood would let the AI afford the buildings AND the army rather than choosing. That is the open hoarding entry below, now with a much better-evidenced motive than it had.
+
+**How this class is checked from now on.** No gate — the fix is not shipped, and a gate on unshipped behaviour would be red on `main`. The check this needs is a self-play assertion that no owner sits for a whole match on the same unaffordable build-order entry, because the defect's class is "the order stalls", not "the Siege Workshop is missing".
+
 ## 2026-09-03 — The AI reaches the Imperial age and never trains another unit (FIXED v0.3.199)
 
 **Symptom.** The user's standing priority 1, "THE AI NEVER FIELDS AN ARMY". On `fortress` both AI owners reach the Imperial age and finish a 100-minute match with armies of 2 and 0, holding 1,231 wood and 595 food, with five military buildings each.
