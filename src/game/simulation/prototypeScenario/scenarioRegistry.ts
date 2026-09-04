@@ -263,6 +263,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['heated-shot-researched-fixture', fixtures.createHeatedShotResearchedFixture],
   ['ai-castle-age-military-fixture', fixtures.createAiCastleAgeMilitaryFixture],
   ['ai-imperial-military-fixture', fixtures.createAiImperialMilitaryFixture],
+  ['ai-garrisoned-defender-fixture', fixtures.createAiGarrisonedDefenderFixture],
   ['queued-orders-fixture', fixtures.createQueuedOrdersFixture],
   ['university-fixture', fixtures.createUniversityFixture],
   ['university-imperial-fixture', fixtures.createUniversityImperialFixture],

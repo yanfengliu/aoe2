@@ -84,13 +84,14 @@ export function seedForestTrees(
  * punch holes in the wall that is the script's whole identity. `MIN_START_GAP`
  * is measured from that, not chosen for looks.
  */
+export const MIN_START_GAP = 14;
+
 export function paintWoodlines(
   terrain: TerrainCellSpec[][],
   starts: readonly { townCenter: Position }[],
   size: MapSize,
   seed: string,
 ): void {
-  const MIN_START_GAP = 14;
   const PATCH_RADIUS = 3;
   const PATCHES = 14;
   let state = seedToNumber(seed) || 1;

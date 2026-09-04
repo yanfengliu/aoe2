@@ -30,7 +30,20 @@ test.describe('a trade route through the live UI', () => {
       ({ x, y }) => window.__AOE2_TEST__!.worldToScreen(x + 1, y + 1),
       { x: enemyMarket.x, y: enemyMarket.y },
     );
+    // A step BEFORE the click and a step AFTER it, and both are load-bearing.
+    // This was the suite's one flaky spec: about one run in six failed against
+    // an IDENTICAL build, polling "Idle" nine times over five seconds. Measured
+    // one variable at a time — the pre-click step alone still failed 1 in 6,
+    // the post-click step alone 2 in 8, and the two together passed 18 of 18
+    // (and 12 of 12 again in this arrangement). The click needs a world the
+    // simulation has already revealed, or the order is refused at an unseen
+    // entity, which is the fog contract working rather than the question this
+    // spec asks; and the order it submits does not EXECUTE until the next
+    // step, which a loaded machine can leave undone past the five-second poll.
+    // A real player cannot click before the first frame is drawn either.
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(2, 100); });
     await page.mouse.click(screen.x, screen.y, { button: 'right' });
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(5, 100); });
 
     // The order took: the panel says so.
     expect(await game.selectOwnedUnitDirect(page, 1, 'trade-cart')).toBe(true);

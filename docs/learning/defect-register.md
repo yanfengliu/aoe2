@@ -4,6 +4,62 @@ The standing list of what the gates could not see. One entry per defect that rea
 
 Unlike a lesson, an entry stays after it becomes a gate. The register is not a to-do list — it is the record of where defects came from, which is the best available guide to where the next one is.
 
+## 2026-09-04 — The AI's lumber camp cannot reach the woodline on three of the maps it ships (FIXED)
+
+**Symptom.** The user's priority 1, wood income. `arena` owner 1 runs a whole 60,000-tick match at 13-69 wood with roughly 13 villagers assigned to wood, so `pickNextBuild` stalls on a 175-wood Stable for the match and no seed has ever built a Siege Workshop.
+
+**Investigation.** The wood force was never the problem. Sampling every 250 ticks, `arena` owner 1 has **19.6 villagers assigned to wood and 3.01 of them actually chopping**; the other 16.6 are walking (10.18 `to-resource`, 6.10 `to-dropoff`). Reading the live gatherer components, the tree each one picked sits **15 to 16 cells from the nearest wood drop-off for the entire match**, and the AI holds exactly ONE lumber camp. The comparator is not at fault: the tree it picks IS the nearest one to a drop-off, sample after sample. The forest is not depleted either — 24 of 346 trees are felled in 30,000 ticks.
+
+**Root cause.** Two constants, set in different files for different reasons, that cannot both hold. `paintWoodlines` keeps every woodline patch at least `MIN_START_GAP` = 14 EUCLIDEAN cells from every start, deliberately, so a patch cannot punch a hole in Arena's ring or Fortress's square. `DROP_OFF_ANCHOR_RADIUS` was 12, in the manhattan metric, where that same gap is up to 20. So on `arena`, `fortress` and `gold-rush` there is **no tree within 12 of either start** — the anchor returned null at both, the camp fell back to the Town Centre, and every load was carried the whole way.
+
+**Fix.** `DROP_OFF_ANCHOR_RADIUS` 12 -> 20. The enemy is not the constraint at that range: these maps seat their two starts 56 cells apart, so a camp 20 out is still 36 from the enemy's.
+
+**Measured, both arms, `SEEDS=arena,fortress,gold-rush,coastal TICKS=60000 SAMPLE=250`.** On `arena` owner 1: villagers chopping per sample 3.01 -> **5.43**, wood gained 2,964 -> **4,076**, peak wood 182 -> **488**, age reached castle -> **imperial**, and the nearest tree to a drop-off falls from 15 to **4** the moment the camp goes up. Trees felled in 30,000 ticks 24 -> 41.
+
+**On its own it makes RESOLUTION worse, and that is why it ships beside the garrison fix rather than alone.** All four arms, same command, same seeds:
+
+    arm                     arena              fortress           gold-rush          coastal            resolved
+    neither fix             running            running            victory 34,704     running            1 of 4
+    anchor radius only      running            running            running            running            0 of 4
+    garrisoned-unit only    running            victory 57,309     victory 32,478     defeat 52,472      3 of 4
+    both (shipped)          victory 34,509     running            victory 34,921     defeat 52,472      3 of 4
+
+Alone the radius change costs `gold-rush` the one resolution the baseline had. Together the two reach `arena`, which neither reaches alone, and lose `fortress`, which the garrison fix alone reaches. WHICH seeds resolve is a knife-edge of a deterministic trajectory and moves under any change; how MANY is the number worth reading, and it goes 1 -> 3.
+
+**Instrument check that makes the attribution safe.** The change can only bite where the anchor was null, so `coastal` — whose nearest tree is 5 to 7 — must be untouched. It is **byte-identical** across both arms on every column, both owners. A change there would have refuted the reasoning rather than confirming it.
+
+**This corrects the entry below.** "The AI's build order stalls on the first thing it cannot afford" closed by pointing at the villager SPLIT — "a split that moved villagers onto wood would let the AI afford the buildings AND the army". The split was already fine. Nineteen villagers were on wood; they were walking thirty cells a round trip. The lever was the CARRY, not the allocation.
+
+**How this class is checked from now on.** `tests/simulation/dropOffAnchorReach.test.ts` walks every seed in `PLAYABLE_MAPS` — the same roster the setup screen offers, so a new map is covered the day it is added — and asserts the lumber-camp anchor is found from every start and IS the nearest tree. A second case ties the two constants together, so the gate goes red when either one moves rather than only when a map changes. RED-CHECKED at radius 12: Arena, Fortress and Gold Rush all failed by name.
+
+**Still open, and measured here rather than guessed.** The AI builds ONE lumber camp, ever — `pickNextBuildTarget` asks for one only in the DARK age and only when it has none, so `fortress` owner 2 and `gold-rush` owner 2 finish a match with zero camps. And the carry creeps back: on `arena` the nearest tree to a drop-off goes 4 -> 9 between ticks 7,500 and 30,000 as the local woodline is eaten. AoE2 plants a fresh camp at the new woodline; this AI cannot.
+
+## 2026-09-04 — An enemy that garrisons its last villagers pins the attacker's whole army forever (FIXED)
+
+**Symptom.** The user's priority 2, "matches still do not resolve". On `gold-rush` at 60,000 ticks owner 1 holds **151 units, every one of them idle since tick 30,000**, 45 cells from owner 2's 14 remaining buildings. Owner 2 has no unit on the map. The match reports `running`.
+
+**Investigation, including two hypotheses that were wrong.** The attack phase was reached and wanted to push: tracing it every decision tick from tick 27,000 gives `group=136 thr=7 push=true targetOwner=2 tcId=2185`, so the army was mustered and the enemy Town Centre was a live target. The first hypothesis was the army being sealed inside its own base by 58 buildings; ordering units by hand through `bridge.pendingCommands` refuted it — a Knight walked **49 cells to distance 2 of that very Town Centre**, and every one of owner 2's 14 buildings was reachable. The second was the `!buildingApproachPlan -> clearUnitCommand` path in `attackCommandStep`; instrumenting it caught **zero** clears. Instrumenting `setUnitCommand` and `clearUnitCommand` then showed the command was never SET in the first place.
+
+**Root cause.** `runAttackPhase` prefers the target enemy's villager, and `findOwnedUnit(targetOwner, 'villager')` returned villager 2448 — alive, and **garrisoned**. `garrisonUnit` strips a unit's position component, and `setUnitAttackCommandDirect` returns false without a target position: a **silent no-op**, exactly as its own comment describes. The validator passes (the entity is alive and has a `unit` component), so nothing is rejected and nothing is logged. Every decision tick, all 136 units were ordered onto a target that cannot be engaged, the order was dropped, and the branch `continue`d before the visible-building and Town-Centre fallbacks that would have worked.
+
+**Fix.** `findOwnedUnit` -> `findOwnedUnitOnMap`, querying `('unit', 'position')`. A unit with no position cannot be walked to, attacked, or engaged in any way, so handing one back as "a unit of this type" is a trap for every caller; it had exactly one production caller and the rename makes the contract impossible to miss.
+
+**Measured, `SEEDS=arena,fortress,gold-rush,coastal TICKS=60000 SAMPLE=500 npm run ai:army-block`.** Matches resolving goes from **one of four to three of four** — the four-arm table is in the entry above, because the two changes shipped together and only the table separates them. This is the change that does the work: on its own it takes `fortress`, `gold-rush` and `coastal`. Army columns are NOT comparable across arms and are not quoted as if they were — a match that ends at 34,509 has 25,000 fewer ticks in which to peak.
+
+**How this class is checked from now on.** `tests/simulation/aiGarrisonedDefender.test.ts` on the new `ai-garrisoned-defender-fixture`: the defender's only two villagers are garrisoned through the real command path, the test asserts they are off the map AND still alive (a dead villager would let the attack phase fall through for the right answer for the wrong reason), and then requires the match to RESOLVE. RED-CHECKED: `owner 2 still holds 2 building(s) (town-center, barracks); 11 of 11 attackers idle`.
+
+**A note on the instrument, because it wasted an hour.** Two rounds of tracing printed nothing and were read as findings. Both times the file had been patched with a broken string escape and `tsx` failed to transform it — and the run was piped through `grep`, so the shell reported exit 0. A trace that prints nothing and a build that never ran look identical. Every later trace was checked by confirming a control line printed first.
+
+## 2026-09-04 — The suite's one flaky spec, and what it was really asking (FIXED)
+
+**Symptom.** `npm run verify` went red on `tests/browser/trade-route-reach.spec.ts`: the Trade Cart's selection panel read `Idle` where the spec wanted `Trading`, after nine polls over five seconds.
+
+**Investigation.** It is not caused by any change in this session — that fixture sets `disableAi: true` on BOTH owners, so neither the AI attack phase nor the drop-off anchor can reach it. Running the spec repeatedly against ONE unchanged build gave 4 passes and 1 failure, then 7 of 8: it is flaky, and it has been. Instrumenting the click showed the screen point and the Market's position identical on every run, passing and failing alike, and the cart's task reading `idle` immediately after the click in runs that later passed.
+
+**Root cause, measured one variable at a time.** Two races, and fixing either alone leaves the other: a step BEFORE the click (pre-click step alone still failed 1 in 6) and a step AFTER it (post-click step alone failed 2 in 8). The click needs a world the simulation has already revealed — an order at an entity the fog has not shown yet is refused, which is the fog contract working rather than the question the spec asks — and the order it submits does not EXECUTE until the next step, which a loaded machine can leave undone past the five-second poll. Both together: 12 of 12, and 18 of 18 across the two earlier arrangements that had both.
+
+**How this class is checked from now on.** No new gate — the fix is inside the gate itself. The lesson is the one the fleet canon already states about bounds: a browser assertion that waits on WALL CLOCK for a simulation step is bounded by the machine's load, and that bound is invisible until a slower machine finds it. This repo's remote runners are all slower than this one.
+
 ## 2026-09-03 — The AI's build order stalls on the first thing it cannot afford, so no seed has ever built a Siege Workshop (PROVEN, fix measured and NOT shipped)
 
 **Symptom.** The user's priority 2, "matches do not resolve". `fortress` owner 2 ends a 100-minute match with 63 units, unable to finish an opponent that has ZERO units left, behind 27 stone walls. It has no siege. Neither does any other seed.
@@ -28,7 +84,9 @@ Army across slots 136 to 81, no seed newly resolves, and the only seed that does
 
 **Why tuning does not rescue it, so the next attempt does not repeat this one.** The military floor gates SMALL armies (`if (militaryCount < floor) return 0`), and arena's is 95, so the reserve is on for the whole match whatever the floor is — raising it changes nothing there. A PARTIAL reserve cannot work either: military drains everything above the reserve, so holding back 100 of a 200-wood building means wood never passes ~125 and the building is never affordable. The reserve has to be the full cost, and on low wood income that means a long pause in training. The trade is intrinsic to arbitration.
 
-**What that points at instead.** The wood INCOME, not its arbitration. `arena` runs the whole match at 13-69 wood with roughly 13 villagers on wood, while banking stone it could not spend. A split that moved villagers onto wood would let the AI afford the buildings AND the army rather than choosing. That is the open hoarding entry below, now with a much better-evidenced motive than it had.
+**What that points at instead.** The wood INCOME, not its arbitration. `arena` runs the whole match at 13-69 wood with roughly 13 villagers on wood, while banking stone it could not spend.
+
+**CORRECTED 2026-09-04.** This paragraph then said "a split that moved villagers onto wood would let the AI afford the buildings AND the army", and that was wrong. The split was already fine — 19.6 villagers were assigned to wood and only 3.0 of them were chopping, because the tree they were sent to sat 15 cells from the nearest drop-off all match. The lever was the CARRY, not the allocation. See the lumber-camp entry above.
 
 **How this class is checked from now on.** No gate — the fix is not shipped, and a gate on unshipped behaviour would be red on `main`. The check this needs is a self-play assertion that no owner sits for a whole match on the same unaffordable build-order entry, because the defect's class is "the order stalls", not "the Siege Workshop is missing".
 
@@ -93,7 +151,7 @@ Every slot is sitting on 1,200-8,500 of resources its units do not need while th
 
 **Instrument note, because it nearly cost the whole measurement twice.** `tmp/probe/army-block.ts` reports peaks and percentages OVER SAMPLES. Run at `SAMPLE=15000` it takes 2-4 samples per match, and it reported arena's population cap as 50 against the true 145 and its army as 21 against the true 105 — a collapse large enough to look like a catastrophic regression from the code under test. Any before/after with this probe must hold `SAMPLE`, `TICKS` and `SEEDS` identical across both arms, and the control must be re-run rather than remembered.
 
-## 2026-09-03 — A decided match never ends, because the AI can only aim at a Town Center (PARTLY FIXED: 1 of 4 seeds now resolves)
+## 2026-09-03 — A decided match never ends, because the AI can only aim at a Town Center (PARTLY FIXED: 1 of 4 seeds resolved then; 3 of 4 after the 2026-09-04 garrison entry above)
 
 **Symptom.** The standing acceptance-test failure "matches do not resolve": at 60,000 ticks — 100 minutes of game time — every seed is still running. Measured on four seeds after the wood fix, all four still ran to the horizon.
 
@@ -127,6 +185,10 @@ The shipped fix is therefore SURGICAL. `pickAttackTarget` is byte-identical to w
 **Bound of that gate, named.** It is a unit test on the TARGET CHOICE. It does not prove the army reaches the building, kills it, or that the match ends — arena and coastal are live proof that a correct target is not sufficient. The end-to-end claim rests on the `gold-rush` seed alone, at one horizon.
 
 **What this predicts.** The remaining two causes are both "the army exists and does not close": walls it will not breach, and an army too small to matter. Both are about what the military DOES rather than what it is pointed at, and neither is touched here.
+
+**What it actually was, found 2026-09-04.** The prediction above was half right and half wrong, and the wrong half is the useful one. It reads `arena` and `coastal` as "the army exists and does not close" — walls, or too few units. The army was not closing because it was never ORDERED to: the attack phase's first preference is the target enemy's villager, and a GARRISONED villager is alive with no position, so the order silently no-opped and the branch `continue`d before the fallbacks this entry added. Those fallbacks were correct and were never reached. See the 2026-09-04 entry above; with that fixed, three of four seeds resolve.
+
+**And the bound named above is exactly where it hid.** This gate is a unit test on the TARGET CHOICE, and it says so. The defect was one line earlier, in a preference that never got as far as choosing.
 
 ## 2026-09-03 — Four of the nine playable maps shipped with no wood, so no game could happen on them
 

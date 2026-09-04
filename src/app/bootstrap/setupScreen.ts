@@ -7,6 +7,7 @@
 
 import { CIVILIZATION_NAMES } from '../../game/simulation/civilizationNames';
 import { MAX_STANDARD_PLAYERS } from '../../game/simulation/mapGeneration/applyStandardPlayerOpening/patches';
+import { PLAYABLE_MAPS } from '../../game/simulation/mapGeneration/playableMaps';
 
 export interface SetupChoices {
   seed: string;
@@ -47,17 +48,7 @@ export function setupQueryString(choices: SetupChoices): string {
   return params.toString();
 }
 
-const MAPS: ReadonlyArray<{ seed: string; label: string }> = [
-  { seed: 'aoe2-prototype', label: 'Standard' },
-  { seed: 'arabia', label: 'Arabia' },
-  { seed: 'arena', label: 'Arena' },
-  { seed: 'black-forest', label: 'Black Forest' },
-  { seed: 'coastal', label: 'Coastal' },
-  { seed: 'fortress', label: 'Fortress' },
-  { seed: 'gold-rush', label: 'Gold Rush' },
-  { seed: 'islands', label: 'Islands' },
-  { seed: 'nomad', label: 'Nomad' },
-];
+const MAPS = PLAYABLE_MAPS;
 
 function options(entries: ReadonlyArray<{ value: string; label: string }>, selected: string): string {
   return entries

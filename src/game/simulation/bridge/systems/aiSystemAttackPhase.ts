@@ -17,7 +17,7 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
   const {
     accessor,
     currentEntityId,
-    findOwnedUnit,
+    findOwnedUnitOnMap,
     ownedMilitaryUnitIds,
     findOwnedMilitaryUnits,
     findPreferredVisibleEnemyUnit,
@@ -84,7 +84,7 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
     // false when the target was stale; that contract no longer holds,
     // so the chain is split into separate clauses.
     const targetVillagerId =
-      targetOwner === null ? null : findOwnedUnit(targetOwner, 'villager');
+      targetOwner === null ? null : findOwnedUnitOnMap(targetOwner, 'villager');
     if (shouldPush && targetVillagerId !== null) {
       submitUnitAttackIntention(id, targetVillagerId, 'unit');
       continue;

@@ -42,7 +42,9 @@ export interface PlayerQueriesDeps {
 export interface PlayerQueries {
   hasTechnology(owner: number, technologyType: ResearchableTechnologyType): boolean;
   findOwnedBuilding(owner: number, buildingType: BuildingType): number | null;
-  findOwnedUnit(owner: number, unitType: UnitType): number | null;
+  /** The first unit of this type this owner has ON THE MAP — a garrisoned
+   *  one has no position and cannot be engaged, so it is never returned. */
+  findOwnedUnitOnMap(owner: number, unitType: UnitType): number | null;
   countQueuedUnits(buildingId: number, unitType: TrainableUnitType): number;
   countOwnedUnits(owner: number, unitType: UnitType): number;
   countCompletedOwnedBuildings(
@@ -82,8 +84,18 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
     return null;
   }
 
-  function findOwnedUnit(owner: number, unitType: UnitType): number | null {
-    for (const id of world.query('unit')) {
+  // ON THE MAP is part of the question, not a detail. A GARRISONED unit keeps
+  // its `unit` component and stays alive, but `garrisonUnit` strips its
+  // position — so it cannot be walked to, attacked, or engaged in any way.
+  // Handing one back as "a unit of this type" pinned the AI's whole army:
+  // `runAttackPhase` prefers the target enemy's villager, and
+  // `setUnitAttackCommandDirect` returns false without a target position, so
+  // the order was silently dropped and re-issued on every decision tick.
+  // Measured on `gold-rush` at 60,000 ticks: owner 2 held 14 buildings and two
+  // garrisoned villagers, owner 1 held 151 units, and every one of them was
+  // idle from tick 30,000 to the horizon while the match could not resolve.
+  function findOwnedUnitOnMap(owner: number, unitType: UnitType): number | null {
+    for (const id of world.query('unit', 'position')) {
       const unit = world.getComponent<UnitComponent>(id, 'unit');
       if (unit?.owner === owner && unit.unitType === unitType) {
         return id;
@@ -256,7 +268,7 @@ export function createPlayerQueries(deps: PlayerQueriesDeps): PlayerQueries {
   return {
     hasTechnology,
     findOwnedBuilding,
-    findOwnedUnit,
+    findOwnedUnitOnMap,
     countQueuedUnits,
     countOwnedUnits,
     countCompletedOwnedBuildings,

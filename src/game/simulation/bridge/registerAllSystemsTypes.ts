@@ -64,7 +64,7 @@ export interface RegisterAllSystemsDeps {
   getPlayerAge: (owner: number) => AgeType;
   villagerRebalance: (owner: number, targets: AiState['villagerTargets']) => void;
   findOwnedBuilding: (owner: number, buildingType: BuildingComponent['buildingType']) => number | null;
-  findOwnedUnit: (owner: number, unitType: UnitType) => number | null;
+  findOwnedUnitOnMap: (owner: number, unitType: UnitType) => number | null;
   ownedMilitaryUnitIds: (owner: number) => Set<number>;
   findOwnedMilitaryUnits: (owner: number) => Array<{ id: number }>;
   hasOwnedWonder: (owner: number) => boolean;

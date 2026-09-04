@@ -62,3 +62,28 @@ Measured here, all three report 24. The specified gate would also have passed. T
 
 **Bound, and why the window moved.** It measures ticks 2,000-5,000 only, ending 1,096 ticks BEFORE the AI first holds 125 stone. It was anchored AT that crossing until v0.3.199, when the AI started fielding an army and began winning this fixture at tick 6,561 instead of 11,442 — so the old window spent 2,535 of its 3,000 ticks measuring a FINISHED match and reported 10 mined against a bar of 30, with nothing wrong. The file had carried a liveness assertion for exactly that, placed AFTER the mining assertion where it could never fire; it runs first now, and a second guard reports a match that ends before the crossing in those words instead of as "stone never reached 125".
 
+## A drop-off building has to be able to REACH the woodline of every map that ships
+
+- **Gate:** `tests/simulation/dropOffAnchorReach.test.ts` — run by `npm test`, and so by `npm run verify`.
+- **Claim it carries:** the AI's lumber-camp anchor is found from every start of every seed in `PLAYABLE_MAPS`, and IS the nearest tree. `DROP_OFF_ANCHOR_RADIUS` was 12 while `paintWoodlines` keeps every woodline at least `MIN_START_GAP` = 14 EUCLIDEAN cells clear of every start — up to 20 in the manhattan metric the anchor measures in — so on arena, fortress and gold-rush there was no tree within reach of either start, the camp went up beside the Town Centre, and every load was carried fifteen cells.
+- **Mutation:** `DROP_OFF_ANCHOR_RADIUS = 12`, the shipped value before this change.
+- **Red:** three of the nine maps failed by name — `Arena: no woodline within 12 of the start at (8,8) — the camp would go up beside the Town Centre and every load would be carried the whole way: expected null not to be null`, and the same for Fortress and Gold Rush. The constant case failed with `expected 12 to be greater than or equal to 20`.
+- **Green after revert:** yes, 10 passed.
+
+**Bound.** It reads the GENERATED SPAWNS of each map and checks where the AI AIMS the camp. It does not run a simulation, does not check where `findBuildPlacementNear` finally puts the building, and says nothing about a map outside `PLAYABLE_MAPS` or about the SECOND camp — there is none; `pickNextBuildTarget` asks for a lumber camp only in the Dark Age and only when the owner has none, so two of the four measured slots finish a match with zero camps and the carry creeps back from 4 to 9 cells as the near woodline is eaten.
+
+**Why it enumerates a shared roster rather than a list of its own.** The list of maps that ship lived only in `setupScreen.ts`, where a simulation test has no business reading it. It moved to `mapGeneration/playableMaps.ts` so the gate walks the SAME list the player picks from — a hand-typed copy would have let the next map with a distant woodline through silently, which is exactly how three of them got here.
+
+**Why the second case ties two constants together.** The pair was incompatible for as long as both existed, and neither file mentions the other. The gate derives its floor from `MIN_START_GAP`, so it goes red when EITHER constant moves — not only when a shipped map changes.
+
+## An AI whose enemy has only garrisoned units left must still finish the base
+
+- **Gate:** `tests/simulation/aiGarrisonedDefender.test.ts` :: `razes the buildings instead of standing idle beside them`, on the new `ai-garrisoned-defender-fixture` — run by `npm test`, and so by `npm run verify`.
+- **Claim it carries:** `findOwnedUnitOnMap` queries `('unit', 'position')`. A garrisoned unit is alive and keeps its `unit` component but `garrisonUnit` strips its position, and `setUnitAttackCommandDirect` returns false without a target position — a silent no-op that the validator never sees. The AI's attack phase prefers the target enemy's villager, so one hidden villager pinned 151 units for 30,000 ticks on `gold-rush`.
+- **Mutation:** `for (const id of world.query('unit'))`, the shipped query before this change.
+- **Red:** `owner 2 still holds 2 building(s) (town-center, barracks); 11 of 11 attackers idle: expected 'running' not to be 'running'`.
+- **Green after revert:** yes, 1 passed; the match resolves at about tick 4,000 against an 8,000-tick window.
+
+**Bound.** One fixture, one age, one attacker composition, 8,000 ticks, three enemy buildings. It proves the attacker does not STALL; not that it wins, picks a good building, breaches a wall, or copes with a defender that shoots back with more than a Town Centre.
+
+**The two escapes it closes, both of which a first version left open.** The test asserts the defenders are off the map AND STILL ALIVE — a villager killed during the garrison walk would let the attack phase fall through for the right answer for the wrong reason. And the assertion is the match OUTCOME, not "a building fell": the first version asked for one building to fall and PASSED WITH THE DEFECT FULLY PRESENT, because the attackers engage during the 300 ticks the villagers spend walking to the door, and one house fell before the army went idle for the remaining 3,000 ticks.

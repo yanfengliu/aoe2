@@ -38,7 +38,7 @@ export interface AiSystemDeps {
   getPlayerAge: (owner: number) => import('../../types').AgeType;
   villagerRebalance: (owner: number, targets: AiState['villagerTargets']) => void;
   findOwnedBuilding: (owner: number, buildingType: BuildingType) => number | null;
-  findOwnedUnit: (owner: number, unitType: UnitType) => number | null;
+  findOwnedUnitOnMap: (owner: number, unitType: UnitType) => number | null;
   /** Whether a land unit can stand on this cell — the shore test for fish. */
   isLandCell: (x: number, y: number) => boolean;
   ownedMilitaryUnitIds: (owner: number) => Set<number>;

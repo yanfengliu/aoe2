@@ -689,3 +689,13 @@ It resolves in BOTH directions, deliberately. Downward is the fix's purpose: ask
 The alternative considered was teaching `pickUnitMix` to return a per-age preference list instead of one unit per producer. Rejected: it puts the upgrade tiers in a second place, and this repo has already had that drift — `UNIT_LINE_UPGRADES` gained a middle tier for the ram line (Battering -> Capped -> Siege) that a hand-maintained list in the AI would not have grown. Deriving the lines by union-find over that table keeps one source.
 
 Known limit: a producer offers at most one unit per line, so the match is unambiguous today. If a building were ever to offer two tiers of the same line at once, this returns the first and the choice becomes arbitrary.
+
+## 2026-09-04 — A query that finds a unit finds one that is ON THE MAP
+
+`playerQueries.findOwnedUnit` returned any live unit of a type, garrisoned ones included. A garrisoned unit keeps its `unit` component but `garrisonUnit` strips its position, so nothing can walk to it, attack it, or engage it at all — and `setUnitAttackCommandDirect` returns false without a target position, silently, in a path the command validator never sees. Its one production caller is the AI attack phase's "hunt the enemy's villagers" preference, and one hidden villager pinned an army of 151 for 30,000 ticks (defect register, 2026-09-04).
+
+It is renamed `findOwnedUnitOnMap` rather than quietly filtered. A caller that genuinely wants a garrisoned unit now has to ask for it by another name, and the old name cannot come back meaning something weaker.
+
+The alternative considered was filtering at the call site in `aiSystemAttackPhase`. Rejected: the trap is in the query, not in the caller, and the next caller would meet it fresh. The narrower alternative — keeping the name and documenting the behaviour — was rejected for the same reason a comment is not a gate.
+
+Known limit: this makes the preference skip a villager that is merely hidden rather than gone, so an AI now attacks buildings while the enemy's population sits safely inside them. That is what AoE2 does — you break the building — but it means the attacker will not be waiting at the door when the town bell rings and they come back out.

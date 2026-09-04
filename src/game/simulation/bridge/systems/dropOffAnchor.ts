@@ -32,10 +32,27 @@ const SERVES: Partial<Record<BuildingType, readonly ResourceKind[]>> = {
   mill: ['berry-bush'],
 };
 
-/** How far from the Town Center the AI will plant a drop-off. Beyond this the
- *  walk to build it, and the exposure of everyone hauling to it, costs more
- *  than the shorter carry saves. */
-export const DROP_OFF_ANCHOR_RADIUS = 12;
+/**
+ * How far from the Town Center the AI will plant a drop-off. Beyond this the
+ * walk to build it, and the exposure of everyone hauling to it, costs more
+ * than the shorter carry saves.
+ *
+ * It has to REACH the woodline first. `paintWoodlines` holds every patch at
+ * least `MIN_START_GAP` = 14 EUCLIDEAN cells from every start, so that a
+ * woodline cannot punch a hole in Arena's ring or Fortress's square — up to
+ * 20 in the manhattan metric this anchor measures in. At 12 the two bounds
+ * were incompatible by construction: on arena, fortress and gold-rush there
+ * was no tree within 12 of either start, the anchor returned null at both, and
+ * the AI's one lumber camp went up beside the Town Centre with the nearest
+ * tree 15 cells away. Measured on arena over 30,000 ticks: 19.6 villagers
+ * assigned to wood, 3.0 of them chopping at any moment, and 24 of 346 trees
+ * felled. `tests/simulation/dropOffAnchorReach.test.ts` holds the pair
+ * together against every map that ships.
+ *
+ * The enemy is not the constraint at this range: the two starts these maps
+ * seat are 56 cells apart, so a camp 20 out is still 36 from the enemy's.
+ */
+export const DROP_OFF_ANCHOR_RADIUS = 20;
 
 /** Whether this building exists to shorten a carry. */
 export function isDropOffBuilding(buildingType: BuildingType): boolean {

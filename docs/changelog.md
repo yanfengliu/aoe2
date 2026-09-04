@@ -2,6 +2,11 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.200
+
+- The computer gathers far more wood on Arena, Fortress and Gold Rush, because its Lumber Camp finally goes up at the trees. It would only consider a woodline within 12 tiles of its Town Centre, and those three maps deliberately keep every woodline at least 14 tiles clear of a start so a patch of forest cannot punch a hole in Arena's wall — so it never found one, planted its camp beside the Town Centre, and then walked every load fifteen tiles home. On Arena it had 19.6 villagers assigned to wood and only 3 of them ever actually chopping; that is now 5.4, and the wood it gathers over a 100-minute match goes from 2,964 to 4,076. On Fortress the same figure goes from 1,862 to 8,829. Maps whose trees were already close by — Standard, Coastal — play exactly as they did.
+- An opponent who hides its last villagers inside a building can now be finished off. The computer prefers to hunt the enemy's villagers, and a garrisoned villager is still alive — but it is inside a building, so there is nothing to walk to and nothing to hit. The order was quietly dropped and re-issued every few seconds forever: on Gold Rush an army of 151 stood idle for the last 50 minutes of the match, 45 tiles from an opponent that had no units left and 14 buildings standing. Across the four audited maps, matches that reach a result go from one in four to three in four.
+
 ## 0.3.199
 
 - The AI fields an army in the Imperial age. It used to stop training units completely — from every building it owned, for the rest of the match — the moment it aged up. The AI asks for the top of each unit line (Halberdier, Arbalest, Cavalier) while a building only offers the tier its owner has actually researched, so an AI that reached the Imperial age without those upgrades was offered Pikemen, asked for Halberdiers, and matched nothing. It now trains the tier it has, which is what a player does while an upgrade is unresearched. On the `fortress` map the second AI went from an army of ZERO to destroying its opponent outright, and `gold-rush` now finishes 7,263 ticks sooner.
