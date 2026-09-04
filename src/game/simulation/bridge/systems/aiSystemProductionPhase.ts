@@ -3,9 +3,10 @@
 // production at the Town Center, researches building techs, and trains/assigns
 // monks. Runs after the building phase and before the attack phase.
 
-import type { ResearchableTechnologyType } from '../../types';
+import type { BuildingType, ResearchableTechnologyType, TrainableUnitType } from '../../types';
 import { canAfford, trainingCost } from '../../prototypeEconomyRules';
 import { ownerConstructionCost } from '../ownerCosts';
+import { trainableInSameLine } from '../unitLines';
 import { effectiveResearchCost } from '../../civBonusEffects';
 import {
   AI_MONK_COUNT_CAP,
@@ -131,18 +132,45 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
   // delay otherwise mis-aligns the full-tcQueue corner case). Priority:
   // military, then age-up research, then villager.
   const mix = pickUnitMix(currentAge);
+  // One `getTrainOptions` call per PRODUCER, not per mix entry. It runs a civ
+  // denial filter and allocates, and the mix names the same producer more than
+  // once (Feudal asks the Archery Range for both an Archer and a Skirmisher).
+  // It also now runs before the affordability check rather than after, so
+  // without this it would run for every idle producer every decision tick.
+  const offersByProducer = new Map<BuildingType, TrainableUnitType[]>();
   // v0.1.92: pause military growth when stuck short of the next age → frees pop/wood for the 2nd Feudal-prereq building (see helper).
   if (!savingForAgeUp && !militaryGrowthPausedForAgeUp(currentAge, qualifiesForNextAge, ownedMilitaryUnitIds(owner).size)) {
     for (const { unitType, producer } of mix) {
       const producerId = findIdleProducerLocal(producer);
       if (producerId === null) continue;
       if (!stockpile) continue;
+      // The tier this owner ACTUALLY has, not the top of the line.
+      //
+      // `pickUnitMix` names the top — Halberdier, Arbalest, Cavalier — while a
+      // producer offers `latestResearchedInChain`. An owner that reached the
+      // Imperial age without the upgrades was offered a Spearman and asked for
+      // a Halberdier, so this test rejected EVERY entry in the mix and the AI
+      // trained nothing from any building for the rest of the match. Measured
+      // on `fortress` at 60,000 ticks: five military buildings, idle in 100% of
+      // samples, armies of 2 and 0, while holding 1,231 wood and 595 food.
+      let offers = offersByProducer.get(producer);
+      if (offers === undefined) {
+        offers = getTrainOptions(owner, producer);
+        offersByProducer.set(producer, offers);
+      }
+      const offered = trainableInSameLine(unitType, offers);
+      if (offered === undefined) continue;
       // Advisory base cost (gates intention only; validator+charge apply
-      // the Goths discount, and the AI is never Goths yet).
-      const cost = trainingCost(unitType);
+      // the Goths discount, and the AI is never Goths yet). Priced on what will
+      // actually be trained, which is a NO-OP TODAY and deliberately kept: every
+      // line costs the same at every tier (all 20 adjacent pairs checked; a
+      // Spearman and a Halberdier are both 35 food / 25 wood). The one pair that
+      // differs, Skirmisher to Elite Skirmisher, is unreachable because the mix
+      // names the Skirmisher only in Feudal and its upgrade is Castle. If any
+      // tier is ever repriced, this is already right.
+      const cost = trainingCost(offered);
       if (!canAffordWithReserve(stockpile, cost, militaryReserve)) continue;
-      if (!getTrainOptions(owner, producer).includes(unitType)) continue;
-      pushQueueTrainIntention(producerId, unitType);
+      pushQueueTrainIntention(producerId, offered);
       // Phase 1C — increment so subsequent same-producer pushes (feudal+
       // pickUnitMix returns multiple unit types per producer) see this
       // push in their findIdleProducerLocal queue-length gate. Without

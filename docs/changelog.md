@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.199
+
+- The AI fields an army in the Imperial age. It used to stop training units completely — from every building it owned, for the rest of the match — the moment it aged up. The AI asks for the top of each unit line (Halberdier, Arbalest, Cavalier) while a building only offers the tier its owner has actually researched, so an AI that reached the Imperial age without those upgrades was offered Pikemen, asked for Halberdiers, and matched nothing. It now trains the tier it has, which is what a player does while an upgrade is unresearched. On the `fortress` map the second AI went from an army of ZERO to destroying its opponent outright, and `gold-rush` now finishes 7,263 ticks sooner.
+
 ## 0.3.198
 
 - Stone walls look like walls. A wall line used to be a row of separate grey boxes with grass showing between them — a segment only covered about half its tile, so a wall running north-south left half a tile of bare ground at every joint. Segments now fill their tile and meet, so a line reads as one wall and the Arena map's ring encloses the base the way it is supposed to.

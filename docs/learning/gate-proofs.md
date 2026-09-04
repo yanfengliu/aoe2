@@ -26,3 +26,39 @@ Measured here, all three report 24. The specified gate would also have passed. T
 
 - **Bound.** ONE machine, ONE art style, ONE scene, ONE moment. It asserts what this device hands back when `aoe2-prototype` is drawn under the default style; a device that allocates 16-bit targets fails it, which is the point, but only if the suite is ever run there. It also only sees framebuffers that receive a draw call in the twelve frames it samples — a lane that draws rarely (a resize path, a picking pass) is outside it. It does not check that 0.002 is ENOUGH at 24 bits; that arithmetic is still arithmetic, and the thing that tests it empirically is the overlapping-shadow gate in `tests/rendering/aoeVoxelShadowLayering.test.ts`.
 - **Guard against a false green:** the spec fails if the canvas is 1x1 or nothing drew. That is not hypothetical — measuring this by hand first, through a hidden browser pane, returned a 1x1 canvas, zero animation frames and zero draw calls, and every depth assertion would have passed vacuously because there was no buffer to fault.
+
+## An AI that reaches the Imperial age must still be able to train a unit
+
+- **Gate:** `tests/simulation/aiUnitLineTraining.test.ts` :: `fields an army in the Imperial age with no unit upgrades researched` — run by `npm test`, and so by `npm run verify`.
+- **Claim it carries:** the AI trains the tier it HOLDS. `getTrainOptions` offers `latestResearchedInChain`; `pickUnitMix` names the top of each line; matching them by exact name meant an AI that aged up without the upgrades matched nothing at any building and stopped training units for the rest of the match.
+- **Mutation:** the pre-fix guard, `if (!getTrainOptions(owner, producer).includes(unitType)) continue;`.
+- **Red:** `expected 0 to be greater than or equal to 2` — zero spear-line units in 3,000 ticks, on a fixture holding 4,000 food and 4,000 wood.
+- **Green after revert:** yes, 5 passed.
+
+**Bound.** It proves the AI trains SOMETHING from an un-upgraded producer where resources and population are abundant. Not that the army is big enough, arrives, or wins.
+
+**The fixture had to be rebuilt twice, and both versions are the interesting part.** The first handed the AI 4,000 of every resource and PASSED WITH THE DEFECT FULLY PRESENT — on Onagers, Monks and a Throwing Axeman, because the AI built a Castle and a Monastery and researched the gold-free Onager upgrade, none of which reads the unit mix. The second squeezed wood to 600 to seal those escapes and left the gate sitting on its threshold: exactly two Spearmen, with 5 wood to spare, so any later change spending 25 more wood would have turned it red in a way indistinguishable from the defect (found by a critic, not the author). The version that works does neither: resources are generous again, and the ESCAPES ARE CLOSED BY THE ASSERTION rather than by the budget — it names the spear line, and nothing else in the game trains a Spearman. Gold stays 0 because that, alone, is the trap: every unit upgrade costs gold except the Onager's and the Capped Ram's.
+
+## The unit-line table and the tier chains are two sources that can drift apart
+
+- **Gate:** `tests/simulation/aiUnitLineTraining.test.ts` :: `resolves every mix entry against the REAL offers, at both tech extremes`.
+- **Claim it carries:** every unit `pickUnitMix` names resolves to something its producer actually offers, at both ends of the tech state.
+- **Mutation:** deleted the `'halberdier-upgrade': { from: ['pikeman'], to: 'halberdier' }` row from `UNIT_LINE_UPGRADES` — a tier known to `trainOptions.ts` but not to the line table, which is the drift this gate exists for.
+- **Red:** `feudal-age: the mix wants spearman but barracks offers [champion, halberdier] with allResearched=true: expected undefined to be defined`.
+- **Green after revert:** yes.
+
+**This gate replaced a TAUTOLOGY, which is why it exists in this form.** The assertion it replaced was `trainableInSameLine(unit, [unitLineOf(unit)])`, which cannot fail for any input — `unitLineOf` is idempotent, so the single offer is always in the line. A critic confirmed it passed for `villager`, `trebuchet`, `petard`, `monk` and the literal string `made-up-unit`. It read like a class check and proved nothing. The binding form builds the REAL `createTrainOptions` so the tier chains come from `trainOptions.ts` rather than from the same table the assertion uses; a check built from the same symbol as the thing it checks proves only that the code agrees with itself.
+
+**Bound.** One civilization with a complete tech tree (`getTrainOptions` filters civ denials, and a civ legitimately lacking a whole line would fail this for the wrong reason). Resolution only — not affordability, population, or whether the unit is worth training.
+
+## The Feudal AI keeps mining stone, measured inside a match that is still being played
+
+- **Gate:** `tests/simulation/aiFeudalStone.test.ts` :: `banks stone from zero, and keeps banking it`.
+- **Mutation:** the Feudal villager split's `stone` weight, 1 -> 0.
+- **Red:** the crossing assertion reports `stone never reached 125 — peak 60`, and the sustained-mining assertion independently measures **20 against its bar of 30** in the 2,000-5,000 window. Both were checked; an earlier version of this entry recorded only the first, because the crossing throws before the mining assertion is reached, which left the moved window's bar with no red-check at all. A critic caught that.
+- **Green after revert:** yes, 2 passed.
+
+**What does NOT redden it, which is the more useful finding.** Setting the CASTLE weight to 0 — stone abandoned on ageing up — changes the mining rate not at all: a steady +10 per 250 ticks straight through, identical to the unmutated run. `villagerRebalance` never treats a zero-target kind as a donor, so villagers already on stone stay there and a mid-game reweight is not a defect that manifests. The window's real blind spot is narrower than it first appears: churn after tick 5,000 from some OTHER cause — villagers dying, or the idle-gatherer fallback rewriting their desired resource when a node stops being assignable.
+
+**Bound, and why the window moved.** It measures ticks 2,000-5,000 only, ending 1,096 ticks BEFORE the AI first holds 125 stone. It was anchored AT that crossing until v0.3.199, when the AI started fielding an army and began winning this fixture at tick 6,561 instead of 11,442 — so the old window spent 2,535 of its 3,000 ticks measuring a FINISHED match and reported 10 mined against a bar of 30, with nothing wrong. The file had carried a liveness assertion for exactly that, placed AFTER the mining assertion where it could never fire; it runs first now, and a second guard reports a match that ends before the crossing in those words instead of as "stone never reached 125".
+

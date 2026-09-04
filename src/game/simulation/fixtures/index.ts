@@ -489,6 +489,7 @@ export {
   createHeatedShotResearchedFixture,
 } from './heatedShot';
 export { createAiCastleAgeMilitaryFixture } from './aiCastleAgeMilitary';
+export { createAiImperialMilitaryFixture } from './aiImperialMilitary';
 export { createQueuedOrdersFixture } from './queuedOrders';
 export {
   createEnemyDefenceGatherFixture,
