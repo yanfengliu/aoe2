@@ -170,14 +170,18 @@ describe('AoE voxel unit locomotion sampling', () => {
     const split = resolveUnitAnimationState(
       unit({ x: 0.42 }), identity, half.history, 200,
     );
-    const stopped = resolveUnitAnimationState(
-      unit({ x: 0.42 }), identity, split.history, 300,
-    );
+    // The WINDOW, not the frame, says when a unit stopped: at 300 ms it still
+    // reads the 2.1 tiles/s burst as a full walk; it empties (and the weight
+    // decays) at the second anchor promotion, 450 ms apart for a villager.
+    let resting = split;
+    for (const at of [300, 500, 950, 1_000]) {
+      resting = resolveUnitAnimationState(unit({ x: 0.42 }), identity, resting.history, at);
+    }
 
     expect(split.state.gaitPhaseRadians).toBeCloseTo(single.state.gaitPhaseRadians);
-    expect(stopped.state.gaitPhaseRadians).toBeCloseTo(split.state.gaitPhaseRadians);
-    expect(stopped.state.locomotionWeight).toBeLessThan(split.state.locomotionWeight);
-    expect(stopped.state.locomotionWeight).toBeGreaterThan(0);
+    expect(resting.state.gaitPhaseRadians).toBeCloseTo(split.state.gaitPhaseRadians);
+    expect(resting.state.locomotionWeight).toBeLessThan(split.state.locomotionWeight);
+    expect(resting.state.locomotionWeight).toBeGreaterThan(0);
   });
 
   it('tracks normalized displayed direction and resets cleanly on a rewound clock', () => {

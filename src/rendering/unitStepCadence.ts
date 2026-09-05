@@ -11,21 +11,41 @@
 // (displayedPositionSmoother). Both read the BASE rate: movement
 // technologies only shorten the cadence, so the base is the upper bound.
 
-import { UNIT_SUBGRID_STEP_PER_TICK } from '../game/simulation/bridge/pureHelpers';
+import {
+  UNIT_SUBGRID_RESOLUTION,
+  UNIT_SUBGRID_STEP_PER_TICK,
+} from '../game/simulation/bridge/pureHelpers';
 import {
   DEER_STEP_TICK_INTERVAL,
   SHEEP_STEP_TICK_INTERVAL,
 } from '../game/simulation/bridge/wildlifeCadence';
+import { TPS } from '../game/simulation/prototypeScenario';
 import { unitBaseSpeedPercent } from '../game/simulation/prototypeUnitRules/unitBaseSpeed';
 import type { ProjectedEntityView, UnitType } from '../game/simulation/types';
 
-/** The longest gap, in ticks, between two consecutive fine steps of a unit
- *  walking unobstructed at its base rate: `ceil(100 / hundredthsPerTick)`.
- *  An entity type without a base rate (wildlife) reads as a villager. */
-export function unitStepCadenceTicks(entityType: ProjectedEntityView['entityType']): number {
+/** Hundredths of a fine step the sim banks for this unit each tick at its
+ *  base rate — `round(0.32 × speedPercent)`, at least one so nothing divides
+ *  by zero. An entity type without a base rate (wildlife) reads as a
+ *  villager. */
+function baseHundredthsPerTick(entityType: ProjectedEntityView['entityType']): number {
   const percent = unitBaseSpeedPercent(entityType as UnitType) ?? 100;
-  const hundredthsPerTick = Math.max(1, Math.round(UNIT_SUBGRID_STEP_PER_TICK * percent));
-  return Math.ceil(100 / hundredthsPerTick);
+  return Math.max(1, Math.round(UNIT_SUBGRID_STEP_PER_TICK * percent));
+}
+
+/** The longest gap, in ticks, between two consecutive fine steps of a unit
+ *  walking unobstructed at its base rate: `ceil(100 / hundredthsPerTick)`. */
+export function unitStepCadenceTicks(entityType: ProjectedEntityView['entityType']): number {
+  return Math.ceil(100 / baseHundredthsPerTick(entityType));
+}
+
+/** Tiles per second a unit covers walking unobstructed at its base rate: the
+ *  hundredths it banks a tick, as quarter-tile fine steps, at TPS ticks a
+ *  second — 0.8 for a villager (the §12.4.2 reference), 0.9 for a militia,
+ *  1.35 for a knight. The gait weight in `aoeVoxelUnitAnimation` normalises
+ *  displayed speed against THIS, per unit, rather than against one fixed
+ *  speed no unit reaches. */
+export function unitBaseTilesPerSecond(entityType: ProjectedEntityView['entityType']): number {
+  return baseHundredthsPerTick(entityType) / 100 / UNIT_SUBGRID_RESOLUTION * TPS;
 }
 
 /** Ticks the drawn root of this entity trails the simulation by — its step

@@ -1,6 +1,6 @@
 import type { ProjectedEntityView, UnitType } from '../../game/simulation/types';
 import { TPS } from '../../game/simulation/prototypeScenario';
-import { unitStepCadenceTicks } from '../unitStepCadence';
+import { unitBaseTilesPerSecond, unitStepCadenceTicks } from '../unitStepCadence';
 import { unitRole, type UnitRole } from '../roles/unitRole';
 import type { VoxelPart } from './aoeVoxelRecipeTypes';
 import type { AoeUnitAnimationState } from './aoeVoxelUnitAnimationState';
@@ -60,7 +60,23 @@ const MS_PER_TICK = 1_000 / TPS;
 function motionWindowMsFor(entity: ProjectedEntityView): number {
   return (2 * unitStepCadenceTicks(entity.entityType) + 1) * MS_PER_TICK;
 }
-const FULL_LOCOMOTION_SPEED = 2.5;
+// Full gait at three quarters of the unit's OWN base rate (unitStepCadence),
+// never at one fixed speed. This was a flat 2.5 tiles/s — the uniform clock
+// before §12.4.2 — and v0.3.160 gave every unit its own rate (villager 0.8,
+// militia 0.9, knight 1.35), so no unit reached 2.5 again: every walker's
+// weight sat at 0.2-0.6 and its legs swung at that fraction of the authored
+// gait, about one pixel of boot travel at the default zoom — the owner's
+// 2026-09-05 "soldiers are not moving their legs" (gate:
+// tests/rendering/aoeVoxelUnitWalkLegs.test.ts). Three quarters rather than
+// the whole rate: the drawn root's speed over the window ripples with the
+// carry's 3-tick/4-tick alternation (0.62-0.83 tiles/s for a villager at
+// 0.8), and a weight that reads 1 at the trough does not flutter with it.
+// Below that the unit is being slowed — traffic, a door ball — and the gait
+// fades with it, which is the fade this weight exists for.
+const FULL_GAIT_FRACTION_OF_BASE_RATE = 0.75;
+function fullLocomotionSpeedFor(entity: ProjectedEntityView): number {
+  return FULL_GAIT_FRACTION_OF_BASE_RATE * unitBaseTilesPerSecond(entity.entityType);
+}
 const START_RESPONSE_MS = 90;
 const STOP_RESPONSE_MS = 180;
 const TURN_RESPONSE_MS = 110;
@@ -275,7 +291,7 @@ export function resolveUnitAnimationState(
     : attack && (entity.attackAnimation != null || !moving)
       ? attack
       : null;
-  const targetWeight = clamp01(speed / FULL_LOCOMOTION_SPEED);
+  const targetWeight = clamp01(speed / fullLocomotionSpeedFor(entity));
   const responseMs = targetWeight > previous.locomotionWeight
     ? START_RESPONSE_MS
     : STOP_RESPONSE_MS;

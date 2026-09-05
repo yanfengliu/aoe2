@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.206
+
+- **Walking units swing their legs again.** Soldiers, villagers, archers and mounts had been sliding across the map in the rest pose since the v0.3.160 movement clock gave every unit its own speed: the walk cycle's "full stride" was still measured against one speed no unit reaches, so every gait played at a fraction of its amplitude. Full stride now means the unit's own walking speed.
+
 ## 0.3.205
 
 - **Loaded villagers walk home the way they walked out.** The delivery leg picked the drop-off nearest as the crow flies and the first cell beside it a path search reached, so on Nomad fourteen loaded villagers spent half a match shuffling into each other between two cells, full loads never delivered. The return walk now follows the same walk-distance field the outbound ranking uses: the true shortest route to the nearest cell beside the nearest drop-off, identical for every carrier on a cell. Measured on Nomad against 0.3.204: villagers chopping 8% of the time → 37%, wood delivered 981 → 1,783. On the default map one AI now reaches the Castle Age at tick 21,250 instead of 31,250 and wins by conquest at 39,812; the other, which used to reach Castle at 27,750, loses twenty villagers to that earlier raid and never leaves the Feudal Age — so the two self-play gates that assumed a 45,000-tick match score the match to its resolution instead, and building, unit and technology variety is scored in a new no-attack coverage lab where the tech tree can actually be reached.
