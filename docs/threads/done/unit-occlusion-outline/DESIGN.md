@@ -1,5 +1,7 @@
 # Unit occlusion outline (voxel x-ray) — DESIGN
 
+Closed 2026-09-05: shipped as v0.2.5 on 2026-07-15; PLAN step 9, the move to `done/`, never ran. Later work on the cue lives in the defect register rather than here: 2026-08-30 "reads as a unit standing ON the building" (OPEN) and 2026-09-01 "the ENEMY colour was the half nobody looked at" (RESOLVED, v0.3.171).
+
 Status: SHIPPED as v0.2.5 (2026-07-15) after two review iterations. The mechanism below was adjusted by iteration-1 findings: the cover test samples the unit's MID-BODY (visualTop × 0.55, so ankle-high geometry — farm soil/markers, foundation slabs, knee courses — that merely paints at the feet can never fire the cue) and occluder parts require real horizontal mass (min(width, depth) ≥ 0.15 wu, excluding hairline accents like the 0.072 wu TC flag pole whose 2.3 px corridor flashed full-body ghosts on open ground). The building depth gate stays max-footprint-corner. Full finding/fix ledger: 2026-07-15/1/REVIEW.md.
 
 ## Problem

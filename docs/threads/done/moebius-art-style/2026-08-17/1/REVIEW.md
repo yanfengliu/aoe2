@@ -1,5 +1,7 @@
 # Multi-CLI review — Moebius art style (voxel 1.2.0 + aoe2 0.3.10)
 
+Closed 2026-09-05: shipped as aoe2 v0.3.10 with voxel 1.2.0; v0.3.196 (2026-09-03) removed the Painted style, so Moebius is the only look. Two follow-ups below never ran and are dropped from this repo with the closure, each with its reason. The Codex retry: the aoe2 half it would have read was rewritten by v0.3.196, and the voxel half (`StylizedResolvePass`) is a review for the voxel repo to run. The GLSL-versus-TypeScript gate for `steppedLuminance`: both bodies live in the sibling `voxel` package (`src/three/stylizedToneBands.ts`) and aoe2 has held no copy since v0.3.196, so the gate belongs there. Both are already recorded as follow-ups in the voxel repo's own devlog (its 2026-08-17 entry), which is where they belong.
+
 **Date:** 2026-08-17 · **Objective:** `moebius-art-style` · **Iteration:** 1
 
 Escalated under the fleet rule that edits reaching a sibling repo are high-risk. The change spans `voxel` (new `StylizedResolvePass`, runtime wiring, public API) and `aoe2` (art-style layer, menu row, persistence).

@@ -3,7 +3,7 @@
 // `author: 'agent'` Markers and overlays them onto a finished run's
 // SessionBundle, so replaying that bundle surfaces the AI's findings in
 // the existing replay marker UI (MarkerListPanel list + TimelinePanel
-// pins) — see docs/threads/current/ai-findings-annotation-bridge/DESIGN.md.
+// pins) — see docs/threads/done/ai-findings-annotation-bridge/DESIGN.md.
 //
 // These three functions are PURE and deterministic (no Math.random,
 // no Date.now — `createdAt` is passed in via ctx). The file I/O lives

@@ -361,3 +361,16 @@ Critic findings (method re-runnable; it reproduced every author number at 30k fi
 6. HOLDS — boot-map throughput through 30k (wood 2,170 -> 3,950, gold 1,840 -> 2,892). 7. HOLDS — Nomad unaffected. 8. COSMETIC — the test's trained/lost ledger counts garrison flickers as losses.
 
 **Disposition.** Code reverted; gate moved to match resolution (45,000) with bars from the 45k baseline; the exposed defect (villagers gather inside enemy TC range) registered OPEN as the prerequisite for any retry. The mechanism is not dead — its larger economy is what exposed the flaw — but it does not ship over a lost match.
+
+---
+
+## Status 2026-09-05 — what moved after round 5, and where it was recorded
+
+This thread was moved to `done/` on 2026-09-01 as shipped (v0.3.177) and moved back the same day by the revert (v0.3.178). The work went on, but under the defect register and the devlog rather than here, so this record stopped at round 5 while the following landed against it:
+
+- 2026-09-02, v0.3.191: the prerequisite round 5 named, villagers auto-assigned under an enemy Town Centre, fixed and gated (`tests/simulation/enemyDefenceRange.test.ts`; register entry 2026-09-02).
+- 2026-09-04: the AI's lumber camp could not reach the woodline on three shipped maps (register entry 2026-09-04: the reach defect FIXED; its correction, that the AI builds one camp ever and never replaces a destroyed one, still open), and neither walled map enclosed a tree (v0.3.203).
+- 2026-09-05, v0.3.204: branch D's root cause, the Manhattan comparator, fixed by ranking on a per-owner walk field (`src/game/simulation/bridge/dropOffWalkField.ts`; the register's 2026-09-01 entry, FIXED). Seventeen re-weightings had failed; replacing the measurement worked.
+- 2026-09-05, v0.3.205: the deposit leg descends the same field, merged on the owner's decision with the two boot-map gates re-bound to the match's resolution. Open after it: the boot map reads worse for owner 1 (`frozen` 0.4 to 0.7 per sample, longest freeze 1,430 to 4,201 ticks, chop share 36% to 34%), recorded under the register's 2026-09-05 head-on entry.
+
+The camp-siting candidate this search was about was never retried. The metric fix branch D found was the larger half, and it has shipped. What keeps this thread open is the owner-1 boot-map reading above.

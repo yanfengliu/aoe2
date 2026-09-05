@@ -1,5 +1,7 @@
 # Automatic post-construction mining — DESIGN
 
+Closed 2026-09-05: shipped as v0.2.6 on 2026-07-15 (`design/spec-final.md` §6.2 carries the rule as shipped). The folder was created by the release commit, whose title already said "close", and was never moved.
+
 Status: implemented + gates green in worktree (2026-07-15); adversarial review in flight; merges to main after the occlusion slice ships.
 
 ## Rule (spec §6.2, user directive 2026-07-14)

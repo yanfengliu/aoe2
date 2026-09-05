@@ -1967,7 +1967,7 @@ A Farm's capacity is derived from the owner's researched techs at the moment the
 - The three techs are derived stat techs (like the gather-rate and carry-capacity econ techs): no per-Farm state and no save-format change — the researched-tech set is already persisted, and the capacity is recomputed from it at create + reseed.
 - The four gates (test/typecheck/lint/build) pass and the full suite is green (1472 passed / 2 skipped).
 - Data note: `design/stats/technologies.csv` had Heavy Plow's food bonus as "+75" (a duplicate of Horse Collar's); it is corrected to "+125", the real AoE2 value that matches the spec's 250/375/550 cumulative capacities.
-- Multi-CLI review: see `docs/threads/current/farm-upgrade-techs/` (pending — the team lead runs the review before commit).
+- Multi-CLI review: see `docs/threads/done/farm-upgrade-techs/` (pending — the team lead runs the review before commit).
 
 ## 0.1.45 - 2026-06-16
 
@@ -1987,7 +1987,7 @@ Deferred to later M7 render slices: gather sparks on working villagers (the vill
 - TDD: new `tests/phaser/feedbackEffects.test.ts` (19 tests) covers the pure effect logic — the selection pulse stays in a visible band, oscillates over its period, and bounds its radius/width; `shouldFlashHit` fires only on a strict HP drop between two finite samples (not a heal, no-change, missing, or non-finite value); the hit-flash tracker arms a decaying flash on a drop, never on the first sample, re-arms on a second drop, expires after its duration (staying briefly active past it so the frame clears), tracks only units (a damaged building never arms a flash), forgets entities that leave the view (so it stays bounded), and reports whether any flash is live (used to keep the frame animating); and the flash drawer scales its alpha with intensity and stays inside the unit's circle. New `tests/phaser/selectionLayers.test.ts` (4 tests) verifies the ring is byte-identical without a pulse and applies the pulse alpha/width/outward-offset (center and base radius preserved) with it. A small render extraction (`drawResourceEntity`, pulled out of the scene to keep it lean) is covered by `tests/phaser/resourceRenderer.test.ts` (2 tests).
 - Visual protocol (motion is not capturable in a static image): a dedicated `feedback-showcase-fixture` with a selectable lone villager and an adjacent melee skirmish was captured before/after on otherwise-identical builds at a representative phase (ring lit, a fresh hit flash) with a pixel diff — `tmp/feedback/{before,after,diff}.png`; 0.21% of pixels changed, confined exactly to the selected villager's ring and one combat unit's flash (the HUD, terrain, the other units, health bars, and the minimap are pixel-identical). The diff shows the effect presence, placement, and confinement; the trigger/timing correctness is covered by the unit tests above.
 - Render-only — no simulation, bridge, save-format, or projection/contract change (`ProjectedEntityView` is untouched); the time/clock input and all animation state live in the render layer; no `Math.random`/`Date.now` enters the simulation. The four gates (test/typecheck/lint/build) pass and the full suite is green (1454 passed / 2 skipped).
-- Multi-CLI review: see `docs/threads/current/combat-gather-feedback/` (pending — the team lead runs the review before commit).
+- Multi-CLI review: see `docs/threads/done/combat-gather-feedback/` (pending — the team lead runs the review before commit).
 
 ## 0.1.44 - 2026-06-16
 
@@ -2002,7 +2002,7 @@ This is the deferred follow-up to the v0.1.39 UI-icons slice (which iconified th
 - TDD: new `tests/simulation/selectionGlyphs.test.ts` (13 tests) covers that every unit role glyph + the building glyph is self-contained inline SVG with no external asset/font reference and uses `currentColor` (so the existing palette controls the tone); that the unit role map is exhaustive over every unit type AND agrees with the on-map renderer's `unitRole` (a drift guard so the badge glyph and map silhouette never diverge); that the dispatcher routes a unit to its role glyph, a building to the reused building glyph, and a resource/wildlife/relic/none to no glyph; and the augment-don't-replace contract — `renderSelectionIcons` emits the glyph as a sibling while the badge keeps its exact two-letter code and every `data-*` selection hook (single-unit, single-building, and multi-select paths), so the existing Playwright badge-text assertions still pass.
 - Visual protocol: a Villager and the Town Center were selected and captured before/after with a pixel diff — `tmp/ui-icons-2/{villager,tc,multi}-{before,after,diff}.png`; the change (≈4.8% of pixels for the single-selection views, ≈8% for the multi-select grid) is confined entirely to the selection panel; the Phaser game world and the rest of the HUD are pixel-identical.
 - DOM/CSS-only — no `src/phaser/`, simulation, save-format, or bridge-contract change; the four gates (test/typecheck/lint/build) pass and the full suite is green (1429 passed / 2 skipped).
-- Multi-CLI review: see `docs/threads/current/ui-icons-slice2/` (pending — the team lead runs the review before commit).
+- Multi-CLI review: see `docs/threads/done/ui-icons-slice2/` (pending — the team lead runs the review before commit).
 
 ## 0.1.43 - 2026-06-16
 
@@ -2017,7 +2017,7 @@ This is the transition half of the M7 "terrain texturing + elevation shading" it
 - TDD: `tests/phaser/terrainTexture.test.ts` was extended (6 → 18 tests). New coverage: `blendTint` is the per-channel average, is commutative, stays in gamut for the palette, and is derived from the same per-kind tints the simulation seeds; a cell surrounded by same-kind neighbors draws only the base fill with no transition specks; a cell adjacent to a different kind draws transition specks toward that edge (and only the differing edge when one side differs); the transition color is the blend of the two kinds (not a hardcoded unrelated color); the draws are deterministic (same inputs → identical calls); every drawn point stays inside the cell rect; and a missing neighbor (map edge) draws no transition. The pre-existing per-cell jitter tests (determinism, gamut, subtlety, variation, unbiased mean) are retained as regression guards.
 - Visual protocol: a dedicated `terrain-showcase-fixture` (a patchwork of adjacent grass/forest/water/hill in the default camera view) was captured before/after with a pixel diff — `tmp/terrain/{before,after,diff}.png`; 1.89% of pixels changed, confined exactly to the kind-to-kind boundaries (same-kind interiors, the HUD, the minimap, and the selection panel are pixel-identical; the changed-pixel bounding box traces only the patch outlines).
 - The render path is purely a function of the existing projected render data — no simulation, save-format, or bridge-contract change; the four gates (test/typecheck/lint/build) pass and the full suite is green (1416 passed / 2 skipped).
-- Multi-CLI review: see `docs/threads/current/terrain-blending/` (pending — the team lead runs the review before commit).
+- Multi-CLI review: see `docs/threads/done/terrain-blending/` (pending — the team lead runs the review before commit).
 
 ## 0.1.42 - 2026-06-16
 
@@ -2032,7 +2032,7 @@ This is the first slice of the M7 "building visuals" item. The construction (sca
 - TDD: new `tests/phaser/buildingRenderer.test.ts` (27 tests) covers the building→role mapping for a representative type of every role plus exhaustive coverage of all 18 building types; that every completed building draws at least one fill primitive and uses the entity tint; that distinct roles draw distinct primitive sets (the Mill draws blade lines, the Wonder draws a dome arc, the Wall has no roof triangle while the House does); that every drawn point stays inside the building's footprint rect for every type so the selection/health-bar geometry is preserved; and the unchanged variant contract (a completed building reports the body/roof/completion flags, a building under construction reports the foundation/scaffold flags, a last-seen ghost and a non-building both return no visual record).
 - Visual protocol: a dedicated `building-showcase-fixture` (one completed building of every role in a visible grid) was captured before/after with a pixel diff — `tmp/buildings/{before,after,diff}.png`; 10.72% of pixels changed, confined exactly to the building footprints (the HUD, terrain between buildings, health bars, selection rings, minimap, and fog are pixel-identical; the changed-pixel bounding box stops below the top HUD bar and above the minimap panel).
 - The render path is purely a function of the projected render data — no simulation, save-format, or bridge-contract change; the four gates (test/typecheck/lint/build) pass and the full suite is green (1404 passed / 2 skipped).
-- Multi-CLI review: see `docs/threads/current/building-visuals-slice1/` (pending — the team lead runs the review before commit).
+- Multi-CLI review: see `docs/threads/done/building-visuals-slice1/` (pending — the team lead runs the review before commit).
 
 ## 0.1.41 - 2026-06-16
 
@@ -2047,7 +2047,7 @@ This is the first slice of the M7 "units beyond colored circles" item. Deferred 
 - TDD: new `tests/phaser/unitRenderer.test.ts` (35 tests) covers the unit→role mapping for a representative unit of every role plus exhaustive coverage of all 34 unit types (and the specific `skirmisher → archer` case, since the skirmisher is foot-ranged but not in the simulation's archer line); the facing derivation (eastward movement → ~0 rad, southward → ~π/2, no previous position or sub-threshold movement → idle/null); and that the renderer draws a distinct primitive set per role (siege emits rectangles, the monk emits a cross, cavalry emits an elongated body) while keeping every drawn point inside the unit's bounding circle so the health-bar / selection geometry is preserved.
 - Visual protocol: a dedicated `unit-showcase-fixture` (one human unit of every role in a visible row) was captured before/after with a pixel diff — `tmp/units/{before,after,diff}.png`; 0.29% of pixels changed, confined exactly to the seven unit positions (the HUD, Town Center, terrain, health bars, minimap, and fog are pixel-identical).
 - The render path is purely a function of the projected render data — no simulation, save-format, or bridge-contract change; the four gates (test/typecheck/lint/build) pass and the full suite is green.
-- Multi-CLI review: see `docs/threads/current/units-beyond-circles/` (pending — the team lead runs the review before commit).
+- Multi-CLI review: see `docs/threads/done/units-beyond-circles/` (pending — the team lead runs the review before commit).
 
 ## 0.1.40 - 2026-06-16
 
@@ -2060,7 +2060,7 @@ Known divergence from AoE2 (deferred): real AoE2 Loom is +1 melee / +2 PIERCE ar
 ### Validation
 
 - TDD: new `tests/simulation/loomTech.test.ts` (17 tests) covers the Town Center offering Loom in the Dark Age and every later age until researched, dropping it once researched, and offering it alongside (after) the age-up; the 50-gold / 250-tick cost-table values; research charging exactly 50 gold and recording the tech, and being rejected when the owner has under 50 gold; an EXISTING villager going from 25/25 to 40/40 with armor 0 → 1 on completion (flat current+max bump, not a ratio rescale); a non-villager (Militia) being unaffected; a FUTURE villager (trained/seeded after research) starting at 40/40 + armor 1; armor reducing both incoming melee AND pierce damage by 1 at the damage site; no effect before research; and a save round-trip (a researched-Loom villager still reads 40 HP + armor 1 after load, and loom stays in the researched set — the post-load createCombatState re-derive path is covered by the future-villager test above). Existing Town Center research-option assertions were updated to include Loom (the Town Center genuinely offers it now). Full suite green; typecheck/lint/build all pass.
-- Multi-CLI review: see `docs/threads/current/loom-tech/` (pending — the team lead runs the review before commit).
+- Multi-CLI review: see `docs/threads/done/loom-tech/` (pending — the team lead runs the review before commit).
 
 ## 0.1.39 - 2026-06-16
 

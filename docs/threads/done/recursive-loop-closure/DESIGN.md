@@ -1,5 +1,7 @@
 # Recursive Loop Closure Design (Track A)
 
+Closed 2026-09-05: shipped across 2026-07-07 and 2026-07-08 (v0.1.126) after two converged reviews; PLAN Task 4's boxes were never ticked. Superseded on 2026-08-01 by `docs/architecture/decisions.md` ("The playtest harness observes; it does not write code"): the fix arm this thread built was removed, `playtest:recursive` no longer exists, and `playtest:self-improve` is what remains of the loop.
+
 ## Decision
 
 Close the recursive self-improvement loop that `docs/threads/done/recursive-self-improvement-loop/` deliberately deferred: one bounded `playtest:recursive` pass that chains run -> ledger -> select -> propose -> apply+gate -> rerun -> prove-fixed -> pass manifest, plus episodic memory so the next run starts from the previous ledger instead of rediscovering known findings. (2026-07-08 update, per the owner's mandatory-proper-loop directive: the full loop is the DEFAULT — `--propose-only` opts out; a dirty/off-main worktree degrades the default to proposal-only with a warning while explicit `--apply` hard-fails; episodic memory auto-chains the newest prior ledger under `--out-root`.) This is the reference vertical slice for the cross-game loop contract in civ-engine's `docs/threads/current/agent-recursive-improvement-loop/DESIGN.md`.

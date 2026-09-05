@@ -13,7 +13,7 @@
 // `change` event dispatch exercises the commit path (which advances
 // the underlying replay state machine), but its side effect lives
 // outside the public test surface — flagged in the v0.1.16 review
-// thread (`docs/threads/current/replay-deferred-followups/.../scrub-e2e-iter-1/REVIEW.md`).
+// thread (`docs/threads/done/replay-deferred-followups/2026-05-07/scrub-e2e-iter-1/REVIEW.md`).
 // A future task will expose `getReplayCommittedTick()` or similar so
 // the commit phase has a dedicated observable.
 

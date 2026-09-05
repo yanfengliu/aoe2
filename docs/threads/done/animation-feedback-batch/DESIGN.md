@@ -1,5 +1,7 @@
 # Animation feedback batch — DESIGN
 
+Closed 2026-09-05: all four slices shipped on 2026-07-15 (A as v0.2.7, B and D as v0.2.8, C as v0.2.9, the sticky boar facing as v0.2.12; `design/spec-final.md` §14.5 carries each as shipped). Only slice A's review synthesis was filed here; the later slices' reviews went to the devlog. The folder sat in `current/` for seven weeks after the last slice shipped, which is what the thread rule in `docs/policies/local-rules.md` (2026-09-05) now prevents.
+
 Status: mechanisms resolved 2026-07-14 from the attack/wildlife/task presentation exploration (evidence anchors inline). Four independent slices sharing one subsystem map; each ships as its own TDD'd, reviewed, versioned commit. Spec rules already persisted in §14.5 (2026-07-14 user directives).
 
 ## Shared facts (explorer-verified)

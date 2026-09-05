@@ -1,5 +1,7 @@
 # Render realism — one improvement, chosen by audit (2026-09-02)
 
+Closed 2026-09-05: the one improvement this thread was scoped to shipped as v0.3.193 and was reshaped by v0.3.194 (shadows take the caster's shape). Still open and deliberately not taken, per the last section below: the backlit daylight rig (candidate 2) and the frame cost at the ±10% criterion, both for a later thread to pick up with the audit above in hand. The owner's report that a unit's shadow does not turn with the unit is the register's 2026-09-04 entry (OPEN). v0.3.198 reworked the stone wall's own geometry; whether its per-segment shadow still repeats the joint gaps was not re-checked here.
+
 Owner steering (local-rules.md, 2026-09-02): "The rendering needs to feel realistic" — for the WORLD, within the original voxel art direction, original/procedural art only. Scope here is exactly one improvement, chosen by an audit of the real default view, prototyped, measured and verified. Not a redesign.
 
 ## Audit of the real default view
