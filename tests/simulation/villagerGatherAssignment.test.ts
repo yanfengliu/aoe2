@@ -27,6 +27,7 @@ function openGroundField(dropOff: Position, dropOffId: number): DropOffWalkField
   return {
     haulDistance: (p) => Math.abs(p.x - dropOff.x) + Math.abs(p.y - dropOff.y),
     nearestDropOffId: () => dropOffId,
+    descendFrom: () => null,
   };
 }
 
@@ -336,6 +337,7 @@ describe('the comparator ranks by the walk a villager can make', () => {
     return {
       haulDistance: at,
       nearestDropOffId: (p) => (Number.isFinite(at(p)) ? WALK_NEAREST_DROP_OFF : null),
+      descendFrom: () => null,
     };
   }
 
