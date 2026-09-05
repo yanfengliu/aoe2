@@ -21,6 +21,14 @@ The acceptance test is a sentence, and it is re-checked every time the work look
 
 **How to apply:** a change is not done because its gate is green. It is done when a match has been played with it (see "Every feature is playtested the way a human plays" above) and the whole rendered result has been swept for what is WRONG rather than for what was touched. All visual work is ORIGINAL or procedural art and all audio is procedural or original — no reproduced AoE assets — which is the one place this project deliberately does not match DE, alongside the modern HUD.
 
+## A/B control builds: never `ln -s` node_modules into a worktree (2026-09-05)
+
+A control build of an older commit lives in a `git worktree` under the scratchpad. Its `node_modules` is a junction made by `cmd /c mklink /J <worktree>\node_modules <aoe2>\node_modules`, and that junction is removed with `cmd /c rmdir <worktree>\node_modules` BEFORE `git worktree remove`. Never `ln -s` it — Git Bash copies the directory, and the copy carries the `civ-engine` and `voxel` junctions — and never `rm -rf` or `Remove-Item -Recurse` a tree that still holds a junction.
+
+**Why:** on 2026-09-03 `git worktree remove --force` on exactly such a tree followed the copied `civ-engine` junction and emptied `../civ-engine/.git` down to `refs/` (defect register, 2026-09-05). Git's recursive delete on Windows follows junctions; a 267-character path was all that stopped it.
+
+**How to apply:** the three commands above, in that order, every time; `scripts/controlWorktree.mjs`, once it exists, is the fixed command that does them and nothing else.
+
 ## HUD styling: modern, not medieval (2026-08-18, owner)
 
 The interface chrome targets a **modern** look — translucent dark-glass panels, one hairline border, soft two-part elevation, a token palette, generous radii — and explicitly NOT the AoE2-era framed wood-and-stone treatment that shipped in v0.1.38.
