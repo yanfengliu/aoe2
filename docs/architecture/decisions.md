@@ -156,7 +156,7 @@ Consequences:
 - Human and AI monk context routing now share the same handler revalidation and `routeMonkContextAtEntityCommandDirect` behavior.
 - AI-only owner/task guards prevent a stale queued assignment from becoming a different action after target or monk ownership changes.
 - `SaveBlob.sideMaps.pendingCommands` persists bridge-owned AI intentions until they are drained into the engine command queue immediately before the next tick.
-- AI monk task effects are intentionally delayed by one tick. `tests/simulation/aiPlayer.test.ts` covers this with the `ai-monk-relic-fixture`: the first decision step queues the pickup while the relic remains on the map, and the next step processes the command and carries the relic.
+- AI monk task effects are intentionally delayed by one tick. `tests/simulation/aiPlayerMonksAndWonder.test.ts` covers this with the `ai-monk-relic-fixture`: the first decision step queues the pickup while the relic remains on the map, and the next step processes the command and carries the relic.
 - The AI-side blocker for `monkTasks` migration is cleared. KAD-0009 completed the raw Map replacement with an accessor-backed codec while preserving command handlers and deterministic monk behavior as the mutation sites.
 
 ## KAD-0009 - Monk task state is accessor-backed
