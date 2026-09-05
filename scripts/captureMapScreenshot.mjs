@@ -178,20 +178,47 @@ try {
     }, [buildingType, bx, by]);
     if (placed !== 'ok') throw new Error(`BUILD ${build} failed: ${placed}`);
   }
-  // SELECT="villager" selects the human's first unit of that type before the
-  // shot (no order is given), so a capture can show the command bar in its
+  // SELECT="<type>" selects the human's first entity of that type before the
+  // shot (no order is given), so a capture can show the command bar in a
   // SELECTED state — where the 2026-09-02 idle-bell overlap lived, and which
-  // no boot capture can reach.
+  // no boot capture can reach. A unit type (villager, scout), a building type
+  // (town-center, house) or a resource in the human's base (sheep, tree,
+  // berry-bush, gold-mine, stone-mine) — because the bar's height depended on
+  // WHICH of these was selected (2026-09-05), so proving it does not takes a
+  // capture of each. SELECT="box" selects every unit the human owns, the
+  // mixed selection a marquee over the base makes.
   const select = process.env.SELECT ?? '';
   if (select) {
-    const selected = await page.evaluate((unitType) => {
+    const selected = await page.evaluate((type) => {
       const api = window.__AOE2_TEST__;
-      const unit = api.getEconomyState().units.find((u) => u.owner === 1 && u.unitType === unitType);
-      if (!unit) return `the human owns no ${unitType}`;
-      return api.selectEntityAtCell(unit.x, unit.y) ? 'ok' : 'select failed';
+      const economy = api.getEconomyState();
+      if (type === 'box') {
+        const size = api.getMapSize();
+        return api.selectUnitsInBox(0, 0, size.width - 1, size.height - 1) ? 'ok' : 'select failed';
+      }
+      const unit = economy.units.find((u) => u.owner === 1 && u.unitType === type);
+      if (unit) return api.selectEntityAtCell(unit.x, unit.y) ? 'ok' : 'select failed';
+      const building = economy.buildings.find((b) => b.owner === 1 && b.buildingType === type);
+      if (building) {
+        for (let dy = 0; dy < building.footprintHeight; dy += 1) {
+          for (let dx = 0; dx < building.footprintWidth; dx += 1) {
+            api.selectEntityAtCell(building.x + dx, building.y + dy);
+            if (api.getSelectionState().selectedEntityType === type) return 'ok';
+          }
+        }
+        return 'select failed';
+      }
+      const resource = economy.resources.find(
+        (r) => r.resourceType === type && (r.owner === 1 || r.baseOwner === 1),
+      );
+      if (resource) return api.selectEntityAtCell(resource.x, resource.y) ? 'ok' : 'select failed';
+      return `the human owns no ${type} at boot (no unit, building or base resource of that type)`;
     }, select);
     if (selected !== 'ok') {
-      throw new Error(`SELECT must name a unit type the human owns at boot (e.g. villager); "${select}" failed: ${selected}`);
+      throw new Error(
+        `SELECT must name a unit, building or base-resource type the human owns at boot `
+        + `(e.g. villager, town-center, tree) or "box"; "${select}" failed: ${selected}`,
+      );
     }
   }
 

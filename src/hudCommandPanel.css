@@ -40,14 +40,30 @@
      came out 1px under the panel's own border (`scrollWidth` 823 against a
      822px content box) — a card that is 43/44 in view. */
   padding-right: 14px;
-  /* The bar is as tall as what it holds, up to a ceiling that leaves the world
-     the bulk of the screen. A fixed 208px ceiling with `overflow-y: hidden` is
-     what put a Town Centre's last stat rows below the panel's own bottom edge
-     with nothing to say so; `auto` means an overflow can at least be reached,
-     and the gate is that there is no overflow to reach. */
+  /* The bar is a BAND of one height, whatever is selected (2026-09-05, owner:
+     "the info panel at the bottom should not have different heights for
+     different units"). It is bottom-anchored, so a content-sized bar moved its
+     TOP edge on every click — 72px tall with nothing selected, 185.6px with a
+     villager, 242.8px with the Town Centre at 1280x720 — and the minimap
+     beside it stayed put. The token (styles.css, and the wrapped regime's
+     value below) is the tallest boot-scenario card plus 2px, so the common
+     cards fit outright and a taller one scrolls inside the band under §14.2
+     rule (b). The ceiling stays as the SCREEN'S limit: it bites only on a
+     window too short for the band (36vh is under 246px below 684px tall),
+     and then it clamps every selection alike. A fixed 208px ceiling with
+     `overflow-y: hidden` once put a Town Centre's last stat rows below the
+     panel's own bottom edge with nothing to say so; `auto` means an overflow
+     can at least be reached, and the gate is that the common cards have
+     none to reach. */
+  height: var(--hud-selection-bar-height);
   max-height: min(36vh, 268px);
   display: flex;
   align-items: stretch;
+  /* Content packs to the TOP of the band. Below 1120px the bar wraps onto
+     two lines, and a multi-line flex container's default spreads free space
+     between its lines — the deck would sit lower under a short summary than
+     under a tall one, moving between selections inside a band that does not. */
+  align-content: flex-start;
   gap: 14px;
   overflow-x: auto;
   overflow-y: auto;
@@ -547,6 +563,15 @@
   :root {
     --hud-command-tile: 34px;
     --hud-command-gap: 4px;
+    /* The wrapped bar's ONE height: its tallest boot-scenario card plus 2px.
+       Measured 2026-09-05 — every villager selected 232px at 800x600, 1024x768
+       and 1100x700 (a compact chip row beside a two-line name, over the
+       two-row palette); a villager 226.6px at 800x600; a Town Centre with one
+       villager queued 234px at 1024x768 and 1100x700. The queue is a LINE of
+       its own here (66px an entry plus the 10px gap), so at 800x600, where the
+       stat chips take three rows, that same card is 262.6px and scrolls
+       inside the band; the camera-centre rule below leaves no room for it. */
+    --hud-selection-bar-height: 236px;
   }
 
   .hud-panel--selection {

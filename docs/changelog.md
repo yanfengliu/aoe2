@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.207
+
+- **The bottom command bar keeps one height.** Selecting a villager, a building, a tree or nothing used to resize the bar and move its top edge; it is now a fixed band (246px on wide windows, 236px at 1120px and narrower) with the selection drawn inside it, packed to the top. A box selection of several unit kinds now shows them in a row instead of a column taller than the bar. A Town Centre's production queue fits three entries on wide windows and scrolls beyond that.
+
 ## 0.3.206
 
 - **Walking units swing their legs again.** Soldiers, villagers, archers and mounts had been sliding across the map in the rest pose since the v0.3.160 movement clock gave every unit its own speed: the walk cycle's "full stride" was still measured against one speed no unit reaches, so every gait played at a fraction of its amplitude. Full stride now means the unit's own walking speed.

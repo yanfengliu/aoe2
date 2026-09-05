@@ -28,6 +28,17 @@
      this. */
   --hud-command-tile: 44px;
   --hud-command-gap: 6px;
+  /* The command bar's ONE height (2026-09-05, owner: "the info panel at the
+     bottom should not have different heights for different units"). The bar
+     is a fixed band and what varies lives inside it — hudCommandPanel.css
+     applies this and sets the wrapped regime's value below 1120px. Sized to
+     the tallest card the boot scenario shows, plus 2px: a Town Centre's,
+     whose name wraps to two lines beside its portrait (a 90px row) and whose
+     seven stat chips wrap to four rows (114.8px) in the 300px summary —
+     242.8px measured at 1280x720 and 1920x1080 — and 244px with three
+     entries in its production queue beside it. A villager's card is 185.6px
+     here, a scout's 212.6px, a tree's 114.2px, nothing selected 72px. */
+  --hud-selection-bar-height: 246px;
   --hud-radius-lg: 16px;
   --hud-radius-md: 11px;
   --hud-radius-sm: 8px;
@@ -281,6 +292,15 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 .hud-selection-unit-list--compact {
   grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
   gap: 6px;
+  /* A definite width, or `auto-fill` has nothing to fill. The list sits in an
+     auto-sized grid column of the summary (a shrink-to-fit flex item below
+     1120px), and against an indefinite width auto-fill resolves to ONE
+     column: three kinds of unit stacked 269px tall (measured 2026-09-05),
+     taller than the bar, in a grid written so that "8-16+ distinct unit
+     types stay visible". Three chips per row leaves the heading beside it
+     about 130px of the 300px summary — a name wraps to two lines there,
+     the height of one chip row. */
+  width: calc(3 * 48px + 2 * 6px);
 }
 
 .hud-selection-unit-chip {

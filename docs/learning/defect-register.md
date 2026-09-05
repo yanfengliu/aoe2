@@ -4,6 +4,16 @@ The standing list of what the gates could not see. One entry per defect that rea
 
 Unlike a lesson, an entry stays after it becomes a gate. The register is not a to-do list — it is the record of where defects came from, which is the best available guide to where the next one is.
 
+## 2026-09-05 — The bottom command bar was a different height for every selection (owner-reported, FIXED and gated)
+
+**Symptom.** "The info panel at the bottom should not have different heights for different units. This is visually confusing when switching between units." Click nothing, a villager, the scout, the Town Centre, a sheep: the bar's top edge lands somewhere new each time while the minimap beside it stays put.
+
+**Investigation.** No engine tool renders the HUD; the instrument is the gate itself plus two DOM probes under `tmp/probes/`. Unfixed, at 1280x720: 72px empty, 114.2 tree, 144.4 sheep, 185.6 villager, 212.6 scout, 242.8 Town Centre; at 800x600: 65 to 232 (the queued Town Centre and the box sat on the old 252px ceiling). The first pass's premise that the villager card is the tallest was false — the Town Centre's summary is: a two-line name beside its portrait and four rows of chips (`0 / 15 garrisoned` is 176px wide). Found in passing: the compact multi-select grid could never wrap (`auto-fill` in an auto-width column resolves to one column), so a box selection of several kinds stacked 269px tall in every regime — taller than any lawful band.
+
+**Root cause.** `.hud-panel--selection` had a `max-height` ceiling and no `height`, and the bottom row is bottom-aligned, so the bar was as tall as its conditional content and its top edge followed it.
+
+**How it is checked from now on.** `tests/browser/selection-panel-height.spec.ts` (`npm run test:browser`, so `npm run verify`): `aoe2-prototype` paused at boot, at 800x600, 1024x768, 1280x720 and 1920x1080, 17 states in a fixed order (nothing; a villager on both build pages and placing a House; the scout; the Town Centre empty and with one villager queued; a House foundation; sheep, tree, berry bush, gold mine, stone mine; every villager; a mixed box; nothing again), each asserting its selection took effect, then height and top edge within 0.5px of the first state and `scrollHeight ≤ clientHeight + 1`. Red on the unfixed tree in all four viewports. Bound: the boot fixture only (a Castle's or Market's card scrolls under rule (b), held by `command-deck-fits.spec.ts`); one named exception — the queued Town Centre at 800x600 (261px of content in a 234px band, because the wrapped bar puts the queue on a line of its own) is held for height and top edge only, and the spec asserts it still overflows so a compact queue retires the exception; no queue deeper than one; no width between the four viewports; no window shorter than the band (the ceilings then clamp every selection alike); no replay timeline; no pixel — the capture set recorded in `docs/debugging/2026-09-05-hud-panel-height.md` is the pixel evidence.
+
 ## 2026-09-05 — Soldiers walked with their legs in the rest pose (owner-reported, FIXED and gated)
 
 **Symptom.** "Soldiers are not moving their legs during the walking animation." Infantry, archers — and, read the same way, villagers and cavalry — translated across the map with boots level and legs vertical; the walk was a slide.

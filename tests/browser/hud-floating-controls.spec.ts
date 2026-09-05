@@ -30,6 +30,12 @@
 //   1280x720  bell [12,448 -> 63.2,492]   toggle [12,394 -> 56,438]   bar top 500
 //   1440x900  bell [12,628 -> 63.2,672]   toggle [12,574 -> 56,618]   bar top 680
 //   (empty state: bell bottom 413 / 493 / 673 under row tops 421 / 501 / 681.)
+// 2026-09-05: the bar became a fixed-height band (selection-panel-height.spec.ts,
+// `--hud-selection-bar-height`), so its top edge no longer depends on the
+// selection — 352 at 800x600, 462 at 1280x720, 642 at 1440x900, empty or not —
+// and the numbers above are the record of the bar this file was written
+// against. Every assertion below is relative to the measured bar, so none
+// moved; this run's pass is in the 2026-09-05 register entry.
 //
 // The CLASS this gates: no floating `[data-hud]` element (absolute or fixed,
 // visible) may intersect the command bar's heading, in the empty state or with a
