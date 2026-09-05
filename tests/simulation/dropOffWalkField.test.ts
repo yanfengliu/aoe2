@@ -17,6 +17,7 @@ import type { GameWorld } from '../../src/game/simulation/bridge/pureHelpers';
 import {
   createDropOffWalkFields,
   type DropOffSource,
+  type DropOffWalkField,
 } from '../../src/game/simulation/bridge/dropOffWalkField';
 
 //  y\x 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
@@ -176,6 +177,85 @@ describe('the drop-off walk field', () => {
     h.fields.fieldFor(h.world, 1, 'wood', VILLAGER);
     h.fields.fieldFor(makeWorld(), 1, 'wood', VILLAGER);
     expect(h.fields.stats.computed).toBe(2);
+  });
+});
+
+// The delivery walk. On Nomad the approach search handed a loaded villager at
+// (14,14) a 27-step loop around its base to the Manhattan-nearest ring cell of
+// the Town Centre while its neighbour at (15,14) got the 10-step route to the
+// next ring cell THROUGH (14,14); the two groups shuffled into each other for
+// 21,000 ticks. Descending the field cannot do that: every unit on a cell
+// walks the same gradient to the walk-nearest ring cell.
+describe('descending the field from a cell a unit stands on', () => {
+  //  y\x 0 1 2 3 4 5 6 7 8 9
+  //   0  . . . . . # . . . .     T = town centre 2x2 at (2,2) [id 30]
+  //   1  . . r r . # . . . .     r = its ring; the east ring (4,2),(4,3) is
+  //   2  . r T T r # . V . .         walled off from V by column x=5, open
+  //   3  . r T T r # . . . .         only at y=5, so the Manhattan-nearest
+  //   4  . . r r . # . . . .         ring cells cost a loop and the walk-
+  //   5  . . . . . . . . . .         nearest is the bottom ring, (3,4)/(2,4)
+  const TC: DropOffSource = { id: 30, position: { x: 2, y: 2 }, footprint: { width: 2, height: 2 } };
+  function walledField(): DropOffWalkField {
+    const blocked = new Set<string>(['2,2', '3,2', '2,3', '3,3', '5,0', '5,1', '5,2', '5,3', '5,4']);
+    return createDropOffWalkFields({
+      mapWidth: 10,
+      mapHeight: 6,
+      isCellPassableForUnit: (_unitId, x, y) =>
+        x >= 0 && x < 10 && y >= 0 && y < 6 && !blocked.has(`${String(x)},${String(y)}`),
+      structuralRevision: () => 1,
+      listDropOffBuildings: () => [TC],
+    }).fieldFor(makeWorld(), 1, 'wood', VILLAGER)!;
+  }
+
+  it('walks the true shortest route, step by step, to the walk-nearest ring cell', () => {
+    const field = walledField();
+    // From (7,2): down to (7,5), west to (4,5), north to (4,4)... no — (4,4)
+    // is not a ring cell; the bottom ring is (2,4),(3,4). (7,2)->(7,5) is 3,
+    // (7,5)->(3,5) is 4, (3,5)->(3,4) is 1: eight steps. The east ring cell
+    // (4,3) is Manhattan 3 away and also eight steps; both are walk-nearest,
+    // and the point is that NO route of nine or more is ever handed out.
+    let cell: Position = { x: 7, y: 2 };
+    const first = field.descendFrom(cell)!;
+    expect(first.dropOffId).toBe(TC.id);
+    let steps = 0;
+    for (;;) {
+      const descent = field.descendFrom(cell)!;
+      if (descent.destination.x === cell.x && descent.destination.y === cell.y) break;
+      cell = descent.nextStep;
+      steps += 1;
+      expect(steps, 'the descent must terminate').toBeLessThan(50);
+    }
+    expect(steps).toBe(8);
+    // It ends on a ring cell of the Town Centre.
+    const ring = ['2,1', '3,1', '2,4', '3,4', '1,2', '1,3', '4,2', '4,3'];
+    expect(ring).toContain(`${String(cell.x)},${String(cell.y)}`);
+  });
+
+  it('is the same route for every unit on the cell, so two groups never walk through each other', () => {
+    const field = walledField();
+    const a = field.descendFrom({ x: 7, y: 2 })!;
+    const b = field.descendFrom({ x: 7, y: 2 })!;
+    expect(a).toEqual(b);
+    // And a unit one cell further along the route takes the continuation of
+    // it, never the reverse of it.
+    const next = field.descendFrom(a.nextStep)!;
+    expect(next.nextStep).not.toEqual({ x: 7, y: 2 });
+  });
+
+  it('returns the unit its own cell when it already stands beside the drop-off', () => {
+    const field = walledField();
+    expect(field.descendFrom({ x: 4, y: 3 })).toEqual({
+      destination: { x: 4, y: 3 },
+      nextStep: { x: 4, y: 3 },
+      dropOffId: TC.id,
+    });
+  });
+
+  it('is null off the field: a blocked cell, or one no drop-off can reach', () => {
+    const field = walledField();
+    expect(field.descendFrom({ x: 5, y: 2 })).toBeNull();
+    expect(field.descendFrom({ x: 2, y: 2 })).toBeNull();
+    expect(field.descendFrom({ x: -1, y: 0 })).toBeNull();
   });
 });
 

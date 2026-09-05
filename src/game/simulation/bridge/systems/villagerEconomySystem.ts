@@ -422,6 +422,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             dropOffDeps,
             findNearestDropOffBuilding,
             findBuildingApproachPlan,
+            findDropOffWalkField,
             isUnitAtTarget,
             moveUnitOneSubgridStep,
             ensurePlayerScoreCounters,

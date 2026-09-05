@@ -39,6 +39,14 @@ export interface DropOffSource {
   footprint: { width: number; height: number };
 }
 
+/** The walk down the field from the cell a unit stands on: where it ends (a
+ *  cell beside the drop-off), the first step, and which drop-off that is. */
+export interface DropOffDescent {
+  destination: Position;
+  nextStep: Position;
+  dropOffId: number;
+}
+
 export interface DropOffWalkField {
   /** The shortest walk, in cells, from a cell beside `position` to a cell
    *  beside the nearest drop-off — the haul a gatherer working that node pays
@@ -46,6 +54,12 @@ export interface DropOffWalkField {
   haulDistance(position: Position): number;
   /** The drop-off that shortest walk ends at; null when there is none. */
   nearestDropOffId(position: Position): number | null;
+  /** The delivery walk from `cell` itself, for a unit standing on it: the
+   *  gradient of the field, which is the true shortest route to the
+   *  walk-nearest ring cell of the walk-nearest drop-off. Null when the cell
+   *  is off the field (blocked, or no drop-off can be reached from it). A
+   *  unit already beside a drop-off gets its own cell back as both. */
+  descendFrom(cell: Position): DropOffDescent | null;
 }
 
 export interface DropOffWalkFieldDeps {
@@ -226,6 +240,24 @@ export function createDropOffWalkFields(deps: DropOffWalkFieldDeps): DropOffWalk
       return best;
     };
 
+    // One step down the gradient: a neighbour one closer to the ring. The
+    // breadth-first search guarantees one exists for every reached cell that
+    // is not a ring cell, and the fixed W, E, N, S order keeps the route a
+    // pure function of the field, so two units on one cell walk the same way
+    // rather than through each other.
+    const stepDown = (index: number): number => {
+      const x = index % mapWidth;
+      const y = (index - x) / mapWidth;
+      const want = distance[index] - 1;
+      const candidates: Array<[number, number]> = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
+      for (const [nx, ny] of candidates) {
+        if (!inBounds(nx, ny)) continue;
+        const next = ny * mapWidth + nx;
+        if (distance[next] === want) return next;
+      }
+      return NO_SOURCE;
+    };
+
     return {
       haulDistance(position) {
         const index = bestNeighbourIndex(position);
@@ -235,6 +267,26 @@ export function createDropOffWalkFields(deps: DropOffWalkFieldDeps): DropOffWalk
         const index = bestNeighbourIndex(position);
         if (index === NO_SOURCE) return null;
         return sources[nearest[index]]?.id ?? null;
+      },
+      descendFrom(cell) {
+        if (!inBounds(cell.x, cell.y)) return null;
+        const start = cell.y * mapWidth + cell.x;
+        if (distance[start] === UNREACHABLE) return null;
+        let current = start;
+        let first = start;
+        while (distance[current] > 0) {
+          const next = stepDown(current);
+          if (next === NO_SOURCE) return null;
+          if (current === start) first = next;
+          current = next;
+        }
+        const dropOff = sources[nearest[current]];
+        if (!dropOff) return null;
+        return {
+          destination: { x: current % mapWidth, y: (current - (current % mapWidth)) / mapWidth },
+          nextStep: { x: first % mapWidth, y: (first - (first % mapWidth)) / mapWidth },
+          dropOffId: dropOff.id,
+        };
       },
     };
   }

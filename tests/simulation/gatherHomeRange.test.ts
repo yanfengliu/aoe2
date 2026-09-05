@@ -46,6 +46,7 @@ const deps: GatherAssignmentDeps = {
   findDropOffWalkField: () => ({
     haulDistance: (p) => Math.abs(p.x) + Math.abs(p.y),
     nearestDropOffId: () => DROP_OFF,
+    descendFrom: () => null,
   }),
   findResourceApproachPlan: () => (
     { destination: { x: 1, y: 1 }, nextStep: { x: 1, y: 1 } } as UnitMovementPlan
