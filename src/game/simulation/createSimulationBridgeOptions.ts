@@ -22,6 +22,15 @@ export interface CreateSimulationBridgeOptions {
   // the human slot, so a deterministic playtest runs a competitive match instead
   // of AI-vs-inert. Closure-local; the real game never sets it.
   forceAiForOwners?: ReadonlySet<number>;
+  /** Coverage lab: no AI seat ever launches an attack, by land (the attack
+   *  phase) or by sea (the ferry phase), so an all-AI match runs to its
+   *  horizon with both economies intact and exercises the tech tree instead
+   *  of ending in conquest (spec §15.8). Defence, building, production,
+   *  research and trade are untouched. Closure-local and never persisted:
+   *  the real game never sets it, a save made under it resumes without it,
+   *  and a recording made under it cannot be replayed faithfully, because a
+   *  replay world takes no options — do not record under it. */
+  disableAiAttacks?: boolean;
   /** How many players the procedural map opens with (2..4; default 2).
    *  Fixtures decide their own, so this only reaches the default map. */
   playerCount?: number;

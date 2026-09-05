@@ -37,6 +37,8 @@ export interface CreateWorldResult {
   /** Owners whose vision this player also sees — Cartography's allies. */
   getSharedVisionOwners: (playerId: number) => number[];
   getPlayerCivilization: (playerId: number) => string;
+  /** Every technology the owner has researched, for the coverage census. */
+  getResearchedTechnologies: (playerId: number) => readonly import('../types').ResearchableTechnologyType[];
   getConstructionCost: (
     playerId: number,
     buildingType: import('../types').BuildingType,

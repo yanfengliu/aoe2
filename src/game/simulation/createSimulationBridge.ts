@@ -92,6 +92,7 @@ export function createSimulationBridge(
     getPlayerResources,
     getSharedVisionOwners,
     getPlayerCivilization,
+    getResearchedTechnologies,
     getConstructionCost,
     getMatchState,
     getInFlightProjectiles,
@@ -137,6 +138,7 @@ export function createSimulationBridge(
     createWorld(effectiveSeed, visibility, savedGame, 'live', {
       disableAiForOwners: options.disableAiForOwners,
       forceAiForOwners: options.forceAiForOwners,
+      disableAiAttacks: options.disableAiAttacks,
       playerCount: options.playerCount,
       gameLength: options.gameLength,
       civilizationsByOwner: options.civilizationsByOwner,
@@ -248,6 +250,7 @@ export function createSimulationBridge(
     recallControlGroup,
     getSharedVisionOwners,
     getPlayerCivilization,
+    getResearchedTechnologies,
     getConstructionCost,
     step(deltaMs: number) {
       flushOutOfBandRenderChange();

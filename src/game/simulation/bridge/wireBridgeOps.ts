@@ -310,7 +310,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     monkOps,
     transformOps,
     matchEndOps,
-    gameLength: scenario?.gameLength,
+    gameLength: scenario?.gameLength, disableAiAttacks: deps.disableAiAttacks, // harness knobs
     findBuildPlacementNear,
     allocateGroupMoveTargets: worldOccupancy.allocateGroupMoveTargets.bind(worldOccupancy),
     getTrainOptions,

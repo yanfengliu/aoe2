@@ -126,6 +126,7 @@ export function makeReplayBridge(
     getMapSize: () => ({ width: world.grid.width, height: world.grid.height }),
     getSharedVisionOwners: () => [],
     getPlayerCivilization: (owner: number) => api.getPlayerCivilization?.(owner) ?? 'Britons',
+    getResearchedTechnologies: (owner: number) => api.getResearchedTechnologies?.(owner) ?? [],
     getConstructionCost: (_owner: number, buildingType: import('../types').BuildingType) =>
       constructionCost(buildingType),
     step() {

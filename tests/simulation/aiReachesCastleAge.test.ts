@@ -34,9 +34,10 @@ import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
  *  the baseline, while at 45,000 that candidate LOST the match the baseline
  *  wins by conquest at 39,890 (peak army 10 against 20). A horizon has to
  *  include the match resolving, or it scores a half-built army — which is
- *  what this file's own 24k comment already said. Bars are one below the 45k
- *  baseline (peak 20, 9 building types, 8 unit types) so they are contracts
- *  rather than change-detectors.
+ *  what this file's own 24k comment already said. The peak bar sits one below
+ *  its baseline so it is a contract rather than a change-detector; the
+ *  variety COUNT bars that sat beside it are gone (see the note below), and a
+ *  NAMED union floor for this configuration stands in their place.
  *
  *  Superseded rationale for 30,000, kept for provenance:
  *
@@ -53,6 +54,13 @@ import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
  *  has to be re-justified whenever the measured thing changes; this one had
  *  not been. */
 const HORIZON_TICKS = 45000;
+/** The loop stops when the match RESOLVES and scores that whole match, not
+ *  45,000 ticks of a decided one (2026-09-05, the deposit-leg fix, v0.3.205).
+ *  Under it the boot map ends by conquest at tick 39,812: owner 1 reaches
+ *  Castle at 21,250 with peak army 15 and wipes owner 2 out. A gate that kept
+ *  counting past the end would be reading a match nobody is playing. The
+ *  winner is the side that WON when the match resolved, and the earliest to
+ *  Castle only while it is still running. */
 
 /** The peak-army bar, named ONCE so the assertion and the message it prints
  *  cannot drift apart. They were two separate literals and the red-check
@@ -93,11 +101,23 @@ const PEAK_MILITARY_BAR = 10;
  * argument did not support the bar and has been withdrawn.
  *
  * The horizon stays at 45,000: doubling it doubles the gate's runtime, and this
- * suite has already tipped an unrelated test into a CI timeout once. Note that
- * 45,000 no longer contains the match RESOLVING — the pre-change baseline ended
- * by conquest at 39,890 and this one is unresolved at 90,000 — so this gate now
- * scores a match in progress, which its own horizon comment argues against. It
- * is a cost taken knowingly, not an oversight. */
+ * suite has already tipped an unrelated test into a CI timeout once. When this
+ * was written 45,000 no longer contained the match RESOLVING (that baseline
+ * was unresolved at 90,000), so the gate scored a match in progress — a cost
+ * taken knowingly. Since 2026-09-05 the loop stops at the resolution (39,812
+ * under v0.3.205) and scores a finished match again; an unresolved match is
+ * still scored at the horizon, in progress.
+ *
+ * VARIETY LEFT THIS GATE on 2026-09-05. On a match that resolves, the winner's
+ * building and unit variety measures the LENGTH of the match, not the AI: the
+ * deposit-leg fix moved the winner slot from owner 2 (14 building types, 9
+ * unit types, Castle at 27,750, unresolved at 45,000) to owner 1 (9 and 6,
+ * Castle at 21,250, conquest at 39,812), and the same owner 1 read 10 and 6
+ * under the old tree. Coverage of the game's content is what those bars were
+ * for, and it is scored where it can be reached: the no-attack coverage lab
+ * in `selfPlayContentCoverage.test.ts`, whose match runs to the horizon with
+ * both economies intact. This gate keeps what it is named for — the Castle
+ * Age, and an army to get there with. */
 
 interface MatchReport {
   castleAt: number | null;
@@ -113,7 +133,30 @@ interface MatchReport {
   militaryLost: number;
 }
 
-function playSelfPlay(seed: string): Record<number, MatchReport> {
+/** The SHIPPED configuration's coverage — standard resources, standard AI,
+ *  attacks on — as the union of what BOTH seats built by the time the match
+ *  resolved, measured 2026-09-05 (v0.3.205). A winner's COUNT measures the
+ *  match's length, which is why the 13/9 bars left; the union is a contract
+ *  for the match players actually get. A name that drops out fails by name;
+ *  a legitimate loss is edited out with its reason in the commit. The wider
+ *  floor lives in `selfPlayContentCoverage.test.ts`, under the no-attack lab. */
+const SHIPPED_BUILDINGS_EXERCISED = [
+  'town-center', 'house', 'barracks', 'mill', 'lumber-camp', 'mining-camp', 'farm',
+  'blacksmith', 'archery-range', 'stable', 'market',
+];
+const SHIPPED_UNITS_EXERCISED = ['villager', 'scout', 'militia', 'spearman', 'archer', 'crossbowman'];
+
+interface SelfPlayResult {
+  report: Record<number, MatchReport>;
+  /** The union over both seats of what stood complete / was alive at any sample. */
+  unionBuildings: Set<string>;
+  unionUnits: Set<string>;
+  /** The tick the match resolved at, or null when it ran to the horizon. */
+  resolvedAt: number | null;
+  outcome: string;
+}
+
+function playSelfPlay(seed: string): SelfPlayResult {
   const bridge = createSimulationBridge(seed, {
     forceAiForOwners: new Set([HUMAN_PLAYER_ID]),
   });
@@ -126,9 +169,14 @@ function playSelfPlay(seed: string): Record<number, MatchReport> {
     1: { b: new Set(), u: new Set(), castleAt: null, qualifiedAt: null, peak: 0, live: new Set(), trained: 0, lost: 0 },
     2: { b: new Set(), u: new Set(), castleAt: null, qualifiedAt: null, peak: 0, live: new Set(), trained: 0, lost: 0 },
   };
+  let resolvedAt: number | null = null;
+  let outcome = 'running';
   for (let tick = 1; tick <= HORIZON_TICKS; tick += 1) {
     bridge.step(100);
-    if (tick % 250 !== 0) continue;
+    const matchOutcome = bridge.getMatchState().outcome;
+    const resolved = matchOutcome !== 'running';
+    // Sample every 250 ticks, and once more at the tick the match ends.
+    if (tick % 250 !== 0 && !resolved) continue;
     const state = bridge.getEconomyState();
     for (const owner of [1, 2]) {
       const p = per[owner]!;
@@ -154,10 +202,21 @@ function playSelfPlay(seed: string): Record<number, MatchReport> {
       p.peak = Math.max(p.peak, military);
       if (state.ages[owner] === 'castle-age' && p.castleAt === null) p.castleAt = tick;
     }
+    if (resolved) {
+      resolvedAt = tick;
+      outcome = matchOutcome;
+      break;
+    }
   }
   return {
-    1: { castleAt: per[1]!.castleAt, qualifiedAt: per[1]!.qualifiedAt, unitTypes: per[1]!.u.size, buildingTypes: per[1]!.b.size, peakMilitary: per[1]!.peak, militaryTrained: per[1]!.trained, militaryLost: per[1]!.lost },
-    2: { castleAt: per[2]!.castleAt, qualifiedAt: per[2]!.qualifiedAt, unitTypes: per[2]!.u.size, buildingTypes: per[2]!.b.size, peakMilitary: per[2]!.peak, militaryTrained: per[2]!.trained, militaryLost: per[2]!.lost },
+    resolvedAt,
+    outcome,
+    unionBuildings: new Set([...per[1]!.b, ...per[2]!.b]),
+    unionUnits: new Set([...per[1]!.u, ...per[2]!.u]),
+    report: {
+      1: { castleAt: per[1]!.castleAt, qualifiedAt: per[1]!.qualifiedAt, unitTypes: per[1]!.u.size, buildingTypes: per[1]!.b.size, peakMilitary: per[1]!.peak, militaryTrained: per[1]!.trained, militaryLost: per[1]!.lost },
+      2: { castleAt: per[2]!.castleAt, qualifiedAt: per[2]!.qualifiedAt, unitTypes: per[2]!.u.size, buildingTypes: per[2]!.b.size, peakMilitary: per[2]!.peak, militaryTrained: per[2]!.trained, militaryLost: per[2]!.lost },
+    },
   };
 }
 
@@ -173,16 +232,19 @@ describe('AI self-play exercises the game past the Feudal Age', () => {
     // Castle arrives on `default-seed` (tick 24,000, recorded below), and
     // gating the boot map on an age it reaches just past this horizon would be
     // pinning the horizon rather than the behaviour.
-    const report = playSelfPlay('aoe2-prototype');
+    const { report, resolvedAt, outcome, unionBuildings, unionUnits } = playSelfPlay('aoe2-prototype');
     // WHICHEVER SLOT WINS. This read `report[2]` because owner 2 was the side
     // that won on the boot map; DE build times and nearest-first approaches
     // (2026-09-02) flipped it — owner 1 now reaches Castle at 29,500 and has
     // wiped owner 2 off the map by 45,000, so a fixed slot reported "walled
     // into Feudal" about a match one side had already won. The test is named
     // for self-play reaching the Castle Age, not for a colour.
-    const winner = (report[1]!.castleAt ?? Infinity) <= (report[2]!.castleAt ?? Infinity)
-      ? report[1]! : report[2]!;
-    console.log(`SELFPLAY aoe2-prototype ${String(HORIZON_TICKS)}: p1 ${JSON.stringify(report[1])} p2 ${JSON.stringify(report[2])}`);
+    // The side that WON when the match resolved; while it is still running,
+    // the earliest to Castle, which is the rule the comment above describes.
+    const winner = outcome === 'victory' ? report[1]!
+      : outcome === 'defeat' ? report[2]!
+        : (report[1]!.castleAt ?? Infinity) <= (report[2]!.castleAt ?? Infinity) ? report[1]! : report[2]!;
+    console.log(`SELFPLAY aoe2-prototype ${String(HORIZON_TICKS)}: ${outcome} at ${String(resolvedAt ?? HORIZON_TICKS)} — p1 ${JSON.stringify(report[1])} p2 ${JSON.stringify(report[2])}`);
     expect(
       winner.qualifiedAt,
       'no player became eligible for the Castle Age — still walled into Feudal',
@@ -223,13 +285,17 @@ describe('AI self-play exercises the game past the Feudal Age', () => {
         + 'Satisfy it by keeping peak army at or above baseline, not by moving the bar.',
     ).toBeGreaterThanOrEqual(PEAK_MILITARY_BAR);
 
-    // Variety is the actual goal and it IMPROVED: 14 building types and 10
-    // unit types at HEAD, against the 9 and 8 of the pre-change baseline. Each
-    // bar sits one BELOW the measured value — an exact pin is a
-    // change-detector rather than a contract, and this suite already learned
-    // that from a bar copied off a symptom.
-    expect(winner.buildingTypes, 'building variety did not improve').toBeGreaterThanOrEqual(13);
-    expect(winner.unitTypes, 'unit variety did not improve').toBeGreaterThanOrEqual(9);
+    // Variety is READ here and SCORED in `selfPlayContentCoverage.test.ts`: on
+    // a match that resolves it measures the match's length (the note above
+    // the bars says how the 13/9 bars here came to read a slot change).
+    console.log(`SELFPLAY aoe2-prototype variety: winner ${String(winner.buildingTypes)} building types, ${String(winner.unitTypes)} unit types; union ${String(unionBuildings.size)} and ${String(unionUnits.size)}`);
+    const missingBuildings = SHIPPED_BUILDINGS_EXERCISED.filter((name) => !unionBuildings.has(name));
+    const missingUnits = SHIPPED_UNITS_EXERCISED.filter((name) => !unionUnits.has(name));
+    const floorMessage = (kind: string, missing: string[]): string =>
+      `${kind} on the shipped-configuration floor were never exercised by either seat: ${missing.join(', ')}. `
+      + 'Restore the AI\'s reach, or edit them out of the floor with the reason in the commit — never by making this a count.';
+    expect(missingBuildings, floorMessage('Buildings', missingBuildings)).toEqual([]);
+    expect(missingUnits, floorMessage('Units', missingUnits)).toEqual([]);
   }, 600_000);
 
   // A SECOND seed is deliberately not gated, and that is a cost decision

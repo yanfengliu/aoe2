@@ -34,6 +34,7 @@ export interface AssembleBridgeApiDeps
     | 'getPlayerResources'
     | 'getSharedVisionOwners'
     | 'getPlayerCivilization'
+    | 'getResearchedTechnologies'
     | 'getConstructionCost'
     | 'getMatchState'
     | 'isSelected'
@@ -90,6 +91,9 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     getPlayerCivilization(playerId: number) {
       return accessor.get(playerCivilizationsCodec).get(playerId)
         ?? defaultCivilizationName(playerId);
+    },
+    getResearchedTechnologies(playerId: number) {
+      return [...(accessor.get(researchedTechnologiesCodec).get(playerId) ?? EMPTY_SHARED_VISION_TECHS)];
     },
     getSharedVisionOwners(playerId: number) {
       const researched = accessor.get(researchedTechnologiesCodec).get(playerId)

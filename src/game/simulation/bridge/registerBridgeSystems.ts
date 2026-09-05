@@ -77,6 +77,8 @@ export interface RegisterBridgeSystemsDeps {
   // Score-timer game length (ticks) from the scenario, or undefined to disable
   // the score timer (conquest-only default).
   gameLength: number | undefined;
+  // Coverage lab: no AI seat launches an attack (CreateSimulationBridgeOptions).
+  disableAiAttacks: boolean | undefined;
   // Direct values
   findBuildPlacementNear: RegisterAllSystemsArg['findBuildPlacementNear'];
   // Spec §12.7 group pre-reservation: pass through worldOccupancy's group
@@ -197,6 +199,7 @@ export function registerBridgeSystems(
     transformOps,
     matchEndOps,
     gameLength,
+    disableAiAttacks,
     findBuildPlacementNear,
     allocateGroupMoveTargets,
     pushQueueResearchIntention,
@@ -268,6 +271,7 @@ export function registerBridgeSystems(
     systemMode,
     humanPlayerId: HUMAN_PLAYER_ID,
     gameLength,
+    disableAiAttacks,
     visibility,
     defaultRelicCountdownTicks: RELIC_COUNTDOWN_TICKS,
     accessor,

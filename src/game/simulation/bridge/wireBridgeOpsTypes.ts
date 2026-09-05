@@ -37,6 +37,8 @@ export interface WireBridgeOpsDeps {
   // hydration path never consults it. Skipping createPrototypeScenario
   // saves several ms (more on Black Forest seeds) per save load.
   scenario: PrototypeScenario | null;
+  /** Coverage lab: the AI never launches an attack (createWorld option). */
+  disableAiAttacks?: boolean;
   worldOccupancy: WorldOccupancy;
   tiles: number[][];
   selection: { refs: EntityRef[]; focusCell: Position | null };
@@ -68,6 +70,7 @@ export type WireBridgeOpsResult = Omit<
   | 'getPlayerResources'
   | 'getSharedVisionOwners'
   | 'getPlayerCivilization'
+  | 'getResearchedTechnologies'
   | 'getConstructionCost'
   | 'getMatchState'
   | 'isSelected'

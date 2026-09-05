@@ -90,6 +90,9 @@ interface Census {
   deaths: Record<number, VillagerDeath[]>;
   lastTick: number;
   outcome: string;
+  /** The match ended with one side wiped off the map — so the endgame this
+   *  bar was derived over happened, however early it came. */
+  conquest: boolean;
 }
 
 function playAndCensus(seed: string): Census {
@@ -157,7 +160,21 @@ function playAndCensus(seed: string): Census {
       if (unit.unitType === 'villager') lastTask.set(unit.id, unit.task);
     }
   }
-  return { deaths, lastTick, outcome: bridge.getMatchState().outcome };
+  const outcome = bridge.getMatchState().outcome;
+  // Survivors, read from the state rather than from the outcome: a Wonder or
+  // Relic victory, a score win or a draw all resolve with both sides standing.
+  // Only the two PLAYERS count — a gaia-owned building is not a side, and on
+  // a map that has one it would otherwise turn a true conquest into a false
+  // red (a critic's finding, 2026-09-05). The boot scenario is a 1v1.
+  const players = [1, 2];
+  const standing = new Set<number>();
+  for (const unit of bridge.getEconomyState().units) {
+    if (players.includes(unit.owner)) standing.add(unit.owner);
+  }
+  for (const building of bridge.getEconomyState().buildings) {
+    if (building.owner !== null && players.includes(building.owner)) standing.add(building.owner);
+  }
+  return { deaths, lastTick, outcome, conquest: outcome !== 'running' && standing.size === 1 };
 }
 
 describe('villagers are not sent to die under enemy static defences', () => {
@@ -176,22 +193,28 @@ describe('villagers are not sent to die under enemy static defences', () => {
       }).join('; '),
     );
     // The window this bar was derived from, asserted rather than assumed. The
-    // deaths the gate is named for land at ticks 38,793-39,191, and the census
-    // stops early if the match resolves — so a future change that ends the
-    // match at tick 20,000 would otherwise leave this gate green having never
-    // reached the window where the defect lives. A resolved match is NOT an
-    // excuse here: the bar is meaningless over a window that cannot contain
-    // the behaviour, and the honest answer is to fail and be re-derived.
-    // (The first draft of this assertion read `lastTick >= 40_000 ||
-    // outcome !== 'running'`, which the loop makes true by construction — a
-    // tautology that an independent critic caught.)
+    // deaths the gate is named for landed at ticks 38,793-39,191 of a match
+    // that ran to 45,000, and the census stops when the match resolves. What
+    // the bar needs inside the censused window is the ENDGAME — armies at
+    // each other's bases. Two things prove it happened: the census ran to the
+    // horizon, or the match ended by CONQUEST, one side wiped off the map,
+    // which cannot happen without that phase. Re-bound 2026-09-05 (v0.3.205):
+    // the deposit-leg fix ends this match by conquest at 39,812, and the old
+    // `>= 40,000` read a decided match as an unmeasured one. A match that
+    // resolves any other way — Wonder, Relic, score, a draw — still fails
+    // here, and so does a bug that resolves it with both sides standing; a
+    // bug that deletes a side reads as a conquest, which is what conquest
+    // means. Re-derive the bar rather than lowering the horizon.
+    // (An earlier draft read `lastTick >= 40_000 || outcome !== 'running'`,
+    // which the loop makes true by construction — a tautology an independent
+    // critic caught. `conquest` is not: it reads the survivors.)
     expect(
-      census.lastTick,
-      `the census covered only ${census.lastTick} ticks (outcome ${census.outcome}), `
-        + 'short of the window (t=38,793-39,191) this bar was measured in — the gate '
-        + 'cannot see the defect over that window, so re-derive the bar rather than '
-        + 'lowering the horizon.',
-    ).toBeGreaterThanOrEqual(40_000);
+      census.lastTick >= HORIZON_TICKS || census.conquest,
+      `the census covered only ${census.lastTick} ticks (outcome ${census.outcome}, `
+        + `${census.conquest ? 'by conquest' : 'both sides standing'}) — short of the `
+        + 'horizon and not a conquest, so the endgame this bar was measured over may '
+        + 'never have happened: re-derive the bar rather than lowering the horizon.',
+    ).toBe(true);
     for (const owner of [1, 2]) {
       const ledger = census.deaths[owner]!;
       const underDefences = ledger.filter((death) => death.underDefences);

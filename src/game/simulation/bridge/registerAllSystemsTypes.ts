@@ -361,4 +361,6 @@ export interface RegisterAllSystemsDeps {
   // undefined = the score timer is disabled (conquest-only default).
   computePlayerScore: (owner: number) => number;
   gameLength: number | undefined;
+  /** Coverage lab: the AI never launches an attack. */
+  disableAiAttacks: boolean | undefined;
 }

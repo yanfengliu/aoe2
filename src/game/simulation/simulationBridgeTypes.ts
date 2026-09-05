@@ -62,6 +62,8 @@ export interface SimulationBridge {
   getSharedVisionOwners(playerId: number): number[];
   /** The owner's civilization name (default-filled for unseeded owners). */
   getPlayerCivilization(playerId: number): string;
+  /** Every technology the owner has researched — the coverage census reads it. */
+  getResearchedTechnologies(playerId: number): readonly import('./types').ResearchableTechnologyType[];
   /** The owner's real building price — civilization and team discounts in. */
   getConstructionCost(playerId: number, buildingType: BuildingType): Partial<PlayerResources>;
   getPopulationState(playerId: number): PopulationState;

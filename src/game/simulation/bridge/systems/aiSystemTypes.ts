@@ -29,6 +29,10 @@ type PushMonkContextAtEntityIntention = (
 export interface AiSystemDeps {
   world: GameWorld;
   humanPlayerId: number;
+  /** Coverage lab: when true neither the attack phase nor the ferry phase
+   *  (the amphibious attack) runs, so no AI seat launches an attack by land
+   *  or sea and an all-AI match runs to its horizon. */
+  attacksDisabled?: boolean;
   visibility: VisibilityMap;
   // Phase 2D: townCenterRefs/aiStates/population/playerResources/unitCommands/
   // wildlifeStates migrated to world.state.aoe2.* — per-tick reads via accessor.

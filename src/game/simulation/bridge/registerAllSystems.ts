@@ -198,7 +198,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
 
   registerAiSystem({
     world,
-    humanPlayerId,
+    humanPlayerId, attacksDisabled: deps.disableAiAttacks, // the coverage lab, spec §15.8
     isLandCell,
     visibility,
     accessor,

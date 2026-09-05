@@ -200,7 +200,10 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         // so does discretionary BUILDING, because the macro list would spend
         // the very wood the Transport Ship needs (observed: barracks + mill
         // ate the bank while the dock queue stayed empty).
-        const ferrying = runFerryPhase(deps, ctx);
+        // The ferry phase is the amphibious attack, so the coverage lab turns
+        // it off with the march (a critic caught the claim being false on
+        // water maps, 2026-09-05).
+        const ferrying = deps.attacksDisabled ? false : runFerryPhase(deps, ctx);
         runDefensePhase(deps, ctx);
         if (!ferrying) {
           runBuildingPhase(deps, ctx);
@@ -215,7 +218,9 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         // After production, because a villager trained this tick is not idle yet,
         // and before the attack phase, which is about military rather than food.
         runHuntPhase(deps, ctx);
-        if (!ferrying) {
+        // The coverage lab turns the attack phase off wholesale: the match
+        // then runs to its horizon and the census reads the tech tree.
+        if (!ferrying && !deps.attacksDisabled) {
           runAttackPhase(deps, ctx);
         }
       }

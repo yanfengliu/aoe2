@@ -46,6 +46,8 @@ import type { CreateWorldResult } from './createWorldResult';
 export interface CreateWorldOptions {
   disableAiForOwners?: ReadonlySet<number>;
   forceAiForOwners?: ReadonlySet<number>;
+  /** Coverage lab (CreateSimulationBridgeOptions): the AI never attacks. */
+  disableAiAttacks?: boolean;
   /** How many players the procedural map opens with (2..8; default 2). §4's
    *  size ladder picks the map to match. Fixtures decide their own, so this
    *  only reaches the default map. */
@@ -251,6 +253,7 @@ export function createWorld(
     // §4.6 AI difficulty: the option overrides the standard default for every
     // AI seat the scenario itself does not pin.
     difficulty: options.difficulty,
+    disableAiAttacks: options.disableAiAttacks,
     victory: options.victory,
     resourcePreset: options.resourcePreset,
     populationCap: options.populationCap,
