@@ -33,6 +33,7 @@ const deps = {
   isHarvestableResource: () => true,
   isLandCell: () => true,
   findNearestDropOffBuilding: () => 42,
+  findDropOffWalkField: () => null,
   findResourceApproachPlan: () => null,
 };
 

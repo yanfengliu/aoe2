@@ -23,6 +23,19 @@
 // other node left anywhere — unless the caller passes `requireSafe`, which
 // the kind fallback uses to ask "is there safe work of this kind?" before it
 // accepts the exception on any kind.
+//
+// The distance is the WALK (2026-09-05, register entry 2026-09-01). Candidates
+// were ranked by Manhattan distance to a drop-off while movement is strictly
+// 4-connected, so around obstacles the ranking measured a distance the units
+// cannot walk. A forest is a dense block of impassable cells, which is why the
+// error concentrated in wood: villagers were sent to trees at Manhattan 8-9
+// whose true walk was 35-45 cells while trees at walk 0-3 sat unused. The
+// ranking key and the home-range filter now read `DropOffWalkField` — one
+// multi-source breadth-first search from every drop-off of the kind, cached
+// on the structural revision — so a node's key is the haul a villager working
+// it actually pays, and an unreachable node is Infinity rather than "eight".
+// Seventeen re-weightings of the Manhattan key failed before this; the metric
+// was the defect, not the weights.
 
 import type { Position } from 'civ-engine';
 import type {
@@ -38,6 +51,7 @@ import { canGathererHarvest } from '../gatherDomain';
 import { isShoreFish } from '../shoreFishing';
 import type { UnitMovementPlan } from './movementTypes';
 import { isInsideDefenceReach, type EnemyStaticDefenceLookup } from './enemyDefenceRange';
+import type { DropOffWalkField } from './dropOffWalkField';
 
 // Cap on how many candidates the reachability-aware reroute pathfinds against
 // per call. The success case (a reachable resource exists) short-circuits at
@@ -70,6 +84,14 @@ export interface GatherAssignmentDeps {
   /** The complete static defences of the players `owner` is at war with,
    *  with their effective ranges — what the villager must keep out of. */
   enemyStaticDefences: EnemyStaticDefenceLookup;
+  /** The walk from every node to the owner's nearest drop-off of the kind,
+   *  as the probe unit walks it; null when the owner has no such drop-off. */
+  findDropOffWalkField: (
+    activeWorld: GameWorld,
+    owner: number,
+    kind: EconomyResourceKind,
+    probeUnitId: number,
+  ) => DropOffWalkField | null;
 }
 
 // How far from its drop-off a villager will be sent to gather on its own. Wide
@@ -117,6 +139,9 @@ interface Candidate {
   id: number;
   position: Position;
   resource: ResourceComponent;
+  /** The walk from beside this node to the nearest drop-off — the cost a
+   *  villager pays on every load. Infinity when no drop-off can reach it. */
+  haul: number;
 }
 
 export function assignNearestResource(
@@ -160,16 +185,38 @@ export function assignNearestResource(
     const isOwnedStructure =
       activeWorld.getComponent<BuildingComponent>(id, 'building') !== undefined;
     if (!canGatherResource(owner, isOwnedStructure, resource.baseOwner)) continue;
-    matchingResources.push({ id, position, resource });
+    matchingResources.push({ id, position, resource, haul: Number.POSITIVE_INFINITY });
   }
 
   // No matching resource of the desired kind at all → idle, before paying the
-  // reference-drop-off lookup below (a maintain-order villager whose kind is
-  // fully depleted re-runs assignment twice per tick indefinitely; review
+  // walk-field lookup below (a maintain-order villager whose kind is fully
+  // depleted re-runs assignment twice per tick indefinitely; review
   // 2026-07-02 low finding).
   if (matchingResources.length === 0) {
     parkOrDeliver(gatherer);
     return 'none';
+  }
+
+  // Steady-state gather throughput is dominated by the resource↔drop-off
+  // ROUND-TRIP (the villager shuttles between them repeatedly), not by the
+  // one-time first walk from the villager's current cell. So every candidate
+  // carries its HAUL: the true 4-connected walk from beside the node to the
+  // nearest drop-off of the kind, read from the walk field (see the header).
+  // A villager that goes idle deep in a far forest then picks a node with a
+  // short haul and cycles near a drop-off instead of spiralling outward
+  // (the grounded AI wood-starvation of 2026-07-02, and the 35-cell hauls of
+  // 2026-09-01). Null field — the owner has no drop-off for the kind — leaves
+  // every haul Infinity, so the sort falls back to villager distance.
+  const walkField = deps.findDropOffWalkField(
+    activeWorld,
+    owner,
+    gatherer.desiredResource,
+    villagerId,
+  );
+  if (walkField) {
+    for (const candidate of matchingResources) {
+      candidate.haul = walkField.haulDistance(candidate.position);
+    }
   }
 
   // Enemy static defences. A node under the enemy's arrows leaves the list
@@ -202,61 +249,39 @@ export function assignNearestResource(
     }
   }
 
-  // Steady-state gather throughput is dominated by the resource↔drop-off
-  // ROUND-TRIP (the villager shuttles between them repeatedly), not by the
-  // one-time first walk from the villager's current cell. So prefer resources
-  // near a drop-off: a villager that goes idle deep in a far forest (its tree
-  // depleted, or it fanned out during a momentary near-saturation) then picks a
-  // BASE-proximate resource and cycles near the base — instead of spiraling
-  // outward and doing a huge round-trip every cycle (the grounded AI
-  // wood-starvation: full trees 8 cells from the lumber-camp sat unused while
-  // villagers walked 20+ cells, 2026-07-02). Reference point = the drop-off
-  // nearest the VILLAGER — a stable one-lookup ranking anchor for the base's
-  // drop-off neighbourhood (the ACTUAL deposit building is re-resolved from the
-  // villager's live position when it enters `to-dropoff`, and may differ with
-  // multiple camps — an accepted one-lookup approximation). Undefined when the
-  // owner has no drop-off with a known position → the sort falls back to
-  // villager distance (legacy behaviour byte-identical).
-  const referenceDropOffId = deps.findNearestDropOffBuilding(
-    activeWorld,
-    owner,
-    gatherer.desiredResource,
-    villagerPosition,
-  );
-  const referenceDropOff = referenceDropOffId === null
-    ? undefined
-    : activeWorld.getComponent<Position>(referenceDropOffId, 'position');
-
   // Home range. Ranking alone only ORDERS candidates, so once the nodes beside
   // the base are saturated or unreachable the list runs on to the far side of
   // the map: AI villagers were assigned resources forty cells away, walked into
   // the enemy's base, and were killed there — twenty of them over one match,
   // which is what emptied the AI's economy. A villager gathers near home, and
-  // the whole map is still available when home has nothing left.
+  // the whole map is still available when home has nothing left. Home is a
+  // WALK, so a node no drop-off can reach is never home whatever its
+  // Manhattan distance — before this, an unreachable tree at Manhattan 8
+  // passed the filter and then ranked ahead of every reachable one.
   const everyMatch = candidates;
   let homeCandidates = candidates;
-  if (referenceDropOff) {
+  if (walkField) {
     const withinHomeRange = candidates.filter((candidate) => (
-      manhattanDistance(candidate.position, referenceDropOff) <= HOME_GATHER_RANGE
+      candidate.haul <= HOME_GATHER_RANGE
     ));
     if (withinHomeRange.length > 0) {
       homeCandidates = withinHomeRange;
     }
   }
 
-  // Shared comparator. `useDropOffLocality` picks the primary distance key:
-  // the STEADY-STATE assignment ranks by proximity to the reference drop-off
-  // (round-trip cost); the requireReachable RECOVERY probe ranks by villager
-  // proximity — its job is to find SOMETHING reachable within the bounded
-  // probe budget, and probing drop-off-first would let a walled-off pocket of
-  // >= MAX_REACHABILITY_PROBES unreachable trees near the base exhaust the cap
-  // and starve a villager standing beside a reachable tree (review 2026-07-02
-  // medium finding, refuting repro included). Owner preference and the
-  // unsaturated fan-out dominate both orders.
+  // Shared comparator. `rankByHaul` picks the primary distance key: the
+  // STEADY-STATE assignment ranks by the haul (round-trip cost); the
+  // requireReachable RECOVERY probe ranks by villager proximity — its job is
+  // to find SOMETHING reachable within the bounded probe budget, and probing
+  // haul-first would let a walled-off pocket of >= MAX_REACHABILITY_PROBES
+  // unreachable trees near the base exhaust the cap and starve a villager
+  // standing beside a reachable tree (review 2026-07-02 medium finding,
+  // refuting repro included). Owner preference and the unsaturated fan-out
+  // dominate both orders.
   const compareCandidates = (
     left: Candidate,
     right: Candidate,
-    useDropOffLocality: boolean,
+    rankByHaul: boolean,
   ): number => {
     // Owner preference FIRST (own > home-base neutral > other), so fan-out
     // NEVER jumps to an enemy or far-off neutral resource just because it is
@@ -285,19 +310,12 @@ export function assignNearestResource(
         return leftSaturated - rightSaturated;
       }
     }
-    if (useDropOffLocality) {
-      // Primary distance: proximity to the reference drop-off (round-trip
-      // cost). Both Infinity (no drop-off) compares equal → falls through to
-      // villager distance, preserving legacy behaviour.
-      const leftDropOff = referenceDropOff
-        ? manhattanDistance(left.position, referenceDropOff)
-        : Number.POSITIVE_INFINITY;
-      const rightDropOff = referenceDropOff
-        ? manhattanDistance(right.position, referenceDropOff)
-        : Number.POSITIVE_INFINITY;
-      if (leftDropOff !== rightDropOff) {
-        return leftDropOff - rightDropOff;
-      }
+    if (rankByHaul && left.haul !== right.haul) {
+      // Primary distance: the haul. A reachable node always precedes an
+      // unreachable one (Infinity); two Infinities compare equal — no
+      // drop-off, or neither reachable — and fall through to villager
+      // distance, the legacy order.
+      return left.haul - right.haul;
     }
     // Villager first-trip distance, then id for a stable deterministic order.
     const leftDistance = manhattanDistance(left.position, villagerPosition);
@@ -362,6 +380,8 @@ export function assignNearestResource(
   gatherTargetCounts.set(target.id, (gatherTargetCounts.get(target.id) ?? 0) + 1);
   gatherer.task = 'to-resource';
   gatherer.targetResourceId = target.id;
+  // A hint only: the deposit leg re-resolves the drop-off from the carrier's
+  // live position the tick its load fills, before anything reads this.
   gatherer.dropOffBuildingId = deps.findNearestDropOffBuilding(
     activeWorld,
     owner,

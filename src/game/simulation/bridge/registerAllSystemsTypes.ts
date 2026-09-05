@@ -25,6 +25,7 @@ import type { UnitMovementPlan } from './movementTypes';
 import type { MemoryEntry } from './memoryTypes';
 import type { BridgeState } from './bridgeState';
 import type { MonkTask } from './sharedTypes';
+import type { DropOffWalkFields } from './dropOffWalkField';
 
 type CivWorld = GameWorld;
 
@@ -323,6 +324,9 @@ export interface RegisterAllSystemsDeps {
     position: Position,
     excludeIds?: ReadonlySet<number>,
   ) => number | null;
+  /** The walk from every node to the owner's nearest drop-off of a kind —
+   *  what gather assignment ranks by (dropOffWalkField.ts). */
+  findDropOffWalkField: DropOffWalkFields['fieldFor'];
   findWildlifeRangePlan: (
     entityId: number,
     target: Position,

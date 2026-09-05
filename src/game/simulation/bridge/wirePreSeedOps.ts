@@ -18,6 +18,9 @@ import { createCellPassability } from './cellPassability';
 import { createDebugSnapshotOps } from './debugSnapshotOps';
 import { createTransformOps } from './transformOps';
 import { createMovementPlanOps } from './movementPlanOps';
+import { createDropOffWalkFields, type DropOffWalkFieldStats } from './dropOffWalkField';
+import { collectDropOffBuildings, preferSafeDropOffs } from './dropOffBuildings';
+import { createEnemyDefenceLookup } from './enemyDefenceRange';
 import { createOptionsRules } from './optionsRules';
 import { createPlayerQueries } from './playerQueries';
 import { createSpawnFinders, createGathererOrderOps } from './bridgeHelpers';
@@ -86,7 +89,14 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     visibility,
   });
 
-  const { getDebugSnapshot } = createDebugSnapshotOps({ world, accessor });
+  // The walk field is wired below, after cell passability exists; the
+  // snapshot reads its statistics through this cell.
+  let walkFieldStats: DropOffWalkFieldStats | null = null;
+  const { getDebugSnapshot } = createDebugSnapshotOps({
+    world,
+    accessor,
+    walkFieldStats: () => walkFieldStats,
+  });
 
   const matchEndOps = createMatchEndOps({
     world,
@@ -223,15 +233,35 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     accessor,
   });
 
-  const movementPlanOps = createMovementPlanOps({
-    world,
+  // The gather comparator's walk metric (dropOffWalkField.ts; register entry
+  // 2026-09-01) rides on the movement-plan ops object, which every system dep
+  // bag already spreads. Its drop-offs are exactly the ones the nearest-
+  // drop-off lookup would return: complete, and the safe ones first.
+  const enemyStaticDefences = createEnemyDefenceLookup(accessor);
+  const dropOffWalkFields = createDropOffWalkFields({
     mapWidth: world.grid.width,
     mapHeight: world.grid.height,
-    movePathCache,
     isCellPassableForUnit,
-    isCellPassableForWildlife,
     structuralRevision: () => worldOccupancy.structuralRevision(),
+    listDropOffBuildings: (activeWorld, owner, kind) => preferSafeDropOffs(
+      collectDropOffBuildings(activeWorld, accessor, owner, kind),
+      enemyStaticDefences(activeWorld, owner),
+    ),
   });
+  const { fieldFor: findDropOffWalkField } = dropOffWalkFields;
+  walkFieldStats = dropOffWalkFields.stats;
+  const movementPlanOps = {
+    ...createMovementPlanOps({
+      world,
+      mapWidth: world.grid.width,
+      mapHeight: world.grid.height,
+      movePathCache,
+      isCellPassableForUnit,
+      isCellPassableForWildlife,
+      structuralRevision: () => worldOccupancy.structuralRevision(),
+    }),
+    findDropOffWalkField,
+  };
   const {
     uniquePositions,
     getApproachCellsForFootprint,

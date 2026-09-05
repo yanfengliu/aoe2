@@ -21,11 +21,11 @@ import type {
   UnitComponent,
   UnitType,
 } from '../types';
-import { canDropOffAt } from '../prototypeEconomyRules';
 import type {
   GameWorld,
 } from './pureHelpers';
 import { manhattanDistanceToFootprint } from './footprintDistance';
+import { collectDropOffBuildings } from './dropOffBuildings';
 import { createEnemyDefenceLookup, isFootprintInsideDefenceReach } from './enemyDefenceRange';
 import {
   distanceFromBuildingFootprint,
@@ -36,7 +36,6 @@ import { getBuildingFootprint } from '../../content/buildingFootprints';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   combatStatesCodec,
-  constructionStatesCodec,
 } from './bridgeStateSerialize';
 
 interface VisibilityQuery {
@@ -316,23 +315,11 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     let nearestSafeDistance = Number.POSITIVE_INFINITY;
     const defences = enemyStaticDefences(activeWorld, owner);
 
-    for (const id of activeWorld.query('position', 'building')) {
+    // The same enumeration the drop-off walk field reads, so the two cannot
+    // disagree about which buildings count (dropOffBuildings.ts).
+    for (const { id, position, footprint } of collectDropOffBuildings(activeWorld, accessor, owner, resourceKind)) {
       // `excludeIds` lets the drop-off reroute skip ones already found unreachable.
       if (excludeIds?.has(id)) continue;
-      const position = activeWorld.getComponent<Position>(id, 'position');
-      const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
-      if (!position || !building || building.owner !== owner) {
-        continue;
-      }
-
-      const construction = accessor.get(constructionStatesCodec).get(id);
-      if (construction && !construction.isComplete) {
-        continue;
-      }
-
-      if (!canDropOffAt(building.buildingType, resourceKind)) {
-        continue;
-      }
 
       // To the building's nearest OCCUPIED cell, not its origin corner. A 4x4
       // Town Centre's origin is up to three tiles from the cell a carrier
@@ -342,7 +329,6 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
       // between (49,21) and (50,21) forever, traffic granting `proceed` every
       // tick, because measured to origins the Town Centre went from tied to
       // strictly worse across that one step.
-      const footprint = getBuildingFootprint(building.buildingType);
       const distance = manhattanDistanceToFootprint(origin, position, footprint);
       if (distance < nearestDistance) {
         nearestDistance = distance;

@@ -10,11 +10,15 @@ import type {
 import { UNIT_SUBGRID_RESOLUTION, type GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { aiStatesCodec, unitCommandsCodec } from './bridgeStateSerialize';
+import type { DropOffWalkFieldStats } from './dropOffWalkField';
 
 export interface DebugSnapshotOpsDeps {
   world: GameWorld;
   // Phase 2D: aiStates migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
+  /** The drop-off walk field's rebuild count and cost (dropOffWalkField.ts),
+   *  read lazily because the field is wired after this snapshot is. */
+  walkFieldStats?: () => DropOffWalkFieldStats | null;
 }
 
 export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
@@ -62,6 +66,7 @@ export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
       });
     }
 
+    const walkFieldStats = deps.walkFieldStats?.() ?? null;
     return {
       tick: world.tick,
       tickDurationMs: 0,
@@ -69,6 +74,7 @@ export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
       unitPaths,
       aiSummaries,
       coarseVsFine,
+      ...(walkFieldStats ? { walkFields: { ...walkFieldStats } } : {}),
     };
   }
 

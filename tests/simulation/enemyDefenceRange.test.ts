@@ -200,6 +200,11 @@ const deps: GatherAssignmentDeps = {
   isHarvestableResource: (_id, resource) => resource.amount > 0,
   isLandCell: () => true,
   findNearestDropOffBuilding: () => DROP_OFF,
+  // Open ground: the walk to the drop-off at (32,11) is the Manhattan distance.
+  findDropOffWalkField: () => ({
+    haulDistance: (p) => Math.abs(p.x - 32) + Math.abs(p.y - 11),
+    nearestDropOffId: () => DROP_OFF,
+  }),
   findResourceApproachPlan: () => (
     { destination: { x: 1, y: 1 }, nextStep: { x: 1, y: 1 } } as UnitMovementPlan
   ),

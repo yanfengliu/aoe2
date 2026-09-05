@@ -61,7 +61,7 @@ type CivWorld = GameWorld;
 // so it only caps extreme piles — the AI's natural 2-3-per-resource
 // clustering is below this, so its tuned economy is unchanged (a cap of 2
 // here over-spread the AI and broke its age-up; 4 clears normal clustering).
-const IDLE_ASSIGN_SPREAD_CAP = 4;
+export const IDLE_ASSIGN_SPREAD_CAP = 4;
 
 // Stable empty-set sentinel for owners with no researched techs, so the
 // per-gather-tick gatherRateMultiplierForKind lookup never allocates.
@@ -123,6 +123,9 @@ export interface VillagerEconomySystemDeps {
     range: number,
     activeWorld: CivWorld,
   ) => UnitMovementPlan | null;
+  /** The walk from every node to the owner's nearest drop-off of a kind —
+   *  what gather assignment ranks by (dropOffWalkField.ts). */
+  findDropOffWalkField: GatherAssignmentDeps['findDropOffWalkField'];
   ensurePlayerScoreCounters: (owner: number) => PlayerScoreCountersLike;
 }
 
@@ -141,6 +144,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     destroyResourceEntity,
     findNearestDropOffBuilding,
     findBuildingApproachPlan,
+    findDropOffWalkField,
     ensurePlayerScoreCounters,
   } = deps;
 
@@ -153,6 +157,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
     findNearestDropOffBuilding,
     findResourceApproachPlan,
     enemyStaticDefences,
+    findDropOffWalkField,
   };
   const dropOffDeps: DropOffAssignmentDeps = {
     findNearestDropOffBuilding,

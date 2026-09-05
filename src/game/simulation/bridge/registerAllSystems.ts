@@ -138,6 +138,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     shouldMaintainGatheringOrder,
     findResourceApproachPlan,
     findNearestDropOffBuilding,
+    findDropOffWalkField,
     findWildlifeRangePlan,
     getUnitTransform,
     findMovementPlan,
@@ -386,6 +387,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     destroyResourceEntity,
     findNearestDropOffBuilding,
     findBuildingApproachPlan,
+    findDropOffWalkField,
     ensurePlayerScoreCounters,
   });
 

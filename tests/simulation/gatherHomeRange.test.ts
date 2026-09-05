@@ -42,6 +42,11 @@ const deps: GatherAssignmentDeps = {
   isLandCell: () => true,
   findNearestDropOffBuilding: () => DROP_OFF,
   enemyStaticDefences: () => [],
+  // Open ground: the walk to the drop-off at (0,0) is the Manhattan distance.
+  findDropOffWalkField: () => ({
+    haulDistance: (p) => Math.abs(p.x) + Math.abs(p.y),
+    nearestDropOffId: () => DROP_OFF,
+  }),
   findResourceApproachPlan: () => (
     { destination: { x: 1, y: 1 }, nextStep: { x: 1, y: 1 } } as UnitMovementPlan
   ),

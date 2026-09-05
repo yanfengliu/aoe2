@@ -414,6 +414,10 @@ export interface SimulationDebugSnapshot {
     fineX: number;
     fineY: number;
   }>;
+  /** The drop-off walk field's cost so far (dropOffWalkField.ts): how many
+   *  times it was rebuilt, how many asks a built field answered, and the wall
+   *  time the rebuilds took. Absent on a bridge with no field wired. */
+  walkFields?: { computed: number; served: number; computeMs: number };
 }
 
 export type WinCondition = 'conquest' | 'wonder' | 'relic' | 'score';
