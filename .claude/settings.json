@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/probe-harness-check.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Checking the probe names its engine debug tool"
+          }
+        ]
+      }
+    ]
+  }
+}

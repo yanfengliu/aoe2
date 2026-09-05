@@ -15,6 +15,7 @@ seed, command, or steps to reproduce.
 - Actual: ...
 
 ## Reproduction
+- Which engine debug tool answers this, named BEFORE any probe of your own: `replay:inspect` on a recorded bundle for "what stood at tick T"; `diffBundles` / `SessionReplayer.forkAt` for two runs side by side; the path-queue and occupancy probes for who is blocking whom — or why none does (AGENTS.md, Debugging).
 - Commands / URL / seed used to reproduce reliably.
 - Any temporary instrumentation added (remove before closing the session).
 
