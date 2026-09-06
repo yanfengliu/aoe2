@@ -1,0 +1,28 @@
+# Every checkout of this repository gets LF, on every platform.
+#
+# Git for Windows installs `core.autocrlf=true` in its SYSTEM config, and the
+# GitHub-hosted `windows-latest` image is that same install. Without this file
+# a Windows checkout rewrites every tracked text file to CRLF on its way into
+# the working tree, while the index stays LF — so the bytes CI compiles are not
+# the bytes anyone authored, and a machine whose tree was written by an editor
+# rather than checked out (which is every long-lived local clone here) never
+# sees it.
+#
+# On 2026-09-06 that turned main's Windows CI leg red and the Linux leg green,
+# with six of `tests/scripts/ciStatus.test.ts`'s eight cases failing on
+# `SyntaxError: Invalid or unexpected token`. Vite's SSR transform finds where
+# to inject its `__vite_ssr_import__` calls with `hashbangRE = /^#!.*\n/`
+# (vite 6.4.3, `dist/node/chunks/dep-Dm0c1Wj2.js`). A JavaScript `.` does not
+# match `\r`, so under CRLF that regex misses the shebang, the injection index
+# falls back to 0, and the imports are written IN FRONT of `#!/usr/bin/env
+# node` — putting a bare `#` in the middle of the module. Eighteen tracked
+# scripts start with a shebang; any one of them imported by a test would have
+# failed the same way.
+#
+# `tests/architecture/checkoutLineEndings.test.ts` is the gate. Details in the
+# 2026-09-06 entry of docs/learning/defect-register.md.
+* text=auto eol=lf
+
+# Never line-end-convert an asset. `text=auto` already detects these as binary;
+# stating it means a detection heuristic cannot corrupt one.
+*.png binary

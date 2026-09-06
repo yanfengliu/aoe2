@@ -20,6 +20,27 @@ The last two were already pointing the wrong way before any split, and nothing h
 
 **Three entries came back on 2026-09-05.** The first rollover read "(SUPERSEDED ... still unfixed)", "(PARTLY FIXED: ...)" and "(LATENT, not fixed)" as closures and archived three live defects. They were moved back to the active register with `, OPEN` added inside the trailing group and nothing else changed, and `tests/architecture/defectRegisterRollover.test.ts` now refuses an archived marker that leaves the defect live. The rollover's other 38 entries were not disturbed.
 
+The 2026-09-06 rollover of "The AI waits for a full attack group against an enemy that has no army left" added one more:
+
+- Here, "The AI waits for a full attack group against an enemy that has no army left": "The rename in the entry above did not close the class" means "An enemy that garrisons its last villagers pins the attacker's whole army forever", which is still active.
+
+## 2026-09-04 — The AI waits for a full attack group against an enemy that has no army left (FIXED, found by a critic)
+
+**Symptom.** None reported — this is a defect an independent critic found in the very change that was supposed to close its class, before anyone played it. It is registered anyway, because the entry above claims to have fixed "the army stands idle beside a base it could raze" and only half of that was true.
+
+**Investigation.** The critic built a control of the garrisoned-defender fixture with the villagers left ON the map and six attackers, and got the same tableau the garrison defect produced: owner 2 with zero units and two buildings standing, owner 1's six-unit army idle **at its own base** for 8,000 ticks, match `running`.
+
+**Root cause.** `shouldPush = state.attackGroup.length >= attackGroupSize(currentAge)` gates EVERY fallback in `runAttackPhase` — the visible-building branch, the Town-Centre branch, and the `lastResortTargetId` branch that v0.3.197 added for exactly this case ("an enemy that still holds a BUILDING is still alive by the conquest rule"). One unit short of seven in the Castle Age and none of them can fire. The threshold is there so a single lost unit does not commit the AI to a base walk; it has nothing to hold back against an opponent with no army to be caught by, whose buildings do not move.
+
+**Fix.** The threshold does not apply when the target enemy has no unit on the map. `ownerHasUnitOnMap` is the predicate, beside `findOwnedUnitOnMap` in `playerQueries`.
+
+**Two more instances of the SAME position-blind query, also found by the critic and also fixed.** The rename in the entry above did not close the class, and the architecture decision record has been corrected to say so.
+
+- `ownedMilitaryUnitIds` prunes the attack group, and `state.attackGroup.length` is what the threshold compares — so garrisoned military read as mustered. It is SPLIT rather than filtered, because its two callers ask different questions: the production phase's growth pause wants "how much military do I OWN" (a garrisoned soldier still costs population), the attack group wants "how much can MARCH". `ownedMilitaryUnitIdsOnMap` is the second. Reachable on `islands`, where the AI garrisons its army into a Transport Ship.
+- `findAvailableVillagerForBuild` could hand a foundation to a villager sheltering under the town bell. The `building.placeConfirm` validator asks only that the builder is alive and is a unit, so the site is placed and the concurrent-build slot is spent on a builder that can never walk to it. Not reproduced end to end; the trap is confirmed present.
+
+**How this class is checked from now on.** A second case in `tests/simulation/aiGarrisonedDefender.test.ts` on `ai-garrisoned-defender-few-fixture` — four attackers against a Castle-age threshold of seven. RED-CHECKED with the exception removed: `closest approach 21 cells; 4 of 4 attackers idle`. The full proof, including why that fixture has to be BROKE and why it measures the march rather than the win, is in `gate-proofs.md`.
+
 ## 2026-09-04 — The AI's lumber camp cannot reach the woodline on three of the maps it ships (FIXED)
 
 **Symptom.** The user's priority 1, wood income. `arena` owner 1 runs a whole 60,000-tick match at 13-69 wood with roughly 13 villagers assigned to wood, so `pickNextBuild` stalls on a 175-wood Stable for the match and no seed has ever built a Siege Workshop.
