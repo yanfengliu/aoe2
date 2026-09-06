@@ -434,6 +434,11 @@ export interface SimulationDebugSnapshot {
    *  times it was rebuilt, how many asks a built field answered, and the wall
    *  time the rebuilds took. Absent on a bridge with no field wired. */
   walkFields?: { computed: number; served: number; computeMs: number };
+  /** The placement-reachability labelling's cost (builderReachability.ts): how
+   *  many times it was flood-filled, how many asks a built labelling answered,
+   *  and the wall time the fills took — the feature's OWN timer, which is what
+   *  a cost claim has to rest on. Absent on a bridge with none wired. */
+  builderReach?: { computed: number; served: number; computeMs: number };
 }
 
 export type WinCondition = 'conquest' | 'wonder' | 'relic' | 'score';

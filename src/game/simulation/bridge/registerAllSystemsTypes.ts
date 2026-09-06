@@ -75,8 +75,13 @@ export interface RegisterAllSystemsDeps {
   pickWatchTowerPlacement: (
     townCenterPosition: Position,
     enemyPosition: Position,
+    builderIds?: readonly number[],
   ) => Position | null;
-  findBuildPlacementNear: (nearby: Position, buildingType: BuildingComponent['buildingType']) => Position | null;
+  findBuildPlacementNear: (
+    nearby: Position,
+    buildingType: BuildingComponent['buildingType'],
+    builderIds?: readonly number[],
+  ) => Position | null;
   countOwnedUnits: (owner: number, unitType: UnitType) => number;
   countQueuedUnits: (buildingId: number, unitType: TrainableUnitType) => number;
   canAdvanceToFeudalAge: (owner: number) => boolean;

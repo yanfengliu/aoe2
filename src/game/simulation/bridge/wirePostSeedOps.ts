@@ -15,6 +15,7 @@ import type {
   BuildingType,
   ResearchableTechnologyType,
   ResourceComponent,
+  UnitComponent,
   TerrainComponent,
   UnitType,
 } from '../types';
@@ -26,7 +27,7 @@ import {
 } from '../ai';
 import { defaultCivilizationName } from './pureHelpers';
 import { createBuildingOptionsOps } from './buildingOptionsOps';
-import type { CellPassability } from './cellPassability';
+import type { PlacementReachabilityOps } from './builderReachability';
 import { createMonkTaskOps } from './monkTaskOps';
 import { createTechnologyOps } from './technologyOps';
 import { createAiDecisionOps } from './aiDecisionOps';
@@ -117,7 +118,7 @@ export interface WirePostSeedDeps {
   researchUnavailableSummary: Parameters<
     typeof createCommandAvailability
   >[0]['researchUnavailableSummary'];
-  findOpenPlacementAnchors: CellPassability['findOpenPlacementAnchors'];
+  findOpenPlacementAnchors: PlacementReachabilityOps['findOpenPlacementAnchors'];
 }
 
 export interface WirePostSeedResult {
@@ -443,6 +444,18 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     ),
     researchUnavailableReason: deps.researchUnavailableReason,
   });
+  /** Every unit of `ownerId` whose build menu is non-empty — the units an open
+   *  anchor would actually be built by. */
+  const ownerBuilderIds = (ownerId: number): number[] => {
+    const ids: number[] = [];
+    for (const id of world.query('unit', 'position')) {
+      const unit = world.getComponent<UnitComponent>(id, 'unit');
+      if (!unit || unit.owner !== ownerId) continue;
+      if (getBuildOptions(unit.owner, unit.unitType).length === 0) continue;
+      ids.push(id);
+    }
+    return ids;
+  };
   const agentOptionsOps = {
     getAgentBuildingOptions,
     findOpenPlacementAnchorsNear: (
@@ -455,6 +468,11 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     ): Position[] => deps.findOpenPlacementAnchors(centerX, centerY, width, height, {
       max,
       isCellVisible: (x, y) => visibility.isVisible(ownerId, x, y),
+      // An anchor an agent cannot BUILD on is not a hint, it is a trap: the
+      // same reachability the placement validator applies (register entry
+      // 2026-09-06). Every builder the owner has, because they need not all
+      // stand in the same part of the map.
+      builderIds: ownerBuilderIds(ownerId),
     }),
   };
 

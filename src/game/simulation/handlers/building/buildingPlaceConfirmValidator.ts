@@ -16,7 +16,7 @@ import { canAfford, describeMissingResources } from '../../prototypeEconomyRules
 import { buildingFootprint } from '../../bridge/pureHelpers';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
 import { playerResourcesCodec } from '../../bridge/bridgeStateSerialize';
-import type { PlacementBlockReport } from '../../bridge/cellPassability';
+import type { ReachabilityBlockReport } from '../../bridge/builderReachability';
 
 export interface BuildingPlaceConfirmValidatorDeps {
   // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
@@ -28,17 +28,20 @@ export interface BuildingPlaceConfirmValidatorDeps {
     width: number,
     height: number,
     buildingType?: BuildingType,
+    builderIds?: readonly number[],
   ) => boolean;
   // agent-affordances A3: name the blocking cause + cell and suggest the
   // nearest open anchor the acting owner can see. The suggestion is
   // fog-gated through isCellVisibleToOwner so a rejection never reveals
-  // unscouted terrain.
+  // unscouted terrain, and reachability-gated through `builderIds` so it
+  // never names ground the game would itself refuse.
   describePlacementBlockers: (
     x: number,
     y: number,
     width: number,
     height: number,
-  ) => PlacementBlockReport | null;
+    builderIds?: readonly number[],
+  ) => ReachabilityBlockReport | null;
   findOpenPlacementAnchors: (
     centerX: number,
     centerY: number,
@@ -48,6 +51,7 @@ export interface BuildingPlaceConfirmValidatorDeps {
       max: number;
       maxRadius?: number;
       isCellVisible: (x: number, y: number) => boolean;
+      builderIds?: readonly number[];
     },
   ) => Position[];
   isCellVisibleToOwner: (owner: number, x: number, y: number) => boolean;
@@ -116,26 +120,27 @@ export function makeBuildingPlaceConfirmValidator(
       return { code: 'out_of_bounds', message: 'Position is out of map bounds.' };
     }
     const footprint = buildingFootprint(data.buildingType);
+    // The builders this placement would actually enlist. Reachability is asked
+    // OF THEM (register entry 2026-09-06): a footprint whose cells are free is
+    // still not buildable if no builder can walk to a cell beside it, and
+    // accepting one spends the resources and strands the foundation forever.
+    const builderIds = [data.builderId, ...(data.additionalBuilderIds ?? [])];
     if (deps.isPlacementBlocked(
       data.position.x,
       data.position.y,
       footprint.width,
       footprint.height,
       data.buildingType,
+      builderIds,
     )) {
       const report = deps.describePlacementBlockers(
         data.position.x,
         data.position.y,
         footprint.width,
         footprint.height,
+        builderIds,
       );
-      const cause = report
-        ? `${report.cause} at (${report.firstBlockedCell.x},${report.firstBlockedCell.y})`
-        : 'an obstacle';
-      const counts = report && report.totalCellCount > 1
-        ? `; ${report.blockedCellCount} of ${report.totalCellCount} footprint cells are blocked`
-        : '';
-      const anchors = deps.findOpenPlacementAnchors(
+      const anchor = deps.findOpenPlacementAnchors(
         data.position.x,
         data.position.y,
         footprint.width,
@@ -143,10 +148,27 @@ export function makeBuildingPlaceConfirmValidator(
         {
           max: 1,
           isCellVisible: (x, y) => deps.isCellVisibleToOwner(unit.owner, x, y),
+          builderIds,
         },
-      );
-      const suggestion = anchors.length > 0
-        ? ` Nearest open ground you can see: (${anchors[0]!.x},${anchors[0]!.y}).`
+      )[0];
+      if (report?.unreachableForBuilders === true) {
+        return {
+          code: 'placement_unreachable',
+          message:
+            `Placement blocked for ${data.buildingType} `
+            + `(${footprint.width}x${footprint.height}) at (${data.position.x},${data.position.y}): `
+            + 'the ground is clear, but no builder can walk to a cell beside it.'
+            + (anchor ? ` Nearest open ground a builder can reach: (${anchor.x},${anchor.y}).` : ''),
+        };
+      }
+      const cause = report
+        ? `${report.cause} at (${report.firstBlockedCell.x},${report.firstBlockedCell.y})`
+        : 'an obstacle';
+      const counts = report && report.totalCellCount > 1
+        ? `; ${report.blockedCellCount} of ${report.totalCellCount} footprint cells are blocked`
+        : '';
+      const suggestion = anchor
+        ? ` Nearest open ground you can see: (${anchor.x},${anchor.y}).`
         : '';
       return {
         code: 'placement_blocked',

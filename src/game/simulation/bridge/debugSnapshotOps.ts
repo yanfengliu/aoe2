@@ -11,6 +11,7 @@ import { UNIT_SUBGRID_RESOLUTION, type GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { aiStatesCodec, unitCommandsCodec } from './bridgeStateSerialize';
 import type { DropOffWalkFieldStats } from './dropOffWalkField';
+import type { BuilderReachabilityStats } from './builderReachability';
 
 export interface DebugSnapshotOpsDeps {
   world: GameWorld;
@@ -19,6 +20,9 @@ export interface DebugSnapshotOpsDeps {
   /** The drop-off walk field's rebuild count and cost (dropOffWalkField.ts),
    *  read lazily because the field is wired after this snapshot is. */
   walkFieldStats?: () => DropOffWalkFieldStats | null;
+  /** The placement-reachability labelling cost, read lazily for the same
+   *  reason: it is wired after this snapshot is. */
+  builderReachStats?: () => BuilderReachabilityStats | null;
 }
 
 export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
@@ -67,6 +71,7 @@ export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
     }
 
     const walkFieldStats = deps.walkFieldStats?.() ?? null;
+    const builderReachStats = deps.builderReachStats?.() ?? null;
     return {
       tick: world.tick,
       tickDurationMs: 0,
@@ -75,6 +80,7 @@ export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
       aiSummaries,
       coarseVsFine,
       ...(walkFieldStats ? { walkFields: { ...walkFieldStats } } : {}),
+      ...(builderReachStats ? { builderReach: { ...builderReachStats } } : {}),
     };
   }
 

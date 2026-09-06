@@ -114,7 +114,7 @@ export interface CellPassability {
   ): boolean;
   isCellPassableForWildlife(resourceId: number, x: number, y: number): boolean;
   isHarvestableResource(resourceId: number, resource: ResourceComponent): boolean;
-  isPlacementBlocked(x: number, y: number, width: number, height: number): boolean;
+  isPlacementBlocked(x: number, y: number, w: number, h: number, t?: BuildingType): boolean;
   // agent-affordances A3: name what blocks a footprint (null = open).
   describePlacementBlockers(
     x: number,

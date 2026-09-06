@@ -626,6 +626,8 @@ Use the standard AoE2 multi-builder formula:
 
 **The AI crews a big building.** `aiBuildCrewPhase` reinforces the AI's in-progress sites, longest remaining job first, to `ceil(3 * total / 600) - 2` builders — a House wants nobody extra, a Town Center wants six, a Wonder wants everyone who can be spared (capped at 90% of the workforce for a Wonder, 50% for anything else). Before it, the AI put one villager on everything it built; with a 1200-tick Wonder that finished inside any test budget, and at DE's 35,030 it meant 42 idle villagers watching one of their own build the win condition for 58 minutes.
 
+**A placement a builder cannot REACH is refused (v0.3.212, 2026-09-06).** A site is legal only when its footprint is clear AND at least one of the villagers that would build it can walk to a cell beside that footprint. Free ground is not enough: a pocket of open cells enclosed by forest satisfies the footprint test and no builder can ever get there, so the game used to accept the click, charge the resources and leave a foundation at zero progress for the rest of the match. Reachability is asked of the ACTUAL builders — the selected villagers, or the AI's chosen one — using the same passability the mover uses, so the preview, the confirm validator, the construction re-check and the AI's own placement suggestion all give one answer; a second opinion that drifts from the approach search would be worse than no check. The refusal names the building, the cell and the reason, in the same voice as every other placement refusal, and the resources are never taken. The rule binds the AI exactly as it binds the player: an anchor the AI suggests must satisfy it too.
+
 Repair rules:
 
 - Villagers can repair buildings and repairable units such as siege

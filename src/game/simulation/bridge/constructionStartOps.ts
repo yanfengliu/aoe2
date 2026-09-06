@@ -25,7 +25,14 @@ export function createConstructionStart(deps: {
   mapWidth: number;
   mapHeight: number;
   getBuildOptions: (owner: number, unitType: UnitComponent['unitType']) => readonly BuildableBuildingType[];
-  isPlacementBlocked: (x: number, y: number, w: number, h: number, type?: BuildableBuildingType) => boolean;
+  isPlacementBlocked: (
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    type?: BuildableBuildingType,
+    builderIds?: readonly number[],
+  ) => boolean;
   addBuildingEntity: (owner: number, type: BuildableBuildingType, anchor: Position, complete: boolean) => number;
   getEntityRef: (id: number) => EntityRef | null;
   clearGathererOrder: (id: number) => void;
@@ -70,12 +77,19 @@ export function createConstructionStart(deps: {
       y: clamp(anchor.y, 0, mapHeight - 1),
     };
     const footprint = buildingFootprint(buildingType);
+    // Reachability is re-asked HERE, not only in the validator, because the
+    // validator runs at submit time and this runs a step later — and because a
+    // shift-queued chain validates every site against the world as it was
+    // before ANY of the chain went down, so foundation 1 can seal site 5
+    // (register entry 2026-09-06). Charging for a foundation no builder can
+    // walk to is the defect; this is the last place to refuse it.
     if (isPlacementBlocked(
       clampedAnchor.x,
       clampedAnchor.y,
       footprint.width,
       footprint.height,
       buildingType,
+      eligibleBuilderIds,
     )) {
       return false;
     }

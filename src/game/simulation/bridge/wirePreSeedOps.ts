@@ -15,6 +15,11 @@ import { createMatchEndOps } from './matchEndOps';
 import { createCombatStateFactory } from './combatStateFactory';
 import { createEntityCreateOps } from './entityCreateOps';
 import { createCellPassability } from './cellPassability';
+import {
+  createBuilderReachability,
+  withBuilderReachability,
+  type BuilderReachabilityStats,
+} from './builderReachability';
 import { createDebugSnapshotOps } from './debugSnapshotOps';
 import { createTransformOps } from './transformOps';
 import { createMovementPlanOps } from './movementPlanOps';
@@ -92,10 +97,12 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
   // The walk field is wired below, after cell passability exists; the
   // snapshot reads its statistics through this cell.
   let walkFieldStats: DropOffWalkFieldStats | null = null;
+  let builderReachStats: BuilderReachabilityStats | null = null;
   const { getDebugSnapshot } = createDebugSnapshotOps({
     world,
     accessor,
     walkFieldStats: () => walkFieldStats,
+    builderReachStats: () => builderReachStats,
   });
 
   const matchEndOps = createMatchEndOps({
@@ -209,6 +216,15 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
   });
   const { addUnitEntity, addBuildingEntity, addResourceEntity } = entityCreateOps;
 
+  const placementOccupancy = createCellPassability({
+    world,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
+    worldOccupancy,
+    tiles,
+    accessor,
+  });
   const {
     buildingOccupiesCell,
     isTerrainPassableForUnit,
@@ -220,20 +236,9 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     isCellPassableForUnit,
     isCellPassableForWildlife,
     isHarvestableResource,
-    isPlacementBlocked,
-    describePlacementBlockers,
-    findOpenPlacementAnchors,
     isGarrisonedUnit,
     getActionOptions,
-  } = createCellPassability({
-    world,
-    humanPlayerId: HUMAN_PLAYER_ID,
-    mapWidth: world.grid.width,
-    mapHeight: world.grid.height,
-    worldOccupancy,
-    tiles,
-    accessor,
-  });
+  } = placementOccupancy;
 
   // The gather comparator's walk metric (dropOffWalkField.ts; register entry
   // 2026-09-01) rides on the movement-plan ops object, which every system dep
@@ -269,6 +274,27 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     getApproachCellsForFootprint,
     getNearestMoveCandidates,
   } = movementPlanOps;
+
+  // Reachability (builderReachability.ts; register entry 2026-09-06): a
+  // placement the game accepts has to be one a builder can walk to, and so does
+  // every anchor it suggests. Folded into the three placement answers here so
+  // the preview, the validator, the authoritative re-check and the suggestion
+  // cannot disagree — the pairing `isPlacementBlocked` already keeps for shore
+  // placement. The ring comes from the movement ops, so "beside the footprint"
+  // has one definition.
+  const builderReachability = createBuilderReachability({
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
+    isCellPassableForUnit,
+    structuralRevision: () => worldOccupancy.structuralRevision(),
+    getApproachCellsForFootprint,
+  });
+  const {
+    isPlacementBlocked,
+    describePlacementBlockers,
+    findOpenPlacementAnchors,
+  } = withBuilderReachability(placementOccupancy, builderReachability, world);
+  builderReachStats = builderReachability.stats;
 
   const { findScenarioSpawnPosition, findBuildingSpawnPosition } = createSpawnFinders({
     uniquePositions,

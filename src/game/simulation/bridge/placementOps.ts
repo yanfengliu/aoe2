@@ -66,6 +66,7 @@ export interface PlacementDeps {
     width: number,
     height: number,
     buildingType?: BuildingType,
+    builderIds?: readonly number[],
   ) => boolean;
   enqueueRejection: (reason: string) => void;
   // Constants passed through as deps so tests could tweak them without
@@ -103,9 +104,16 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
     return getBuildOptions(unit.owner, unit.unitType).includes(buildingType);
   }
 
+  /** Every selected unit that can build `buildingType` — exactly the crew
+   *  `confirmBuildingPlacement` enlists, so the preview and the confirm judge
+   *  the same builders. */
+  function buildersForPendingType(buildingType: BuildableBuildingType): number[] {
+    return getSelectedHumanBuilderIds().filter((id) => canBuild(id, buildingType));
+  }
+
   /** The first selected unit that can build `buildingType`, or null. */
   function builderForPendingType(buildingType: BuildableBuildingType): number | null {
-    return getSelectedHumanBuilderIds().find((id) => canBuild(id, buildingType)) ?? null;
+    return buildersForPendingType(buildingType)[0] ?? null;
   }
 
   function getPlacementPreview(x: number, y: number): PlacementPreviewState | null {
@@ -113,8 +121,8 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       return null;
     }
 
-    const builderId = builderForPendingType(placementMode.current);
-    if (builderId === null) {
+    const builderIds = buildersForPendingType(placementMode.current);
+    if (builderIds.length === 0) {
       return null;
     }
 
@@ -131,12 +139,18 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       cellY: anchor.y,
       width: footprint.width,
       height: footprint.height,
+      // The ghost goes red for ground no builder can WALK to, not only for
+      // ground that is occupied (register entry 2026-09-06). Preview and
+      // confirm read one verdict; a green ghost the confirm refuses is the
+      // worst possible pairing, and so is a green ghost that spends the
+      // resources and strands the foundation.
       isValid: !isPlacementBlocked(
         anchor.x,
         anchor.y,
         footprint.width,
         footprint.height,
         placementMode.current,
+        builderIds,
       ),
     };
   }
@@ -172,15 +186,13 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
     if (placementMode.current === null) {
       return false;
     }
-    const primaryId = builderForPendingType(placementMode.current);
-    if (primaryId === null) {
-      return false;
-    }
     // Only builders that can put up THIS building help with it: a villager in a
     // mixed selection must not be enlisted onto a Fish Trap out at sea.
-    const selectedVillagerIds = getSelectedHumanBuilderIds().filter(
-      (id) => canBuild(id, placementMode.current as BuildableBuildingType),
-    );
+    const selectedVillagerIds = buildersForPendingType(placementMode.current);
+    const primaryId = selectedVillagerIds[0];
+    if (primaryId === undefined) {
+      return false;
+    }
 
     const anchor = {
       x: clamp(x, 0, mapWidth - 1),
@@ -216,7 +228,7 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
     // agent-affordances A3: placement_blocked passes the validator's
     // actionable message (cause + cell + nearest-open-anchor) through to
     // the toast; the terse string stays as the fallback.
-    if (result.code === 'placement_blocked') {
+    if (result.code === 'placement_blocked' || result.code === 'placement_unreachable') {
       enqueueRejection(result.message ?? 'Placement blocked.');
     } else if (result.code === 'insufficient_resources') {
       const stockpile = accessor.get(playerResourcesCodec).get(humanPlayerId);

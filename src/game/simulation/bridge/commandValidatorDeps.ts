@@ -17,7 +17,7 @@ import type {
 } from '../types';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { CommandHandlerDeps } from './registerCommandHandlers';
-import type { PlacementBlockReport } from './cellPassability';
+import type { ReachabilityBlockReport } from './builderReachability';
 import type { ResearchAvailability } from './researchAvailability';
 
 export interface CommandValidatorDepsInputs {
@@ -42,13 +42,15 @@ export interface CommandValidatorDepsInputs {
     width: number,
     height: number,
     buildingType?: BuildingType,
+    builderIds?: readonly number[],
   ) => boolean;
   describePlacementBlockers: (
     x: number,
     y: number,
     width: number,
     height: number,
-  ) => PlacementBlockReport | null;
+    builderIds?: readonly number[],
+  ) => ReachabilityBlockReport | null;
   findOpenPlacementAnchors: (
     centerX: number,
     centerY: number,
@@ -58,6 +60,7 @@ export interface CommandValidatorDepsInputs {
       max: number;
       maxRadius?: number;
       isCellVisible: (x: number, y: number) => boolean;
+      builderIds?: readonly number[];
     },
   ) => Position[];
   isCellVisibleToOwner: (owner: number, x: number, y: number) => boolean;
