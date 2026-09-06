@@ -378,3 +378,44 @@
   .civ-compendium__panel { inset: 3% 3%; padding: 12px; }
   .civ-compendium__detail-row { grid-template-columns: 1fr; gap: 2px; }
 }
+
+/* The stopped-match notice (v0.3.211). A modal on the game-menu / tech-tree
+   pattern rather than a floating badge: a match that cannot continue is not
+   something to notice later, so it takes the screen and the focus. Sits above
+   every in-match surface (menu 50, panels 55) and below the setup screen. */
+.hud-halt-notice {
+  position: fixed; inset: 0; z-index: 120;
+  display: grid; place-items: center; pointer-events: auto;
+  background: var(--hud-surface-sunken); backdrop-filter: blur(2px);
+  padding: 16px;
+}
+/* The author `display: grid` above outranks the UA sheet's
+   `[hidden] { display: none }` on cascade origin, so without this compound
+   re-assertion the notice's dim + blur covers a perfectly healthy match. The
+   same trap has bitten `.replay-load-dialog__panel` and `.hud-game-menu`; here
+   the boot capture caught it as a 99.98%-of-frame pixel diff. */
+.hud-halt-notice[hidden] { display: none; }
+.hud-halt-notice__panel {
+  background: var(--hud-surface); border: 1px solid var(--hud-hairline-strong);
+  border-radius: var(--hud-radius-lg); box-shadow: var(--hud-elevation-high);
+  padding: 20px 22px; width: min(460px, 92vw); display: grid; gap: 10px;
+  color: var(--hud-text);
+}
+.hud-halt-notice__title {
+  font-size: 16px; font-weight: 700; letter-spacing: 0.01em; color: var(--hud-danger);
+}
+.hud-halt-notice__body { font-size: 13px; line-height: 1.45; color: var(--hud-text); }
+.hud-halt-notice__cause {
+  font-size: 11px; line-height: 1.4; color: var(--hud-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--hud-surface-sunken); border: 1px solid var(--hud-hairline);
+  border-radius: var(--hud-radius-sm); padding: 7px 9px;
+  overflow-wrap: anywhere; max-height: 8.4em; overflow-y: auto;
+}
+.hud-halt-notice__action {
+  justify-self: start; margin-top: 2px; cursor: pointer;
+  background: var(--hud-surface-raised); color: var(--hud-text);
+  border: 1px solid var(--hud-hairline-strong); border-radius: var(--hud-radius-md);
+  padding: 8px 16px; font: inherit; font-weight: 600;
+}
+.hud-halt-notice__action:hover { background: var(--hud-surface-hover); }

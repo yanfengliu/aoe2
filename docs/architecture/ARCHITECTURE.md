@@ -13,11 +13,18 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     and calls `replaceBridgeForLoad.ts` so save-load exits replay before
     swapping the live bridge. `installBrowserTestApi(...)` exposes the in-page
     `window.__AOE2_TEST__` test seam Playwright drives during browser tests;
-    there is no separate dev HTTP server.
+    there is no separate dev HTTP server. `engineHaltSurface.ts` is the single
+    place a stopped match reaches the player: it joins the view's frame-halt
+    signal (pushed) to the bridge's `HudState.engineHalted` (polled) and drives
+    one modal, `src/ui/hud/engineHaltNotice.ts`.
   - `app/AoeVoxelGameView.ts` — sole browser world host. Owns the injected
     animation-frame loop, one interactive voxel canvas, bridge replacement,
     resize/fullscreen lifecycle, and composition of renderer-neutral camera,
     pointer, selection, and presentation controllers. It owns no gameplay state.
+    The frame body is wrapped and the reschedule sits outside it, so a throw
+    cannot end the loop; `frameHaltState.ts` holds the resulting decision —
+    first failure stops the simulation and keeps drawing, second stops the loop
+    — and `onFrameHalt` publishes it.
   - `game/` — gameplay rules, scenarios, content
     - `content/` — shared content tables (e.g., building footprints)
     - `playtest/` — headless playtest infrastructure. `runPlaytest.ts`

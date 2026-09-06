@@ -46,6 +46,7 @@ import { replaceLiveBridgeAfterReplayExit } from './replaceBridgeForLoad';
 import { gateAnnotationHotkeyOnReplayMode } from './replayAnnotationGate';
 import { loadPriorSessionAsReplay } from '../../game/replay/loadPriorSession';
 import { createReplayLoadDialog } from '../../ui/replay/replayLoadDialog';
+import { mountEngineHaltSurface } from './engineHaltSurface';
 
 interface AnnotationStack {
   recording: RecordingService;
@@ -477,6 +478,11 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     getRecording: () => stack?.recording ?? (() => { throw new Error('recording not initialized'); })(),
   });
   cleanupCallbacks.push(disposeBrowserTestApi);
+  // A stopped match must say so — see engineHaltSurface.ts for both sources.
+  const engineHaltSurface = mountEngineHaltSurface({
+    hudRoot, view, getEngineHalted: () => bridgeRef().getHudState().engineHalted,
+  });
+  cleanupCallbacks.push(() => engineHaltSurface.dispose());
   // Install the automation seam before the first simulation frame. This lets
   // deterministic browser harnesses pause immediately without accumulating
   // hidden startup time while recording and HUD services initialize.

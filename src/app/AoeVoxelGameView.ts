@@ -38,6 +38,7 @@ import type {
   SelectionBoxState,
 } from '../rendering/viewTypes';
 import { boundedVisibleSimulationDelta } from '../game/visibleSimulationTiming';
+import { createFrameHaltState, type FrameHalt } from './frameHaltState';
 
 export interface AoeVoxelGameViewOptions {
   readonly host: HTMLElement;
@@ -68,6 +69,7 @@ export class AoeVoxelGameView {
   private currentFrameTimeMs = 0;
   private booted = false;
   private disposed = false;
+  private readonly frameHalt = createFrameHaltState();
   private simulationSpeedMultiplier: number;
 
   constructor(options: AoeVoxelGameViewOptions) {
@@ -173,6 +175,14 @@ export class AoeVoxelGameView {
 
   isBooted(): boolean {
     return this.booted && !this.disposed;
+  }
+
+  /** Non-null once a frame has thrown: the simulation has stopped for good.
+   *  `onFrameHalt` fires once when that happens (immediately if it already
+   *  has) — `engineHaltSurface.ts` uses it to tell the player. */
+  getFrameHalt(): FrameHalt | null { return this.frameHalt.current(); }
+  onFrameHalt(listener: (halt: FrameHalt) => void): () => void {
+    return this.frameHalt.subscribe(listener);
   }
 
   start(): void {
@@ -372,17 +382,30 @@ export class AoeVoxelGameView {
 
   private readonly frame = (timeMs: number): void => {
     if (this.disposed) return;
-    const elapsedMs = this.lastFrameTimeMs === null
-      ? 0
-      : Math.max(0, timeMs - this.lastFrameTimeMs);
-    const simulationDeltaMs = boundedVisibleSimulationDelta(elapsedMs) * this.simulationSpeedMultiplier;
-    const cameraDeltaMs = Math.min(MAX_CAMERA_FRAME_DELTA_MS, elapsedMs);
-    this.lastFrameTimeMs = timeMs;
-    this.currentFrameTimeMs = timeMs;
-    this.bridge.step(simulationDeltaMs);
-    this.camera.update(timeMs, cameraDeltaMs);
-    this.syncFromBridge();
-    this.renderer.frame(this.camera.getState(), timeMs, simulationDeltaMs);
+    try {
+      const elapsedMs = this.lastFrameTimeMs === null
+        ? 0
+        : Math.max(0, timeMs - this.lastFrameTimeMs);
+      const simulationDeltaMs = boundedVisibleSimulationDelta(elapsedMs) * this.simulationSpeedMultiplier;
+      const cameraDeltaMs = Math.min(MAX_CAMERA_FRAME_DELTA_MS, elapsedMs);
+      this.lastFrameTimeMs = timeMs;
+      this.currentFrameTimeMs = timeMs;
+      // After a halt the world may be mid-tick, so it never steps again — but
+      // camera and renderer keep going, so the stopped match stays lookable.
+      const halted = this.frameHalt.current() !== null;
+      if (!halted) this.bridge.step(simulationDeltaMs);
+      this.camera.update(timeMs, cameraDeltaMs);
+      if (!halted) this.syncFromBridge();
+      this.renderer.frame(this.camera.getState(), timeMs, simulationDeltaMs);
+    } catch (error) {
+      // The reschedule below was this callback's LAST statement, so a throw
+      // above it ended the loop with nothing said. A second failure stops it.
+      if (this.frameHalt.record(error) === 'stop') {
+        this.animationFrameId = null;
+        return;
+      }
+    }
+    if (this.disposed) return;
     this.animationFrameId = window.requestAnimationFrame(this.frame);
   };
 
