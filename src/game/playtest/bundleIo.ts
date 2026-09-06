@@ -23,7 +23,7 @@ import type { SessionBundle } from 'civ-engine';
 // `JSON.stringify(bundle)` produces — so bundles recorded before this change
 // still load, and anything else that reads bundle JSON still works.
 
-/** Flush the writer's pending text at this many chars — three orders of magnitude under the cap. */
+/** Flush the writer's pending text at this many chars — 4 MiB, 128 times under the cap. */
 const WRITE_FLUSH_CHARS = 4 * 1024 * 1024;
 /** Reader's file-read granularity. Independent of value size: values may span chunks. */
 const READ_CHUNK_BYTES = 4 * 1024 * 1024;

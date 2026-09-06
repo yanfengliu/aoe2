@@ -9,12 +9,21 @@
 // victories (`victory: 'conquest-only'`) so nothing can end the match, gives
 // every seat the high starting-resource preset and the hard decision
 // interval, and plays the boot map to its 45,000-tick horizon with both
-// economies intact — the configuration that reached the
-// most content of the ones measured on 2026-09-05: standard resources, standard
-// AI, attacks on: 11 building types, 6 unit types, no Imperial Age. Attacks
-// off: 13 and 13, no Imperial Age. Attacks off with high resources and a hard
-// AI: 15, 18 and 31 technologies, both seats in the Imperial Age (owner 2 at
-// tick 24,500, owner 1 at 42,500).
+// economies intact.
+//
+// WHY THIS CONFIGURATION — A HISTORICAL COMPARISON, NOT A CURRENT READING.
+// Three configurations were measured against each other ON THE 2026-09-05 TREE,
+// and this one reached the most content. Standard resources, standard AI,
+// attacks on: 11 building types, 6 unit types, no Imperial Age. Attacks off: 13
+// and 13, no Imperial Age. Attacks off with high resources and a hard AI: 15
+// buildings, 18 units and 31 technologies, both seats in the Imperial Age
+// (owner 2 at tick 24,500, owner 1 at 42,500). NONE OF THOSE NUMBERS DESCRIBES
+// THIS TREE. The 2026-09-06 AI fixes took the winning row to 15, 17 and 28 with
+// Imperial reached at ticks 15,500 and 30,250 — see the removal note below and
+// the floor arrays it edited — and the two losing rows have not been
+// re-measured since. The 2026-09-05 numbers stay because the COMPARISON is what
+// justifies the configuration: re-measuring one row of a three-way A/B on a
+// later tree would make the arms differ by more than the variable under test.
 //
 // THE CONTRACT IS NAMED. A type that stops being exercised fails by its name,
 // never as a count, because a count of 15 can hide a Castle lost for a second
@@ -70,11 +79,22 @@ const SAMPLE_INTERVAL = 250;
 // Market, and the AI's market planner (`marketActionForAgeUpShortfall`, called
 // from `aiSystemProductionPhase.ts`) has exactly one gate — qualifies for the
 // next age, cannot afford it — so it is dead for both seats from the moment
-// they are Imperial. An AI ending the match on 1,262 food, 441 stone and 7
-// gold beside its own completed Market is the separate, already-recorded
-// defect of 2026-09-03 ("The AI hoards the resource it cannot spend...", still
-// OPEN in the register), not a loss of reach here. WHEN A TRADE COVERS A
-// TECHNOLOGY OR A UNIT AND NOT ONLY AN AGE-UP, PUT THESE FOUR BACK.
+// they are Imperial. An AI ending the match on 1,262 food, 441 stone and 7 gold
+// beside its own completed Market is that gap, and it is not a loss of reach
+// here.
+//
+// WHERE IT IS RECORDED. This deferral belongs to the register's 2026-09-06
+// entry ("The AI abandoned foundations it had paid for...", OPEN), which
+// carries these same numbers and says in as many words that it closes when the
+// four names are back on this floor. THE MARKET GAP ITSELF HAS NO ROOT-CAUSE
+// ENTRY OF ITS OWN. The 2026-09-03 entry ("The AI hoards the resource it cannot
+// spend...", OPEN) is the nearest relative and is NOT the same defect: its root
+// cause is demand-blind villager allocation — fixed per-age gather weights in
+// `aiEconomyPlan.ts` that never read the stockpile — which is about which
+// resource the AI GATHERS, not about trading one it already holds. Same
+// symptom, surplus beside starvation; different mechanism, and a fix for either
+// leaves the other standing. WHEN A TRADE COVERS A TECHNOLOGY OR A UNIT AND NOT
+// ONLY AN AGE-UP, PUT THESE FOUR BACK.
 
 /** Measured 2026-09-05 on the boot map under this configuration: the union
  *  over both seats. Every name is a contract; see the header. */

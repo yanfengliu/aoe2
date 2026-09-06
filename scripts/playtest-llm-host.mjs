@@ -9,8 +9,8 @@
  * Largest text a single `page.evaluate` may return during bundle export.
  *
  * This is a TRANSPORT bound (Playwright's JSON-RPC payload), not a correctness
- * one: three orders of magnitude under V8's 536,870,888-char string cap, so no
- * string on either side of the bridge can approach it.
+ * one: 4 MiB is 128 times under V8's 536,870,888-char string cap, so no string
+ * on either side of the bridge can approach it.
  */
 const EXPORT_PIECE_CHARS = 4 * 1024 * 1024;
 

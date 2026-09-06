@@ -173,10 +173,14 @@ describe('bundle file IO', () => {
   // EVERY script.
   //
   // Bound, named. This is a SOURCE check — it reads the text of the scripts,
-  // never a run of them — and it only knows the three shapes below. A bundle
-  // funnelled through a helper this cannot see (a `readAll()` two modules away,
-  // a dynamic `fs[method]`) passes it. It covers `scripts/*.mjs` only: `src/`
-  // and `tests/` are outside it.
+  // never a run of them — and it only knows the FOUR shapes below: a
+  // `JSON.stringify` of a bundle, a `JSON.parse(readFileSync(...))` of one, a
+  // bundle read from a path through a generic helper, and chunks rejoined with
+  // `.join('')` before a parse. Keep this count in step with `FORBIDDEN`: a
+  // header that describes less than the gate does is how a later reader deletes
+  // a check believing it redundant. A bundle funnelled through a helper this
+  // cannot see (a `readAll()` two modules away, a dynamic `fs[method]`) passes
+  // it. It covers `scripts/*.mjs` only: `src/` and `tests/` are outside it.
   describe('no script builds a whole bundle as one string', () => {
     const scriptsDir = fileURLToPath(new URL('../../scripts/', import.meta.url));
     const scripts = readdirSync(scriptsDir)
