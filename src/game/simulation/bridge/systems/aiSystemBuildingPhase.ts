@@ -56,7 +56,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
     if (!builderPosition) return;
     const townCenterCost = ownerConstructionCost(accessor, owner, 'town-center');
     if (stockpile && canAfford(stockpile, townCenterCost)) {
-      const anchor = findBuildPlacementNear(builderPosition, 'town-center');
+      const anchor = findBuildPlacementNear(builderPosition, 'town-center', [builderId]);
       if (anchor) {
         pushBuildingPlaceConfirmIntention(builderId, 'town-center', anchor);
         pendingBuildsByOwner.set(owner, (pendingBuildsByOwner.get(owner) ?? 0) + 1);
@@ -75,7 +75,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       const woodline = ownerTownCenterPosition
         ? dropOffAnchorFor(activeWorld, 'lumber-camp', ownerTownCenterPosition)
         : null;
-      const anchor = findBuildPlacementNear(woodline ?? builderPosition, 'lumber-camp');
+      const anchor = findBuildPlacementNear(woodline ?? builderPosition, 'lumber-camp', [builderId]);
       if (anchor) {
         pushBuildingPlaceConfirmIntention(builderId, 'lumber-camp', anchor);
         pendingBuildsByOwner.set(owner, (pendingBuildsByOwner.get(owner) ?? 0) + 1);
@@ -97,6 +97,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       const anchor = pickWatchTowerPlacement(
         ownerTownCenterPosition,
         state.lastEnemySightingPosition,
+        builderId === null ? undefined : [builderId],
       );
       // Phase 1C: gate on raw stockpile affordability (symmetry with
       // wonder/nextBuild paths below).
@@ -168,7 +169,11 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       );
     if (wonderPursuit && ongoingBuilds < maxConcurrentBuilds) {
       const builderId = findAvailableVillagerForBuild(owner);
-      const anchor = findBuildPlacementNear(ownerTownCenterPosition, 'wonder');
+      const anchor = findBuildPlacementNear(
+        ownerTownCenterPosition,
+        'wonder',
+        builderId === null ? undefined : [builderId],
+      );
       const wonderCost = ownerConstructionCost(accessor, owner, 'wonder');
       if (
         builderId !== null
@@ -182,14 +187,25 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       }
     }
 
-    const nextBuild = pickNextBuildTarget(currentAge, missing, populationBlocked, {
-      owned: countOwnedFarms(),
-      villagerCount: countOwnedUnits(owner, 'villager'),
-      // Farms outrank the rest of the build order only while the food is
-      // actually short; a well-fed AI that keeps replacing depleted soil never
-      // reaches the halls it has the resources for.
-      food: stockpile?.food ?? 0,
-    });
+    const nextBuild = pickNextBuildTarget(
+      currentAge,
+      missing,
+      populationBlocked,
+      {
+        owned: countOwnedFarms(),
+        villagerCount: countOwnedUnits(owner, 'villager'),
+        // Farms outrank the rest of the build order only while the food is
+        // actually short; a well-fed AI that keeps replacing depleted soil never
+        // reaches the halls it has the resources for.
+        food: stockpile?.food ?? 0,
+      },
+      // The order is a priority list, not a queue: the AI's OWN discounted
+      // price decides what it can start now, so a Castle it can pay for in
+      // stone beats a Siege Workshop it has no wood for. The gate below still
+      // re-prices and re-checks what comes back.
+      (buildingType) => stockpile !== undefined
+        && canAfford(stockpile, ownerConstructionCost(accessor, owner, buildingType)),
+    );
     if (nextBuild && ongoingBuilds < maxConcurrentBuilds && !wonderPursuit) {
       const builderId = findAvailableVillagerForBuild(owner);
       // A drop-off building exists to shorten a carry, so it belongs beside
@@ -199,6 +215,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       const anchor = findBuildPlacementNear(
         dropOffAnchorFor(activeWorld, nextBuild, ownerTownCenterPosition) ?? ownerTownCenterPosition,
         nextBuild,
+        builderId === null ? undefined : [builderId],
       );
       const buildCost = ownerConstructionCost(accessor, owner, nextBuild);
       if (

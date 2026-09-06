@@ -47,6 +47,7 @@ export function targetCrewSize(
 export function runBuildCrewPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
   const {
     accessor, currentEntityId, countOwnedUnits, pushUnitContextAtEntityIntention,
+    findBuildingApproachPlan,
   } = deps;
   const {
     activeWorld, owner, unitCommands, claimedVillagers, findAvailableVillagerForBuild,
@@ -67,9 +68,31 @@ export function runBuildCrewPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void
     void unitId;
   }
 
+  // A site with NO builder is invisible to the map above, because that map is
+  // built from live build COMMANDS. `playerCommandsSystem` drops a build
+  // command the first tick `findBuildingApproachPlan` comes back null, so one
+  // such tick strands the foundation for good: nothing re-crews it, while
+  // `findOwnedBuilding` still finds it, so `missing(type)` in the build order
+  // reads false for the rest of the match and the AI never orders that
+  // building again. Measured in the coverage lab (register entry 2026-09-06):
+  // owner 2's Siege Workshop foundation froze at 125/400 on tick 13,750 and
+  // stood there to the 45,000-tick horizon — no ram, no mangonel and neither
+  // siege technology all match — while owner 1 held three farm plots at 0/150
+  // that it counted among the farms it owned.
+  const adopted = new Set<number>();
+  for (const [siteId, construction] of accessor.get(constructionStatesCodec)) {
+    if (construction.isComplete || buildersBySite.has(siteId)) continue;
+    const site = activeWorld.getComponent<BuildingComponent>(siteId, 'building');
+    if (site?.owner !== owner) continue;
+    buildersBySite.set(siteId, 0);
+    adopted.add(siteId);
+  }
+
   // Longest remaining job first: with a limited pool, the Wonder outranks the
   // Mill, and reinforcing the site that is nearly done buys nothing.
-  const sites: Array<{ id: number; total: number; isWonder: boolean; remaining: number }> = [];
+  const sites: Array<{
+    id: number; total: number; isWonder: boolean; remaining: number; adopted: boolean;
+  }> = [];
   for (const [siteId, builders] of buildersBySite) {
     const construction = accessor.get(constructionStatesCodec).get(siteId);
     if (!construction || construction.isComplete) continue;
@@ -79,7 +102,13 @@ export function runBuildCrewPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void
     if (remaining <= 0) continue;
     const isWonder = site.buildingType === 'wonder';
     if (builders >= targetCrewSize(construction.totalBuildTicks, villagerCount, isWonder)) continue;
-    sites.push({ id: siteId, total: construction.totalBuildTicks, isWonder, remaining });
+    sites.push({
+      id: siteId,
+      total: construction.totalBuildTicks,
+      isWonder,
+      remaining,
+      adopted: adopted.has(siteId),
+    });
   }
   sites.sort((a, b) => b.remaining - a.remaining);
 
@@ -106,6 +135,19 @@ export function runBuildCrewPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void
       if (villagerId === null) return; // pool exhausted — later sites wait too
       const villagerPosition = activeWorld.getComponent<Position>(villagerId, 'position');
       if (!villagerPosition) return;
+      // An adopted site has no builder standing on it to prove it can be
+      // reached, so ask the mover's own question before spending a villager:
+      // a villager sent where it cannot walk has its command cleared next
+      // tick and comes straight back here, which is a permanent bounce rather
+      // than a build. A site that already HAS a builder is reachable by
+      // demonstration and pays no path search — a Wonder crew is dozens of
+      // villagers and one A* each would be the whole saving. One builder's
+      // answer stands for the pool: they are nearly always in the same
+      // connected component, and being wrong costs a skipped site this
+      // decision tick rather than a wrong build.
+      if (site.adopted && findBuildingApproachPlan(villagerId, site.id, 1, activeWorld) === null) {
+        break;
+      }
       pushUnitContextAtEntityIntention(villagerId, site.id, false);
       claimedVillagers.add(villagerId);
       onSite += 1;

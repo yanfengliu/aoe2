@@ -24,6 +24,7 @@ export interface AiDecisionDeps {
   findBuildPlacementNear: (
     origin: Position,
     buildingType: BuildingType,
+    builderIds?: readonly number[],
   ) => Position | null;
   // Constant injected as a dep so future tests could tune the forward
   // step without rewiring the module-level AI constants import.
@@ -46,7 +47,11 @@ export interface AiDecisionOps {
   // and the most recent enemy sighting. Steps the anchor one
   // AI_WATCH_TOWER_FORWARD_STEP toward the sighting so the tower sits
   // forward of the base rather than on top of it.
-  pickWatchTowerPlacement(townCenter: Position, sighting: Position): Position | null;
+  pickWatchTowerPlacement(
+    townCenter: Position,
+    sighting: Position,
+    builderIds?: readonly number[],
+  ): Position | null;
   // Assign the owner's idle villagers to gather from the desired
   // resource, walking toward the `villagerTargets` distribution one
   // reassignment at a time per decision tick.
@@ -208,19 +213,23 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
     return ids;
   }
 
-  function pickWatchTowerPlacement(townCenter: Position, sighting: Position): Position | null {
+  function pickWatchTowerPlacement(
+    townCenter: Position,
+    sighting: Position,
+    builderIds?: readonly number[],
+  ): Position | null {
     const dx = sighting.x - townCenter.x;
     const dy = sighting.y - townCenter.y;
     const distance = Math.abs(dx) + Math.abs(dy);
     if (distance <= 0) {
-      return findBuildPlacementNear(townCenter, 'watch-tower');
+      return findBuildPlacementNear(townCenter, 'watch-tower', builderIds);
     }
     const step = Math.min(aiWatchTowerForwardStep, Math.max(1, Math.floor(distance / 2)));
     const toward = {
       x: Math.round(townCenter.x + (dx * step) / distance),
       y: Math.round(townCenter.y + (dy * step) / distance),
     };
-    return findBuildPlacementNear(toward, 'watch-tower');
+    return findBuildPlacementNear(toward, 'watch-tower', builderIds);
   }
 
   function villagerRebalance(

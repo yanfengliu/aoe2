@@ -16,6 +16,7 @@ import type {
   UnitType,
 } from '../../types';
 import type { GameWorld } from '../pureHelpers';
+import type { UnitMovementPlan } from '../movementTypes';
 import type { MonkTask, UnitCommand } from '../sharedTypes';
 import type { AiState } from '../../ai';
 
@@ -51,9 +52,21 @@ export interface AiSystemDeps {
   findOwnedMilitaryUnits: (owner: number) => Array<{ id: number }>;
   hasOwnedWonder: (owner: number) => boolean;
   isConstructingBuilding: (owner: number, buildingType: BuildingType) => boolean;
+  /** Can this unit walk to a cell beside that building? The MOVER's own
+   *  answer — the same call `playerCommandsSystem` makes, whose null clears a
+   *  build command — so the crew phase and the command loop cannot disagree
+   *  about whether a site can be worked. */
+  findBuildingApproachPlan: (
+    unitId: number,
+    buildingId: number,
+    range?: number,
+    activeWorld?: CivWorld,
+    nearestFirst?: boolean,
+  ) => UnitMovementPlan | null;
   pickWatchTowerPlacement: (
     townCenterPosition: Position,
     enemyPosition: Position,
+    builderIds?: readonly number[],
   ) => Position | null;
   // Phase 1C — AI-decision intention push (DESIGN v17 §6.5/§6.6). The
   // dispatcher's `drainPendingCommands` between ticks submits each via
@@ -68,6 +81,9 @@ export interface AiSystemDeps {
   findBuildPlacementNear: (
     nearby: Position,
     buildingType: BuildingType,
+    /** The builders the site would be built by. A site none of them can walk
+     *  to is skipped, exactly as the placement validator would refuse it. */
+    builderIds?: readonly number[],
   ) => Position | null;
   countOwnedUnits: (owner: number, unitType: UnitType) => number;
   countQueuedUnits: (buildingId: number, unitType: TrainableUnitType) => number;

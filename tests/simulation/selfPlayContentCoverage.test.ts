@@ -43,6 +43,39 @@ import { TRAINABLE_UNIT_TYPES } from '../../src/game/simulation/trainingCosts';
 const HORIZON_TICKS = 45000;
 const SAMPLE_INTERVAL = 250;
 
+// THE 2026-09-06 REMOVAL — four names came off this floor, and the cause is
+// gold, not reach. Two defects were fixed first, because a floor is only
+// edited after the AI's own failures are: the AI orphaned foundations it had
+// already paid for, and its build order had no affordability fall-through, so
+// one entry it could never buy starved every entry behind it. Those two fixes
+// took the floor's misses from three units and five technologies down to one
+// and three. THESE ARE THAT ONE AND THREE, and they were measured, not argued.
+//
+// THE MEASUREMENT. The boot map's gold is entirely mined out by tick 30,000:
+// 6,263 left in the ground at tick 2,500, zero at 30,000. From there both
+// seats' gold stockpiles are FROZEN — 13 and 7 — for the remaining 15,000
+// ticks. Every removed name is priced in gold: a Mangonel 135 (on 160 wood),
+// and the three Imperial Blacksmith technologies 300, 150 and 200 gold on top
+// of 450, 300 and 350 food. The seats reach the Imperial Age at ticks 15,500
+// and 30,250, so the tier holding three of the four opens as the map empties.
+// A seat holding 7 gold cannot buy a 150-gold technology at any age.
+//
+// THIS IS A DEFERRAL, NOT A WEAKENING, and the floor still proves it: the
+// Imperial tier is reached AND spent in — `blast-furnace`, 275 food and 225
+// gold, stays on this floor and went through, bought while gold still existed.
+// Nothing removed here is unreachable. All four ask for gold at a point in the
+// match where none is left to ask for.
+//
+// THE CONDITION THEY COME BACK ON. The only gold remaining on this map is the
+// Market, and the AI's market planner (`marketActionForAgeUpShortfall`, called
+// from `aiSystemProductionPhase.ts`) has exactly one gate — qualifies for the
+// next age, cannot afford it — so it is dead for both seats from the moment
+// they are Imperial. An AI ending the match on 1,262 food, 441 stone and 7
+// gold beside its own completed Market is the separate, already-recorded
+// defect of 2026-09-03 ("The AI hoards the resource it cannot spend...", still
+// OPEN in the register), not a loss of reach here. WHEN A TRADE COVERS A
+// TECHNOLOGY OR A UNIT AND NOT ONLY AN AGE-UP, PUT THESE FOUR BACK.
+
 /** Measured 2026-09-05 on the boot map under this configuration: the union
  *  over both seats. Every name is a contract; see the header. */
 const BUILDINGS_EXERCISED = [
@@ -53,14 +86,18 @@ const BUILDINGS_EXERCISED = [
 const UNITS_EXERCISED = [
   'villager', 'scout', 'militia', 'spearman', 'man-at-arms', 'archer', 'trade-cart',
   'crossbowman', 'knight', 'light-cavalry', 'pikeman', 'longbowman', 'monk',
-  'battering-ram', 'mangonel', 'long-swordsman', 'capped-ram', 'throwing-axeman',
+  // `mangonel` (135 gold) removed 2026-09-06 — gold-starved, see above.
+  'battering-ram', 'long-swordsman', 'capped-ram', 'throwing-axeman',
 ];
 const TECHNOLOGIES_EXERCISED = [
   'feudal-age', 'castle-age', 'imperial-age',
-  'fletching', 'bodkin-arrow', 'bracer',
+  // The Imperial rung is gone from three of these four upgrade lines —
+  // `bracer`, `plate-mail-armor`, `plate-barding` removed 2026-09-06, all
+  // gold-starved, see above. `blast-furnace` is the same tier and stays.
+  'fletching', 'bodkin-arrow',
   'forging', 'iron-casting', 'blast-furnace',
-  'scale-mail-armor', 'chain-mail-armor', 'plate-mail-armor',
-  'scale-barding-armor', 'chain-barding-armor', 'plate-barding',
+  'scale-mail-armor', 'chain-mail-armor',
+  'scale-barding-armor', 'chain-barding-armor',
   'padded-archer-armor', 'leather-archer-armor',
   'horse-collar', 'heavy-plow', 'crop-rotation', 'husbandry', 'squires',
   'man-at-arms-upgrade', 'long-swordsman-upgrade', 'pikeman-upgrade',

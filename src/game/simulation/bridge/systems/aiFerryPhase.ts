@@ -123,7 +123,7 @@ export function runFerryPhase(deps: AiSystemDeps, ctx: AiOwnerContext): boolean 
       builder !== null
       && canAfford(stockpile, ownerConstructionCost(accessor, owner, 'dock'))
     ) {
-      const anchor = findBuildPlacementNear(probe!.position!, 'dock');
+      const anchor = findBuildPlacementNear(probe!.position!, 'dock', [builder]);
       if (anchor) pushBuildingPlaceConfirmIntention(builder, 'dock', anchor);
     }
     return true;

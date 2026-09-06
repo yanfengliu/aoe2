@@ -199,7 +199,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerAiSystem({
     world,
     humanPlayerId, attacksDisabled: deps.disableAiAttacks, // the coverage lab, spec §15.8
-    isLandCell,
+    isLandCell, findBuildingApproachPlan, // the crew phase's reachability ask
     visibility,
     accessor,
     monksByOwner,

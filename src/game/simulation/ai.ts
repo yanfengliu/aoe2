@@ -163,9 +163,33 @@ export function pickNextBuildTarget(
   missing: (buildingType: BuildableBuildingType) => boolean,
   populationBlocked: boolean,
   farms: { owned: number; villagerCount: number; food?: number } | null = null,
+  /**
+   * Whether the owner can pay for this build right now. The order below is a
+   * PRIORITY LIST, not a queue: an AI that cannot afford its first choice
+   * builds the next thing it can, and only falls back to naming the
+   * unaffordable first choice — so it keeps saving — when it can afford none
+   * of them.
+   *
+   * Measured in the coverage lab (register entry 2026-09-06): owner 1 held its
+   * wood between 6 and 127 for the whole Castle Age while a Siege Workshop
+   * costs 200, so the Castle-Age order never got past its first entry — with
+   * 2,506 stone banked and a Castle alone qualifying it for the Imperial Age
+   * (§7.2). It stood in the Castle Age to the horizon and the lab lost its
+   * whole Imperial tier. Defaults to "everything is affordable", which is the
+   * pre-2026-09-06 behaviour exactly.
+   */
+  affordable: (buildingType: BuildableBuildingType) => boolean = () => true,
 ): BuildableBuildingType | null {
+  // The first entry the owner can pay for, else the first entry at all: a
+  // broke AI still names what it is saving for, and the caller's own
+  // affordability gate turns that into "build nothing this tick" as before.
+  const choose = (wants: readonly BuildableBuildingType[]): BuildableBuildingType | null =>
+    wants.find(affordable) ?? wants[0] ?? null;
+
   // Pop block pre-empts everything: no production of any kind can
-  // resume until the AI has headroom. A fresh House is the fastest fix.
+  // resume until the AI has headroom. A fresh House is the fastest fix, and
+  // nothing else is worth starting until the block clears — so this branch
+  // does not fall through.
   if (populationBlocked) {
     return missing('house') ? 'house' : null;
   }
@@ -174,16 +198,15 @@ export function pickNextBuildTarget(
   // two Dark-Age prereqs for Feudal age-up. Lumber / mining camps are
   // OPTIONAL nice-to-haves only while still in Dark Age — in Feudal
   // and beyond the AI no longer blocks age-up on them.
-  if (missing('barracks')) {
-    return 'barracks';
-  }
-  if (missing('mill')) {
-    return 'mill';
-  }
+  const wants: BuildableBuildingType[] = [];
+  if (missing('barracks')) wants.push('barracks');
+  if (missing('mill')) wants.push('mill');
   if (age === 'dark-age') {
-    if (missing('lumber-camp')) return 'lumber-camp';
-    if (missing('mining-camp')) return 'mining-camp';
-    return null;
+    // The age bound is a RULE, not a preference: falling through must never
+    // offer a Dark-Age AI a building it cannot place.
+    if (missing('lumber-camp')) wants.push('lumber-camp');
+    if (missing('mining-camp')) wants.push('mining-camp');
+    return choose(wants);
   }
 
   // Farms come BEFORE the age-up prerequisite buildings: those cost wood and
@@ -196,7 +219,7 @@ export function pickNextBuildTarget(
   const farmsShort = farms !== null && farms.owned < farmsWanted;
   const foodShort = farms === null || (farms.food ?? 0) < FARM_PRIORITY_FOOD;
   if (farmsShort && (foodShort || farms.owned < MINIMUM_FARMS)) {
-    return 'farm';
+    wants.push('farm');
   }
 
   const feudalOrder: BuildableBuildingType[] = [
@@ -206,13 +229,12 @@ export function pickNextBuildTarget(
     'market',
   ];
   for (const target of feudalOrder) {
-    if (missing(target)) {
-      return target;
-    }
+    if (missing(target)) wants.push(target);
   }
 
   if (age === 'feudal-age') {
-    return farmsShort ? 'farm' : null;
+    if (farmsShort) wants.push('farm');
+    return choose(wants);
   }
 
   // FU4: Monastery slotted between Siege Workshop and Castle so the
@@ -222,15 +244,14 @@ export function pickNextBuildTarget(
   // blocks for tens of decision ticks while stone accumulates).
   const castleOrder: BuildableBuildingType[] = ['siege-workshop', 'monastery', 'castle'];
   for (const target of castleOrder) {
-    if (missing(target)) {
-      return target;
-    }
+    if (missing(target)) wants.push(target);
   }
 
   // Everything it wants is standing, so the deferred farms come back around —
   // this is what keeps a well-fed AI replacing depleted soil instead of
   // building nothing at all.
-  return farmsShort ? 'farm' : null;
+  if (farmsShort) wants.push('farm');
+  return choose(wants);
 }
 
 // Given the owner's age + player resources + research prerequisite
