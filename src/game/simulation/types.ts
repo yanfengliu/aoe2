@@ -344,8 +344,24 @@ export interface SelectionState {
   trainOptions: TrainableUnitType[];
   visibleResearchOptions: ResearchableTechnologyType[];
   researchOptions: ResearchableTechnologyType[];
+  /** Why each command the card is about to draw cannot be used right now.
+   *  Only the blocked ones appear; a command missing from this list is one
+   *  nothing is currently wrong with. The HUD hangs each reason on the
+   *  matching control, so a refusal explains itself where the player is
+   *  looking rather than only after a click (and a DISABLED control, which
+   *  cannot be clicked at all, has no other way to say anything). */
+  unavailableCommands: UnavailableCommand[];
   queue: ProductionQueueEntry[];
   placementMode: BuildableBuildingType | null;
+}
+
+/** One blocked command and the thing it is missing. `kind`-`id` is the
+ *  HUD's own `data-command` hook ("research-feudal-age", "build-house"). */
+export interface UnavailableCommand {
+  kind: 'research' | 'train' | 'build' | 'market';
+  id: string;
+  /** One short sentence naming what is missing — never a bare refusal. */
+  reason: string;
 }
 
 export interface PlacementPreviewState {

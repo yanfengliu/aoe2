@@ -28,18 +28,43 @@ import { actionGlyph, marketActionGlyph, researchGlyph, resourceGlyph } from '..
 import { unitGlyphRole, unitRoleGlyph } from '../icons/unitGlyphs';
 import { TRIBUTE_AMOUNT, tributeCost } from '../../../game/simulation/tributeRules';
 
+/**
+ * Why each drawn command refuses, keyed by its `data-command` hook. Built
+ * by the panel from `selectionState.unavailableCommands`; the reasons
+ * themselves are the bridge's, so a tooltip cannot disagree with the
+ * validator that would reject the click.
+ */
+export type CommandReasons = ReadonlyMap<string, string>;
+
+const NO_REASONS: CommandReasons = new Map();
+
+/**
+ * The reason goes in two places, for two readers. `data-tooltip` is what
+ * the player sees on hover — the only channel a DISABLED control has,
+ * since it can never be clicked into a rejection toast. `data-command-reason`
+ * is the same text as a stable DOM hook, so a check (and the play-test
+ * panel reader) can read it without parsing tooltip prose.
+ */
+function reasonMarkup(reason: string | undefined, baseTooltip: string): string {
+  const tooltip = reason ? `${baseTooltip} ${reason}` : baseTooltip;
+  const hook = reason ? ` data-command-reason="${reason}"` : '';
+  return `data-tooltip="${tooltip}"${hook}`;
+}
+
 export function renderResearchButtons(
   visibleResearchOptions: ResearchableTechnologyType[],
   availableResearchOptions: ResearchableTechnologyType[],
+  reasons: CommandReasons = NO_REASONS,
 ): string {
   return visibleResearchOptions
     .map((technologyType) => {
       const isAvailable = availableResearchOptions.includes(technologyType);
+      const base = formatResearchTooltip(technologyType, formatTechnologyName(technologyType));
       return `
           <button
             class="hud-command-button"
             data-command="research-${technologyType}"
-            data-tooltip="${formatResearchTooltip(technologyType, formatTechnologyName(technologyType))}"
+            ${reasonMarkup(reasons.get(`research-${technologyType}`), base)}
             type="button"
             ${isAvailable ? '' : 'disabled aria-disabled="true" data-command-locked="true"'}
           >
@@ -78,14 +103,17 @@ export function renderActionButtons(actionOptions: ActionType[]): string {
 // traded COMMODITY glyph (food/wood/stone) before the label, reusing the
 // top-bar `resourceGlyph` art at the command size. Augment-not-replace: the
 // `data-command="market-<action>"` hook + "Buy/Sell <Name>" text are preserved.
-export function renderMarketButtons(marketOptions: MarketActionType[]): string {
+export function renderMarketButtons(
+  marketOptions: MarketActionType[],
+  reasons: CommandReasons = NO_REASONS,
+): string {
   return marketOptions
     .map(
       (actionType) => `
           <button
             class="hud-command-button"
             data-command="market-${actionType}"
-            data-tooltip="${formatMarketActionTooltip(actionType)}"
+            ${reasonMarkup(reasons.get(`market-${actionType}`), formatMarketActionTooltip(actionType))}
             type="button"
           >
             ${marketActionGlyph(actionType)}<span class="hud-command-label">${formatMarketActionName(actionType)}</span>
@@ -95,19 +123,25 @@ export function renderMarketButtons(marketOptions: MarketActionType[]): string {
     .join('');
 }
 
-export function renderTrainButtons(trainOptions: TrainableUnitType[]): string {
+export function renderTrainButtons(
+  trainOptions: TrainableUnitType[],
+  reasons: CommandReasons = NO_REASONS,
+): string {
   return trainOptions
     .map(
-      (unitType) => `
+      (unitType) => {
+        const base = formatTrainTooltip(unitType, formatEntityName(unitType));
+        return `
           <button
             class="hud-command-button"
             data-command="train-${unitType}"
-            data-tooltip="${formatTrainTooltip(unitType, formatEntityName(unitType))}"
+            ${reasonMarkup(reasons.get(`train-${unitType}`), base)}
             type="button"
           >
             ${unitRoleGlyph(unitGlyphRole(unitType), 'hud-command-glyph')}<span class="hud-command-label">Train ${formatEntityName(unitType)}</span>
           </button>
-        `,
+        `;
+      },
     )
     .join('');
 }

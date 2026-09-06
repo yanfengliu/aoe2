@@ -38,6 +38,7 @@ function selection(overrides: Partial<SelectionState>): SelectionState {
     trainOptions: [],
     visibleResearchOptions: [],
     researchOptions: [],
+    unavailableCommands: [],
     queue: [],
     placementMode: null,
     ...overrides,

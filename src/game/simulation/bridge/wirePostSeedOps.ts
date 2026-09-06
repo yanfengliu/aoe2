@@ -38,6 +38,7 @@ import { createTrainingMarketOps } from './trainingMarketOps';
 import { createUnitCommandOps } from './unitCommandOps';
 import { createTargetFindingOps } from './targetFindingOps';
 import { createSelectionStateOps } from './selectionStateOps';
+import { createCommandAvailability } from './commandAvailability';
 import { HUMAN_PLAYER_ID } from '../prototypeScenario';
 import {
   MARKET_FEE_RATE,
@@ -49,6 +50,11 @@ import {
   MONK_HEAL_HP_PER_INTERVAL,
   MONK_HEAL_TICK_INTERVAL,
 } from './bridgeConstants';
+
+// An owner with no research in flight. Module-scoped because both read
+// surfaces that probe it — the agent snapshot and the command card — must
+// use the NON-creating lookup rather than the get-or-create helper.
+const NO_IN_FLIGHT: ReadonlySet<ResearchableTechnologyType> = new Set();
 
 type CombatStateLike = ReturnType<
   Parameters<typeof createTechnologyOps>[0]['createCombatState']
@@ -106,6 +112,11 @@ export interface WirePostSeedDeps {
   researchUnavailableReason: Parameters<
     typeof createBuildingOptionsOps
   >[0]['researchUnavailableReason'];
+  /** The tooltip-sized half of the same reason engine, for the command
+   *  card's own "why is this refusing me" answer. */
+  researchUnavailableSummary: Parameters<
+    typeof createCommandAvailability
+  >[0]['researchUnavailableSummary'];
   findOpenPlacementAnchors: CellPassability['findOpenPlacementAnchors'];
 }
 
@@ -288,6 +299,20 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
   });
   const { findBuildPlacementNear, garrisonUnit } = trainingMarketOps;
 
+  // Why each drawn command refuses. Read-only over the same tables the
+  // validators charge from, so a tooltip and the rejection it predicts can
+  // never disagree. `?? NO_IN_FLIGHT` rather than the get-or-create
+  // inFlightTechSetFor: this runs on every selection read and must not
+  // insert an entry for an owner with no research.
+  const { unavailableCommands } = createCommandAvailability({
+    accessor,
+    researchUnavailableSummary: deps.researchUnavailableSummary,
+    inFlightTechsFor: (owner) =>
+      accessor.get(inFlightTechByOwnerCodec).get(owner) ?? NO_IN_FLIGHT,
+    marketFeeRate: MARKET_FEE_RATE,
+    marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
+  });
+
   const selectionStateOps = createSelectionStateOps({
     world,
     humanPlayerId: HUMAN_PLAYER_ID,
@@ -307,6 +332,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     getBuildOptions,
     getResearchOptions,
     getVisibleResearchOptions,
+    unavailableCommands,
   });
 
   const targetFindingOps = createTargetFindingOps({ world, visibility, accessor });
@@ -399,7 +425,6 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
   // deliberately NON-creating (iter-1 Claude L2) — the helpers'
   // inFlightTechSetFor get-or-create would insert an empty set into the
   // Tier-2 cache on every snapshot of an owner with no research.
-  const NO_IN_FLIGHT: ReadonlySet<ResearchableTechnologyType> = new Set();
   const { getAgentBuildingOptions } = createBuildingOptionsOps({
     world,
     accessor,

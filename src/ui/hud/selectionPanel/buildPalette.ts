@@ -19,6 +19,7 @@ import { canAfford } from '../../../game/simulation/prototypeEconomyRules';
 import { effectiveConstructionCost } from '../../../game/simulation/civBonusEffects';
 import { formatEntityName } from '../displayNames';
 import { formatBuildTooltip, formatResourceCost } from '../tooltips';
+import type { CommandReasons } from './buttons';
 import { buildingGlyph, resourceGlyph } from '../icons/glyphs';
 import { buildPageGlyph } from '../icons/commandGlyphs';
 import {
@@ -26,6 +27,8 @@ import {
   type BuildPageBuckets,
   type BuildPageId,
 } from './buildPages';
+
+const NO_BUILD_REASONS: CommandReasons = new Map();
 
 const BUILD_COST_ORDER: readonly (keyof PlayerResources)[] = [
   'food',
@@ -90,6 +93,7 @@ export function renderBuildButtons(
   placementMode: BuildableBuildingType | null,
   costOf: (buildingType: BuildableBuildingType) => Partial<PlayerResources>
     = (buildingType) => effectiveConstructionCost(undefined, buildingType),
+  reasons: CommandReasons = NO_BUILD_REASONS,
 ): string {
   return buildOptions
     .map((buildingType) => {
@@ -100,16 +104,31 @@ export function renderBuildButtons(
       const active = placementMode === buildingType;
       const readiness = affordable ? 'Ready' : 'Short';
       const missingResources = affordable ? '' : formatMissingBuildResources(cost, resources);
-      const accessibleStatus = affordable ? 'ready' : `short on ${missingResources}`;
+      // §14.2 keeps a Short card DIMMED rather than annotated, so the
+      // reason rides the tooltip and the accessible name — the two places
+      // a player and a screen reader ask — and not the tile's face.
+      //
+      // The sentence is the BRIDGE's, never assembled here: a second copy
+      // of "Not enough <resources>." in the UI is a copy that drifts (this
+      // file joins with " and ", the bridge with commas past two), and a
+      // local copy also made the A/B's before arm answer with a reason the
+      // base revision never had, so the build card's pixel diff read 0.00%
+      // and measured nothing. With no reasons supplied — the exported
+      // helper's older signature, which the UI unit tests use — the card
+      // keeps exactly the accessible status it had before this change.
+      const refusal = reasons.get(`build-${buildingType}`) ?? '';
+      const accessibleStatus = refusal || (affordable ? 'ready.' : `short on ${missingResources}.`);
+      const baseTooltip = formatBuildTooltip(buildingType, displayName, cost);
       return `
           <button
             class="hud-command-button hud-build-card"
             data-command="build-${buildingType}"
             data-command-affordable="${affordable}"
             data-command-active="${active}"
-            data-tooltip="${formatBuildTooltip(buildingType, displayName, cost)}"
+            data-tooltip="${refusal ? `${baseTooltip} ${refusal}` : baseTooltip}"
+            ${refusal ? `data-command-reason="${refusal}"` : ''}
             type="button"
-            aria-label="Build ${displayName}. Cost: ${formatResourceCost(cost)}. ${accessibleStatus}."
+            aria-label="Build ${displayName}. Cost: ${formatResourceCost(cost)}. ${accessibleStatus}"
             aria-pressed="${active}"
           >
             <span class="hud-build-card__visual">${buildingGlyph(buildingType)}</span>

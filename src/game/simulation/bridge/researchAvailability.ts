@@ -27,6 +27,7 @@ import {
   isAgeUpTechnology,
   type AgeUpTechnologyType,
 } from '../prototypeBuildingRules';
+import { researchPrerequisiteTechnology } from './losTechOptions';
 
 type AgeType = 'dark-age' | 'feudal-age' | 'castle-age' | 'imperial-age';
 
@@ -79,11 +80,37 @@ export interface ResearchAvailability {
     buildingType: BuildingType,
     tech: ResearchableTechnologyType,
   ): string;
+  /** The same answer, short enough to sit at the end of a command
+   *  tooltip and written in display names rather than option ids. The
+   *  button beside it already carries the technology's own name and its
+   *  price, so this says only what is MISSING. Same inputs, same rules,
+   *  same file — the long form above is what the agent snapshot and the
+   *  rejection toast read, this is what the player reads on hover. */
+  researchUnavailableSummary(
+    owner: number,
+    buildingType: BuildingType,
+    tech: ResearchableTechnologyType,
+  ): string;
 }
 
 function formatList(items: readonly string[]): string {
   if (items.length <= 1) return items[0] ?? '';
   return `${items.slice(0, -1).join(', ')}, or ${items[items.length - 1]}`;
+}
+
+/**
+ * `lumber-camp` → `Lumber Camp`. Deliberately a generic humanizer rather
+ * than a second copy of the HUD's per-id name tables: everything these
+ * reasons NAME is a building type or an age, whose ids are already the
+ * display name in kebab case, and a duplicated table is a table that
+ * drifts. The technology's own name is never formatted here — the button
+ * the tooltip hangs off already carries it.
+ */
+export function titleCaseId(id: string): string {
+  return id
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 export function createResearchAvailability(
@@ -154,5 +181,57 @@ export function createResearchAvailability(
     );
   }
 
-  return { researchUnavailableReason };
+  function ageUpSummary(owner: number, tech: AgeUpTechnologyType): string {
+    const departsFrom = AGE_UP_DEPARTS_FROM[tech];
+    const currentAge = getPlayerAge(owner);
+    if (AGE_ORDER[currentAge] > AGE_ORDER[departsFrom]) {
+      return `Already past it — you are in the ${ERA_LABEL[currentAge]}.`;
+    }
+    if (AGE_ORDER[currentAge] < AGE_ORDER[departsFrom]) {
+      return `Needs the ${ERA_LABEL[departsFrom]} — you are in the ${ERA_LABEL[currentAge]}.`;
+    }
+    const have = countCompletedAgePrerequisites(owner, tech);
+    const candidates = formatList(agePrerequisiteBuildingTypes(tech).map(titleCaseId));
+    // §7.2 gives Imperial an ALTERNATIVE — two qualifying buildings or one
+    // Castle — so a player with a Castle nearly finished is not sent off to
+    // build something else.
+    const alternative = tech === 'imperial-age' ? ', or one completed Castle' : '';
+    return (
+      `Needs ${AGE_ADVANCE_REQUIRED_COUNT} completed ${ERA_LABEL[departsFrom]} buildings `
+      + `(${candidates})${alternative}. You have ${have}.`
+    );
+  }
+
+  function researchUnavailableSummary(
+    owner: number,
+    buildingType: BuildingType,
+    tech: ResearchableTechnologyType,
+  ): string {
+    if (!canResearchAt(buildingType, tech)) {
+      const where = buildingsThatResearch(tech).map(titleCaseId);
+      return where.length > 0
+        ? `Researched at a ${formatList(where)}, not here.`
+        : `Not researched at a ${titleCaseId(buildingType)}.`;
+    }
+    if (isAgeUpTechnology(tech)) {
+      return ageUpSummary(owner, tech);
+    }
+    if (hasTechnology(owner, tech)) {
+      return 'Already researched.';
+    }
+    const denier = civilizationDenying(owner, tech);
+    if (denier !== undefined) {
+      return `Not in the ${denier} technology tree — nothing will ever unlock it.`;
+    }
+    const prerequisite = researchPrerequisiteTechnology(tech);
+    if (prerequisite !== undefined && !hasTechnology(owner, prerequisite)) {
+      return `Needs ${titleCaseId(prerequisite)} researched here first.`;
+    }
+    // The last resort, and it stays vague because nothing more specific is
+    // known: every other gate either keeps the option out of the menu (so
+    // no button is drawn to explain) or is answered above.
+    return 'Not available yet — needs a later age or an earlier upgrade.';
+  }
+
+  return { researchUnavailableReason, researchUnavailableSummary };
 }

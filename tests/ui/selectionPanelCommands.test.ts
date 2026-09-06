@@ -50,6 +50,7 @@ function villagerSelection(overrides: Partial<SelectionState> = {}): SelectionSt
     trainOptions: [],
     visibleResearchOptions: [],
     researchOptions: [],
+    unavailableCommands: [],
     queue: [],
     placementMode: null,
     ...overrides,

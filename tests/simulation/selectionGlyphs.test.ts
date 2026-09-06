@@ -212,6 +212,7 @@ function baseSelectionState(overrides: Partial<SelectionState>): SelectionState 
     trainOptions: [],
     visibleResearchOptions: [],
     researchOptions: [],
+    unavailableCommands: [],
     queue: [],
     placementMode: null,
     ...overrides,

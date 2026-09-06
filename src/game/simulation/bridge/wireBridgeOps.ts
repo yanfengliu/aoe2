@@ -80,7 +80,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getVisibleResearchOptions,
     getMarketOptions,
     getBuildOptions,
-    researchUnavailableReason,
+    researchUnavailableReason, researchUnavailableSummary,
     createCombatState,
     entityCreateOps,
     addUnitEntity,
@@ -182,7 +182,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getMarketOptions,
     getBuildOptions,
     getVisibleResearchOptions,
-    researchUnavailableReason,
+    researchUnavailableReason, researchUnavailableSummary,
     findOpenPlacementAnchors,
   });
   const {

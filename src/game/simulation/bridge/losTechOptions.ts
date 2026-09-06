@@ -52,6 +52,25 @@ export function townCenterLosVisibleOptions(
   return options;
 }
 
+/**
+ * The technology `technology` waits on, when the thing blocking it is
+ * another RESEARCH rather than an age or a building.
+ *
+ * It lives beside the rule it names — the `hasTechnology(owner,
+ * 'town-watch')` gate two functions up — so the two cannot drift: an
+ * option list that gains a technology-on-technology gate has to answer
+ * here as well. Town Patrol is the only such gate the command card ever
+ * draws as a LOCKED button today (every other one simply keeps the
+ * option out of the menu), which is why the reason engine only has to
+ * ask about these. Without it the card said "needs a later age or an
+ * earlier upgrade" and left the player to guess which upgrade.
+ */
+export function researchPrerequisiteTechnology(
+  technology: ResearchableTechnologyType,
+): ResearchableTechnologyType | undefined {
+  return technology === 'town-patrol' ? 'town-watch' : undefined;
+}
+
 // Tracking was removed with DE (v0.3.140): its +2 infantry line of sight is
 // folded into the infantry line itself (visionTechEffects), so the Barracks
 // no longer offers a LoS research.

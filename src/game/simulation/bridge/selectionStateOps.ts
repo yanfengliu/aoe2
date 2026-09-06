@@ -107,6 +107,12 @@ export interface SelectionStateOpsDeps {
     owner: number,
     buildingType: BuildingComponent['buildingType'],
   ) => ResearchableTechnologyType[];
+  /** Why each drawn command is blocked (bridge/commandAvailability). The
+   *  option lists say WHICH commands the card draws; this says what is
+   *  missing from the ones it draws unusable. */
+  unavailableCommands: (
+    query: import('./commandAvailability').CommandAvailabilityQuery,
+  ) => import('../types').UnavailableCommand[];
 }
 
 export interface SelectionStateOps {
@@ -133,6 +139,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     getBuildOptions,
     getResearchOptions,
     getVisibleResearchOptions,
+    unavailableCommands,
   } = deps;
   const { getEntityHealth, getWildlifeAlive, getUnitActiveVerb } =
     createEntityReadProbes({ world, accessor });
@@ -268,6 +275,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
         trainOptions: [],
         visibleResearchOptions: [],
         researchOptions: [],
+        unavailableCommands: [],
         queue: [],
         placementMode: placementMode.current,
       };
@@ -438,6 +446,17 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       trainOptions,
       visibleResearchOptions,
       researchOptions,
+      // Only the HUMAN's own commands are ever drawn as buttons, so an
+      // enemy building's card asks for nothing and gets nothing.
+      unavailableCommands: unavailableCommands({
+        owner: humanPlayerId,
+        buildingType: building?.owner === humanPlayerId ? building.buildingType : null,
+        visibleResearchOptions,
+        researchOptions,
+        trainOptions,
+        marketOptions,
+        buildOptions,
+      }),
       queue: building
         ? cloneQueue(accessor.get(productionQueuesCodec).get(selectedEntityId) ?? [])
         : [],

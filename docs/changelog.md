@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.210
+
+- **A greyed-out command now says what it is waiting for.** A button the command card draws but you cannot use — a greyed research or training option, an unaffordable build card, a market trade — used to tell you only what it costs, and left you to guess why it would not respond. The Town Centre's "Research Feudal Age" sat greyed while its own tooltip quoted 500 food to a player holding 1,295, and nothing anywhere named the two buildings the age was really waiting for; one game sat in the Dark Age for 38 minutes over it. Hovering such a command now gives one short sentence naming what is missing — the buildings an age wants and how many of them you have finished, the research a technology is waiting on, or the resources you are short of, named rather than counted. Keyboard and screen-reader users get the same sentence in the button's name. No button's behaviour changed: nothing became clickable or unclickable, and the rules for what may be researched, trained, built or traded are exactly what they were. The game only says out loud what it already knew.
+
 ## 0.3.209
 
 - **Clicking the command bar no longer orders your army into the fog.** Right-clicking the empty dark glass of the bottom bar — the space beside the training queue, or anywhere the bar paints but no button sits — sent every selected unit walking to a map cell hidden underneath it, and left-clicking there cleared the selection. The bar had become a fixed-height band in 0.3.207, and everything it painted that was not a button was a hole straight through to the map. Every panel the HUD paints now takes the click itself. Clicks in the transparent space beside a panel still reach the map, as they should, and tooltips still follow the cursor without taking clicks.

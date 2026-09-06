@@ -171,8 +171,10 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     },
   });
 
-  // agent-affordances A1: shared reason engine (validator messages + buildingOptionsOps).
-  const { researchUnavailableReason } = createResearchAvailability({
+  // agent-affordances A1: shared reason engine (validator messages +
+  // buildingOptionsOps). The `Summary` half is the same answer sized for a
+  // command tooltip — see commandAvailability.ts.
+  const { researchUnavailableReason, researchUnavailableSummary } = createResearchAvailability({
     getPlayerAge,
     hasTechnology,
     countCompletedAgePrerequisites,
@@ -301,7 +303,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     getVisibleResearchOptions,
     getMarketOptions,
     getBuildOptions,
-    researchUnavailableReason,
+    researchUnavailableReason, researchUnavailableSummary,
     createCombatState,
     entityCreateOps,
     addUnitEntity,

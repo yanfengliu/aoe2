@@ -67,6 +67,7 @@ describe('createSimulationBridge core systems — gameplay/multi-select/placemen
       marketOptions: [],
       trainOptions: [],
       researchOptions: [],
+    unavailableCommands: [],
       queue: [],
       tileEntityIndex: 1,
       tileEntityCount: 1,

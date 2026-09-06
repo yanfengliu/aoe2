@@ -65,6 +65,20 @@ import {
   renderTributeButtons,
 } from './selectionPanel/buttons';
 
+/**
+ * The bridge's per-command "what is missing", indexed by the same
+ * `data-command` hook the buttons carry. The simulation decides WHY a
+ * command refuses; this only routes each sentence to its own control.
+ */
+function commandReasons(selectionState: SelectionState): ReadonlyMap<string, string> {
+  return new Map(
+    selectionState.unavailableCommands.map((entry) => [
+      `${entry.kind}-${entry.id}`,
+      entry.reason,
+    ]),
+  );
+}
+
 type CommandGroupKind =
   | 'action'
   | 'stance'
@@ -263,6 +277,7 @@ export function createSelectionPanel(
     // DE's command card shows ONE build page at a time (spec §14.1), so only
     // the active page's cards are drawn; the toggle in the heading is what
     // reaches the other page.
+    const reasons = commandReasons(selectionState);
     const activePageOptions = buildPages[activeBuildPage];
     // Both pages fill the same number of slots, so the palette keeps its height
     // and the page toggle above it does not move when the player switches.
@@ -276,6 +291,7 @@ export function createSelectionPanel(
         playerResources,
         selectionState.placementMode,
         costOf,
+        reasons,
       ) + renderBuildSlots(widestPage - activePageOptions.length)
       : '';
     const buildPageTabs = selectionState.buildOptions.length > 0
@@ -285,8 +301,8 @@ export function createSelectionPanel(
     // the status visible if that ever stops being true.
     const placementOutsideDeck = buildButtons ? '' : placementMarkup;
     const actionButtons = renderActionButtons(selectionState.actionOptions);
-    const trainButtons = renderTrainButtons(selectionState.trainOptions);
-    const marketButtons = renderMarketButtons(selectionState.marketOptions);
+    const trainButtons = renderTrainButtons(selectionState.trainOptions, reasons);
+    const marketButtons = renderMarketButtons(selectionState.marketOptions, reasons);
     // Tribute rides the Market card: buttons exist only while a completed own
     // Market is selected, which is exactly when marketOptions is non-empty.
     const tribute = selectionState.marketOptions.length > 0
@@ -297,6 +313,7 @@ export function createSelectionPanel(
     const researchButtons = renderResearchButtons(
       selectionState.visibleResearchOptions,
       selectionState.researchOptions,
+      reasons,
     );
 
     const commandGroups = [
