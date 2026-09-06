@@ -21,6 +21,16 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# This workflow only reads code. It declares that explicitly because the
+# repository went public on 2026-09-05 and the pull_request trigger above now
+# runs a stranger's code (`npm ci` install scripts, then the build and test
+# scripts from the PR itself). GitHub already hands a fork's pull request a
+# read-only token, but stating the floor here also covers the push and dispatch
+# runs, whatever the repository's default token permission is set to. This
+# workflow uses no secrets.
+permissions:
+  contents: read
+
 jobs:
   gates:
     name: ${{ matrix.os }} — typecheck + lint + test + build

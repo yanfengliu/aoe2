@@ -24,6 +24,30 @@ The 2026-09-06 rollover of "The AI waits for a full attack group against an enem
 
 - Here, "The AI waits for a full attack group against an enemy that has no army left": "The rename in the entry above did not close the class" means "An enemy that garrisons its last villagers pins the attacker's whole army forever", which is still active.
 
+The next 2026-09-06 rollover, of "An enemy that garrisons its last villagers pins the attacker's whole army forever", brought the other end of two of the references above into this file and added one more:
+
+- The bullet directly above no longer crosses the split: both ends of it are HERE now, so its "which is still active" is out of date and is left as written, the way an entry is.
+- Here, "An enemy that garrisons its last villagers pins the attacker's whole army forever": "the four-arm table is in the entry above" means the lumber-camp entry, also here — a reference that crossed the split and now does not.
+- Active, "A decided match never ends, because the AI can only aim at a Town Center": "the 2026-09-04 garrison entry above", in its heading, means "An enemy that garrisons its last villagers pins the attacker's whole army forever", here.
+
+## 2026-09-04 — An enemy that garrisons its last villagers pins the attacker's whole army forever (FIXED)
+
+**Symptom.** The user's priority 2, "matches still do not resolve". On `gold-rush` at 60,000 ticks owner 1 holds **151 units, every one of them idle since tick 30,000**, 45 cells from owner 2's 14 remaining buildings. Owner 2 has no unit on the map. The match reports `running`.
+
+**Which arm that reading came from, corrected 2026-09-04 after a critic asked.** It was taken with the camp-anchor radius ALREADY at 20 — the two changes in this session shipped together, and this one was investigated on top of the other. In the true baseline `gold-rush` resolves at 34,704 with an army of 17, so the 151-unit tableau never existed in a shipped build. It is the symptom of an army this AI can now field, and it does not weaken the defect: the mechanism is arm-independent and the mutation proof below is taken on a fixture that has no camp at all.
+
+**Investigation, including two hypotheses that were wrong.** The attack phase was reached and wanted to push: tracing it every decision tick from tick 27,000 gives `group=136 thr=7 push=true targetOwner=2 tcId=2185`, so the army was mustered and the enemy Town Centre was a live target. The first hypothesis was the army being sealed inside its own base by 58 buildings; ordering units by hand through `bridge.pendingCommands` refuted it — a Knight walked **49 cells to distance 2 of that very Town Centre**, and every one of owner 2's 14 buildings was reachable. The second was the `!buildingApproachPlan -> clearUnitCommand` path in `attackCommandStep`; instrumenting it caught **zero** clears. Instrumenting `setUnitCommand` and `clearUnitCommand` then showed the command was never SET in the first place.
+
+**Root cause.** `runAttackPhase` prefers the target enemy's villager, and `findOwnedUnit(targetOwner, 'villager')` returned villager 2448 — alive, and **garrisoned**. `garrisonUnit` strips a unit's position component, and `setUnitAttackCommandDirect` returns false without a target position: a **silent no-op**, exactly as its own comment describes. The validator passes (the entity is alive and has a `unit` component), so nothing is rejected and nothing is logged. Every decision tick, all 136 units were ordered onto a target that cannot be engaged, the order was dropped, and the branch `continue`d before the visible-building and Town-Centre fallbacks that would have worked.
+
+**Fix.** `findOwnedUnit` -> `findOwnedUnitOnMap`, querying `('unit', 'position')`. A unit with no position cannot be walked to, attacked, or engaged in any way, so handing one back as "a unit of this type" is a trap for every caller; it had exactly one production caller and the rename makes the contract impossible to miss.
+
+**Measured, `SEEDS=arena,fortress,gold-rush,coastal TICKS=60000 SAMPLE=500 npm run ai:army-block`.** Matches resolving goes from **one of four to three of four** — the four-arm table is in the entry above, because the two changes shipped together and only the table separates them. This is the change that does the work: on its own it takes `fortress`, `gold-rush` and `coastal`. Army columns are NOT comparable across arms and are not quoted as if they were — a match that ends at 34,509 has 25,000 fewer ticks in which to peak.
+
+**How this class is checked from now on.** `tests/simulation/aiGarrisonedDefender.test.ts` on the new `ai-garrisoned-defender-fixture`: the defender's only two villagers are garrisoned through the real command path, the test asserts they are off the map AND still alive (a dead villager would let the attack phase fall through for the right answer for the wrong reason), and then requires the match to RESOLVE. RED-CHECKED: `owner 2 still holds 2 building(s) (town-center, barracks); 11 of 11 attackers idle`.
+
+**A note on the instrument, because it wasted an hour.** Two rounds of tracing printed nothing and were read as findings. Both times the file had been patched with a broken string escape and `tsx` failed to transform it — and the run was piped through `grep`, so the shell reported exit 0. A trace that prints nothing and a build that never ran look identical. Every later trace was checked by confirming a control line printed first.
+
 ## 2026-09-04 — The AI waits for a full attack group against an enemy that has no army left (FIXED, found by a critic)
 
 **Symptom.** None reported — this is a defect an independent critic found in the very change that was supposed to close its class, before anyone played it. It is registered anyway, because the entry above claims to have fixed "the army stands idle beside a base it could raze" and only half of that was true.
