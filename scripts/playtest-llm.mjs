@@ -45,6 +45,8 @@ import { LlmAgent } from '../src/game/playtest/llmAgent.ts';
 import { runLlmPlaytest } from '../src/game/playtest/llmRunner.ts';
 import { selectKnownIssues } from '../src/game/playtest/knownIssues.ts';
 import { parsePlaytestLlmArgs, PlaytestLlmArgError } from '../src/game/playtest/playtestLlmArgs.ts';
+import { writeBundleFile } from '../src/game/playtest/bundleIo.ts';
+import { makePlaywrightHost } from './playtest-llm-host.mjs';
 
 // Full-review iter-2 H8: parsing + numeric validation lives in the typed,
 // unit-tested `playtestLlmArgs` module (a bare `Number('nope')` used to be NaN
@@ -223,120 +225,6 @@ async function startServer(useDev) {
   throw new Error(`Server never started.\nstderr:\n${stderr}`);
 }
 
-async function makePlaywrightHost(page, hostOptions = {}) {
-  const omniscient = !!hostOptions.omniscient;
-  // playtest-fixes iter-1 (Codex HIGH): the agent may only command its
-  // own entities; the in-page dispatcher enforces it via expectedOwner.
-  const expectedOwner = hostOptions.ownerId;
-  return {
-    async waitForBoot() {
-      // Assert both isBooted AND the agent sub-surface — defends
-      // against a boot-vs-agent race where __AOE2_TEST__ exists but
-      // the .agent methods aren't attached yet (HMR window with
-      // --use-dev-server, late dynamic-import resolution). Without
-      // this, the next host call hits a bare TypeError that the
-      // operator can't decode from the envelope (Claude impl-345 M6).
-      await page.waitForFunction(
-        () =>
-          window.__AOE2_TEST__?.isBooted() === true
-          && typeof window.__AOE2_TEST__?.agent?.snapshotForAgent === 'function'
-          && typeof window.__AOE2_TEST__?.agent?.dispatchAgentCommand === 'function'
-          && typeof window.__AOE2_TEST__?.agent?.getRecorderBundle === 'function'
-          && typeof window.__AOE2_TEST__?.setPaused === 'function',
-        undefined,
-        { timeout: 60_000 },
-      );
-    },
-    // playtest-fixes C: freeze/unfreeze the live sim. The runner pauses
-    // once after boot so the game does NOT free-run during the agent's
-    // ~10-100s LLM calls (the 2026-06-09 run drifted to bridge tick
-    // 5413 on a maxTicks-2000 run, voiding checkpoint alignment).
-    async setPaused(paused) {
-      await page.evaluate((p) => window.__AOE2_TEST__.setPaused(p), paused);
-    },
-    async getCurrentTick() {
-      return await page.evaluate(() => window.__AOE2_TEST__.getRenderState().tick);
-    },
-    async snapshotForAgent(ownerId) {
-      // Phase-6.B (impl-2 M7): forward host-level omniscient flag so the
-      // snapshot honors visibility-gating per the corpus row / CLI flag.
-      return await page.evaluate(
-        ([id, opts]) => window.__AOE2_TEST__.agent.snapshotForAgent(id, opts),
-        [ownerId, { omniscient }],
-      );
-    },
-    async captureScreenshot() {
-      const bbox = await page.evaluate(() => window.__AOE2_TEST__.agent.getCanvasBboxForScreenshot());
-      const buffer = await page.screenshot({ clip: bbox });
-      return new Uint8Array(buffer);
-    },
-    async dispatchCommand(cmd) {
-      return await page.evaluate(
-        ([c, owner]) => window.__AOE2_TEST__.agent.dispatchAgentCommand(c, { expectedOwner: owner }),
-        [cmd, expectedOwner],
-      );
-    },
-    async advanceTicks(count) {
-      // Atomic unpause → step N → repause inside ONE synchronous page
-      // task: requestAnimationFrame can never interleave a synchronous
-      // evaluate, so with the runner-held pause active, advanceTicks is
-      // the ONLY way the bridge tick moves. tickAfter - tickBefore then
-      // equals the requested count exactly and baseline checkpoints
-      // (multiples of decisionIntervalTicks) land precisely.
-      await page.evaluate((n) => {
-        const api = window.__AOE2_TEST__;
-        api.setPaused(false);
-        try {
-          api.advanceTicks(n);
-        } finally {
-          api.setPaused(true);
-        }
-      }, count);
-    },
-    async drainDispatchLog() {
-      return await page.evaluate(() => window.__AOE2_TEST__.agent.drainAgentDispatchLog());
-    },
-    async getEntityCountsByOwner() {
-      return await page.evaluate(() => window.__AOE2_TEST__.agent.getEntityCountsByOwner());
-    },
-    async getMatchOutcome() {
-      return await page.evaluate(() => window.__AOE2_TEST__.agent.getMatchOutcome());
-    },
-    async exportBundle() {
-      // playtest-fixes D: the previous blob-URL path was dead on
-      // arrival — page.request.fetch is an HTTP client and rejects
-      // blob: URLs ("Protocol 'blob:' not supported"), which engineHalt-
-      // ed every real run at export time. Instead: stringify the bundle
-      // into a page global once, pull it out in chunks that stay under
-      // Playwright's JSON-RPC payload limit, and reassemble in Node.
-      const CHUNK_BYTES = 4 * 1024 * 1024;
-      const totalLength = await page.evaluate(() => {
-        const bundle = window.__AOE2_TEST__.agent.getRecorderBundle();
-        window.__AOE2_PLAYTEST_BUNDLE_TEXT__ = JSON.stringify(bundle);
-        return window.__AOE2_PLAYTEST_BUNDLE_TEXT__.length;
-      });
-      console.log(`[playtest-llm] bundle JSON ready: ${totalLength} chars, pulling in ${Math.ceil(totalLength / CHUNK_BYTES)} chunks`);
-      try {
-        const parts = [];
-        for (let offset = 0; offset < totalLength; offset += CHUNK_BYTES) {
-          const part = await page.evaluate(
-            ([start, len]) => window.__AOE2_PLAYTEST_BUNDLE_TEXT__.slice(start, start + len),
-            [offset, CHUNK_BYTES],
-          );
-          parts.push(part);
-        }
-        return JSON.parse(parts.join(''));
-      } finally {
-        await page
-          .evaluate(() => {
-            delete window.__AOE2_PLAYTEST_BUNDLE_TEXT__;
-          })
-          .catch(() => {});
-      }
-    },
-  };
-}
-
 // Kill the spawned npm/vite child AND its descendants. Plain p.kill()
 // only signals the immediate child (`npm.cmd`); on Windows the
 // grandchild `node.exe` running vite preview survives, holding
@@ -512,7 +400,13 @@ async function main() {
     // removed "looked-fun" observation oracle, works on any saved run,
     // and can be re-run for free with an improved probe.
 
-    writeFileSync(`${args.out}.json`, JSON.stringify(result.bundle));
+    // Streamed, compact, still ordinary JSON — the same writer `playtest.mjs`
+    // uses. Stringifying the bundle in one call cannot write a full-length run:
+    // the whole document would be a single string, and V8 caps a string at
+    // 536,870,888 chars, so it threw `RangeError: Invalid string length` AFTER
+    // the model spend that produced the run. Read it back with
+    // `readBundleFile` — reading the file into one string hits the same cap.
+    writeBundleFile(`${args.out}.json`, result.bundle);
     writeFileSync(`${args.out}.envelope.json`, JSON.stringify(result.envelope, null, 2));
     console.log(
       `[playtest-llm] done: ${result.envelope.decisionsRun} decisions / ${result.envelope.ticksRun} ticks / cost $${result.envelope.totalCostUsd.toFixed(4)} / stopReason=${result.envelope.stopReason}`,

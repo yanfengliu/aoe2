@@ -10,6 +10,7 @@ import { basename, dirname } from 'node:path';
 
 import { SessionReplayer } from 'civ-engine';
 
+import { readBundleFile } from '../src/game/playtest/bundleIo.ts';
 import { repairBundleEndTick } from '../src/game/playtest/bundleEndTick.ts';
 import { runOracles } from '../src/game/playtest/oracles.ts';
 import {
@@ -60,6 +61,13 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
+function requireArtifact(path) {
+  if (!existsSync(path)) {
+    throw new Error(`missing required artifact: ${path}`);
+  }
+  return path;
+}
+
 function readTrace(path, { required }) {
   if (!existsSync(path)) {
     if (required) throw new Error(`missing required artifact: ${path}`);
@@ -72,7 +80,12 @@ function readTrace(path, { required }) {
 }
 
 function readRun(prefix, id = basename(prefix), options = { oracles: false, thresholds: {} }) {
-  const bundle = readJson(`${prefix}.json`);
+  // The bundle is the one artifact here `readJson` cannot handle: a full-length
+  // run's JSON is past V8's max string length, so `JSON.parse(readFileSync(…))`
+  // throws `RangeError: Invalid string length` on exactly the long runs this
+  // ledger is built for. Streamed instead — and called by name, because a
+  // wrapper is what hid this read from the call-site gate in the first place.
+  const bundle = readBundleFile(requireArtifact(`${prefix}.json`));
   repairBundleEndTick(bundle);
   const envelope = readJson(`${prefix}.envelope.json`);
   const traceRows = readTrace(`${prefix}.llm-trace.jsonl`, { required: !options.oracles });

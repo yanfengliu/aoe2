@@ -1,5 +1,5 @@
 import { constants } from 'node:buffer';
-import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
@@ -165,13 +165,111 @@ describe('bundle file IO', () => {
     180_000,
   );
 
-  it('has the playtest CLI write its bundle through the streaming writer', () => {
-    // The module above can be correct while the CLI still calls
-    // `JSON.stringify(result.bundle)` — which is exactly how the run was lost.
-    // This binds the call site, and is a source check: it sees the text of the
-    // script, not a run of it.
-    const script = readFileSync(fileURLToPath(new URL('../../scripts/playtest.mjs', import.meta.url)), 'utf8');
-    expect(script).toMatch(/writeBundleFile\(`\$\{args\.out\}\.json`, result\.bundle\)/);
-    expect(script).not.toMatch(/JSON\.stringify\(result\.bundle\)/);
+  // THE CALL-SITE GATE. The module above can be correct while a CLI still
+  // calls `JSON.stringify(result.bundle)` — which is exactly how the run was
+  // lost, and exactly what survived the first fix: it named `playtest.mjs` by
+  // hand, and `playtest-llm.mjs` (three ceilings, on the path that costs model
+  // spend before it throws) sat in a file this case never opened. It now scans
+  // EVERY script.
+  //
+  // Bound, named. This is a SOURCE check — it reads the text of the scripts,
+  // never a run of them — and it only knows the three shapes below. A bundle
+  // funnelled through a helper this cannot see (a `readAll()` two modules away,
+  // a dynamic `fs[method]`) passes it. It covers `scripts/*.mjs` only: `src/`
+  // and `tests/` are outside it.
+  describe('no script builds a whole bundle as one string', () => {
+    const scriptsDir = fileURLToPath(new URL('../../scripts/', import.meta.url));
+    const scripts = readdirSync(scriptsDir)
+      .filter((name) => name.endsWith('.mjs'))
+      .sort();
+
+    const FORBIDDEN: Array<{ pattern: RegExp; why: string }> = [
+      {
+        // `JSON.stringify(result.bundle)` — the Node write that lost the run —
+        // and `JSON.stringify(bundle)` — the same wall INSIDE the browser page,
+        // where a Node-side writer cannot reach it.
+        pattern: /JSON\.stringify\(\s*[\w.$]*[Bb]undle\b/,
+        why: 'builds the whole bundle as one string; write it with writeBundleFile(path, bundle)',
+      },
+      {
+        // The same wall on the way back in, which is worse: a bundle that was
+        // written is then unreadable.
+        pattern: /JSON\.parse\(\s*readFileSync\([^)]*[Bb]undle/,
+        why: 'reads the whole bundle into one string; read it with readBundleFile(path)',
+      },
+      {
+        // `const bundle = readJson(`${prefix}.json`)` — the same read hidden
+        // behind a generic helper, which neither pattern above can see. A call
+        // with NO argument is the legitimate in-page/in-memory fetch
+        // (`getRecorderBundle()`, `buildContentBundle()`), so it is exempt.
+        pattern: /\b(?:const|let|var)\s+bundle\s*=\s*(?!readBundleFile\b)[\w.$]+\(\s*[^)\s]/,
+        why: 'reads a bundle from a path through something other than readBundleFile',
+      },
+      {
+        // `JSON.parse(parts.join(''))` — chunks pulled safely across a
+        // transport and then re-joined into one document-sized string, which
+        // puts the cap back exactly where it was taken away.
+        pattern: /JSON\.parse\(\s*[\w.$]+\.join\(/,
+        why: 'rejoins chunks into one document-sized string; parse each piece on its own',
+      },
+    ];
+
+    it.each(scripts)('%s', (name) => {
+      const text = readFileSync(join(scriptsDir, name), 'utf8');
+      const lines = text.split('\n');
+      const offenders: string[] = [];
+      for (const { pattern, why } of FORBIDDEN) {
+        lines.forEach((line, index) => {
+          // Skip the prose: every one of these shapes is quoted in a comment
+          // somewhere explaining why it is forbidden.
+          if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
+          if (pattern.test(line)) {
+            offenders.push(`scripts/${name}:${index + 1}: ${line.trim()}\n    ^ ${why}`);
+          }
+        });
+      }
+      expect(offenders.join('\n'), `scripts/${name} still holds a whole bundle as one string`).toBe('');
+    });
+
+    // Control: the patterns can still match, and the scan actually opened the
+    // scripts. Without this, an empty listing or a regex broken into matching
+    // nothing would report "no script is over the cap" for every file — "did
+    // not run" read as "passed".
+    it('the forbidden patterns still match the code they were written against', () => {
+      expect(scripts.length).toBeGreaterThan(25);
+      expect(scripts).toContain('playtest-llm.mjs');
+      expect(scripts).toContain('playtest.mjs');
+      const asItWas = [
+        // Every line here is verbatim from a tree that shipped it.
+        "    writeFileSync(`${args.out}.json`, JSON.stringify(result.bundle));",
+        '        window.__AOE2_PLAYTEST_BUNDLE_TEXT__ = JSON.stringify(bundle);',
+        "        return JSON.parse(parts.join(''));",
+        "  const bundle = JSON.parse(readFileSync(bundlePath, 'utf8'));",
+        '  const bundle = readJson(`${prefix}.json`);',
+      ];
+      for (const line of asItWas) {
+        expect(FORBIDDEN.some(({ pattern }) => pattern.test(line)), line).toBe(true);
+      }
+      // And they do NOT match the shapes that are correct.
+      for (const line of [
+        '  const bundle = readBundleFile(bundlePath);',
+        '  writeBundleFile(`${args.out}.json`, result.bundle);',
+        '  const bundle = buildContentBundle();',
+        '  const bundle = window.__AOE2_TEST__.agent.getRecorderBundle();',
+        "  const envelope = JSON.parse(readFileSync(`${out}.envelope.json`, 'utf8'));",
+      ]) {
+        expect(FORBIDDEN.some(({ pattern }) => pattern.test(line)), line).toBe(false);
+      }
+    });
+
+    // The positive half: the two writers actually call the streaming writer.
+    // The scan above only proves the bad shape is absent — a script that wrote
+    // nothing at all would satisfy it.
+    it.each([
+      ['playtest.mjs', /writeBundleFile\(`\$\{args\.out\}\.json`, result\.bundle\)/],
+      ['playtest-llm.mjs', /writeBundleFile\(`\$\{args\.out\}\.json`, result\.bundle\)/],
+    ])('%s writes its bundle through writeBundleFile', (name, expected) => {
+      expect(readFileSync(join(scriptsDir, name), 'utf8')).toMatch(expected);
+    });
   });
 });

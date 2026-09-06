@@ -42,8 +42,10 @@ const LEGACY_VIOLATIONS: Record<string, number> = {
   // rework). 2026-07-11 (full-review M14): scripts/ was brought under the gate,
   // grandfathering its two pre-existing violators (shrink-only, one-way ratchet
   // — split them under 500 and delete the entry; do not raise the cap).
+  // 2026-09-06: `scripts/playtest-llm.mjs` (531) earned its deletion — the
+  // Playwright host adapter moved to `scripts/playtest-llm-host.mjs`, leaving
+  // 425 lines. One left.
   'scripts/content-lib.mjs': 633,
-  'scripts/playtest-llm.mjs': 531,
 };
 
 function walk(root: string, base = root): string[] {
