@@ -214,6 +214,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     findHostileBuildingAtCell,
     findHostileWildlifeAtCell,
     findOwnedGarrisonBuildingAtCell,
+    findOwnedConstructionSiteAtCell,
     findOwnedTransportAtCell,
   } = selectionInputOps;
 
@@ -373,6 +374,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     findHostileUnitAtCell,
     findHostileBuildingAtCell,
     findHostileWildlifeAtCell,
+    findOwnedConstructionSiteAtCell,
     findMonkContextTargetAtCell,
     issueMonkContextCommandAtEntity,
     clearMonkTask,

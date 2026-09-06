@@ -60,6 +60,7 @@ export interface UnitCommandOpsDeps {
   findHostileUnitAtCell: (x: number, y: number, attackerOwner: number) => number | null;
   findHostileBuildingAtCell: (x: number, y: number, attackerOwner: number) => number | null;
   findHostileWildlifeAtCell: (x: number, y: number) => number | null;
+  findOwnedConstructionSiteAtCell: (x: number, y: number, owner: number) => number | null;
   findMonkContextTargetAtCell: (x: number, y: number, owner: number) => number | null;
   issueMonkContextCommandAtEntity: (monkId: number, targetEntityId: number) => boolean;
   clearMonkTask: (monkId: number) => void;
@@ -126,11 +127,9 @@ export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
   ): boolean;
   // Phase 1B unit.gather: same direct-mutation helper pattern.
   setUnitGatherCommandDirect(unitId: number, resourceId: number): boolean;
-  // Multi-villager construction (0.1.17): direct-mutation helper that
-  // queues a `build` command at an existing in-progress own-team
-  // building. Used by the in-progress branch of
-  // routeUnitContextAtEntityCommandDirect so additional villagers can
-  // join a half-built site via right-click.
+  // Multi-villager construction (0.1.17): queues a `build` at an existing
+  // in-progress own building, so a right-click on a half-built site — by cell
+  // (contextRouter) or by entity (contextAtEntityRouter) — joins the build.
   setUnitBuildCommandDirect(unitId: number, buildingId: number): boolean;
   // Phase 1B unit.context: routing helper. Reads world state to dispatch
   // to garrison/attack/gather/move via the direct helpers. Used by the
@@ -177,6 +176,7 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     findHostileUnitAtCell,
     findHostileBuildingAtCell,
     findHostileWildlifeAtCell,
+    findOwnedConstructionSiteAtCell,
     findMonkContextTargetAtCell,
     issueMonkContextCommandAtEntity,
     clearMonkTask,
@@ -371,6 +371,18 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     setUnitCommand,
   });
 
+  // Multi-villager construction (0.1.17). `setUnitBuildCommandDirect` queues a
+  // `build` on an existing in-progress own building and returns false on any
+  // precondition miss (non-villager, foreign owner, building missing or
+  // complete), so both right-click routers can fall through on a miss.
+  const buildRepairOps = createBuildRepairCommandOps({
+    world,
+    accessor,
+    getEntityRef,
+    clearGathererOrder,
+    setUnitCommand,
+  });
+
   // Right-click routing lives in contextRouter.ts (extracted for the LOC budget).
   const routeUnitContextCommandDirect = createContextRouter({
     world,
@@ -379,6 +391,8 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     findHostileUnitAtCell,
     findHostileBuildingAtCell,
     findHostileWildlifeAtCell,
+    findOwnedConstructionSiteAtCell,
+    setUnitBuildCommandDirect: buildRepairOps.setUnitBuildCommandDirect,
     orderGarrison,
     findOwnedTransportAtCell,
     boardTransport,
@@ -410,18 +424,6 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     const result = world.submitWithResult('unit.context', { unitId, target, garrison });
     return result.accepted;
   }
-
-  // Multi-villager construction (0.1.17). Queues a `build` command for
-  // a villager onto an existing in-progress own-team building. Returns
-  // false on any precondition miss (non-villager, foreign owner, building
-  // missing or already complete) so the caller can fall through.
-  const buildRepairOps = createBuildRepairCommandOps({
-    world,
-    accessor,
-    getEntityRef,
-    clearGathererOrder,
-    setUnitCommand,
-  });
 
   // Direct-mutation routing helper. Used by the unit.contextAtEntity
   // handler. Monk routing is hoisted to the bridge facade.

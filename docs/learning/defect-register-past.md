@@ -14,6 +14,18 @@ The last two were already pointing the wrong way before any split, and nothing h
 
 **Three entries came back on 2026-09-05.** The first rollover read "(SUPERSEDED ... still unfixed)", "(PARTLY FIXED: ...)" and "(LATENT, not fixed)" as closures and archived three live defects. They were moved back to the active register with `, OPEN` added inside the trailing group and nothing else changed, and `tests/architecture/defectRegisterRollover.test.ts` now refuses an archived marker that leaves the defect live. The rollover's other 38 entries were not disturbed.
 
+## 2026-09-04 — A browser gate 0.2 seconds from its own timeout (FIXED)
+
+**Symptom.** `npm run verify` went red on `game-hud-and-camera-hud.spec.ts` :: `keeps top status-bar chip positions stable as live values change`, with `Test timeout of 30000ms exceeded` and no assertion failure. It had passed in the previous full run of the same code.
+
+**Investigation.** Four runs in isolation all passed — and the test reported **29.8s against a 30-second budget** on an idle machine. Per-step timings placed the whole cost in one line: boot 1.2s, chip rects 0.02s, the first `train-villager` click 0.9s, and the click after the population cap is reached **25.5s**.
+
+**Root cause.** The test queued THREE villagers to drive food from 200 down to exactly 50. The default scenario opens at 4/5 population, so a queued villager fills the cap and the card becomes unavailable; Playwright then waits out its actionability check on the next click. Nothing was wrong with the game — the card is correctly unavailable — and nothing was wrong with the assertions. The test simply spent 85% of its budget waiting for a button it did not need.
+
+**Fix.** One villager, and an assertion that the food chip CHANGED rather than that it reads a particular number. The test is about the chips not MOVING while their values change, and it now says that. 29.8s to 2.4s, and it cannot be broken by a future change to what a villager costs.
+
+**How this class is checked from now on.** No new gate; the fix is inside the gate. What this and the flaky trade-route spec have in common is the lesson: **a browser assertion bounded by WALL CLOCK is bounded by the machine's load, and that bound is invisible until a slower machine finds it.** Every runner this repo has is slower than the one it is authored on. A spec whose reported duration is within a few seconds of the timeout is red on somebody's machine already.
+
 ## 2026-09-04 — The suite's one flaky spec, and what it was really asking (FIXED)
 
 **Symptom.** `npm run verify` went red on `tests/browser/trade-route-reach.spec.ts`: the Trade Cart's selection panel read `Idle` where the spec wanted `Trading`, after nine polls over five seconds.

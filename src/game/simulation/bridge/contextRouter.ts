@@ -23,6 +23,11 @@ export interface ContextRouterDeps {
   findHostileUnitAtCell: (x: number, y: number, owner: number) => number | null;
   findHostileBuildingAtCell: (x: number, y: number, owner: number) => number | null;
   findHostileWildlifeAtCell: (x: number, y: number) => number | null;
+  // An own building still under construction covering the clicked cell, and
+  // the order that puts a villager to work on it. Right-clicking a foundation
+  // is how AoE2 rescues an interrupted build and how extra villagers join one.
+  findOwnedConstructionSiteAtCell: (x: number, y: number, owner: number) => number | null;
+  setUnitBuildCommandDirect: (unitId: number, buildingId: number) => boolean;
   // Orders a unit to garrison: it walks to the building and goes in when it
   // arrives, or enters immediately if it is already standing against it.
   orderGarrison: (unitId: number, buildingId: number) => boolean;
@@ -72,6 +77,8 @@ export function createContextRouter(deps: ContextRouterDeps) {
     findHostileUnitAtCell,
     findHostileBuildingAtCell,
     findHostileWildlifeAtCell,
+    findOwnedConstructionSiteAtCell,
+    setUnitBuildCommandDirect,
     orderGarrison,
     findOwnedTransportAtCell,
     boardTransport,
@@ -108,6 +115,21 @@ export function createContextRouter(deps: ContextRouterDeps) {
     const transportId = findOwnedTransportAtCell(target.x, target.y, unit.owner);
     if (transportId !== null && transportId !== unitId) {
       return boardTransport(unitId, transportId);
+    }
+
+    // An own FOUNDATION under the click is a build order (AoE2): it rescues an
+    // interrupted build and adds a builder to one already going. This has to
+    // precede the garrison branch — a foundation cannot be garrisoned, and
+    // before this branch existed the click fell all the way through to a plain
+    // move onto a cell the foundation itself blocks, so the villager walked up
+    // to the site and stood there for the rest of the match.
+    // The sibling by-entity route (contextAtEntityRouter) already did this;
+    // right-click is routed twice here and a rule belonging to it needs both.
+    if (unit.unitType === 'villager') {
+      const constructionSiteId = findOwnedConstructionSiteAtCell(target.x, target.y, unit.owner);
+      if (constructionSiteId !== null && setUnitBuildCommandDirect(unitId, constructionSiteId)) {
+        return true;
+      }
     }
 
     const resourceId = gathersResources(unit.unitType)

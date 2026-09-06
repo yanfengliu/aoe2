@@ -14,7 +14,7 @@ import type {
   UnitType,
 } from '../types';
 import { clamp, type GameWorld } from './pureHelpers';
-import { createSelectionFinders } from './selectionFinders';
+import { createSelectionFinders, type SelectionFinders } from './selectionFinders';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 
 export interface SelectableEntityCandidate {
@@ -53,7 +53,11 @@ export interface SelectionInputOpsDeps {
   getCurrentEntityId: (ref: EntityRef) => number | null;
 }
 
-export interface SelectionInputOps {
+// The spatial finders are declared once, in ./selectionFinders — this
+// interface EXTENDS them rather than restating each signature, so adding a
+// finder there reaches every consumer without touching this file (which sits
+// on the 500-line budget).
+export interface SelectionInputOps extends SelectionFinders {
   compareSelectableEntities(
     left: SelectableEntityCandidate,
     right: SelectableEntityCandidate,
@@ -89,20 +93,7 @@ export interface SelectionInputOps {
   getSelectedEntityRefs(): readonly EntityRef[];
   getSelectedEntityId(): number | null;
   removeSelectedEntity(id: number): void;
-  findResourceAtCell(x: number, y: number): number | null;
   resolveSelectionTile(selectedEntityId: number, position: Position): Position;
-  findHostileUnitAtCell(x: number, y: number, attackerOwner: number): number | null;
-  findHostileBuildingAtCell(x: number, y: number, attackerOwner: number): number | null;
-  findHostileWildlifeAtCell(x: number, y: number): number | null;
-  findOwnedGarrisonBuildingAtCell(
-    x: number,
-    y: number,
-    owner: number,
-    unitType: UnitType,
-  ): number | null;
-  /** An owned Transport Ship on this cell, for right-click boarding. */
-  findOwnedTransportAtCell(x: number, y: number, owner: number): number | null;
-  distanceToBuilding(id: number, position: Position): number;
 }
 
 export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionInputOps {

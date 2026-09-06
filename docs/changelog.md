@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.208
+
+- **A villager sent to an unfinished building now builds it.** Right-clicking a villager onto a foundation — to restart a build somebody was pulled off, or to put more villagers on one and finish it sooner — walked the villager to the site and left them standing there for the rest of the match. The panel showed the order being accepted, so there was nothing to see: the build simply never moved. It works now, from any tile of the building's footprint, and extra villagers ordered the same way join the crew and finish the work faster.
+
 ## 0.3.207
 
 - **The bottom command bar keeps one height.** Selecting a villager, a building, a tree or nothing used to resize the bar and move its top edge; it is now a fixed band (246px on wide windows, 236px at 1120px and narrower) with the selection drawn inside it, packed to the top. A box selection of several unit kinds now shows them in a row instead of a column taller than the bar. A Town Centre's production queue fits three entries on wide windows and scrolls beyond that.

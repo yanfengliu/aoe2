@@ -309,6 +309,8 @@ describe('unit attack semantic boundary', () => {
       findHostileUnitAtCell: () => null,
       findHostileBuildingAtCell: () => null,
       findHostileWildlifeAtCell: () => null,
+      // This double is about attack routing; no foundation stands under it.
+      findOwnedConstructionSiteAtCell: () => null,
       findMonkContextTargetAtCell: () => null,
       issueMonkContextCommandAtEntity: () => false,
       clearMonkTask: vi.fn(),

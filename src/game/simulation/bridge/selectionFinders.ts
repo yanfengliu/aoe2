@@ -38,6 +38,9 @@ export interface SelectionFinders {
     owner: number,
     unitType: UnitType,
   ): number | null;
+  /** An own building STILL UNDER CONSTRUCTION covering this cell — the
+   *  foundation a right-click on the ground puts a builder onto. */
+  findOwnedConstructionSiteAtCell(x: number, y: number, owner: number): number | null;
   distanceToBuilding(id: number, position: Position): number;
 }
 
@@ -162,6 +165,21 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
     return null;
   }
 
+  // Ordering a builder onto an EXISTING foundation (AoE2): any cell of the
+  // footprint counts, not just the anchor, because that is what the player
+  // clicks. No visibility gate — an owner always knows where its own
+  // foundation is, which matches findOwnedGarrisonBuildingAtCell above.
+  function findOwnedConstructionSiteAtCell(x: number, y: number, owner: number): number | null {
+    for (const id of world.query('position', 'building')) {
+      const building = world.getComponent<BuildingComponent>(id, 'building');
+      if (!building || building.owner !== owner) continue;
+      if (!buildingOccupiesCell(id, x, y)) continue;
+      const construction = accessor.get(constructionStatesCodec).get(id);
+      if (construction && !construction.isComplete) return id;
+    }
+    return null;
+  }
+
   function distanceToBuilding(id: number, position: Position): number {
     const buildingPosition = world.getComponent<Position>(id, 'position');
     const building = world.getComponent<BuildingComponent>(id, 'building');
@@ -192,6 +210,7 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
     findHostileBuildingAtCell,
     findHostileWildlifeAtCell,
     findOwnedGarrisonBuildingAtCell,
+    findOwnedConstructionSiteAtCell,
     distanceToBuilding,
   };
 }
