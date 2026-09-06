@@ -4,15 +4,66 @@ Closed entries rolled over from [`defect-register.md`](defect-register.md), move
 
 **Append-only history.** Entries arrive here from the active register and are not edited, summarised, reordered or removed. The active register holds the 12 most recent closed entries plus every open one; when a new entry pushes it past 12 closed, the task that wrote the entry moves the oldest closed ones here in the same commit. `tests/architecture/defectRegisterRollover.test.ts` holds both halves. Order here is the order these entries had in the active register: newest first down through the 2026-09-02 block, then OLDEST first from 2026-08-23 forward. The source file already read that way on 2026-09-05; the inversion is kept rather than corrected, because moving an entry verbatim includes not moving it relative to its neighbours.
 
-**Cross-references that now cross the split.** Every "entry above" or "entry below" was written when all of this shared one file, and the wording is left exactly as it was. Four references, in three entries, cross the split; a later rollover appends to this list. Every other one still points inside the file it was written in.
+**Cross-references that now cross the split.** Every "entry above" or "entry below" was written when all of this shared one file, and the wording is left exactly as it was. Seven references, in six entries, cross the split; a later rollover appends to this list. Every other one still points inside the file it was written in.
 
 - Active, "A unit's shadow does not turn when the unit turns": "see the entry below" means "Every shadow in the game was the same rectangle, whatever threw it", here.
 - Active, "The AI hoards the resource it cannot spend and starves on the one that gates every unit": "the unit-line entry below", in its heading and again in its CORRECTION, means "The AI reaches the Imperial age and never trains another unit", here.
 - Here, "The AI reaches the Imperial age and never trains another unit": a fourth hypothesis "recorded as its own entry above" means "The AI hoards the resource it cannot spend and starves on the one that gates every unit", now active again.
 
+The 2026-09-05 rollover of "The AI's lumber camp cannot reach the woodline on three of the maps it ships" added three more, in both directions:
+
+- Here, "The AI's lumber camp cannot reach the woodline on three of the maps it ships": "This corrects the entry below" means "The AI's build order stalls on the first thing it cannot afford, so no seed has ever built a Siege Workshop", which is still active.
+- Active, "An enemy that garrisons its last villagers pins the attacker's whole army forever": "the four-arm table is in the entry above" means the lumber-camp entry, here.
+- Active, "The AI's build order stalls on the first thing it cannot afford": "See the lumber-camp entry above" means the same entry, here.
+
 The last two were already pointing the wrong way before any split, and nothing here repairs them: in the source file the unit-line entry sat ABOVE the hoarding entry, and each of them says the other is on the side it is not. They now cross the split as well, in opposite directions.
 
 **Three entries came back on 2026-09-05.** The first rollover read "(SUPERSEDED ... still unfixed)", "(PARTLY FIXED: ...)" and "(LATENT, not fixed)" as closures and archived three live defects. They were moved back to the active register with `, OPEN` added inside the trailing group and nothing else changed, and `tests/architecture/defectRegisterRollover.test.ts` now refuses an archived marker that leaves the defect live. The rollover's other 38 entries were not disturbed.
+
+## 2026-09-04 — The AI's lumber camp cannot reach the woodline on three of the maps it ships (FIXED)
+
+**Symptom.** The user's priority 1, wood income. `arena` owner 1 runs a whole 60,000-tick match at 13-69 wood with roughly 13 villagers assigned to wood, so `pickNextBuild` stalls on a 175-wood Stable for the match and no seed has ever built a Siege Workshop.
+
+**Investigation.** The wood force was never the problem. Sampling every 250 ticks, `arena` owner 1 has **19.6 villagers assigned to wood and 3.01 of them actually chopping**; the other 16.6 are walking (10.18 `to-resource`, 6.10 `to-dropoff`). Reading the live gatherer components, the tree each one picked sits **15 to 16 cells from the nearest wood drop-off for the entire match**, and the AI holds exactly ONE lumber camp. The comparator is not at fault: the tree it picks IS the nearest one to a drop-off, sample after sample. The forest is not depleted either — 24 of 346 trees are felled in 30,000 ticks.
+
+**Root cause.** Two constants, set in different files for different reasons, that cannot both hold. `paintWoodlines` keeps every woodline patch at least `MIN_START_GAP` = 14 EUCLIDEAN cells from every start, deliberately, so a patch cannot punch a hole in Arena's ring or Fortress's square. `DROP_OFF_ANCHOR_RADIUS` was 12, in the manhattan metric, where that same gap is up to 20. So on `arena`, `fortress` and `gold-rush` there is **no tree within 12 of either start** — the anchor returned null at both, the camp fell back to the Town Centre, and every load was carried the whole way.
+
+**Fix.** `DROP_OFF_ANCHOR_RADIUS` 12 -> 20. The enemy is not the constraint at that range: these maps seat their two starts 56 cells apart, so a camp 20 out is still 36 from the enemy's.
+
+**Measured, both arms, `SEEDS=arena,fortress,gold-rush,coastal TICKS=60000 SAMPLE=250`.** On `arena` owner 1: villagers chopping per sample 3.01 -> **5.43**, wood gained 2,964 -> **4,076**, peak wood 182 -> **488**, age reached castle -> **imperial**, and the nearest tree to a drop-off falls from 15 to **4** the moment the camp goes up. Trees felled in 30,000 ticks 24 -> 41.
+
+**On its own it makes RESOLUTION worse, and that is why it ships beside the garrison fix rather than alone.** All four arms, same command, same seeds:
+
+    arm                     arena              fortress           gold-rush          coastal            resolved
+    neither fix             running            running            victory 34,704     running            1 of 4
+    anchor radius only      running            running            running            running            0 of 4
+    garrisoned-unit only    running            victory 57,309     victory 32,478     defeat 52,472      3 of 4
+    both (shipped)          victory 34,509     running            victory 34,921     defeat 52,472      3 of 4
+
+Alone the radius change costs `gold-rush` the one resolution the baseline had. Together the two reach `arena`, which neither reaches alone, and lose `fortress`, which the garrison fix alone reaches. WHICH seeds resolve is a knife-edge of a deterministic trajectory and moves under any change; how MANY is the number worth reading, and it goes 1 -> 3.
+
+**One number in the first write-up was not comparable, and a critic caught it.** `fortress` owner 1's wood over a match reads 1,862 -> 8,829, and that is NOT a carry-distance measurement: in the baseline arm that slot ends at **pop 0/40 with zero villagers** — it is wiped out — while in the other it ends at 51/65 with 46. The 4.7x is dominated by the slot surviving. The `arena` pair (2,964 -> 4,076, same owner alive in both arms, villagers on wood 19.6 -> 15.3) is the one that measures what this entry claims.
+
+**RE-MEASURED CLEANLY 2026-09-04, and the earlier table above was contaminated.** That four-arm table was taken by flipping the constant between runs while other work was in flight, so its arms differ by more than the radius, and it never included the boot map. The clean comparison — final code, six seeds, both arms run back to back with the source verified unchanged between them (`SEEDS=aoe2-prototype,arabia,arena,fortress,gold-rush,coastal TICKS=60000 SAMPLE=500 npm run ai:army-block`):
+
+    seed              radius 12          radius 20 (shipped)
+    aoe2-prototype    running            running            <- BYTE-IDENTICAL, every column
+    arabia            running            running            <- BYTE-IDENTICAL, every column
+    arena             running            victory 31,694
+    fortress          running            running
+    gold-rush         victory 37,837     victory 34,885
+    coastal           defeat  43,236     defeat  43,236
+    resolved          2 of 6             3 of 6
+
+**This answers the standing objection to any camp-siting change.** v0.3.177 was reverted because it lost at match resolution on the BOOT MAP, and §13.2 made the boot map the bar for a retry. `aoe2-prototype` and `arabia` are byte-identical here on every column of both owners — the change cannot touch them, because their nearest tree is 5 to 7 cells and the anchor already found it at radius 12. That is not luck; it is the same property the `coastal` instrument check turns on, now stated over the map the objection was about.
+
+**Instrument check that makes the attribution safe.** The change can only bite where the anchor was null, so `coastal` — whose nearest tree is 5 to 7 — must be untouched. It is **byte-identical** across both arms on every column, both owners. A change there would have refuted the reasoning rather than confirming it.
+
+**This corrects the entry below.** "The AI's build order stalls on the first thing it cannot afford" closed by pointing at the villager SPLIT — "a split that moved villagers onto wood would let the AI afford the buildings AND the army". The split was already fine. Nineteen villagers were on wood; they were walking thirty cells a round trip. The lever was the CARRY, not the allocation.
+
+**How this class is checked from now on.** `tests/simulation/dropOffAnchorReach.test.ts` walks every seed in `PLAYABLE_MAPS` — the same roster the setup screen offers, so a new map is covered the day it is added — and asserts the lumber-camp anchor is found from every start and IS the nearest tree. A second case ties the two constants together, so the gate goes red when either one moves rather than only when a map changes. RED-CHECKED at radius 12: Arena, Fortress and Gold Rush all failed by name.
+
+**Still open, and corrected 2026-09-04.** The AI builds ONE lumber camp, ever — `pickNextBuildTarget` asks for one only in the DARK age and only when it has none — so a camp that is DESTROYED is never replaced. That is why `fortress` owner 2 and `gold-rush` owner 2 finish a match with none, and the first write-up was wrong to say they never build one: fortress o2 completes a camp at tick 7,800 and loses it at 11,600; gold-rush o2 completes one at 15,300 and loses it at 23,600. For fortress o2 the zero-camp ending is CAUSED BY THIS CHANGE — at radius 12 its camp stands two cells from its own Town Centre and survives the match; at 20 it stands sixteen cells out, in reach of a raid, and dies. Found by a critic running the counterfactual, not by the author. And the carry creeps back: on `arena` the nearest tree to a drop-off goes 4 -> 9 between ticks 7,500 and 30,000 as the local woodline is eaten. AoE2 plants a fresh camp at the new woodline; this AI cannot.
 
 ## 2026-09-04 — Neither walled map enclosed a single tree, so its player had to leave the wall to play (FIXED)
 

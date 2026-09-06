@@ -1,0 +1,97 @@
+name: playtest-corpus
+on:
+  pull_request:
+  # Cost control (same as ci.yml): only run the sim-heavy corpus on a push that
+  # changes package.json — a version bump or dependency change. Refactor/doc
+  # pushes skip it. PRs still run it.
+  #
+  # The corpus CONFIG and the workflows are in the filter (v0.3.161) for the
+  # reason ci.yml carries: a change to the thing a gate reads could not trigger
+  # the gate that would prove it. workflow_dispatch for the same reason.
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/voxel-commit'
+      - '.github/workflows/**'
+      - 'playtest-corpus.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  corpus:
+    runs-on: ubuntu-latest
+    # Sim-heavy deterministic corpus playtests; 60m headroom (see ci.yml note).
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      # aoe2 consumes the engine's PREBUILT dist (the engine CI packs it as the
+      # rolling engine-dist release); it does not build the engine. See ci.yml.
+      - name: Fetch the prebuilt civ-engine
+        shell: bash
+        run: |
+          curl -fsSL -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
+          mkdir -p ../civ-engine
+          tar -xzf civ-engine.tgz -C ../civ-engine --strip-components=1
+      - name: Fetch pinned voxel source
+        shell: bash
+        run: |
+          VOXEL_COMMIT="$(tr -d '[:space:]' < .github/voxel-commit)"
+          printf '%s\n' "$VOXEL_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
+          test ! -e ../voxel
+          mkdir -p ../voxel
+          # Relative paths on purpose, -C included: under Git-bash on Windows
+          # GNU tar mangles a drive-lettered path, which kept every
+          # windows-latest run red for two months.
+          curl -fsSL --retry 3 \
+            -o voxel.tgz \
+            "https://github.com/yanfengliu/voxel/archive/${VOXEL_COMMIT}.tar.gz"
+          tar -xzf voxel.tgz \
+            -C ../voxel \
+            --strip-components=1
+          rm -f voxel.tgz
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and build voxel
+        shell: bash
+        run: npm --prefix ../voxel ci
+      - run: npm ci
+      - run: npm run playtest:corpus
+      - name: Upload corpus output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-${{ github.run_id }}
+          path: output/corpus/
+      - name: Post SUMMARY.md to PR check
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const corpusDir = 'output/corpus';
+            const dates = (fs.existsSync(corpusDir) ? fs.readdirSync(corpusDir) : []).sort();
+            if (dates.length === 0) return;
+            const summaryPath = path.join(corpusDir, dates[dates.length - 1], 'SUMMARY.md');
+            if (!fs.existsSync(summaryPath)) {
+              core.warning(`SUMMARY.md missing at ${summaryPath}; skipping comment.`);
+              return;
+            }
+            const summary = fs.readFileSync(summaryPath, 'utf8');
+            const marker = '<!-- playtest-corpus -->';
+            const body = `${marker}\n## Playtest corpus\n\n${summary}`;
+            // Update existing comment if present so push events don't accumulate.
+            const issue = { ...context.repo, issue_number: context.payload.pull_request.number };
+            const existing = await github.paginate(github.rest.issues.listComments, issue);
+            const prior = existing.find(c => c.body && c.body.includes(marker));
+            if (prior) {
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: prior.id, body });
+            } else {
+              await github.rest.issues.createComment({ ...issue, body });
+            }

@@ -1,0 +1,150 @@
+name: playtest-corpus-llm
+# Per design Codex MED4: this workflow is SEPARATE from playtest.yml
+# (the deterministic-AI corpus) so the deterministic gating loop never
+# depends on Anthropic availability or API key presence.
+on:
+  schedule:
+    # Nightly at 04:17 UTC (early morning so a flake doesn't block
+    # deterministic CI which runs on every PR push).
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: 'Seed override (defaults to row from playtest-corpus-llm.json)'
+        required: false
+        type: string
+      max-ticks:
+        description: 'maxTicks override'
+        required: false
+        type: string
+  pull_request:
+    types: [opened, labeled, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  corpus-llm:
+    # PR runs only when the PR carries the `llm-playtest` label AND
+    # ANTHROPIC_API_KEY is configured. Default PR validation does NOT
+    # depend on this workflow; playtest.yml (deterministic) is the
+    # gating workflow.
+    if: |
+      github.event_name != 'pull_request'
+      || (
+        contains(github.event.pull_request.labels.*.name, 'llm-playtest')
+        && vars.ANTHROPIC_KEY_AVAILABLE == 'true'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      # aoe2 consumes the engine's PREBUILT dist (the engine CI packs it as the
+      # rolling engine-dist release); it does not build the engine. See ci.yml.
+      - name: Fetch the prebuilt civ-engine
+        shell: bash
+        run: |
+          curl -fsSL -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
+          mkdir -p ../civ-engine
+          tar -xzf civ-engine.tgz -C ../civ-engine --strip-components=1
+      - name: Fetch pinned voxel source
+        shell: bash
+        run: |
+          VOXEL_COMMIT="$(tr -d '[:space:]' < .github/voxel-commit)"
+          printf '%s\n' "$VOXEL_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
+          test ! -e ../voxel
+          mkdir -p ../voxel
+          # Relative paths on purpose, -C included: under Git-bash on Windows
+          # GNU tar mangles a drive-lettered path, which kept every
+          # windows-latest run red for two months.
+          curl -fsSL --retry 3 \
+            -o voxel.tgz \
+            "https://github.com/yanfengliu/voxel/archive/${VOXEL_COMMIT}.tar.gz"
+          tar -xzf voxel.tgz \
+            -C ../voxel \
+            --strip-components=1
+          rm -f voxel.tgz
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and build voxel
+        shell: bash
+        run: npm --prefix ../voxel ci
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run LLM corpus (default — reads playtest-corpus-llm.json)
+        if: github.event_name != 'workflow_dispatch' || (inputs.seed == '' && inputs.max-ticks == '')
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: npm run playtest:corpus-llm
+      - name: Run LLM playtest (manual override — bypasses corpus file)
+        if: github.event_name == 'workflow_dispatch' && (inputs.seed != '' || inputs.max-ticks != '')
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SEED: ${{ inputs.seed || 'aoe2-prototype' }}
+          MAX_TICKS: ${{ inputs.max-ticks || '5000' }}
+        # Single-row override: bypass the corpus aggregator and call the
+        # playtest:llm script directly with the dispatch inputs (Codex
+        # impl-345 M7). The artifact upload + summary post still fire
+        # via the same paths because we write to the same output dir
+        # the corpus runner would.
+        run: |
+          # Phase-6.A.3 timestamped corpus dir: <date>-<HHMMSS> instead
+          # of <date> only, so multiple invocations (or the corpus
+          # runner running alongside) don't overwrite each other.
+          stamp="$(date -u +%Y-%m-%d-%H%M%S)"
+          mkdir -p "output/corpus-llm/$stamp"
+          mkdir -p output/playtests-llm
+          npm run playtest:llm -- --seed "$SEED" --max-ticks "$MAX_TICKS" --out "output/playtests-llm/$stamp-manual"
+          # Build a minimal SUMMARY-LLM.md for the comment poster.
+          envelope_path="output/playtests-llm/$stamp-manual.envelope.json"
+          if [ -f "$envelope_path" ]; then
+            stop=$(jq -r '.stopReason' "$envelope_path")
+            ticks=$(jq -r '.ticksRun' "$envelope_path")
+            cost=$(jq -r '.totalCostUsd' "$envelope_path")
+            cat > "output/corpus-llm/$stamp/SUMMARY-LLM.md" <<EOF
+          # LLM playtest — manual dispatch (seed=$SEED, maxTicks=$MAX_TICKS)
+
+          | stopReason | ticksRun | totalCost |
+          |---|---|---|
+          | $stop | $ticks | \$$cost |
+          EOF
+          fi
+      - name: Upload corpus output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-llm-${{ github.run_id }}
+          path: |
+            output/corpus-llm/
+            output/playtests-llm/
+      - name: Post SUMMARY-LLM.md to PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const corpusDir = 'output/corpus-llm';
+            const dates = (fs.existsSync(corpusDir) ? fs.readdirSync(corpusDir) : []).sort();
+            if (dates.length === 0) {
+              core.warning('No LLM corpus output produced — likely skipped or aborted before any row ran.');
+              return;
+            }
+            const summaryPath = path.join(corpusDir, dates[dates.length - 1], 'SUMMARY-LLM.md');
+            if (!fs.existsSync(summaryPath)) {
+              core.warning(`SUMMARY-LLM.md missing at ${summaryPath}; skipping comment.`);
+              return;
+            }
+            const summary = fs.readFileSync(summaryPath, 'utf8');
+            const marker = '<!-- playtest-corpus-llm -->';
+            const body = `${marker}\n## LLM Playtest corpus\n\n${summary}`;
+            const issue = { ...context.repo, issue_number: context.payload.pull_request.number };
+            const existing = await github.paginate(github.rest.issues.listComments, issue);
+            const prior = existing.find(c => c.body && c.body.includes(marker));
+            if (prior) {
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: prior.id, body });
+            } else {
+              await github.rest.issues.createComment({ ...issue, body });
+            }

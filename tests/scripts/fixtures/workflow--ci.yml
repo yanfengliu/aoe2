@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  # Cost control: only run the gates on a push that changes package.json — i.e.
+  # a version bump (every user-visible change bumps the version) or a dependency
+  # change. Refactor-only / doc-only pushes skip CI and don't burn Actions
+  # minutes. Pull requests still run the full gates regardless.
+  #
+  # The workflows themselves are IN the filter (v0.3.161): a fix to this file
+  # could not trigger the run that would prove it, which is how a Windows-only
+  # tar bug survived two months. workflow_dispatch is here for the same reason —
+  # a CI change must be testable without inventing an unrelated version bump.
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/voxel-commit'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  gates:
+    name: ${{ matrix.os }} — typecheck + lint + test + build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Linux is the canonical CI target. windows-latest catches the FU8
+        # vitest worker RPC quirks documented in vitest.config.ts.
+        os: [ubuntu-latest, windows-latest]
+    # The full 1255-test suite (~2800s of sim-heavy test-work) runs ~30m on the
+    # Linux runner and longer on Windows (the vitest worker-RPC overhead). 60m
+    # gives the Windows leg headroom (it timed out the previous 30m cap).
+    # Follow-up to speed this up: shard the suite, or move Windows to nightly.
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # aoe2 depends on its sibling engine via `file:../civ-engine` (a symlink
+      # to ../civ-engine locally). CI checks out only aoe2, so we fetch the
+      # engine's PREBUILT dist — packed + published by the engine's own CI as
+      # the rolling `engine-dist` release — and extract it into ../civ-engine so
+      # the dep resolves. aoe2 CI does NOT build the engine; that is the engine
+      # CI's job. (Public repo asset → no token needed; curl + tar work on the
+      # ubuntu + windows/git-bash matrix.)
+      - name: Fetch the prebuilt civ-engine
+        shell: bash
+        run: |
+          curl -fsSL -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
+          mkdir -p ../civ-engine
+          tar -xzf civ-engine.tgz -C ../civ-engine --strip-components=1
+
+      - name: Fetch pinned voxel source
+        shell: bash
+        run: |
+          VOXEL_COMMIT="$(tr -d '[:space:]' < .github/voxel-commit)"
+          printf '%s\n' "$VOXEL_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
+          test ! -e ../voxel
+          mkdir -p ../voxel
+          # Relative paths on purpose, -C included: under Git-bash on Windows
+          # GNU tar mangles a drive-lettered path, which kept every
+          # windows-latest run red for two months.
+          curl -fsSL --retry 3 \
+            -o voxel.tgz \
+            "https://github.com/yanfengliu/voxel/archive/${VOXEL_COMMIT}.tar.gz"
+          tar -xzf voxel.tgz \
+            -C ../voxel \
+            --strip-components=1
+          rm -f voxel.tgz
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # vitest config FU8 explains why Node 20+ is required (birpc round-trip
+          # behavior). Match the local Windows toolchain.
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install and build voxel
+        shell: bash
+        run: npm --prefix ../voxel ci
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build content
+        run: npm run content:build
+
+      - name: Build
+        run: npm run build
+
+      - name: Vitest unit suite
+        run: npm test
+        env:
+          # Avoid color output in CI logs.
+          FORCE_COLOR: '0'
