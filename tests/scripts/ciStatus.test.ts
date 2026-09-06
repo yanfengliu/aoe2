@@ -25,7 +25,7 @@
 // That is deliberate — a missing fixture must fail loudly, because a stub that
 // silently returns "" is exactly how a check reports "did not run" as "passed".
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -53,6 +53,9 @@ const WORKFLOW_FILES: Record<string, string> = {
   'playtest.yml': fixture('workflow--playtest.yml'),
   'playtest-llm.yml': fixture('workflow--playtest-llm.yml'),
 };
+
+const WORKFLOW_DIR = fileURLToPath(new URL('../../.github/workflows/', import.meta.url));
+const realWorkflow = (name: string) => readFileSync(`${WORKFLOW_DIR}${name}`, 'utf8');
 
 interface Scenario {
   tip: string;
@@ -322,5 +325,72 @@ describe('the fixtures are wired the way the script asks for them', () => {
       steps: number; runner: string;
     }>;
     expect(green.every((job) => job.steps > 0 && job.runner !== '')).toBe(true);
+  });
+});
+
+// The three `workflow--*.yml` fixtures are copies of `.github/workflows/*.yml`,
+// and until 2026-09-06 nothing compared a copy to the file it stands for. That
+// gap was not theoretical: the copies were captured at ca24709b, commit
+// 52546080 then edited ci.yml and playtest-llm.yml, and the fixtures sat a day
+// behind with nothing red. The drift happened to be inert — both edits landed
+// outside `on.push` — but "inert" was nobody's finding, it was luck. The drift
+// that is NOT inert is the one that moves a path filter, and it would leave
+// every case above answering confidently for a filter main does not have.
+//
+// BOUND, in the same terms as the one at the top of this file: this compares
+// the PARSED PUSH TRIGGER and nothing else, because that is the whole surface
+// the script reads out of these files and the whole surface the cases above
+// rest on. A fixture may differ from its workflow anywhere else — a comment, a
+// step, a `permissions:` block — and this stays green. It is deliberately not a
+// byte-for-byte check: a gate that goes red because someone reworded a comment
+// is a gate the next person deletes.
+describe('the workflow fixtures still stand for the workflows they copy', () => {
+  type Trigger = { name: string | null; parsed: boolean };
+
+  async function parser(): Promise<(text: string) => Trigger> {
+    const module = (await import(`${SCRIPT}?parity`)) as {
+      parsePushTrigger: (text: string) => Trigger;
+    };
+    return module.parsePushTrigger;
+  }
+
+  const PAIRS = [
+    ['workflow--ci.yml', 'ci.yml'],
+    ['workflow--playtest.yml', 'playtest.yml'],
+    ['workflow--playtest-llm.yml', 'playtest-llm.yml'],
+  ] as const;
+
+  it.each(PAIRS)('%s parses to the same push trigger as %s', async (copy, real) => {
+    const parsePushTrigger = await parser();
+    const fromReal = parsePushTrigger(realWorkflow(real));
+    // Controls first, so "they match" cannot quietly mean "neither parsed".
+    // `{ parsed: false }` for both sides would otherwise satisfy the equality
+    // below while proving nothing at all about either file.
+    expect(fromReal.parsed, `${real} did not parse, so this comparison is vacuous`).toBe(true);
+    expect(fromReal.name, `${real} has no readable \`name:\``).toBeTruthy();
+    expect(
+      parsePushTrigger(fixture(copy)),
+      `tests/scripts/fixtures/${copy} no longer parses to the same push trigger as `
+      + `.github/workflows/${real}. The fixture is a copy of that workflow and the cases `
+      + 'above judge "was a run due?" against it, so a stale copy makes them answer for a '
+      + `filter main does not have. Copy the workflow over the fixture and re-read the cases `
+      + 'that assert UNGATED / NEVER ASKED, because a changed filter can move them.',
+    ).toEqual(fromReal);
+  });
+
+  // The fake `git ls-tree` above answers with exactly the keys of
+  // WORKFLOW_FILES, so a workflow added to `.github/workflows/` with no fixture
+  // here is invisible to every scenario in this file: the script walks the tree
+  // looking for a matching `name:` and would never be offered that file.
+  it('has a fixture for every workflow in .github/workflows', () => {
+    const real = readdirSync(WORKFLOW_DIR).filter((name) => /\.ya?ml$/.test(name)).sort();
+    expect(real.length, '.github/workflows holds no workflow, so this check read nothing')
+      .toBeGreaterThan(0);
+    expect(
+      Object.keys(WORKFLOW_FILES).sort(),
+      'WORKFLOW_FILES and .github/workflows have diverged. Every workflow needs a fixture: '
+      + 'the fake `git ls-tree` returns these keys and nothing else, so a workflow with no '
+      + 'fixture is one no scenario in this file can see.',
+    ).toEqual(real);
   });
 });

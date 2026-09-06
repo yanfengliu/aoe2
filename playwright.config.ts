@@ -17,6 +17,18 @@ if (!Number.isInteger(previewPort) || previewPort <= 0 || previewPort > 65535) {
 }
 const previewUrl = `http://127.0.0.1:${previewPort}`;
 
+// `npm.cmd` was hardcoded into the webServer command below on 2026-04-11
+// (cf774cd4), when the only machine that ran this suite was Windows and the
+// extensionless `npm` shim is not something the spawn resolves there. No
+// workflow ran this suite until 2026-09-06, so nothing ever asked what that
+// name means elsewhere: there is no `npm.cmd` on a Linux runner, `sh` would
+// answer `npm.cmd: not found`, the preview would never come up, and every spec
+// would fail on the 120s webServer timeout with nothing in the output naming
+// npm. Found by reading, not by a red run — the CI job that would have shown it
+// is landing in the same change. On win32 this still evaluates to the identical
+// string (verified), so the local gate is unchanged.
+const npmBin = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+
 export default defineConfig({
   testDir: './tests/browser',
   testIgnore: ['**/_*.spec.ts'],
@@ -41,7 +53,7 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: `npm.cmd run preview -- --host 127.0.0.1 --port ${previewPort} --strictPort`,
+    command: `${npmBin} run preview -- --host 127.0.0.1 --port ${previewPort} --strictPort`,
     url: previewUrl,
     reuseExistingServer: true,
     timeout: 120_000,

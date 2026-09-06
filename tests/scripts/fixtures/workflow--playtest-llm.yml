@@ -2,6 +2,24 @@ name: playtest-corpus-llm
 # Per design Codex MED4: this workflow is SEPARATE from playtest.yml
 # (the deterministic-AI corpus) so the deterministic gating loop never
 # depends on Anthropic availability or API key presence.
+#
+# KEY-BEARING, SO NO PULL-REQUEST TRIGGER. The run steps below put
+# `secrets.ANTHROPIC_API_KEY` in the environment of scripts that execute code
+# from the checked-out ref. This repository went public on 2026-09-05, so a
+# pull request can now arrive from a stranger's fork, and the `llm-playtest`
+# label that used to gate the PR run was NOT a code gate: `synchronize` was in
+# the trigger list, so once a maintainer labelled a fork's PR the contributor
+# could push a new commit and this key-bearing job would re-run on the new code.
+# Only `schedule` and `workflow_dispatch` remain, and both run code that is
+# already on a branch of this repository.
+#
+# Do NOT add `pull_request_target` here. It is the trigger that would make this
+# genuinely exploitable: the key AND a write-scoped token, against the base
+# repository, on code the contributor controls. It has never appeared anywhere
+# in this repository's history and it must not start here.
+#
+# A pull request still gets its playtest coverage: playtest.yml runs the
+# deterministic corpus on every PR, and it needs no secret.
 on:
   schedule:
     # Nightly at 04:17 UTC (early morning so a flake doesn't block
@@ -17,25 +35,20 @@ on:
         description: 'maxTicks override'
         required: false
         type: string
-  pull_request:
-    types: [opened, labeled, synchronize]
 
+# `contents: read` is all this workflow needs. `pull-requests: write` went with
+# the PR comment step, which went with the PR trigger.
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   corpus-llm:
-    # PR runs only when the PR carries the `llm-playtest` label AND
-    # ANTHROPIC_API_KEY is configured. Default PR validation does NOT
-    # depend on this workflow; playtest.yml (deterministic) is the
-    # gating workflow.
-    if: |
-      github.event_name != 'pull_request'
-      || (
-        contains(github.event.pull_request.labels.*.name, 'llm-playtest')
-        && vars.ANTHROPIC_KEY_AVAILABLE == 'true'
-      )
+    # No `if:` gate any more. The one that was here only ever guarded the
+    # pull-request path (label present AND vars.ANTHROPIC_KEY_AVAILABLE), and it
+    # evaluated true for every schedule and workflow_dispatch run, so removing
+    # it with the PR trigger leaves the remaining two triggers unchanged.
+    # Default PR validation does NOT depend on this workflow; playtest.yml
+    # (deterministic) is the gating one.
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -86,9 +99,10 @@ jobs:
           MAX_TICKS: ${{ inputs.max-ticks || '5000' }}
         # Single-row override: bypass the corpus aggregator and call the
         # playtest:llm script directly with the dispatch inputs (Codex
-        # impl-345 M7). The artifact upload + summary post still fire
-        # via the same paths because we write to the same output dir
-        # the corpus runner would.
+        # impl-345 M7). The artifact upload still fires via the same path
+        # because we write to the same output dir the corpus runner would;
+        # that upload is now the only way a dispatch run reports its result,
+        # since the PR comment poster went with the pull_request trigger.
         run: |
           # Phase-6.A.3 timestamped corpus dir: <date>-<HHMMSS> instead
           # of <date> only, so multiple invocations (or the corpus
@@ -97,7 +111,8 @@ jobs:
           mkdir -p "output/corpus-llm/$stamp"
           mkdir -p output/playtests-llm
           npm run playtest:llm -- --seed "$SEED" --max-ticks "$MAX_TICKS" --out "output/playtests-llm/$stamp-manual"
-          # Build a minimal SUMMARY-LLM.md for the comment poster.
+          # Build a minimal SUMMARY-LLM.md so the uploaded artifact carries a
+          # readable result (it used to feed the PR comment poster as well).
           envelope_path="output/playtests-llm/$stamp-manual.envelope.json"
           if [ -f "$envelope_path" ]; then
             stop=$(jq -r '.stopReason' "$envelope_path")
@@ -119,32 +134,13 @@ jobs:
           path: |
             output/corpus-llm/
             output/playtests-llm/
-      - name: Post SUMMARY-LLM.md to PR
-        if: always() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            const corpusDir = 'output/corpus-llm';
-            const dates = (fs.existsSync(corpusDir) ? fs.readdirSync(corpusDir) : []).sort();
-            if (dates.length === 0) {
-              core.warning('No LLM corpus output produced — likely skipped or aborted before any row ran.');
-              return;
-            }
-            const summaryPath = path.join(corpusDir, dates[dates.length - 1], 'SUMMARY-LLM.md');
-            if (!fs.existsSync(summaryPath)) {
-              core.warning(`SUMMARY-LLM.md missing at ${summaryPath}; skipping comment.`);
-              return;
-            }
-            const summary = fs.readFileSync(summaryPath, 'utf8');
-            const marker = '<!-- playtest-corpus-llm -->';
-            const body = `${marker}\n## LLM Playtest corpus\n\n${summary}`;
-            const issue = { ...context.repo, issue_number: context.payload.pull_request.number };
-            const existing = await github.paginate(github.rest.issues.listComments, issue);
-            const prior = existing.find(c => c.body && c.body.includes(marker));
-            if (prior) {
-              await github.rest.issues.updateComment({ ...context.repo, comment_id: prior.id, body });
-            } else {
-              await github.rest.issues.createComment({ ...issue, body });
-            }
+      # The "Post SUMMARY-LLM.md to PR" step that used to sit here is gone with
+      # the pull_request trigger: its `github.event_name == 'pull_request'`
+      # condition can no longer be true, and it was the only reason this
+      # workflow asked for `pull-requests: write`. SUMMARY-LLM.md is still
+      # written, and now reaches a reader through the artifact above.
+      # NOTE ON WHAT THIS ARTIFACT PUBLISHES: it is downloadable by anyone now
+      # that the repository is public. The nightly run uses the real API key,
+      # so treat the transcripts as public. They are game state, LLM decisions
+      # and costs; nothing serializes `process.env`, and the Anthropic provider
+      # strips `x-api-key`, headers and request bodies out of SDK errors.

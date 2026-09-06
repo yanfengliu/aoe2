@@ -10,11 +10,26 @@ on:
   # could not trigger the run that would prove it, which is how a Windows-only
   # tar bug survived two months. workflow_dispatch is here for the same reason —
   # a CI change must be testable without inventing an unrelated version bump.
+  #
+  # `.gitattributes` joined them on 2026-09-06, same reasoning one level lower
+  # down: it decides the BYTES every tracked file is written with on the runner,
+  # so changing it changes what CI compiles even when no other file moves. The
+  # commit that added it (5274d7e2) existed to fix the Windows leg, matched none
+  # of the paths below, and reached a runner only because two later commits
+  # happened to ride the same push.
+  #
+  # `.nvmrc` is deliberately NOT here. Both watched workflows pin `node-version:`
+  # as a literal (20 here, 22 in playtest.yml) and neither reads the file, so a
+  # run triggered by a `.nvmrc` edit would execute on the old Node and report
+  # green — a gate answering "did not run" with "passed". Wire `setup-node` to
+  # `node-version-file:` first; that edit touches this file, so it triggers its
+  # own run, and the filter entry belongs in the same commit.
   push:
     branches: [main]
     paths:
       - 'package.json'
       - 'package-lock.json'
+      - '.gitattributes'
       - '.github/voxel-commit'
       - '.github/workflows/**'
   pull_request:
@@ -115,3 +130,146 @@ jobs:
         env:
           # Avoid color output in CI logs.
           FORCE_COLOR: '0'
+
+  # Half of `npm run verify` had never run remotely. The gate is
+  # `content:validate && test && typecheck && test:browser && lint && build`;
+  # the job above runs everything except `test:browser`, and nothing in this
+  # repository installed a browser outside the nightly LLM workflow. So every
+  # spec under tests/browser/ existed only as something ONE developer machine
+  # had run — and on 2026-09-06 that machine was shown to be unrepresentative:
+  # `tests/scripts/ciStatus.test.ts` passed there and failed on a clean Windows
+  # runner, because a local tree written by editors never sees the CRLF checkout
+  # a fresh clone gets. Every browser spec was in that same position.
+  browser:
+    name: ubuntu-latest — browser suite
+    runs-on: ubuntu-latest
+
+    # A SEPARATE job, on ONE platform. Both halves are deliberate.
+    #
+    # Separate, because the suite takes 14-17 minutes and the `gates` matrix
+    # already needed its cap raised from 30m to 60m for the Windows leg.
+    # Appending these minutes to `gates` would spend that headroom; a job of its
+    # own runs in PARALLEL, so the workflow still finishes when its slowest leg
+    # does and no wall-clock is added.
+    #
+    # ubuntu-latest only. The trade, in minutes: this job costs ~20-25 billable
+    # minutes per triggered run. Adding windows-latest would cost roughly 15-20
+    # wall-clock minutes more at Windows' 2x billing multiplier — ~30-40
+    # billable minutes on top — on an account that has already had runs refused
+    # this month for a spending block (`npm run ci:status` reports those as
+    # COULD NOT RUN). And Windows is the platform the suite is LEAST unproven
+    # on: `npm run verify` on the one Windows development machine has run it
+    # before every code commit for months. Linux is where these specs had never
+    # executed once. Buying the platform that is already covered, at double
+    # rate, on a blocked account, is the wrong half to buy first. What this
+    # leaves unproven is stated plainly: a Chromium behaviour that differs
+    # between the Linux runner and Windows is not covered here, only locally.
+    timeout-minutes: 45
+
+    # Checkout/engine/voxel/node below are copied from `gates`. Duplicated
+    # rather than factored into a composite action because `.github/actions/`
+    # does not exist, creating it is a structural change this job does not need,
+    # and tests/architecture/workflowSecretExposure.test.ts records its absence
+    # as a bound on what that gate can see. Factor when a third job wants them.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch the prebuilt civ-engine
+        shell: bash
+        run: |
+          curl -fsSL -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
+          mkdir -p ../civ-engine
+          tar -xzf civ-engine.tgz -C ../civ-engine --strip-components=1
+
+      - name: Fetch pinned voxel source
+        shell: bash
+        run: |
+          VOXEL_COMMIT="$(tr -d '[:space:]' < .github/voxel-commit)"
+          printf '%s\n' "$VOXEL_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
+          test ! -e ../voxel
+          mkdir -p ../voxel
+          curl -fsSL --retry 3 \
+            -o voxel.tgz \
+            "https://github.com/yanfengliu/voxel/archive/${VOXEL_COMMIT}.tar.gz"
+          tar -xzf voxel.tgz \
+            -C ../voxel \
+            --strip-components=1
+          rm -f voxel.tgz
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install and build voxel
+        shell: bash
+        run: npm --prefix ../voxel ci
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Key the cache on the version `npm ci` ACTUALLY installed, read out of
+      # node_modules rather than the `^1.59.1` range in package.json: Playwright
+      # refuses to drive a browser build other than the one its own version
+      # ships with, so a bump has to MISS this cache. The grep is there so a
+      # read that returns "undefined" fails the step instead of quietly becoming
+      # part of a cache key that then never matches anything again.
+      - name: Read the installed Playwright version
+        id: playwright
+        shell: bash
+        run: |
+          version="$(node -p "require('./node_modules/@playwright/test/package.json').version")"
+          printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+'
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the Playwright browser
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      # playwright.config.ts declares exactly ONE project — `chromium`, with no
+      # `channel:` — so `devices['Desktop Chrome']` is a viewport/user-agent
+      # preset, not a request for branded Chrome. The bundled chromium build is
+      # the entire requirement; Firefox and WebKit are never launched, so they
+      # are never downloaded. Its `launchOptions` ask for
+      # `--use-angle=swiftshader`, i.e. software GL, which is what makes a
+      # GPU-less runner viable at all.
+      #
+      # The apt-level system libraries live outside ~/.cache and so are never
+      # restored by the cache; on a hit only those are missing.
+      - name: Install Chromium and its system libraries
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install the system libraries (Chromium came from the cache)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # The exact command `npm run verify` runs, so this leg and the local gate
+      # cannot drift apart on how the suite is invoked. Its `pretest:browser`
+      # runs `npm run build`, which is what produces the dist/ the config's
+      # globalSetup (verifyPreviewServesThisBuild) compares against what the
+      # preview serves — that guard aborts the run rather than measuring a stale
+      # or foreign bundle, and it works unchanged here because Playwright starts
+      # the `vite preview` itself: nothing else holds 127.0.0.1:4173 on a fresh
+      # runner, so `reuseExistingServer` has nothing to reuse.
+      - name: Browser suite
+        run: npm run test:browser
+        env:
+          FORCE_COLOR: '0'
+
+      # `trace: 'retain-on-failure'` and `screenshot: 'only-on-failure'` write
+      # into test-results/ only when a spec fails. A green run uploads nothing;
+      # a red one is otherwise undiagnosable from here.
+      - name: Upload Playwright traces and screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures-${{ github.run_id }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
