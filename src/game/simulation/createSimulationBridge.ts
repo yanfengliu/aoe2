@@ -7,6 +7,13 @@ import { createWorld } from './bridge/createWorld';
 import { visibilityStateFromSave } from './saveBlobReaders';
 import { createRenderStateOps } from './bridge/renderStateOps';
 import { createTickHaltState, tryTick } from './bridge/tickHaltGuard';
+import {
+  STEP_REFUSED_HALTED,
+  STEP_REFUSED_MATCH_OVER,
+  STEP_REFUSED_PAUSED,
+  stepAdvanced,
+  stepAdvancedThenRefused,
+} from './bridge/stepReport';
 import { drainPendingCommands } from './dispatcher';
 import { DEFAULT_SEED, HUMAN_PLAYER_ID, TPS, createPrototypeScenario } from './prototypeScenario';
 import { RenderStore } from './renderStore';
@@ -21,8 +28,8 @@ import {
 import type { CreateSimulationBridgeOptions } from './createSimulationBridgeOptions';
 // The SimulationBridge contract lives in `simulationBridgeTypes.ts`; the
 // re-export keeps every existing `from './createSimulationBridge'` import.
-export type { SimulationBridge } from './simulationBridgeTypes';
-import type { SimulationBridge } from './simulationBridgeTypes';
+export type { SimulationBridge, StepRefusal, StepReport } from './simulationBridgeTypes';
+import type { SimulationBridge, StepReport } from './simulationBridgeTypes';
 import type { ActionType } from './types';
 export type { MemoryEntry } from './bridge/memoryTypes';
 
@@ -252,24 +259,34 @@ export function createSimulationBridge(
     getPlayerCivilization,
     getResearchedTechnologies,
     getConstructionCost,
-    step(deltaMs: number) {
+    step(deltaMs: number): StepReport {
       flushOutOfBandRenderChange();
-      // Spec 2 AO-2: manual pause gate. Placed AFTER flushOutOfBandRenderChange
-      // so render projections continue to flow while paused, and BEFORE the
-      // existing haltState / match-outcome checks so the HUD's engineHalted
-      // (which reads haltState.halted) doesn't reflect manual pause.
+      // Each of these three used to `return` with nothing said, so a caller
+      // could only infer "it declined" from an unchanged tick counter — and
+      // could not tell WHICH of the three declined. Two sessions reasoned
+      // from a wrong model of this because of it (defect register
+      // 2026-09-06). They now name themselves; the constants are shared and
+      // frozen so saying so costs nothing on a path taken every frame.
+      //
+      // Spec 2 AO-2: the manual pause gate is placed AFTER
+      // flushOutOfBandRenderChange so render projections continue to flow
+      // while paused, and BEFORE the haltState / match-outcome checks so the
+      // HUD's engineHalted (which reads haltState.halted) doesn't reflect
+      // manual pause. The refusal ORDER is the reporting order: a paused,
+      // halted, finished match reports `paused` first.
       if (pauseState.pausedManually) {
-        return;
+        return STEP_REFUSED_PAUSED;
       }
       if (haltState.halted) {
-        return;
+        return STEP_REFUSED_HALTED;
       }
       if (getMatchState().outcome !== 'running') {
-        return;
+        return STEP_REFUSED_MATCH_OVER;
       }
 
       accumulatorMs += deltaMs;
       const tickMs = 1000 / TPS;
+      let ticksRun = 0;
 
       while (accumulatorMs >= tickMs) {
         // Phase 1A: drain AI intention queue between ticks (DESIGN v17 §6.5).
@@ -281,10 +298,15 @@ export function createSimulationBridge(
         drainPendingCommands(world, pendingCommands, agentDispatchObserver ?? undefined);
         if (!tryTick(() => world.step(), haltState)) {
           accumulatorMs = 0;
-          break;
+          // The tick that just failed set haltState. Report BOTH halves: the
+          // ticks that did run before it, and the halt that ended the call.
+          return stepAdvancedThenRefused(ticksRun, 'halted');
         }
         accumulatorMs -= tickMs;
+        ticksRun += 1;
       }
+
+      return stepAdvanced(ticksRun);
     },
     // Spec 2 AO-2: world getter — exposes the engine World instance for
     // RecordingService / AnnotationController / MarkerListPanel.

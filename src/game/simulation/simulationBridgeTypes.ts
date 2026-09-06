@@ -31,8 +31,49 @@ import type {
   UnitType,
 } from './types';
 
+/** Why a `step()` would not advance the world. Each value is a DIFFERENT
+ *  condition with a different fix, which is the whole point of naming them:
+ *  before v0.3.214 a refused step returned silently and a caller could only
+ *  guess from a tick delta of zero, so a manually paused game and a crashed
+ *  one looked identical (defect register 2026-09-06).
+ *
+ *  - `paused`      — `setPaused(true)`; the player's pause, or a harness's.
+ *    Clears on `setPaused(false)`.
+ *  - `halted`      — a tick threw; the world may be mid-tick, so it is never
+ *    stepped again. Terminal for this bridge. Details in
+ *    `getHudState().engineHalted`.
+ *  - `match-over`  — `getMatchState().outcome !== 'running'`. Terminal, and
+ *    an ordinary end to a game rather than a fault.
+ *  - `replay`      — a replay bridge, whose playback ReplayController drives;
+ *    frames never advance it. Terminal for that bridge.
+ */
+export type StepRefusal = 'paused' | 'halted' | 'match-over' | 'replay';
+
+/** What one `step()` did. Cheap by construction — no Error, no stack, no
+ *  message formatting — because the frame loop calls `step()` every frame and
+ *  a halted or paused match refuses on EVERY one of them, forever. The three
+ *  refusals are shared frozen constants, so the steady-state path allocates
+ *  nothing at all. */
+export interface StepReport {
+  /** World ticks this call ran. Zero is normal for a short `deltaMs` that did
+   *  not fill a tick, so zero on its own is not a refusal — read
+   *  `refusedBecause` for that. */
+  readonly ticks: number;
+  /** Why the world would not advance (further), or `null` when it was willing
+   *  and stayed willing. Non-null with `ticks > 0` means the call ran some
+   *  ticks and then stopped — a tick failed partway, say. Non-null always
+   *  means an identical next call advances nothing until the named condition
+   *  changes. */
+  readonly refusedBecause: StepRefusal | null;
+}
+
 export interface SimulationBridge {
-  step(deltaMs: number): void;
+  /** Advance the world by `deltaMs` of wall time. Returns what it did: a
+   *  refused step reports WHICH condition refused it rather than returning
+   *  silently, so a caller never has to infer "nothing happened" from an
+   *  unchanged tick counter. Callers that legitimately do not care — the
+   *  frame loop, which re-asks 60 times a second — may discard the report. */
+  step(deltaMs: number): StepReport;
   // Spec 2 (annotation-ui v0.1.5) AO-2: read-only access to the engine
   // World instance. Required by RecordingService (binds the SessionRecorder
   // to this World) and AnnotationController.worldRef. Stable for THIS

@@ -7,6 +7,7 @@ import type { EntityRef } from 'civ-engine';
 import type { SimulationBridge } from '../createSimulationBridge';
 import { createProjector } from '../bridge/visibility';
 import { createRenderStateOps } from '../bridge/renderStateOps';
+import { STEP_REFUSED_REPLAY } from '../bridge/stepReport';
 import type { GameWorld } from '../bridge/pureHelpers';
 import { toEngineWorld } from '../bridge/pureHelpers';
 import { HUMAN_PLAYER_ID, TPS } from '../prototypeScenario';
@@ -131,6 +132,10 @@ export function makeReplayBridge(
       constructionCost(buildingType),
     step() {
       flushOutOfBandRenderChange();
+      // A replay bridge never advances from a frame — ReplayController owns
+      // playback. It says so rather than looking like a live bridge that
+      // happened to do nothing.
+      return STEP_REFUSED_REPLAY;
     },
     get world() {
       return world;
