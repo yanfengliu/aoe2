@@ -6,6 +6,7 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { SessionReplayer } from 'civ-engine';
+import { readBundleFile } from '../src/game/playtest/bundleIo.ts';
 import { parseCorpusFile } from '../src/game/playtest/corpusSchema.ts';
 import { checkAgeProgression, checkEveryOwnerAgeProgression } from '../src/game/playtest/progressionCheck.ts';
 import { createReplayWorldOnly } from '../src/game/simulation/replay/createReplayWorldOnly.ts';
@@ -18,7 +19,10 @@ import { makeReplayBridge } from '../src/game/simulation/replay/makeReplayBridge
 // scenario started at a nonzero tick. May throw (malformed bundle / replay
 // failure); the caller handles that (fails the gate loud rather than crashing).
 function readEndStateFromBundle(bundlePath) {
-  const bundle = JSON.parse(readFileSync(bundlePath, 'utf8'));
+  // Streamed read: a full-length run's bundle is past V8's max string length,
+  // so `JSON.parse(readFileSync(...))` would turn the progression gate into an
+  // ERROR row on exactly the long runs it exists to check.
+  const bundle = readBundleFile(bundlePath);
   if (bundle.metadata && (bundle.metadata.endTick ?? 0) <= 0) {
     const recordedMax = Math.max(
       bundle.metadata.persistedEndTick ?? 0,

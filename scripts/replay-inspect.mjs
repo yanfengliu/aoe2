@@ -13,9 +13,8 @@
 // its villagers were being killed?):
 //   npm run replay:inspect -- output/playtests-llm/campaign-4.json
 
-import { readFileSync } from 'node:fs';
-
 import { SessionReplayer } from 'civ-engine';
+import { readBundleFile } from '../src/game/playtest/bundleIo.ts';
 import { createReplayWorldOnly } from '../src/game/simulation/replay/createReplayWorldOnly.ts';
 import { makeReplayBridge } from '../src/game/simulation/replay/makeReplayBridge.ts';
 
@@ -30,7 +29,10 @@ const ticks = ti >= 0
   ? argv[ti + 1].split(',').map(Number)
   : [0, 250, 500, 700, 900, 1200, 1800, 2500, 3500, 5000, 7000, 9000];
 
-const bundle = JSON.parse(readFileSync(bundlePath, 'utf8'));
+// Streamed read: `JSON.parse(readFileSync(path, 'utf8'))` builds the whole
+// document as one string, and a full-length run's bundle is past V8's
+// 536,870,888-char cap — the same wall that used to lose the run at write time.
+const bundle = readBundleFile(bundlePath);
 // Workaround for an LLM-harness recording bug: campaign bundles export
 // metadata.endTick = 0 (durationTicks 0) even though the run is fully
 // recorded (ticks/executions/snapshots all reach persistedEndTick). The

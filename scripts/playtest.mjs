@@ -4,8 +4,9 @@
 // in package.json). tsx handles TypeScript module resolution at runtime so
 // this .mjs file can import .ts modules directly.
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, statSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { writeBundleFile } from '../src/game/playtest/bundleIo.ts';
 import { runPlaytest } from '../src/game/playtest/runPlaytest.ts';
 
 function parseArgs(argv) {
@@ -43,14 +44,16 @@ const result = await runPlaytest({
 });
 
 mkdirSync(dirname(args.out), { recursive: true });
-// Compact (no `null, 2`): the bundle is a machine-read artifact (SessionReplayer
-// / replay:inspect parse it), and pretty-printing a long playtest's bundle
-// inflates it ~40% — enough to blow past Node's max string length and throw
-// `RangeError: Invalid string length` on JSON.stringify (the corpus smoke hit
-// this on its full-length run). Compact keeps it serializable and ~half the size.
-writeFileSync(`${args.out}.json`, JSON.stringify(result.bundle));
+// Streamed, compact, still ordinary JSON. Stringifying the bundle in one call
+// cannot write a full-length run: the whole document would be a single string,
+// and V8 caps a string at 536,870,888 chars, so it threw `RangeError: Invalid
+// string length` AFTER the simulation had finished and the entire run was lost.
+// Dropping `null, 2` (which cost ~40%) only moved that wall; `writeBundleFile`
+// removes it by serializing one tick entry at a time. Read it back with
+// `readBundleFile` — reading the file into one string hits the same cap.
+writeBundleFile(`${args.out}.json`, result.bundle);
 writeFileSync(`${args.out}.envelope.json`, JSON.stringify(result.envelope, null, 2));
 
 console.log(`stopReason=${result.envelope.stopReason} ticks=${result.envelope.ticksRun}`);
-console.log(`bundle: ${args.out}.json`);
+console.log(`bundle: ${args.out}.json (${statSync(`${args.out}.json`).size.toLocaleString()} bytes)`);
 console.log(`envelope: ${args.out}.envelope.json`);

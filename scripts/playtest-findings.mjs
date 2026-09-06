@@ -17,6 +17,7 @@
 import { readFileSync, writeFileSync, renameSync, existsSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
+import { readBundleFile, writeBundleFile } from '../src/game/playtest/bundleIo.ts';
 import {
   AnthropicProvider,
   ClaudeCodeProvider,
@@ -218,7 +219,10 @@ async function main() {
     );
   } else {
     try {
-      const bundle = JSON.parse(readFileSync(bundlePath, 'utf8'));
+      // Streamed both ways: a full-length run's bundle is past V8's max string
+      // length, so `JSON.parse(readFileSync(...))` on the way in and
+      // `JSON.stringify` on the way out would each throw on a long run.
+      const bundle = readBundleFile(bundlePath);
       const anchorTick = deriveAnchorTick(rows, bundle);
       const agentId = model ? `${label} / ${model}` : label;
       const markers = findingsToMarkers(findings, { anchorTick, agentId, createdAt: new Date().toISOString() });
@@ -228,7 +232,7 @@ async function main() {
       // a temp file then rename to close the crash/disk-full corruption
       // window (Claude review LOW-2).
       const tmpPath = `${bundlePath}.tmp`;
-      writeFileSync(tmpPath, JSON.stringify(updated));
+      writeBundleFile(tmpPath, updated);
       renameSync(tmpPath, bundlePath);
       console.log(
         `[playtest-findings] injected ${markers.length} agent marker(s) @tick ${anchorTick} into ${bundlePath}`,

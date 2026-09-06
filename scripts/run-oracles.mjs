@@ -4,6 +4,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { basename } from 'node:path';
+import { readBundleFile } from '../src/game/playtest/bundleIo.ts';
 import { runOracles } from '../src/game/playtest/oracles.ts';
 
 function parseArgs(argv) {
@@ -18,7 +19,9 @@ function parseArgs(argv) {
 }
 
 const args = parseArgs(process.argv);
-const bundle = JSON.parse(readFileSync(`${args.in}.json`, 'utf8'));
+// Streamed read: a full-length run's bundle is past V8's max string length, so
+// `JSON.parse(readFileSync(...))` would throw on the very runs the oracles matter for.
+const bundle = readBundleFile(`${args.in}.json`);
 const envelope = JSON.parse(readFileSync(`${args.in}.envelope.json`, 'utf8'));
 const violations = runOracles(bundle, envelope, args.thresholds);
 

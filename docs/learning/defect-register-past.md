@@ -14,6 +14,16 @@ The last two were already pointing the wrong way before any split, and nothing h
 
 **Three entries came back on 2026-09-05.** The first rollover read "(SUPERSEDED ... still unfixed)", "(PARTLY FIXED: ...)" and "(LATENT, not fixed)" as closures and archived three live defects. They were moved back to the active register with `, OPEN` added inside the trailing group and nothing else changed, and `tests/architecture/defectRegisterRollover.test.ts` now refuses an archived marker that leaves the defect live. The rollover's other 38 entries were not disturbed.
 
+## 2026-09-04 — The suite's one flaky spec, and what it was really asking (FIXED)
+
+**Symptom.** `npm run verify` went red on `tests/browser/trade-route-reach.spec.ts`: the Trade Cart's selection panel read `Idle` where the spec wanted `Trading`, after nine polls over five seconds.
+
+**Investigation.** It is not caused by any change in this session — that fixture sets `disableAi: true` on BOTH owners, so neither the AI attack phase nor the drop-off anchor can reach it. Running the spec repeatedly against ONE unchanged build gave 4 passes and 1 failure, then 7 of 8: it is flaky, and it has been. Instrumenting the click showed the screen point and the Market's position identical on every run, passing and failing alike, and the cart's task reading `idle` immediately after the click in runs that later passed.
+
+**Root cause, measured one variable at a time.** Two races, and fixing either alone leaves the other: a step BEFORE the click (pre-click step alone still failed 1 in 6) and a step AFTER it (post-click step alone failed 2 in 8). The click needs a world the simulation has already revealed — an order at an entity the fog has not shown yet is refused, which is the fog contract working rather than the question the spec asks — and the order it submits does not EXECUTE until the next step, which a loaded machine can leave undone past the five-second poll. Both together: 12 of 12, and 18 of 18 across the two earlier arrangements that had both.
+
+**How this class is checked from now on.** No new gate — the fix is inside the gate itself. The lesson is the one the fleet canon already states about bounds: a browser assertion that waits on WALL CLOCK for a simulation step is bounded by the machine's load, and that bound is invisible until a slower machine finds it. This repo's remote runners are all slower than this one.
+
 ## 2026-09-03 — The AI reaches the Imperial age and never trains another unit (FIXED v0.3.199)
 
 **Symptom.** The user's standing priority 1, "THE AI NEVER FIELDS AN ARMY". On `fortress` both AI owners reach the Imperial age and finish a 100-minute match with armies of 2 and 0, holding 1,231 wood and 595 food, with five military buildings each.
