@@ -65,9 +65,14 @@
 //   `permissions:`. The lesson of the incident is that a condition depending on
 //   a value defined outside the file is not a protection you can verify, so a
 //   key-bearing job guarded only by an `if:` counts as reachable here.
-// * js-yaml is present only as a transitive dependency of eslint
-//   (@eslint/eslintrc). If it ever disappears this file throws by name rather
-//   than skipping — see loadYaml().
+// * js-yaml is a declared devDependency (`^4.3.1`), added by the same commit as
+//   this gate (52546080). Before that it reached this file only as a transitive
+//   dependency of eslint's @eslint/eslintrc, which an eslint bump could have
+//   taken away without touching anything here. Declaring it closes that one
+//   route and not the class: a partial install, a hoisting change, or a
+//   platform the package does not build on still leaves nothing to parse with.
+//   So loadYaml() throws BY NAME rather than skipping — a gate that quietly
+//   parses zero workflows would report "did not run" as "passed".
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -100,8 +105,9 @@ function loadYaml(): YamlLoader {
   } catch (error) {
     throw new Error(
       'js-yaml failed to load, so NO workflow was parsed and this gate checked nothing. '
-        + 'It is present today only as a transitive dependency of eslint (@eslint/eslintrc), '
-        + 'so an eslint bump can take it away. Declare `js-yaml` in devDependencies to fix. '
+        + 'It IS declared in devDependencies (js-yaml ^4.3.1), so this is a broken or '
+        + 'incomplete install rather than a missing declaration: run `npm ci`, and if the '
+        + 'declaration has since been removed from package.json, put it back. '
         + `Underlying error: ${String(error)}`,
     );
   }

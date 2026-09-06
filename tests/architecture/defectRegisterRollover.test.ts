@@ -18,6 +18,11 @@
 //     of the two files, plus labelled synthetic near misses.
 // (2) `docs/learning/defect-register.md` holds at most CLOSED_CAP closed
 //     entries. Open entries do not count against the cap and never roll over.
+//     Its message names the entries a reader must actually move — OLDEST
+//     first, which in a newest-first file means the bottom-most entry of the
+//     oldest date, and never an entry the archive check (3) would then refuse.
+//     Both halves are pinned by `rolloverMessage`'s own cases below, on
+//     synthetic entries, because the register's real contents change weekly.
 // (3) No OPEN entry is in `docs/learning/defect-register-past.md`, and no
 //     archived entry carries a marker that leaves the defect live —
 //     "(LATENT, not fixed)", "(PARTLY FIXED: ...)", "(... NOT shipped)". An
@@ -41,7 +46,10 @@
 // CONTENT: an entry moved with its wording mangled, summarised, or with a body
 // silently truncated passes, because the only record of what the text was is
 // git history and this gate deliberately does not shell out to it. Nothing
-// checks ORDER: an active file shuffled out of newest-first order passes.
+// checks ORDER: an active file shuffled out of newest-first order passes, and
+// (2)'s message ASSUMES that order — it reads "older" off the date in the
+// heading and, within one date, off the line number, so an entry filed in the
+// wrong place is named in the wrong place too.
 // Nothing checks that the twelve kept entries are the twelve NEWEST — keeping
 // any twelve closed entries and archiving the rest passes. Nothing checks that
 // a closed entry ever reaches the archive: deleting one outright passes every
@@ -67,11 +75,24 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const ROOT = realpathSync.native(fileURLToPath(new URL('../../', import.meta.url)));
-const ACTIVE = 'docs/learning/defect-register.md';
-const PAST = 'docs/learning/defect-register-past.md';
+import {
+  ACTIVE,
+  CLOSED_CAP,
+  type Entry,
+  PAST,
+  SUSPECT_ARCHIVED,
+  type Verdict,
+  classify,
+  entryKey,
+  isOpen,
+  mayBeArchived,
+  rolloverMessage,
+  statusMarker,
+  statusRegion,
+} from './helpers/defectRegisterHeadings';
 
-const CLOSED_CAP = 12;
+const ROOT = realpathSync.native(fileURLToPath(new URL('../../', import.meta.url)));
+
 // Floors that a broken heading regex or a wrong path must trip. Entries are
 // never deleted from the register, so these only ever become more slack. The
 // ACTIVE floor is the cap itself: the cap check reads that file, and a floor
@@ -91,86 +112,10 @@ const NOT_A_PATH = /^(?:#|\/\/|[A-Za-z][A-Za-z0-9+.-]*:)/;
 const LOOSE_HEADING = /^\s{0,3}#{2}\s/;
 const FENCE = /^\s{0,3}(?:`{3,}|~{3,})/;
 
-// The classifier. `isOpen` is case-insensitive because `(open)` and `(Open)`
-// are the same statement as `(OPEN)`; SUSPECT_LIVE is the fail-loud branch for
-// the spellings that mean the same and that `isOpen` cannot read; and
-// SUSPECT_ARCHIVED is the archive-only branch for markers that describe a
-// defect nobody has fixed.
-const OPEN_MARKER = /\bopen\b/i;
-const SUSPECT_LIVE = /\b(?:open|unfixed|reopen)\w*/i;
-const SUSPECT_ARCHIVED =
-  /\blatent\b|\bunresolved\b|\bpending\b|\bpart(?:ly|ially)\s+fixed\b|\b(?:not|never)\s+(?:fixed|resolved|shipped|repaired)\b|\bwon'?t\s+fix\b/i;
-
-type Verdict = 'open' | 'ambiguous' | 'closed';
-
-interface Entry {
-  readonly heading: string;
-  readonly line: number;
-  readonly status: string;
-  readonly verdict: Verdict;
-  readonly open: boolean;
-  readonly key: string;
-}
-
 interface Register {
   readonly path: string;
   readonly header: string;
   readonly entries: readonly Entry[];
-}
-
-// The status marker is the LAST balanced parenthesised group that ENDS the
-// heading — `... (owner-reported, OPEN)` is open, `Villagers latch on an OPEN
-// cell when buildings move (FIXED)` is closed, and a heading with no trailing
-// group at all (several of the 2026-08-23 entries) has no marker.
-export function statusMarker(heading: string): string {
-  const text = heading.replace(/\s+$/, '');
-  if (!text.endsWith(')')) return '';
-  let depth = 0;
-  for (let i = text.length - 1; i >= 0; i -= 1) {
-    if (text[i] === ')') depth += 1;
-    else if (text[i] === '(') {
-      depth -= 1;
-      if (depth === 0) return text.slice(i);
-    }
-  }
-  return '';
-}
-
-// When there is no parseable marker the whole heading is the status region:
-// that is the only way `(OPEN`, `[OPEN]`, `(OPEN).` and a trailing `— OPEN`
-// can be seen at all. It is also why the three real entries titled "Villagers
-// latch on an OPEN cell when buildings move" must keep a trailing group — they
-// have one, so only their marker is read.
-export function statusRegion(heading: string): string {
-  return statusMarker(heading) || heading;
-}
-
-export function isOpen(heading: string): boolean {
-  return OPEN_MARKER.test(statusMarker(heading));
-}
-
-export function classify(heading: string): Verdict {
-  if (isOpen(heading)) return 'open';
-  return SUSPECT_LIVE.test(statusRegion(heading)) ? 'ambiguous' : 'closed';
-}
-
-export function mayBeArchived(heading: string): boolean {
-  return classify(heading) === 'closed' && !SUSPECT_ARCHIVED.test(statusRegion(heading));
-}
-
-// Two headings that differ only by case, a curly apostrophe, an en-dash for an
-// em-dash, a trailing space or a run of spaces are the same entry (review
-// finding F4).
-export function entryKey(heading: string): string {
-  return heading
-    .normalize('NFC')
-    .replace(/^\s*#+\s*/, '')
-    .replace(/[‘’ʼ]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/[‐-―−]/g, '-')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
 }
 
 function scanHeadings(lines: readonly string[]): { strict: number[]; loose: number[] } {
@@ -225,10 +170,6 @@ function read(path: string): Register {
   });
   const firstHeading = strict.length === 0 ? lines.length : strict[0];
   return { path, header: lines.slice(0, firstHeading).join('\n'), entries };
-}
-
-function headingDate(heading: string): string {
-  return /^## (\d{4}-\d{2}-\d{2})/.exec(heading)?.[1] ?? '';
 }
 
 function pointersIn(register: Register): { raw: string; line: number }[] {
@@ -366,14 +307,71 @@ describe('defect register rollover', () => {
   it(`the active register holds at most ${CLOSED_CAP} closed entries`, () => {
     const active = read(ACTIVE);
     const closed = active.entries.filter((entry) => !entry.open);
-    const overflow = [...closed]
-      .sort((a, b) => (headingDate(a.heading) === headingDate(b.heading) ? a.line - b.line : headingDate(a.heading).localeCompare(headingDate(b.heading))))
-      .slice(0, Math.max(0, closed.length - CLOSED_CAP))
-      .map((entry) => `${ACTIVE}:${entry.line} — ${entry.heading.slice(3)}`);
+    const overflow = rolloverMessage(closed, CLOSED_CAP);
     expect(
       overflow,
-      `${ACTIVE} holds ${closed.length} closed entries and the cap is ${CLOSED_CAP} (${active.entries.length - closed.length} open entries do not count). The task whose entry overflowed the file does the rollover in its own commit — never a later sweep: move these oldest closed entries verbatim to ${PAST}, keeping their order, and change no wording:\n${overflow.join('\n')}`,
+      `${ACTIVE} holds ${closed.length} closed entries and the cap is ${CLOSED_CAP} (${active.entries.length - closed.length} open entries do not count). The task whose entry overflowed the file does the rollover in its own commit — never a later sweep: move the entries marked MOVE verbatim to ${PAST}, in the order given (oldest first), and change no wording. An entry marked PINNED stays where it is — the archive check refuses its marker, so moving it turns this suite red a different way:\n${overflow.join('\n')}`,
     ).toEqual([]);
+  });
+
+  // The message's own cases. They are built from synthetic entries rather than
+  // from the register, because what has to hold is the RULE — the register's
+  // contents change every few days, and a case that read them would be pinning
+  // this week's file. The one real-file case below asks only for the property.
+  const fake = (date: string, note: string, line: number): Entry => {
+    const heading = `## ${date} — SYNTHETIC ${note}`;
+    return { heading, line, status: statusMarker(heading), verdict: classify(heading), open: isOpen(heading), key: entryKey(heading) };
+  };
+
+  it('names the oldest closed entries first, and for one date the BOTTOM-most of them', () => {
+    // File order, so a lower line number is a NEWER entry. Three entries share
+    // 2026-09-06 and two share 2026-09-05: the shape that exposed the defect,
+    // because with one entry per date a line-number tie-break never runs.
+    const closed = [
+      fake('2026-09-06', 'newest of 09-06 (FIXED)', 10),
+      fake('2026-09-06', 'middle of 09-06 (FIXED)', 20),
+      fake('2026-09-06', 'oldest of 09-06 (FIXED)', 30),
+      fake('2026-09-05', 'newer of 09-05 (FIXED)', 40),
+      fake('2026-09-05', 'oldest of them all (FIXED)', 50),
+    ];
+    expect(rolloverMessage(closed, 5), 'the cap is met, so nothing is named').toEqual([]);
+    expect(rolloverMessage(closed, 4)).toEqual([
+      `${ACTIVE}:50 — MOVE — 2026-09-05 — SYNTHETIC oldest of them all (FIXED)`,
+    ]);
+    expect(rolloverMessage(closed, 2)).toEqual([
+      `${ACTIVE}:50 — MOVE — 2026-09-05 — SYNTHETIC oldest of them all (FIXED)`,
+      `${ACTIVE}:40 — MOVE — 2026-09-05 — SYNTHETIC newer of 09-05 (FIXED)`,
+      `${ACTIVE}:30 — MOVE — 2026-09-06 — SYNTHETIC oldest of 09-06 (FIXED)`,
+    ]);
+  });
+
+  it('never tells the reader to move an entry the archive check would refuse', () => {
+    const pinned = fake('2026-09-03', 'pinned (PROVEN, fix measured and NOT shipped)', 100);
+    const closed = [fake('2026-09-05', 'newest (FIXED)', 10), fake('2026-09-04', 'the movable one (FIXED)', 50), pinned];
+    expect(rolloverMessage(closed, 2)).toEqual([
+      `${ACTIVE}:100 — PINNED, leave it where it is: the archive check refuses (PROVEN, fix measured and NOT shipped) as a closure — 2026-09-03 — SYNTHETIC pinned (PROVEN, fix measured and NOT shipped)`,
+      `${ACTIVE}:50 — MOVE — 2026-09-04 — SYNTHETIC the movable one (FIXED)`,
+    ]);
+    // Nothing archivable left. The cap is still exceeded, so the list must NOT
+    // come back empty and let the check pass — it says the cap is unreachable.
+    const allPinned = rolloverMessage([pinned, fake('2026-09-02', 'also pinned (LATENT, not fixed)', 200)], 1);
+    expect(allPinned).toHaveLength(3);
+    expect(allPinned[2]).toContain('1 more closed entry has to go and every remaining one is PINNED');
+  });
+
+  it('on the real register, an entry it names to MOVE is one the archive would accept', () => {
+    const closed = read(ACTIVE).entries.filter((entry) => !entry.open);
+    // The premise, so a register with nothing closed fails saying that rather
+    // than blaming the entry it could not find.
+    expect(closed.length, `${ACTIVE} holds no closed entry, so nothing could ever be asked to roll`).toBeGreaterThan(0);
+    const named = rolloverMessage(closed, closed.length - 1);
+    const moving = named.filter((line) => line.includes(' — MOVE — '));
+    expect(moving, `one entry over the cap must name exactly one MOVE:\n${named.join('\n')}`).toHaveLength(1);
+    const heading = `## ${moving[0].slice(moving[0].indexOf(' — MOVE — ') + 10)}`;
+    expect(
+      mayBeArchived(heading),
+      `the cap check named an entry that check (3) would then refuse in the archive: ${heading}`,
+    ).toBe(true);
   });
 
   it('the archive holds no OPEN entry, and no marker that leaves the defect live', () => {
