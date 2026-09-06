@@ -4,6 +4,23 @@
 // player can train the cart at the Market's card, right-click the other
 // player's Market, and watch gold arrive — plus the "Trading with Market"
 // verb in the selection panel, which is how they know the order took.
+//
+// The camera centres on the cell this spec CLICKS — `market.x + 1, market.y + 1`
+// — and not on the Market's own anchor. Changed 2026-09-05: centring on the
+// anchor put the click one tile further down the screen, at (400, 357.6) in the
+// suite's 800x600 viewport, and the command bar's box starts at y 352. The
+// click was 5.6px INSIDE the bar, and it worked only because the HUD leaked
+// clicks through to the world canvas — a hole no player could aim through,
+// which the same day's `pointer-events` fix closed (defect register,
+// 2026-09-05, the HUD click-through entry; its gate is
+// `hud-opaque-surfaces-swallow-clicks.spec.ts`). Measured, not inferred, with
+// `installCanvasProbe` from `helpers/hudOpaqueSurfaceSweep.ts`: centred on the
+// anchor the point hit-tests to `div.hud-panel.hud-panel--selection` and the
+// canvas receives NOTHING; centred on the clicked cell it lands at (400, 319.2),
+// hit-tests to `canvas.voxel-world-canvas`, and the canvas receives pointerdown,
+// pointerup and contextmenu. Do NOT "simplify" the `+ 1` back onto the anchor:
+// that aims the mouse at the HUD again, and the spec would then be asserting
+// the leak rather than the trade route.
 
 import { expect, test } from '@playwright/test';
 import * as game from './helpers/gameTestHelpers';
@@ -23,7 +40,7 @@ test.describe('a trade route through the live UI', () => {
       const market = window.__AOE2_TEST__!.getEconomyState().buildings.find(
         (building) => building.owner === 2 && building.buildingType === 'market',
       )!;
-      window.__AOE2_TEST__!.centerCameraOnWorldPosition(market.x, market.y);
+      window.__AOE2_TEST__!.centerCameraOnWorldPosition(market.x + 1, market.y + 1);
       return market;
     });
     const screen = await page.evaluate(

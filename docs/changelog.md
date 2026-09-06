@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.209
+
+- **Clicking the command bar no longer orders your army into the fog.** Right-clicking the empty dark glass of the bottom bar — the space beside the training queue, or anywhere the bar paints but no button sits — sent every selected unit walking to a map cell hidden underneath it, and left-clicking there cleared the selection. The bar had become a fixed-height band in 0.3.207, and everything it painted that was not a button was a hole straight through to the map. Every panel the HUD paints now takes the click itself. Clicks in the transparent space beside a panel still reach the map, as they should, and tooltips still follow the cursor without taking clicks.
+
 ## 0.3.208
 
 - **A villager sent to an unfinished building now builds it.** Right-clicking a villager onto a foundation — to restart a build somebody was pulled off, or to put more villagers on one and finish it sooner — walked the villager to the site and left them standing there for the rest of the match. The panel showed the order being accepted, so there was nothing to see: the build simply never moved. It works now, from any tile of the building's footprint, and extra villagers ordered the same way join the crew and finish the work faster.

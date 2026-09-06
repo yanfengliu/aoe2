@@ -256,24 +256,16 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 }
 
 /* The panel is a docked command BAR — see hudCommandPanel.css, which owns its
-   width and its internal layout. Only the pointer-events gate lives here. */
-.hud-panel--selection {
-  pointer-events: none;
-}
+   width and its internal layout.
 
-.hud-panel--selection .hud-command-deck,
-.hud-panel--selection .hud-command-group,
-.hud-panel--selection .hud-command-list,
-.hud-panel--selection .hud-build-menu,
-.hud-panel--selection .hud-selection-summary,
-.hud-panel--selection .hud-build-pages,
-.hud-panel--selection .hud-build-page-tab,
-.hud-panel--selection .hud-command-button {
-  /* Every scroll region in the bar takes pointer events too: a region the
-     panel clips and the wheel cannot reach is content with no way to it
-     (play-test finding F5, 2026-09-02). */
-  pointer-events: auto;
-}
+   Its pointer-events gate used to live here: `pointer-events: none` on the
+   panel with the scroll regions and buttons opting back in one by one. That
+   held only while the bar hugged its content. Since v0.3.207 it is a
+   fixed-height painted band, and every pixel no child claimed was a hole
+   through to the map — the whole band takes the events now, from the painted
+   chassis rule in hudChrome.css, which is where the background it paints is
+   set. Every scroll region in the bar still gets its events (play-test
+   finding F5, 2026-09-02); it gets them by inheritance instead of by name. */
 
 .hud-selection-name {
   font-size: 20px;

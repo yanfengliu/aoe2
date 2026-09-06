@@ -46,6 +46,22 @@
      flat translucent slate, which is still legible. */
   backdrop-filter: blur(20px) saturate(1.25);
   -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  /* A surface that PAINTS over the world swallows the click. `#hud-root` is
+     `pointer-events: none` so the canvas sees the mouse through the HUD's
+     transparent grid, and that gate belongs on the transparent parts only —
+     the moment a panel is painted glass, a click on it must not fall through
+     to the world behind. It is set here, on the three selectors that own the
+     painting, so a painted surface can never be added without it: opting
+     interactive children back in one by one leaves every unclaimed pixel of
+     the panel a hole. v0.3.207 turned the command bar into a fixed-height
+     band, and most of what it paints became such a hole — a right click on
+     the empty glass beside the training-queue cards ordered the selection to
+     a cell underneath the bar. The measured counts live in the defect
+     register (2026-09-05) and only there, so they cannot drift apart.
+     Never move this onto the grid rows (`.hud-bottom`, `.hud-top`): they are
+     wider than what they hold, and clicks in the empty space beside the bar
+     must still reach the map. */
+  pointer-events: auto;
 }
 
 .hud-bar {
