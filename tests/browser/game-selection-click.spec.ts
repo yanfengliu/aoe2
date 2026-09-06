@@ -126,30 +126,110 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
         return null;
       }
 
-      for (let offsetY = -0.6; offsetY <= 0.6; offsetY += 0.05) {
-        for (let offsetX = -0.6; offsetX <= 0.6; offsetX += 0.05) {
-          const point = {
-            x: militia.x + 0.5 + offsetX,
-            y: militia.y + 0.5 + offsetY,
-          };
-          api.selectEntityAtWorldPosition(-10, -10);
-          const sequence: Array<string | null> = [];
-          for (let click = 0; click < 4; click += 1) {
-            if (!api.selectEntityAtWorldPosition(point.x, point.y)) break;
-            sequence.push(api.getSnapshot().selectionState.selectedEntityType);
-          }
+      // Aim at the MIDDLE of the region where all three bodies answer one
+      // click, and measure how many screen pixels of room that middle has.
+      //
+      // The previous scan walked a grid of world offsets in raster order and
+      // took the first one that cycled. Raster order reaches a region at its
+      // tip — a point with no margin in at least one direction — and the
+      // presented hit polygons are evaluated at the renderer's animation
+      // clock, which advances with simulation display time. A host that
+      // reaches a different tick before this scan freezes the world reads the
+      // bodies at a different phase, the region's edge moves by about half a
+      // pixel, and a click at the tip lands outside it. That is how this test
+      // failed on a slow Linux runner while passing here. Nothing about what
+      // the four clicks must DO changes below; only where they are aimed.
+      //
+      // Pixels, not cells, because a pixel is what the pointer can be wrong
+      // by. These are iso pixels before the camera zoom (>= 1), so the real
+      // on-screen margin is at least this.
+      const HALF_TILE_WIDTH = 32;
+      const HALF_TILE_HEIGHT = 16;
+      const ground = { x: militia.x + 0.5, y: militia.y + 0.5 };
+      const worldAt = (isoX: number, isoY: number): { x: number; y: number } => {
+        const halfDifference = isoX / HALF_TILE_WIDTH;
+        const halfSum = isoY / HALF_TILE_HEIGHT;
+        return {
+          x: ground.x + (halfDifference + halfSum) / 2,
+          y: ground.y + (halfSum - halfDifference) / 2,
+        };
+      };
+      const cycles = (isoX: number, isoY: number): boolean => {
+        const point = worldAt(isoX, isoY);
+        api.selectEntityAtWorldPosition(-10, -10);
+        const sequence: Array<string | null> = [];
+        for (let click = 0; click < 4; click += 1) {
+          if (!api.selectEntityAtWorldPosition(point.x, point.y)) break;
+          sequence.push(api.getSnapshot().selectionState.selectedEntityType);
+          // Cheap reject: the cycle can only read militia,house,sheep,militia
+          // if it opens on the militia, so a point that opens on anything else
+          // costs one click instead of four. Same verdict, and it is what
+          // keeps this search inside the test's own timeout.
+          if (click === 0 && sequence[0] !== 'militia') break;
+        }
+        return sequence.join(',') === 'militia,house,sheep,militia';
+      };
 
-          if (sequence.join(',') === 'militia,house,sheep,militia') {
-            api.selectEntityAtWorldPosition(-10, -10);
-            return point;
-          }
+      // Up the militia's body: its voxels are drawn straight up the screen
+      // from its ground point, so this crosses the stack from its feet to
+      // above its head. Take the middle of the longest run that cycles.
+      const COLUMN_TOP = -40;
+      const COLUMN_STEP = 2;
+      let bestRun: { from: number; to: number } | null = null;
+      let runStart: number | null = null;
+      for (let isoY = 0; isoY >= COLUMN_TOP - COLUMN_STEP; isoY -= COLUMN_STEP) {
+        const ok = isoY >= COLUMN_TOP && cycles(0, isoY);
+        if (ok && runStart === null) runStart = isoY;
+        if (!ok && runStart !== null) {
+          const run = { from: runStart, to: isoY + COLUMN_STEP };
+          if (!bestRun || run.from - run.to > bestRun.from - bestRun.to) bestRun = run;
+          runStart = null;
         }
       }
+      if (!bestRun) {
+        api.selectEntityAtWorldPosition(-10, -10);
+        return { ...ground, marginPx: -1, runPx: 0 };
+      }
+      const midIsoY = (bestRun.from + bestRun.to) / 2;
 
-      return null;
+      // How far off in ANY screen direction the click may be. Eight compass
+      // points per radius, growing until one of them stops cycling.
+      const MAX_MARGIN_PX = 4;
+      const COMPASS = 8;
+      let marginPx = 0;
+      for (let radius = 1; radius <= MAX_MARGIN_PX; radius += 1) {
+        let whole = true;
+        for (let point = 0; point < COMPASS && whole; point += 1) {
+          const angle = (point / COMPASS) * Math.PI * 2;
+          if (!cycles(Math.cos(angle) * radius, midIsoY + Math.sin(angle) * radius)) whole = false;
+        }
+        if (!whole) break;
+        marginPx = radius;
+      }
+
+      api.selectEntityAtWorldPosition(-10, -10);
+      return {
+        ...worldAt(0, midIsoY),
+        marginPx,
+        runPx: bestRun.from - bestRun.to,
+      };
     });
     expect(stackPoint).not.toBeNull();
     const resolvedStackPoint = stackPoint!;
+    // The fixture's three bodies are meant to genuinely cover one another, so
+    // a player clicking the stack has room to be several pixels off. When they
+    // only grazed each other, 4 of the 625 offsets the old scan probed
+    // qualified, in a ribbon one sample wide whose best margin was a fraction
+    // of one pixel — this test passed for as long as the animation phase
+    // happened to agree. Fail on the fixture, not on a click.
+    expect(
+      resolvedStackPoint.marginPx,
+      'no click point on tile-selection-cycle-fixture has 2 screen pixels of room in every '
+      + 'direction: the militia, house and sheep no longer overlap enough to cycle from a '
+      + `stable point. Best margin ${resolvedStackPoint.marginPx} px, over a `
+      + `${resolvedStackPoint.runPx} px run up the militia's body (-1 means no point on that `
+      + 'line cycles all three at all)',
+    ).toBeGreaterThanOrEqual(2);
 
     expect(
       await page.evaluate(

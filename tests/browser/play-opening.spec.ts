@@ -127,11 +127,25 @@ test('the opening plays like AoE2 DE through the lobby, the mouse, and the HUD',
   });
 
   // ---- 2. The clock runs -----------------------------------------------
-  await test.step('2. the HUD clock leaves 00:00 within seconds of real time', async () => {
-    const tickBefore = await page.evaluate(() => window.__AOE2_TEST__!.getHudState().tick);
+  await test.step('2. the HUD clock leaves 00:00 and the simulation keeps advancing', async () => {
+    const tickBefore = await currentTick();
     await expect(page.locator('[data-hud="time"]')).not.toHaveText('00:00', { timeout: 10_000 });
-    const tickAfter = await page.evaluate(() => window.__AOE2_TEST__!.getHudState().tick);
-    expect(tickAfter).toBeGreaterThan(tickBefore);
+    // WAIT for the tick to pass tickBefore rather than betting on how many
+    // ticks fit between two round trips. The old form read the tick, waited
+    // for the clock — which had ALREADY left 00:00, so that wait returned in
+    // 14 ms — read the tick again 25 ms later, and asserted it had grown. On
+    // ubuntu-latest (two cores, software rendering) exactly zero ticks fitted
+    // in those 25 ms and it read 20 -> 20: run 34041883943, the suite's first
+    // run on any machine but the one developer Windows box. That assertion
+    // measured how fast the host is, not whether the simulation runs. This
+    // one cannot pass on a dead simulation — nothing else moves the tick, so
+    // a world that stops advancing exhausts the poll and the step goes red.
+    await expect.poll(currentTick, {
+      message: `the simulation never advanced past tick ${tickBefore}: the HUD clock left 00:00 `
+        + 'but the world stopped stepping',
+      timeout: 30_000,
+    }).toBeGreaterThan(tickBefore);
+    const tickAfter = await currentTick();
     annotate(`clock: tick ${tickBefore} -> ${tickAfter}, HUD ${(await play.readHud(page)).time}`);
   });
 
