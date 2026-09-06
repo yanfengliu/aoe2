@@ -39,11 +39,15 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       unit positions tick-by-tick from initial snapshot + diffs, including
       garrison position gaps; `walkDistanceProbe.ts` measures the haul a
       gatherer pays (true 4-connected walk from beside a node to beside the
-      nearest drop-off) from components alone — no shared symbol with the
-      simulation's passability or its walk field — for
+      nearest drop-off) by rebuilding land passability from world components,
+      with no reference to the simulation's own passability predicate
+      (`isCellPassableForUnit`) or to its drop-off walk field
+      (`dropOffWalkField.ts`) — it does share three simulation helpers
+      (`buildingFootprint`, `terrainPassableForDomain`, `canDropOffAt`), and
+      the probe's own header states the boundary exactly — for
       `scripts/aiGatherWalk.mjs` and the boot-map ranking gate;
-      `visualPlaytestAdapter.ts` is the civ-engine v1.3 visual-playtest
-      adapter seam: it turns the aoe2 LLM snapshot/tool surface into
+      `visualPlaytestAdapter.ts` is the seam onto civ-engine's visual-playtest
+      contracts: it turns the aoe2 LLM snapshot/tool surface into
       engine `VisualPlaytestObservation`/control/state vocabulary for
       prompts and embeds engine `visualPlaytest` finding payloads into
       existing aoe2 agent markers without replacing the custom command-tool
