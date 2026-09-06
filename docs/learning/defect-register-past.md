@@ -38,6 +38,18 @@ The 2026-09-06 rollover of "Fourteen loaded carriers freeze head-on on Nomad und
 
 The 2026-09-06 rollover of "Six closed threads sat in `docs/threads/current` for up to seven weeks" added NONE: that entry carries no "entry above" or "entry below", and no entry in either file points at it by position.
 
+The 2026-09-06 rollover of "Soldiers walked with their legs in the rest pose" added NONE: it names no other entry, and no entry in either file names it. Checked rather than assumed.
+
+## 2026-09-05 — Soldiers walked with their legs in the rest pose (owner-reported, FIXED and gated)
+
+**Symptom.** "Soldiers are not moving their legs during the walking animation." Infantry, archers — and, read the same way, villagers and cavalry — translated across the map with boots level and legs vertical; the walk was a slide.
+
+**Investigation.** The real game first (`unit-showcase-fixture`, five units ordered south, `__AOE2_TEST__.inspectVoxelUnitMotion` per half tick): every unit `moving`, gait phase advancing, `locomotionWeight` 0.19–0.51. The pose path has no role branch and no attack, cache or armour explanation; the number was the whole story. `FULL_LOCOMOTION_SPEED = 2.5` normalised the weight against the pre-§12.4.2 uniform clock. v0.3.160 moved every unit to its own rate (0.8 villager, 0.9 militia, 1.35 knight) and nothing re-normalised the gait, so it played at 0.2–0.6 of the authored amplitude — under a pixel of boot travel at default zoom — for eight days across every walker in the game. Four assertions across three live test files asserted `locomotionWeight > 0`; none asserted it reached the amplitude the pose was authored for.
+
+**Root cause.** A presentation constant carried a simulation rate that the simulation had stopped using; the gait weight was a ratio to a speed no unit could reach.
+
+**How it is checked from now on.** `tests/rendering/aoeVoxelUnitWalkLegs.test.ts` (`npm test`, so `npm run verify`) drives every UnitType at its base rate computed from the sim constants — not from the renderer helper the fix added — and requires weight ≥ 0.9 and, for humanoid and mounted roles posed through the real recipes, a boot/leg/horse-leg travel between stride extremes of at least 0.25/0.11/0.3 × recipe scale. Red on the unfixed tree (158 failed of 159: all 93 UnitTypes on weight, all 65 legged types on travel; the fastest humanoid, a Woad Raider at 172 %, reached weight 0.550 and a boot travel of 0.178 against 0.25). Bound: base rate only, straight line, no technology, no slowed unit, no siege wheel or monk sway, and no pixel — the capture pair recorded in `docs/debugging/2026-09-05-walk-legs.md` is the pixel evidence.
+
 ## 2026-09-05 — Six closed threads sat in `docs/threads/current` for up to seven weeks, and four pointers named threads moved months earlier (owner-reported, FIXED and gated)
 
 **Symptom.** The owner asked whether the project really had so many open threads. Eight folders sat in `docs/threads/current` against 94 in `done/`.

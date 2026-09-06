@@ -1,3 +1,4 @@
+import { HUMAN_PLAYER_ID } from '../../game/simulation/prototypeScenario';
 import { TRIBUTE_AMOUNT } from '../../game/simulation/tributeRules';
 import type { SimulationBridge } from '../../game/simulation/simulationBridgeTypes';
 import type { UnitStance } from '../../game/simulation/unitStance';
@@ -199,8 +200,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   // outcomes. `showToast` is passed down into the save/load panel.
   const { showToast } = createToastController(toastContainer);
 
-  // Slice 8: post-game summary card. Hidden while the match is running.
-  const postGameSummary = createPostGameSummary(matchSummary);
+  // Slice 8: post-game footer card + the result overlay it mounts; both hidden while the match runs.
+  const postGameSummary = createPostGameSummary(matchSummary, root, HUMAN_PLAYER_ID);
+  teardownCallbacks.push(() => postGameSummary.destroy());
 
   // FU5: Save / Load HUD panel. The bridge reference swaps on load, so
   // the panel calls through arrow closures that re-resolve `bridge`

@@ -237,6 +237,7 @@
   .timeline-panel,
   .hud-game-menu__panel,
   .hud-load-panel,
+  .hud-match-result__panel,
   .replay-load-dialog {
     background-color: rgb(17, 22, 28);
     backdrop-filter: none;
@@ -419,3 +420,68 @@
   padding: 8px 16px; font: inherit; font-weight: 600;
 }
 .hud-halt-notice__action:hover { background: var(--hud-surface-hover); }
+
+/* MATCH RESULT (2026-09-06) — the surface that says a match is OVER. Sibling of
+   `.hud-halt-notice` above: same dimmed full-screen root, same single panel and
+   single action. Before it, the end of a match was announced only by the 13px
+   translucent `.hud-footer` in the bottom-left corner, so a player could finish
+   a game without noticing it had ended. */
+.hud-match-result {
+  position: fixed; inset: 0; z-index: 118;
+  display: grid; place-items: center; pointer-events: auto;
+  background: var(--hud-surface-sunken); backdrop-filter: blur(3px);
+  padding: 16px;
+}
+/* The author `display: grid` above outranks the UA sheet's
+   `[hidden] { display: none }` on cascade origin, so without this compound
+   re-assertion the dim + blur covers every frame of a LIVE match. The same trap
+   has bitten `.hud-halt-notice`, `.replay-load-dialog__panel` and
+   `.hud-game-menu`; there it showed up as a 99.98%-of-frame pixel diff on the
+   boot capture, which is the check that holds it here too. */
+.hud-match-result[hidden] { display: none; }
+.hud-match-result__panel {
+  background: var(--hud-surface); border: 1px solid var(--hud-hairline-strong);
+  border-radius: var(--hud-radius-lg); box-shadow: var(--hud-elevation-high);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  padding: 22px 26px; width: min(420px, 92vw); display: grid; gap: 8px;
+  color: var(--hud-text); text-align: center; justify-items: center;
+}
+.hud-match-result__outcome {
+  font-size: 38px; font-weight: 800; line-height: 1.1; letter-spacing: 0.02em;
+  text-transform: uppercase; color: var(--hud-text);
+}
+.hud-match-result__outcome[data-match-outcome='victory'] { color: var(--hud-accent); }
+.hud-match-result__outcome[data-match-outcome='defeat'] { color: var(--hud-danger); }
+.hud-match-result__sentence { font-size: 14px; color: var(--hud-text); }
+.hud-match-result__condition {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--hud-text-muted);
+  border: 1px solid var(--hud-hairline); border-radius: 999px; padding: 4px 12px;
+}
+.hud-match-result__summary {
+  font-size: 13px; line-height: 1.45; color: var(--hud-text-muted); max-width: 34em;
+}
+.hud-match-result__winner {
+  font-size: 15px; font-weight: 700; color: var(--hud-text); margin-top: 2px;
+}
+.hud-match-result__scores {
+  width: 100%; display: grid; gap: 2px; margin-top: 6px;
+  border-top: 1px solid var(--hud-hairline); padding-top: 10px;
+}
+.hud-match-result__score {
+  display: flex; justify-content: space-between; gap: 16px;
+  font-size: 13px; color: var(--hud-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.hud-match-result__score[data-match-result-winner='true'] {
+  color: var(--hud-text); font-weight: 700;
+}
+.hud-match-result__hint { font-size: 11px; color: var(--hud-text-faint); margin-top: 6px; }
+.hud-match-result__action {
+  margin-top: 4px; cursor: pointer; min-width: 140px;
+  background: var(--hud-surface-raised); color: var(--hud-text);
+  border: 1px solid var(--hud-hairline-strong); border-radius: var(--hud-radius-md);
+  padding: 9px 18px; font: inherit; font-weight: 600;
+}
+.hud-match-result__action:hover { background: var(--hud-surface-hover); }
