@@ -40,24 +40,48 @@ test.describe('DE control hotkeys', () => {
   test('F3 pauses and unpauses the simulation', async ({ page }) => {
     await game.waitForBoot(page);
     await page.keyboard.press('F3');
-    const t1 = await page.evaluate(() => window.__AOE2_TEST__!.getSnapshot().hudState.tick);
-    await page.waitForTimeout(700);
-    const t2 = await page.evaluate(() => window.__AOE2_TEST__!.getSnapshot().hudState.tick);
-    expect(t2).toBe(t1);
+    const tick = async (): Promise<number> => page.evaluate(
+      () => window.__AOE2_TEST__!.getSnapshot().hudState.tick,
+    );
+    const t1 = await tick();
+    // FRAMES, not a bare sleep: the clock advances per rendered frame, so a
+    // sleep that contained none would report a paused world for a world that
+    // was simply never asked to run.
+    await game.waitForRenderedFrames(page, 6, 700);
+    const t2 = await tick();
+    expect(t2, 'F3 pauses: the tick stands still while frames keep rendering').toBe(t1);
     await page.keyboard.press('F3');
-    await page.waitForTimeout(700);
-    const t3 = await page.evaluate(() => window.__AOE2_TEST__!.getSnapshot().hudState.tick);
-    expect(t3).toBeGreaterThan(t2);
+    // POLL, not a sleep: asserting after a fixed window asks whether one tick
+    // fits in 700ms on THIS host, which is what failed CI run 34041883943 in
+    // play-opening. Nothing else moves the clock, so a world that never
+    // resumes exhausts the poll.
+    await expect.poll(tick, { message: 'F3 unpauses: the world never advanced past the paused tick' })
+      .toBeGreaterThan(t2);
   });
 
   test('+ and - step the game speed ladder', async ({ page }) => {
     await game.waitForBoot(page);
-    // Measure ticks over a window at 1.0x, then again after '+' (1.5x).
-    const rate = async () => {
-      const a = await page.evaluate(() => window.__AOE2_TEST__!.getSnapshot().hudState.tick);
+    // A speed ladder IS a rate, so this one legitimately holds a clock — but it
+    // reads the clock the sample was actually taken over instead of assuming
+    // `waitForTimeout(1000)` slept exactly 1000ms. On a loaded host it sleeps
+    // longer, by different amounts each time, and a longer 1.0x window can then
+    // out-count a shorter 1.5x one. The floor names a starved host rather than
+    // letting integer ticks decide the comparison: below a few ticks per window
+    // the difference between 1.0x and 1.5x rounds away.
+    const rate = async (): Promise<number> => {
+      const sample = async (): Promise<{ tick: number; atMs: number }> => page.evaluate(() => ({
+        tick: window.__AOE2_TEST__!.getSnapshot().hudState.tick,
+        atMs: performance.now(),
+      }));
+      const a = await sample();
       await page.waitForTimeout(1000);
-      const b = await page.evaluate(() => window.__AOE2_TEST__!.getSnapshot().hudState.tick);
-      return b - a;
+      const b = await sample();
+      expect(
+        b.tick - a.tick,
+        `the world advanced ${b.tick - a.tick} ticks in ${Math.round(b.atMs - a.atMs)}ms, too few `
+          + 'for one speed to be told from another: this host is starved, not slow at the ladder',
+      ).toBeGreaterThanOrEqual(3);
+      return (b.tick - a.tick) / ((b.atMs - a.atMs) / 1000);
     };
     const slow = await rate();
     await page.keyboard.press('+');

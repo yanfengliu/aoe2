@@ -10,14 +10,23 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
     const initialCamera = (await game.getSnapshot(page)).cameraState;
     expect(initialCamera).not.toBeNull();
 
+    // Hold the key WHILE the poll runs, rather than releasing it after a fixed
+    // 250 ms and then polling a camera that has already stopped. The pan
+    // accrues per RENDERED FRAME, each frame capped at 100 ms of motion, so the
+    // fixed window measured the host: CI covered 35.0 px — exactly one clamped
+    // frame at zoom 1.2 (100/1000 x 420 / 1.2) — against this bar of 40.
     await page.keyboard.down('KeyD');
-    await page.waitForTimeout(250);
-    await page.keyboard.up('KeyD');
-
-    await expect.poll(async () => {
-      const snapshot = await game.getSnapshot(page);
-      return snapshot.cameraState?.scrollX ?? 0;
-    }).toBeGreaterThan((initialCamera?.scrollX ?? 0) + 40);
+    try {
+      await expect.poll(
+        async () => (await game.getSnapshot(page)).cameraState?.scrollX ?? 0,
+        {
+          message: 'holding D pans the view right: scrollX never passed the bar while the key was held',
+          timeout: 10_000,
+        },
+      ).toBeGreaterThan((initialCamera?.scrollX ?? 0) + 40);
+    } finally {
+      await page.keyboard.up('KeyD');
+    }
 
     const movedCamera = (await game.getSnapshot(page)).cameraState;
     expect(movedCamera).not.toBeNull();
@@ -99,7 +108,10 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
     expect(initialCamera).not.toBeNull();
 
     await page.mouse.move(bounds.x + bounds.width - 3, bounds.y + bounds.height * 0.5);
-    await page.waitForTimeout(900);
+    // Frames, not just wall clock: edge panning arms on one frame and fires on
+    // a later one, so a host that renders nothing in 900 ms would report "the
+    // camera held still" for a camera that was never asked to move.
+    await game.waitForRenderedFrames(page, 4, 900);
 
     const movedCamera = (await game.getSnapshot(page)).cameraState;
     expect(movedCamera).not.toBeNull();
@@ -147,7 +159,9 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
     const postExitCamera = (await game.getSnapshot(page)).cameraState;
     expect(postExitCamera).not.toBeNull();
 
-    await page.waitForTimeout(700);
+    // Frames, not just wall clock — a sleep that contained no frame would pass
+    // this whether edge panning stopped or not.
+    await game.waitForRenderedFrames(page, 4, 700);
 
     const settledCamera = (await game.getSnapshot(page)).cameraState;
     expect(settledCamera).not.toBeNull();

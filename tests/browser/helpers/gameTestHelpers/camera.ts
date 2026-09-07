@@ -103,6 +103,120 @@ export async function getScreenPointForWorldPosition(
   );
 }
 
+/**
+ * Waits until the page has actually RENDERED `frames` animation frames, and
+ * until at least `minElapsedMs` of wall clock has passed alongside them.
+ *
+ * Use this instead of `page.waitForTimeout` before asserting that something
+ * did NOT move. Everything the camera and the renderer do accrues per rendered
+ * frame, so a fixed sleep on a loaded host can contain no frame at all, and a
+ * check that cannot tell "it held still" from "it was never asked to move"
+ * reports the second as the first. CI's runner rendered exactly ONE frame
+ * inside the 250 ms this repo's pan test used to hold a key (2026-09-06).
+ *
+ * Throws by name when the frames never arrive, so a page whose animation loop
+ * has died fails as itself rather than as whatever is asserted next.
+ *
+ * BOUND: it counts the BROWSER's frames, not the app's. If the game's own frame
+ * loop has stopped while the browser keeps painting — `frameHalt` after a throw
+ * is the way that happens — this still returns, and a "nothing moved" assertion
+ * after it is as vacuous as it was after a sleep. What it rules out is the case
+ * that produced the CI failure: a wait that contained no frame at all.
+ */
+export async function waitForRenderedFrames(
+  page: Page,
+  frames: number,
+  minElapsedMs = 0,
+  budgetMs = 15_000,
+): Promise<{ frames: number; elapsedMs: number }> {
+  const result = await page.evaluate(
+    ({ wanted, minMs, budget }) => new Promise<{
+      frames: number;
+      elapsedMs: number;
+      timedOut: boolean;
+    }>((resolve) => {
+      const startedAt = performance.now();
+      let seen = 0;
+      let settled = false;
+      const finish = (timedOut: boolean): void => {
+        if (settled) return;
+        settled = true;
+        resolve({ frames: seen, elapsedMs: performance.now() - startedAt, timedOut });
+      };
+      // A plain timer, because requestAnimationFrame is the very thing that
+      // may not be running.
+      window.setTimeout(() => finish(true), budget);
+      const step = (): void => {
+        seen += 1;
+        if (seen >= wanted && performance.now() - startedAt >= minMs) {
+          finish(false);
+          return;
+        }
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }),
+    { wanted: frames, minMs: minElapsedMs, budget: budgetMs },
+  );
+  if (result.timedOut) {
+    throw new Error(
+      `Waited ${Math.round(result.elapsedMs)}ms for ${frames} rendered frames and saw ${result.frames}: `
+      + 'the page is not animating, so nothing that accrues per frame — the camera, the renderer, the '
+      + 'simulation clock — can have moved, and a "nothing moved" assertion after this would be '
+      + 'measuring the stopped frame loop rather than the game.',
+    );
+  }
+  return { frames: result.frames, elapsedMs: result.elapsedMs };
+}
+
+/**
+ * Holds a camera key until the view has covered `distancePx`, and reports how
+ * far it actually got.
+ *
+ * The keyboard pan accrues per RENDERED FRAME and each frame contributes at
+ * most `MAX_CAMERA_FRAME_DELTA_MS` (100 ms, `src/app/AoeVoxelGameView.ts`) of
+ * motion, so a key held for a fixed slice of wall clock covers whatever the
+ * host's frame rate allowed — 35 px on CI's loaded runner where this machine
+ * covers about 90 px in the same 250 ms.
+ *
+ * Returns short of the distance when the camera stops moving across
+ * consecutive rendered frames: that is the world edge, which is an answer and
+ * not a failure. A caller that needs the movement asserts on the number.
+ */
+export async function panWithKeyUntilMoved(
+  page: Page,
+  key: string,
+  distancePx: number,
+  budgetFrames = 90,
+): Promise<number> {
+  const readCentre = async (): Promise<{ x: number; y: number }> => page.evaluate(() => {
+    const camera = window.__AOE2_TEST__!.getSnapshot().cameraState;
+    return { x: camera?.scrollX ?? 0, y: camera?.scrollY ?? 0 };
+  });
+  const start = await readCentre();
+  let previous = start;
+  let stalledFrames = 0;
+  let covered = 0;
+  await page.keyboard.down(key);
+  try {
+    for (let frame = 0; frame < budgetFrames; frame += 1) {
+      await waitForRenderedFrames(page, 1);
+      const now = await readCentre();
+      covered = Math.hypot(now.x - start.x, now.y - start.y);
+      if (covered >= distancePx) break;
+      // Two consecutive still frames, not one: this helper's frame callback and
+      // the app's own are both once per frame but in an unpinned order, so a
+      // single unchanged sample can be a one-frame lag rather than the edge.
+      stalledFrames = now.x === previous.x && now.y === previous.y ? stalledFrames + 1 : 0;
+      if (stalledFrames >= 2) break;
+      previous = now;
+    }
+  } finally {
+    await page.keyboard.up(key);
+  }
+  return covered;
+}
+
 export async function getGameCanvasBounds(page: Page): Promise<NonNullable<Awaited<ReturnType<ReturnType<Page['locator']>['boundingBox']>>>> {
   const canvas = page.locator('.voxel-world-canvas');
   const bounds = await canvas.boundingBox();

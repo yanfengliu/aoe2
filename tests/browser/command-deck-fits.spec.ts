@@ -292,14 +292,23 @@ for (const viewport of VIEWPORTS) {
         for (let step = 0; step < 12; step += 1) {
           await page.mouse.wheel(0, 120);
         }
-        await page.waitForTimeout(150);
-        const scrolledTo = await page.evaluate(() => {
+        // Poll rather than sample once 150ms later: the BROWSER applies these
+        // wheels, so a fixed window asks how fast the host is. A panel that
+        // genuinely refuses the wheel — the defect this gate replaced, where
+        // the panel took no pointer events at all — still reports scrollTop 0
+        // when the poll runs out, and the assertions below still name it.
+        const readScroll = async (): Promise<{ top: number; atEnd: boolean }> => page.evaluate(() => {
           const panel = document.querySelector<HTMLElement>('[data-hud="selection-panel"]')!;
           return {
             top: panel.scrollTop,
             atEnd: panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 2,
           };
         });
+        await expect.poll(async () => (await readScroll()).atEnd, {
+          message: `${card.building}: a wheel over the deck never reached the end of the card`,
+          timeout: 5_000,
+        }).toBe(true);
+        const scrolledTo = await readScroll();
         expect(
           scrolledTo.top,
           `${card.building}: a wheel over the deck scrolls the bar `

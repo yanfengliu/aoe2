@@ -71,8 +71,15 @@ async function wheelIntoView(page: Page, selector: string): Promise<Box> {
   for (let nudge = 0; nudge < 40 && !fullyVisible(box); nudge += 1) {
     const before = box.top;
     await page.mouse.wheel(0, box.top < 0 ? -120 : 120);
-    await page.waitForTimeout(50);
-    box = await boxOf(page, selector);
+    // Sample until it moves rather than once, 50ms later. The BROWSER applies
+    // the scroll, not this test, so a single late sample on a loaded host reads
+    // "moved not at all" and throws the unreachable error below about a screen
+    // that scrolls perfectly well. A screen that really cannot scroll spends the
+    // whole second here and then throws the same message it always did.
+    for (let sample = 0; sample < 20 && box.top === before; sample += 1) {
+      await page.waitForTimeout(50);
+      box = await boxOf(page, selector);
+    }
     if (box.top === before) {
       throw new Error(
         `${selector} sits at y ${Math.round(box.top)}..${Math.round(box.bottom)} in a `

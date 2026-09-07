@@ -7,6 +7,7 @@ import { expect, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
+import { panWithKeyUntilMoved } from './gameTestHelpers/camera';
 import type { ScreenPoint } from './gameTestHelpers/types';
 
 export const PLAY_SCREENSHOT_DIR = path.resolve(process.cwd(), 'tmp', 'play');
@@ -234,19 +235,27 @@ export async function findMouseReachableEntityAfterScrolling(
     return null;
   }, query);
 
-  const scroll = async (key: string): Promise<void> => {
-    await page.keyboard.down(key);
-    await page.waitForTimeout(220);
-    await page.keyboard.up(key);
-    await page.waitForTimeout(80);
-  };
+  // Hold the key until the view has covered the ground, not for a fixed slice
+  // of wall clock. The pan accrues per RENDERED FRAME, capped at 100ms of motion
+  // each, so a fixed hold covers whatever the frame rate allowed. Measured
+  // 2026-09-06 on a host rendering every 300ms — the CI runner's condition — the
+  // old 220ms hold covered 0.0px, against 122.5px on this machine: not "less
+  // ground" but NO ground, which made the direction probe below read "it did not
+  // move" and pick a key from a coin toss. 90px is what 220ms bought here at the
+  // default zoom, and the helper covers it on both hosts (99.2px / 93.3px).
+  const SCROLL_STEP_PX = 90;
+  const scroll = async (key: string): Promise<number> =>
+    panWithKeyUntilMoved(page, key, SCROLL_STEP_PX);
 
   // Which arrow raises it on screen depends on where the camera drifted to;
-  // measure rather than assume.
+  // measure rather than assume. A probe that moved the camera nowhere means
+  // ArrowUp is against the world edge, so the other key is the only one left.
   const before = await screenY();
-  await scroll('ArrowUp');
+  const probeMovedPx = await scroll('ArrowUp');
   const after = await screenY();
-  const key = before !== null && after !== null && after > before ? 'ArrowDown' : 'ArrowUp';
+  const key = probeMovedPx === 0 || (before !== null && after !== null && after > before)
+    ? 'ArrowDown'
+    : 'ArrowUp';
   found = await findMouseReachableEntity(page, query);
   for (let attempt = 0; attempt < attempts && !found; attempt += 1) {
     await scroll(key);

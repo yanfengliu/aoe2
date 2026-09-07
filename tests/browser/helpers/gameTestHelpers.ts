@@ -32,6 +32,8 @@ export {
   getMinimapPoint,
   getScreenPointForCell,
   getScreenPointForWorldPosition,
+  panWithKeyUntilMoved,
+  waitForRenderedFrames,
 } from './gameTestHelpers/camera';
 
 export {

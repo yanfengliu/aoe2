@@ -40,7 +40,14 @@ export default defineConfig({
   fullyParallel: false,
   retries: 0,
   workers: 1,
-  reporter: 'line',
+  // `line` as before, plus a report of how close the five slowest specs ran to
+  // their OWN timeouts. It REPORTS and does not fail: it was written to be the
+  // gate for the duration entry in `docs/learning/lessons.md`, and the
+  // measurement refused the gate — per-test duration here swings up to 2x
+  // between two runs of the same bundle, in both directions. So `npm run
+  // test:browser` gains four lines of output and no new way to go red; the
+  // numbers, and the env var that turns it into a gate, are in the reporter.
+  reporter: [['line'], ['./tests/browser/helpers/durationBudgetReporter.ts']],
   use: {
     baseURL: previewUrl,
     trace: 'retain-on-failure',
