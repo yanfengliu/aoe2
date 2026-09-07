@@ -62,14 +62,12 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
       const outcome = bridgeRef().getMatchState().outcome;
       return outcome === 'victory' || outcome === 'defeat' ? outcome : null;
     },
+    // v0.3.215: the feed now carries WHO was hit, so the warning rule reads it
+    // directly. It used to be inferred by comparing the swing's target cell
+    // against every own building and villager within one cell — which could
+    // never match a 4x4 building, because a building's target cell is its
+    // visual centre and its render entity's is its origin, 1.5 cells apart.
     getRecentAttacks: () => bridgeRef().getRecentUnitAttacks(),
-    getOwnTownEntities: () =>
-      bridgeRef().getRenderState().entities.filter(
-        (entity) =>
-          entity.owner === HUMAN_PLAYER_ID
-          && !entity.isMemory
-          && (entity.kind === 'building' || entity.entityType === 'villager'),
-      ),
     getResearchedCount: () => {
       const rows = bridgeRef().world.getState('aoe2.researchedTechnologies') as
         | ReadonlyArray<[number, string[]]>

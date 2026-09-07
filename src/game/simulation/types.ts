@@ -12,7 +12,11 @@ import type { TrainableUnitType, UnitType } from './unitTypes';
 import type { ResearchableTechnologyType } from './technologyTypes';
 import type { UnitStance } from './unitStance';
 export type { ResearchableTechnologyType };
-export type { ProjectedUnitAttackAnimationView, ProjectedUnitAttackView } from './attackAnimationTypes';
+export type {
+  ProjectedUnitAttackAnimationView,
+  ProjectedUnitAttackView,
+  UnitAttackParticipants,
+} from './attackAnimationTypes';
 export type ActionType = 'ungarrison' | 'ring-town-bell' | 'back-to-work';
 // The work a unit is visibly doing (spec §14.5): drives the renderer's swing
 // arc. 'gathering' survives as the legacy alias no new code emits.

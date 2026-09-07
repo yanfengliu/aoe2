@@ -1,4 +1,9 @@
 import type { RenderState } from '../../game/simulation/types';
+import {
+  attackWarningSignature,
+  getAttackWarning,
+  type AttackWarningMark,
+} from './attackWarning';
 
 // Isometric (diamond) minimap. The map is projected through the SAME 2:1
 // diamond transform the world view uses (dx = cellX - cellY, dy = cellX +
@@ -37,8 +42,15 @@ export interface MinimapCameraState {
 // different player's fog perspective at the SAME paused tick (frame.playerId
 // changes, tick does not), so keying the repaint on tick alone would keep the
 // minimap showing the prior owner's visibility until a tick/camera change.
-export function minimapContentSignature(renderState: RenderState): string {
-  return `${renderState.tick}:${renderState.frame?.playerId ?? -1}`;
+// v0.3.215: the attack-warning mark pulses on its own clock, so its quantised
+// phase joins the key — otherwise a paused or still frame would freeze the
+// mark mid-pulse. The term is EMPTY while no warning is up, so a quiet frame's
+// key is exactly what it was before the mark existed.
+export function minimapContentSignature(
+  renderState: RenderState,
+  warning = attackWarningSignature(),
+): string {
+  return `${renderState.tick}:${renderState.frame?.playerId ?? -1}:${warning}`;
 }
 
 export function minimapCameraSignature(cameraState: MinimapCameraState | null): string {
@@ -157,12 +169,52 @@ function resetTransform(context: CanvasRenderingContext2D): void {
   context.setTransform(1, 0, 0, 1, 0, 0);
 }
 
+// The attack-warning mark (v0.3.215): a pulsing red ring around a filled dot
+// at the cell that was hit, drawn ON the minimap rather than floating over it
+// — nothing may cover the minimap, and AoE2's own affordance is the minimap
+// itself flashing. Sized well above a building marker (which is `cellPx*1.4`)
+// so it is findable at a glance on a 160px canvas, and dark-backed like every
+// other marker so it reads over grass, sand and shore alike.
+// The core is WHITE-HOT, not red. Two reasons and both matter: owner 2's tint
+// is itself a red, so a red mark beside a red raider is a mark you have to
+// look for — and nothing else this minimap draws comes near white (terrain,
+// every player tint, the fog wash and the pale viewport outline all have a
+// minimum channel under 182, measured 2026-09-06), so "is the warning on
+// screen?" has an unambiguous answer in the pixels.
+const ALERT_CORE_STYLE = 'rgb(255, 250, 245)';
+const ALERT_RING_STYLE = '255, 96, 78';
+
+function drawAttackWarning(
+  context: CanvasRenderingContext2D,
+  layout: MinimapLayout,
+  mark: AttackWarningMark,
+): void {
+  const centre = cellToMinimap(mark.x + 0.5, mark.y + 0.5, layout);
+  const core = Math.max(layout.hw * 1.3, 3);
+  const ring = Math.max(layout.hw * 3.4, 7) * (0.72 + 0.28 * mark.intensity);
+  context.beginPath();
+  context.arc(centre.x, centre.y, ring + 1.5, 0, Math.PI * 2);
+  context.fillStyle = MARKER_BACKING_STYLE;
+  context.fill();
+  context.beginPath();
+  context.arc(centre.x, centre.y, ring, 0, Math.PI * 2);
+  context.strokeStyle = `rgba(${ALERT_RING_STYLE}, ${(0.35 + 0.65 * mark.intensity).toFixed(3)})`;
+  context.lineWidth = 2;
+  context.stroke();
+  context.beginPath();
+  context.arc(centre.x, centre.y, core, 0, Math.PI * 2);
+  context.fillStyle = ALERT_CORE_STYLE;
+  context.fill();
+}
+
 // Draws the terrain / entity / fog layers as an iso diamond, then overlays the
-// camera viewport quad. The `viewport*` datasets are mirrored for browser tests.
+// camera viewport quad and any attack-warning mark. The `viewport*` and
+// `attackWarning*` datasets are mirrored for browser tests.
 export function drawMinimap(
   canvas: HTMLCanvasElement,
   renderState: RenderState,
   cameraState: MinimapCameraState | null,
+  warning: AttackWarningMark | null = getAttackWarning(),
 ): void {
   const frame = renderState.frame;
   if (!frame) {
@@ -239,6 +291,13 @@ export function drawMinimap(
     );
     context.fillStyle = tintToCss(entity.tint);
     context.fillRect(markerX, markerY, markerSize, markerSize);
+  }
+
+  if (warning) {
+    drawAttackWarning(context, layout, warning);
+    canvas.dataset.attackWarningCell = `${warning.x},${warning.y}`;
+  } else {
+    delete canvas.dataset.attackWarningCell;
   }
 
   const viewportState = getMinimapViewportState(layout, cameraState);

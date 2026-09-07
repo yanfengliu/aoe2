@@ -1,9 +1,11 @@
 import { type Position, type VisibilityMap } from 'civ-engine';
 
 import type {
+  BuildingComponent,
   ProjectedUnitAttackAnimationView,
   ProjectedUnitAttackView,
   RenderableComponent,
+  UnitAttackParticipants,
   UnitComponent,
   UnitTransformComponent,
 } from '../types';
@@ -102,6 +104,7 @@ export function upsertUnitAttack(
     ...(attack.suppressedFor && attack.suppressedFor.length > 0
       ? { suppressedFor: [...attack.suppressedFor] }
       : {}),
+    ...(attack.participants ? { participants: { ...attack.participants } } : {}),
   };
   const key = unitAttackKey(canonical.attackerId, canonical.attackerGeneration);
   feed.byAttacker.delete(key);
@@ -295,6 +298,30 @@ export function indexVisibleUnitAttackAnimations(
   return indexed;
 }
 
+// Who this swing was between, when both ends are player-owned. `undefined`
+// leaves the attack warning silent — see `UnitAttackParticipants`. The two
+// component reads are the whole cost, and only on a tick that recorded a hit.
+function readAttackParticipants(
+  world: GameWorld,
+  attacker: UnitComponent | undefined | null,
+  targetId: number,
+): UnitAttackParticipants | undefined {
+  if (!attacker) return undefined; // wildlife retaliation
+  const targetUnit = world.getComponent<UnitComponent>(targetId, 'unit');
+  const targetBuilding = targetUnit
+    ? undefined
+    : world.getComponent<BuildingComponent>(targetId, 'building');
+  if (!targetUnit && !targetBuilding) return undefined; // wildlife target
+  return {
+    attackerOwner: attacker.owner,
+    targetOwner: targetUnit ? targetUnit.owner : targetBuilding!.owner,
+    // The economy the warning is for: villagers and buildings. A soldier
+    // taking a hit is a fight, and a warning on every arrow is worse than
+    // none — see `isAttackOnOwnEconomy` in src/ui/hud/attackWarning.ts.
+    targetIsEconomy: targetBuilding !== undefined || targetUnit!.unitType === 'villager',
+  };
+}
+
 export function createUnitAttackRecorder(deps: {
   world: GameWorld;
   state: BridgeState;
@@ -345,6 +372,8 @@ export function createUnitAttackRecorder(deps: {
       !targetRenderable
     )
       return;
+
+    const participants = readAttackParticipants(world, attacker, targetId);
 
     const attackerTransform = world.getComponent<UnitTransformComponent>(
       attackerId,
@@ -422,6 +451,7 @@ export function createUnitAttackRecorder(deps: {
       targetX: targetRootX + (targetRenderable.footprintWidth - 1) / 2,
       targetY: targetRootY + (targetRenderable.footprintHeight - 1) / 2,
       witnessedBy,
+      ...(participants ? { participants } : {}),
     }, tick);
   };
 }

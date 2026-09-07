@@ -12,7 +12,7 @@ import {
 } from '../../src/ui/hud/minimap';
 
 interface DrawCall {
-  op: 'fillRect' | 'strokeRect' | 'clearRect' | 'setTransform' | 'beginPath' | 'moveTo' | 'lineTo' | 'closePath' | 'fill' | 'stroke';
+  op: 'fillRect' | 'strokeRect' | 'clearRect' | 'setTransform' | 'beginPath' | 'moveTo' | 'lineTo' | 'closePath' | 'fill' | 'stroke' | 'arc';
   args: number[];
   fillStyle?: string;
   strokeStyle?: string;
@@ -60,6 +60,9 @@ function createCanvasSpy(width = 100, height = 100) {
     },
     lineTo(x: number, y: number) {
       calls.push({ op: 'lineTo', args: [x, y] });
+    },
+    arc(x: number, y: number, radius: number, start: number, end: number) {
+      calls.push({ op: 'arc', args: [x, y, radius, start, end] });
     },
     closePath() {
       calls.push({ op: 'closePath', args: [] });
@@ -289,6 +292,38 @@ describe('drawMinimap (iso diamond)', () => {
     drawMinimap(canvas, { tick: 0, frame: visibleFrame(), entities: [] }, null);
     expect(canvas.dataset.viewportActive).toBe('false');
   });
+
+  // v0.3.215 attack warning: the mark is drawn ON the minimap, because
+  // nothing may float OVER it and AoE2's own affordance is the minimap
+  // flashing where the blow landed.
+  it('draws the attack-warning mark at the projected cell, well above a building marker', () => {
+    const { canvas, calls } = createCanvasSpy();
+    const layout = getMinimapLayout(canvas, visibleFrame())!;
+    drawMinimap(
+      canvas,
+      { tick: 0, frame: visibleFrame(), entities: [] },
+      null,
+      { x: 4, y: 6, intensity: 1 },
+    );
+    const centre = cellToMinimap(4.5, 6.5, layout);
+    const arcs = calls.filter(
+      (c) => c.op === 'arc'
+        && Math.abs(c.args[0]! - centre.x) < 0.001
+        && Math.abs(c.args[1]! - centre.y) < 0.001,
+    );
+    // Backing, ring, core.
+    expect(arcs).toHaveLength(3);
+    const buildingMarker = Math.max(layout.hw * 1.4, 2);
+    expect(Math.max(...arcs.map((c) => c.args[2]!))).toBeGreaterThan(buildingMarker);
+    expect(canvas.dataset.attackWarningCell).toBe('4,6');
+  });
+
+  it('draws nothing at all in a quiet frame', () => {
+    const { canvas, calls } = createCanvasSpy();
+    drawMinimap(canvas, { tick: 0, frame: visibleFrame(), entities: [] }, null, null);
+    expect(calls.filter((c) => c.op === 'arc')).toHaveLength(0);
+    expect(canvas.dataset.attackWarningCell).toBeUndefined();
+  });
 });
 
 describe('minimap redraw signatures (full-review M9)', () => {
@@ -317,7 +352,8 @@ describe('minimap redraw signatures (full-review M9)', () => {
   });
 
   it('handles a null frame without throwing and keys camera signature on scroll/zoom', () => {
-    expect(minimapContentSignature({ tick: 7, frame: null, entities: [] })).toBe('7:-1');
+    // The warning term is empty in a quiet frame (v0.3.215).
+    expect(minimapContentSignature({ tick: 7, frame: null, entities: [] }, '')).toBe('7:-1:');
     const camera: MinimapCameraState = {
       scrollX: 10,
       scrollY: 20,

@@ -4,6 +4,20 @@
 // transition, the match outcome. It never touches the simulation and never
 // constructs audio itself: the synth is injected, so the decision logic tests
 // without an AudioContext and the app wires the real voices in.
+//
+// It is also the ATTACK EVENT hub, not only an audio one: the same decision
+// that sounds the horn fixes where Space jumps to (v0.3.156) and where the
+// minimap flashes (v0.3.215). One decision point is the point — a warning
+// whose sound and picture could disagree is worse than either alone. The rule
+// itself lives in ui/hud/attackWarning.ts, with the argument for each of its
+// narrowings.
+
+import type { UnitAttackParticipants } from '../game/simulation/types';
+import {
+  ATTACK_WARNING_THROTTLE_TICKS,
+  isAttackOnOwnEconomy,
+  raiseAttackWarning,
+} from '../ui/hud/attackWarning';
 
 export type GameAudioCue =
   | 'town-under-attack'
@@ -20,19 +34,13 @@ export type GameAudioCue =
   | 'select-siege'
   | 'select-ship';
 
-// AoE2 spaces its "town under attack" horns well apart; ~20s at 20 TPS.
-const HORN_THROTTLE_TICKS = 400;
 const MUTED_KEY = 'aoe2.audio.muted';
 
 interface AttackViewLike {
   tick: number;
   targetX: number;
   targetY: number;
-}
-
-interface OwnEntityLike {
-  x: number;
-  y: number;
+  participants?: UnitAttackParticipants;
 }
 
 export interface GameAudioControllerDeps {
@@ -41,7 +49,6 @@ export interface GameAudioControllerDeps {
   getCurrentAge: () => string;
   getMatchOutcome: () => string | null;
   getRecentAttacks: () => readonly AttackViewLike[];
-  getOwnTownEntities: () => readonly OwnEntityLike[];
   /** How many technologies the human has completed (any monotonic count). */
   getResearchedCount: () => number;
   /** Whether a wonder or relic victory countdown is currently running. */
@@ -66,8 +73,7 @@ export interface GameAudioController {
 
 export function createGameAudioController(deps: GameAudioControllerDeps): GameAudioController {
   const {
-    getTick, getCurrentAge, getMatchOutcome,
-    getRecentAttacks, getOwnTownEntities,
+    humanPlayerId, getTick, getCurrentAge, getMatchOutcome, getRecentAttacks,
     getResearchedCount, getCountdownActive, getTownBellRings, getOrderAcks,
     getPrimarySelection, playCue, storage,
   } = deps;
@@ -96,22 +102,16 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
     const fresh = getRecentAttacks().filter((attack) => attack.tick > lastSeenAttackTick);
     if (fresh.length === 0) return;
     lastSeenAttackTick = Math.max(...fresh.map((attack) => attack.tick));
-    if (tick - lastHornTick < HORN_THROTTLE_TICKS) return;
-    const town = getOwnTownEntities();
-    const hitsHome = fresh.some((attack) =>
-      town.some((entity) =>
-        Math.abs(entity.x - attack.targetX) <= 1 && Math.abs(entity.y - attack.targetY) <= 1,
-      ),
-    );
-    if (!hitsHome) return;
+    if (tick - lastHornTick < ATTACK_WARNING_THROTTLE_TICKS) return;
+    const hit = fresh.find((attack) => isAttackOnOwnEconomy(attack, humanPlayerId));
+    if (!hit) return;
     lastHornTick = tick;
-    // Space's jump target (v0.3.156): the freshest home-hit's cell.
-    const hit = fresh.find((attack) =>
-      town.some((entity) =>
-        Math.abs(entity.x - attack.targetX) <= 1 && Math.abs(entity.y - attack.targetY) <= 1,
-      ),
-    );
-    if (hit) lastHomeAttack = { x: hit.targetX, y: hit.targetY };
+    // One decision, three cues: the horn, Space's jump target (v0.3.156), and
+    // the minimap mark (v0.3.215). The mark is raised OUTSIDE `cue`, so a
+    // muted player still sees where the raid is — which is the whole point,
+    // since the horn is the cue a real player most easily loses.
+    lastHomeAttack = { x: hit.targetX, y: hit.targetY };
+    raiseAttackWarning(hit.targetX, hit.targetY);
     cue('town-under-attack');
   }
 
