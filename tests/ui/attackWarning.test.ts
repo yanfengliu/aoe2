@@ -1,4 +1,4 @@
-// The attack warning (v0.3.215) — the rule, the throttle, and the mark.
+// The attack warning (v0.3.217) — the rule, the throttle, and the mark.
 //
 // GATES the class "a player under attack is not told". Found by playing
 // (defect register 2026-09-06): at tick 3084 of `aoe2-prototype` an enemy
@@ -132,7 +132,7 @@ describe('the mark on the minimap', () => {
 });
 
 describe('the throttle', () => {
-  it('is AoE2\'s spacing: 400 ticks, ~20 seconds at 20 TPS', () => {
-    expect(ATTACK_WARNING_THROTTLE_TICKS).toBe(400);
+  it('spaces warnings well apart: 200 ticks, 20 s at 10 TPS', () => {
+    expect(ATTACK_WARNING_THROTTLE_TICKS).toBe(200);
   });
 });

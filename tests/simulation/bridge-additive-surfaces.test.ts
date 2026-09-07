@@ -83,7 +83,7 @@ describe('AO-2 bridge additive surfaces', () => {
       const bridge = createSimulationBridge(SEED);
       const initialTick = bridge.world.tick;
       bridge.setPaused(true);
-      // Advance enough deltaMs to definitely cross a tick boundary at 30 TPS (~33ms/tick).
+      // Advance enough deltaMs to definitely cross a tick boundary: one tick (100 ms) at 10 TPS.
       bridge.step(100);
       bridge.step(100);
       expect(bridge.world.tick).toBe(initialTick); // no ticks ran

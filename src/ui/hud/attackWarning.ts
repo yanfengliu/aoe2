@@ -1,4 +1,4 @@
-// The attack warning (v0.3.215): AoE2 tells you when your economy is being
+// The attack warning (v0.3.217): AoE2 tells you when your economy is being
 // killed. It sounds a horn, it flashes the minimap where the blow landed, and
 // Space jumps the camera there. The horn and the jump already existed; this
 // module owns the RULE they share and the flash that was missing.
@@ -38,8 +38,20 @@
 
 import type { ProjectedUnitAttackView } from '../../game/simulation/types';
 
-/** AoE2 spaces its "town under attack" warnings well apart; ~20s at 20 TPS. */
-export const ATTACK_WARNING_THROTTLE_TICKS = 400;
+// DE's own spacing was NOT settled from an authoritative source. The best
+// statement found is one post on the official Age of Empires forum (HestiaAoE,
+// 2023-10-14, thread "Under-Attack notifications are annoying and useless"):
+// the alarm is suppressed only for two attacks within 10 TILES *and* ten
+// seconds. That is a different SHAPE from this throttle, which has no spatial
+// half — two raids far apart alarm once here and twice there — so there is no
+// single DE number to copy, and no developer statement, data file or official
+// document was found. The value below is therefore what this comment always
+// intended, not a measured DE figure, and the ten-tile half is unimplemented.
+
+/** How far apart two "town under attack" warnings may be: 20 s at 10 TPS.
+ *  The number said 400 while the comment said twenty seconds, from the day the
+ *  horn shipped until 2026-09-06 (defect register). */
+export const ATTACK_WARNING_THROTTLE_TICKS = 200;
 /** How long the minimap mark stays up. Outlives the 1.15s horn several times
  *  over, so a player who looks up a moment later still finds the raid. */
 export const ATTACK_WARNING_FLASH_MS = 8_000;

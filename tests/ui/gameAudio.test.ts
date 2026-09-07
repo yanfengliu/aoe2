@@ -16,7 +16,7 @@ function mapStorage(map: Map<string, string>) {
   };
 }
 
-// v0.3.215: the feed carries WHO was hit, so the horn no longer guesses from
+// v0.3.217: the feed carries WHO was hit, so the horn no longer guesses from
 // proximity. `hit` is an enemy unit swinging at something of the human's
 // economy — the reproduced defect's shape; `graze` is the same swing landing
 // on one of the human's SOLDIERS, which must stay silent.

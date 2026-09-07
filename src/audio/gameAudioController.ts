@@ -7,7 +7,7 @@
 //
 // It is also the ATTACK EVENT hub, not only an audio one: the same decision
 // that sounds the horn fixes where Space jumps to (v0.3.156) and where the
-// minimap flashes (v0.3.215). One decision point is the point — a warning
+// minimap flashes (v0.3.217). One decision point is the point — a warning
 // whose sound and picture could disagree is worse than either alone. The rule
 // itself lives in ui/hud/attackWarning.ts, with the argument for each of its
 // narrowings.
@@ -107,7 +107,7 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
     if (!hit) return;
     lastHornTick = tick;
     // One decision, three cues: the horn, Space's jump target (v0.3.156), and
-    // the minimap mark (v0.3.215). The mark is raised OUTSIDE `cue`, so a
+    // the minimap mark (v0.3.217). The mark is raised OUTSIDE `cue`, so a
     // muted player still sees where the raid is — which is the whole point,
     // since the horn is the cue a real player most easily loses.
     lastHomeAttack = { x: hit.targetX, y: hit.targetY };

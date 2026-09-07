@@ -42,7 +42,7 @@ export interface MinimapCameraState {
 // different player's fog perspective at the SAME paused tick (frame.playerId
 // changes, tick does not), so keying the repaint on tick alone would keep the
 // minimap showing the prior owner's visibility until a tick/camera change.
-// v0.3.215: the attack-warning mark pulses on its own clock, so its quantised
+// v0.3.217: the attack-warning mark pulses on its own clock, so its quantised
 // phase joins the key — otherwise a paused or still frame would freeze the
 // mark mid-pulse. The term is EMPTY while no warning is up, so a quiet frame's
 // key is exactly what it was before the mark existed.
@@ -169,7 +169,7 @@ function resetTransform(context: CanvasRenderingContext2D): void {
   context.setTransform(1, 0, 0, 1, 0, 0);
 }
 
-// The attack-warning mark (v0.3.215): a pulsing red ring around a filled dot
+// The attack-warning mark (v0.3.217): a pulsing red ring around a filled dot
 // at the cell that was hit, drawn ON the minimap rather than floating over it
 // — nothing may cover the minimap, and AoE2's own affordance is the minimap
 // itself flashing. Sized well above a building marker (which is `cellPx*1.4`)

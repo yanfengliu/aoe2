@@ -9,7 +9,7 @@ export interface ProjectedUnitAttackAnimationView {
   targetY: number;
 }
 
-// Who a swing was between (v0.3.215). The animation half above says a blow
+// Who a swing was between (v0.3.217). The animation half above says a blow
 // landed at a cell; the attack WARNING needs to know whose blow and whose
 // thing, because "an attack near something of mine" and "an attack on
 // something of mine" are different events and only the second is news.

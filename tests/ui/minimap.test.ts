@@ -293,7 +293,7 @@ describe('drawMinimap (iso diamond)', () => {
     expect(canvas.dataset.viewportActive).toBe('false');
   });
 
-  // v0.3.215 attack warning: the mark is drawn ON the minimap, because
+  // v0.3.217 attack warning: the mark is drawn ON the minimap, because
   // nothing may float OVER it and AoE2's own affordance is the minimap
   // flashing where the blow landed.
   it('draws the attack-warning mark at the projected cell, well above a building marker', () => {
@@ -352,7 +352,7 @@ describe('minimap redraw signatures (full-review M9)', () => {
   });
 
   it('handles a null frame without throwing and keys camera signature on scroll/zoom', () => {
-    // The warning term is empty in a quiet frame (v0.3.215).
+    // The warning term is empty in a quiet frame (v0.3.217).
     expect(minimapContentSignature({ tick: 7, frame: null, entities: [] }, '')).toBe('7:-1:');
     const camera: MinimapCameraState = {
       scrollX: 10,

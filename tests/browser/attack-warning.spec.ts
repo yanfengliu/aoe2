@@ -1,4 +1,4 @@
-// A player under attack finds out (v0.3.215).
+// A player under attack finds out (v0.3.217).
 //
 // THE DEFECT, found by playing and reproduced here on the real match at the
 // real tick: at tick 3084 of `aoe2-prototype` an enemy militia walks into the
