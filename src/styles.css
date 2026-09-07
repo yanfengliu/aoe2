@@ -1409,23 +1409,54 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 }
 
 /* Match setup screen (spec §4.6): the bare-visit landing. Dark, centred,
-   one panel — the match starts when the URL gains its parameters. */
+   one panel — the match starts when the URL gains its parameters.
+
+   The overlay is its OWN scroll container, and the panel is centred by auto
+   margins rather than by `align-items: center`. Both halves of that matter,
+   because this screen is the only way into the game and it used to be a wall
+   below ~600px of viewport height (defect register, 2026-09-06):
+
+   - `body { overflow: hidden }` is there for the canvas, not for this, and a
+     `position: fixed` overlay is outside the document scroll anyway — the
+     document could not scroll to the panel even without that rule. So the
+     overlay scrolls itself and the body rule stays untouched.
+   - A flex item centred with `align-items: center` and taller than its line
+     overflows BOTH ends, and scrollable overflow only ever extends past the
+     end edge, so the top is unreachable at any scroll offset. Auto margins
+     absorb free space before alignment and resolve to zero when there is
+     none, so the panel is centred while it fits and top-aligned (fully
+     scrollable, both ends reachable) the moment it does not. */
 .setup-screen {
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Side gutter only. Vertical padding would be dead space at the one height
+     that matters: 800x600 cleared the old layout by a single pixel, and 24px
+     top and bottom was enough to push that viewport from "fits" into "scrolls"
+     (21.6% of the frame moved; with no vertical padding it is 0.00%). When the
+     panel does fit, the free space `margin: auto` splits IS the breathing room;
+     when it does not, there is none to give. */
+  padding: 0 16px;
   background: radial-gradient(ellipse at center, #17212b 0%, #0b1016 100%);
   z-index: 200;
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
 }
 .setup-panel {
+  /* Centres the panel in both axes while the viewport has room for it; see
+     the block above for why this is not `align-items: center`. */
+  margin: auto;
   background: #131b24;
   border: 1px solid #2b3a4a;
   border-radius: 10px;
   padding: 28px 32px;
-  width: min(420px, 92vw);
+  /* `100%` is the overlay's content box, so the 16px side padding is the
+     gutter; `92vw` measured against the whole viewport instead and overflowed
+     it sideways below ~400px wide. */
+  width: min(420px, 100%);
   color: #dfe7ef;
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
 }
