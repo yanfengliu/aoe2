@@ -60,7 +60,7 @@ const hiddenVillager = view({
 });
 
 describe('AoeVoxelAdapter occlusion silhouettes', () => {
-  it('emits white silhouette instances for units behind buildings without adding batches', () => {
+  it('emits silhouette instances for units behind buildings without adding batches', () => {
     const adapter = new AoeVoxelAdapter();
     const snapshot = adapter.createSnapshot([view(), hiddenVillager, townCenter()], 1_000);
 
@@ -68,9 +68,16 @@ describe('AoeVoxelAdapter occlusion silhouettes', () => {
     const occlusionKeys = keys.filter((key) => key.startsWith('ui:occlusion:7:3:'));
     expect(occlusionKeys.length).toBeGreaterThan(0);
 
-    const uiBatch = snapshot.batches.find((batch) => batch.key === 'aoe2:batch:ui-parts');
-    expect(uiBatch).toBeDefined();
-    expect(occlusionKeys.every((key) => uiBatch!.instanceKeys.includes(key))).toBe(true);
+    // The see-through lane, not the opaque `ui` one (2026-09-06): an opaque
+    // mirror of a unit reads as a decal on the wall. That the lane is actually
+    // translucent — and how much of the building shows through — is gated on the
+    // snapshot's own material in `occlusionSilhouetteReadsAsBehind.test.ts`;
+    // this holds that the cue still rides an EXISTING batch.
+    const silhouetteBatch = snapshot.batches.find(
+      (batch) => batch.key === 'aoe2:batch:memory-parts',
+    );
+    expect(silhouetteBatch).toBeDefined();
+    expect(occlusionKeys.every((key) => silhouetteBatch!.instanceKeys.includes(key))).toBe(true);
 
     expect(snapshot.batches.length).toBeLessThanOrEqual(9);
     expect(adapter.latestOccludedUnits()).toEqual([

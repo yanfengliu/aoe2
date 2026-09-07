@@ -135,12 +135,27 @@ describe('computeOcclusionSilhouettes', () => {
 
     expect(result.occluded).toEqual([{ id: 7, x: 7, y: 7, entityType: 'villager' }]);
     const mirrored = unit.parts.filter((part) => part.surface !== 'shadow');
-    expect(result.parts).toHaveLength(mirrored.length);
-    expect(result.parts.length).toBeGreaterThan(0);
+    expect(mirrored.length).toBeGreaterThan(0);
+    // Every mirrored part is laid down more than once (2026-09-06): the lane's
+    // opacity is fixed at 0.5, so one pass leaves a pixel half wall — and where
+    // the wall is the tint's complement (this game pairs a blue player with
+    // orange roofs) the two cancel and the owner's colour is gone. The
+    // relationship, and the measurement behind it, are in
+    // `occlusionSilhouetteReadsAsBehind.test.ts`; this only pins that the mirror
+    // is faithful whatever the pass count.
+    const passes = result.parts.length / mirrored.length;
+    expect(Number.isInteger(passes) && passes >= 1, 'every part mirrored equally').toBe(true);
     for (const [index, part] of result.parts.entries()) {
-      const source = mirrored[index]!;
-      expect(part.key).toBe(`ui:occlusion:${source.key}`);
-      expect(part.surface).toBe('ui');
+      const source = mirrored[Math.floor(index / passes)]!;
+      expect(part.key.replace(/^ui:occlusion(?:-pass\d+)?:/u, '')).toBe(source.key);
+      // Not the opaque `ui` lane any more. `memory` is the renderer's
+      // see-through lane (lambert at opacity 0.5), and drawing the cue there is
+      // the whole fix: an opaque, unlit mirror reads as a decal stuck to the
+      // wall — the owner saw exactly that on the boot map at tick 0. The
+      // PROPERTY (a translucent lane, coverage between a half and one) is gated
+      // in `occlusionSilhouetteReadsAsBehind.test.ts` against the real snapshot;
+      // this line pins the lane the rest of this file's expectations assume.
+      expect(part.surface).toBe('memory');
       // A flat WHITE body over a dark building reads as a ghost standing in
       // front of it, and says nothing about whose unit it is. AoE2 silhouettes
       // a hidden unit in its owner's colour, lightened enough to stay legible
@@ -186,15 +201,17 @@ describe('computeOcclusionSilhouettes', () => {
       townCenter(20, 8, 8),
     ]);
 
-    expect(result.parts).toHaveLength(1);
-    const mirror = result.parts[0]!;
-    expect(mirror.key).toBe('ui:occlusion:9:2:tool');
-    expect(mirror.yaw).toBe(posed.yaw);
-    expect(mirror.pitch).toBe(posed.pitch);
-    expect(mirror.pitchHeadingRadians).toBe(posed.pitchHeadingRadians);
-    expect(mirror.roll).toBe(posed.roll);
-    expect(mirror.animation).toBeUndefined();
-    expect('animation' in mirror).toBe(false);
+    expect(result.parts.length).toBeGreaterThanOrEqual(1);
+    // The first pass keeps the bare prefix every consumer already reads.
+    expect(result.parts[0]!.key).toBe('ui:occlusion:9:2:tool');
+    for (const mirror of result.parts) {
+      expect(mirror.yaw).toBe(posed.yaw);
+      expect(mirror.pitch).toBe(posed.pitch);
+      expect(mirror.pitchHeadingRadians).toBe(posed.pitchHeadingRadians);
+      expect(mirror.roll).toBe(posed.roll);
+      expect(mirror.animation).toBeUndefined();
+      expect('animation' in mirror).toBe(false);
+    }
   });
 
   it('reports displayed fractional coordinates for occluded units', () => {
@@ -416,7 +433,8 @@ describe('computeOcclusionSilhouettes', () => {
       townCenter(22, 8, 9),
     ]);
     expect(result.occluded).toHaveLength(1);
-    expect(result.parts).toHaveLength(unit.parts.filter((part) => part.surface !== 'shadow').length);
+    const single = computeOcclusionSilhouettes([unit, townCenter(20, 8, 8)]);
+    expect(result.parts).toHaveLength(single.parts.length);
   });
 
   it('is deterministic for identical inputs', () => {
