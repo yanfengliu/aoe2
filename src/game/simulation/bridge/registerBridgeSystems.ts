@@ -361,6 +361,7 @@ export function registerBridgeSystems(
     getSelectedHumanUnitIds,
     isEntityVisibleToHuman,
     enqueueRejection,
+    describeWalkOrderReach: movementPlanOps.describeWalkOrderReach,
     issueUnitMoveCommand,
     issueUnitAttackMoveCommand,
     issueUnitPatrolCommand,

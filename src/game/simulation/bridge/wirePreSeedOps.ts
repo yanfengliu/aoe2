@@ -266,6 +266,9 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
       isCellPassableForUnit,
       isCellPassableForWildlife,
       structuralRevision: () => worldOccupancy.structuralRevision(),
+      // What is in the way, in the placement validator's own words, so the
+      // "cannot reach that cell" toast names it (moveDestinationSearch.ts).
+      describeBlockedCell: (x, y) => placementOccupancy.describePlacementBlockers(x, y, 1, 1)?.cause ?? null,
     }),
     findDropOffWalkField,
   };

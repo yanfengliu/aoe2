@@ -496,3 +496,4 @@ export {
   createEnemyDefenceGatherFixture,
   createEnemyDefenceHuntFixture,
 } from './enemyDefences';
+export { createWalledPocketFixture } from './walledPocket';

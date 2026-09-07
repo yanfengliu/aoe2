@@ -44,6 +44,9 @@ export interface HumanInputOpsDeps {
   getSelectedHumanUnitIds: () => number[];
   isEntityVisibleToHuman: (id: number) => boolean;
   enqueueRejection: (reason: string) => void;
+  /** Null when every selected unit can reach the ordered cell; otherwise the
+   *  sentence the player gets instead of silence (moveDestinationSearch.ts). */
+  describeWalkOrderReach: (unitIds: readonly number[], target: Position) => string | null;
   issueUnitMoveCommand: (unitId: number, target: Position) => boolean;
   issueUnitAttackMoveCommand: (unitId: number, target: Position) => boolean;
   issueUnitPatrolCommand: (unitId: number, target: Position) => boolean;
@@ -81,22 +84,12 @@ export interface HumanInputOps {
 
 export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
   const {
-    world,
-    humanPlayerId,
-    mapWidth,
-    mapHeight,
-    state,
-    accessor,
-    placementMode,
+    world, humanPlayerId, mapWidth, mapHeight, state, accessor, placementMode,
     isMatchRunning,
-    getSelectedEntityId,
-    getSelectedEntityIds,
-    selectUnitsByIds,
-    isGarrisonedUnit,
-    getSelectedOwnedSheepIds,
-    getSelectedHumanUnitIds,
-    isEntityVisibleToHuman,
+    getSelectedEntityId, getSelectedEntityIds, selectUnitsByIds, isGarrisonedUnit,
+    getSelectedOwnedSheepIds, getSelectedHumanUnitIds, isEntityVisibleToHuman,
     enqueueRejection,
+    describeWalkOrderReach,
     issueUnitMoveCommand,
     issueUnitAttackMoveCommand,
     issueUnitPatrolCommand,
@@ -114,6 +107,14 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
   function supersedeAutoAggression(unitId: number, accepted: boolean): boolean {
     if (accepted) removePendingUnitCommands(state.pendingCommands, unitId);
     return accepted;
+  }
+
+  // A walk order the game cannot carry out used to be accepted and dropped in
+  // silence — the standing loop lost a whole 93-minute match to it. Answered
+  // where the player gave the order, like the placement validator.
+  function sayIfUnreachable(unitIds: readonly number[], target: Position): void {
+    const reason = describeWalkOrderReach(unitIds, target);
+    if (reason !== null) enqueueRejection(reason);
   }
 
   const planFormation = createFormationPlanner({
@@ -142,6 +143,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
       }
       return didQueue;
     }
+    sayIfUnreachable(selectedUnitIds, { x: clamp(x, 0, mapWidth - 1), y: clamp(y, 0, mapHeight - 1) });
     let didIssue = false;
     if (selectedUnitIds.length === 1) {
       // Spec §12.7 single-unit move: issue the move directly. Pathfinding
@@ -375,6 +377,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
       x: clamp(x, 0, mapWidth - 1),
       y: clamp(y, 0, mapHeight - 1),
     };
+    sayIfUnreachable(selectedUnitIds, targetCenter);
     const { orderedIds, preferredCells } = planFormation(selectedUnitIds, targetCenter);
     const allocations = allocateGroupMoveTargets(orderedIds, targetCenter, preferredCells);
     let didIssue = false;
@@ -480,21 +483,15 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
   const { countIdleMilitary, selectNextIdleMilitary } = createIdleMilitaryOps(idleDeps);
 
   return {
-    countIdleVillagers,
-    selectNextIdleVillager,
-    countIdleMilitary,
-    selectNextIdleMilitary,
+    countIdleVillagers, selectNextIdleVillager,
+    countIdleMilitary, selectNextIdleMilitary,
     issueMoveCommand,
     issueContextCommand,
     issueContextCommandAtEntityInternal,
-    queueTrainUnit,
-    queueResearch,
+    queueTrainUnit, queueResearch,
     issueAction,
-    setSelectionStance,
-    setSelectionFormation,
-    issueAttackMoveCommand,
-    issueAttackGroundCommand,
-    issuePatrolCommand,
+    setSelectionStance, setSelectionFormation,
+    issueAttackMoveCommand, issueAttackGroundCommand, issuePatrolCommand,
     issueMarketAction,
   };
 }

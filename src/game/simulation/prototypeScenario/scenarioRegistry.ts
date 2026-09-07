@@ -317,6 +317,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['dropoff-unreachable-reroute-fixture', fixtures.createDropOffUnreachableRerouteFixture],
   ['dropoff-convoy-fixture', fixtures.createDropOffConvoyFixture],
   ['fog-memory-fixture', fixtures.createFogMemoryFixture],
+  ['walled-pocket-fixture', fixtures.createWalledPocketFixture],
   ['building-footprint-vision-fixture', fixtures.createBuildingFootprintVisionFixture],
   // Slice 11: alternate playable maps. Both share the default
   // two-player layout; only terrain differs.

@@ -7,20 +7,17 @@
 import { findGridPath, type Position } from 'civ-engine';
 
 import { orderApproachCandidates } from './approachOrdering';
-import { buildingFootprint, clonePosition, isAtTarget, type GameWorld } from './pureHelpers';
+import { buildingFootprint, clonePosition, type GameWorld } from './pureHelpers';
 import type { BuildingComponent } from '../types';
 import type { UnitMovementPlan } from './movementTypes';
 import { createApproachPlanCache } from './approachPlanCache';
+import { createMoveDestinationSearch, type CachedMovePath } from './moveDestinationSearch';
 
 type CivWorld = GameWorld;
 
 interface ResolvedMovementPath {
   destination: Position;
   path: Position[];
-}
-
-interface CachedMovePath extends ResolvedMovementPath {
-  nextPathIndex: number;
 }
 
 type IsPassable = (
@@ -39,6 +36,8 @@ export interface MovementPlanOpsDeps {
   isCellPassableForWildlife: IsPassable;
   /** worldOccupancy.structuralRevision — see the unreachable-plan cache. */
   structuralRevision?: () => number;
+  /** Names what holds a cell, for the walk order that cannot be carried out. */
+  describeBlockedCell?: (x: number, y: number) => string | null;
 }
 
 export interface MovementPlanOps {
@@ -72,6 +71,12 @@ export interface MovementPlanOps {
     target: Position,
     activeWorld?: CivWorld,
   ): UnitMovementPlan | null;
+  /** One sentence when a walk order cannot be carried out, else null. */
+  describeWalkOrderReach(
+    unitIds: readonly number[],
+    target: Position,
+    activeWorld?: CivWorld,
+  ): string | null;
   findResourceApproachPlan(
     unitId: number,
     resourceId: number,
@@ -106,6 +111,13 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     isCellPassableForUnit,
     isCellPassableForWildlife,
   } = deps;
+  const destinationSearch = createMoveDestinationSearch({
+    mapWidth,
+    mapHeight,
+    movePathCache,
+    isCellPassableForUnit,
+    ...(deps.describeBlockedCell ? { describeBlockedCell: deps.describeBlockedCell } : {}),
+  });
 
   function uniquePositions(positions: Position[]): Position[] {
     const seen = new Set<string>();
@@ -279,79 +291,6 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     return null;
   }
 
-  function resolveMovePlanFromCache(
-    unitId: number,
-    target: Position,
-    activeWorld: CivWorld = world,
-  ): UnitMovementPlan | null {
-    const position = activeWorld.getComponent<Position>(unitId, 'position');
-    if (!position) {
-      movePathCache.delete(unitId);
-      return null;
-    }
-
-    const cachedMovePath = movePathCache.get(unitId);
-    if (cachedMovePath) {
-      while (
-        cachedMovePath.nextPathIndex < cachedMovePath.path.length
-        && isAtTarget(position, cachedMovePath.path[cachedMovePath.nextPathIndex]!)
-      ) {
-        cachedMovePath.nextPathIndex += 1;
-      }
-
-      const previousPathIndex = Math.max(0, cachedMovePath.nextPathIndex - 1);
-      const previousStep = cachedMovePath.path[previousPathIndex];
-      if (
-        !isAtTarget(cachedMovePath.destination, target)
-        && isCellPassableForUnit(unitId, target.x, target.y, activeWorld)
-      ) {
-        movePathCache.delete(unitId);
-      } else if (previousStep && isAtTarget(position, previousStep)) {
-        const nextStep = cachedMovePath.path[cachedMovePath.nextPathIndex] ?? cachedMovePath.destination;
-        if (
-          isAtTarget(position, cachedMovePath.destination)
-          && !isAtTarget(cachedMovePath.destination, target)
-        ) {
-          movePathCache.delete(unitId);
-        } else {
-          if (
-            isAtTarget(position, nextStep)
-            || isCellPassableForUnit(unitId, nextStep.x, nextStep.y, activeWorld)
-          ) {
-            return {
-              destination: cachedMovePath.destination,
-              nextStep,
-            };
-          }
-        }
-      }
-    }
-
-    const refreshedMovementPath = findMovementPathToCandidates(
-      unitId,
-      position,
-      getNearestMoveCandidates(target),
-      false,
-      activeWorld,
-      isCellPassableForUnit,
-    );
-    if (!refreshedMovementPath) {
-      movePathCache.delete(unitId);
-      return null;
-    }
-    const refreshedMovePath: CachedMovePath = {
-      destination: refreshedMovementPath.destination,
-      path: refreshedMovementPath.path,
-      nextPathIndex: refreshedMovementPath.path.length > 1 ? 1 : 0,
-    };
-    movePathCache.set(unitId, refreshedMovePath);
-
-    return {
-      destination: refreshedMovePath.destination,
-      nextStep: refreshedMovePath.path[refreshedMovePath.nextPathIndex] ?? refreshedMovePath.destination,
-    };
-  }
-
   // Unreachable-plan cache (v0.3.160). Units never block
   // `isCellPassableForUnit`, so whether ANY path exists between two cells can
   // only change when a building, resource, or terrain cell changes — i.e.
@@ -490,7 +429,12 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     getNearestMoveCandidates,
     findMovementPathToCandidates,
     findMovementPlan,
-    resolveMovePlanFromCache,
+    resolveMovePlanFromCache: (unitId, target, activeWorld = world) => (
+      destinationSearch.resolveMovePlanFromCache(unitId, target, activeWorld)
+    ),
+    describeWalkOrderReach: (unitIds, target, activeWorld = world) => (
+      destinationSearch.describeWalkOrderReach(unitIds, target, activeWorld)
+    ),
     findResourceApproachPlan,
     findBuildingApproachPlan,
     findUnitRangePlan,
