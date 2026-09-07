@@ -743,3 +743,15 @@ Flooding out of the unit inverts the question and has no radius at all. One brea
 **What was NOT done, and why.** The flood is not cached. A walk order re-solves at most once per unit per replan and the fast path — the ordered cell is passable and A* finds a route — never floods at all, so the flood runs only in the case that used to be catastrophic. Caching it would mean invalidating on `structuralRevision` plus every unit's own passability, which is the `dropOffWalkField` design and is worth its complexity only for a per-tick consumer. This is not one.
 
 **The player-facing half is a separate flood, out of the ORDERED cell.** Reachability over a grid is symmetric, so one flood from the target answers for an entire selection instead of one per unit — but only within a movement DOMAIN, because a ship and a soldier disagree about every cell, so the description costs at most one flood per domain present in the selection. The barrier is named from the STUCK unit's own frontier rather than the target's: seeded at the target, the frontier picked out the player's own town centre on the far side of the map and reported that as the wall.
+
+## 2026-09-06 — A construction site's health is a reading of its progress, with a ceiling AND a step rather than either alone
+
+Health and build progress used to be two accumulators advancing on different clocks in the same block of `builderWorkStep`, which is the whole defect. Deriving health from progress is the obvious repair; the part worth recording is that it is derived TWICE and why both rules are needed.
+
+The **ceiling** is `constructionEarnedHp(progress)` — the 10% foundation floor rising linearly to exactly `maxHp` at completion. On its own it is a complete answer for a site nobody has touched: health is a pure function of progress, so the two can never disagree, and a full bar is a finished building by construction rather than by convention.
+
+The **step** is the same tick's `progressDelta` converted to hit points, and it exists for the one case the ceiling alone gets wrong. A foundation an enemy has chipped sits BELOW the curve. Under the ceiling alone the next builder tick would snap it straight back up to whatever the progress had earned — a damaged site healing to full the instant a villager touched it, at no cost in build time. Under `min(ceiling, current + step)` it mends at the rate the crew is building, which is the behaviour the real game has and the reason repair is a separate job.
+
+In the ordinary undamaged case the two rules coincide exactly — if health was on the curve before the tick, `current + step` IS the new earned value — so the step costs nothing and the ceiling is what applies. That is why the composition is safe to make unconditional rather than branching on "has this site been damaged", which would need damage state this module deliberately does not have.
+
+**What was NOT done.** `finalizeBuildingConstruction` still rounds and clamps rather than assigning `maxHp`, because with the ceiling in place the value it receives already IS `maxHp`; assigning it would hide a future divergence between the two instead of letting it show.

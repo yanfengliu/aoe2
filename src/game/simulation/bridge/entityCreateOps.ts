@@ -60,6 +60,7 @@ import {
   FISH_TRAP_FOOD_AMOUNT,
 } from '../economyTechEffects';
 import { attachBuildingVisionAndCombat } from './buildingSeedVision';
+import { constructionStartHp } from './constructionHealth';
 import { ageScaledBuildingHpFactor } from '../ageScaledHp';
 
 interface PlayerScoreCountersLike {
@@ -359,7 +360,10 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     );
     accessor.mutate(buildingHealthStatesCodec, (m) =>
       m.set(entity, {
-        currentHp: isComplete ? fullHp : Math.max(1, Math.floor(fullHp * 0.1)),
+        // The 10% foundation floor lives in ONE place (constructionHealth.ts)
+        // because the builder step reads the same floor back out of it when it
+        // projects health from progress.
+        currentHp: isComplete ? fullHp : constructionStartHp(fullHp),
         maxHp: fullHp,
       }),
     );

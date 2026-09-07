@@ -21,6 +21,7 @@ import type {
   UnitComponent,
 } from '../../types';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { constructionHealthAfterWork } from '../constructionHealth';
 import {
   buildingHealthStatesCodec,
   constructionStatesCodec,
@@ -158,7 +159,7 @@ export function runBuilderWorkStep(ctx: BuilderWorkStepContext): BuilderWorkResu
   // gather-rate lesson).
   const alreadyCredited = ctx.buildersCreditedThisTick.get(buildingId) ?? 0;
   ctx.buildersCreditedThisTick.set(buildingId, alreadyCredited + 1);
-  construction.buildProgressTicks += builderProgressShare(alreadyCredited) * buildRateMultiplier(
+  const progressDelta = builderProgressShare(alreadyCredited) * buildRateMultiplier(
     accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET,
     accessor.get(playerCivilizationsCodec).get(unit.owner),
     {
@@ -177,14 +178,22 @@ export function runBuilderWorkStep(ctx: BuilderWorkStepContext): BuilderWorkResu
       buildingType: building.buildingType,
     },
   );
+  construction.buildProgressTicks += progressDelta;
   accessor.markDirty(constructionStatesCodec);
+  // Health is a READING of the progress just credited, not a second
+  // accumulator racing it (constructionHealth.ts). Crediting a flat
+  // `(maxHp - startHp) / totalBuildTicks` per builder — which is what this did
+  // — filled the bar 3n/(n+2) times faster than the crew filled the site, so a
+  // crew of n saw FULL HEALTH at (n+2)/3n of the build: 56% at three builders
+  // and 37% at eighteen.
   const buildingHealth = accessor.get(buildingHealthStatesCodec).get(buildingId);
   if (buildingHealth && construction.totalBuildTicks > 0) {
-    const startHp = Math.max(1, Math.floor(buildingHealth.maxHp * 0.1));
-    const hpPerTick = (buildingHealth.maxHp - startHp) / construction.totalBuildTicks;
-    buildingHealth.currentHp = Math.min(
+    buildingHealth.currentHp = constructionHealthAfterWork(
+      buildingHealth.currentHp,
       buildingHealth.maxHp,
-      buildingHealth.currentHp + hpPerTick,
+      construction.buildProgressTicks,
+      construction.totalBuildTicks,
+      progressDelta,
     );
     accessor.markDirty(buildingHealthStatesCodec);
   }
