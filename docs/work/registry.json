@@ -1,0 +1,2774 @@
+{
+  "version": 1,
+  "allocations": [
+    {
+      "id": 0,
+      "theme": "full",
+      "legacyFiles": [
+        {
+          "path": "historical/threads/done/full/2026-04-25/1/PROMPT.md",
+          "sha256": "abc1e427862fd6b3c2e4576c115b4ae422f6ffa51c864cd9e0c2bdc3296dddcc",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-25/1/PROMPT.md"
+        },
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "571540332943287348a40be72fab0e1a9465b5b0f42f206be5a078899b400ca6",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-25/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/full/2026-04-25/2/PROMPT.md",
+          "sha256": "7fc1515324cf0ef084eb0d6653123f8f5be0de187efd8f184a38beef66ddeca4",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-25/2/PROMPT.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "9e6e54e50fe47b5c2e79d7f88ab298c4136687bca8f123fafebffc6987d43518",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-25/2/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/full/2026-04-25/2/VERIFY_PROMPT.md",
+          "sha256": "893818225e23bf914351d08432ba6bea3f5ffc0b8ff4d1ac07172e96cfb1d382",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-25/2/VERIFY_PROMPT.md"
+        },
+        {
+          "path": "historical/threads/done/full/2026-04-25/3/PROMPT.md",
+          "sha256": "42d2b008f49f2a6e787136c206953b7d3b38025fa0306b1c43bbc2708231d747",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-25/3/PROMPT.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "d9cd4a829b0a1347c2f50b7bbcabcae8e3329d8a5293e7d1907c82fe4e5b9d4c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-25/3/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/full/2026-04-25/3/VERIFY_PROMPT.md",
+          "sha256": "32577c1a3b853e5bc707e55b145ea338f0cce071e019c744c4ef1f4053b69fd8",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-25/3/VERIFY_PROMPT.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "2ffa04c91dd3f4cddaca0665bd3394dd55e5c5c68c3dbd0929ad229443c99983",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-26/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/full/2026-04-26/2/prompt.txt",
+          "sha256": "0d32e8aa3312be4c809479c19c7829d25f6fd7f9815b97fb5a7817153d3e246d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-26/2/prompt.txt"
+        },
+        {
+          "path": "reviews/4_legacy.md",
+          "sha256": "4b4c11771b9fa819d959accfb82e8423cbea72c548c27e6e46683892f3680fde",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-26/2/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/full/2026-04-26/2/verify/prompt.txt",
+          "sha256": "7876bcbe8bc4cbab7cc66544a157bf2bb64285f9d0fa7562acd509a33af12d19",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-26/2/verify/prompt.txt"
+        },
+        {
+          "path": "reviews/5_legacy.md",
+          "sha256": "1463605db3b2a5bd00c03da6235508bf9e0a6dd3e97d8f3a766e581d0f0af3c1",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-04-26/2/verify/REVIEW.md"
+        },
+        {
+          "path": "reviews/6_legacy.md",
+          "sha256": "4acb7312ee8c3797984a9de93ea2fd4437b36684ddd699533664705e1e9105b8",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-05-01/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "theme": "construction-hp-ramp",
+      "legacyFiles": [
+        {
+          "path": "historical/threads/done/construction-hp-ramp/2026-04-26/1/diff.md",
+          "sha256": "c43158541d91d8acb974135413bb32215c689a81df7ddd5c7ba840a032eb61fe",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/construction-hp-ramp/2026-04-26/1/diff.md"
+        },
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "258bf7784cc88d1f667db0f4a8ae779fdfb8c3c8169737ecd45b1a81c22ddbaa",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/construction-hp-ramp/2026-04-26/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/construction-hp-ramp/2026-04-26/2/diff.md",
+          "sha256": "a692a96d1e34b2ef17224408ed70d8e73bb4f10c5b5dc7dd3a0adafdabb427a4",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/construction-hp-ramp/2026-04-26/2/diff.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "82a871fee7888c703eb64ebceb303c54ecf88eb90350ded3e379ce210b0dbd28",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/construction-hp-ramp/2026-04-26/2/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "theme": "annotation-ui",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "3d31c6571313d7f8109af8b13fe10c4ba021b53b3424edf6cb45aa6603a61c69",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/annotation-ui/2026-04-29/design-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "05391d0da4ac914c30a0e2d3443203fa071bbb0b5db727294399dfbecde57adf",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/annotation-ui/2026-04-29/design-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "3c6efd5cdccf122d4172d2b26954b4412aa979c064c6ca24acae13af56a506ea",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/annotation-ui/2026-04-29/design-3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "02bc98941283efff91e20628d71866aadb4f59f6832145a113219ae04d3f1d75",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/annotation-ui/2026-04-29/design-4/REVIEW.md"
+        },
+        {
+          "path": "reviews/4_legacy.md",
+          "sha256": "be6baa1038f9f4387313f12a65d0cb42e9805f37d9dee69c696b75a82983729c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/annotation-ui/2026-04-29/design-5/REVIEW.md"
+        },
+        {
+          "path": "reviews/5_legacy.md",
+          "sha256": "99687258f36824fd08c6f1bc792167b85f8adbfededd8aa6b51bb48ac9a75d12",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/annotation-ui/2026-04-29/follow-up-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/6_legacy.md",
+          "sha256": "18a8a3e83443d071546a00722ea1d2779e309587d30ce890d4b098c9cb4614c9",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/annotation-ui/2026-04-29/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/7_legacy.md",
+          "sha256": "c0fbc032147b03b29465a98e6bbed5f3df03fae596bb932643d1640feb68aac3",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/annotation-ui/2026-04-29/plan-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/8_legacy.md",
+          "sha256": "fab48762afca97856c52ff6d610dad79db3a0de3d3233ba2037e127b7376c8f6",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/annotation-ui/2026-04-29/plan-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/9_legacy.md",
+          "sha256": "089daf9ee7eb92a7213882954ce5421af4712983cd7cab521f875b35c6e38f1e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/annotation-ui/2026-04-29/review-1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/annotation-ui/DESIGN.md",
+          "sha256": "41141c1d65b8ead60d98bc5d62711d876497d1c7e276eb0d5cbcb9a3712ef2e4",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/annotation-ui/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/annotation-ui/PLAN.md",
+          "sha256": "4f3b71b41cb26d0a49b56fd8f4f537c69ef5bc1b9b840c96a43c63454306f4cc",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/annotation-ui/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "theme": "engine-bump-0-8-12",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "0c178c7a8e263447e0c319b31e486137d68ab26fd03ecc596add7e70cc7c3963",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/engine-bump-0.8.12/2026-04-30/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "theme": "engine-bump-0-8-13",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "5cb3be09ab7a7876f2cb91a00974042ac1eeacf4dc9d86a676c8a8d9e9b9604f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/engine-bump-0.8.13/2026-04-30/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "theme": "replay-scrubber",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "8546ebb521360bfcd7663da6dfed1e4c4b36c44e3e11180dc37bc103ab835c11",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "44f52987e0a92398d2a1623f42bd4ffa544e9ee18b0803837ca106fcf6f19d6d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "d9a651411d2f7777a5b48b34f77e4932dc21650a67bc3b0d64f5bdfdac47229e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "842eb1edf5ab1cb2ea0f6b859296a1b12067f019920ae43d1809b50455b746b1",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-4/REVIEW.md"
+        },
+        {
+          "path": "reviews/4_legacy.md",
+          "sha256": "ff97aeed7b1cff2283c4558300eed8d7f303e7e9a0db517105651d4755d8e555",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-5/REVIEW.md"
+        },
+        {
+          "path": "reviews/5_legacy.md",
+          "sha256": "2df2a3e914d81c66a6431e79082acbf1f8b2a44f3e14e3d2b759633820ebc85f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-6/REVIEW.md"
+        },
+        {
+          "path": "reviews/6_legacy.md",
+          "sha256": "555b86370dc55ba9f133bbebfdf63b1bd4f223e6520c0a354e8ff0d96c06b179",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-7/REVIEW.md"
+        },
+        {
+          "path": "reviews/7_legacy.md",
+          "sha256": "9911029948e2e4504ee4f86b2a0d2c204d306db4b13eb2640c6ba07eb750f0a9",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-8/REVIEW.md"
+        },
+        {
+          "path": "reviews/8_legacy.md",
+          "sha256": "3842c7fa4c974ac531bee245edc637864f530abe253a86c8aa48035963703c91",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-9/REVIEW.md"
+        },
+        {
+          "path": "reviews/9_legacy.md",
+          "sha256": "01adc8a17b21118e9e5550a51ed04623b0c64bdb31ea390b59bac575166ce68a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-10/REVIEW.md"
+        },
+        {
+          "path": "reviews/10_legacy.md",
+          "sha256": "9b7c1762da82d28180b97f68a57b0ba48a99d68401d130530550edaf4ae72e00",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-11/REVIEW.md"
+        },
+        {
+          "path": "reviews/11_legacy.md",
+          "sha256": "e8afd78178a46c8ae7146ac1b3110de8623f0e4136378ef17fed8bc8e719b5f2",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-12/REVIEW.md"
+        },
+        {
+          "path": "reviews/12_legacy.md",
+          "sha256": "26e57bfbe36f3bf6a6544c7dd5ba17ef50e3734455edd9a1c7a86d7b8e2e7655",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-13/REVIEW.md"
+        },
+        {
+          "path": "reviews/13_legacy.md",
+          "sha256": "786c930a5cb3695d7e604949fca6e060916b1419b745325d1c6de736ca478fe8",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-14/REVIEW.md"
+        },
+        {
+          "path": "reviews/14_legacy.md",
+          "sha256": "e76b1a1c076fce70cceae77ab02b9d59b2fa4ede84aa0d387a2adc762674e334",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-15/REVIEW.md"
+        },
+        {
+          "path": "reviews/15_legacy.md",
+          "sha256": "0bf46d8504c629df02ed215beb12870690fab659223a45a77bc3719fea6c6b04",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-16/REVIEW.md"
+        },
+        {
+          "path": "reviews/16_legacy.md",
+          "sha256": "63e4a8c66e51efc111e299f9a212cd47e97cc51b398116b618e8d10718c9a428",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-04-30/design-17/REVIEW.md"
+        },
+        {
+          "path": "reviews/17_legacy.md",
+          "sha256": "b8851990d656c28d6136146d0004b81405152cf5205def5e61740bffc7b7445f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/18_legacy.md",
+          "sha256": "6bdf1efefe7ebe6e6d1847c1e54af2c2c52b4a98a1015dbbf3c6554546d9317b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/19_legacy.md",
+          "sha256": "1e4aa68f7f231235b48df536964af32c3b6c483d3393f91dc17026a16e30f872",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-3/REVIEW.md"
+        },
+        {
+          "path": "reviews/20_legacy.md",
+          "sha256": "0685e562997329bf5f063675b203a4b1d91659438ee9712627a5c134d373c1de",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-4/REVIEW.md"
+        },
+        {
+          "path": "reviews/21_legacy.md",
+          "sha256": "4798ff26eff995dbe352a3b97c57ef5bbf7e3a00638bb93aeff5a4b3863ce60d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-5/REVIEW.md"
+        },
+        {
+          "path": "reviews/22_legacy.md",
+          "sha256": "f1086c95a4c776ae148b5bbb6ccc40b5752bbaefe40aeb5bb92cf24c17c7def4",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-6/REVIEW.md"
+        },
+        {
+          "path": "reviews/23_legacy.md",
+          "sha256": "a16d77e5ba130f70f1ca30b8ead41461f15c61d09ee0e83493371f1a58ba3a8b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-7/REVIEW.md"
+        },
+        {
+          "path": "reviews/24_legacy.md",
+          "sha256": "aa9a742a49375cfab44d23302a11be4ed9b7a692a6c32feb8fc4e45125020d17",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-8/REVIEW.md"
+        },
+        {
+          "path": "reviews/25_legacy.md",
+          "sha256": "50c545688cb176b5cc90cdf4e4a3e4a3ccb7a56988e0ebadbc3170da072ed9e6",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-9/REVIEW.md"
+        },
+        {
+          "path": "reviews/26_legacy.md",
+          "sha256": "be91f9907732ed3f746dca803e6394856e268908ec13ed1c913eab71a8fd2107",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-10/REVIEW.md"
+        },
+        {
+          "path": "reviews/27_legacy.md",
+          "sha256": "3870cbe7172d36f6f2a2b15ec592b8b4697f1cd68010a5b14396cb1094feb470",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-11/REVIEW.md"
+        },
+        {
+          "path": "reviews/28_legacy.md",
+          "sha256": "3c57fdf269a19a43b42fb84e12e798229ea7be5b7a182a017ede7604ccb54343",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-12/REVIEW.md"
+        },
+        {
+          "path": "reviews/29_legacy.md",
+          "sha256": "f9b2c7cfa0d3910f4a9e5c27fe7354c56be41972316d66ff66b9ebdea94ad4bc",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-13/REVIEW.md"
+        },
+        {
+          "path": "reviews/30_legacy.md",
+          "sha256": "4223c5114d0e35b91b05b8525f85528d6a7caed96cd80bc720b44bc0feb42985",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-14/REVIEW.md"
+        },
+        {
+          "path": "reviews/31_legacy.md",
+          "sha256": "5efbe471811320a048fadfc461b79728809d1e40ba0c127b1b7a3d640716df92",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-15/REVIEW.md"
+        },
+        {
+          "path": "reviews/32_legacy.md",
+          "sha256": "b5fd39c07913d64281aeeb7bb1b92d75f5c9c60fc5c09a08fffa883c963c5d7d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-16/REVIEW.md"
+        },
+        {
+          "path": "reviews/33_legacy.md",
+          "sha256": "d3fef11589e240d13dd6eb6f2100b63770bb55a4c9f52547eee2757256083f47",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-17/REVIEW.md"
+        },
+        {
+          "path": "reviews/34_legacy.md",
+          "sha256": "8b3a3233e8424824374446ce7043760578e901a09af0f157e3b3db5c8d0b30ac",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-18/REVIEW.md"
+        },
+        {
+          "path": "reviews/35_legacy.md",
+          "sha256": "2fe6558f6f2e36c994b9e40b403469498925bff3b431189eeefebfdb9abbaa84",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-19/REVIEW.md"
+        },
+        {
+          "path": "reviews/36_legacy.md",
+          "sha256": "84c24a12704318ff9272f256c9df6be76db1081a34ad255d43f7ce90bf35c65d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-20/REVIEW.md"
+        },
+        {
+          "path": "reviews/37_legacy.md",
+          "sha256": "148cef7de97a67ec1ea655ca6242d1d9c553a2d5738b86917b816051340cc1d9",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-21/REVIEW.md"
+        },
+        {
+          "path": "reviews/38_legacy.md",
+          "sha256": "6aea2087e1d69ac9d035d1e4996878bdac0dc31af8c3321de426f2f00ce654d1",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-22/REVIEW.md"
+        },
+        {
+          "path": "reviews/39_legacy.md",
+          "sha256": "6cb883696af4689caa681dc357c3ef44c6418acf9ea8cc366a2959a413c5ceda",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-23/REVIEW.md"
+        },
+        {
+          "path": "reviews/40_legacy.md",
+          "sha256": "a73907d8f22ddc9cda1d74dc39128a9b8a99aa4732eb301b851e92b024f67a64",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-24/REVIEW.md"
+        },
+        {
+          "path": "reviews/41_legacy.md",
+          "sha256": "4185e78c99972f53368311e3962e6709a58ccc98f9dd1a0c262cea0967901f1d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-01/impl-27/REVIEW.md"
+        },
+        {
+          "path": "reviews/42_legacy.md",
+          "sha256": "d1dfd66f2c8844e134b2603f53f1e9e3a48f354138125feab53e203343165172",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-02/impl-25/REVIEW.md"
+        },
+        {
+          "path": "reviews/43_legacy.md",
+          "sha256": "3305a63426ba4d91f55c713f3026d96d900b7cee3d3e772de924a3424321a0b2",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-02/impl-26/REVIEW.md"
+        },
+        {
+          "path": "reviews/44_legacy.md",
+          "sha256": "f95caee81dfd09749c323913365fb9926bf5f7603d1218bf8c796d27ec24713c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-02/impl-27/REVIEW.md"
+        },
+        {
+          "path": "reviews/45_legacy.md",
+          "sha256": "1cdd232bf4a3d9576c182c242a74bf6ba721bb94aa0f1e992d7b6449a93f15d7",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-02/impl-28/REVIEW.md"
+        },
+        {
+          "path": "reviews/46_legacy.md",
+          "sha256": "7a1f6fe48960e7d28d6ffc96c2b6ef8e39fbcf01bad57af06ec216eb2843cec8",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-02/impl-29/REVIEW.md"
+        },
+        {
+          "path": "reviews/47_legacy.md",
+          "sha256": "38228a4775c85cb4d72792efc10c93370047976270fa2d62aa2d3108e2c1180f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-02/impl-30/REVIEW.md"
+        },
+        {
+          "path": "reviews/48_legacy.md",
+          "sha256": "f4e6fd1ce5dd61d636094be0a8957a2db6537a7e8b9b5a5652b459c8b1598fda",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-31/REVIEW.md"
+        },
+        {
+          "path": "reviews/49_legacy.md",
+          "sha256": "24a6f02615183636a7d043a961a08e4d10c6af0af64d1a75e05733e1625e732d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-32/REVIEW.md"
+        },
+        {
+          "path": "reviews/50_legacy.md",
+          "sha256": "2178b52e6bdb8bbfd5b36dd3cbdef3d0db1d5a1e7e36a4433219e80f319c0850",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-33/REVIEW.md"
+        },
+        {
+          "path": "reviews/51_legacy.md",
+          "sha256": "1584dd11cc84b5cc83c92768986ea0fb27e4030f879baa6b7910e115f364e269",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-34/REVIEW.md"
+        },
+        {
+          "path": "reviews/52_legacy.md",
+          "sha256": "683863f18f5ad682715e8bb3b57d1386f017c7b48a2e3fb590cdd2d4476425db",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-35/REVIEW.md"
+        },
+        {
+          "path": "reviews/53_legacy.md",
+          "sha256": "b79fb4782705bc7cc8356a41fa4128ee6823a630b8dec85ef10ff6cc2b3eb90f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-36/REVIEW.md"
+        },
+        {
+          "path": "reviews/54_legacy.md",
+          "sha256": "e68fa2f61327079ea840c69475213511d81f3ba5e81d1ebad513729b06c25f21",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-37/REVIEW.md"
+        },
+        {
+          "path": "reviews/55_legacy.md",
+          "sha256": "07815b8555ece3288374cbc7f35daeef9dfdf96820912dc26661c8d04fab1d46",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-38/REVIEW.md"
+        },
+        {
+          "path": "reviews/56_legacy.md",
+          "sha256": "2d9ac05a08c5dede53a5ed4dc861ffbc3c95661d1a176d7d2934b24a7bd9929a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-39/REVIEW.md"
+        },
+        {
+          "path": "reviews/57_legacy.md",
+          "sha256": "d10202b62d4369cb2de878e72b303702add00c2d1883dd4d939ecbb3dbd54856",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-40/REVIEW.md"
+        },
+        {
+          "path": "reviews/58_legacy.md",
+          "sha256": "7a51538338109b32f513534016d3f76d35e92a441d53796bb157d2bd02aea7d7",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-41/REVIEW.md"
+        },
+        {
+          "path": "reviews/59_legacy.md",
+          "sha256": "bfac88e5233061c4f331242d7334546fe76199943f61714888830656eca5a448",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-42/REVIEW.md"
+        },
+        {
+          "path": "reviews/60_legacy.md",
+          "sha256": "112a8a8b6739273c1427e9424fda2232eb7c2870979f7c93eef807494e1cb5fa",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-43/REVIEW.md"
+        },
+        {
+          "path": "reviews/61_legacy.md",
+          "sha256": "8602e6eb5b8251d6e991d01f14d49e47a884ebff1218293da30b89e62b6e6823",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-44/REVIEW.md"
+        },
+        {
+          "path": "reviews/62_legacy.md",
+          "sha256": "247e6dad90fe2e465d108dc2118929208d5608f230b4b7b865b81e67735daa5c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-45/REVIEW.md"
+        },
+        {
+          "path": "reviews/63_legacy.md",
+          "sha256": "519c31df004e95dc52b2ba6a811a17386dc5b0bd1f3bd824ca9af6a97222538f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-46/REVIEW.md"
+        },
+        {
+          "path": "reviews/64_legacy.md",
+          "sha256": "bf58019ee8867c243906d35f0ea109b7b0f3a5a10b60be1318cc660a94c5116a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-47/REVIEW.md"
+        },
+        {
+          "path": "reviews/65_legacy.md",
+          "sha256": "994f44f23bb85cae4e0d0e6a6d527d6917693ffb7c5287e4778da22857e861eb",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-48/REVIEW.md"
+        },
+        {
+          "path": "reviews/66_legacy.md",
+          "sha256": "6e99068131e615a4ae8044fd0dd9f972047084c0cff096e9debde398e075b5e2",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-49/REVIEW.md"
+        },
+        {
+          "path": "reviews/67_legacy.md",
+          "sha256": "97369a3ce7246b9df9d8320c8f3074e9ab0c7ec6e841e156c4dd7363cf63fa65",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-50/REVIEW.md"
+        },
+        {
+          "path": "reviews/68_legacy.md",
+          "sha256": "e797054c8659c1ec361aaa333cf7fe3a73640475f33e945b07cbc5b0131a2569",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-51/REVIEW.md"
+        },
+        {
+          "path": "reviews/69_legacy.md",
+          "sha256": "258445f88bb4a6fb845a65e83e44b5fb02213b089d615cf1b8c1d62c85daf9a0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-52/REVIEW.md"
+        },
+        {
+          "path": "reviews/70_legacy.md",
+          "sha256": "37b564b9d4da31459175bafe80f8d834693e181f5e0980dd945d34fc0b10e8d9",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-53/REVIEW.md"
+        },
+        {
+          "path": "reviews/71_legacy.md",
+          "sha256": "dcca2db255bce869eb58ff3b7fdb1b01b1b38cac94d31e1cd7762ff7dd4a4aed",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-54/REVIEW.md"
+        },
+        {
+          "path": "reviews/72_legacy.md",
+          "sha256": "bbe89d516c2dcaf099eb6ed019959c24e76bceca3d5e425457f18a3b1c0b5fc5",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-55/REVIEW.md"
+        },
+        {
+          "path": "reviews/73_legacy.md",
+          "sha256": "4d8713db8dfde186f7bad2773418e5580da67ba5678bf6976a92a20a7ecd2315",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-56/REVIEW.md"
+        },
+        {
+          "path": "reviews/74_legacy.md",
+          "sha256": "634d78fd5d53d429bbabce6573d69940e5a203bd57b95aa6d92c01faa0fc7cfc",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-57/REVIEW.md"
+        },
+        {
+          "path": "reviews/75_legacy.md",
+          "sha256": "004eb5c5cc086110c0b531c001f9ceb42bf70994e4d1fca56c0b6bc287a149f5",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-58/REVIEW.md"
+        },
+        {
+          "path": "reviews/76_legacy.md",
+          "sha256": "bab992c2460728c33f1c9f5d349aeec3f2b292361c13da7a88b715ffd0c5a7fb",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-59/REVIEW.md"
+        },
+        {
+          "path": "reviews/77_legacy.md",
+          "sha256": "69f9fdf762eaedbb074e5f1d83a888e223b431684830d2f9f1e619e91cd38bd5",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-60/REVIEW.md"
+        },
+        {
+          "path": "reviews/78_legacy.md",
+          "sha256": "73e16f29a0cd6aa018963cdf75b451ac3071d435332d2572751ee63111295661",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-61/REVIEW.md"
+        },
+        {
+          "path": "reviews/79_legacy.md",
+          "sha256": "5994af2885b1eafe114c662515be716c3ac7afd8fe2a6a08f236adc8decb01ff",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-62/REVIEW.md"
+        },
+        {
+          "path": "reviews/80_legacy.md",
+          "sha256": "d73f3c40e963ba8db07309d4121a66f790cd13e4660d0e50e943f40eb0de1f5e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/2026-05-05/impl-63/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/DESIGN.md",
+          "sha256": "c46d67a68f872bef9be2cd0881241f88cc144a85dc1aa7f11d7c8a48f41dfc3b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/01-history-v21-v15-deltas.md",
+          "sha256": "2d0d5c7aa00f777f8d5f330de043c8e77933b7cda95e90d5478edc273bf1ccad",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/01-history-v21-v15-deltas.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/02-history-v14-v10-deltas.md",
+          "sha256": "3e2b94ceda013ad15463b8a0d339329426531211b8fbc77e258fd073ffe1eb60",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/02-history-v14-v10-deltas.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/03-history-v9-v1-deltas.md",
+          "sha256": "cba0dd917254a2782b4dd70acdf45fdaef08de5a1625339d40d88840813afce0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/03-history-v9-v1-deltas.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/04-goals-non-goals.md",
+          "sha256": "4d520932f60de64a57b08a0dd57cb1a18bacd30a5d1dc951317dd48089242529",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/04-goals-non-goals.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/05-bridge-state-inventory.md",
+          "sha256": "d69737d2cf0d87808371472dfaffa8562eeb596b1792a6f5a92e2820444c00e0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/05-bridge-state-inventory.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/06-architecture.md",
+          "sha256": "1240a297d130dde804419b1c0d4084b36be0de8bc4a9a03c3459735207e5b365",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/06-architecture.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/07a-api-bridge-state-migration.md",
+          "sha256": "505b5b603377b8e70de474b3b5833745bdb562f33bddda4b40b23bb58308a9dc",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/07a-api-bridge-state-migration.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/07b-api-replay-controller.md",
+          "sha256": "f936a30e0435a86296a2fa9c2ff44f3d8a8a02757a95d355d3ec2dfc5c448723",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/07b-api-replay-controller.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/07c-api-load-flow-and-annotation.md",
+          "sha256": "383d4104eab85ec0e3ca5703ca15b7c0bfa9c772ad14f1672a20f0147d574f77",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/07c-api-load-flow-and-annotation.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/08-commandify.md",
+          "sha256": "2bf1a266079390267a27f30d2fdec65453dcaeb5f0fb93db167dea901df09335",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/08-commandify.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/09-adrs.md",
+          "sha256": "5a7f845a5a31e0542795077e66ef9bceb70d8d9de51a5fb79eadc249dc07742d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/09-adrs.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/10-invariants-and-testing.md",
+          "sha256": "dc76514b9c572d9b3d5309f47d4191324189e12ee7e9c741fd983542fc37e891",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/10-invariants-and-testing.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/11-perf-versioning-questions.md",
+          "sha256": "f14f4f78e8ae6d8d24eb472ae0633380eb0476ed272b130e4aa8c415534f453c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/11-perf-versioning-questions.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/design/12-implementation-phases.md",
+          "sha256": "327943e2fd6c0757c03cbfaa99f5129baf2c961ed2981c3b7a6faccb8d5e0ab8",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/design/12-implementation-phases.md"
+        },
+        {
+          "path": "historical/threads/done/replay-scrubber/PLAN.md",
+          "sha256": "dc837c0e10742388e66e96a0e34d36be43fe71b915290df6be04a8db25271fef",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-scrubber/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "theme": "ai-monk-intention-split",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "ec1fe2707d07715bb85942f5743f6cf0551bc8d3ad73471e1cc0312609f3cd57",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ai-monk-intention-split/2026-05-04/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "28c09c34022e4fe9a2cca5f9880621b479ffae2c633d29120e0807e1d6d7c33c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ai-monk-intention-split/2026-05-04/2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "976a47487cdbec59211c2779c54e11220245644bc6d1f218bd84652cec4f9904",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ai-monk-intention-split/2026-05-04/3/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/ai-monk-intention-split/DESIGN.md",
+          "sha256": "13f2f4306176d3af8d48f33bf508283e33d31e6ec12e4d5a522be228329dcb04",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ai-monk-intention-split/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/ai-monk-intention-split/PLAN.md",
+          "sha256": "cb152afbdc24eec1dbd26fbae5d0f43aea056d6e6031b18fa07ebda6153ad0cf",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ai-monk-intention-split/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "theme": "monk-tasks-accessor-migration",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "ff7d283133886a6207e38dee800d935dede72bf393710ae6d74ecdc3536fa8c8",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/monk-tasks-accessor-migration/2026-05-04/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "51fb2e89e9598824f0f27c462943def9c49116e084787f3fb6f95de93f98b172",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/monk-tasks-accessor-migration/2026-05-04/2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "907fd4911413298d7886b30d571c71d121c0cedc90e3b35ababd9ce1c7297ad0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/monk-tasks-accessor-migration/2026-05-04/3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "bb1d8ddd4b5619fd344a25794a20564619c2678b5426b37ec27ae61dcc83dd9f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/monk-tasks-accessor-migration/2026-05-04/4/REVIEW.md"
+        },
+        {
+          "path": "reviews/4_legacy.md",
+          "sha256": "2887d98bb4ea82da0568cd6ea22488646005b48598ee76408809ac2695816815",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/monk-tasks-accessor-migration/2026-05-04/5/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/monk-tasks-accessor-migration/DESIGN.md",
+          "sha256": "4cece3d3618858947bbedc2c9d9aada937d3fb39fa746f04f46574524552be35",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/monk-tasks-accessor-migration/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/monk-tasks-accessor-migration/PLAN.md",
+          "sha256": "56909218c769d63312dca62d63a6c64606e92a06edf3cbc4586af4674a3538c1",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/monk-tasks-accessor-migration/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "theme": "unit-command-file-size-split",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "7a80ef55befa39f22f6f2f15d6b8247fd9d6f7f8932672bbd6c23f44ce0f8fe2",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-command-file-size-split/2026-05-04/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "bdfd854e793f2538cb8bed4e25c6918392341bd6ebdb60dc0a6d59626cd4541e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-command-file-size-split/2026-05-04/2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "8a8d74afdddeb7dc3bb7897a47cc76c6a04305c8df89f4b44d7b98cd752f8975",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-command-file-size-split/2026-05-04/3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "258f5e55fcbdf5113967857b633b414672c22b3e7c4bcb37f5c1e04d5c5b65d6",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-command-file-size-split/2026-05-04/4/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/unit-command-file-size-split/DESIGN.md",
+          "sha256": "e3f20187a4e02b2a699f888923fc1028ee827275256dcf8ed6a76c0d3e50e105",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-command-file-size-split/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/unit-command-file-size-split/PLAN.md",
+          "sha256": "d216cdc57fffb8422d909a7f0e9b0591b08dfb22f34bef26188cb94ec219522d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-command-file-size-split/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "theme": "unit-commands-accessor-migration",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "a20a101b20b1950090d2b19ee2740ed6ccf48557ee1e955dbd640fd494714324",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-commands-accessor-migration/2026-05-04/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/unit-commands-accessor-migration/DESIGN.md",
+          "sha256": "87e38cc3c5d738eb82bfd9ca225e35933d4ac8e99d1029d6566884ac8a7afd55",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-commands-accessor-migration/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/unit-commands-accessor-migration/PLAN.md",
+          "sha256": "bea754a061f9228df2bce9fffdd22b2c720cab1b6dcba6bbe3802a9ae1bff560",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-commands-accessor-migration/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "theme": "vitest-timeout-headroom",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "73e260e25e1fd41ac007fc6d34e73aafeaf61511d0b4ebc1f5514914126070c6",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/vitest-timeout-headroom/2026-05-04/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "ed301828830d7e475a5cfddc28b2b32a5e92d3bd5d084b17b89f332f00d9d932",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/vitest-timeout-headroom/2026-05-04/2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "cdfc1872b4db5addbceed569a93f8e15e3350d02935e5598f4394d0c3e5b5043",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/vitest-timeout-headroom/2026-05-04/3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "5fe9ee86348ecad9618f9b19c657f32e6a88828daf589d7065a89cecd00d4d47",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/vitest-timeout-headroom/2026-05-04/4/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/vitest-timeout-headroom/DESIGN.md",
+          "sha256": "5f12902389b14344e4ef9a15517743ab95da75fe8624f8a265da4b18653c86a4",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/vitest-timeout-headroom/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/vitest-timeout-headroom/PLAN.md",
+          "sha256": "94bb14108685ced222d6772136f3add0dc376a47a45efe8ae50ca314a481129f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/vitest-timeout-headroom/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "theme": "schema-2-save-format",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "890b87636019df431bf227694449a31d0bfc0425df5c6a6f1d180d46e61b2962",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/schema-2-save-format/2026-05-05/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "e6a0fca1bd3742013457d84aa235880046be2f5fb07fc7f5b722914ef123782d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/schema-2-save-format/2026-05-05/2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "3c8bef330377d543ec8aa156210f8549958178701876ad0a41b5a5ca51e73be5",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/schema-2-save-format/2026-05-05/3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "668296d5f65ac3f029d35679a191432d1a27ceaaad46f7026e2d4b27a36e9d0a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/schema-2-save-format/2026-05-05/4/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/schema-2-save-format/DESIGN.md",
+          "sha256": "49a3b0ad6e4f114fa947c7f52100e0ca9c4b4aae38f1aca1a402c88d9478d412",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/schema-2-save-format/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/schema-2-save-format/PLAN.md",
+          "sha256": "f25b9777d853ef473d2ff888ba55be9e162f5bb26e88a09f6e18fe0f77192a1e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/schema-2-save-format/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "theme": "replay-load-and-e2e",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "3509ddc5a0ab75866590dc9f9a0dfaaca2fef72f4847c39ab017ed7b8d00f27e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/iter-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "a2fb246499612a1ef94281af7aab6fbf77ff08bf30babbe0aee547b6b022a35b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/iter-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "745d5ad88979a73306a400c27c6c889f60619b071d0ef7f68cce0d9ac672d192",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/iter-3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "bb3920e74555468b1b85f0b5beca723bd0cf4412b7279c09ef2a8a1d77b7655c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/slice-2-iter-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/4_legacy.md",
+          "sha256": "8e6a391e00e3edfdf83e6eb2c2af856598c29717e88331e026ef2eab61070ddd",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/slice-2-iter-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/5_legacy.md",
+          "sha256": "f4a6b72f79193f7dfedfa6c44dc729d635794163a75bb20324416c5f0cc575ce",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/slice-3-iter-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/6_legacy.md",
+          "sha256": "745b373657979b39f75e61c48fb8fb42b84d3ba473642358677dfac74da7b781",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/slice-3-iter-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/7_legacy.md",
+          "sha256": "adadec0a1efbac8691f7e803db1eae699ec8355e197396ecbefe7b06bcf90300",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/slice-3-iter-3/REVIEW.md"
+        },
+        {
+          "path": "reviews/8_legacy.md",
+          "sha256": "5f6cea8082fa112721dea33bf2b75440769efa41510886c14fc8e20b1551667f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/slice-4-iter-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/9_legacy.md",
+          "sha256": "548633042755186cc350e01995b9ac7b8a5566b7fd50845a5704346c672f6622",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/slice-4-iter-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/10_legacy.md",
+          "sha256": "741acd4a171e86f5a9c7fca81a8ed88f99cf929548ab7b0d10574e24ca0e39f7",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/slice-4-iter-3/REVIEW.md"
+        },
+        {
+          "path": "reviews/11_legacy.md",
+          "sha256": "793bce2b97625a280db5e27e3e5e591330f8637380219ff119a320f5fb3f2eac",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/slice-5-iter-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/12_legacy.md",
+          "sha256": "9122160558704ddbc543140060f58a0c7b003f5a8b11dd8e0a3a66f20ed04f39",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-06/slice-5-iter-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/13_legacy.md",
+          "sha256": "e3eb3bbcb6821a39927fc7ece6b48ac85e6c47b45f33bd5875871c37d0e52b7f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-07/slice-6-iter-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/14_legacy.md",
+          "sha256": "44353728aad7d4f719f9047f6e3d06c594bafe75c79f53ee13de8ba1f8ad24a6",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-07/slice-6-iter-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/15_legacy.md",
+          "sha256": "09ecfd92a4071bf3b1eebe8f1b8113460f0b11c4c62da96a8812c0c3dd3cfd0c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/2026-05-07/slice-6-iter-3/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/replay-load-and-e2e/DESIGN.md",
+          "sha256": "ca2c2ec0b9670a5626f571aa4c1f2a004bea466831a2b16553e6a253e1805d5b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/replay-load-and-e2e/design/01-overview-and-goals.md",
+          "sha256": "1357a4546456e2a7efa7ed976018bf662c236fb76b500b6e67df04f5bb3b114d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/design/01-overview-and-goals.md"
+        },
+        {
+          "path": "historical/threads/done/replay-load-and-e2e/design/02-annotation-affordances.md",
+          "sha256": "573054d90faa743b088cbbd91e56e63a6cf2c6f756257fbb1e77ba7d8fffa7dc",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/design/02-annotation-affordances.md"
+        },
+        {
+          "path": "historical/threads/done/replay-load-and-e2e/design/03-load-source-current-session.md",
+          "sha256": "bc84a9cec4036d46a4ed7472f74d86db69a845e7b0a8285ab6b8284a3cd93bd0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/design/03-load-source-current-session.md"
+        },
+        {
+          "path": "historical/threads/done/replay-load-and-e2e/design/04-load-source-prior-sessions.md",
+          "sha256": "9c5376e99501f4a6299a1ddafa94fac3a13a9e1875be94e05db49437a3eede9b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/design/04-load-source-prior-sessions.md"
+        },
+        {
+          "path": "historical/threads/done/replay-load-and-e2e/design/05-load-source-file-import.md",
+          "sha256": "9d1947b289577f41602e4123bcff1ea2218f9da1eac8a0fe0e71503c913e72ab",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/design/05-load-source-file-import.md"
+        },
+        {
+          "path": "historical/threads/done/replay-load-and-e2e/design/06-replay-load-dialog-modal.md",
+          "sha256": "19d32dd0c959c5db3162718abe2f1fcd44eca71b8fbcd1aaa7477586138e23da",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/design/06-replay-load-dialog-modal.md"
+        },
+        {
+          "path": "historical/threads/done/replay-load-and-e2e/design/07-browser-e2e-and-integration.md",
+          "sha256": "6ede90eae84cdf0d843f9a5a349f31cb32e3cbdb255565ce862225d90751003e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/design/07-browser-e2e-and-integration.md"
+        },
+        {
+          "path": "historical/threads/done/replay-load-and-e2e/design/08-versioning.md",
+          "sha256": "b9fd069619928bc7bc548668f20b3a4642a317aa47b41d42c7e8cb0871c02c0d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/design/08-versioning.md"
+        },
+        {
+          "path": "historical/threads/done/replay-load-and-e2e/PLAN.md",
+          "sha256": "689d91f36678b7a2fcd3bd97e2b88a02ec66cdfa99ebc46e839a4631fff59927",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-load-and-e2e/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "theme": "multi-villager-construction",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "d70f1c63cfee4588498dfce16391339f3c466a787c5f6c4f41e2e53306702a42",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/multi-villager-construction/2026-05-07/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "1a1c2768fc7ec295b205bb64c5eb1809cbe365792c98fea63120ee7e86bb41e8",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/multi-villager-construction/2026-05-07/2/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "theme": "replay-deferred-followups",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "0463a330ae8edde7db669f30cbb066770ae7d01b1d9a2e2bc5c902d8e0891377",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-deferred-followups/2026-05-07/cancel-race-iter-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "3c94e402ae97df41287b8420b166346018010153bf5e53e8b3d4f91c88adc422",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-deferred-followups/2026-05-07/cancel-race-iter-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "abee6922e3a591a75ced45b6a6e9a572f1dd59c8bb891311c031bc6acd2b58e8",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-deferred-followups/2026-05-07/cancel-race-iter-3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "4d9950236acf8a17038d9b13e5dab73a6f646f3fcc1a2fa5c242242cb2856d63",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-deferred-followups/2026-05-07/escapehtml-iter-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/4_legacy.md",
+          "sha256": "4310ec56ec0cef7ecf6980b94ecb5c9b34136dbcbf6e0c08abf30be59c9a7e6c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-deferred-followups/2026-05-07/prior-session-e2e-iter-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/5_legacy.md",
+          "sha256": "07c11786d19cfcc64b6fce6c1c5cfe28c67706d644608a9b16310e491663eed1",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-deferred-followups/2026-05-07/prior-session-e2e-iter-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/6_legacy.md",
+          "sha256": "284791731216931664b16dece651c24bfdf32116c84ee7147694c401b4a640bc",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-deferred-followups/2026-05-07/scrub-e2e-iter-1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "theme": "llm-agent-playtest",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "dc8904cd4cf0f2d870746b132639a3afec374d482c641f0497981fc18f66cdd0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-playtest/2026-05-08/design-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "70aa8a9b4f19caa8dad71fb5e97075a7c365b65b8faca46fd3549e8af49e19be",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-playtest/2026-05-08/design-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "97297e8a95489adbea656a390d116b8d603463c8d6e39ff2dadbdebe750f3312",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-playtest/2026-05-08/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "1000dbd4cd5026535babca25f046ffcd2785f25b15ccc2685f0eb101263ad599",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-playtest/2026-05-08/impl-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/4_legacy.md",
+          "sha256": "bc8a63eee73a84ec58eb865f46c60e35e909970fdc393bbb820e93cd59d15196",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-playtest/2026-05-09/impl-345/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/llm-agent-playtest/DESIGN.md",
+          "sha256": "5d87c4eb33d8b8bfee336474e9c63fa04bb8db0abf4fedff496a9f081d864526",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-playtest/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/llm-agent-playtest/PLAN.md",
+          "sha256": "f1bfe2c947d070938e34df17592f3a9de257f00723a2d35e6204fe91a29057ed",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-playtest/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "theme": "playtest-loop",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "f524227838add18fbea1dd0dab404a4d77bcacb3329f1f0a390e6b6b0497b1de",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-loop/2026-05-08/design-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "445034063462eea36afcff74e7eff2c9676878779034414ec07a2f4086a23e44",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-loop/2026-05-08/design-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "8707393ebce07e5d295df4786e4e992eb0a73ad05e6adcc4c1f293c542095300",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-loop/2026-05-08/design-3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "c069d41f9affc44b21ba0016bc0630a35724878f6dfb0bd9ad6148e5fbf2a103",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-loop/2026-05-08/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/4_legacy.md",
+          "sha256": "7285cbaf371696f26b2043d830c999761b1a8d878dca043a17d9b763f0375fe5",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-loop/2026-05-08/impl-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/5_legacy.md",
+          "sha256": "2e4c1d4edbf81c27ce790adf9e0eefbe48ac1423dcc1babc387092570e2065b3",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-loop/2026-05-08/impl-3/REVIEW.md"
+        },
+        {
+          "path": "reviews/6_legacy.md",
+          "sha256": "071d2f4d3b88aa976ca8201c0ffe3003df00a06fe1282139ae77ddf1027c756e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-loop/2026-05-08/plan-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/7_legacy.md",
+          "sha256": "00494d8c6245396e6bd04a69c3f11be3292676e1946e5e6f928898f2963ca4c1",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-loop/2026-05-08/plan-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/8_legacy.md",
+          "sha256": "da6561ade3b1c2f8550e510bc4d84c0235dc4ba679346e731d45ddd77cf1c084",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-loop/2026-05-08/plan-3/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/playtest-loop/DESIGN.md",
+          "sha256": "ab75256a870643f547017500af05514ec3f1685ff133e6dc6952dc410786afdb",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-loop/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/playtest-loop/PLAN.md",
+          "sha256": "1e4e6a1e10c55650f3f7fcb547536d1f3878190e0cfc4d86d9c5b12bf944a4a5",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-loop/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "theme": "llm-agent-claude-code-provider",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "d0ffb9fee2fca5a68173e4ec68ce19a5ad2627231b3aba9243400d5519669179",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-claude-code-provider/2026-05-09/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "097253993a78694d93e07d19f0124fb7512542e55752b9241eef53387305530d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-claude-code-provider/2026-05-09/impl-2/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "theme": "llm-agent-phase-6a",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "455b49c5e51f4fce44eff2acfdc7bd4fd016f8e26d1bf569861dc53637f45330",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6a/2026-05-09/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "2cb21972d164d74655d55cca89a16d099b6dad35dc490d18c4172d48308af433",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6a/2026-05-09/impl-2/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "theme": "llm-agent-phase-6b",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "1fa6fd16f70fce6174b959d39acd63064cc3cc622d300b14c98ca7940f85270f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6b/2026-05-09/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "72e44aef4ebe4f60d5d6a2ad9102f0232eb584cb6e246983e5a58efe42227018",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6b/2026-05-09/impl-2/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "theme": "llm-agent-phase-6c1",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "d5b0e0ad3a7219beab424e357b92ee328c790b4254bb3e5d0d1c3568a9112b91",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6c1/2026-05-09/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "6f50937d224f3477dabf882f5e7d83eec4850c5b2a47fc548f96e0830cdc8174",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6c1/2026-05-09/impl-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "f75ddcda674d0ed4588bad89d926a8652bdeb0a952fd2c73de7aec45e321984a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6c1/2026-05-09/impl-3/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "theme": "llm-agent-phase-6c2",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "c98a304b278de0c2d4c819f572d4fe100e1338c0849c7a3898539217b26d9864",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6c2/2026-05-09/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "1378e6aa920f4da9dfe21d57b55f641bd3b7ab1644e8de1d120cef6c599476e4",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6c2/2026-05-09/impl-2/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "theme": "llm-agent-phase-6d",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "92e9bff796fe5af71e4a2a5333a216f0e5423dada0a898f75b3d17180f1c583e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6d/2026-05-09/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "ab5ed0a59741016c5cf4dc63bb3198f7eb44c956f231aa4916b0011a7137e400",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6d/2026-05-09/impl-2/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "theme": "llm-agent-phase-6e",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "4ea09e7ac215297a763d14f7ab16c8dfe6b8b98f813d62bc970d6f448a1d75f9",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6e/2026-05-09/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "aa06871777b8ff5f5a7b622485546a09503c4ef0f2d72c10c444755b07019a76",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6e/2026-05-09/impl-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "fa9f2cb3226111d70667e5d27f595b4e51cd770b513f41d0f7d905a90239ad51",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/llm-agent-phase-6e/2026-05-09/impl-3/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "theme": "thread-housekeeping",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "d4984dfd4694b2ffe9cc1c0e7f7eb3f6c3d90b3f992fcf39824f8cbc435547f2",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/thread-housekeeping/2026-06-09/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "theme": "oracle-grounding",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "89818998fdf6df072d6a09cfc595de4f97e3ea73846d41da8d95dae51a3eb765",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/oracle-grounding/2026-06-10/impl-1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "theme": "playtest-fixes",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "fea2c52f7ac394961509769f40c8fd4e354e0d207c00797f513df1c3ae4a838f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-fixes/2026-06-10/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "d22cdff2edf23ffe4af4a926e423465369b74076f39375ace05a9f7f8d27ccbd",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-fixes/2026-06-10/impl-2/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/playtest-fixes/PLAN.md",
+          "sha256": "5fe532f3d9acbd6c1de2e60f6e5beacc76534416cfaaa7db50ef5b6d72b55506",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/playtest-fixes/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "theme": "agent-affordances",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "fedff65fb99f8ae79434082f900412b67076c675861cf2aca5bd18159c918f98",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/agent-affordances/2026-06-11/impl-1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/agent-affordances/DESIGN.md",
+          "sha256": "2649ba8803ecbcbc00ea2497f0ef5faa304c7f214719efe982f49784ff05e1bd",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/agent-affordances/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/agent-affordances/PLAN.md",
+          "sha256": "3ae4a9609377157be8a071150b92b8b447f6814573b8c197a1a1c11de4643c53",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/agent-affordances/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "theme": "remove-visual-baselines",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "69e3cf199ce53bbca8f4fa3fdd3efd08a9e13ac1af051e8914277e49e4dc74fc",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/remove-visual-baselines/2026-06-11/impl-1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "theme": "replay-fog-owner",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "29bbddd7fa1382d1c144c14564dd33aba9d6c048152879e8ee75c66713497296",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-fog-owner/2026-06-12/impl-1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/replay-fog-owner/DESIGN.md",
+          "sha256": "4250356b6dc4fb0e27185ccf2c4d01a0405eed3c9bdf920b7b389468950269ba",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-fog-owner/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/replay-fog-owner/PLAN.md",
+          "sha256": "db7f6ac50a5e95ec63ee84f0ab71a86a153b47877d52f559208a15c1d4eeb517",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/replay-fog-owner/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "theme": "review-model-opus-1m",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "43f88df40149f69e0f7858f763f7cb092c06943cfbfa8967c778fba1eac5bff5",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/review-model-opus-1m/2026-06-12/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "7dc668a693b525d647bdf7a306000d97f6a921fcc921a249a5e5358873b481bc",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/review-model-opus-1m/2026-06-12/2/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "theme": "conformance-capture",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "6e21bb89fca8e1a305b80c7e9174c3733fecefe3c224d6432c6e31db91780f03",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/conformance-capture/2026-06-13/impl-1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "bfec6879d1a21596a18eff6fba6d2699c8b1fa7551d2b14c18863470c688e66e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/conformance-capture/2026-06-13/impl-2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "f0d6b78835167d1a5239ae2b362d9cd118826745b6a8c74c8904684abe436da0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/conformance-capture/2026-06-13/impl-3/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/conformance-capture/DESIGN.md",
+          "sha256": "2eaeb027a3e01970941664cf44dd54235f4fe77eac442aff64c18eed7547705b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/conformance-capture/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/conformance-capture/PLAN.md",
+          "sha256": "d49500e2fec1547d8b444973300a66981a5db18a013cf0e1744352461b3433fb",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/conformance-capture/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "theme": "gather-stall",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "7cea19ebe47df4f32cbf9cce6c39f1f8bf65160cbc65fb1c40a8cec642191409",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/gather-stall/2026-06-13/impl-1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/gather-stall/DESIGN.md",
+          "sha256": "7d303152474331d7b3bd72b07b65d1e64add7ed4e79576352f5128ff69fd9aef",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/gather-stall/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/gather-stall/PLAN.md",
+          "sha256": "e11738332eb0a95bdf8fdb759a81bcc09da92c9de1b0dab2fa5b527ba73b1aac",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/gather-stall/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "theme": "population-model",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "7e090fb8054ec896893a385838bd6f27ac2bae1e2ac4e44d1c3b0b1d671f2847",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/population-model/2026-06-13/impl-1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/population-model/DESIGN.md",
+          "sha256": "3b30451daf2013aa51a00c628bad49998a6ef35afcc1dc2c96a34479dece1a20",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/population-model/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/population-model/PLAN.md",
+          "sha256": "2038058f37e75c87d67b3914fdfd5122f9638306d734cbd96834cde38e2dfced",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/population-model/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "theme": "provider-error-retry",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "5982c616bf03fe48cbdba0f042a90268744c032f19277933f8d116a703eeab63",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/provider-error-retry/2026-06-13/impl-2/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/provider-error-retry/DESIGN.md",
+          "sha256": "5ebeaee284670d9f814e645339a22ee05102a61876291ea613892ca0b6fc1586",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/provider-error-retry/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/provider-error-retry/PLAN.md",
+          "sha256": "115b44ecae203487af8d504ad7ec73d4e5c886bc6c9c89be87c7063c74f69d5a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/provider-error-retry/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "theme": "dark-age-palisade",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "b12339aeb68a175c6a03a82d197cf13676e6094c8fd31611945d0baf744da274",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/dark-age-palisade/2026-06-14/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "theme": "economy-carry-techs",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "991acaaa69837cc9cd9b72f9fcae3c616e93f00029a1036a3cee50edb43c0dc2",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/economy-carry-techs/2026-06-14/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/economy-carry-techs/PLAN.md",
+          "sha256": "3ff549274ec0c5c90415e3147e7e54c7d8014eec598fe3a9744f06aa4e749db4",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/economy-carry-techs/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "theme": "economy-gather-techs",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "ec7ba5d1a5c6ac2bf2fa0ad167eb451094734c3f2ec4aa68a10cba41f74a9bce",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/economy-gather-techs/2026-06-14/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "f35d4c3b3a4941698741dc277d917a39570e7c3550206db25b1b125c8d39252a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/economy-gather-techs/2026-06-14/2/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/economy-gather-techs/PLAN.md",
+          "sha256": "a34092a2775c6871d98209f538f42e56737f5ed0a3229b380b746d85d6043d63",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/economy-gather-techs/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "theme": "gather-idle-spread",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "bc315dbda31e2843eb84eef2f70c7583b5dd1d683b19b397489800da2fcb8a36",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/gather-idle-spread/2026-06-14/impl-1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/gather-idle-spread/DESIGN.md",
+          "sha256": "b1ecf321b876dc20c9db4326785e5a8f18fb8c752eda49e70ab7522f95fa5951",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/gather-idle-spread/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/gather-idle-spread/PLAN.md",
+          "sha256": "ba4963da344ed2041056fcd46f192715a9f90177f205508896bd40b44a055e77",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/gather-idle-spread/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "theme": "tc-base-fire",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "199cff0532de0eb868dc42fdce791ea2fb774d8f208a5f902059dd90552778a2",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/tc-base-fire/2026-06-14/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "cc786f3f5b3c1702477f981dd7cc24173e01f8dc6b21ecd904c1ccaf8030fa70",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/tc-base-fire/2026-06-14/2/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "theme": "typed-recording-seam",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "184a33458f43785c4951a052e2cdddc3d5529a6b2886325082eea2fd37eacaf7",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/typed-recording-seam/2026-06-14/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/typed-recording-seam/PLAN.md",
+          "sha256": "a30cf3e25a1cc7b281e4295e25bc434ac9b0339b1fc8f6e8bcc5417d59bd409a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/typed-recording-seam/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "theme": "ai-findings-annotation-bridge",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "6451448c75424799ac88b593ce2dd5e30301760563e6b42ff8c9830d93e15ccd",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ai-findings-annotation-bridge/2026-06-15/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/ai-findings-annotation-bridge/DESIGN.md",
+          "sha256": "6be7c1ebd07a5b2cf8b5fff2d267d6d1006d54897ba02cd3c9e239ace6764f20",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ai-findings-annotation-bridge/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "theme": "combat-base-melee-armor",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "2ea48b4fe5e14c768432a9bd7d99848d9f4bce0bcbb850deba3c71026b591780",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/combat-base-melee-armor/2026-06-15/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "theme": "data-driven-combat",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "d6502a06d524867d47744d30c7c1e3d647fc3d1817382f93e1ebdf5d056629b0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/data-driven-combat/2026-06-15/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/data-driven-combat/PLAN.md",
+          "sha256": "d58d4052ca496ee96b3b6c88b143b7c75954dd86545b25b25d271a3bc26ddb61",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/data-driven-combat/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "theme": "data-driven-combat-2b",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "782cc14f02fb458c058a28f820a8d642980eb3ff65cb87890debc2f202387d18",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/data-driven-combat-2b/2026-06-15/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "70787c4b7c6c7634ab355f73fa5215d75ca865c101e5a6c1c987b7198dc712db",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/data-driven-combat-2b/2026-06-30/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/data-driven-combat-2b/PLAN.md",
+          "sha256": "b06214674521dd9e6cd4dba1336543772e1fcb695ad283a76670199a851ce156",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/data-driven-combat-2b/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "theme": "farm-reseed-m1-slice2",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "3a8057a91c89c616944447e6b95c7590728e60bc5c018070954693c1821a9f97",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/farm-reseed-m1-slice2/2026-06-15/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/farm-reseed-m1-slice2/DESIGN.md",
+          "sha256": "469068ae34cd66602017ddc168e92630dd9b4d15b65964f51a823b19cefd165c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/farm-reseed-m1-slice2/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "theme": "farms-m1-slice1",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "007e461046a72b49b4026e1327a21a1273df032cc5b76bb7e79c569160d6095c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/farms-m1-slice1/2026-06-15/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "758c6fff06cd168e7c1be0453b6c4ae2eecc0b4b33887c292c72f6e010747c71",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/farms-m1-slice1/2026-06-15/2/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/farms-m1-slice1/DESIGN.md",
+          "sha256": "ed7db32ae35c8c4fafca693d31591a271898a6dfe0d26e578372cea7814a500d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/farms-m1-slice1/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "theme": "m7-terrain-texture",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "e67961dfc6a5f60da108626262eb525ae05dda55fd6804b04aae5f661c3c4bf7",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/m7-terrain-texture/2026-06-15/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "theme": "rally-point-gather",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "802613da6c7543e53c36f8ad530133c190d6ee3ee1a409a95a54fe7f25db6b26",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/rally-point-gather/2026-06-15/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/rally-point-gather/PLAN.md",
+          "sha256": "3488d7a4273cd29428273429048ceaa9de931b7a7b44a577085d3db2e6a4f8f0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/rally-point-gather/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "theme": "building-visuals-slice1",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "637366ee1be86b7fdad459bac1a51c6d202fa69852ea4785f208f2ba58559216",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/building-visuals-slice1/2026-06-16/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/building-visuals-slice1/DESIGN.md",
+          "sha256": "31497fcab39ea11aec97ebacdc1a089e92ab1fcce3509610f4b97095589f234f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/building-visuals-slice1/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/building-visuals-slice1/PLAN.md",
+          "sha256": "7a174a736389b5830ff46615c044ae72a49a3312d39745e46f27809b0a657b52",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/building-visuals-slice1/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "theme": "combat-gather-feedback",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "8c80e98e5b3514816ad3a5b07625a84affba4c65086d37874d2a72bdf0dba72d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/combat-gather-feedback/2026-06-16/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/combat-gather-feedback/DESIGN.md",
+          "sha256": "b5292efa4d8e599b134e3f1521ceff4191198247322acef58a9dec8d3c1f1d3b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/combat-gather-feedback/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/combat-gather-feedback/PLAN.md",
+          "sha256": "e1866a47070a119c20f5c1157a96f24ac3259bb797122a7ce9e59c037794ac23",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/combat-gather-feedback/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "theme": "farm-upgrade-techs",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "50f0b7bfe2a1621104f4debc8382145e3555ed4d894278d5de3ac3d8302d3f7f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/farm-upgrade-techs/2026-06-16/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/farm-upgrade-techs/DESIGN.md",
+          "sha256": "4d2b3e9692bc1421adcabb7a3654ebdcddb1678adfba97fca25e0ac99657bffd",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/farm-upgrade-techs/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/farm-upgrade-techs/PLAN.md",
+          "sha256": "29d7d5cbdeb74d5a15db83f50d0a933a8473df4a65e1e6343fa90e12b1a474eb",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/farm-upgrade-techs/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "theme": "gather-unreachable-reroute",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "fcf8477965ede36ea61baf591bdefefd9c5547c29f08a2491a4bec4bcec1801a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/gather-unreachable-reroute/2026-06-16/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/gather-unreachable-reroute/DESIGN.md",
+          "sha256": "1cc5cdead233b86accda4bc14e6c72fb36bdaa9c9e2c3b2b71de16f1df36c132",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/gather-unreachable-reroute/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/gather-unreachable-reroute/PLAN.md",
+          "sha256": "8f03d7eaf0cbbae9c2fe18eb4e0a602cbd84fedeea4467ba253253a0168eda3a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/gather-unreachable-reroute/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "theme": "hud-chrome",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "7467b0584be9133dc1fb4464ea1811c0b815ff58bcefcb0a7424d668e520a54e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/hud-chrome/2026-06-16/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "theme": "loom-tech",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "e3f146d08ffd7449d0aacef50276c403f15472379b3b04c26b5497f5c067b782",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/loom-tech/2026-06-16/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/loom-tech/DESIGN.md",
+          "sha256": "63f0572294d090ddf8c94e94f8eb80b0696d8d489eab9c71d1c1831b1e20ed02",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/loom-tech/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "theme": "pop-cap-200",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "cbb94b6e00d17e061f626d51c3c39b6f2a47ea5d20f7ecbd5051801d610d3d09",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/pop-cap-200/2026-06-16/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/pop-cap-200/DESIGN.md",
+          "sha256": "99fa0a1c63cb9ed3a9bbd4881b0c304e04eb0ec8fe64d9fb939f162b7c6aecbe",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/pop-cap-200/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "theme": "terrain-blending",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "ee8baf105c0b17d3b80fbc78178cfef583966b270fce5fd855068e7bc3d121f8",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/terrain-blending/2026-06-16/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/terrain-blending/DESIGN.md",
+          "sha256": "27107d40e8219dcdc3791f802eab422077198a290bb5466749ac388ef4756450",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/terrain-blending/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/terrain-blending/PLAN.md",
+          "sha256": "a3fc2506b1cdbcfb8321276e8efa96d23cdbb7dca66eabfb33677591c5406833",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/terrain-blending/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "theme": "ui-icons",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "3f6ca213c8f959d09f190f5526a9c2c68b7d62c53feb0c87b8f00ce7006455ff",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ui-icons/2026-06-16/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "theme": "ui-icons-slice2",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "7cbad4bdb59891b5a9ad7bfcc3bb254a227717beb7c80e0e92080027f1e89bd7",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ui-icons-slice2/2026-06-16/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/ui-icons-slice2/DESIGN.md",
+          "sha256": "957d780e3c326ab4619615f6e8ea5c2ed394f3f02a54aa59b2008931f46eff90",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ui-icons-slice2/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/ui-icons-slice2/PLAN.md",
+          "sha256": "b145d3123d4f90cb5db380d0c92a99773913e9d9e0d531a5685271fc09a1bc73",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ui-icons-slice2/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "theme": "units-beyond-circles",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "4ba1990f30560bdbdfd26b25f9e8706954a0020e5fafbe5d69866ddec14131cd",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/units-beyond-circles/2026-06-16/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/units-beyond-circles/DESIGN.md",
+          "sha256": "147f7b2991d9dff71d317653ae6910b856f4983c69c7970213fc273b80792fe7",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/units-beyond-circles/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/units-beyond-circles/PLAN.md",
+          "sha256": "dab2e742b5530ba8ea141ffb303c6f2736fd6ea691205b21628f3f792254a8da",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/units-beyond-circles/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "theme": "ai-age-up-priority",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "c7af8db47958fc482f26dada583226eb51108d11007c4eee6de5284690450933",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ai-age-up-priority/2026-06-17/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/ai-age-up-priority/DESIGN.md",
+          "sha256": "6c021a8f1cb4a62818436503f96efabbcf38386037e80cd1e5fced2e4f3558da",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ai-age-up-priority/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/ai-age-up-priority/PLAN.md",
+          "sha256": "4669c85442e4c8e80735ba64adfa63ccf3e49c56a6f5629b865fef24923c620b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ai-age-up-priority/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "theme": "feudal-prereq-buildings",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "fc4bbd809c723ef7dd47658f682f4e3aa5b13ef05e6560fc69d1f0c3f4d0f37a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/feudal-prereq-buildings/2026-06-17/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/feudal-prereq-buildings/DESIGN.md",
+          "sha256": "3b4071cd0bb2fee4b4cfd02c2fda8bfb46f84fd5224ff96b051583e33189a38b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/feudal-prereq-buildings/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/feudal-prereq-buildings/PLAN.md",
+          "sha256": "c37afba1cb4844d481cb030136553d80d08cc5860c9ad695f50f8f1a6c2167bd",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/feudal-prereq-buildings/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "theme": "engine-throughput-triage",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "2851cd97ec8d22799ddb8cd5d67437b4829d967b8a8b5f78aeb10038546952c2",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/engine-throughput-triage/2026-06-30/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "theme": "mangonel-blast",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "a37437d63a5eea546540625499b813316cadb26a4e816207136c444dc78a2d23",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/mangonel-blast/2026-06-30/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "theme": "armor-panel",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "594fbc94abe745959376e12c8c98ac6cf76d7cb61f3d13e8003344e290180654",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/armor-panel/2026-07-01/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "theme": "asymmetric-armor",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "492097fe95fdadb04dbf45c2bdc41acd92d2d151d186dc8319ede0ca14acd509",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/asymmetric-armor/2026-07-01/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "theme": "score-timer-corpus",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "58a8e42ab8e91ee1570e3155819651c2404831fa50765855d06e78f3b6a716d8",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/score-timer-corpus/2026-07-01/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "theme": "score-timer-victory",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "11a301fcc1196f3a4229a9eb28360ef202d8b52a5349ccf20f7a8dc60a3c2b13",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/score-timer-victory/2026-07-01/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "b0563801289f24b53b698a00fd9ece454267049cabf7c80af39440eba8aa18c5",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/score-timer-victory/2026-07-01/2/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "theme": "villager-repair",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "b5ec17dba96473897d95c7c95265047795c9f1038d4c5fa8d4b3bb334559d45a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/villager-repair/2026-07-01/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 69,
+      "theme": "bloodlines-conformance",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "2a24e5fe5cbc6ec96013dd2e2d29e7e3a6ec5bd789465c6032a3fbb1841d796c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/bloodlines-conformance/2026-07-02/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/bloodlines-conformance/DESIGN.md",
+          "sha256": "83fe84f4b08cd191f7774c66731d1fd8e51aff7b742b717b14e4afdcc8c6bc49",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/bloodlines-conformance/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "theme": "forced-ai-gather-gate",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "44ce64df17a49671d89b91c98b56857d1ebc45d7ffecd8dddd13c7963ca9be13",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/forced-ai-gather-gate/2026-07-02/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/forced-ai-gather-gate/DESIGN.md",
+          "sha256": "749431a7c84b3b06173a866222c51c147810becd358ec7b5a7283cf4e022e26b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/forced-ai-gather-gate/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 71,
+      "theme": "herbal-medicine",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "853ea2e9817f3681f9572152938e915effc9bbf9b79a397fe42001e107654c72",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/herbal-medicine/2026-07-02/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/herbal-medicine/DESIGN.md",
+          "sha256": "3264e0484b672373d5f4cf31578454c2c430484d14967dc363f3b480914975a5",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/herbal-medicine/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "theme": "heresy-tech",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "ead73c11c1c10254521da2c1b14ba0fd19ea707f136b49ecfba1be86bdef5ff4",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/heresy-tech/2026-07-02/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/heresy-tech/DESIGN.md",
+          "sha256": "1a5eba7f7542f9212fa3e8a2324fe944c6ea1e5ef8a46283b56bff6c5ae31fa6",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/heresy-tech/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "theme": "husbandry-speed-seam",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "d2e23df7dbe4f1ac878af9c78fdf94258e1ca8e7f8e858ca27181af06d73b036",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/husbandry-speed-seam/2026-07-02/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/husbandry-speed-seam/DESIGN.md",
+          "sha256": "a3096f943842c1f905c169dd7d34e591159ecb6e427ae4f6f595155a505bd7d7",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/husbandry-speed-seam/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/husbandry-speed-seam/PLAN.md",
+          "sha256": "a49c31c438b9823be732c17425184d0c9305388f8501f465aa49dd11dfe2d0e9",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/husbandry-speed-seam/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "theme": "sappers-tech",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "22680297418bd82167134f6b34c84b0bc902a42ae897bc12d18a7294bef51164",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/sappers-tech/2026-07-02/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/sappers-tech/PLAN.md",
+          "sha256": "babb10bdec0cb12bf9a798bb2ce958ab0f5aa48ef134162f630cade5ffb31a42",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/sappers-tech/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "theme": "squires-tech",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "8dce24360cce3e18e7f58ad5b8169f3c8615e7deec96cc33ac370e0045a8dfdf",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/squires-tech/2026-07-02/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/squires-tech/DESIGN.md",
+          "sha256": "6e8862f107c896749f7dc4a61564ef94e73f8944e201fa7df1e620eb4fc43b9e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/squires-tech/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 76,
+      "theme": "villager-speed-halves",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "d789caccc50b5779ef1e2d47b2575bc80c3430d6287a072ef198a7d7ebda2a2b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/villager-speed-halves/2026-07-02/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/villager-speed-halves/DESIGN.md",
+          "sha256": "e9f6167bfbc5549c329079644fef53ca1b6b90af7d23e977cf1fe693377210fe",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/villager-speed-halves/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 77,
+      "theme": "wood-economy-fix",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "52c9a7b795ed074e12d914d5128ead36082cb1e92c29ac2b660e282f1c8dfd3b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/wood-economy-fix/2026-07-02/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 78,
+      "theme": "civ-engine-v1-3-visual-playtest-contracts",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "b8ab60c4d28c65f0ef1683243cce7297243a122a8de5afed3dbf8fb8c9ff8c04",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/civ-engine-v1-3-visual-playtest-contracts/2026-07-06/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "theme": "recursive-loop-closure",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "3475322dae19a71d586c162ff781b1356fd871e8e7ac685e7a7de2f375885607",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/recursive-loop-closure/2026-07-07/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "c07eb2e202752ae02d0d3ce5e77d7fea91223f399c7b7cc3cba0e21dcdc08cb9",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/recursive-loop-closure/2026-07-08/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/recursive-loop-closure/DESIGN.md",
+          "sha256": "5240dfb60188a9ad43cf3265ba5e379cc08ba9fcb392884ffad60f837a333c44",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/recursive-loop-closure/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/recursive-loop-closure/PLAN.md",
+          "sha256": "31554bf6bbb882ba8646511f032432a20d7e76e297b708a7e1d01cef196e1c46",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/recursive-loop-closure/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 80,
+      "theme": "recursive-self-improvement-loop",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "09ac16944582b61cd188adc5d2e2254d202e0cd3e43e34394e187387d6089134",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/recursive-self-improvement-loop/2026-07-08/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "04543c3a41262eaeb3a22e0f82a290991e9657509cf71ab23cedcf3c8426784b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/recursive-self-improvement-loop/2026-07-08/2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "ff3525ffb306fc7b33685fd43dd52045fcdd653068e8794160fc90f0ce35893a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/recursive-self-improvement-loop/2026-07-08/3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "13a258d4e4290fdee43469e0979d99897a04a5e409ef7718ab17640e52bdc623",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/recursive-self-improvement-loop/2026-07-08/4/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/recursive-self-improvement-loop/DESIGN.md",
+          "sha256": "f5202a16fe313d40b910efda9ac4a542a2c718f7114514081dab3e39392f80b9",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/recursive-self-improvement-loop/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/recursive-self-improvement-loop/PLAN.md",
+          "sha256": "d53e9b2dff5eb5e65c01a3df672b6bdca51e5d74b0202d7c50b577f704088e53",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/recursive-self-improvement-loop/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "theme": "full-2026-07-10",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "9f18315aab579284ad0e77bed104177d24d886ec697b9106002636385690c712",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-07-10/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "f48a29194dd6c606194a66236b9488bee3f90fe31a396fd8f174735bd09db42c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-07-10/2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "585a79f687f096c28aa2e37850002d9d766f8cec3f021906dd478cd39fd90372",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-07-10/3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "19748d215b29fab026099a1ac5f11942c62ed5b890390cc0c316a20b3d7013b0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-07-11/4/REVIEW.md"
+        },
+        {
+          "path": "reviews/4_legacy.md",
+          "sha256": "c9d929ffa5a25b34a9612bff1c5ff4af64370c1eb541f8c903e6512c86e5e43a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/full/2026-07-11/5/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "theme": "voxel-renderer-migration",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "982bb33acfe8d7e1a52f261ce6cb336a54311d6f628db48b93ac8f9909c9e4c3",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/voxel-renderer-migration/2026-07-11/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "13fb52189116f99039959badaa4812eabe2f5c2e38ae55171cf7bd627e5ce243",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/voxel-renderer-migration/2026-07-11/2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "f7ed40829e4e285f13899612902ee2de440bb3d2f56492adec3d038598a8366d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/voxel-renderer-migration/2026-07-12/3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "af01b1cc04e5eac39859842e5fb331d6c9703c4c2c0b1776406e9ca5fa445bea",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/voxel-renderer-migration/2026-07-12/4/REVIEW.md"
+        },
+        {
+          "path": "reviews/4_legacy.md",
+          "sha256": "b98db19b5e3a725ebf92ccace7626c9d6bbc10454714f151ea3a8d02325ac076",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/voxel-renderer-migration/2026-07-12/5/REVIEW.md"
+        },
+        {
+          "path": "reviews/5_legacy.md",
+          "sha256": "faacf96b7bae1747898444b1518a9c6b196308c4d68989b4c9bc2fb1185eab9d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/voxel-renderer-migration/2026-07-12/6/REVIEW.md"
+        },
+        {
+          "path": "reviews/6_legacy.md",
+          "sha256": "6152b97d2275d6fb30d6bba8ae761391aa2422e2c0c3cdc1a11f1edeffd2e868",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/voxel-renderer-migration/2026-07-13/7/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/voxel-renderer-migration/DESIGN.md",
+          "sha256": "cddeb23077f83a6d033461928b790489756bae9da090442646e805644fc7682e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/voxel-renderer-migration/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/voxel-renderer-migration/PLAN.md",
+          "sha256": "0d31286cad923f975b336e60903e1317b9600ab96e29567d611a10bc6667d50a",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/voxel-renderer-migration/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "theme": "motion-continuity",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "8214e48af2bb3f297f9d12eba8a44e4d85c266e3bb0997ce9890effda4a63557",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/motion-continuity/2026-07-13/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "ecaa0b479adaf5e0677b220107b19a30094ca2f6b6ede92fab03741c375146a6",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/motion-continuity/2026-07-14/2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "1832a00a9fdb67c4008c5bd0be20bd4e0c6126e970e867890b340f8df623fcf2",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/motion-continuity/2026-07-14/3/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "theme": "voxel-014-integration",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "5164889b5311267d02958c9da5f8b600bc9050f2a6c7ee8f412c0bfc39fc422b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/voxel-014-integration/2026-07-13/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 85,
+      "theme": "concurrent-boar-hunt",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "d2d997a76eec15bcd7a8cfa4896a07fbd19263f90a94f7db197c1499c3455780",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/concurrent-boar-hunt/2026-07-14/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "3ef977435ccfe6b59868ad33372496695619b66b4a3d8c0bbb0088d996657004",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/concurrent-boar-hunt/2026-07-14/2/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/concurrent-boar-hunt/DESIGN.md",
+          "sha256": "a0141d1c1928f1f5b6b1e6a83e1051ac06060190922951bcaf443d2d35290fd5",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/concurrent-boar-hunt/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/concurrent-boar-hunt/PLAN.md",
+          "sha256": "68aaa2d3cb5a2bb496a0f5139cf43bed3bd4e972967afcbd151811daa2ff1338",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/concurrent-boar-hunt/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 86,
+      "theme": "ungarrison-visibility",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "755e48424c22fb11d6b434a3804c16db552426b0ec428e286a6059ffe519fb2b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ungarrison-visibility/2026-07-14/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "830bfb96a5e647d973ff397df90c9945bb316b9a3c7124c23cf98a0261a260b7",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ungarrison-visibility/2026-07-14/2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "be652981f16850dfbc1fbb1383d700622ddcb92f00beaaf605cc71db814eb98d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ungarrison-visibility/2026-07-14/3/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/ungarrison-visibility/DESIGN.md",
+          "sha256": "8eb74848f09ff0c182f351ce9be392f809143b78dd0da62ff2119ff603360593",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ungarrison-visibility/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/ungarrison-visibility/PLAN.md",
+          "sha256": "cb1f3798cc9fa29ab8f14a73581269ba98de915d30e4527596e5f0c9059c97bf",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/ungarrison-visibility/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 87,
+      "theme": "unit-attack-animation",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "2fbf55040fc5db1d0a7710c578dca35d03a879a43271a799136aa11e84a311eb",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/2026-07-14/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "adb58fd9e3cd53f1928a07c0511dbdad9862377ebcd607988613156b52b512fe",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/2026-07-14/2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "409695755fe86f5fd0cc7efcd9627bb26c16429af1c331ec7976ce86d6c16bdb",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/2026-07-14/3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "76a7ee433da99724d25c3d8c709034b0c32ce37b1421e37f17b208b57027a198",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/2026-07-14/4/REVIEW.md"
+        },
+        {
+          "path": "reviews/4_legacy.md",
+          "sha256": "5f30d457feabf092a54f0da77282a21f4b82b95eafca3be3d2dd95ebb2882571",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/2026-07-14/5/REVIEW.md"
+        },
+        {
+          "path": "reviews/5_legacy.md",
+          "sha256": "3bd55c3ce577b59d8e592e27bebb647d73e04c76f93fb256395816971b1d2b42",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/2026-07-14/6/REVIEW.md"
+        },
+        {
+          "path": "reviews/6_legacy.md",
+          "sha256": "1a67804e2ff9ff4408d16d8036fc177516f752a84bc451b794dd923a3e3bde88",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/2026-07-14/7/REVIEW.md"
+        },
+        {
+          "path": "reviews/7_legacy.md",
+          "sha256": "9cd451b482aeb42cb4c4ebb0b59c793fb3cd49ac9a3640b84617ab422ba6537f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/2026-07-14/8/REVIEW.md"
+        },
+        {
+          "path": "reviews/8_legacy.md",
+          "sha256": "e731b940bdab3b343c69aed9053bb53e35464122336ee81e2a3ac54f49baa7a6",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/2026-07-14/9/REVIEW.md"
+        },
+        {
+          "path": "reviews/9_legacy.md",
+          "sha256": "4fa4b6dbd17dc60f365db2b93a86831f00fb8fdfa9367318be4bf40db4b57710",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/2026-07-14/10/REVIEW.md"
+        },
+        {
+          "path": "reviews/10_legacy.md",
+          "sha256": "0693233a7fee39b0cdfb9274ca645f3b6cc8b85267cbd217a5cee791dfcbacbd",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/2026-07-14/11/REVIEW.md"
+        },
+        {
+          "path": "reviews/11_legacy.md",
+          "sha256": "24613c499c14d93bae08781d5f8833271981de9f683c257e2f1347363fd721f6",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/2026-07-14/12/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/unit-attack-animation/DESIGN.md",
+          "sha256": "f7dfb0f79ae51d18b3d796400c72cec5be17586e6bf1070e0ea5035a4d047ce3",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/unit-attack-animation/PLAN.md",
+          "sha256": "3bcf10b2bbf19550a39faa92550a42041af068e4635b1caebd152e40508354aa",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-attack-animation/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 88,
+      "theme": "animation-feedback-batch",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "13e8f7eb56d307655dc9f9791843666ba1ca76e2075c5a44b6bd33b7df0d8a1d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/animation-feedback-batch/2026-07-15/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/animation-feedback-batch/DESIGN.md",
+          "sha256": "6db996da12e32691aeb91156044b578104d70657ef16e5d946dd0b3671cb2f38",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/animation-feedback-batch/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 89,
+      "theme": "auto-mine-after-camp",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "a55c05d37aeeee8423e94465f49ef6ef4a7f86c9b909457a88aa8cbf592f49af",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/auto-mine-after-camp/2026-07-15/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/auto-mine-after-camp/DESIGN.md",
+          "sha256": "2ecfe765e66931f022a88ed83b065e55770595eddc4cf42f7316c1fd8d7226e4",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/auto-mine-after-camp/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 90,
+      "theme": "unit-occlusion-outline",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "d2d278edcd5b8aea5f9280ed7d0727d1a4f9ab5a50313bb998a00e9e25831fab",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-occlusion-outline/2026-07-15/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/unit-occlusion-outline/DESIGN.md",
+          "sha256": "c765bba5c3b39f362a1ce9aa1552e3d38a3d770c77aa36cb0afdfba0167043f0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-occlusion-outline/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/unit-occlusion-outline/PLAN.md",
+          "sha256": "524f8aac46f49181934a9c051f24686aaf85844435ad5e1756d5052a37f71283",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/unit-occlusion-outline/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 91,
+      "theme": "hud-command-deck",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "31c330d476a953bac54a72a703d136f623076ae7c11015da31c14e87bf967ace",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/hud-command-deck/2026-07-19/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 92,
+      "theme": "narrow-choke-queueing",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "60b863d55e9c71929deb15b0bbbd94cc8a56e3c650bb8c88f5adca76762b5554",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/narrow-choke-queueing/2026-07-19/1/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/narrow-choke-queueing/DESIGN.md",
+          "sha256": "254d94897104df5483b369882efa4914e70cf81f7bbf3597c03f59dea9a59136",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/narrow-choke-queueing/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/narrow-choke-queueing/PLAN.md",
+          "sha256": "62e5d0cc4c451108a79c31374455c50ea76b8451b0aa9ffc47208a03823ac885",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/narrow-choke-queueing/PLAN.md"
+        },
+        {
+          "path": "historical/threads/done/narrow-choke-queueing/RESEARCH.md",
+          "sha256": "6e591ae7c890401f3b987fbecec23fd6bab064092b91ae60f29e3c8f36be7725",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/narrow-choke-queueing/RESEARCH.md"
+        }
+      ]
+    },
+    {
+      "id": 93,
+      "theme": "visual-conviction",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "a326ddc9368061c156a15a70f578d993537f3fe5555ee0c2e42dfdc778ec7a22",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/visual-conviction/2026-07-19/1/REVIEW.md"
+        },
+        {
+          "path": "reviews/1_legacy.md",
+          "sha256": "a1ae1451129ce1a0b894e686c1f95cfe986e5b2b69fce9907fb28cd93d62c0d4",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/visual-conviction/2026-07-19/2/REVIEW.md"
+        },
+        {
+          "path": "reviews/2_legacy.md",
+          "sha256": "064ca559cd99234e485726efde5106e600126491e6b8db26e6d4b3f7eb0aa20c",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/visual-conviction/2026-07-19/3/REVIEW.md"
+        },
+        {
+          "path": "reviews/3_legacy.md",
+          "sha256": "d18bd49761c859ff31949470e7f56dfd948b528e68a00738e52f3d76d6a9bd6b",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/visual-conviction/2026-07-19/4/REVIEW.md"
+        },
+        {
+          "path": "reviews/4_legacy.md",
+          "sha256": "5138dbd824be4d04f1b955e5881d439867b21a1006f06d67dd15ebcc7829b5a9",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/visual-conviction/2026-07-19/5/REVIEW.md"
+        },
+        {
+          "path": "historical/threads/done/visual-conviction/DESIGN.md",
+          "sha256": "734f0bf64dd938aeb66f9b65908103aa10a15d7ba5254755fb2bfc79db108a36",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/visual-conviction/DESIGN.md"
+        },
+        {
+          "path": "historical/threads/done/visual-conviction/PLAN.md",
+          "sha256": "f0feb6973e43ee2d88bcdac08f53c9ae1b54aea54380aeaa426c038b4f7abfa0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/visual-conviction/PLAN.md"
+        }
+      ]
+    },
+    {
+      "id": 94,
+      "theme": "game-menu-icons",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "9b3f94ad1496b9a36d66cce7a264d8db8204277b7a2c106aca58a2285f884f7f",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/game-menu-icons/2026-07-20/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 95,
+      "theme": "neutral-world-labels",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "dac0e3073d88fde1f3131f0fa50f56a37ddb1e9afb2a54c639f5126cbefd47fd",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/neutral-world-labels/2026-07-20/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 96,
+      "theme": "moebius-art-style",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "3db509865c9a52beff9e5d3c5f968465f1eec239c585acf2af121fe691d70c1d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/moebius-art-style/2026-08-17/1/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 97,
+      "theme": "lumber-camp-routing",
+      "legacyFiles": [
+        {
+          "path": "historical/threads/current/lumber-camp-routing/2026-09-01/DESIGN.md",
+          "sha256": "b74e2d3814595671ded7f76d47caa63748ceea147f2697599903c7897470513e",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/current/lumber-camp-routing/2026-09-01/DESIGN.md"
+        },
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "00989637994d5a205e6839737fefc92b5bf73bca47539518e44d7746fd51c3a1",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/current/lumber-camp-routing/2026-09-01/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 98,
+      "theme": "concurrency-review-2026-09-02",
+      "legacyFiles": [
+        {
+          "path": "reviews/0_legacy.md",
+          "sha256": "b2a1cee95e65db8929b2044ae2aa7296ff9462a31524529a7c28837f5c910bfd",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/current/concurrency-review-2026-09-02/REVIEW.md"
+        }
+      ]
+    },
+    {
+      "id": 99,
+      "theme": "render-realism-2026-09-02",
+      "legacyFiles": [
+        {
+          "path": "historical/threads/done/render-realism-2026-09-02/DESIGN.md",
+          "sha256": "81ef8f8bcf523ca631de7fd423ee4c5757c5f83dbf90e59458a1c1039ef50cca",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/render-realism-2026-09-02/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 100,
+      "theme": "dropoff-reroute",
+      "legacyFiles": [
+        {
+          "path": "historical/threads/done/dropoff-reroute/DESIGN.md",
+          "sha256": "8d4bf0967cb4eca19f84ea5587508ffb262855152a582c197f2f407081fbe77d",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/dropoff-reroute/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 101,
+      "theme": "isometric-overhaul",
+      "legacyFiles": [
+        {
+          "path": "historical/threads/done/isometric-overhaul/DESIGN.md",
+          "sha256": "1bfd1852d717b4620befe625397ce0171f6d2143a899d3f0d40def71f90e7ac9",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/isometric-overhaul/DESIGN.md"
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "theme": "phaser-prototype",
+      "legacyFiles": [
+        {
+          "path": "historical/design/implementation-plan.md",
+          "sha256": "05c56ac3f016690f8e9c5dbe2d28fafbe1e0d0f7c7f2266f3bc336d5bddefdb0",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:design/implementation-plan.md"
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "theme": "train-button-icons",
+      "legacyFiles": [
+        {
+          "path": "historical/threads/done/train-button-icons/DESIGN.md",
+          "sha256": "0cb7ecca07eb80a2245f1b91506b7cd223ad213c9aeda4221adaad035e511ac1",
+          "source": "aoe2@143ad5116f25393504328056764bcc8706917b9e:docs/threads/done/train-button-icons/DESIGN.md"
+        }
+      ]
+    }
+  ]
+}

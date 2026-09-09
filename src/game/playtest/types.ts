@@ -104,7 +104,7 @@ export const ORACLE_DEFAULTS: Required<OracleThresholds> = {
   pinnedOscillationBoxCells: 6,
 };
 
-// LLM-agent-playtest types. Shape pinned by docs/threads/done/llm-agent-playtest/DESIGN.md.
+// LLM-agent-playtest types. Shape pinned by docs/work/15_llm-agent-playtest/historical/threads/done/llm-agent-playtest/DESIGN.md.
 
 export interface AgentPlayerState {
   ownerId: number;

@@ -1,0 +1,24 @@
+# Farm auto-reseed (M1 farms slice 2, v0.1.35) — Review iteration 1
+
+Change under review: when a farm's stored food reaches 0 during gathering, auto-reseed it if the farm's owner can afford 60 wood (deduct 60, reset food to the farm's max in place, same entity, villager resumes) — else remove it as slice 1. New `tryReseedFarm` helper (`farmReseed.ts`); single integration at `villagerEconomySystem.ts:422` (reseed attempted before the slice-1 destroy). Built by a fresh-context subagent; reviewed + gated by the main agent.
+
+Reviewers: Codex (gpt-5.5, xhigh), Claude (opus[1m], --effort max), Gemini (gemini-3.1-pro, plan mode). All three read the live codebase. Contamination audit after the batch: `git diff` (unstaged) empty — no reviewer wrote to the tree.
+
+## Verdict: APPROVE — no HIGH or functional bug. Converged at iter-1.
+
+All three independently verified and confirmed the core: in-place `resource.amount`/`maxAmount` mutation is visible to `getEconomyState()` + serialized in snapshots (same mechanism `villagerEconomySystem.ts:411` already uses every tick; `BridgeStateAccessor`/`markDirty` is scoped to non-component codec state like `playerResourcesCodec`, which the wood deduction correctly flags); the wood is charged to `resource.baseOwner` (the farm's owner), not the gatherer; a combat-destroyed farm (`destroyBuildingEntity` on HP≤0) does NOT reseed — reseed has exactly one call site, the gather-depletion path; `canAfford` is inclusive (exactly 60 wood reseeds); the forced `to-dropoff` runs the ordinary carry round-trip with no stall/stuck risk; determinism clean; the `canGatherResource` enemy-farm theft gate is intact. Claude additionally verified same-tick double-reseed is impossible (the immediate in-place refill to max means a second gatherer in the same tick sees a full farm and does not re-charge).
+
+Because iter-1 surfaced zero functional defects — only documentation inconsistencies plus one forward-looking one-line alignment that the reviewers themselves prescribed — this is the nitpick-convergence point. The fixes below are doc edits + a behaviorally-identical code line (verified by typecheck/lint/build + the 6/6 farm suite), so no iter-2 re-review was run (contrast FARMS slice-1, where iter-1's HIGH+2 MEDIUM functional bugs warranted a fix-verification iter-2).
+
+## Findings and disposition (all fixed in this commit)
+
+| # | Severity | Source | Finding | Disposition |
+|---|---|---|---|---|
+| 1 | MEDIUM | Claude + Codex | **Reseed reset value vs docs.** Code reset `amount = FARM_FOOD_AMOUNT` (const 175), but four surfaces (the `farmReseed.ts` comment, spec §6.6, DESIGN.md, devlog) claim it refills to the farm's *current max*. Zero impact today (max==175) but a latent trap: once farm-capacity techs raise `maxAmount`, reseed would still refill to 175 (a 175/250 farm), contradicting the documented promise. | FIXED — `farmReseed.ts:59` now `resource.amount = resource.maxAmount` (after the line-58 widening to ≥175). Behaviorally identical today; makes the four forward-looking claims true and removes the trap. The reviewers prescribed exactly this one-liner. Farm test 6/6 still green. |
+| 2 | MEDIUM | Claude | **Internal spec contradiction.** `spec-final.md:602` (the Farm building-summary entry) still read "is removed when depleted (slice 1)… Reseed and farm-upgrade techs are deferred" — contradicting the updated §6.6 (reseed implemented). Violates the project's "no two contradictory rules" spec invariant. | FIXED — line 602 now states the auto-reseed-or-remove behavior and defers only farm-upgrade techs + the Mill batch-reseed queue. |
+| 3 | LOW | Claude | **Over-stated continuity.** §6.6 said the villager keeps gathering "without being unassigned or re-pathing" and the changelog said "without a pause" — but it actually runs a normal `to-dropoff → idle (unassigned) → reassign` round-trip (no stall, but transiently unassigned + re-paths). DESIGN.md was accurate. | FIXED — spec §6.6 and changelog reworded to the honest "resumes on the same farm with no stall via its ordinary drop-off-and-return cycle; not held continuously assigned." |
+| 4 | LOW | Codex | Docs reference `done/` thread + devlog reviewer `[pending]` while the artifact was still `current/`. | FIXED in close-out — thread moved `current/`→`done/`, devlog reviewer section filled (this commit). |
+
+## Notes (no action)
+- `FARM_RESEED_COST = constructionCost('farm')` aliases the same object as `CONSTRUCTION_COSTS['farm']`; `canAfford`/`spendResources` only read it, so safe today (Claude) — just never mutate a cost object in place.
+- Gemini's doc-accuracy pass returned "perfectly match" and missed finding #2; convergence is measured by substantive finding count, not vote — Claude's verified MEDIUM governs. (Gemini correctly verified all 8 code-correctness points.)

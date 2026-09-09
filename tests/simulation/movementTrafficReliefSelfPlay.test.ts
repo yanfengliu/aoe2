@@ -2,7 +2,7 @@
 // that has been attempting to move on every tick — never one that stood still
 // by choice and then asked once.
 //
-// Review E1 (docs/threads/current/concurrency-review-2026-09-02/REVIEW.md): the
+// Review E1 (docs/work/98_concurrency-review-2026-09-02/reviews/0_legacy.md): the
 // v0.3.175 clock was stamped on cell change alone, so it kept running while a
 // unit built a Town Centre (~1,500 ticks), sat garrisoned, or stood parked, and
 // such a unit was elected over genuinely contested ones on its first ask. The

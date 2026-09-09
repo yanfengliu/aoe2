@@ -10,7 +10,7 @@
 // were sent to trees at Manhattan 8-9 whose real walk was 35-45 cells while
 // trees at walk 0-3 sat unused. Seventeen attempts at re-weighting the
 // comparator failed because every one re-weighted a broken measurement. The
-// ablation in `docs/threads/current/lumber-camp-routing/2026-09-01/REVIEW.md`
+// ablation in `docs/work/97_lumber-camp-routing/reviews/0_legacy.md`
 // shows the metric fix dominates the anchor fix and is never worse.
 //
 // Why a field rather than a path per candidate. Pathfinding every candidate on

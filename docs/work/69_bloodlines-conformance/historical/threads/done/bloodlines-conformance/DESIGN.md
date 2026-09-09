@@ -1,0 +1,13 @@
+# Bloodlines conformance fix (Feudal gate + mounted scope) — DESIGN
+
+**Objective (v0.1.67):** correct two divergences in the v0.1.65 Bloodlines tech against its own data row (`design/stats/technologies.csv:78` — `Bloodlines, Age of Kings, Feudal, Stable, {"Food": 150; "Gold": 100}, 50, Cavalry;Cavalry Archer;Conquistador, +20 hit points`) and AoE2 canon (wiki-verified per lessons.md: Bloodlines is a Feudal Stable tech granting "+20 hit points for all mounted units" — [Fandom](https://ageofempires.fandom.com/wiki/Bloodlines), [Liquipedia](https://liquipedia.net/ageofempires/Bloodlines); Feudal availability corroborated by the Chinese per-age discount starting at Feudal). Found during the Husbandry (v0.1.66) grounding pass; queued rather than silently folded into that change.
+
+**Divergence 1 — age gate:** shipped Castle; CSV/AoE2 say FEUDAL. Fix: the optionsRules stable branch outer gate drops to `feudal-age`, Bloodlines is offered first, and the pre-existing Castle techs (light-cavalry-upgrade, Husbandry) move inside a new `isAtLeastAge(owner, 'castle-age')` inner block; the Imperial block is unchanged. No other surface encodes the age (research legality is options-driven).
+
+**Divergence 2 — scope:** shipped cavalry-only (`isCavalryUnit`); CSV/AoE2 include cavalry archers. Fix: the TWO effect sites — `bloodlinesEffect.applyBloodlinesToOwnedCavalry` (existing units, imperative) and `combatStateFactory` (new units, derived) — flip to `isMountedUnit` (the v0.1.66 set: CAVALRY_UNITS ∪ mounted archers), sharing one predicate so the paths cannot drift. The barding ARMOR techs deliberately stay on `isCavalryUnit` (in AoE2 mounted archers take the archer armor line, not barding).
+
+**Save/back-compat:** no format change. An owner whose pre-fix save already has `bloodlines` researched keeps whatever bumps were applied (no retroactive re-application — the imperative pass runs only at research completion); mounted archers TRAINED after loading under that flag now get +20 via the derived path. Documented in the changelog.
+
+**Behavior deltas accepted:** the built-in AI (generic stable-research loop) can now research Bloodlines one age earlier and its cavalry archers gain +20 — deterministic per seed; validated by the full suite (incl. the AI corpus).
+
+**Validation:** TDD — inverted the old "NOT offered before Castle" test into "IS offered at a FEUDAL stable"; new derived cavalry-archer +20 twin test; new imperative existing-cavalry-archer +20 test driven by a REAL research cycle at a FEUDAL stable (fixture gained the resources + a cavalry archer). Adjacent option suites (economyResearchOptions, imperialUpgrades.stable) re-run green; full four gates before commit.

@@ -73,7 +73,7 @@ Caveat: bundle replay is same-engine-major tooling (civ-engine policy) — bundl
 ## See also
 
 - [Official spec](design/spec-final.md)
-- [Implementation plan](design/implementation-plan.md)
+- [Implementation plan](docs/work/102_phaser-prototype/historical/design/implementation-plan.md)
 
 ## Part of a fleet
 

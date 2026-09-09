@@ -2,7 +2,7 @@
 // gate afterwards — it belongs to the enemy now, and a gate admits only its
 // owner's units.
 //
-// Review C1 (docs/threads/current/concurrency-review-2026-09-02): the
+// Review C1 (docs/work/98_concurrency-review-2026-09-02): the
 // approach-plan cache keys a remembered route on (unit, start cell, target,
 // structural revision) and replays it without re-checking passability, while
 // the search that produced it read the asking unit's OWNER (a gate admits its
