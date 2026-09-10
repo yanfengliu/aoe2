@@ -10,6 +10,9 @@
 // 500-line budget on its own. `../fixtures` is a barrel, so this pulls in
 // exactly what the named list did.
 import * as fixtures from '../fixtures';
+// Imported directly, the way the map factories are: the barrel is at its
+// 500-line budget.
+import { createTrafficContestFixture } from '../fixtures/trafficContest';
 import { createArenaMap } from '../mapGeneration/arenaMap';
 import { createBlackForestMap } from '../mapGeneration/blackForestMap';
 import { createDefaultMap } from '../mapGeneration/defaultMap';
@@ -343,4 +346,5 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['slice12-validation-unit-in-building-fixture', fixtures.createScenarioValidationFixture],
   ['slice12-validation-resource-on-building-fixture', fixtures.createScenarioValidationFixture],
   ['slice12-validation-resource-on-resource-fixture', fixtures.createScenarioValidationFixture],
+  ['traffic-contest-fixture', createTrafficContestFixture],
 ]);
