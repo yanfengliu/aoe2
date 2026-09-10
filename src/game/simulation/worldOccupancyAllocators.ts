@@ -5,6 +5,7 @@
 // by both the group spiral and any other 8-direction neighbor walks.
 
 import type { EntityId, OccupancyCellStatus, Position } from 'civ-engine';
+import { blocksWholeCell } from './worldOccupancyCells';
 
 // Eight-direction neighbor offsets. Order (E, W, S, N, then diagonals) is
 // deterministic so the spec's "deterministic spiral-outward" requirement
@@ -28,15 +29,10 @@ function positionKey(x: number, y: number): string {
   return `${x},${y}`;
 }
 
-function isWholeCellBlocker(status: OccupancyCellStatus): boolean {
-  return status.blockedBy.some(
-    (claim) =>
-      claim.kind === 'building'
-      || claim.kind === 'resource'
-      || claim.kind === 'terrain'
-      || claim.kind === 'bounds',
-  );
-}
+// The whole-cell test below is `blocksWholeCell` from worldOccupancyCells — the
+// one list of blocking kinds, so a spiral never lands a unit where spawn
+// refuses one, and a farm (walkable ground) is a candidate cell here as there.
+// This file used to carry its own copy of the list.
 
 // BFS from `targetCenter` over an in-bounds 8-direction graph, capped at
 // `SPIRAL_RADIUS_CAP` Chebyshev radius. Output order is deterministic so the
@@ -99,7 +95,7 @@ export function findNearestFreeUnitCellInSpiral(
   const cells = generateSpiralCells(requestedPosition, worldWidth, worldHeight);
   for (const cell of cells) {
     const status = getCellStatus(cell.x, cell.y, entity);
-    if (isWholeCellBlocker(status)) continue;
+    if (status.blockedBy.some(blocksWholeCell)) continue;
     if (hasFreeSlot(entity, cell)) {
       return cell;
     }
@@ -150,7 +146,7 @@ export function allocateGroupMoveTargets(
     if (preferred && inBounds(preferred)) {
       const status = getCellStatus(preferred.x, preferred.y, unitId);
       const used = assignedThisCall.get(positionKey(preferred.x, preferred.y)) ?? 0;
-      if (!isWholeCellBlocker(status) && (status.freeSubcellSlots ?? 0) - used > 0) {
+      if (!status.blockedBy.some(blocksWholeCell) && (status.freeSubcellSlots ?? 0) - used > 0) {
         assignedThisCall.set(positionKey(preferred.x, preferred.y), used + 1);
         targets.push(preferred);
         continue;
@@ -158,7 +154,7 @@ export function allocateGroupMoveTargets(
     }
     for (const cell of spiralCells) {
       const status = getCellStatus(cell.x, cell.y, unitId);
-      if (isWholeCellBlocker(status)) continue;
+      if (status.blockedBy.some(blocksWholeCell)) continue;
       const free = status.freeSubcellSlots ?? 0;
       const usedHere = assignedThisCall.get(positionKey(cell.x, cell.y)) ?? 0;
       if (free - usedHere > 0) {

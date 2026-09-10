@@ -12,7 +12,9 @@ import {
   findNearestFreeUnitCellInSpiral,
 } from './worldOccupancyAllocators';
 import { createSpawnPassabilityMemo } from './spawnPassabilityMemo';
+import type { StructureClaimKind } from './passableStructures';
 import {
+  blocksWholeCell,
   positionKey,
   removeClaimFromCellMap,
   syntheticOutOfBoundsStatus,
@@ -25,14 +27,6 @@ import {
 
 export type { Footprint } from './worldOccupancyCells';
 
-/** The claim kinds that make a cell impassable to everything, as opposed to
- *  merely crowded. Shared so the four kinds are listed once — spawn and
- *  wildlife passability must agree on them, and they were three copies. */
-const blocksWholeCell = (claim: OccupancyCellClaim): boolean => (
-  claim.kind === 'bounds' || claim.kind === 'terrain'
-  || claim.kind === 'building' || claim.kind === 'resource'
-);
-
 export interface SyncUnitResult {
   placedAt: Position;
   slotOffset: SubcellSlotOffset | null;
@@ -44,7 +38,9 @@ export interface WorldOccupancy {
   blockTerrain(cells: ReadonlyArray<Position>): void;
   /** Releases a terrain blocker — a felled tree leaves open ground behind. */
   unblockTerrain(cells: ReadonlyArray<Position>): void;
-  syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint): void;
+  /** `kind` is `structureClaimKind(buildingType)`: a 'building' walls its
+   *  footprint; a 'farm' refuses placement there and admits every unit. */
+  syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint, kind?: StructureClaimKind): void;
   syncResource(entity: EntityId, position: Position): void;
   syncUnit(entity: EntityId, position: Position, preferredOffset?: SubcellSlotOffset, restoreOverflow?: boolean): SyncUnitResult;
   // Spec §12.6 fallback for fresh placements (spawn, train, ungarrison):
@@ -160,7 +156,7 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
   const addOverflowBlockedClaim = (
     entity: EntityId,
     positions: Position[],
-    kind: 'building' | 'resource',
+    kind: StructureClaimKind | 'resource',
   ): void => {
     const claim: OccupancyCellClaim = {
       entity,
@@ -293,17 +289,19 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       structuralRevisionCounter += 1;
     },
 
-    syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint): void {
+    syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint, kind: StructureClaimKind = 'building'): void {
       releaseClaims(entity, false);
 
-      const area = {
-        x: anchor.x,
-        y: anchor.y,
-        width: footprint.width,
-        height: footprint.height,
-      };
-      if (!binding.occupy(entity, area, { metadata: { kind: 'building' } })) {
-        addOverflowBlockedClaim(entity, toFootprintCells(anchor, footprint), 'building');
+      // A farm never takes the ENGINE claim: the engine's sub-cell grid refuses
+      // a unit slot on any cell another entity occupies, so an engine-claimed
+      // farm could not be walked on whatever the predicate said (units would
+      // route through it and stack as overflow). Its footprint is recorded on
+      // this side only, where `isPlacementBlocked` counts every claim and
+      // `blocksWholeCell` — the list movement, spawn and wildlife read — does
+      // not list 'farm'. See passableStructures.ts.
+      const area = { x: anchor.x, y: anchor.y, width: footprint.width, height: footprint.height };
+      if (kind === 'farm' || !binding.occupy(entity, area, { metadata: { kind } })) {
+        addOverflowBlockedClaim(entity, toFootprintCells(anchor, footprint), kind);
       }
       structuralEntities.add(entity);
       structuralRevisionCounter += 1;

@@ -14,7 +14,10 @@ import { describe, expect, it } from 'vitest';
 
 import { createWorldOccupancy } from '../../src/game/simulation/worldOccupancy';
 
-/** The pre-optimisation definition, expressed against the merged status. */
+/** The pre-optimisation definition, expressed against the merged status. A
+ *  'farm' claim (2026-09-08) is deliberately absent from this list, as it is
+ *  from `blocksWholeCell`: a farm is ground that refuses placement, not a
+ *  wall, so the reference passes it exactly as the fast path must. */
 function passableViaMergedStatus(
   occupancy: ReturnType<typeof createWorldOccupancy>,
   x: number,
@@ -27,7 +30,7 @@ function passableViaMergedStatus(
 }
 
 describe('the occupancy spawn-passability fast path', () => {
-  it('agrees with the merged status on open, terrain, building, resource and out-of-bounds cells', () => {
+  it('agrees with the merged status on open, terrain, building, farm, resource and out-of-bounds cells', () => {
     const width = 24;
     const height = 20;
     const occupancy = createWorldOccupancy(width, height);
@@ -37,6 +40,9 @@ describe('the occupancy spawn-passability fast path', () => {
     occupancy.syncBuilding(101, { x: 10, y: 10 }, { width: 3, height: 3 });
     occupancy.syncResource(201, { x: 15, y: 4 });
     occupancy.syncResource(202, { x: 16, y: 4 });
+    // A farm is a claim placement counts and passability ignores: the fast
+    // path must agree with the reference on it exactly as on open ground.
+    occupancy.syncBuilding(102, { x: 18, y: 12 }, { width: 1, height: 1 }, 'farm');
     // A unit CROWDS rather than blocks: the predicate must still pass its cell.
     occupancy.syncUnit(301, { x: 8, y: 3 });
 
@@ -56,6 +62,9 @@ describe('the occupancy spawn-passability fast path', () => {
     expect(checked, 'the sweep must cover the map and its margins').toBeGreaterThan(500);
     expect(blockedSeen, 'blocked cells must exist or this proves nothing').toBeGreaterThan(10);
     expect(disagreements.slice(0, 5)).toEqual([]);
+    // And the farm cell was really a farm: passable to spawn, refused to placement.
+    expect(occupancy.isCellPassableForSpawn(18, 12), 'a farm cell is passable').toBe(true);
+    expect(occupancy.isPlacementBlocked(18, 12, 1, 1), 'a farm cell still refuses placement').toBe(true);
   });
 
   it('still passes a cell that only a UNIT occupies', () => {

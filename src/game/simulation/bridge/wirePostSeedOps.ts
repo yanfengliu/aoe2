@@ -89,6 +89,10 @@ export interface WirePostSeedDeps {
   isCellBlockedByBuilding: (x: number, y: number) => boolean;
   isCellBlockedByResource: (x: number, y: number) => boolean;
   isPlacementBlocked: (x: number, y: number, w: number, h: number) => boolean;
+  isCellPassableForUnit: (unitId: number, x: number, y: number) => boolean;
+  /** Hands the AI site search's counters to the debug snapshot, which is wired
+   *  before this factory runs (wirePreSeedOps.ts). */
+  setAiSitePlacementStats: (stats: import('./placementSearch').PlacementSearchStats) => void;
   isGarrisonedUnit: (id: number) => boolean;
   isHarvestableResource: (id: number, resource: ResourceComponent) => boolean;
   getActionOptions: Parameters<typeof createSelectionStateOps>[0]['getActionOptions'];
@@ -282,9 +286,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     getMarketOptions,
     getBuildOptions,
     isPlacementBlocked,
-    isTerrainPassableForUnit,
-    isCellBlockedByBuilding,
-    isCellBlockedByResource,
+    isCellPassableForUnit: deps.isCellPassableForUnit,
     isGarrisonedUnit,
     clearGathererOrder,
     clearUnitCommand,
@@ -299,6 +301,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     markOutOfBandRenderChange,
   });
   const { findBuildPlacementNear, garrisonUnit } = trainingMarketOps;
+  deps.setAiSitePlacementStats(trainingMarketOps.aiSitePlacementStats);
 
   // Why each drawn command refuses. Read-only over the same tables the
   // validators charge from, so a tooltip and the rejection it predicts can

@@ -4,6 +4,7 @@
 // is the dependency surface is explicit instead of closure-captured.
 
 import { isMonasticUnit } from '../monasticUnits';
+import { structureClaimKind } from '../passableStructures';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
   BuildingComponent,
@@ -318,6 +319,21 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
       const position = world.getComponent<Position>(id, 'position');
       if (position) {
         const footprint = buildingFootprint(building.buildingType);
+        // A farm is walkable ground, so `isCellBlockedByBuilding` is false on
+        // it — but a relic dropped there would claim the cell as a 'resource'
+        // and wall it (passableStructures.ts). Farm cells are excluded by hand.
+        const farmCells = new Set<string>();
+        for (const structureId of world.query('position', 'building')) {
+          const structure = world.getComponent<BuildingComponent>(structureId, 'building');
+          const anchor = world.getComponent<Position>(structureId, 'position');
+          if (!structure || !anchor || structureClaimKind(structure.buildingType) !== 'farm') continue;
+          const size = buildingFootprint(structure.buildingType);
+          for (let dy = 0; dy < size.height; dy += 1) {
+            for (let dx = 0; dx < size.width; dx += 1) {
+              farmCells.add(`${String(anchor.x + dx)},${String(anchor.y + dy)}`);
+            }
+          }
+        }
         const maxSearchRange = mapWidth + mapHeight;
         for (
           let searchRange = Math.max(2, Math.max(footprint.width, footprint.height));
@@ -341,6 +357,9 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
               continue;
             }
             if (isCellBlockedByResource(candidate.x, candidate.y)) {
+              continue;
+            }
+            if (farmCells.has(`${String(candidate.x)},${String(candidate.y)}`)) {
               continue;
             }
             if (relicDropPositions.some((p) => p.x === candidate.x && p.y === candidate.y)) {

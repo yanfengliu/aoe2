@@ -20,9 +20,10 @@ import {
   isAtTarget,
   isUnitTransformAtTarget,
   stepUnitTransformToward,
+  UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK,
   type GameWorld,
 } from './pureHelpers';
-import { UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK } from './pureHelpers';
+import { structureClaimKind } from '../passableStructures';
 import { constructionStatesCodec, playerAgesCodec, playerCivilizationsCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
 import {
   movementEntitlement,
@@ -44,9 +45,7 @@ export interface TransformOpsDeps {
   mapHeight: number;
   worldOccupancy: WorldOccupancy;
   tiles: number[][];
-  // Phase 2D: constructionStates migrated to world.state.aoe2.* via accessor.
-  // The factory's other slot reads were already on the accessor side, so we
-  // can drop the bridgeState dep entirely here.
+  // Phase 2D: every slot this factory reads is on the accessor; no bridgeState dep.
   accessor: import('./bridgeStateAccessor').BridgeStateAccessor;
   unitAttackFeed: UnitAttackFeedRuntime;
   isBootstrappingScenario: () => boolean;
@@ -163,7 +162,7 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     if (building) {
       const construction = accessor.get(constructionStatesCodec).get(entity);
       const footprint = construction ?? buildingFootprint(building.buildingType);
-      worldOccupancy.syncBuilding(entity, position, footprint);
+      worldOccupancy.syncBuilding(entity, position, footprint, structureClaimKind(building.buildingType));
       return;
     }
 

@@ -219,8 +219,12 @@ export function createDropOffWalkFields(deps: DropOffWalkFieldDeps): DropOffWalk
     }
 
     // A gatherer stands on one of the four cells beside its node, so the
-    // node's haul is the best of those four. The node's own cell is blocked
-    // by the node and is never read.
+    // node's haul is the best of those four. The node's own cell is never
+    // read: a tree, bush or mine blocks it, and a farm — walkable ground since
+    // farms became 'farm' claims (passableStructures.ts), so the search above
+    // flows THROUGH a block of farms and an inner farm has a finite haul — is
+    // still worked from beside it; the farmer's stance is approachOrdering's
+    // question, not this field's.
     const bestNeighbourIndex = (position: Position): number => {
       let best = NO_SOURCE;
       let bestDistance = Number.POSITIVE_INFINITY;

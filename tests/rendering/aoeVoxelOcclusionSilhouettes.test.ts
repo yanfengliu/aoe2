@@ -305,6 +305,31 @@ describe('computeOcclusionSilhouettes', () => {
     expect(result.occluded).toEqual([]);
   });
 
+  it('never cues a unit standing ON a farm cell (farms are walkable ground)', () => {
+    // Farms are walkable (2026-09-08), so a unit can stand on the field
+    // itself. A 1x1 farm's max footprint-corner depth (x + y) equals the depth
+    // of a unit on that very cell, and `isCovered` requires the occluder to be
+    // strictly deeper — a farmer on the field is never ghosted by it.
+    const farm = overlay(view({
+      id: 40,
+      generation: 1,
+      kind: 'building',
+      layer: 'building',
+      entityType: 'farm',
+      owner: 1,
+      x: 8,
+      y: 8,
+      tint: 0x3f6fd0,
+      footprintWidth: 1,
+      footprintHeight: 1,
+      currentHp: 480,
+      maxHp: 480,
+    }));
+    const result = computeOcclusionSilhouettes([villager(7, 8, 8), farm]);
+    expect(result.occluded).toEqual([]);
+    expect(result.parts).toEqual([]);
+  });
+
   it('never cues builders beside a construction site (knee-high framing cannot cover a body)', () => {
     // Review iter-1 MED: foundation slab + wall course + scaffold rails fired
     // the full-body cue on the sim's own north-row approach cells.

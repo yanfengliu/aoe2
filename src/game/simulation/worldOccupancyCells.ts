@@ -45,6 +45,19 @@ export const UNIT_OCCUPANCY_SLOTS: ReadonlyArray<SubcellSlotOffset> = [
   { x: 0.75, y: 0.75 },
 ];
 
+/** The claim kinds that make a cell impassable to everything, as opposed to
+ *  merely crowded. Listed ONCE: spawn passability, wildlife passability, the
+ *  spiral search and the group allocator all read this (they were four copies;
+ *  the allocators kept theirs after the other three were unified). A 'farm'
+ *  claim is deliberately NOT here — this list is the one place movement and
+ *  placement diverge. `isPlacementBlocked` counts every claim, so a farm still
+ *  refuses further building, while every land unit walks and spawns across it
+ *  (`passableStructures.ts` says why it has to be a claim kind). */
+export const blocksWholeCell = (claim: OccupancyCellClaim): boolean => (
+  claim.kind === 'bounds' || claim.kind === 'terrain'
+  || claim.kind === 'building' || claim.kind === 'resource'
+);
+
 export function positionKey(x: number, y: number): string {
   return `${x},${y}`;
 }

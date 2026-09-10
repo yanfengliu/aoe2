@@ -443,6 +443,16 @@ export interface SimulationDebugSnapshot {
    *  and the wall time the fills took — the feature's OWN timer, which is what
    *  a cost claim has to rest on. Absent on a bridge with none wired. */
   builderReach?: { computed: number; served: number; computeMs: number };
+  /** The AI site search's cost and refusals (aiSitePlacement.ts): how many
+   *  seal-guard floods it ran, how many open anchors the guard refused for
+   *  severing ground, how many searches found no site at all, and the wall
+   *  time spent — the search's OWN timer. Absent on a bridge with none wired. */
+  aiSitePlacement?: {
+    floods: number;
+    refusedByGuard: number;
+    nullSearches: number;
+    computeMs: number;
+  };
 }
 
 export type WinCondition = 'conquest' | 'wonder' | 'relic' | 'score';

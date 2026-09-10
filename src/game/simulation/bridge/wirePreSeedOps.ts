@@ -21,6 +21,7 @@ import {
   type BuilderReachabilityStats,
 } from './builderReachability';
 import { createDebugSnapshotOps } from './debugSnapshotOps';
+import type { PlacementSearchStats } from './placementSearch';
 import { createTransformOps } from './transformOps';
 import { createMovementPlanOps } from './movementPlanOps';
 import { createDropOffWalkFields, type DropOffWalkFieldStats } from './dropOffWalkField';
@@ -98,11 +99,18 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
   // snapshot reads its statistics through this cell.
   let walkFieldStats: DropOffWalkFieldStats | null = null;
   let builderReachStats: BuilderReachabilityStats | null = null;
+  // The AI site search is wired after the scenario is seeded (wirePostSeedOps),
+  // so it hands its counters back through this setter.
+  let aiSitePlacementStats: PlacementSearchStats | null = null;
+  const setAiSitePlacementStats = (stats: PlacementSearchStats): void => {
+    aiSitePlacementStats = stats;
+  };
   const { getDebugSnapshot } = createDebugSnapshotOps({
     world,
     accessor,
     walkFieldStats: () => walkFieldStats,
     builderReachStats: () => builderReachStats,
+    aiSitePlacementStats: () => aiSitePlacementStats,
   });
 
   const matchEndOps = createMatchEndOps({
@@ -318,6 +326,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     getFogMemoryEntities,
     getHumanFogMemorySize,
     getDebugSnapshot,
+    setAiSitePlacementStats,
     matchEndOps,
     getHumanWonderCountdownTicks,
     getHumanRelicCountdownTicks,

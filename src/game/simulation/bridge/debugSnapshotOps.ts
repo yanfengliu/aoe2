@@ -12,6 +12,7 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { aiStatesCodec, unitCommandsCodec } from './bridgeStateSerialize';
 import type { DropOffWalkFieldStats } from './dropOffWalkField';
 import type { BuilderReachabilityStats } from './builderReachability';
+import type { PlacementSearchStats } from './placementSearch';
 
 export interface DebugSnapshotOpsDeps {
   world: GameWorld;
@@ -23,6 +24,9 @@ export interface DebugSnapshotOpsDeps {
   /** The placement-reachability labelling cost, read lazily for the same
    *  reason: it is wired after this snapshot is. */
   builderReachStats?: () => BuilderReachabilityStats | null;
+  /** The AI site search's floods, refusals and cost (aiSitePlacement.ts),
+   *  read lazily because the search is wired after the snapshot is. */
+  aiSitePlacementStats?: () => PlacementSearchStats | null;
 }
 
 export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
@@ -72,6 +76,7 @@ export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
 
     const walkFieldStats = deps.walkFieldStats?.() ?? null;
     const builderReachStats = deps.builderReachStats?.() ?? null;
+    const aiSitePlacementStats = deps.aiSitePlacementStats?.() ?? null;
     return {
       tick: world.tick,
       tickDurationMs: 0,
@@ -81,6 +86,7 @@ export function createDebugSnapshotOps(deps: DebugSnapshotOpsDeps): {
       coarseVsFine,
       ...(walkFieldStats ? { walkFields: { ...walkFieldStats } } : {}),
       ...(builderReachStats ? { builderReach: { ...builderReachStats } } : {}),
+      ...(aiSitePlacementStats ? { aiSitePlacement: { ...aiSitePlacementStats } } : {}),
     };
   }
 

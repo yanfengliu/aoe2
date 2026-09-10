@@ -271,8 +271,10 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       // === 'food'`) routes a food villager to it and the villager stands
       // adjacent (1x1 approach) to gather, exactly like a berry bush. The
       // renderable stays a building renderable (set in addBuildingEntity);
-      // occupancy stays a building blocker (transformOps dispatches on the
-      // `building` component first), so the resource component adds gather
+      // occupancy stays the building's ONE claim — a 'farm' claim, walkable
+      // for every land unit and still refusing further placement
+      // (passableStructures.ts) — because transformOps dispatches on the
+      // `building` component first, so the resource component adds gather
       // semantics WITHOUT a second occupancy claim. `owner` stays null
       // (gatherable-resource convention; the gather system claims it), while
       // `baseOwner` is the builder so the owner-preference gather sort and

@@ -20,14 +20,9 @@ import type {
   VisionSourceComponent,
 } from '../types';
 import { createGarrisonOps } from './garrisonOps';
-import { buildingFootprint, type GameWorld } from './pureHelpers';
-import { findPlacementAnchorNear } from './placementSearch';
-
-/** How far out the AI looks for a building site once nothing inside the
- *  ordinary radius is both open and reachable. Half the two-player map's
- *  width, so a boxed-in base can still expand; only ever reached after the
- *  ordinary search has come back empty. */
-const PACKED_BASE_SEARCH_RADIUS = 24;
+import type { GameWorld } from './pureHelpers';
+import { createAiSitePlacement } from './aiSitePlacement';
+import type { PlacementSearchStats } from './placementSearch';
 import {
   canResearchAt,
   canTrainAt,
@@ -93,12 +88,9 @@ export interface TrainingMarketOpsDeps {
     buildingType?: BuildingType,
     builderIds?: readonly number[],
   ) => boolean;
-  // The three together answer "could a land unit stand here", which is what the
-  // AI's placement connectivity guard needs — it asks about ground rather than
-  // about a particular unit.
-  isTerrainPassableForUnit: (x: number, y: number) => boolean;
-  isCellBlockedByBuilding: (x: number, y: number) => boolean;
-  isCellBlockedByResource: (x: number, y: number) => boolean;
+  // The mover's own passability predicate, which the AI's seal guard walks
+  // about a probe that is no unit (aiSitePlacement.ts).
+  isCellPassableForUnit: (unitId: number, x: number, y: number) => boolean;
   isGarrisonedUnit: (id: number) => boolean;
   clearGathererOrder: (id: number) => void;
   clearUnitCommand: (id: number) => void;
@@ -158,11 +150,14 @@ export interface TrainingMarketOps {
     buildingType: BuildableBuildingType,
     builderIds?: readonly number[],
   ): Position | null;
+  /** The AI site search's own counters (aiSitePlacement.ts). */
+  readonly aiSitePlacementStats: PlacementSearchStats;
 }
 
 export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMarketOps {
   const {
     world,
+    state,
     mapWidth,
     mapHeight,
     marketFeeRate,
@@ -177,9 +172,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     getMarketOptions,
     getBuildOptions,
     isPlacementBlocked,
-    isTerrainPassableForUnit,
-    isCellBlockedByBuilding,
-    isCellBlockedByResource,
+    isCellPassableForUnit,
     isGarrisonedUnit,
     clearGathererOrder,
     clearUnitCommand,
@@ -395,64 +388,11 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     clearGathererOrder, setUnitCommand, markOutOfBandRenderChange,
   });
 
-  function isGroundWalkable(x: number, y: number): boolean {
-    return isTerrainPassableForUnit(x, y)
-      && !isCellBlockedByBuilding(x, y)
-      && !isCellBlockedByResource(x, y);
-  }
-
-  function findBuildPlacementNear(
-    origin: Position,
-    buildingType: BuildableBuildingType,
-    builderIds?: readonly number[],
-  ): Position | null {
-    // Ring-search out to radius 12 (default) so a 4x4 building (market / castle /
-    // wonder) can find a gap past a base's packed inner rings — a radius-6 cap
-    // left the AI unable to ever place one (v0.1.93 FIND). See placementSearch.
-    //
-    // The `isFree` guard is what stops the AI walling ITSELF in: it packed its
-    // buildings into a solid mass ten cells wide on the default map and sealed
-    // its own sheep, boar and forest into a pocket its villagers could not
-    // reach. A gate or wall is excluded from the guard — sealing ground is the
-    // whole point of building one.
-    const sealsDeliberately = buildingType === 'palisade-wall'
-      || buildingType === 'stone-wall'
-      || buildingType === 'palisade-gate'
-      || buildingType === 'stone-gate';
-    const anchor = findPlacementAnchorNear(
-      origin,
-      buildingFootprint(buildingType),
-      mapWidth,
-      mapHeight,
-      // The site the AI PICKS has to satisfy the same reachability rule the
-      // validator applies, or the AI proposes an unreachable site, is refused,
-      // and proposes the same one again: measured at 705 refusals and a seat
-      // left in the Castle Age over the 45,000-tick coverage lab (register
-      // entry 2026-09-06). `isGroundWalkable` above is the neighbouring rule —
-      // do not SEAL ground — and this is the other half: do not build where
-      // you cannot GET.
-      (x, y, w, h) => isPlacementBlocked(x, y, w, h, undefined, builderIds),
-      undefined,
-      sealsDeliberately ? undefined : isGroundWalkable,
-    );
-    if (anchor !== null || builderIds === undefined) return anchor;
-    // Nothing within the ordinary radius that a builder can WALK to. An
-    // established base packs its inner rings solid, so the choice is between
-    // building further out and not building at all — and a site nobody can
-    // reach is the second dressed up as the first (register entry
-    // 2026-09-06: without this the hard AI ran 777 empty site searches per
-    // 10,000 ticks by tick 40,000 and stopped building). Same shape as the
-    // radius-6 -> radius-12 widening above, for the same failure.
-    return findPlacementAnchorNear(
-      origin,
-      buildingFootprint(buildingType),
-      mapWidth,
-      mapHeight,
-      (x, y, w, h) => isPlacementBlocked(x, y, w, h, undefined, builderIds),
-      PACKED_BASE_SEARCH_RADIUS,
-      sealsDeliberately ? undefined : isGroundWalkable,
-    );
-  }
+  // The AI's site search lives in its own module; it shares this file's
+  // placement validator and nothing else.
+  const aiSitePlacement = createAiSitePlacement({
+    state, mapWidth, mapHeight, isPlacementBlocked, isCellPassableForUnit,
+  });
 
   return {
     enqueueTraining,
@@ -461,6 +401,7 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     playerOwnsCompletedMarket,
     ...garrisonOps,
     startConstructionWithBuildersDirect,
-    findBuildPlacementNear,
+    findBuildPlacementNear: aiSitePlacement.findBuildPlacementNear,
+    aiSitePlacementStats: aiSitePlacement.stats,
   };
 }

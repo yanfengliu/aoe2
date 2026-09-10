@@ -1,5 +1,6 @@
-// Self-play CONTENT COVERAGE: how much of the game's content an all-AI match
-// exercises, measured in a match the AI cannot end (spec §15.8).
+// Self-play CONTENT COVERAGE: what an all-AI match the AI cannot end actually
+// exercises, measured per PRODUCER and recorded as a two-way snapshot
+// (spec §15.8).
 //
 // WHY A LAB. On a match that resolves, a winner's variety measures the match's
 // LENGTH, not the AI: under v0.3.205 the boot map ends by conquest at tick
@@ -19,122 +20,118 @@
 // buildings, 18 units and 31 technologies, both seats in the Imperial Age
 // (owner 2 at tick 24,500, owner 1 at 42,500). NONE OF THOSE NUMBERS DESCRIBES
 // THIS TREE. The 2026-09-06 AI fixes took the winning row to 15, 17 and 28 with
-// Imperial reached at ticks 15,500 and 30,250 — see the removal note below and
-// the floor arrays it edited — and the two losing rows have not been
-// re-measured since. The 2026-09-05 numbers stay because the COMPARISON is what
-// justifies the configuration: re-measuring one row of a three-way A/B on a
-// later tree would make the arms differ by more than the variable under test.
+// Imperial reached at ticks 15,500 and 30,250, and the 2026-09-10 AI
+// site-placement and farm-walkability lanes took it to 15, 17 and 29. The two
+// losing rows have not been re-measured since 2026-09-05. Those numbers stay
+// because the COMPARISON is what justifies the configuration: re-measuring one
+// row of a three-way A/B on a later tree would make the arms differ by more
+// than the variable under test.
 //
-// THE CONTRACT IS NAMED. A type that stops being exercised fails by its name,
-// never as a count, because a count of 15 can hide a Castle lost for a second
-// Watch Tower. A legitimate loss is edited out of the floor with its reason in
-// the commit; the gate exists to make the loss visible, not to forbid it.
+// WHY THE NAMED-TECHNOLOGY FLOOR IS GONE (2026-09-10). This gate used to carry
+// three floors of NAMES — buildings, units, technologies that a match had to
+// exercise. The technology floor was green for the wrong reason and went red
+// when the game improved, and the mechanism is the AI's, not the content's.
+// `runProductionPhase` walks a producer's option list and buys the FIRST entry
+// it can pay for, so a named technology asserts that a particular purse existed
+// at a tick that producer happened to be idle. The two most expensive entries
+// on a list are therefore bought only out of a surplus the AI cannot spend on
+// anything else. On `a30af4fa` owner 2 bought `onager-upgrade` (800 food, 500
+// wood) and `heavy-scorpion-upgrade` (1,000 food, 1,100 wood) while holding 7
+// gold — upgrades to an Onager and a Heavy Scorpion it could never train, since
+// both units are priced in gold it did not have. Give the AI gold and it spends
+// it on units instead, those two never get bought, and the floor goes red while
+// coverage goes UP. That is not a coverage claim; it is a reading of how broke
+// the AI was. The register's 2026-09-10 entry carries the whole reconstruction.
 //
-// THE GAP IS PRINTED, not asserted: the difference between this floor and the
+// WHAT REPLACED IT, and why each half is not the thing that broke:
+//   PER PRODUCER, NOT PER NAME. Every building type in the expectation's
+//   `researchProducers` must research at least one technology from ITS OWN
+//   hosted list, and every type in `trainProducers` must field at least one
+//   unit from its own. `capped-ram-upgrade` at the Siege Workshop satisfies
+//   that exactly as `onager-upgrade` would, so the claim survives the AI
+//   choosing differently while still failing the moment a producer goes quiet.
+//   A TWO-WAY SNAPSHOT. The exact censused sets live in
+//   `selfPlayContentCensus.expected.json` and ANY change fails, printing both
+//   directions. A gain costs the same attention as a loss, so the commit that
+//   updates the file has to say which way the AI moved — which is what would
+//   have shown the 2026-09-10 result as one trade ("gained conscription,
+//   plate-mail-armor and plate-barding; lost onager-upgrade and
+//   heavy-scorpion-upgrade") instead of as a bare failure.
+// A LEGITIMATE loss is still edited into the expectation with its reason in the
+// commit; the gate exists to make a move visible, not to forbid one.
+//
+// WHAT THE PRICE-FREE HALF IS. Whether a technology, unit or building can be
+// BOUGHT at all is not measured here and never was. `contentPipelineResearch`,
+// `contentPipelineTraining` and `contentPipelineBuildings` drive every row of
+// `RESEARCH_COSTS`, `TRAINING_COSTS` and `AUTHORITATIVE_BUILDING_FOOTPRINTS`
+// through the real command path with a purse nothing can exhaust. That is where
+// `onager-upgrade` and `heavy-scorpion-upgrade` live now, and no match
+// trajectory can move it.
+//
+// THE GAP IS PRINTED, not asserted: the difference between this census and the
 // game's own content tables is the standing to-do for feature completeness
 // (§16.3), and reading it is the point of running this.
 //
-// BOUND: one seed, one horizon, one configuration. The simulation is
-// deterministic, so the floor is exact on this tree. It says nothing about what
-// the AI does under attack — `aiReachesCastleAge.test.ts` scores that.
+// BOUND — what a green run does NOT prove. One seed, one horizon, one
+// configuration; the simulation is deterministic, so the snapshot is exact on
+// this tree and says nothing about any other. It says nothing about what the AI
+// does under attack — `aiReachesCastleAge.test.ts` scores that. The census
+// counts units the owner HOLDS at a 250-tick sample, not units it trained, so a
+// scenario-seeded starting unit counts toward its producer; and it counts a
+// building type ONCE, so a second Barracks is invisible. `researchProducers`
+// asks for one technology, not for a good one. Several completed buildings
+// research nothing at all in this match — on 2026-09-10 the Market, Mill,
+// Lumber Camp, Mining Camp and Monastery for one or both seats — and the
+// expectation records that silence rather than asserting it away; the register's
+// 2026-09-03 hoarding entry is the open defect underneath it.
 //
-// COST: 194 s alone on a 32-core machine (both economies at 28-40 villagers and
-// 29-42 buildings), the heaviest of the three self-play gates.
+// COST: 194 s alone on a 32-core machine when that was measured on 2026-09-05;
+// 398 s on 2026-09-10 with the three content-pipeline gates running beside it,
+// which is contention rather than a regression — and it is the file the whole
+// four-gate run waits on, since the pipelines finish in 30-59 s. Still the
+// heaviest of the three self-play gates.
+
+import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
 import { AUTHORITATIVE_BUILDING_FOOTPRINTS } from '../../src/game/content/buildingFootprints';
+import {
+  RESEARCHES_BY_BUILDING,
+  TRAINABLE_UNITS_BY_BUILDING,
+} from '../../src/game/simulation/buildingProductionTables';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 import { RESEARCH_COSTS } from '../../src/game/simulation/researchTables';
 import { TRAINABLE_UNIT_TYPES } from '../../src/game/simulation/trainingCosts';
+import type { BuildingType } from '../../src/game/simulation/types';
 
 const HORIZON_TICKS = 45000;
 const SAMPLE_INTERVAL = 250;
+const OWNERS = [1, 2] as const;
+const EXPECTATION_PATH = 'tests/simulation/selfPlayContentCensus.expected.json';
 
-// THE 2026-09-06 REMOVAL — four names came off this floor, and the cause is
-// gold, not reach. Two defects were fixed first, because a floor is only
-// edited after the AI's own failures are: the AI orphaned foundations it had
-// already paid for, and its build order had no affordability fall-through, so
-// one entry it could never buy starved every entry behind it. Those two fixes
-// took the floor's misses from three units and five technologies down to one
-// and three. THESE ARE THAT ONE AND THREE, and they were measured, not argued.
-//
-// THE MEASUREMENT. The boot map's gold is entirely mined out by tick 30,000:
-// 6,263 left in the ground at tick 2,500, zero at 30,000. From there both
-// seats' gold stockpiles are FROZEN — 13 and 7 — for the remaining 15,000
-// ticks. Every removed name is priced in gold: a Mangonel 135 (on 160 wood),
-// and the three Imperial Blacksmith technologies 300, 150 and 200 gold on top
-// of 450, 300 and 350 food. The seats reach the Imperial Age at ticks 15,500
-// and 30,250, so the tier holding three of the four opens as the map empties.
-// A seat holding 7 gold cannot buy a 150-gold technology at any age.
-//
-// THIS IS A DEFERRAL, NOT A WEAKENING, and the floor still proves it: the
-// Imperial tier is reached AND spent in — `blast-furnace`, 275 food and 225
-// gold, stays on this floor and went through, bought while gold still existed.
-// Nothing removed here is unreachable. All four ask for gold at a point in the
-// match where none is left to ask for.
-//
-// THE CONDITION THEY COME BACK ON. The only gold remaining on this map is the
-// Market, and the AI's market planner (`marketActionForAgeUpShortfall`, called
-// from `aiSystemProductionPhase.ts`) has exactly one gate — qualifies for the
-// next age, cannot afford it — so it is dead for both seats from the moment
-// they are Imperial. An AI ending the match on 1,262 food, 441 stone and 7 gold
-// beside its own completed Market is that gap, and it is not a loss of reach
-// here.
-//
-// WHERE IT IS RECORDED. This deferral belongs to the register's 2026-09-06
-// entry ("The AI abandoned foundations it had paid for...", OPEN), which
-// carries these same numbers and says in as many words that it closes when the
-// four names are back on this floor. THE MARKET GAP ITSELF HAS NO ROOT-CAUSE
-// ENTRY OF ITS OWN. The 2026-09-03 entry ("The AI hoards the resource it cannot
-// spend...", OPEN) is the nearest relative and is NOT the same defect: its root
-// cause is demand-blind villager allocation — fixed per-age gather weights in
-// `aiEconomyPlan.ts` that never read the stockpile — which is about which
-// resource the AI GATHERS, not about trading one it already holds. Same
-// symptom, surplus beside starvation; different mechanism, and a fix for either
-// leaves the other standing. WHEN A TRADE COVERS A TECHNOLOGY OR A UNIT AND NOT
-// ONLY AN AGE-UP, PUT THESE FOUR BACK.
-
-/** Measured 2026-09-05 on the boot map under this configuration: the union
- *  over both seats. Every name is a contract; see the header. */
-const BUILDINGS_EXERCISED = [
-  'town-center', 'house', 'barracks', 'mill', 'lumber-camp', 'mining-camp', 'farm',
-  'blacksmith', 'archery-range', 'stable', 'market', 'siege-workshop', 'monastery',
-  'castle', 'watch-tower',
-];
-const UNITS_EXERCISED = [
-  'villager', 'scout', 'militia', 'spearman', 'man-at-arms', 'archer', 'trade-cart',
-  'crossbowman', 'knight', 'light-cavalry', 'pikeman', 'longbowman', 'monk',
-  // `mangonel` (135 gold) removed 2026-09-06 — gold-starved, see above.
-  'battering-ram', 'long-swordsman', 'capped-ram', 'throwing-axeman',
-];
-const TECHNOLOGIES_EXERCISED = [
-  'feudal-age', 'castle-age', 'imperial-age',
-  // The Imperial rung is gone from three of these four upgrade lines —
-  // `bracer`, `plate-mail-armor`, `plate-barding` removed 2026-09-06, all
-  // gold-starved, see above. `blast-furnace` is the same tier and stays.
-  'fletching', 'bodkin-arrow',
-  'forging', 'iron-casting', 'blast-furnace',
-  'scale-mail-armor', 'chain-mail-armor',
-  'scale-barding-armor', 'chain-barding-armor',
-  'padded-archer-armor', 'leather-archer-armor',
-  'horse-collar', 'heavy-plow', 'crop-rotation', 'husbandry', 'squires',
-  'man-at-arms-upgrade', 'long-swordsman-upgrade', 'pikeman-upgrade',
-  'crossbowman-upgrade', 'elite-skirmisher-upgrade', 'light-cavalry-upgrade',
-  'capped-ram-upgrade', 'onager-upgrade', 'heavy-scorpion-upgrade',
-];
-
-interface CoverageCensus {
-  buildings: Set<string>;
-  units: Set<string>;
-  technologies: Set<string>;
-  ages: Record<number, string>;
-  lastTick: number;
-  outcome: string;
+interface OwnerCensus {
+  buildings: string[];
+  units: string[];
+  technologies: string[];
+  /** Completed building types where at least one HOSTED technology was researched. */
+  researchProducers: string[];
+  /** Completed building types where at least one HOSTED unit type was held. */
+  trainProducers: string[];
 }
 
-function playCoverageLab(seed: string): CoverageCensus {
+interface Census {
+  ages: Record<string, string>;
+  byOwner: Record<string, OwnerCensus>;
+  buildings: string[];
+  units: string[];
+  technologies: string[];
+}
+
+const sorted = (values: Iterable<string>): string[] => [...new Set(values)].sort();
+
+function playCoverageLab(seed: string): { census: Census; lastTick: number; outcome: string } {
   const bridge = createSimulationBridge(seed, {
     forceAiForOwners: new Set([HUMAN_PLAYER_ID]),
     disableAiAttacks: true,
@@ -145,8 +142,8 @@ function playCoverageLab(seed: string): CoverageCensus {
     resourcePreset: 'high',
     difficulty: 'hard',
   });
-  const buildings = new Set<string>();
-  const units = new Set<string>();
+  const buildingsByOwner = new Map<number, Set<string>>(OWNERS.map((o) => [o, new Set<string>()]));
+  const unitsByOwner = new Map<number, Set<string>>(OWNERS.map((o) => [o, new Set<string>()]));
   let lastTick = 0;
   for (let tick = 1; tick <= HORIZON_TICKS; tick += 1) {
     bridge.step(100);
@@ -155,57 +152,137 @@ function playCoverageLab(seed: string): CoverageCensus {
     if (tick % SAMPLE_INTERVAL !== 0) continue;
     const state = bridge.getEconomyState();
     for (const building of state.buildings) {
-      if (building.isComplete) buildings.add(building.buildingType);
+      if (building.isComplete) buildingsByOwner.get(building.owner)?.add(building.buildingType);
     }
-    for (const unit of state.units) units.add(unit.unitType);
+    for (const unit of state.units) unitsByOwner.get(unit.owner)?.add(unit.unitType);
   }
-  const technologies = new Set<string>();
-  for (const owner of [1, 2]) {
-    for (const technology of bridge.getResearchedTechnologies(owner)) technologies.add(technology);
+
+  const byOwner: Record<string, OwnerCensus> = {};
+  const ages: Record<string, string> = {};
+  for (const owner of OWNERS) {
+    const buildings = buildingsByOwner.get(owner) ?? new Set<string>();
+    const units = unitsByOwner.get(owner) ?? new Set<string>();
+    const technologies = new Set<string>(bridge.getResearchedTechnologies(owner));
+    const researchProducers: string[] = [];
+    const trainProducers: string[] = [];
+    for (const buildingType of [...buildings].sort()) {
+      const hostedTech = RESEARCHES_BY_BUILDING.get(buildingType as BuildingType) ?? [];
+      if (hostedTech.some((tech) => technologies.has(tech))) researchProducers.push(buildingType);
+      const hostedUnits = TRAINABLE_UNITS_BY_BUILDING.get(buildingType as BuildingType) ?? [];
+      if (hostedUnits.some((unit) => units.has(unit))) trainProducers.push(buildingType);
+    }
+    byOwner[String(owner)] = {
+      buildings: sorted(buildings),
+      units: sorted(units),
+      technologies: sorted(technologies),
+      researchProducers,
+      trainProducers,
+    };
+    ages[String(owner)] = bridge.getEconomyState().ages[owner] ?? 'none';
   }
-  const ages: Record<number, string> = {};
-  for (const owner of [1, 2]) ages[owner] = bridge.getEconomyState().ages[owner] ?? 'none';
-  return { buildings, units, technologies, ages, lastTick, outcome: bridge.getMatchState().outcome };
+  const census: Census = {
+    ages,
+    byOwner,
+    buildings: sorted(OWNERS.flatMap((o) => byOwner[String(o)]!.buildings)),
+    units: sorted(OWNERS.flatMap((o) => byOwner[String(o)]!.units)),
+    technologies: sorted(OWNERS.flatMap((o) => byOwner[String(o)]!.technologies)),
+  };
+  return { census, lastTick, outcome: bridge.getMatchState().outcome };
 }
 
-function missingFrom(floor: readonly string[], exercised: ReadonlySet<string>): string[] {
-  return floor.filter((name) => !exercised.has(name));
+function gap(universe: readonly string[], exercised: readonly string[]): string[] {
+  const seen = new Set(exercised);
+  return universe.filter((name) => !seen.has(name)).sort();
 }
 
-function gap(universe: readonly string[], exercised: ReadonlySet<string>): string[] {
-  return universe.filter((name) => !exercised.has(name)).sort();
+/** Both directions, named — a gain reads as loudly as a loss. */
+function twoWayDiff(what: string, expected: readonly string[], actual: readonly string[]): string {
+  const gained = actual.filter((name) => !expected.includes(name));
+  const lost = expected.filter((name) => !actual.includes(name));
+  if (gained.length === 0 && lost.length === 0) return '';
+  return `${what}: gained [${gained.join(' ') || '—'}] lost [${lost.join(' ') || '—'}]`;
 }
 
 describe('self-play content coverage — the no-attack lab (spec §15.8)', () => {
-  it('exercises every building, unit and technology on the floor, and prints the gap to the content tables', () => {
-    const census = playCoverageLab('aoe2-prototype');
+  it('makes every recorded producer produce, and censuses the match against a two-way snapshot', () => {
+    const expected = JSON.parse(readFileSync(EXPECTATION_PATH, 'utf-8')) as Census;
+    const { census, lastTick, outcome } = playCoverageLab('aoe2-prototype');
+
     const buildingUniverse = Object.keys(AUTHORITATIVE_BUILDING_FOOTPRINTS);
     const unitUniverse = [...TRAINABLE_UNIT_TYPES];
     const technologyUniverse = Object.keys(RESEARCH_COSTS);
     console.log(
-      `COVERAGE aoe2-prototype lab: censused to ${String(census.lastTick)} (${census.outcome}); `
+      `COVERAGE aoe2-prototype lab: censused to ${String(lastTick)} (${outcome}); `
       + `ages ${JSON.stringify(census.ages)}; `
-      + `${String(census.buildings.size)}/${String(buildingUniverse.length)} building types, `
-      + `${String(census.units.size)}/${String(unitUniverse.length)} unit types, `
-      + `${String(census.technologies.size)}/${String(technologyUniverse.length)} technologies`,
+      + `${String(census.buildings.length)}/${String(buildingUniverse.length)} building types, `
+      + `${String(census.units.length)}/${String(unitUniverse.length)} unit types, `
+      + `${String(census.technologies.length)}/${String(technologyUniverse.length)} technologies`,
     );
     console.log(`COVERAGE gap — buildings never built: ${gap(buildingUniverse, census.buildings).join(' ')}`);
     console.log(`COVERAGE gap — units never trained: ${gap(unitUniverse, census.units).join(' ')}`);
     console.log(`COVERAGE gap — technologies never researched: ${gap(technologyUniverse, census.technologies).join(' ')}`);
+    for (const owner of OWNERS) {
+      const seat = census.byOwner[String(owner)]!;
+      console.log(
+        `COVERAGE owner ${String(owner)}: researches at [${seat.researchProducers.join(' ')}], `
+        + `fields units from [${seat.trainProducers.join(' ')}], `
+        + `silent completed buildings [${seat.buildings.filter((b) => !seat.researchProducers.includes(b) && !seat.trainProducers.includes(b)).join(' ')}]`,
+      );
+    }
 
     // The lab's premise, asserted rather than assumed: nothing ended the match,
     // and both seats reached the age where the tree is widest.
-    expect(census.outcome, 'the lab match resolved — attacks and the Wonder and Relic victories are off here, so something else ended it').toBe('running');
-    for (const owner of [1, 2]) {
-      expect(census.ages[owner], `owner ${String(owner)} did not reach the Imperial Age in the lab`).toBe('imperial-age');
+    expect(outcome, 'the lab match resolved — attacks and the Wonder and Relic victories are off here, so something else ended it').toBe('running');
+    for (const owner of OWNERS) {
+      expect(census.ages[String(owner)], `owner ${String(owner)} did not reach the Imperial Age in the lab`).toBe('imperial-age');
     }
 
-    const message = (kind: string, missing: string[]): string =>
-      `${kind} on the coverage floor were never exercised: ${missing.join(', ')}. `
-      + 'Self-play stopped reaching them. Restore the AI\'s reach, or edit them out of the '
-      + 'floor with the reason in the commit — never by making this a count.';
-    expect(missingFrom(BUILDINGS_EXERCISED, census.buildings), message('Buildings', missingFrom(BUILDINGS_EXERCISED, census.buildings))).toEqual([]);
-    expect(missingFrom(UNITS_EXERCISED, census.units), message('Units', missingFrom(UNITS_EXERCISED, census.units))).toEqual([]);
-    expect(missingFrom(TECHNOLOGIES_EXERCISED, census.technologies), message('Technologies', missingFrom(TECHNOLOGIES_EXERCISED, census.technologies))).toEqual([]);
+    // PER PRODUCER: a building the expectation records as producing must
+    // produce something of ITS OWN, whatever the AI's purse happened to allow.
+    for (const owner of OWNERS) {
+      const seat = census.byOwner[String(owner)]!;
+      const want = expected.byOwner[String(owner)]!;
+      for (const buildingType of want.researchProducers) {
+        const hosted = RESEARCHES_BY_BUILDING.get(buildingType as BuildingType) ?? [];
+        const got = hosted.filter((tech) => seat.technologies.includes(tech));
+        expect(
+          got.length,
+          `owner ${String(owner)}'s ${buildingType} researched nothing it hosts. `
+          + `It hosts ${String(hosted.length)} technologies and the seat researched none of them. `
+          + 'This is a producer going quiet, not one technology going missing — any of its own list would do.',
+        ).toBeGreaterThan(0);
+      }
+      for (const buildingType of want.trainProducers) {
+        const hosted = TRAINABLE_UNITS_BY_BUILDING.get(buildingType as BuildingType) ?? [];
+        const got = hosted.filter((unit) => seat.units.includes(unit));
+        expect(
+          got.length,
+          `owner ${String(owner)}'s ${buildingType} fielded no unit it trains. `
+          + `It trains ${String(hosted.length)} unit types and the seat held none of them. `
+          + 'Any of its own list would do.',
+        ).toBeGreaterThan(0);
+      }
+    }
+
+    // TWO-WAY SNAPSHOT: any change at all, in either direction, by name.
+    const diffs: string[] = [];
+    for (const key of ['buildings', 'units', 'technologies'] as const) {
+      const line = twoWayDiff(key, expected[key], census[key]);
+      if (line) diffs.push(line);
+    }
+    for (const owner of OWNERS) {
+      const want = expected.byOwner[String(owner)]!;
+      const got = census.byOwner[String(owner)]!;
+      for (const key of ['buildings', 'units', 'technologies', 'researchProducers', 'trainProducers'] as const) {
+        const line = twoWayDiff(`owner ${String(owner)} ${key}`, want[key], got[key]);
+        if (line) diffs.push(line);
+      }
+    }
+    expect(
+      diffs,
+      `the lab censused a DIFFERENT match than ${EXPECTATION_PATH} records:\n  ${diffs.join('\n  ')}\n`
+      + 'A gain is as much a change as a loss. Re-record the file in the same commit as the change that moved it, '
+      + 'and say in the commit message which way the AI moved and why.',
+    ).toEqual([]);
   }, 1_800_000);
 });

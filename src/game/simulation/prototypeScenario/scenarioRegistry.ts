@@ -12,6 +12,8 @@
 import * as fixtures from '../fixtures';
 // Imported directly, the way the map factories are: the barrel is at its
 // 500-line budget.
+import { createCorridorSealFixture } from '../fixtures/corridorSeal';
+import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from '../fixtures/farmsAreWalkable';
 import { createTrafficContestFixture } from '../fixtures/trafficContest';
 import { createArenaMap } from '../mapGeneration/arenaMap';
 import { createBlackForestMap } from '../mapGeneration/blackForestMap';
@@ -321,6 +323,9 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['dropoff-convoy-fixture', fixtures.createDropOffConvoyFixture],
   ['fog-memory-fixture', fixtures.createFogMemoryFixture],
   ['walled-pocket-fixture', fixtures.createWalledPocketFixture],
+  ['corridor-seal-far-open-fixture', createCorridorSealFixture],
+  ['corridor-seal-no-open-fixture', createCorridorSealFixture],
+  ['corridor-seal-same-decision-fixture', createCorridorSealFixture],
   ['building-footprint-vision-fixture', fixtures.createBuildingFootprintVisionFixture],
   // Slice 11: alternate playable maps. Both share the default
   // two-player layout; only terrain differs.
@@ -346,5 +351,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['slice12-validation-unit-in-building-fixture', fixtures.createScenarioValidationFixture],
   ['slice12-validation-resource-on-building-fixture', fixtures.createScenarioValidationFixture],
   ['slice12-validation-resource-on-resource-fixture', fixtures.createScenarioValidationFixture],
+  ['farms-are-walkable-fixture', createFarmsAreWalkableFixture],
+  ['farmer-on-farm-showcase-fixture', createFarmerOnFarmShowcaseFixture],
   ['traffic-contest-fixture', createTrafficContestFixture],
 ]);

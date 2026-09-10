@@ -35,6 +35,36 @@ describe('createWorldOccupancy', () => {
     expect(occupancy.isPlacementBlocked(3, 3, 1, 1)).toBe(true);
   });
 
+  it('records a farm as ground that refuses placement but admits every unit', () => {
+    // Farms are walkable (2026-09-08): a 'farm' claim is kept on this side
+    // only, so placement still sees it while the engine's sub-cell grid — which
+    // refuses a slot on any engine-claimed cell — has slots to give on it.
+    const occupancy = createWorldOccupancy(8, 8);
+    const revisionBefore = occupancy.structuralRevision();
+    occupancy.syncBuilding(101, { x: 3, y: 3 }, { width: 1, height: 1 }, 'farm');
+    expect(occupancy.structuralRevision(), 'a farm is structural: caches must invalidate').not.toBe(revisionBefore);
+
+    // Placement counts every claim, so nothing may be built on the farm...
+    expect(occupancy.isPlacementBlocked(3, 3, 1, 1)).toBe(true);
+    expect(occupancy.getCellStatus(3, 3).blockedBy.map((claim) => claim.kind)).toEqual(['farm']);
+    // ...while movement, spawn and wildlife read `blocksWholeCell`, which does
+    // not list it: it is not a building blocker and the cell is open ground.
+    expect(occupancy.isCellBlockedByBuilding(3, 3)).toBe(false);
+    expect(occupancy.isCellPassableForSpawn(3, 3)).toBe(true);
+    expect(occupancy.isCellPassableForWildlife(202, 3, 3)).toBe(true);
+    // A unit on the farm holds a REAL slot, not an overflow entry, and the
+    // spiral search offers the farm cell itself.
+    const placed = occupancy.placeUnitForSpawn(303, { x: 3, y: 3 });
+    expect(placed?.placedAt).toEqual({ x: 3, y: 3 });
+    expect(placed?.slotOffset).not.toBeNull();
+    expect(occupancy.findNearestFreeUnitCell(404, { x: 3, y: 3 })).toEqual({ x: 3, y: 3 });
+
+    // Releasing the farm frees the cell for placement again.
+    occupancy.release(303);
+    occupancy.release(101);
+    expect(occupancy.isPlacementBlocked(3, 3, 1, 1)).toBe(false);
+  });
+
   it('releases every cell in a multi-cell building footprint', () => {
     const occupancy = createWorldOccupancy(8, 8);
 

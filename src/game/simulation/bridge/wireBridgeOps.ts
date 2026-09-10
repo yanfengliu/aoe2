@@ -65,7 +65,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     noteMemoryChanged,
     getFogMemoryEntities,
     getHumanFogMemorySize,
-    getDebugSnapshot,
+    getDebugSnapshot, setAiSitePlacementStats,
     matchEndOps,
     getHumanWonderCountdownTicks,
     getHumanRelicCountdownTicks,
@@ -183,7 +183,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getBuildOptions,
     getVisibleResearchOptions,
     researchUnavailableReason, researchUnavailableSummary,
-    findOpenPlacementAnchors,
+    findOpenPlacementAnchors, isCellPassableForUnit, setAiSitePlacementStats,
   });
   const {
     agentOptionsOps,
