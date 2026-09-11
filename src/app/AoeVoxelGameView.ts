@@ -1,5 +1,5 @@
 import { ArmedGroundOrder } from './armedGroundOrder';
-import { clamp, isCameraKey, isEditableTarget } from './voxelGameViewHelpers';
+import { isCameraKey, isEditableTarget, placementGhostCell } from './voxelGameViewHelpers';
 import type { EntityRef, Position } from 'civ-engine';
 import type { ThreeCaptureResult } from 'voxel/three';
 
@@ -104,7 +104,7 @@ export class AoeVoxelGameView {
 
       this.selection = createVoxelSelectionController({
       isActive: () => this.booted && !this.disposed,
-      nowMs: () => this.currentFrameTimeMs,
+      nowMs: () => performance.now(), // input clock; see the dep's own doc
       getBridge: () => this.bridge,
       getDisplayedEntities: () => this.presentation?.displayedEntities() ?? [],
       getVoxelHitEntities: (isoX, isoY, purpose) => (
@@ -117,10 +117,12 @@ export class AoeVoxelGameView {
       getBridge: () => this.bridge,
       getCameraController: () => this.camera,
       getDisplayedEntities: () => this.presentation?.displayedEntities() ?? [],
-      selectEntityAtWorldPosition: (x, y) => this.selectEntityAtWorldPosition(x, y),
-      // Full pass-through (v0.3.102): the old (x, y) wrapper silently dropped
-      // the iso pick and the Alt-garrison flag — live Alt+garrison never
-      // worked and no test crossed this seam.
+      // Full pass-through, BOTH of them: v0.3.102 fixed the context-command
+      // wrapper and left this one two-armed, so a selecting click re-derived the
+      // iso pick from flat ground and hit a villager in front of the Town Centre
+      // only when its idle animation had the body there (2026-09-11).
+      selectEntityAtWorldPosition: (x, y, isoX, isoY) =>
+        this.selectEntityAtWorldPosition(x, y, isoX, isoY),
       issueContextCommandAtWorldPosition: (x, y, isoX, isoY, garrison, forceAttack, queueMove) =>
         this.issueContextCommandAtWorldPosition(x, y, isoX, isoY, garrison, forceAttack, queueMove),
       clearRecentSelectionClicks: () => this.selection.clearRecentSelectionClicks(),
@@ -302,10 +304,10 @@ export class AoeVoxelGameView {
     this.syncFromBridge();
     this.renderer.frame(this.camera.getState(), this.currentFrameTimeMs, 0);
     if (!this.renderer.isInteractionReady()) return false;
-    const iso = isoX === undefined || isoY === undefined
-      ? worldToIso(worldX, worldY)
-      : { x: isoX, y: isoY };
-    return this.selection.selectEntityAtWorldPosition(worldX, worldY, iso.x, iso.y);
+    // Screen point = POINTER; without one, not half of a double-click.
+    const pointer = isoX !== undefined && isoY !== undefined;
+    const iso = pointer ? { x: isoX, y: isoY } : worldToIso(worldX, worldY);
+    return this.selection.selectEntityAtWorldPosition(worldX, worldY, iso.x, iso.y, pointer);
   }
 
   issueContextCommandAtWorldPosition(
@@ -326,15 +328,15 @@ export class AoeVoxelGameView {
   }
 
   getPlacementPreviewState(): PlacementPreviewViewState | null {
-    const selection = this.bridge.getSelectionState();
-    if (!selection.placementMode) return null;
-    const pointer = this.pointer.getPointerState();
-    const iso = this.camera.screenToIso(pointer.x, pointer.y);
-    const cell = isoToWorld(iso.x, iso.y);
-    const map = this.bridge.getMapSize();
-    const cellX = clamp(Math.floor(cell.cellX), 0, map.width - 1);
-    const cellY = clamp(Math.floor(cell.cellY), 0, map.height - 1);
-    const preview = this.bridge.getPlacementPreview(cellX, cellY);
+    if (!this.bridge.getSelectionState().placementMode) return null;
+    // Where the ghost goes, and when there is none: placementGhostCell.
+    const cell = placementGhostCell(
+      this.pointer.getPointerState(),
+      (screenX, screenY) => this.camera.screenToIso(screenX, screenY),
+      this.bridge.getMapSize(),
+    );
+    if (cell === null) return null;
+    const preview = this.bridge.getPlacementPreview(cell.cellX, cell.cellY);
     return preview ? { ...preview } : null;
   }
 

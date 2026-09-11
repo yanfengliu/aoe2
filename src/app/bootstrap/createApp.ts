@@ -38,6 +38,7 @@ import {
 import { createTimelinePanel } from '../../game/replay/TimelinePanel';
 import { createIdleVillagerBell } from '../../ui/hud/idleVillagerBell';
 import { mountReferencePanels } from './referencePanels';
+import { registerEscapeLayerHotkey } from './escapeLayers';
 import { registerDePlayHotkeys } from './dePlayHotkeys';
 import { registerSelectionRecallHotkeys } from './selectionRecallHotkeys';
 import { mountGameAudio } from '../../audio/mountGameAudio';
@@ -323,6 +324,12 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     centerCameraOnWorldPosition: (worldX: number, worldY: number) => {
       view.centerCameraOnWorldPosition(worldX, worldY);
     },
+    // Both of these reach the LIVE bridge through `bridgeRef` rather than the
+    // captured `bridge`, because a minimap order or a placement cancel can
+    // arrive after a save-load has swapped it.
+    issueContextCommand: (cellX, cellY) => bridgeRef().issueContextCommand(cellX, cellY),
+    getSelectedEntityRefs: () => bridgeRef().getSelectedEntityRefs(),
+    select: (refs) => { bridgeRef().select(refs); },
     issueAction: (actionType) => bridge.issueAction(actionType),
     setSelectionStance: (stance) => bridge.setSelectionStance(stance),
     setSelectionFormation: (formation: import('../../game/simulation/unitFormation').UnitFormation) =>
@@ -434,21 +441,11 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     hotkeyRegistry, view, pauseControl, replayController,
     getLastHomeAttackPosition: () => gameAudio.getLastHomeAttackPosition(),
   });
-  // v0.1.95: Esc toggles the in-game menu (the ☰ button toggles it too). The
-  // HotkeyRegistry already suppresses keys while a text input is focused. Esc
-  // has prior claimants: in replay mode it EXITS replay, and while a modal
-  // <dialog> (e.g. the replay-load dialog) is open it belongs to that dialog —
-  // yield in both cases so we don't hijack them (the registry is first-match, so
-  // this single registration must arbitrate rather than stack a second handler).
-  hotkeyRegistry.register({ key: 'Escape' }, () => {
-    if (replayController.mode === 'replay') {
-      replayController.exitReplay();
-      return;
-    }
-    if (document.querySelector('dialog[open]')) {
-      return;
-    }
-    hudController.toggleGameMenu();
+  // v0.1.95 / v0.3.223: Esc backs out of whatever is ON TOP, and opens the
+  // in-game menu only when nothing is. The stack, its order and the reasoning
+  // all live in `escapeLayers.ts`.
+  registerEscapeLayerHotkey({
+    hotkeyRegistry, hudController, referencePanels, replayController, getBridge: bridgeRef,
   });
   const replayHotkeys = registerReplayHotkeys({
     hotkeys: hotkeyRegistry,

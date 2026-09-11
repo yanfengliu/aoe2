@@ -158,6 +158,8 @@ export interface SelectionPanelDeps {
    *  so the card never quotes more than the charge. */
   getConstructionCost?(buildingType: BuildableBuildingType): Partial<PlayerResources>;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
+  /** Puts an armed placement away again, leaving the builders selected. */
+  cancelBuildingPlacement(): boolean;
 }
 
 export interface SelectionPanelHandle {
@@ -238,6 +240,16 @@ export function createSelectionPanel(
     const selectionIcons = renderSelectionIcons(selectionState, economyState);
     const selectionDetails = renderSelectionDetails(selectionState);
 
+    // The production queue is drawn AFTER the command deck (see the template
+    // below), because as the bar's MIDDLE child — summary, queue, deck, with a
+    // fixed 300px summary and a deck taking what was left — the first card slid
+    // the whole deck right by its own width the instant production started.
+    // Measured at 1600x900 on b929d07d: Ring Town Bell 363 -> 503, Train
+    // Villager 520 -> 660, so a player repeating DE's commonest click put their
+    // next two on the bell and garrisoned their own villagers (play-test
+    // 2026-09-11, `M1-07-queue.png`). Local rule "The HUD holds its shape"
+    // already names "a queue filling up": nothing ahead of the deck may grow on
+    // a simulation event.
     const queueItems = selectionState.queue.length > 0
       ? selectionState.queue
         .map((entry, index) => {
@@ -363,9 +375,9 @@ export function createSelectionPanel(
         ${selectionIcons}
         ${selectionDetails}
       </div>
-      ${queueItems ? `<div class="hud-queue-list" data-selection-queue-list>${queueItems}</div>` : ''}
       ${placementOutsideDeck}
       ${commandGroups ? `<div class="hud-command-deck" data-command-deck>${commandGroups}</div>` : ''}
+      ${queueItems ? `<div class="hud-queue-list" data-selection-queue-list>${queueItems}</div>` : ''}
     `;
 
     el.querySelectorAll<HTMLButtonElement>('[data-command^="train-"]').forEach((button) => {
@@ -442,6 +454,13 @@ export function createSelectionPanel(
         return;
       }
       button.addEventListener('click', () => {
+        // A second click on the card that armed it puts it away again — DE's
+        // own toggle, and one of the three ways out of placement mode this
+        // panel had none of before v0.3.223.
+        if (selectionState.placementMode === buildingType) {
+          deps.cancelBuildingPlacement();
+          return;
+        }
         deps.beginBuildingPlacement(buildingType);
       });
     });

@@ -121,6 +121,7 @@ describe('villager build palette', () => {
     sendTribute: vi.fn(() => true),
     getTributeTargets: vi.fn(() => ({ owners: [2], feeRate: 0.3 })),
       beginBuildingPlacement,
+      cancelBuildingPlacement: vi.fn(() => true),
     });
     const selection = villagerSelection();
 
@@ -181,6 +182,7 @@ describe('villager build palette', () => {
       sendTribute: vi.fn(() => true),
       getTributeTargets: vi.fn(() => ({ owners: [], feeRate: 0 })),
       beginBuildingPlacement: vi.fn(() => true),
+      cancelBuildingPlacement: vi.fn(() => true),
     });
 
     panel.update(villagerSelection({ placementMode: 'house' }), READY_RESOURCES);

@@ -235,6 +235,14 @@ export function createVoxelPointerInputController(
     const cellY = clamp(Math.floor(cell.y), 0, map.height - 1);
     if (deps.getBridge().getSelectionState().placementMode) {
       deps.clearRecentSelectionClicks();
+      // A click OUTSIDE the map spends nothing. The ghost stops at the map's
+      // edge (`placementGhostCell`), so clamping the confirm to the nearest
+      // edge cell would put a foundation somewhere no ghost ever offered —
+      // the preview and the confirm have to read one verdict.
+      if (Math.floor(cell.x) < 0 || Math.floor(cell.y) < 0
+        || Math.floor(cell.x) >= map.width || Math.floor(cell.y) >= map.height) {
+        return;
+      }
       // Shift (v0.3.126): stamp this foundation AND stay in placement mode,
       // queuing the build behind the villager's current site — AoE2's chain.
       deps.getBridge().confirmBuildingPlacement(cellX, cellY, { queue: event.shiftKey });

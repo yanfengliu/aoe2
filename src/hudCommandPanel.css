@@ -145,7 +145,11 @@
   padding-bottom: 0;
 }
 
-/* The deck runs left to right too, with the build palette taking what is left. */
+/* The deck runs left to right too, with the build palette taking what is left.
+   It keeps its shrink: a Blacksmith's card is 2041px of content in a 998px bar
+   and has to compress rather than run off sideways
+   (`command-deck-fits.spec.ts`). What it must not do is absorb the width the
+   PRODUCTION QUEUE takes, which is why the queue below shrinks first. */
 .hud-panel--selection > .hud-command-deck {
   flex: 1 1 auto;
   display: flex;
@@ -158,6 +162,41 @@
      under the panel's border — a card 43/44 in view, which `toBeInViewport`
      sees and a rect check with ±1px slack does not. */
   padding-right: 2px;
+}
+
+/* The production queue is the LAST thing in the bar (see selectionPanel.ts for
+   why), and it is bounded here so that being last is not merely cosmetic. It
+   takes the band's full height and scrolls INSIDE it: a fourth queued villager
+   used to draw past the panel's own bottom edge with nothing to say so
+   (play-test 2026-09-11, `M1-09-queue-overflow.png`), and a card that grows
+   downwards out of a fixed-height band is the vertical form of the same defect
+   the ordering fixes horizontally. `min-height: 0` because a flex item's
+   automatic minimum is its content, which would defeat the overflow. */
+.hud-panel--selection > .hud-queue-list {
+  /* The queue absorbs width changes BEFORE the deck does, and the enormous
+     shrink factor is what says so. Above 1120px the bar's grid column caps at
+     1000px, so a Town Centre card plus a queue card wants 1029 and something
+     has to give: with the two on equal terms the deck took 29px of it and Train
+     Villager moved from x 464 to 458 and lost 6px of width the moment
+     production started (measured 1280x720, 2026-09-11). Flex distributes a
+     deficit by shrink factor TIMES base size, so 546x1 against 126x100000
+     leaves the deck 0.0013px of a 30px deficit — the queue takes all of it, and
+     the deck's own shrink only wakes up once the queue has nothing left to
+     give. The factor is that large for a measured reason: at 1000 the deck's
+     share was 0.129px, and the Research group's button row had 0.078px of
+     slack, so Research Loom wrapped onto a second row the moment production
+     started. A fraction of a pixel is still a button moving 159px. */
+  flex: 0 100000 auto;
+  min-width: 0;
+  align-self: stretch;
+  min-height: 0;
+  /* Cards keep their own height and pack to the TOP of the band. Stretched to
+     fill it, a lone card became a 216px box with "0% complete" adrift in the
+     middle of it. */
+  align-content: start;
+  overflow-y: auto;
+  scrollbar-color: rgba(196, 174, 122, 0.65) rgba(8, 12, 13, 0.35);
+  scrollbar-width: thin;
 }
 
 /* Groups are separated by a hairline rather than by space alone, so the bar

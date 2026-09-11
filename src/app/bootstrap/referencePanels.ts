@@ -20,6 +20,8 @@ interface HotkeyRegistryLike {
 
 interface ReferencePanel {
   open(): void;
+  close(): void;
+  isOpen(): boolean;
   toggle(): void;
   destroy(): void;
 }
@@ -27,6 +29,14 @@ interface ReferencePanel {
 export interface ReferencePanelsHandle {
   /** Tears both panels out of the HUD. */
   dispose(): void;
+  /**
+   * Is either reference panel on screen? They sit OVER the game menu, so the
+   * Escape stack has to see them or the key reaches the layer underneath —
+   * which is exactly what shipped until v0.3.223 (`escapeLayers.ts`).
+   */
+  isAnyOpen(): boolean;
+  /** Closes whichever reference panels are up. Safe when none is. */
+  closeAll(): void;
 }
 
 export function mountReferencePanels(deps: {
@@ -56,5 +66,7 @@ export function mountReferencePanels(deps: {
 
   return {
     dispose: () => { for (const panel of panels) panel.destroy(); },
+    isAnyOpen: () => panels.some((panel) => panel.isOpen()),
+    closeAll: () => { for (const panel of panels) panel.close(); },
   };
 }

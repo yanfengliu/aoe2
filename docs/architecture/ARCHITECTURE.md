@@ -16,7 +16,19 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     there is no separate dev HTTP server. `engineHaltSurface.ts` is the single
     place a stopped match reaches the player: it joins the view's frame-halt
     signal (pushed) to the bridge's `HudState.engineHalted` (polled) and drives
-    one modal, `src/ui/hud/engineHaltNotice.ts`.
+    one modal, `src/ui/hud/engineHaltNotice.ts`. `escapeLayers.ts` (NEW v0.3.223)
+    owns the Escape key: the dismissable layers are an ORDERED list, topmost
+    first — native `<dialog>`, reference panel, game menu, armed building
+    placement, replay — and Escape dismisses the first one that is up, opening
+    the game menu when none is. Adding an overlay is adding a row, and
+    forgetting to is what this file makes visible; it replaces three cases
+    arbitrated inline in `createApp.ts`, which could only see native dialogs and
+    so closed the menu underneath an open technology tree.
+  - `app/cancelBuildingPlacement.ts` (NEW v0.3.223) — disarms a pending building
+    placement through the selection API that already clears it, by re-selecting
+    the CURRENT refs. The bridge exposes no cancel and this is deliberately a
+    view-side round trip rather than a new bridge method; re-selecting the same
+    refs is an identity for everything else, so the builders keep their palette.
   - `app/AoeVoxelGameView.ts` — sole browser world host. Owns the injected
     animation-frame loop, one interactive voxel canvas, bridge replacement,
     resize/fullscreen lifecycle, and composition of renderer-neutral camera,
@@ -259,7 +271,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     display deltas, freezes on pause, and rebases without decrement on a bridge
     swap or replay rewind. AoE semantics remain here rather than entering the
     reusable package.
-  - `ui/` — DOM HUD controller. `ui/hud/` hosts `createHudController.ts` (top-bar + side panels), `hudTemplate.ts` (extracted HTML template), `saveLoadPanel.ts`, `selectionPanel/` (render helpers, command buttons, and — v0.3.187 — `buildPages.ts`/`buildPalette.ts` for DE's two-page command card), `minimap.ts`, etc. `ui/annotation/` hosts the annotation form + marker-list panel (Spec 2 v0.1.5 + replay-mode flips from v0.1.8). `ui/replay/` (NEW v0.1.12) hosts `replayLoadDialog.ts`, the unified `ReplayLoadDialog` modal that consolidates the three replay-load sources (live session, prior session, file import) under a single HUD entry point.
+  - `ui/` — DOM HUD controller. `ui/hud/` hosts `createHudController.ts` (top-bar + side panels), `hudTemplate.ts` (extracted HTML template), `saveLoadPanel.ts`, `selectionPanel/` (render helpers, command buttons, and — v0.3.187 — `buildPages.ts`/`buildPalette.ts` for DE's two-page command card), `minimap.ts`, `minimapInput.ts` (NEW v0.3.223 — both minimap mouse buttons, split out of `createHudController.ts` at 498 of the 500-line ceiling: left pans, right issues the selection's context order at that cell, both through the SAME diamond inversion so neither can act on a cell the other would reject, plus the `contextmenu` suppression the canvas's own `preventDefault` does not reach), etc. `ui/annotation/` hosts the annotation form + marker-list panel (Spec 2 v0.1.5 + replay-mode flips from v0.1.8). `ui/replay/` (NEW v0.1.12) hosts `replayLoadDialog.ts`, the unified `ReplayLoadDialog` modal that consolidates the three replay-load sources (live session, prior session, file import) under a single HUD entry point.
 - `tests/` — Vitest unit/integration tests and Playwright browser tests
 - `scripts/` — content and build scripts
 - `design/` — game design spec, stat CSVs, implementation plan

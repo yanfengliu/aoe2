@@ -32,11 +32,11 @@ import {
 } from './displayNames';
 import {
   drawMinimap,
-  getMinimapLayout,
   minimapCameraSignature,
   minimapContentSignature,
-  minimapToCell,
 } from './minimap';
+import { mountMinimapInput } from './minimapInput';
+import { cancelBuildingPlacement } from '../../app/cancelBuildingPlacement';
 import { createSelectionPanel } from './selectionPanel';
 import { createGameMenu } from './gameMenu';
 
@@ -61,6 +61,9 @@ interface HudBridge {
   getSelectionState(): SelectionState;
   getCameraState(): HudCameraState | null;
   centerCameraOnWorldPosition(worldX: number, worldY: number): void;
+  // v0.3.223: a RIGHT click on the minimap is an order at that cell, the same
+  // meaning the world's right-click has. See minimapInput.ts.
+  issueContextCommand(cellX: number, cellY: number): boolean;
   issueAction(actionType: ActionType): boolean;
   setSelectionStance(stance: UnitStance): boolean;
   setSelectionFormation(formation: UnitFormation): boolean;
@@ -72,6 +75,10 @@ interface HudBridge {
   getConstructionCost: SimulationBridge['getConstructionCost'];
   humanTributeFeeRate(): number;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
+  // v0.3.223: the build card toggles OFF on a second click, which needs the
+  // selection round-trip in cancelBuildingPlacement.ts.
+  getSelectedEntityRefs: SimulationBridge['getSelectedEntityRefs'];
+  select: SimulationBridge['select'];
   // Slice 11: drain the oldest pending rejection for a toast; null when none.
   consumeCommandRejection(): string | null;
   // Slice 11: F2 debug-overlay snapshot, read every frame while it is on.
@@ -116,6 +123,11 @@ export interface HudController {
   // v0.1.95: open/close the in-game menu. createApp binds the Esc key to this
   // through the HotkeyRegistry; the ☰ button is wired inside the controller.
   toggleGameMenu(): void;
+  // v0.3.223: the Escape stack (`escapeLayers.ts`) needs to ask whether the
+  // menu is the topmost layer and to close it WITHOUT toggling — a toggle
+  // reopens it when something above it has already taken the key.
+  isGameMenuOpen(): boolean;
+  closeGameMenu(): void;
   // Spec 2 (annotation-ui v0.1.5) AO-5: expose the toast handle so
   // RecordingService.onPersistenceError can surface IDB failures (quota
   // exceeded, transaction abort) and MarkerListPanel can toast on
@@ -188,7 +200,6 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   let lastMinimapContentSignature = '';
   let lastMinimapCameraSignature = '';
   let latestRenderState: RenderState | null = null;
-  let isMinimapDragActive = false;
 
   // Slice 11: tooltip mechanism — shared tooltip element + pointer/focus
   // event delegation on `root`. Any descendant with a `data-tooltip`
@@ -300,78 +311,18 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
       { owners: bridge.listTributeTargets(), feeRate: bridge.humanTributeFeeRate() }
     ),
     beginBuildingPlacement: (buildingType) => bridge.beginBuildingPlacement(buildingType),
+    cancelBuildingPlacement: () => cancelBuildingPlacement(bridge),
   });
 
   if (minimap) {
-    const handleMinimapPointer = (clientX: number, clientY: number): void => {
-      const frame = latestRenderState?.frame;
-      if (!frame) {
-        return;
-      }
-
-      const layout = getMinimapLayout(minimap, frame);
-      if (!layout) {
-        return;
-      }
-
-      const bounds = minimap.getBoundingClientRect();
-      if (bounds.width <= 0 || bounds.height <= 0) {
-        return;
-      }
-      const canvasScaleX = minimap.width / bounds.width;
-      const canvasScaleY = minimap.height / bounds.height;
-      const localX = (clientX - bounds.left) * canvasScaleX;
-      const localY = (clientY - bounds.top) * canvasScaleY;
-      // Invert the diamond projection to a cell, then reject clicks that land
-      // outside the map diamond (the canvas corners are off-map).
-      const { cellX, cellY } = minimapToCell(localX, localY, layout);
-      if (cellX < 0 || cellX > frame.mapWidth || cellY < 0 || cellY > frame.mapHeight) {
-        return;
-      }
-      // centerCameraOnWorldPosition takes CELL coordinates (it projects to iso
-      // internally).
-      bridge.centerCameraOnWorldPosition(cellX, cellY);
-    };
-
-    const handleTrackedMinimapMouseMove = (event: MouseEvent): void => {
-      if (!isMinimapDragActive) {
-        return;
-      }
-
-      if ((event.buttons & 1) === 0) {
-        isMinimapDragActive = false;
-        return;
-      }
-
-      handleMinimapPointer(event.clientX, event.clientY);
-    };
-
-    const handleTrackedMinimapMouseEnd = (): void => {
-      isMinimapDragActive = false;
-    };
-
-    // M2: named handler so its removal can be registered — the prior inline
-    // arrow could never be removed, leaking a listener on the minimap element
-    // on destroy (test isolation / HMR / future return-to-title).
-    const handleMinimapMouseDown = (event: MouseEvent): void => {
-      if (event.button !== 0) {
-        return;
-      }
-
-      isMinimapDragActive = true;
-      event.preventDefault();
-      handleMinimapPointer(event.clientX, event.clientY);
-    };
-    minimap.addEventListener('mousedown', handleMinimapMouseDown);
-    minimap.addEventListener('mousemove', handleTrackedMinimapMouseMove);
-    window.addEventListener('mousemove', handleTrackedMinimapMouseMove);
-    window.addEventListener('mouseup', handleTrackedMinimapMouseEnd);
-    teardownCallbacks.push(() => {
-      minimap.removeEventListener('mousedown', handleMinimapMouseDown);
-      minimap.removeEventListener('mousemove', handleTrackedMinimapMouseMove);
-      window.removeEventListener('mousemove', handleTrackedMinimapMouseMove);
-      window.removeEventListener('mouseup', handleTrackedMinimapMouseEnd);
+    const minimapInput = mountMinimapInput(minimap, {
+      getRenderState: () => latestRenderState,
+      centerCameraOnWorldPosition: (cellX, cellY) => {
+        bridge.centerCameraOnWorldPosition(cellX, cellY);
+      },
+      issueContextCommand: (cellX, cellY) => bridge.issueContextCommand(cellX, cellY),
     });
+    teardownCallbacks.push(() => { minimapInput.dispose(); });
   }
 
   let rafHandle: number | null = null;
@@ -470,6 +421,8 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     getDebugOverlayMode: debugOverlayController.getMode,
     cycleDebugOverlayMode: debugOverlayController.cycleMode,
     toggleGameMenu: gameMenu.toggle,
+    isGameMenuOpen: gameMenu.isOpen,
+    closeGameMenu: gameMenu.close,
     toastHandle: { showToast },
     destroy() {
       if (isDestroyed) {

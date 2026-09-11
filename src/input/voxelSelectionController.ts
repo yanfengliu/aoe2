@@ -27,6 +27,18 @@ import {
 
 export interface VoxelSelectionControllerDeps {
   isActive: () => boolean;
+  /**
+   * The INPUT clock, in milliseconds — the only thing the double-click window
+   * is measured against.
+   *
+   * It must not be the RENDER clock. The view used to pass the timestamp of
+   * the last rendered frame, so two clicks 80 ms apart measured 0 ms apart
+   * when one frame covered both and over 300 ms apart when a slow frame fell
+   * between them: the gesture stopped working exactly when the machine was
+   * busy. Measured 2026-09-11 at 1600x900 — identical double-clicks selected
+   * "all 3 villagers" or "the Town Centre behind them" depending only on which
+   * frame was in flight.
+   */
   nowMs: () => number;
   getBridge: () => SimulationBridge;
   // Read fresh so a stale array is never captured across frames.
@@ -50,6 +62,8 @@ export interface VoxelSelectionController {
     worldY: number,
     isoX?: number,
     isoY?: number,
+    /** True when this came from the pointer. See the double-click note below. */
+    isPointerClick?: boolean,
   ): boolean;
   issueContextCommandAtWorldPosition(
     worldX: number,
@@ -76,6 +90,7 @@ export function createVoxelSelectionController(
     worldY: number,
     isoX?: number,
     isoY?: number,
+    isPointerClick = false,
   ): boolean {
     if (!isActive()) {
       return false;
@@ -99,6 +114,27 @@ export function createVoxelSelectionController(
       clearRecentSelectionClicks();
       getBridge().clearSelection();
       return false;
+    }
+
+    // A DOUBLE-click outranks the stacked-entity cycle below, and this order is
+    // the whole fix. Both gestures are "click the same place again", and the
+    // cycle's test is purely positional while the double-click's is a 300 ms
+    // window, so the cycle was taking every fast repeat: double-clicking a
+    // villager standing in front of the Town Centre selected the TOWN CENTRE,
+    // and one standing on a sheep selected the SHEEP (play-test 2026-09-11,
+    // `16-dblclick-villagers.png`). Select-all-of-type is what a DE player
+    // means by two quick clicks; a slower repeat still walks the stack.
+    //
+    // Only a POINTER click can be half of a double-click. A caller that is not
+    // the pointer — `selectEntityAtCell`, and the harness scans built on it —
+    // has no tempo, so it neither claims a double-click nor records one; without
+    // that, a scan firing four selections inside one `page.evaluate` reads as a
+    // 0 ms double-click every time and the stack cycle becomes unreachable.
+    // BOUND: the double-click is therefore only exercised through real pointer
+    // input, which is where `de-command-surface.spec.ts` drives it.
+    if (isPointerClick && trySelectSameTypeOnDoubleClick(clickCellX, clickCellY)) {
+      clearRecentSelectionClicks();
+      return true;
     }
 
     const selectionState = getBridge().getSelectionState();
@@ -159,12 +195,7 @@ export function createVoxelSelectionController(
       return true;
     }
 
-    if (trySelectSameTypeOnDoubleClick(clickCellX, clickCellY)) {
-      clearRecentSelectionClicks();
-      return true;
-    }
-
-    updateRecentFriendlyUnitClick(clickCellX, clickCellY);
+    if (isPointerClick) updateRecentFriendlyUnitClick(clickCellX, clickCellY);
     return true;
   }
 
