@@ -6,7 +6,7 @@ import type { Position } from 'civ-engine';
 import { ownerConstructionCost } from '../ownerCosts';
 import type { BuildableBuildingType, BuildingComponent } from '../../types';
 import { canAfford } from '../../prototypeEconomyRules';
-import { pickNextBuildTarget, shouldPursueWonder } from '../../ai';
+import { blockedBuildTarget, pickNextBuildTarget, shouldPursueWonder } from '../../ai';
 import { matchSettingsCodec, playerResourcesCodec } from '../bridgeStateSerialize';
 import { dropOffAnchorFor } from './dropOffAnchor';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
@@ -187,25 +187,35 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       }
     }
 
+    const farmState = {
+      owned: countOwnedFarms(),
+      villagerCount: countOwnedUnits(owner, 'villager'),
+      // Farms outrank the rest of the build order only while the food is
+      // actually short; a well-fed AI that keeps replacing depleted soil never
+      // reaches the halls it has the resources for.
+      food: stockpile?.food ?? 0,
+    };
+    // The order is a priority list, not a queue: the AI's OWN discounted
+    // price decides what it can start now, so a Castle it can pay for in
+    // stone beats a Siege Workshop it has no wood for. The gate below still
+    // re-prices and re-checks what comes back.
+    const affordable = (buildingType: BuildableBuildingType): boolean =>
+      stockpile !== undefined
+      && canAfford(stockpile, ownerConstructionCost(accessor, owner, buildingType));
     const nextBuild = pickNextBuildTarget(
-      currentAge,
-      missing,
-      populationBlocked,
-      {
-        owned: countOwnedFarms(),
-        villagerCount: countOwnedUnits(owner, 'villager'),
-        // Farms outrank the rest of the build order only while the food is
-        // actually short; a well-fed AI that keeps replacing depleted soil never
-        // reaches the halls it has the resources for.
-        food: stockpile?.food ?? 0,
-      },
-      // The order is a priority list, not a queue: the AI's OWN discounted
-      // price decides what it can start now, so a Castle it can pay for in
-      // stone beats a Siege Workshop it has no wood for. The gate below still
-      // re-prices and re-checks what comes back.
-      (buildingType) => stockpile !== undefined
-        && canAfford(stockpile, ownerConstructionCost(accessor, owner, buildingType)),
+      currentAge, missing, populationBlocked, farmState, affordable,
     );
+    // …and what it is STUCK on, which is a different building whenever a cheap
+    // entry is affordable and a dear one above it is not. The production phase
+    // reads this to aim the Market at the plan rather than at the unit queue;
+    // without it a 60-wood farm is the only thing the build order ever names
+    // while the 200 wood for a Siege Workshop never forms (v0.3.222).
+    const blocked = blockedBuildTarget(
+      currentAge, missing, populationBlocked, farmState, affordable,
+    );
+    ctx.blockedBuildCost = blocked === null
+      ? null
+      : ownerConstructionCost(accessor, owner, blocked);
     if (nextBuild && ongoingBuilds < maxConcurrentBuilds && !wonderPursuit) {
       const builderId = findAvailableVillagerForBuild(owner);
       // A drop-off building exists to shorten a carry, so it belongs beside

@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { pickNextBuildTarget } from '../../src/game/simulation/ai';
+import { blockedBuildTarget, pickNextBuildTarget } from '../../src/game/simulation/ai';
 import type { BuildableBuildingType } from '../../src/game/simulation/types';
 
 const nothingBuilt = () => true;
@@ -127,5 +127,45 @@ describe('AI build order — falls through to what it can pay for', () => {
         owned: 0, villagerCount: 30, food: 100,
       }),
     ).toBe('farm');
+  });
+});
+
+describe('AI build order — what the plan is STUCK on (v0.3.222)', () => {
+  // `pickNextBuildTarget` answers "what do I start now" and `blockedBuildTarget`
+  // answers "what am I waiting for". They are different buildings whenever a
+  // cheap entry is affordable and a dear one above it is not, and that gap is
+  // the whole reason the second exists: measured in the coverage lab, owner 1's
+  // build order read as blocked on a 60-wood FARM in 63 of its samples while the
+  // 200 wood for a Siege Workshop never formed, so nothing in the AI could name
+  // the Siege Workshop as the thing it was short of, and the Market had nothing
+  // to aim at. BOUND: a hand-supplied affordability predicate, like its sibling
+  // above — whether the AI then builds the thing is the coverage lab's question.
+  it('names the dear entry above the cheap one it can pay for', () => {
+    const wants = { owned: 0, villagerCount: 30, food: 100 };
+    const canPayForAFarmOnly = only('farm');
+    expect(pickNextBuildTarget('imperial-age', castleTierMissing, false, wants, canPayForAFarmOnly))
+      .toBe('farm');
+    expect(blockedBuildTarget('imperial-age', castleTierMissing, false, wants, canPayForAFarmOnly))
+      .toBe('siege-workshop');
+  });
+
+  it('is null when the owner can pay for everything it wants', () => {
+    expect(blockedBuildTarget(
+      'castle-age', castleTierMissing, false, { owned: 8, villagerCount: 30, food: 1296 }, nothingBuilt,
+    )).toBeNull();
+  });
+
+  it('is null when it wants nothing at all', () => {
+    expect(blockedBuildTarget(
+      'imperial-age', everythingBuilt, false, { owned: 8, villagerCount: 30, food: 1296 }, everythingBuilt,
+    )).toBeNull();
+  });
+
+  it('names the House a population-blocked owner cannot pay for, and nothing else', () => {
+    // The pop-block branch does not fall through in `pickNextBuildTarget`, so it
+    // must not fall through here either — a blocked owner is waiting for a House
+    // and for nothing else, whatever else it is missing.
+    expect(blockedBuildTarget('castle-age', nothingBuilt, true, null, everythingBuilt)).toBe('house');
+    expect(blockedBuildTarget('castle-age', everythingBuilt, true, null, everythingBuilt)).toBeNull();
   });
 });

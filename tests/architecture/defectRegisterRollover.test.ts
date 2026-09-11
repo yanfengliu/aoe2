@@ -233,7 +233,11 @@ const PINS: ReadonlyArray<{
 }> = [
   { heading: '## 2026-09-05 — A green browser-suite run can leave a headless Chrome burning cores for hours (OPEN)', verdict: 'open', archivable: false, real: true },
   { heading: "## 2026-09-04 — A unit's shadow does not turn when the unit turns (owner-reported, OPEN)", verdict: 'open', archivable: false, real: true },
-  { heading: '## 2026-09-03 — The AI hoards the resource it cannot spend and starves on the one that gates every unit (SUPERSEDED THE SAME DAY as the cause of the empty army — see the unit-line entry below, which is the real one. What is recorded here is still TRUE and still unfixed, but it is not what was stopping the army. OPEN)', verdict: 'open', archivable: false, real: true },
+  // Closed by v0.3.222 and still unarchivable: the marker says FIXED for the
+  // Imperial Age and NOT fixed for the ages below it, so it counts against the
+  // cap and can never leave the active file. It was `verdict: 'open'` until
+  // 2026-09-10 and is the pin set's only real closed-but-PINNED row.
+  { heading: '## 2026-09-03 — The AI hoards the resource it cannot spend and starves on the one that gates every unit (SUPERSEDED THE SAME DAY as the cause of the empty army — see the unit-line entry below. FIXED v0.3.222 IN THE IMPERIAL AGE, where every number in it was measured; the Dark/Feudal/Castle half is deliberately NOT fixed and is restated at the end. The original text below stands unedited.)', verdict: 'closed', archivable: false, real: true },
   { heading: '## 2026-09-03 — A decided match never ends, because the AI can only aim at a Town Center (PARTLY FIXED: 1 of 4 seeds resolved then; 3 of 4 after the 2026-09-04 garrison entry above, OPEN)', verdict: 'open', archivable: false, real: true },
   { heading: "## 2026-08-30 — Gather over-subscription counts EVERY owner's villagers (LATENT, not fixed, OPEN)", verdict: 'open', archivable: false, real: true },
   // The title says OPEN and the marker says otherwise; three real entries share

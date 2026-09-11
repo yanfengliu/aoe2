@@ -158,40 +158,27 @@ const FARM_PRIORITY_FOOD = 500;
 // stockpile and no farms is one raid away from no food income at all.
 const MINIMUM_FARMS = 2;
 
-export function pickNextBuildTarget(
+/**
+ * The owner's build order, in priority order, filtered to what it is still
+ * missing. Split out of `pickNextBuildTarget` (v0.3.222) so the list can be
+ * asked two different questions: what to build NOW, and what the plan is STUCK
+ * on. Those are different buildings whenever a cheap entry is affordable and an
+ * expensive one above it is not — the AI keeps replacing farms while the 200
+ * wood for a Siege Workshop never forms — and the second is what the Market has
+ * to aim at.
+ */
+function buildWants(
   age: AgeType,
   missing: (buildingType: BuildableBuildingType) => boolean,
   populationBlocked: boolean,
-  farms: { owned: number; villagerCount: number; food?: number } | null = null,
-  /**
-   * Whether the owner can pay for this build right now. The order below is a
-   * PRIORITY LIST, not a queue: an AI that cannot afford its first choice
-   * builds the next thing it can, and only falls back to naming the
-   * unaffordable first choice — so it keeps saving — when it can afford none
-   * of them.
-   *
-   * Measured in the coverage lab (register entry 2026-09-06): owner 1 held its
-   * wood between 6 and 127 for the whole Castle Age while a Siege Workshop
-   * costs 200, so the Castle-Age order never got past its first entry — with
-   * 2,506 stone banked and a Castle alone qualifying it for the Imperial Age
-   * (§7.2). It stood in the Castle Age to the horizon and the lab lost its
-   * whole Imperial tier. Defaults to "everything is affordable", which is the
-   * pre-2026-09-06 behaviour exactly.
-   */
-  affordable: (buildingType: BuildableBuildingType) => boolean = () => true,
-): BuildableBuildingType | null {
-  // The first entry the owner can pay for, else the first entry at all: a
-  // broke AI still names what it is saving for, and the caller's own
-  // affordability gate turns that into "build nothing this tick" as before.
-  const choose = (wants: readonly BuildableBuildingType[]): BuildableBuildingType | null =>
-    wants.find(affordable) ?? wants[0] ?? null;
-
+  farms: { owned: number; villagerCount: number; food?: number } | null,
+): readonly BuildableBuildingType[] {
   // Pop block pre-empts everything: no production of any kind can
   // resume until the AI has headroom. A fresh House is the fastest fix, and
   // nothing else is worth starting until the block clears — so this branch
   // does not fall through.
   if (populationBlocked) {
-    return missing('house') ? 'house' : null;
+    return missing('house') ? ['house'] : [];
   }
 
   // Dark-Age priority: barracks first (rush), then mill so the AI has
@@ -206,7 +193,7 @@ export function pickNextBuildTarget(
     // offer a Dark-Age AI a building it cannot place.
     if (missing('lumber-camp')) wants.push('lumber-camp');
     if (missing('mining-camp')) wants.push('mining-camp');
-    return choose(wants);
+    return wants;
   }
 
   // Farms come BEFORE the age-up prerequisite buildings: those cost wood and
@@ -234,7 +221,7 @@ export function pickNextBuildTarget(
 
   if (age === 'feudal-age') {
     if (farmsShort) wants.push('farm');
-    return choose(wants);
+    return wants;
   }
 
   // FU4: Monastery slotted between Siege Workshop and Castle so the
@@ -251,7 +238,60 @@ export function pickNextBuildTarget(
   // this is what keeps a well-fed AI replacing depleted soil instead of
   // building nothing at all.
   if (farmsShort) wants.push('farm');
-  return choose(wants);
+  return wants;
+}
+
+export function pickNextBuildTarget(
+  age: AgeType,
+  missing: (buildingType: BuildableBuildingType) => boolean,
+  populationBlocked: boolean,
+  farms: { owned: number; villagerCount: number; food?: number } | null = null,
+  /**
+   * Whether the owner can pay for this build right now. The order above is a
+   * PRIORITY LIST, not a queue: an AI that cannot afford its first choice
+   * builds the next thing it can, and only falls back to naming the
+   * unaffordable first choice — so it keeps saving — when it can afford none
+   * of them.
+   *
+   * Measured in the coverage lab (register entry 2026-09-06): owner 1 held its
+   * wood between 6 and 127 for the whole Castle Age while a Siege Workshop
+   * costs 200, so the Castle-Age order never got past its first entry — with
+   * 2,506 stone banked and a Castle alone qualifying it for the Imperial Age
+   * (§7.2). It stood in the Castle Age to the horizon and the lab lost its
+   * whole Imperial tier. Defaults to "everything is affordable", which is the
+   * pre-2026-09-06 behaviour exactly.
+   */
+  affordable: (buildingType: BuildableBuildingType) => boolean = () => true,
+): BuildableBuildingType | null {
+  // The first entry the owner can pay for, else the first entry at all: a
+  // broke AI still names what it is saving for, and the caller's own
+  // affordability gate turns that into "build nothing this tick" as before.
+  const wants = buildWants(age, missing, populationBlocked, farms);
+  return wants.find(affordable) ?? wants[0] ?? null;
+}
+
+/**
+ * The highest-priority want the owner CANNOT pay for — what its build plan is
+ * stuck on, as opposed to what `pickNextBuildTarget` will start this tick.
+ *
+ * These are routinely different, and the difference is the defect this was
+ * added for (v0.3.222). An Imperial owner missing a Siege Workshop while its
+ * farms are short walks `['farm', 'siege-workshop', 'monastery']`: the 60-wood
+ * farm is affordable so it is built, again and again, and the 200-wood Siege
+ * Workshop above it is never named by anything. `pickNextBuildTarget` returning
+ * the farm is correct — building nothing would be worse — but it means no
+ * caller could see what the plan was waiting for. Returns null when the owner
+ * can pay for everything it wants, which is the healthy case.
+ */
+export function blockedBuildTarget(
+  age: AgeType,
+  missing: (buildingType: BuildableBuildingType) => boolean,
+  populationBlocked: boolean,
+  farms: { owned: number; villagerCount: number; food?: number } | null,
+  affordable: (buildingType: BuildableBuildingType) => boolean,
+): BuildableBuildingType | null {
+  return buildWants(age, missing, populationBlocked, farms)
+    .find((want) => !affordable(want)) ?? null;
 }
 
 // Given the owner's age + player resources + research prerequisite

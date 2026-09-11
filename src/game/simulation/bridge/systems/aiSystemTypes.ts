@@ -193,4 +193,19 @@ export interface AiOwnerContext {
   pendingResearchByBuilding: Map<number, number>;
   pendingResearchKeys: Set<string>;
   pendingBuildsByOwner: Map<number, number>;
+  /**
+   * What the owner's build order is stuck on this decision tick — the cost of
+   * the highest-priority building it wants and cannot pay for — or null when it
+   * can pay for everything it wants.
+   *
+   * WRITTEN by the building phase, READ by the production phase, which runs
+   * after it on the same context in the same tick. It is a handover rather than
+   * a recomputation because the two phases must agree on the answer: the
+   * production phase would have to rebuild the building phase's `missing`
+   * closure, its farm count and its per-owner discounted prices to ask the same
+   * question, and any drift between the two copies would aim the Market at a
+   * building the AI is not waiting for. Null on a tick the building phase did
+   * not run (the ferry owns it).
+   */
+  blockedBuildCost: Partial<PlayerResources> | null;
 }

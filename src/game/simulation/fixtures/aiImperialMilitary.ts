@@ -42,10 +42,17 @@ export function createAiImperialMilitaryFixture(seed: string): PrototypeScenario
         // Every unit upgrade in the game costs gold except the Onager's and
         // the Capped Ram's, so gold 0 pins the Barracks to its base tier: this
         // owner is offered a Spearman while the Imperial mix asks for a
-        // Halberdier. It cannot buy its way out — stone 0 blocks the Castle,
-        // and the Market cannot make gold in the Imperial age because the
-        // AI's market planning only fires against a next-age cost, of which
-        // there is none. Nothing else in the game trains a Spearman.
+        // Halberdier. Nothing else in the game trains a Spearman.
+        //
+        // CORRECTED v0.3.222. This comment used to add "and the Market cannot
+        // make gold in the Imperial age because the AI's market planning only
+        // fires against a next-age cost, of which there is none" — which was
+        // true when it was written and is the defect
+        // `marketActionForUnaffordableWant` exists to fix. There is no Market
+        // spawned here, so the trap holds anyway; and if the AI ever builds one
+        // out of the 4,000 wood below and trades its way to a Pikeman, the
+        // assertion this fixture serves names the SPEAR LINE, which a Pikeman
+        // satisfies. Stone 0 still blocks the Castle.
         //
         // Food and wood are DELIBERATELY GENEROUS, and an earlier version of
         // this fixture was wrong to squeeze them. It held 600 wood, of which

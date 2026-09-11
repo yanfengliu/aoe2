@@ -44,6 +44,25 @@
 // the deaths this gate is named for happen between ticks 38,793 and 39,191, so
 // a horizon short of ~40,000 scores the half of the match where the economy
 // was still working its own resources and sees nothing.
+//
+// THE BOUND THAT MATTERS MOST IS THE CONFIGURATION, and it is load-bearing
+// rather than theoretical (measured 2026-09-10). This gate plays the DEFAULT
+// bridge options — `{ forceAiForOwners }` and nothing else. The COVERAGE LAB
+// plays the same seed with `resourcePreset: 'high'`, `difficulty: 'hard'`,
+// `victory: 'conquest-only'` and `disableAiAttacks`, and in that configuration
+// this defect is LIVE while this gate is green: owner 2 loses 34 villagers,
+// 21 of them inside owner 1's Castle's reach, at 45,000 ticks on `b929d07d`
+// — seven times the bar here. A richer preset exhausts the map sooner, the
+// gather fallback then accepts a dangerous node as the last thing left, and
+// `disableAiAttacks` removes the raids that would otherwise end the match
+// before the endgame gets there. The AI improvement measured alongside it
+// (v0.3.222, the Imperial surplus trade) takes the same figure to 63, because
+// it grows that economy faster — which is exactly what the 2026-09-02 register
+// entry predicted in its own words, "any economy that grows enough hits this".
+// Covering the lab's configuration here would mean a SECOND 45,000-tick match
+// in `npm test` beside a gate that already costs 159-512 s, so it is recorded
+// as a bound and as an open register entry rather than bought at that price.
+// Do not read this file's green as a statement about the lab.
 
 import { describe, expect, it } from 'vitest';
 

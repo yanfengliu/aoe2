@@ -23,17 +23,19 @@
       ],
       "units": [
         "archer",
-        "battering-ram",
-        "capped-ram",
         "crossbowman",
         "knight",
         "light-cavalry",
+        "long-swordsman",
         "longbowman",
         "man-at-arms",
         "militia",
+        "monk",
+        "pikeman",
         "scout",
         "spearman",
         "trade-cart",
+        "two-handed-swordsman",
         "villager"
       ],
       "technologies": [
@@ -51,11 +53,15 @@
         "iron-casting",
         "leather-archer-armor",
         "light-cavalry-upgrade",
+        "long-swordsman-upgrade",
         "man-at-arms-upgrade",
         "padded-archer-armor",
+        "pikeman-upgrade",
+        "plate-mail-armor",
         "scale-barding-armor",
         "scale-mail-armor",
-        "squires"
+        "squires",
+        "two-handed-swordsman-upgrade"
       ],
       "researchProducers": [
         "archery-range",
@@ -70,7 +76,7 @@
         "barracks",
         "castle",
         "market",
-        "siege-workshop",
+        "monastery",
         "stable",
         "town-center"
       ]
@@ -95,8 +101,7 @@
       ],
       "units": [
         "archer",
-        "battering-ram",
-        "capped-ram",
+        "cavalier",
         "crossbowman",
         "knight",
         "long-swordsman",
@@ -115,12 +120,11 @@
         "bodkin-arrow",
         "capped-ram-upgrade",
         "castle-age",
+        "cavalier-upgrade",
         "chain-barding-armor",
         "chain-mail-armor",
-        "conscription",
         "crop-rotation",
         "crossbowman-upgrade",
-        "elite-skirmisher-upgrade",
         "feudal-age",
         "fletching",
         "forging",
@@ -135,8 +139,6 @@
         "man-at-arms-upgrade",
         "padded-archer-armor",
         "pikeman-upgrade",
-        "plate-barding",
-        "plate-mail-armor",
         "scale-barding-armor",
         "scale-mail-armor",
         "squires"
@@ -145,7 +147,6 @@
         "archery-range",
         "barracks",
         "blacksmith",
-        "castle",
         "mill",
         "siege-workshop",
         "stable",
@@ -157,7 +158,6 @@
         "castle",
         "market",
         "monastery",
-        "siege-workshop",
         "stable",
         "town-center"
       ]
@@ -182,8 +182,7 @@
   ],
   "units": [
     "archer",
-    "battering-ram",
-    "capped-ram",
+    "cavalier",
     "crossbowman",
     "knight",
     "light-cavalry",
@@ -197,6 +196,7 @@
     "spearman",
     "throwing-axeman",
     "trade-cart",
+    "two-handed-swordsman",
     "villager"
   ],
   "technologies": [
@@ -204,12 +204,11 @@
     "bodkin-arrow",
     "capped-ram-upgrade",
     "castle-age",
+    "cavalier-upgrade",
     "chain-barding-armor",
     "chain-mail-armor",
-    "conscription",
     "crop-rotation",
     "crossbowman-upgrade",
-    "elite-skirmisher-upgrade",
     "feudal-age",
     "fletching",
     "forging",
@@ -224,10 +223,10 @@
     "man-at-arms-upgrade",
     "padded-archer-armor",
     "pikeman-upgrade",
-    "plate-barding",
     "plate-mail-armor",
     "scale-barding-armor",
     "scale-mail-armor",
-    "squires"
+    "squires",
+    "two-handed-swordsman-upgrade"
   ]
 }

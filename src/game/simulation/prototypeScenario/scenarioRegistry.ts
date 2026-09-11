@@ -12,6 +12,7 @@
 import * as fixtures from '../fixtures';
 // Imported directly, the way the map factories are: the barrel is at its
 // 500-line budget.
+import { createAiIdleSurplusFixture } from '../fixtures/aiIdleSurplus';
 import { createCorridorSealFixture } from '../fixtures/corridorSeal';
 import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from '../fixtures/farmsAreWalkable';
 import { createTrafficContestFixture } from '../fixtures/trafficContest';
@@ -354,4 +355,5 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['farms-are-walkable-fixture', createFarmsAreWalkableFixture],
   ['farmer-on-farm-showcase-fixture', createFarmerOnFarmShowcaseFixture],
   ['traffic-contest-fixture', createTrafficContestFixture],
+  ['ai-idle-surplus-fixture', createAiIdleSurplusFixture],
 ]);

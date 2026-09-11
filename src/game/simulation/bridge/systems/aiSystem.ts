@@ -193,6 +193,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           pendingResearchByBuilding,
           pendingResearchKeys,
           pendingBuildsByOwner,
+          blockedBuildCost: null,
         };
 
         // Islands (v0.3.95): when the target is across open water, the ferry
