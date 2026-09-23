@@ -6,6 +6,18 @@ Unlike a lesson, an entry stays after it becomes a gate. The register is not a t
 
 **What lives here, and what rolled over.** This file holds the 12 most recent CLOSED entries plus every OPEN one, whatever its age, newest first. Everything older and closed is in [`defect-register-past.md`](defect-register-past.md), moved verbatim. An OPEN entry never rolls over — it leaves this file by being closed, not by ageing, and a heading that says the defect is still live is not a closure however it spells it: "(LATENT, not fixed)", "(PARTLY FIXED: ...)" and "(... still unfixed)" all keep the entry here, and each of those three had been archived once before the gate learned to refuse them. The rollover is done by the task whose new entry pushes this file past 12 closed entries, in that task's own commit, the way the devlog archives its detailed file; never by a later sweep. `tests/architecture/defectRegisterRollover.test.ts` holds all of that. An "entry above" or "entry below" written before the split may name an entry that now lives in the archive, and a rollover can strand a pointer in either direction; the archive's header lists the seven that cross today.
 
+## 2026-09-22 — The browser suite drew every frame on the CPU for five months, on a machine with an RTX 4090 (found by the slowness directive, FIXED and gated)
+
+**Symptom.** `npm run verify` took about 20 minutes, and the browser suite was its slowest part. Found by the slowness directive: the owner's 2026-09-15 canon rule that anything slow on the critical path is a defect.
+
+**Investigation.** The game canvas's own WebGL context reported SwiftShader. `--use-angle=swiftshader` had been in `playwright.config.ts` since 002b7280 with no recorded reason, and every spec passes on either rasteriser, so nothing could notice. `git log -S` shows the flag arrived with `002b7280` on 2026-04-11. That commit first added the browser test harness, so the flag was there from the harness's first day and was never a considered choice: the commit's one-line message, its devlog lines and its README change give no reason, and no commit message before the fix mentions the flag. Dropping the flag is not enough, because the headless shell falls back to SwiftShader on its own. `--use-angle=d3d11` reaches the GPU.
+
+**Measured.** 14-15 fps against 58-59 on the game page; in the fair pair, the full suite went from 1089.2 s to 567.5 s (0.52).
+
+**Checked from now on** by `tests/browser/suite-renders-on-the-gpu.spec.ts` (Windows only, one page per run).
+
+**What a local green now says less about.** Local runs draw at 30-60 fps and CI on SwiftShader, so the slow-frame paths run only on CI.
+
 ## 2026-09-11 — Repeating the commonest click in the game garrisoned the player's own villagers (found by the standing loop, FIXED and gated)
 
 **Symptom, as the player met it.** Select the Town Centre, click Train Villager, click it again, click it again — the tempo every DE player uses to put three villagers in the queue. Only the first click trained anyone. The Town Centre read "1/15 garrisoned", the Orders row grew Ungarrison and Back to Work, and two villagers had walked off their resources and gone inside. Screenshots `tmp/play/2026-09-11/M1-07-queue.png` and `M1-09-queue-overflow.png`.
@@ -161,27 +173,6 @@ With the site-placement lane present, a monk reaches a relic at tick 31,000 (on 
 **Proved by mutation.** (a) `structureClaimKind` returning `'building'` for farms reddens the crossing and the spawn cases and leaves the house control green. (b) returning `'farm'` for houses reddens the control alone. Each reaches its own mechanism and only that one.
 
 **BOUNDS — what a green run does not prove.** ONE map (`farms-are-walkable-fixture`), 1x1 farms, one ordered land unit type (militia) plus one trained villager, COMPLETE farms only — a foundation takes the same claim kind but is not exercised — no water domain, no wildlife, no save/load round trip, a 3,000-tick window per move order and a 600-tick window for the trained villager. Ships, deer, foundations, 3x3 farms and the farmer's own stance are outside it. The Fish Trap is the water analogue of the same question and is deliberately NOT answered: `tests/simulation/fishTrapBlocks.test.ts` pins a trap as a wall to ships, and until a line takes that on it stays a `'building'` claim.
-
-## 2026-09-06 — A camera test that was really a frame-rate test, and a duration budget that its own measurement refused (found by the standing loop, FIXED; the proposed gate is REFUTED)
-
-**Symptom.** `tests/browser/game-hud-and-camera-camera.spec.ts:5` failed on CI and passed on re-run with no code change. It holds the D key for 250 ms and required `scrollX` to grow by more than 40. CI read −333.33 → −298.33, exactly 35.
-
-**Root cause is arithmetic, not luck.** Keyboard pan is `deltaMs / 1000 × 420 / zoom`, and `AoeVoxelGameView.frame` clamps `cameraDeltaMs` to `MAX_CAMERA_FRAME_DELTA_MS` = 100. One rendered frame therefore contributes at most `100/1000 × 420 / 1.2` = **35.00 px** at boot zoom, and the CI number is that figure to the last digit — one clamped frame. Requiring more than 40 required TWO frames inside 250 ms. **It was an eight-frames-per-second requirement written as a camera assertion.** The fix holds the key WHILE the poll runs, releasing it in a `finally`, so the spec measures the camera and not the host.
-
-**The rejected instrument is the more useful half.** The first control tried was CPU throttling at 20x. It would have "proved the defect absent": throttling also delays CDP input handling, so the keyup lands late, the key stays down far longer than the spec intends, and the OLD form covered 175 px and PASSED. The control that actually reproduced CI was frame starvation — replacing `requestAnimationFrame` with a 300 ms `setTimeout` shim, which starves rendering without touching input timing.
-
-**Five more specs had the same defect** and were fixed the same way, plus three that could not tell "held still" from "never rendered" and now wait on `waitForRenderedFrames`. The worst was not the camera: a scroll helper in `playOpening.ts` covered 0.0 px on a starved host and then picked its direction from what amounted to a coin toss.
-
-**The queued lesson asked for a per-spec duration budget. It was built, wired in, proven to fire — and the measurement refused it.** Two full-suite runs, same machine, same bundle, nothing else changed. The five specs closest to their timeouts, as a percentage of budget:
-
-| run | percentages |
-|---|---|
-| 1 | 95 / 59 / 46 / 40 / 39 |
-| 2 | 48 / 47 / 44 / 41 / 38 |
-
-Same tests. One went 28.4 s → 14.3 s, a factor of two; another moved the OTHER way. It is not one load factor scaling everything — it is per-test and it points in both directions. A threshold above the worst observation lands past 100%, which is the timeout that already exists; anything below it goes red because somebody was compiling. **So the budget ships as a REPORT, not a gate**: four lines at the end of every run naming the five specs closest to their timeouts, with `BROWSER_DURATION_BUDGET=0.8` to opt into failing. `tests/browser/helpers/durationBudgetReporter.ts`.
-
-**Bounds.** Two runs on ONE machine; the CI runner's distribution is not measured and may be tighter or looser. The report names the top five only. `patrol-interaction.spec.ts:49` cannot be fixed inside the 30 s timeout without raising it and was deliberately left. `game-combat-and-meta-meta.spec.ts:5` sits at 95% of its budget and was deliberately NOT chunked, because a coarser break check would change what it asserts.
 
 ## 2026-09-06 — The AI abandoned foundations it had paid for, and stalled forever on the first building it could not afford (found by the coverage lab, FIXED, floor deferral recorded, OPEN)
 

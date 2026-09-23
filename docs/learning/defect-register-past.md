@@ -77,6 +77,29 @@ The 2026-09-10 rollover of the v0.3.222/v0.3.223 batch moved SEVEN entries — t
 
 Nothing else in the seven points at a neighbour by position, and nothing else in either file points at one of them by position: the attack-warning-horn entry names the setup-screen fix by VERSION ("v0.3.215 is the setup-screen fix from earlier the same day") and both are here now anyway. Checked rather than assumed. One reference that already crossed before this rollover is left as it was: the active register's "The AI abandoned foundations it had paid for" says "the placement fix in the entry below landed", meaning the v0.3.212 unreachable-placement entry, which reached this file in an earlier rollover.
 
+The 2026-09-22 rollover of "A camera test that was really a frame-rate test, and a duration budget that its own measurement refused" (with the browser-suite rasteriser entry) added NONE: its two "above"/"below" words are ordinary prose about a threshold, not pointers at neighbouring entries, and no entry in either file points at it by position or by name. Checked rather than assumed. The two positional references that sat on either side of it in the active register already pointed into this file and are listed above: the farm entry's "(the entry below)" and the abandoned-foundations entry's "the placement fix in the entry below". It is prepended above the construction-health entry, which is where the two sat in the active register.
+
+## 2026-09-06 — A camera test that was really a frame-rate test, and a duration budget that its own measurement refused (found by the standing loop, FIXED; the proposed gate is REFUTED)
+
+**Symptom.** `tests/browser/game-hud-and-camera-camera.spec.ts:5` failed on CI and passed on re-run with no code change. It holds the D key for 250 ms and required `scrollX` to grow by more than 40. CI read −333.33 → −298.33, exactly 35.
+
+**Root cause is arithmetic, not luck.** Keyboard pan is `deltaMs / 1000 × 420 / zoom`, and `AoeVoxelGameView.frame` clamps `cameraDeltaMs` to `MAX_CAMERA_FRAME_DELTA_MS` = 100. One rendered frame therefore contributes at most `100/1000 × 420 / 1.2` = **35.00 px** at boot zoom, and the CI number is that figure to the last digit — one clamped frame. Requiring more than 40 required TWO frames inside 250 ms. **It was an eight-frames-per-second requirement written as a camera assertion.** The fix holds the key WHILE the poll runs, releasing it in a `finally`, so the spec measures the camera and not the host.
+
+**The rejected instrument is the more useful half.** The first control tried was CPU throttling at 20x. It would have "proved the defect absent": throttling also delays CDP input handling, so the keyup lands late, the key stays down far longer than the spec intends, and the OLD form covered 175 px and PASSED. The control that actually reproduced CI was frame starvation — replacing `requestAnimationFrame` with a 300 ms `setTimeout` shim, which starves rendering without touching input timing.
+
+**Five more specs had the same defect** and were fixed the same way, plus three that could not tell "held still" from "never rendered" and now wait on `waitForRenderedFrames`. The worst was not the camera: a scroll helper in `playOpening.ts` covered 0.0 px on a starved host and then picked its direction from what amounted to a coin toss.
+
+**The queued lesson asked for a per-spec duration budget. It was built, wired in, proven to fire — and the measurement refused it.** Two full-suite runs, same machine, same bundle, nothing else changed. The five specs closest to their timeouts, as a percentage of budget:
+
+| run | percentages |
+|---|---|
+| 1 | 95 / 59 / 46 / 40 / 39 |
+| 2 | 48 / 47 / 44 / 41 / 38 |
+
+Same tests. One went 28.4 s → 14.3 s, a factor of two; another moved the OTHER way. It is not one load factor scaling everything — it is per-test and it points in both directions. A threshold above the worst observation lands past 100%, which is the timeout that already exists; anything below it goes red because somebody was compiling. **So the budget ships as a REPORT, not a gate**: four lines at the end of every run naming the five specs closest to their timeouts, with `BROWSER_DURATION_BUDGET=0.8` to opt into failing. `tests/browser/helpers/durationBudgetReporter.ts`.
+
+**Bounds.** Two runs on ONE machine; the CI runner's distribution is not measured and may be tighter or looser. The report names the top five only. `patrol-interaction.spec.ts:49` cannot be fixed inside the 30 s timeout without raising it and was deliberately left. `game-combat-and-meta-meta.spec.ts:5` sits at 95% of its budget and was deliberately NOT chunked, because a coarser break check would change what it asserts.
+
 ## 2026-09-06 — A building's health bar read FULL while it was still a foundation, so a finished building and a stalled one looked identical (found by the standing loop, FIXED and gated v0.3.220)
 
 **Symptom.** A Mill reading `currentHp: 1000, maxHp: 1000` — a full bar, and 1000 is exactly the Mill's `hit_points` in `design/stats/structures.csv` — while it was still drawn as a foundation, still refused to work, and still counted 0 toward the Feudal advance. The reported observation is that it sat that way for more than 11,600 ticks with nothing on screen saying why.
