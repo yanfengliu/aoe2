@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { rasteriserLaunchArgs } from './tests/browser/helpers/browserRasteriser';
+
 // The suite drives a `vite preview` of THIS checkout's `dist/`. The port is
 // configurable because `reuseExistingServer` makes whichever server already
 // listens on it the system under test: with several worktrees running gates on
@@ -57,8 +59,13 @@ export default defineConfig({
       width: 800,
       height: 600,
     },
+    // The GPU on Windows (ANGLE Direct3D 11), SwiftShader everywhere else —
+    // so CI's command line is what it always was. `--use-angle=swiftshader`
+    // stood here for every platform from 2026-04-11 and drew every spec on the
+    // CPU; the measurements and the reasons are in the helper.
+    // BROWSER_RASTERISER=swiftshader forces the CPU path locally.
     launchOptions: {
-      args: ['--use-angle=swiftshader'],
+      args: rasteriserLaunchArgs(),
     },
   },
   webServer: {
