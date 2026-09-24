@@ -51,7 +51,7 @@ test.describe('voxel world renderer', () => {
     expect(result.worldRect.width).toBeGreaterThan(0);
     expect(result.worldRect.height).toBeGreaterThan(0);
     expect(result.pointerEvents).toBe('auto');
-    // The default style (Natural, v0.3.232) draws AoE's own ground mesh in place
+    // The default style (Natural, v0.3.233) draws AoE's own ground mesh in place
     // of the voxel terrain, so the runtime holds no terrain chunks; Moebius holds
     // the map's twelve 16x16 chunks (60x36 cells).
     const terrainChunks = result.state.ground === 'voxel' ? 12 : 0;

@@ -4,7 +4,7 @@
 // this game: ink contours over flat tone bands. `de` (the menu's "Natural") is
 // the way toward Age of Empires II: Definitive Edition's look: no resolve pass,
 // a filmic tone curve, and its own textured ground. The DE style is the
-// DEFAULT since that ground landed (v0.3.232; the de-look plan's decision D1).
+// DEFAULT since that ground landed (v0.3.233; the de-look plan's decision D1).
 // The owner withdrew the unstyled "Painted" look on 2026-09-03, and step 1's
 // DE frame was that same unstyled render with a better grade, so the default
 // waited until the style looked its own. Moebius stays one menu row away.
@@ -139,7 +139,7 @@ export const MOEBIUS_RESOLVE: StylizedResolveOptions = MOEBIUS;
  * reason.
  *
  * Those figures are the style before its own ground. With the textured ground
- * (v0.3.231) the same mask measures L=111.6, saturation 0.560: the mask reaches
+ * (v0.3.232) the same mask measures L=111.6, saturation 0.560: the mask reaches
  * the rim of vision, which the soft fog edge darkens. Inside the explored area
  * the frame measures L=126.4, saturation 0.523, against 132.2 and 0.489 on the
  * voxel ground.
@@ -183,7 +183,7 @@ export const ART_STYLES: readonly ArtStyle[] = [
   },
 ];
 
-/** The DE style since its textured terrain landed (v0.3.232; the de-look plan,
+/** The DE style since its textured terrain landed (v0.3.233; the de-look plan,
  *  decision D1). Moebius was the default before; this one constant is the whole
  *  flip, and a player's stored choice still wins over it. */
 export const DEFAULT_ART_STYLE_ID: ArtStyleId = 'de';

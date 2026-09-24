@@ -120,7 +120,7 @@ test.describe('art style setting and fog of war', () => {
     await game.waitForRenderedFrames(page, 2);
 
     // The DE style (Natural) is the default since its textured terrain landed
-    // (v0.3.232, decision D1); Moebius is one click on the menu row away.
+    // (v0.3.233, decision D1); Moebius is one click on the menu row away.
     expect(await artStyleDrawn(page)).toBe('de');
     await expectUnexploredGroundHidden(page, 'de');
     const deFrame = await page.evaluate(() => window.__AOE2_TEST__!.captureWorldFrame().dataUrl);
