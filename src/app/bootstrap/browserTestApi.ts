@@ -137,8 +137,6 @@ export interface BrowserTestReplayApi {
   seedPriorSession(): Promise<void>;
 }
 
-
-
 export interface BrowserTestApi {
   isBooted(): boolean;
   getHudState(): HudState;
@@ -179,6 +177,8 @@ export interface BrowserTestApi {
   beginBuildingPlacement(buildingType: import('../../game/simulation/types').BuildableBuildingType): boolean;
   confirmBuildingPlacement(cellX: number, cellY: number): boolean;
   selectEntityAtWorldPosition(worldX: number, worldY: number): boolean;
+  /** What a click at this point would choose from, front first. Selects nothing, draws at most one frame. */
+  getClickStackAtWorldPosition(worldX: number, worldY: number): ReturnType<AoeVoxelGameView['entitiesAtWorldPosition']>;
   selectEntityAtCell(cellX: number, cellY: number): boolean;
   selectOwnedUnitsByTypeInRect(
     unitType: UnitType | 'sheep',
@@ -377,6 +377,7 @@ export function installBrowserTestApi(
       view.syncFromBridge(true);
       return didSelect;
     },
+    getClickStackAtWorldPosition: (worldX: number, worldY: number) => view.entitiesAtWorldPosition(worldX, worldY),
     selectOwnedUnitsByTypeInRect: (unitType, minX, minY, maxX, maxY) => {
       const didSelect = getBridge().selectOwnedUnitsByTypeInRect(unitType, minX, minY, maxX, maxY);
       view.syncFromBridge(true);

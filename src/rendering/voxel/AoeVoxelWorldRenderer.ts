@@ -67,6 +67,10 @@ export interface AoeVoxelRendererState {
   /** The art style the canvas is drawn in. */
   readonly artStyle: ArtStyleId;
   readonly metrics: ThreeRenderMetrics;
+  /** Every call to frame() so far, by the frame loop or by a hit test that had
+   *  to draw first. A call while the context is lost or restoring draws
+   *  nothing; `metrics.frames` counts the frames the runtime committed. */
+  readonly framesDrawn: number;
 }
 
 const TONE_MAPPING: Record<ArtStyle['toneMapping'], ToneMapping> = {
@@ -262,7 +266,7 @@ export class AoeVoxelWorldRenderer {
   }
 
   state(): AoeVoxelRendererState {
-    return { mode: 'voxel', artStyle: this.artStyle.id, metrics: this.runtime.metrics() };
+    return { mode: 'voxel', artStyle: this.artStyle.id, metrics: this.runtime.metrics(), framesDrawn: this.frameIndex };
   }
 
   inspectUnitMotion(identity: string): AoeUnitMotionHistory | null {

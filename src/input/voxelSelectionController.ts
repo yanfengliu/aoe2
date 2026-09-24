@@ -75,6 +75,17 @@ export interface VoxelSelectionController {
     forceAttack?: boolean,
     queueMove?: boolean,
   ): boolean;
+  /**
+   * What a left click at this point would choose from, front first — the
+   * presented bodies under it, then the ground under it — without selecting
+   * anything. The stack `selectEntityAtWorldPosition` cycles through.
+   */
+  entitiesAtWorldPosition(
+    worldX: number,
+    worldY: number,
+    isoX?: number,
+    isoY?: number,
+  ): ProjectedEntityView[];
   clearRecentSelectionClicks(): void;
 }
 
@@ -100,17 +111,7 @@ export function createVoxelSelectionController(
     const map = deps.getBridge().getMapSize();
     const clickCellX = clamp(Math.floor(worldX), 0, map.width - 1);
     const clickCellY = clamp(Math.floor(worldY), 0, map.height - 1);
-    const displayed = getDisplayedEntities();
-    const groundTargets = findEntitiesAtWorldPointInEntities(
-      displayed,
-      worldX * CELL_SIZE,
-      worldY * CELL_SIZE,
-      CELL_SIZE,
-    );
-    const voxelTargets = isoX === undefined || isoY === undefined
-      ? []
-      : deps.getVoxelHitEntities(isoX, isoY, 'selection');
-    const targetEntities = uniqueEntities([...voxelTargets, ...groundTargets]);
+    const targetEntities = entitiesAtWorldPosition(worldX, worldY, isoX, isoY);
     if (targetEntities.length === 0) {
       clearRecentSelectionClicks();
       getBridge().clearSelection();
@@ -209,6 +210,24 @@ export function createVoxelSelectionController(
       ? null
       : friendlyUnitClick(targetEntities[0]!, clickCellX, clickCellY, pointerTimeMs);
     return true;
+  }
+
+  function entitiesAtWorldPosition(
+    worldX: number,
+    worldY: number,
+    isoX?: number,
+    isoY?: number,
+  ): ProjectedEntityView[] {
+    const groundTargets = findEntitiesAtWorldPointInEntities(
+      getDisplayedEntities(),
+      worldX * CELL_SIZE,
+      worldY * CELL_SIZE,
+      CELL_SIZE,
+    );
+    const voxelTargets = isoX === undefined || isoY === undefined
+      ? []
+      : deps.getVoxelHitEntities(isoX, isoY, 'selection');
+    return uniqueEntities([...voxelTargets, ...groundTargets]);
   }
 
   function issueContextCommandAtWorldPosition(
@@ -351,6 +370,7 @@ const EXACT_CLICK_REPEAT_RADIUS_ISO_PX = 4;
   return {
     selectEntityAtWorldPosition,
     issueContextCommandAtWorldPosition,
+    entitiesAtWorldPosition,
     clearRecentSelectionClicks,
   };
 }

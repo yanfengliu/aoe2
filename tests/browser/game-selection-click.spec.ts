@@ -107,6 +107,22 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
     await game.expectSelectionDetail(page, 'inventory', '100 / 100 food remaining');
   });
 
+  // The stack walk, one click at a time, at a point where the militia, the
+  // house and the sheep all answer one click.
+  //
+  // It measures the game and not the host's rasteriser (register 2026-09-24,
+  // "A browser spec on the stacked-entity click cycle failed on CI about one
+  // run in five"). It used to FIND its point by clicking: a reset and up to
+  // four selections at each of about 50 points, every one of which drew a
+  // full frame before it hit-tested. On CI's SwiftShader that queued seconds
+  // of rendering, the page then drew one frame in five seconds, and the
+  // selection panel, which is redrawn only on an animation frame, missed a
+  // five-second check about one run in five. Now the search READS the stack a
+  // click would walk and selects nothing, so it draws at most the one
+  // snapshot that was waiting, which is asserted. Each real click is checked
+  // on the bridge first, which is the game's decision, and then on the panel
+  // two rendered frames later, which is the panel following that decision
+  // however long a frame takes here.
   test('only advances an overlapping exact-click stack at the same presented hit point', async ({
     page,
   }) => {
@@ -125,6 +141,7 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
       if (!militia) {
         return null;
       }
+      const framesBefore = api.getWorldRendererState().framesDrawn;
 
       // Aim at the MIDDLE of the region where all three bodies answer one
       // click, and measure how many screen pixels of room that middle has.
@@ -154,31 +171,34 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
           y: ground.y + (halfSum - halfDifference) / 2,
         };
       };
-      const cycles = (isoX: number, isoY: number): boolean => {
+      // Four clicks here would read militia, house, sheep, militia exactly
+      // when the distinct kind, type and owner groups under the point, front
+      // first, are those three:
+      // the walk visits each distinct kind, type and owner once, in the order
+      // the click stack lists them, and wraps. So this is the four clicks'
+      // verdict, read without selecting anything.
+      let reads = 0;
+      const walksAllThree = (isoX: number, isoY: number): boolean => {
         const point = worldAt(isoX, isoY);
-        api.selectEntityAtWorldPosition(-10, -10);
-        const sequence: Array<string | null> = [];
-        for (let click = 0; click < 4; click += 1) {
-          if (!api.selectEntityAtWorldPosition(point.x, point.y)) break;
-          sequence.push(api.getSnapshot().selectionState.selectedEntityType);
-          // Cheap reject: the cycle can only read militia,house,sheep,militia
-          // if it opens on the militia, so a point that opens on anything else
-          // costs one click instead of four. Same verdict, and it is what
-          // keeps this search inside the test's own timeout.
-          if (click === 0 && sequence[0] !== 'militia') break;
+        reads += 1;
+        const groups: string[] = [];
+        for (const entity of api.getClickStackAtWorldPosition(point.x, point.y)) {
+          const group = `${entity.kind}:${entity.entityType}:${String(entity.owner ?? 'neutral')}`;
+          if (!groups.includes(group)) groups.push(group);
         }
-        return sequence.join(',') === 'militia,house,sheep,militia';
+        return groups.join(',') === 'unit:militia:1,building:house:1,resource:sheep:1';
       };
 
       // Up the militia's body: its voxels are drawn straight up the screen
       // from its ground point, so this crosses the stack from its feet to
-      // above its head. Take the middle of the longest run that cycles.
+      // above its head. Take the middle of the longest run that walks all
+      // three.
       const COLUMN_TOP = -40;
       const COLUMN_STEP = 2;
       let bestRun: { from: number; to: number } | null = null;
       let runStart: number | null = null;
       for (let isoY = 0; isoY >= COLUMN_TOP - COLUMN_STEP; isoY -= COLUMN_STEP) {
-        const ok = isoY >= COLUMN_TOP && cycles(0, isoY);
+        const ok = isoY >= COLUMN_TOP && walksAllThree(0, isoY);
         if (ok && runStart === null) runStart = isoY;
         if (!ok && runStart !== null) {
           const run = { from: runStart, to: isoY + COLUMN_STEP };
@@ -186,14 +206,14 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
           runStart = null;
         }
       }
+      const drawn = (): number => api.getWorldRendererState().framesDrawn - framesBefore;
       if (!bestRun) {
-        api.selectEntityAtWorldPosition(-10, -10);
-        return { ...ground, marginPx: -1, runPx: 0 };
+        return { ...ground, marginPx: -1, runPx: 0, reads, framesDrawn: drawn() };
       }
       const midIsoY = (bestRun.from + bestRun.to) / 2;
 
       // How far off in ANY screen direction the click may be. Eight compass
-      // points per radius, growing until one of them stops cycling.
+      // points per radius, growing until one of them stops walking all three.
       const MAX_MARGIN_PX = 4;
       const COMPASS = 8;
       let marginPx = 0;
@@ -201,21 +221,32 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
         let whole = true;
         for (let point = 0; point < COMPASS && whole; point += 1) {
           const angle = (point / COMPASS) * Math.PI * 2;
-          if (!cycles(Math.cos(angle) * radius, midIsoY + Math.sin(angle) * radius)) whole = false;
+          if (!walksAllThree(Math.cos(angle) * radius, midIsoY + Math.sin(angle) * radius)) whole = false;
         }
         if (!whole) break;
         marginPx = radius;
       }
 
-      api.selectEntityAtWorldPosition(-10, -10);
       return {
         ...worldAt(0, midIsoY),
         marginPx,
         runPx: bestRun.from - bestRun.to,
+        reads,
+        framesDrawn: drawn(),
       };
     });
     expect(stackPoint).not.toBeNull();
     const resolvedStackPoint = stackPoint!;
+    // A hit test draws a frame only when a snapshot is waiting to be drawn,
+    // and reading the stack changes nothing, so the whole search may draw the
+    // one snapshot that pausing left waiting and nothing after it. Every click
+    // and right-click in the game runs the same hit test (spec §14.5, "entity
+    // selection by visible voxel silhouette").
+    expect(
+      resolvedStackPoint.framesDrawn,
+      `reading the click stack at ${resolvedStackPoint.reads} points drew `
+      + `${resolvedStackPoint.framesDrawn} frames: a hit test with nothing waiting to be drawn must draw nothing`,
+    ).toBeLessThanOrEqual(1);
     // The fixture's three bodies are meant to genuinely cover one another, so
     // a player clicking the stack has room to be several pixels off. When they
     // only grazed each other, 4 of the 625 offsets the old scan probed
@@ -231,44 +262,46 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
       + 'line cycles all three at all)',
     ).toBeGreaterThanOrEqual(2);
 
+    // The game's decision first, then the panel naming it two rendered frames
+    // later. The panel is redrawn on every animation frame whose selection
+    // differs from the last one it drew, so two frames is exact, and counting
+    // frames rather than seconds is what keeps a slow host out of the verdict.
+    const expectSelected = async (entityType: string, name: string): Promise<void> => {
+      expect(await page.evaluate(() => window.__AOE2_TEST__!.getSelectionState())).toMatchObject({
+        selectedCount: 1,
+        selectedEntityType: entityType,
+      });
+      // The same five seconds the panel check had before, now as a bound on
+      // two frames arriving rather than on the panel.
+      await game.waitForRenderedFrames(page, 2, 0, 5_000);
+      expect(
+        await page.locator('[data-selection-name]').textContent(),
+        `two rendered frames after the ${entityType} was selected, the selection panel did not name it`,
+      ).toBe(name);
+    };
+    const clickStackPoint = (): Promise<boolean> => page.evaluate(
+      ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtWorldPosition(x, y),
+      resolvedStackPoint,
+    );
+
     expect(
       await page.evaluate(
         () => window.__AOE2_TEST__!.selectEntityAtCell(13, 12),
       ),
     ).toBe(true);
-    await expect(page.locator('[data-selection-name]')).toHaveText('Militia');
+    await expectSelected('militia', 'Militia');
 
-    expect(
-      await page.evaluate(
-        ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtWorldPosition(x, y),
-        resolvedStackPoint,
-      ),
-    ).toBe(true);
-    await expect(page.locator('[data-selection-name]')).toHaveText('Militia');
+    expect(await clickStackPoint()).toBe(true);
+    await expectSelected('militia', 'Militia');
 
-    expect(
-      await page.evaluate(
-        ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtWorldPosition(x, y),
-        resolvedStackPoint,
-      ),
-    ).toBe(true);
-    await expect(page.locator('[data-selection-name]')).toHaveText('House');
+    expect(await clickStackPoint()).toBe(true);
+    await expectSelected('house', 'House');
 
-    expect(
-      await page.evaluate(
-        ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtWorldPosition(x, y),
-        resolvedStackPoint,
-      ),
-    ).toBe(true);
-    await expect(page.locator('[data-selection-name]')).toHaveText('Sheep');
+    expect(await clickStackPoint()).toBe(true);
+    await expectSelected('sheep', 'Sheep');
 
-    expect(
-      await page.evaluate(
-        ({ x, y }) => window.__AOE2_TEST__!.selectEntityAtWorldPosition(x, y),
-        resolvedStackPoint,
-      ),
-    ).toBe(true);
-    await expect(page.locator('[data-selection-name]')).toHaveText('Militia');
+    expect(await clickStackPoint()).toBe(true);
+    await expectSelected('militia', 'Militia');
   });
 
   test('can click the visible body of a moving unit after it has crossed into a new cell', async ({
@@ -302,24 +335,26 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
         ) {
           for (let offsetY = -0.3; offsetY <= 0.3; offsetY += 0.1) {
             for (let offsetX = -0.3; offsetX <= 0.3; offsetX += 0.1) {
-              // A second villager can legitimately cover the root centre. Probe
-              // the moving body's exposed area and reset exact-click cycling
-              // between points so the target must win the current hit test.
-              api.selectEntityAtWorldPosition(-10, -10);
-              const didSelect = api.selectEntityAtWorldPosition(
-                displayed.x + 0.5 + offsetX,
-                displayed.y + 0.5 + offsetY,
-              );
+              // A second villager can legitimately cover the root centre, so
+              // look on the moving body's exposed area for a point where it
+              // is the front of what a click would choose from, and click
+              // there once. Reading the stack selects nothing, so the search
+              // no longer draws a frame per point the way a click per point
+              // did (register, 2026-09-24). The click reads the same stack,
+              // so what this proves is that the moving body is on top
+              // somewhere, and that a click there selects it.
+              const x = displayed.x + 0.5 + offsetX;
+              const y = displayed.y + 0.5 + offsetY;
+              if (api.getClickStackAtWorldPosition(x, y)[0]?.id !== villager.id) continue;
+              const didSelect = api.selectEntityAtWorldPosition(x, y);
               const selectionState = api.getSnapshot().selectionState;
-              if (didSelect && selectionState.selectedEntityId === villager.id) {
-                return {
-                  didSelect,
-                  selectedCount: selectionState.selectedCount,
-                  selectedEntityId: selectionState.selectedEntityId,
-                  villagerId: villager.id,
-                  task: authority.task,
-                };
-              }
+              return {
+                didSelect,
+                selectedCount: selectionState.selectedCount,
+                selectedEntityId: selectionState.selectedEntityId,
+                villagerId: villager.id,
+                task: authority.task,
+              };
             }
           }
         }

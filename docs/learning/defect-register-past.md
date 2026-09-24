@@ -113,6 +113,20 @@ The fourth 2026-09-24 rollover, of "Repeating the commonest click in the game ga
 - Here, "Three defects in the input path ...": all of "the five entries above" in its first paragraph now sit here, directly above it in their original order. The bullets above that call any of them active are out of date and left as written.
 - Neither moved entry says "above" or "below" about a neighbouring entry. The one "below" in them is about the command bar's width.
 
+The fifth 2026-09-24 rollover, of "The browser suite drew every frame on the CPU for five months, on a machine with an RTX 4090" (with the closing of the stacked-click spec entry), added no crossing. Checked rather than assumed: the moved entry says "above" or "below" about no neighbouring entry, and no entry in either file points at it by position.
+
+## 2026-09-22 — The browser suite drew every frame on the CPU for five months, on a machine with an RTX 4090 (found by the slowness directive, FIXED and gated)
+
+**Symptom.** `npm run verify` took about 20 minutes, and the browser suite was its slowest part. Found by the slowness directive: the owner's 2026-09-15 canon rule that anything slow on the critical path is a defect.
+
+**Investigation.** The game canvas's own WebGL context reported SwiftShader. `--use-angle=swiftshader` had been in `playwright.config.ts` since 002b7280 with no recorded reason, and every spec passes on either rasteriser, so nothing could notice. `git log -S` shows the flag arrived with `002b7280` on 2026-04-11. That commit first added the browser test harness, so the flag was there from the harness's first day and was never a considered choice: the commit's one-line message, its devlog lines and its README change give no reason, and no commit message before the fix mentions the flag. Dropping the flag is not enough, because the headless shell falls back to SwiftShader on its own. `--use-angle=d3d11` reaches the GPU.
+
+**Measured.** 14-15 fps against 58-59 on the game page; in the fair pair, the full suite went from 1089.2 s to 567.5 s (0.52).
+
+**Checked from now on** by `tests/browser/suite-renders-on-the-gpu.spec.ts` (Windows only, one page per run).
+
+**What a local green now says less about.** Local runs draw at 30-60 fps and CI on SwiftShader, so the slow-frame paths run only on CI.
+
 ## 2026-09-11 — Repeating the commonest click in the game garrisoned the player's own villagers (found by the standing loop, FIXED and gated)
 
 **Symptom, as the player met it.** Select the Town Centre, click Train Villager, click it again, click it again — the tempo every DE player uses to put three villagers in the queue. Only the first click trained anyone. The Town Centre read "1/15 garrisoned", the Orders row grew Ungarrison and Back to Work, and two villagers had walked off their resources and gone inside. Screenshots `tmp/play/2026-09-11/M1-07-queue.png` and `M1-09-queue-overflow.png`.

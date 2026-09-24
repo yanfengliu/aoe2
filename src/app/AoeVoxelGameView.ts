@@ -147,9 +147,7 @@ export class AoeVoxelGameView {
         return { x: world.cellX, z: world.cellY };
       },
       centerCameraOnWorldPosition: (x, y) => this.camera.centerOnWorldPosition(x, y),
-      present: (entities, simulationDisplayTimeMs, overlays) => {
-        this.renderer.present(entities, simulationDisplayTimeMs, overlays);
-      },
+      present: (entities, displayTimeMs, overlays) => this.renderer.present(entities, displayTimeMs, overlays),
       });
       this.installGlobalListeners();
       globalListenersInstalled = true;
@@ -295,32 +293,33 @@ export class AoeVoxelGameView {
     return this.camera.getScreenPointForCell(cellX, cellY);
   }
 
-  selectEntityAtWorldPosition(
-    worldX: number,
-    worldY: number,
-    isoX?: number,
-    isoY?: number,
-    pointerTimeMs?: number,
-  ): boolean {
-    this.syncFromBridge();
-    this.renderer.frame(this.camera.getState(), this.currentFrameTimeMs, 0);
-    if (!this.renderer.isInteractionReady()) return false;
-    const iso = isoX !== undefined && isoY !== undefined ? { x: isoX, y: isoY } : worldToIso(worldX, worldY);
+  selectEntityAtWorldPosition(worldX: number, worldY: number, isoX?: number, isoY?: number, pointerTimeMs?: number): boolean {
+    const iso = this.hitTestPoint(worldX, worldY, isoX, isoY);
     // Only the pointer passes a click time; without one, not half of a double-click.
-    return this.selection.selectEntityAtWorldPosition(worldX, worldY, iso.x, iso.y, pointerTimeMs);
+    return iso !== null && this.selection.selectEntityAtWorldPosition(worldX, worldY, iso.x, iso.y, pointerTimeMs);
   }
 
   issueContextCommandAtWorldPosition(
     worldX: number, worldY: number, isoX?: number, isoY?: number,
     garrison = false, forceAttack = false, queueMove = false,
   ): boolean {
+    const iso = this.hitTestPoint(worldX, worldY, isoX, isoY);
+    return iso !== null && this.selection.issueContextCommandAtWorldPosition(worldX, worldY, iso.x, iso.y, garrison, forceAttack, queueMove);
+  }
+
+  /** What a left click here would choose from, front first. Selects nothing. */
+  entitiesAtWorldPosition(worldX: number, worldY: number): ReturnType<VoxelSelectionController['entitiesAtWorldPosition']> {
+    const iso = this.hitTestPoint(worldX, worldY);
+    return iso === null ? [] : this.selection.entitiesAtWorldPosition(worldX, worldY, iso.x, iso.y);
+  }
+
+  // A hit test reads the hit state ON SCREEN, so a snapshot still waiting to be drawn is drawn first, and only then:
+  // a frame drawn with nothing waiting is a full render for nothing (register, 2026-09-24).
+  private hitTestPoint(worldX: number, worldY: number, isoX?: number, isoY?: number): { x: number; y: number } | null {
     this.syncFromBridge();
-    this.renderer.frame(this.camera.getState(), this.currentFrameTimeMs, 0);
-    if (!this.renderer.isInteractionReady()) return false;
-    const iso = isoX === undefined || isoY === undefined
-      ? worldToIso(worldX, worldY)
-      : { x: isoX, y: isoY };
-    return this.selection.issueContextCommandAtWorldPosition(worldX, worldY, iso.x, iso.y, garrison, forceAttack, queueMove);
+    if (!this.renderer.isInteractionReady()) this.renderer.frame(this.camera.getState(), this.currentFrameTimeMs, 0);
+    if (!this.renderer.isInteractionReady()) return null;
+    return isoX !== undefined && isoY !== undefined ? { x: isoX, y: isoY } : worldToIso(worldX, worldY);
   }
 
   getSelectionBoxState(): SelectionBoxState | null {
