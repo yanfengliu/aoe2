@@ -198,6 +198,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     world,
     humanPlayerId: HUMAN_PLAYER_ID,
     visibility,
+    accessor,
   });
   const { isVisibleToHuman, isEntityFootprintVisibleToHuman, isEntityVisibleToHuman } =
     visibilityQueries;

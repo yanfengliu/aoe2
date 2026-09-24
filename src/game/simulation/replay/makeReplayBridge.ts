@@ -74,7 +74,7 @@ export function makeReplayBridge(
       api.getWildlifeAlive,
       api.getUnitActiveVerb,
       api.getInFlightProjectiles,
-      () => [],
+      () => api.getSharedVisionOwners(fogOwner),
       (owner) => api.getPlayerCivilization?.(owner),
     ),
     debug: createRenderMetricsCapture(world),
@@ -113,6 +113,9 @@ export function makeReplayBridge(
   const { getRenderState: getRenderStateInternal } = createRenderStateOps({
     visibility: context.visibility,
     humanPlayerId: fogOwner,
+    // The recorded perspective sees what it saw live: its own vision plus
+    // its allies' (humanSight.ts).
+    getSightOwners: () => [fogOwner, ...api.getSharedVisionOwners(fogOwner)],
     renderStore,
     getHumanFogMemorySize:
       fogOwner === HUMAN_PLAYER_ID ? api.getHumanFogMemorySize : () => 0,
@@ -125,7 +128,7 @@ export function makeReplayBridge(
   return {
     // A replay's map is whatever the recorded world was built at.
     getMapSize: () => ({ width: world.grid.width, height: world.grid.height }),
-    getSharedVisionOwners: () => [],
+    getSharedVisionOwners: (owner: number) => api.getSharedVisionOwners(owner),
     getPlayerCivilization: (owner: number) => api.getPlayerCivilization?.(owner) ?? 'Britons',
     getResearchedTechnologies: (owner: number) => api.getResearchedTechnologies?.(owner) ?? [],
     getConstructionCost: (_owner: number, buildingType: import('../types').BuildingType) =>

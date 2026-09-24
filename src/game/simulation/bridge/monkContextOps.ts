@@ -87,6 +87,13 @@ export function createMonkContextOps(deps: MonkContextOpsDeps): MonkContextOps {
         }
         return suppressFallback ? false : setUnitMoveCommandDirect(monkId, targetPosition);
       }
+      // An ALLY's unit is not a conversion target: the click is a walk, as the
+      // ground route and every other unit's right-click treat an ally. Arming
+      // the task only for the applier to abandon it left the Monk standing
+      // (register 2026-09-24: shared sight puts the ally's units on screen).
+      if (!isEnemyOwner(accessor.get(playerTeamsCodec), monkUnit.owner, targetUnit.owner)) {
+        return suppressFallback ? false : setUnitMoveCommandDirect(monkId, targetPosition);
+      }
       return matchesIntendedTask('convert') ? setMonkTask(monkId, 'convert', targetEntityRef) : false;
     }
 

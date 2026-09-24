@@ -1,7 +1,8 @@
 // Visibility queries against the bridge's `VisibilityMap`. Wraps the four
 // "is visible to the human player?" predicates so callers (selection,
 // command resolution, projection) share the same definition of partial
-// footprint visibility for multi-tile buildings.
+// footprint visibility for multi-tile buildings — and of the human's SIGHT,
+// which is its own vision plus its allies' (humanSight.ts).
 
 import { VisibilityMap, type Position } from 'civ-engine';
 import type {
@@ -9,12 +10,15 @@ import type {
   ResourceComponent,
   UnitComponent,
 } from '../types';
-import { buildingFootprint, isFootprintVisible, type GameWorld } from './pureHelpers';
+import { buildingFootprint, type GameWorld } from './pureHelpers';
+import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { isCellSeen, isFootprintSeen, readSightOwners } from './humanSight';
 
 export interface VisibilityQueriesDeps {
   world: GameWorld;
   humanPlayerId: number;
   visibility: VisibilityMap;
+  accessor: BridgeStateAccessor;
 }
 
 export interface VisibilityQueries {
@@ -35,10 +39,11 @@ export interface VisibilityQueries {
 }
 
 export function createVisibilityQueries(deps: VisibilityQueriesDeps): VisibilityQueries {
-  const { world, humanPlayerId, visibility } = deps;
+  const { world, humanPlayerId, visibility, accessor } = deps;
 
   function isVisibleToHuman(position: Position, owner: number | null): boolean {
-    return owner === humanPlayerId || visibility.isVisible(humanPlayerId, position.x, position.y);
+    return owner === humanPlayerId
+      || isCellSeen(visibility, readSightOwners(accessor, humanPlayerId), position.x, position.y);
   }
 
   function isEntityFootprintVisibleToHuman(
@@ -48,9 +53,9 @@ export function createVisibilityQueries(deps: VisibilityQueriesDeps): Visibility
     footprintHeight: number,
   ): boolean {
     if (owner === humanPlayerId) return true;
-    return isFootprintVisible(
+    return isFootprintSeen(
       visibility,
-      humanPlayerId,
+      readSightOwners(accessor, humanPlayerId),
       position.x,
       position.y,
       footprintWidth,

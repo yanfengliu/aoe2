@@ -273,3 +273,36 @@ export function createMonkFogFixture(seed: string): PrototypeScenario {
     ],
   };
 }
+
+// A Monk whose ALLY sees the enemy it cannot (register 2026-09-24). Played
+// with teams 1,1,2. The player-1 Monk at (8, 12) has vision 1, and neither it
+// nor its Town Center sees the owner-3 Villager at (11, 12), three cells away
+// and inside the Monk's conversion range, so the Monk never needs to move.
+// Owner 2's Monk stands on that same cell and is the only eye on it. It is
+// spawned FIRST, so a finder that took the first unit on the cell would hand
+// back the ally rather than the enemy. Monks and villagers start no fights,
+// so the staging holds while the case runs. Owner 2's Villager at (9, 12)
+// stands inside the player-1 Monk's own vision. A ground right-click on the
+// enemy's cell must convert the enemy; a right-click on either ally must not.
+export function createMonkAlliedSightFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 8, y: 8 }, startingAge: 'castle-age' },
+      { owner: 2, townCenter: { x: 40, y: 8 }, startingAge: 'castle-age' },
+      { owner: 3, townCenter: { x: 40, y: 26 }, startingAge: 'castle-age' },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, 8, 8, { vision: 3 }),
+      ownedSpawn('monk', 1, 8, 12, { vision: 1 }),
+      ownedSpawn('villager', 2, 9, 12, { vision: 1 }),
+      ownedSpawn('monk', 2, 11, 12, { vision: 3 }),
+      ownedSpawn('villager', 3, 11, 12, { vision: 1 }),
+      ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
+      ownedSpawn('town-center', 3, 40, 26, { vision: 7 }),
+    ],
+  };
+}

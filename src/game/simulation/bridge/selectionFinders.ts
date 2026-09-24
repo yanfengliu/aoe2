@@ -14,7 +14,10 @@ import {
   constructionStatesCodec,
   wildlifeStatesCodec,
   playerCivilizationsCodec,
+  playerTeamsCodec,
 } from './bridgeStateSerialize';
+import { isEnemyOwner } from '../alliances';
+import { isCellSeen, readSightOwners } from './humanSight';
 
 export interface SelectionFindersDeps {
   world: GameWorld;
@@ -46,6 +49,14 @@ export interface SelectionFinders {
 
 export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFinders {
   const { world, humanPlayerId, visibility, accessor, buildingOccupiesCell } = deps;
+  // A click picks what the human SEES — through its allies' eyes too
+  // (humanSight.ts) — so a target an ally has spotted is a target.
+  const seen = (x: number, y: number): boolean =>
+    isCellSeen(visibility, readSightOwners(accessor, humanPlayerId), x, y);
+  // Hostile means an ENEMY: a right-click that lands on an ally through the
+  // ground route walks there, as the by-entity route already did (v0.3.102).
+  const hostile = (attackerOwner: number, owner: number): boolean =>
+    isEnemyOwner(accessor.get(playerTeamsCodec), attackerOwner, owner);
 
   function findResourceAtCell(x: number, y: number): number | null {
     for (const id of world.query('position', 'resource')) {
@@ -56,7 +67,7 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
         && position.y === y
         && resource
         && resource.amount > 0
-        && visibility.isVisible(humanPlayerId, x, y)
+        && seen(x, y)
       ) {
         return id;
       }
@@ -72,8 +83,8 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
         position?.x === x
         && position.y === y
         && unit
-        && unit.owner !== attackerOwner
-        && visibility.isVisible(humanPlayerId, x, y)
+        && hostile(attackerOwner, unit.owner)
+        && seen(x, y)
       ) {
         return id;
       }
@@ -109,9 +120,9 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
       if (
         position
         && building
-        && building.owner !== attackerOwner
+        && hostile(attackerOwner, building.owner)
         && buildingOccupiesCell(id, x, y)
-        && visibility.isVisible(humanPlayerId, x, y)
+        && seen(x, y)
       ) {
         return id;
       }
@@ -129,7 +140,7 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
         && position.y === y
         && resource
         && wildlife?.isAlive
-        && visibility.isVisible(humanPlayerId, x, y)
+        && seen(x, y)
       ) {
         return id;
       }

@@ -419,8 +419,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   });
 
   registerFogMemorySystem({
-    world,
-    humanPlayerId,
+    world, humanPlayerId, accessor,
     visibility,
     getCivilizationOf: (owner) => accessor.get(playerCivilizationsCodec).get(owner),
     getOrCreateMemoryMap,

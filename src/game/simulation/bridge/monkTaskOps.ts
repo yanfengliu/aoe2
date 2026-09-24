@@ -34,7 +34,10 @@ import {
   combatStatesCodec,
   monkCarriedRelicCodec,
   monkTasksCodec,
+  playerTeamsCodec,
 } from './bridgeStateSerialize';
+import { isEnemyOwner } from '../alliances';
+import { readSightOwners } from './humanSight';
 
 export interface MonkTaskDeps {
   world: GameWorld;
@@ -278,9 +281,9 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   // Buildings other than a friendly Monastery are intentionally skipped —
   // otherwise the Monk would consume the click and short-circuit the
   // convert pass, leaving the Monk with a useless move-fallback (Codex P2
-  // review). Enemy targets are rejected if not currently visible to the
-  // Monk's owner — the player shouldn't be able to convert fog-hidden
-  // enemies. Friendly and owned targets skip the visibility guard (they're
+  // review). Enemy targets are rejected if no owner in the Monk's owner's
+  // sight (itself and its allies) sees them — the player shouldn't be able
+  // to convert fog-hidden enemies. Friendly and owned targets skip the visibility guard (they're
   // the player's own units and always "visible" to them), and relic /
   // Monastery lookups likewise reference owned or world entities that fog
   // memory already surfaces.
@@ -308,18 +311,21 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       return id;
     }
 
-    // Pass 2: enemy unit at this cell (convert) — only if currently visible
-    // to the Monk's owner.
+    // Pass 2: ENEMY unit at this cell (convert) — only if the Monk's owner
+    // sees the cell, through its own eyes or an ally's (humanSight.ts; register
+    // 2026-09-24). An ally's unit is not a conversion target, so the click
+    // falls through to a walk, as it does on the by-entity route.
+    const sight = readSightOwners(accessor, monkOwner);
     for (const id of world.query('position', 'unit')) {
       const position = world.getComponent<Position>(id, 'position');
       const unit = world.getComponent<UnitComponent>(id, 'unit');
       if (!position || !unit || position.x !== x || position.y !== y) {
         continue;
       }
-      if (unit.owner === monkOwner) {
+      if (!isEnemyOwner(accessor.get(playerTeamsCodec), monkOwner, unit.owner)) {
         continue;
       }
-      if (!isVisibleToOwner(monkOwner, x, y)) {
+      if (!sight.some((owner) => isVisibleToOwner(owner, x, y))) {
         continue;
       }
       return id;

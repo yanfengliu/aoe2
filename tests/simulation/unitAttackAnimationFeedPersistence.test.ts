@@ -172,10 +172,10 @@ describe("unit attack animation feed persistence and projection", () => {
       },
     ];
 
-    expect(visibleUnitAttacks(records, currentTick, 1).map((record) => record.label)).toEqual([
+    expect(visibleUnitAttacks(records, currentTick, [1]).map((record) => record.label)).toEqual([
       "visible",
     ]);
-    expect(visibleUnitAttacks(records, currentTick, 2).map((record) => record.label)).toEqual([
+    expect(visibleUnitAttacks(records, currentTick, [2]).map((record) => record.label)).toEqual([
       "visible",
       "fogged",
     ]);
@@ -208,8 +208,8 @@ describe("unit attack animation feed persistence and projection", () => {
     expect(suppressHiddenUnitAttacks(feed, world, visibility)).toBe(true);
     expect(getUnitAttackFeedEntries(feed)[0]?.suppressedFor).toEqual([1]);
     expect(feed.persistenceDirty).toBe(true);
-    expect(indexVisibleUnitAttackAnimations(getUnitAttackFeedEntries(feed), 100, 1).size).toBe(0);
-    expect(indexVisibleUnitAttackAnimations(getUnitAttackFeedEntries(feed), 100, 2).size).toBe(1);
+    expect(indexVisibleUnitAttackAnimations(getUnitAttackFeedEntries(feed), 100, [1]).size).toBe(0);
+    expect(indexVisibleUnitAttackAnimations(getUnitAttackFeedEntries(feed), 100, [2]).size).toBe(1);
 
     feed.persistenceDirty = false;
     expect(suppressHiddenUnitAttacks(feed, world, visibility)).toBe(false);

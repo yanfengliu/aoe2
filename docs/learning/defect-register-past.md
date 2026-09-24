@@ -103,6 +103,25 @@ The second 2026-09-24 rollover, of "Double-click selected the Town Centre behind
 - Here, "Three defects in the input path ...": of "the five entries above" in its first paragraph, the double-click entry now also sits here, directly above the minimap right click; the other three 2026-09-11 entries are still ACTIVE.
 - The moved entry's "see the 2026-09-23 entry" names that entry's date, so it resolves in the active file. Its "below the cycle" is about code, not a neighbouring entry.
 
+The third 2026-09-24 rollover, of "Escape closed the layer underneath the one on screen" (with the allied-vision entry), added no new crossing. Checked rather than assumed:
+
+- Here, "Three defects in the input path ...": of "the five entries above" in its first paragraph, the Escape, double-click and minimap entries now sit here, directly above it in that order; the repeating-click and build-placement entries are still ACTIVE.
+- The moved entry's one "above" is about a key already taken by a layer above the menu, not a neighbouring entry.
+
+## 2026-09-11 — Escape closed the layer underneath the one on screen (found by the standing loop, FIXED and gated)
+
+**Symptom, as the player met it.** Open the menu with Escape, open the technology tree over it with F1, press Escape. The tech tree stays, the menu underneath it closes, and the match resumes — the clock ran on from 00:51 to 00:54 — with the screen still blocked by a panel that can now only be dismissed with its own ✕. `tmp/play/2026-09-11/03-techtree.png`, `04-techtree-after-escape.png`.
+
+**Attribution.** Found by the standing loop.
+
+**Root cause.** Escape was one handler arbitrating three cases inline: replay mode, "yield if a native `<dialog>` is open", otherwise toggle the game menu. The technology tree and the civilizations compendium are plain hidden `<div>`s, so `document.querySelector('dialog[open]')` never saw them and the key fell through to the menu — whose close() resumes the simulation.
+
+**Fix.** `src/app/bootstrap/escapeLayers.ts`: the layers are an ORDERED LIST, topmost first — native dialog, reference panel, game menu, armed placement, replay — and Escape dismisses the first one that is up; with none up it opens the menu, which is what it has meant since v0.1.95. Adding an overlay now means adding a row, and forgetting to is the thing this file makes visible. `createHudController` gained `isGameMenuOpen`/`closeGameMenu` (a toggle would reopen the menu when something above it had already taken the key); `referencePanels` gained `isAnyOpen`/`closeAll`.
+
+**How this class is checked from now on.** `de-command-surface.spec.ts`, "Escape closes the panel on top, not the layer under it": Escape, F1, Escape, then the tech tree hidden, the menu still visible, the tick unchanged after 20 RENDERED frames (a sleep containing no frame cannot tell a paused match from a page that stopped drawing), and a second Escape taking the menu. **Bounds:** the technology tree over the game menu at 1280x720. The civilizations compendium is the same layer in the stack and is not pressed here; neither is the replay layer.
+
+**Mutation proof.** Swapping the reference-panel and game-menu blocks so the menu outranks the panel: `Error: expect(locator).toBeHidden() failed / Expected: hidden / Received: visible`, 1 failed. Swapping only the two `name:` lines is a no-op and the spec stayed green — which is worth recording, because that was the first mutation attempted and it read like a hole in the gate.
+
 ## 2026-09-11 — Double-click selected the Town Centre behind the villager, and its gate used a fixture where nothing stands behind anything (found by the standing loop, FIXED and gated)
 
 **Symptom, as the player met it.** Double-clicking a villager selected one unit rather than every villager on screen. Reproduced twice in play.

@@ -9,7 +9,7 @@ import type { VisibilityMap } from 'civ-engine';
 
 import type { MemoryEntry } from './memoryTypes';
 import type { ProjectedEntityView } from '../types';
-import { isFootprintExplored, isFootprintVisible } from './pureHelpers';
+import { isFootprintKnown, isFootprintSeen, readSightOwners } from './humanSight';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { lastSeenStaticCodec } from './bridgeStateSerialize';
 
@@ -76,6 +76,9 @@ export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
       return [];
     }
 
+    // Explored / visible through the human's SIGHT — its allies' eyes too —
+    // exactly as the live filter in renderStateOps asks it (humanSight.ts).
+    const sight = readSightOwners(accessor, humanPlayerId);
     const memoryViews: ProjectedEntityView[] = [];
     for (const [entityId, entry] of humanMemory) {
       if (liveEntityIds.has(entityId)) {
@@ -85,9 +88,9 @@ export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
       // footprint is explored / visible. The prior anchor-only check
       // hid memory entries for partially-explored multi-cell buildings
       // (the iter-2 M2-1 sibling at the projection layer).
-      const isExplored = isFootprintExplored(
+      const isExplored = isFootprintKnown(
         visibility,
-        humanPlayerId,
+        sight,
         entry.position.x,
         entry.position.y,
         entry.footprintWidth,
@@ -96,9 +99,9 @@ export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
       if (!isExplored) {
         continue;
       }
-      const isVisible = isFootprintVisible(
+      const isVisible = isFootprintSeen(
         visibility,
-        humanPlayerId,
+        sight,
         entry.position.x,
         entry.position.y,
         entry.footprintWidth,

@@ -6,6 +6,7 @@ import {
 } from 'civ-engine';
 
 import { resourceTint } from '../prototypeEconomyRules';
+import { isCellSeen, isWitnessedBySight } from './humanSight';
 import {
   distanceSquared,
   projectUnitTransformCoordinate,
@@ -56,14 +57,18 @@ export const DEATH_FEED_TICKS = 10;
 // both directions: a kill in your fog never leaks when you later uncover the
 // cell, and your own lone unit's death still shows even though losing it
 // re-fogs the cell that same tick.
+// `sight` is the viewer and every owner it shares vision with (`humanSight.ts`):
+// a death an ally witnessed is one the viewer saw through that ally's eyes. It
+// takes the whole list, never one owner, so passing a lone player id does not
+// typecheck (register 2026-09-24).
 export function visibleUnitDeaths(
   deaths: readonly ProjectedUnitDeathView[],
   currentTick: number,
-  playerId: number,
+  sight: readonly number[],
 ): ProjectedUnitDeathView[] {
   return deaths.filter((death) =>
     currentTick - death.tick <= DEATH_FEED_TICKS
-    && death.witnessedBy.includes(playerId));
+    && isWitnessedBySight(death.witnessedBy, sight));
 }
 
 /**
@@ -116,7 +121,7 @@ export function createProjector(
   ProjectedFrameView
 > {
   let attackAnimationTick = Number.NaN;
-  let attackAnimations = indexVisibleUnitAttackAnimations([], 0, playerId);
+  let attackAnimations = indexVisibleUnitAttackAnimations([], 0, [playerId]);
 
   return {
     projectEntity(ref, world) {
@@ -139,7 +144,7 @@ export function createProjector(
         attackAnimations = indexVisibleUnitAttackAnimations(
           getRecentUnitAttacks(),
           world.tick,
-          playerId,
+          [playerId, ...getSharedVisionOwners()],
         );
         attackAnimationTick = world.tick;
       }
@@ -207,31 +212,34 @@ export function createProjector(
       };
     },
     projectFrame(world) {
+      // Read once per frame: the lit cells, the death feed and the shots all
+      // answer to the same sight (humanSight.ts).
+      const shared = getSharedVisionOwners();
+      const sight = [playerId, ...shared];
       return {
         tick: world.tick,
         playerId,
         seed,
         mapWidth: world.grid.width,
         mapHeight: world.grid.height,
-        // Cartography: an ally's vision is added to your own. With nobody
-        // shared — the default, and every match before teams existed — these
+        // Shared sight: an ally's vision (everyone's, with Spies) is added to
+        // your own. With nobody shared — a free-for-all without Spies — these
         // are exactly the player's own cells, in the same order.
         visibleCells: unionCells(
-          visibility, playerId, getSharedVisionOwners(), 'visible', world.grid.width,
+          visibility, playerId, shared, 'visible', world.grid.width,
         ),
         exploredCells: unionCells(
-          visibility, playerId, getSharedVisionOwners(), 'explored', world.grid.width,
+          visibility, playerId, shared, 'explored', world.grid.width,
         ),
         recentUnitDeaths: visibleUnitDeaths(
           getRecentUnitDeaths(),
           world.tick,
-          playerId,
+          sight,
         ),
         projectiles: visibleProjectiles(
           getInFlightProjectiles(),
           world.tick,
-          (x, y) => visibility.isVisible(playerId, x, y)
-            || getSharedVisionOwners().some((ally) => visibility.isVisible(ally, x, y)),
+          (x, y) => isCellSeen(visibility, sight, x, y),
           world.grid,
         ),
       };

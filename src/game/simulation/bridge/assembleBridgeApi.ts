@@ -5,7 +5,7 @@ import type { BridgeState } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { CreateWorldResult } from './createWorldResult';
 import type { GameWorld } from './pureHelpers';
-import { sharedVisionOwners } from '../alliances';
+import { readSharedVisionOwners } from './humanSight';
 import type { ResearchableTechnologyType } from '../types';
 
 const EMPTY_SHARED_VISION_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set();
@@ -15,7 +15,6 @@ import type { MatchState } from '../types';
 import { STANDARD_STARTING_RESOURCES } from './bridgeConstants';
 import { playerCivilizationsCodec,
   playerResourcesCodec,
-  playerTeamsCodec,
   researchedTechnologiesCodec,
   populationCodec,
   projectilesCodec,
@@ -96,17 +95,7 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
       return [...(accessor.get(researchedTechnologiesCodec).get(playerId) ?? EMPTY_SHARED_VISION_TECHS)];
     },
     getSharedVisionOwners(playerId: number) {
-      const researched = accessor.get(researchedTechnologiesCodec).get(playerId)
-        ?? EMPTY_SHARED_VISION_TECHS;
-      return sharedVisionOwners(
-        accessor.get(playerTeamsCodec),
-        playerId,
-        // Allies share sight from the start of the match — DE removed
-        // Cartography and made team vision the default (v0.3.140).
-        true,
-        accessor.get(playerResourcesCodec).keys(),
-        researched.has('spies'),
-      );
+      return readSharedVisionOwners(accessor, playerId);
     },
     getMatchState() {
       return {

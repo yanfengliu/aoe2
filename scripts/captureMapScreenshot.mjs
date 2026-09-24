@@ -131,8 +131,33 @@ try {
   // CIV=<name> boots the human as that civilization (?civ=), the only way to
   // SEE a civ-specific visual (e.g. the Vietnamese boot-time reveal ghost).
   const civ = process.env.CIV;
+  // TEAMS="1,1,2" boots a team game (?teams=, one side per player in owner
+  // order), the only way to SEE what an ally's shared vision shows. It needs
+  // PLAYERS to match, and the same rules parseTeamAssignment applies: a side is
+  // a whole number from 1 and there are at least two sides. The game ignores
+  // any other list, and the capture would silently be a free-for-all.
+  const teams = process.env.TEAMS ?? '';
+  if (teams && !/^\d+(,\d+)+$/.test(teams)) {
+    throw new Error(`TEAMS must be one side number per player, e.g. "1,1,2"; got "${teams}"`);
+  }
+  if (teams) {
+    const sides = teams.split(',').map(Number);
+    if (sides.some((side) => side < 1) || new Set(sides).size < 2) {
+      throw new Error(
+        `TEAMS="${teams}" is a list the game ignores: every side must be 1 or more and there must be `
+        + 'at least two different sides (e.g. "1,1,2"), or the capture would be a free-for-all.',
+      );
+    }
+  }
+  if (teams && teams.split(',').length !== Number(players ?? 2)) {
+    throw new Error(
+      `TEAMS="${teams}" names ${teams.split(',').length} players but PLAYERS is ${players ?? '2 (the default)'}; `
+      + 'the game ignores a team list of the wrong length, so the capture would be a free-for-all.',
+    );
+  }
   const query = `?seed=${seed}`
     + (players ? `&players=${players}` : '')
+    + (teams ? `&teams=${teams}` : '')
     + (civ ? `&civ=${encodeURIComponent(civ)}` : '');
   // Pause the sim from the first moment the test API exists — the same
   // init-script poll the browser suite's waitForPausedBootWithSeed uses —

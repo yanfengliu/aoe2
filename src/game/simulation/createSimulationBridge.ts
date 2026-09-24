@@ -163,8 +163,8 @@ export function createSimulationBridge(
       visibility, HUMAN_PLAYER_ID, effectiveSeed, isSelected, getEntityHealth,
       getRecentUnitDeaths, getRecentUnitAttacks, getWildlifeAlive, getUnitActiveVerb,
       getInFlightProjectiles,
-      // Cartography: the human sees its allies' vision once it is researched.
-      // Read per frame so researching it mid-match takes effect immediately.
+      // Allies' vision (DE: from the first frame) and, with Spies, everyone's.
+      // Read per frame so researching Spies mid-match takes effect at once.
       () => getSharedVisionOwners(HUMAN_PLAYER_ID),
       // v0.3.105: buildings carry their owner's building set.
       (owner) => getPlayerCivilization(owner),
@@ -210,6 +210,7 @@ export function createSimulationBridge(
   const { getRenderState: getRenderStateInternal } = createRenderStateOps({
     visibility,
     humanPlayerId: HUMAN_PLAYER_ID,
+    getSightOwners: () => [HUMAN_PLAYER_ID, ...getSharedVisionOwners(HUMAN_PLAYER_ID)],
     renderStore,
     getHumanFogMemorySize,
     getFogMemoryEntities,

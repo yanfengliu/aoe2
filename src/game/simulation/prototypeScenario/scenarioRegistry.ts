@@ -117,6 +117,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['monk-convert-monk-fixture', fixtures.createMonkConvertMonkFixture],
   ['monk-convert-monk-atonement-fixture', fixtures.createMonkConvertMonkAtonementFixture],
   ['monk-fog-fixture', fixtures.createMonkFogFixture],
+  ['monk-allied-sight-fixture', fixtures.createMonkAlliedSightFixture],
   ['monk-convert-vision-fixture', fixtures.createMonkConvertVisionFixture],
   ['monk-heal-over-convert-fixture', fixtures.createMonkHealOverConvertFixture],
   ['monk-healthy-friendly-with-enemy-fixture', fixtures.createMonkHealthyFriendlyWithEnemyFixture],

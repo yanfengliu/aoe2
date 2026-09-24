@@ -39,8 +39,8 @@ describe('unit death feed — pure at-death witness/age filter', () => {
 
   it('surfaces a death only to players who witnessed it (in witnessedBy)', () => {
     const deaths = [record({ id: 1, witnessedBy: [1, 2] }), record({ id: 2, witnessedBy: [2] })];
-    expect(visibleUnitDeaths(deaths, 105, 1).map((d) => d.id)).toEqual([1]);
-    expect(visibleUnitDeaths(deaths, 105, 2).map((d) => d.id)).toEqual([1, 2]);
+    expect(visibleUnitDeaths(deaths, 105, [1]).map((d) => d.id)).toEqual([1]);
+    expect(visibleUnitDeaths(deaths, 105, [2]).map((d) => d.id)).toEqual([1, 2]);
   });
 
   it('does NOT surface a death to a non-witness even at the death cell (no fog leak on later reveal)', () => {
@@ -48,7 +48,7 @@ describe('unit death feed — pure at-death witness/age filter', () => {
     // uncovering the cell later must not surface it — the filter has no
     // current-visibility term, only the at-death witness set.
     const fogged = [record({ id: 9, owner: 2, witnessedBy: [2] })];
-    expect(visibleUnitDeaths(fogged, 101, 1)).toHaveLength(0);
+    expect(visibleUnitDeaths(fogged, 101, [1])).toHaveLength(0);
   });
 
   it('drops deaths older than DEATH_FEED_TICKS even for a witness', () => {
@@ -56,7 +56,7 @@ describe('unit death feed — pure at-death witness/age filter', () => {
       record({ id: 1, tick: 100, witnessedBy: [1] }),
       record({ id: 2, tick: 100 - DEATH_FEED_TICKS - 1, witnessedBy: [1] }),
     ];
-    expect(visibleUnitDeaths(deaths, 100 + DEATH_FEED_TICKS, 1).map((d) => d.id)).toEqual([1]);
+    expect(visibleUnitDeaths(deaths, 100 + DEATH_FEED_TICKS, [1]).map((d) => d.id)).toEqual([1]);
   });
 });
 

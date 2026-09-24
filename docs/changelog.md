@@ -2,6 +2,11 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.230
+
+- **In a team game you see your ally's base.** Allies share sight from the start of a match, and their ground was lit, but none of an ally's units, buildings, trees or mines were drawn there. Now everything an ally can see is drawn, exactly as if you saw it yourself. Buildings an ally has seen, including an enemy's, stay on your map as last seen. You can click an ally's units and buildings, and the selection panel calls them Ally rather than Enemy. A right-click on an ally's unit or building never attacks or converts it: your soldiers, villagers and Monks walk there instead (a Trade Cart still opens a trade route with an ally's Market). A Monk can now convert an enemy that only your ally can see. Enemies nobody on your team can see stay hidden.
+- **Replays of team games recorded before this version** are re-simulated under the new rules, so they may not play out as they were recorded: what they remember under fog, where a right-click sends a unit, and whether a Monk's conversion finishes can all differ.
+
 ## 0.3.229
 
 - **You cannot miss an attack on your town any more.** When an enemy hits your villagers or buildings, a message now says "You are under attack!" beside the horn, as in Definitive Edition, and it shows even with the sound off. The mark on the minimap is several times larger, with a ripple running out from it, and it stays up for as long as the raid keeps landing blows. Before, it vanished after 8 seconds even while the raid went on, so the minimap was dark for much of a long raid, and it also vanished while the game was paused. It now goes away only after a raid has been quiet for a while (200 game ticks, about 13 seconds at normal speed), and inside its ring the ground and units stay visible. Space now jumps the camera to the newest attack, rather than to the one that sounded the horn.

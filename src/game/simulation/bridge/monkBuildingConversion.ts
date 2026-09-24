@@ -32,6 +32,7 @@ import { teamHasCivilization } from '../teamBonuses';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
 import { MONK_FAITH_MAX } from './bridgeConstants';
 import { isEnemyOwner } from '../alliances';
+import { readSightOwners } from './humanSight';
 import { buildingPopulationProvided, buildingTint } from '../prototypeBuildingRules';
 import { civPopulationProvidedBonus } from '../civBonusEffects';
 import { ownerHardPopCap } from './ownerPopCap';
@@ -99,7 +100,8 @@ export function createMonkBuildingConversion(deps: {
     const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
     if (
       targetPosition
-      && !isVisibleToOwner(monkUnit.owner, targetPosition.x, targetPosition.y)
+      && !readSightOwners(accessor, monkUnit.owner)
+        .some((owner) => isVisibleToOwner(owner, targetPosition.x, targetPosition.y))
     ) {
       return;
     }

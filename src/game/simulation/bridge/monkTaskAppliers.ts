@@ -41,6 +41,7 @@ import {
 } from '../monasteryTechEffects';
 import { MONK_FAITH_MAX } from './bridgeConstants';
 import { isEnemyOwner } from '../alliances';
+import { readSightOwners } from './humanSight';
 import { createMonkBuildingConversion } from './monkBuildingConversion';
 import { monkTasksCodec } from './bridgeStateSerialize';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
@@ -247,11 +248,16 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     }
     // Iter-3 V3-7: vision/LOS interrupt. Moving the converting unit out
     // of vision interrupts conversion — preserve in-flight progress but
-    // skip incrementing this tick.
+    // skip incrementing this tick. Vision is the owner's SIGHT, its allies'
+    // eyes included (humanSight.ts): a Monk may be sent at an enemy only an
+    // ally sees, and Block Printing's range outreaches its own vision, so
+    // asking its own eyes alone armed a conversion that never progressed
+    // (register 2026-09-24).
     const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
     if (
       targetPosition
-      && !isVisibleToOwner(monkUnit.owner, targetPosition.x, targetPosition.y)
+      && !readSightOwners(accessor, monkUnit.owner)
+        .some((owner) => isVisibleToOwner(owner, targetPosition.x, targetPosition.y))
     ) {
       return;
     }

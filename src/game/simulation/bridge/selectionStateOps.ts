@@ -15,7 +15,8 @@ import {
   UNIT_FORMATIONS,
   type UnitFormation,
 } from '../unitFormation';
-import { unitFormationsCodec, unitStancesCodec } from './bridgeStateSerialize';
+import { playerTeamsCodec, unitFormationsCodec, unitStancesCodec } from './bridgeStateSerialize';
+import { areAllied } from '../alliances';
 import type {
   ActionType,
   BuildableBuildingType,
@@ -71,13 +72,16 @@ const FACTIONLESS_NATURAL_RESOURCES: ReadonlySet<ResourceComponent['resourceType
   'relic',
 ]);
 
+// An ally's unit or building reads "Ally", not "Enemy": shared sight puts
+// the ally's whole base on screen, one click away (register 2026-09-24).
 function selectionFactionName(
   owner: number | null,
   resource: ResourceComponent | null,
+  isAlly: (owner: number) => boolean,
 ): string | null {
-  return resource && FACTIONLESS_NATURAL_RESOURCES.has(resource.resourceType)
-    ? null
-    : factionName(owner);
+  if (resource && FACTIONLESS_NATURAL_RESOURCES.has(resource.resourceType)) return null;
+  const faction = factionName(owner);
+  return faction === 'Enemy' && owner !== null && isAlly(owner) ? 'Ally' : faction;
 }
 
 export interface SelectionStateOpsDeps {
@@ -413,7 +417,8 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
           : null,
       faction:
         selectedEntityIds.length === 1
-          ? selectionFactionName(owner, resource ?? null)
+          ? selectionFactionName(owner, resource ?? null, (other) =>
+            areAllied(accessor.get(playerTeamsCodec), humanPlayerId, other))
           : null,
       civ: selectedEntityIds.length === 1 ? getSelectionCiv(owner, selectedKind) : null,
       inventory:

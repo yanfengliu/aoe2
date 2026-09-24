@@ -14,6 +14,7 @@ import type { MapSize } from '../mapGeneration/constants';
 import type { BridgeState, UnitAttackFeedRuntime } from './bridgeState';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { populationCodec, wildlifeStatesCodec } from './bridgeStateSerialize';
+import { isWitnessedBySight } from './humanSight';
 import {
   isFootprintVisible,
   projectUnitTransformCoordinate,
@@ -249,18 +250,21 @@ export function hydrateUnitAttacks(
   return [...attacks.values()];
 }
 
+// `sight` is the viewer and every owner it shares vision with (`humanSight.ts`):
+// the swing shows when any owner in it witnessed it and has not since lost
+// sight of it. It takes the whole list, never one owner, so passing a lone
+// player id does not typecheck (register 2026-09-24).
 export function visibleUnitAttacks<Attack extends ProjectedUnitAttackView>(
   attacks: readonly Attack[],
   currentTick: number,
-  playerId: number,
+  sight: readonly number[],
 ): Attack[] {
   return attacks.filter((attack) => {
     const age = currentTick - attack.tick;
     return (
       age >= 0 &&
       age <= ATTACK_FEED_TICKS &&
-      attack.witnessedBy.includes(playerId)
-      && !attack.suppressedFor?.includes(playerId)
+      isWitnessedBySight(attack.witnessedBy, sight, attack.suppressedFor)
       && (attack.cancelTick === undefined || currentTick <= attack.cancelTick)
     );
   });
@@ -269,7 +273,7 @@ export function visibleUnitAttacks<Attack extends ProjectedUnitAttackView>(
 export function indexVisibleUnitAttackAnimations(
   attacks: readonly ProjectedUnitAttackView[],
   currentTick: number,
-  playerId: number,
+  sight: readonly number[],
 ): Map<string, ProjectedUnitAttackAnimationView> {
   const indexed = new Map<string, ProjectedUnitAttackAnimationView>();
   for (const attack of attacks) {
@@ -278,8 +282,7 @@ export function indexVisibleUnitAttackAnimations(
       age < 0
       || age > ATTACK_FEED_TICKS
       || (attack.cancelTick !== undefined && currentTick > attack.cancelTick)
-      || !attack.witnessedBy.includes(playerId)
-      || attack.suppressedFor?.includes(playerId)
+      || !isWitnessedBySight(attack.witnessedBy, sight, attack.suppressedFor)
     ) {
       continue;
     }

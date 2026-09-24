@@ -209,6 +209,7 @@ export {
   createMonkConvertCleanupFixture,
   createMonkConvertVisionFixture,
   createMonkFogFixture,
+  createMonkAlliedSightFixture,
 } from './monastery/convert';
 
 export {

@@ -125,6 +125,7 @@ describe('unit attack animation visibility lifetime', () => {
     const renderState = createRenderStateOps({
       visibility,
       humanPlayerId: 1,
+      getSightOwners: () => [1],
       renderStore: store,
       getHumanFogMemorySize: () => 0,
       getFogMemoryEntities: () => [],
@@ -167,6 +168,7 @@ describe('unit attack animation visibility lifetime', () => {
     const renderState = createRenderStateOps({
       visibility,
       humanPlayerId: 1,
+      getSightOwners: () => [1],
       renderStore: store,
       getHumanFogMemorySize: () => 0,
       getFogMemoryEntities: () => [],

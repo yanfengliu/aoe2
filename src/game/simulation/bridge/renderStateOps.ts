@@ -11,13 +11,17 @@ import type {
   ProjectedFrameView,
   ProjectedUnitAttackView,
 } from '../types';
-import { compareProjectedRenderEntities, isFootprintVisible } from './pureHelpers';
+import { compareProjectedRenderEntities } from './pureHelpers';
+import { isFootprintSeen } from './humanSight';
 import type { RenderStore } from '../renderStore';
 import { indexVisibleUnitAttackAnimations } from './unitAttackAnimationFeed';
 
 export interface RenderStateOpsDeps {
   visibility: VisibilityMap;
   humanPlayerId: number;
+  /** The perspective's sight: `humanPlayerId` plus every owner it shares
+   *  vision with (`humanSight.ts`). Read once per rebuild. */
+  getSightOwners: () => readonly number[];
   renderStore: RenderStore;
   getHumanFogMemorySize: () => number;
   getFogMemoryEntities: (liveIds: Set<number>) => ProjectedEntityView[];
@@ -37,6 +41,7 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
   const {
     visibility,
     humanPlayerId,
+    getSightOwners,
     renderStore,
     getHumanFogMemorySize,
     getFogMemoryEntities,
@@ -51,12 +56,15 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
     value: RenderStateValue;
   } | null = null;
 
-  const isCurrentlyVisible = (entity: ProjectedEntityView): boolean => (
+  // Visible NOW through the perspective's SIGHT — its own vision and its
+  // allies' — not its own vision alone (register 2026-09-24: an ally's base
+  // was lit and empty because this asked `humanPlayerId` only).
+  const isCurrentlyVisibleTo = (sight: readonly number[]) => (entity: ProjectedEntityView): boolean => (
     entity.kind === 'tile'
     || entity.owner === humanPlayerId
-    || isFootprintVisible(
+    || isFootprintSeen(
       visibility,
-      humanPlayerId,
+      sight,
       entity.x,
       entity.y,
       entity.footprintWidth,
@@ -77,11 +85,13 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
       return cache.value;
     }
 
+    const sight = getSightOwners();
+    const isCurrentlyVisible = isCurrentlyVisibleTo(sight);
     renderStore.reconcileUnitAttackAnimations(
       indexVisibleUnitAttackAnimations(
         getRecentUnitAttacks(),
         currentTick,
-        humanPlayerId,
+        sight,
       ),
       isCurrentlyVisible,
     );

@@ -9,7 +9,9 @@ import type {
   RenderableComponent,
   ResourceComponent,
 } from '../../types';
-import { isFootprintVisible, type GameWorld } from '../pureHelpers';
+import type { GameWorld } from '../pureHelpers';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { isCellSeen, isFootprintSeen, readSightOwners } from '../humanSight';
 import { isStaticMemorableResourceType } from '../../prototypeUnitRules';
 import type { MemoryEntry } from '../memoryTypes';
 import { architectureStyleFor } from '../../architectureStyles';
@@ -18,6 +20,9 @@ export interface FogMemorySystemDeps {
   world: GameWorld;
   humanPlayerId: number;
   visibility: VisibilityMap;
+  /** Reads the teams and technologies that decide whose eyes the human
+   *  sees through (humanSight.ts). */
+  accessor: BridgeStateAccessor;
   getOrCreateMemoryMap: (owner: number) => Map<number, MemoryEntry>;
   /** Announce that this tick actually wrote to the memory map. */
   noteMemoryChanged: () => void;
@@ -27,7 +32,8 @@ export interface FogMemorySystemDeps {
 
 export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
   const {
-    world, humanPlayerId, visibility, getOrCreateMemoryMap, noteMemoryChanged, getCivilizationOf,
+    world, humanPlayerId, visibility, accessor, getOrCreateMemoryMap, noteMemoryChanged,
+    getCivilizationOf,
   } = deps;
 
   // Everything a memory entry says about how the thing LOOKS — which since
@@ -57,6 +63,11 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
     after: ['prototypeVisibility'],
     execute(activeWorld) {
       const humanMemory = getOrCreateMemoryMap(humanPlayerId);
+      // What the human sees through its own eyes AND its allies' is what it
+      // remembers (DE: an ally's base, and an enemy building an ally spotted,
+      // stay on your map as last seen). Read once per tick, from world state,
+      // so a replay remembers exactly what the live match did.
+      const sight = readSightOwners(accessor, humanPlayerId);
       let changed = false;
       const remember = (id: number, entry: MemoryEntry): void => {
         if (sameAppearance(humanMemory.get(id), entry)) return;
@@ -75,9 +86,9 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
           continue;
         }
         if (
-          !isFootprintVisible(
+          !isFootprintSeen(
             visibility,
-            humanPlayerId,
+            sight,
             position.x,
             position.y,
             renderable.footprintWidth,
@@ -104,9 +115,9 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
       // Refresh every static resource the human player currently sees.
       // V4-21: anchor-only visibility is correct here only because every
       // memorable static resource (tree, berry-bush, gold-mine, stone-mine)
-      // is 1x1 — `isFootprintVisible(... 1, 1)` reduces to `isVisible`. If
+      // is 1x1 — `isFootprintSeen(... 1, 1)` reduces to `isCellSeen`. If
       // a future memorable resource has a multi-cell footprint, switch to
-      // `isFootprintVisible` here and on the cleanup path below.
+      // `isFootprintSeen` here.
       for (const id of activeWorld.query('position', 'resource', 'renderable')) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const resource = activeWorld.getComponent<ResourceComponent>(id, 'resource');
@@ -117,7 +128,7 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
         if (!isStaticMemorableResourceType(resource.resourceType)) {
           continue;
         }
-        if (!visibility.isVisible(humanPlayerId, position.x, position.y)) {
+        if (!isCellSeen(visibility, sight, position.x, position.y)) {
           continue;
         }
         remember(id, {
@@ -150,9 +161,9 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
           continue;
         }
         if (
-          isFootprintVisible(
+          isFootprintSeen(
             visibility,
-            humanPlayerId,
+            sight,
             entry.position.x,
             entry.position.y,
             entry.footprintWidth,
