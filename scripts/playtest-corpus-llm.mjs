@@ -2,10 +2,14 @@
 // LLM-corpus runner. Loops `playtest:llm` over playtest-corpus-llm.json
 // rows; aggregates SUMMARY-LLM.md with cost rollup; prunes old runs.
 //
-// Skipped cleanly (exit 0) when no LLM provider is reachable — neither
-// the `claude` CLI (subscription auth) nor ANTHROPIC_API_KEY (API auth)
-// is available. CI's playtest-llm.yml workflow guards at the job level
-// too; this is a defense-in-depth runtime check.
+// With no LLM provider — neither the `claude` CLI (subscription auth) nor
+// ANTHROPIC_API_KEY (API auth) — it plays nothing and EXITS 2, red.
+// It used to exit 0 here, and CI's nightly playtest-llm.yml has no provider
+// secret, so the nightly read green on 89 of its 138 scheduled nights, the
+// last 19 in a row, with no artifact (audit, 2026-09-23; counted 2026-09-24):
+// a gate answering "did not run" with "passed". Whether to
+// give the nightly a key or retire it is the owner's call; until then it is
+// red, and says why. tests/scripts/playtestCorpusLlmNotRun.test.ts holds this.
 //
 // Run via `tsx scripts/playtest-corpus-llm.mjs` (set up by
 // `npm run playtest:corpus-llm`).
@@ -39,12 +43,16 @@ function canSpawnClaude() {
 
 const apiKeySet = !!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim() !== '';
 const claudeAvailable = canSpawnClaude();
+const NOT_RUN_EXIT = 2;
 if (!apiKeySet && !claudeAvailable) {
-  console.log(
-    '[playtest-corpus-llm] skipped: no LLM provider available '
-      + '(install `claude` CLI or set ANTHROPIC_API_KEY).',
+  console.error(
+    '[playtest-corpus-llm] NOT RUN: no LLM provider, so no game was played and there is no result.'
+      + ' ANTHROPIC_API_KEY is unset or empty, and no `claude` executable answered `--version` on PATH'
+      + ' (on Windows only a `claude.exe` counts; an npm `.cmd` shim is not used).'
+      + ' Set ANTHROPIC_API_KEY (on CI, the repository secret of that name), or run where the `claude` CLI is installed.'
+      + ` Exiting ${NOT_RUN_EXIT} on purpose: a playtest that did not play must not read as a pass.`,
   );
-  process.exit(0);
+  process.exit(NOT_RUN_EXIT);
 }
 // Retention semantics: keep the most-recent N run-stems where one
 // stem = "${date}-${hhmmss}-${row.name}" (Phase-6.A.3 timestamp added

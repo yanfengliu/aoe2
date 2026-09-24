@@ -24,9 +24,12 @@
 //
 //   CARRIED      A later commit's run includes these changes. That is how
 //                GitHub gates a push of several commits: one run, at the tip.
-//   NEVER ASKED  No run was due. Both watched workflows filter `on.push.paths`,
-//                so a docs-only push is MEANT to produce none. Saying so out
-//                loud is the point: the local gate is all that covers it.
+//   NEVER ASKED  No run was due: the workflow the commit carried filtered
+//                `on.push.paths` and nothing it changed matched. Both watched
+//                workflows did until 2026-09-24, when the filters were removed
+//                so every push to main is gated; for a later commit a missing
+//                run is UNGATED. For a commit from the filtered era, saying so
+//                out loud is the point: the local gate is all that covered it.
 //   UNGATED      A run WAS due and none exists. Nothing checked this commit and
 //                nothing said so. Exit 1 — this is the "did not run" case.
 //
@@ -38,7 +41,7 @@
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
-const WATCHED = ['CI', 'playtest-corpus'];
+export const WATCHED = ['CI', 'playtest-corpus'];
 const WORKFLOW_DIR = '.github/workflows';
 const RUN_FIELDS = 'conclusion,displayTitle,createdAt,databaseId,headSha,status,event';
 
@@ -105,6 +108,16 @@ export function parsePushTrigger(text) {
   const pushAt = findChild(rows, onAt, 'push');
   if (pushAt === -1) return { name, parsed: true, hasPush: false, paths: [] };
   if (rows[pushAt].text !== 'push:') return { name, parsed: false };
+  // Only `branches` and a block-style `paths` list are read. Any other key
+  // (`paths-ignore`, `tags`, `branches-ignore`) is a filter this parser would
+  // otherwise report as "no filter", so the whole trigger is refused instead.
+  const [pushStart, pushEnd] = blockRange(rows, pushAt);
+  const pushIndent = Math.min(...rows.slice(pushStart, pushEnd).map((row) => row.indent));
+  for (let i = pushStart; i < pushEnd; i += 1) {
+    if (rows[i].indent !== pushIndent) continue;
+    const key = rows[i].text.replace(/:.*$/, '');
+    if (key !== 'branches' && key !== 'paths') return { name, parsed: false };
+  }
   const pathsAt = findChild(rows, pushAt, 'paths');
   if (pathsAt === -1) return { name, parsed: true, hasPush: true, paths: null };
   if (rows[pathsAt].text !== 'paths:') return { name, parsed: false };
@@ -341,6 +354,7 @@ function describeMissingRun(label, short, trigger, files) {
       + ' due is unknown, and unknown is treated as ungated on purpose');
   }
   if (!trigger.hasPush) return neverAsked(`${where} has no \`on.push\` trigger at that commit`);
+  if (trigger.paths === null) return ungated(`${where} runs on every push to main`);
   if (files === null) {
     return ungated("the commit's own file list could not be read, so whether a run was due is"
       + ' unknown, and unknown is treated as ungated on purpose');

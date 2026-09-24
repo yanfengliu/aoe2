@@ -6,7 +6,7 @@
 //
 // This holds the reporting logic to the five answers it has to keep apart for a
 // commit: UNGATED (a run was due and none exists), NEVER ASKED (none was due —
-// both watched workflows filter `on.push.paths`), COULD NOT RUN (created, never
+// until 2026-09-24 both watched workflows filtered `on.push.paths`), COULD NOT RUN (created, never
 // started — the account block), GREEN, and RED. Plus CARRIED, the over-fix
 // guard: an interior commit of a multi-commit push has no run of its own and is
 // still covered by the run at the tip, and calling that UNGATED would make the
@@ -48,7 +48,14 @@ const TIP_GREEN = 'c538545865c3b2ee5b3ae3fee9351e48b2eccaf2';
 const TIP_RED = '619e3994fd91178c1863257130616c88d6990966';
 const TIP_DOCS = '3924431040fab4898add984f16af131de13022c3';
 
-const WORKFLOW_FILES: Record<string, string> = {
+// The workflows as they stood while both watched workflows filtered `on.push.paths`, last copied at `ecfaa3ff`
+// (2026-09-06). The script reads the filter at the commit it judges (`git show <sha>:...`), so these are frozen on
+// purpose: they stand for history, not for today's files, and are never refreshed from .github/workflows. They are
+// not byte-for-byte what every scenario commit carried. Those commits run from 2026-08-28 (`619e3994`) to 2026-09-05,
+// none of them had `.gitattributes` in the filter yet, and `619e3994` also lacked `.github/workflows/**`. Neither
+// changed-files fixture names either path, so no outcome here depends on the difference. The case that judges a
+// commit against TODAY's workflows reads the real files instead.
+const FILTERED_WORKFLOWS: Record<string, string> = {
   'ci.yml': fixture('workflow--ci.yml'),
   'playtest.yml': fixture('workflow--playtest.yml'),
   'playtest-llm.yml': fixture('workflow--playtest-llm.yml'),
@@ -56,6 +63,9 @@ const WORKFLOW_FILES: Record<string, string> = {
 
 const WORKFLOW_DIR = fileURLToPath(new URL('../../.github/workflows/', import.meta.url));
 const realWorkflow = (name: string) => readFileSync(`${WORKFLOW_DIR}${name}`, 'utf8');
+const CURRENT_WORKFLOWS: Record<string, string> = Object.fromEntries(
+  readdirSync(WORKFLOW_DIR).filter((name) => /\.ya?ml$/.test(name)).map((name) => [name, realWorkflow(name)]),
+);
 
 interface Scenario {
   tip: string;
@@ -67,12 +77,15 @@ interface Scenario {
   changed: string;
   /** A sha the tip is an ancestor OF — i.e. a later push that carried it. */
   descendant?: string;
+  /** The workflow files the commit carried; the frozen filtered set when omitted. */
+  workflows?: Record<string, string>;
 }
 
 function makeHandler(scenario: Scenario): Exec {
   const refuse = (bin: string, args: string[]) => {
     throw new Error(`unstubbed command: ${bin} ${args.join(' ')}`);
   };
+  const workflowFiles = scenario.workflows ?? FILTERED_WORKFLOWS;
   return (bin, args) => {
     if (bin === 'git') {
       // Every ref resolves to the commit under test: these scenarios put HEAD
@@ -86,10 +99,10 @@ function makeHandler(scenario: Scenario): Exec {
         throw Object.assign(new Error('Command failed'), { status: 1 });
       }
       if (args[0] === 'log') return scenario.subject;
-      if (args[0] === 'ls-tree') return Object.keys(WORKFLOW_FILES).join('\n');
+      if (args[0] === 'ls-tree') return Object.keys(workflowFiles).join('\n');
       if (args[0] === 'show') {
         const file = String(args[1]).split('/').pop() ?? '';
-        return WORKFLOW_FILES[file] ?? refuse(bin, args);
+        return workflowFiles[file] ?? refuse(bin, args);
       }
       if (args[0] === 'diff' || args[0] === 'diff-tree') return scenario.changed;
       return refuse(bin, args);
@@ -214,6 +227,28 @@ describe('ci:status reports on a commit, not on whatever run is newest', () => {
     expect(exitCode).toBe(0);
   });
 
+  // The same docs-only commit judged against TODAY's workflows, which since 2026-09-24 run on every push to main.
+  // A run is now due for it, so a missing one is UNGATED. A block-style `paths:` list put back into a watched
+  // workflow makes this NEVER ASKED again. Any other filter form (a flow-style list, `paths-ignore`, `tags`) makes the
+  // parser refuse the trigger, which keeps this UNGATED with the reason "could not read"; ciTriggers.test.ts is the
+  // check that catches those forms.
+  it('calls a docs-only commit with no run UNGATED under the current, unfiltered workflows', async () => {
+    const { out, exitCode } = await runScript({
+      tip: TIP_DOCS,
+      subject: 'Promote the final acceptance gate',
+      runsForSha: fixture('runs-for-sha--none-39244310.json'),
+      history: GREEN_HISTORY,
+      jobs: {},
+      changed: fixture('changed--docs-only.txt'),
+      workflows: CURRENT_WORKFLOWS,
+    });
+    expect(exitCode).toBe(1);
+    const ciLine = out.split('\n').find((line) => line.includes('CI @ 39244310')) ?? '';
+    expect(ciLine).toContain('UNGATED');
+    expect(ciLine).toContain('runs on every push to main');
+    expect(out).not.toContain('NEVER ASKED');
+  });
+
   // The over-fix guard. Every commit but the tip of a multi-commit push has no
   // run of its own; a fix that shouted UNGATED at all of them would satisfy the
   // case above and be useless.
@@ -328,69 +363,47 @@ describe('the fixtures are wired the way the script asks for them', () => {
   });
 });
 
-// The three `workflow--*.yml` fixtures are copies of `.github/workflows/*.yml`,
-// and until 2026-09-06 nothing compared a copy to the file it stands for. That
-// gap was not theoretical: the copies were captured at ca24709b, commit
-// 52546080 then edited ci.yml and playtest-llm.yml, and the fixtures sat a day
-// behind with nothing red. The drift happened to be inert — both edits landed
-// outside `on.push` — but "inert" was nobody's finding, it was luck. The drift
-// that is NOT inert is the one that moves a path filter, and it would leave
-// every case above answering confidently for a filter main does not have.
-//
-// BOUND, in the same terms as the one at the top of this file: this compares
-// the PARSED PUSH TRIGGER and nothing else, because that is the whole surface
-// the script reads out of these files and the whole surface the cases above
-// rest on. A fixture may differ from its workflow anywhere else — a comment, a
-// step, a `permissions:` block — and this stays green. It is deliberately not a
-// byte-for-byte check: a gate that goes red because someone reworded a comment
-// is a gate the next person deletes.
-describe('the workflow fixtures still stand for the workflows they copy', () => {
-  type Trigger = { name: string | null; parsed: boolean };
+// The three `workflow--*.yml` fixtures are the filtered workflows as of `ecfaa3ff`, frozen (see FILTERED_WORKFLOWS).
+// From 2026-09-06 to 2026-09-24 a case here held each one equal to today's file, so a copy could not drift from the
+// filter main had. That was right only while the filter never moved; on 2026-09-24 the filters were removed and the
+// case went with them. What the frozen set must still be is a set of FILTERED triggers, or the NEVER ASKED case
+// above tests nothing, so these controls fail if a refresh ever copies today's unfiltered files over them.
+describe('the frozen workflow fixtures still carry the path filter their commits had', () => {
+  type Trigger = { name: string | null; parsed: boolean; hasPush?: boolean; paths?: string[] | null };
 
   async function parser(): Promise<(text: string) => Trigger> {
-    const module = (await import(`${SCRIPT}?parity`)) as {
+    const module = (await import(`${SCRIPT}?frozen`)) as {
       parsePushTrigger: (text: string) => Trigger;
     };
     return module.parsePushTrigger;
   }
 
-  const PAIRS = [
-    ['workflow--ci.yml', 'ci.yml'],
-    ['workflow--playtest.yml', 'playtest.yml'],
-    ['workflow--playtest-llm.yml', 'playtest-llm.yml'],
-  ] as const;
+  it.each([['workflow--ci.yml', 'CI'], ['workflow--playtest.yml', 'playtest-corpus']])(
+    '%s is %s with an on.push.paths filter that names package.json',
+    async (copy, name) => {
+      const trigger = (await parser())(fixture(copy));
+      expect(trigger.parsed, `${copy} did not parse`).toBe(true);
+      expect(trigger.name).toBe(name);
+      expect(trigger.hasPush).toBe(true);
+      expect(
+        trigger.paths,
+        `tests/scripts/fixtures/${copy} no longer carries the path filter it was copied with at ecfaa3ff. It stands for `
+        + "the files the scenario commits carried, not for today's workflow; restore it with `git show ecfaa3ff:<path>` "
+        + 'rather than refreshing it.',
+      ).toContain('package.json');
+    },
+  );
 
-  it.each(PAIRS)('%s parses to the same push trigger as %s', async (copy, real) => {
-    const parsePushTrigger = await parser();
-    const fromReal = parsePushTrigger(realWorkflow(real));
-    // Controls first, so "they match" cannot quietly mean "neither parsed".
-    // `{ parsed: false }` for both sides would otherwise satisfy the equality
-    // below while proving nothing at all about either file.
-    expect(fromReal.parsed, `${real} did not parse, so this comparison is vacuous`).toBe(true);
-    expect(fromReal.name, `${real} has no readable \`name:\``).toBeTruthy();
-    expect(
-      parsePushTrigger(fixture(copy)),
-      `tests/scripts/fixtures/${copy} no longer parses to the same push trigger as `
-      + `.github/workflows/${real}. The fixture is a copy of that workflow and the cases `
-      + 'above judge "was a run due?" against it, so a stale copy makes them answer for a '
-      + `filter main does not have. Copy the workflow over the fixture and re-read the cases `
-      + 'that assert UNGATED / NEVER ASKED, because a changed filter can move them.',
-    ).toEqual(fromReal);
+  // The script can read only a block-style `paths:` list. Any other key under `on.push` is a filter it would
+  // otherwise read as "no filter" and report as "runs on every push to main", which would be false; so it refuses
+  // the trigger instead, and a missing run stays UNGATED with an honest reason.
+  it.each(['paths-ignore', 'tags', 'branches-ignore'])('refuses a push trigger that filters with %s', async (key) => {
+    const text = `name: CI\non:\n  push:\n    branches: [main]\n    ${key}:\n      - 'docs/**'\n`;
+    expect((await parser())(text)).toEqual({ name: 'CI', parsed: false });
   });
 
-  // The fake `git ls-tree` above answers with exactly the keys of
-  // WORKFLOW_FILES, so a workflow added to `.github/workflows/` with no fixture
-  // here is invisible to every scenario in this file: the script walks the tree
-  // looking for a matching `name:` and would never be offered that file.
-  it('has a fixture for every workflow in .github/workflows', () => {
-    const real = readdirSync(WORKFLOW_DIR).filter((name) => /\.ya?ml$/.test(name)).sort();
-    expect(real.length, '.github/workflows holds no workflow, so this check read nothing')
-      .toBeGreaterThan(0);
-    expect(
-      Object.keys(WORKFLOW_FILES).sort(),
-      'WORKFLOW_FILES and .github/workflows have diverged. Every workflow needs a fixture: '
-      + 'the fake `git ls-tree` returns these keys and nothing else, so a workflow with no '
-      + 'fixture is one no scenario in this file can see.',
-    ).toEqual(real);
+  it('reads a push trigger with only branches as unfiltered', async () => {
+    const text = 'name: CI\non:\n  push:\n    branches: [main]\n  workflow_dispatch:\n';
+    expect((await parser())(text)).toEqual({ name: 'CI', parsed: true, hasPush: true, paths: null });
   });
 });

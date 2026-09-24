@@ -1,28 +1,15 @@
 name: playtest-corpus
 on:
   pull_request:
-  # Cost control (same as ci.yml): only run the sim-heavy corpus on a push that
-  # changes package.json — a version bump or dependency change. Refactor/doc
-  # pushes skip it. PRs still run it.
-  #
-  # The corpus CONFIG and the workflows are in the filter (v0.3.161) for the
-  # reason ci.yml carries: a change to the thing a gate reads could not trigger
-  # the gate that would prove it. workflow_dispatch for the same reason.
-  #
-  # `.gitattributes` joined them on 2026-09-06 (see ci.yml for the incident): it
-  # decides the bytes every tracked file is written with on the runner, so a
-  # change to it changes what this corpus runs even when no other file moves.
-  # `.nvmrc` is deliberately absent — the `node-version:` below is a literal and
-  # nothing here reads that file. ci.yml carries the full reasoning.
+  # EVERY push to main runs the corpus, for the reason ci.yml gives: the
+  # `on.push.paths` filter that used to sit here was cost control from when
+  # Actions minutes were paid, and on a public repository standard runners cost
+  # nothing (run 35976155109 billed 0 ms for 4.4 minutes). With the filter, a
+  # change to the AI or the simulation reached this corpus only when a version
+  # bump happened to ride the same push. tests/scripts/ciTriggers.test.ts fails
+  # if this trigger filters its push to main again.
   push:
     branches: [main]
-    paths:
-      - 'package.json'
-      - 'package-lock.json'
-      - '.gitattributes'
-      - '.github/voxel-commit'
-      - '.github/workflows/**'
-      - 'playtest-corpus.json'
   workflow_dispatch:
 
 permissions:

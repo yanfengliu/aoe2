@@ -126,6 +126,13 @@ jobs:
           | $stop | $ticks | \$$cost |
           EOF
           fi
+      # `error`, not the default `warn`: a night that uploads nothing played
+      # nothing, and must not end green. Before 2026-09-24 the corpus script
+      # exited 0 when it found no LLM provider, this step only warned, and the
+      # nightly read green on 89 of 138 scheduled nights, the last 19 in a row,
+      # with no artifact. The script now
+      # exits 2 in that case (NOT RUN); this line catches any other way to
+      # finish without a result. tests/scripts/playtestCorpusLlmNotRun.test.ts.
       - name: Upload corpus output
         if: always()
         uses: actions/upload-artifact@v4
@@ -134,6 +141,7 @@ jobs:
           path: |
             output/corpus-llm/
             output/playtests-llm/
+          if-no-files-found: error
       # The "Post SUMMARY-LLM.md to PR" step that used to sit here is gone with
       # the pull_request trigger: its `github.event_name == 'pull_request'`
       # condition can no longer be true, and it was the only reason this

@@ -1,37 +1,35 @@
 name: CI
 
 on:
-  # Cost control: only run the gates on a push that changes package.json — i.e.
-  # a version bump (every user-visible change bumps the version) or a dependency
-  # change. Refactor-only / doc-only pushes skip CI and don't burn Actions
-  # minutes. Pull requests still run the full gates regardless.
+  # EVERY push to main runs the gates. Until 2026-09-24 this trigger carried an
+  # `on.push.paths` filter — package.json, the lockfile, .gitattributes,
+  # .github/voxel-commit and the workflows — as "cost control" from when Actions
+  # minutes were paid. Every user-visible change bumps the version, so what it
+  # let through unchecked was every test, tooling, script and docs commit: a
+  # red test landed by a tooling commit stayed invisible until the next version
+  # bump happened to run the suite, and whoever shipped that bump inherited it.
   #
-  # The workflows themselves are IN the filter (v0.3.161): a fix to this file
-  # could not trigger the run that would prove it, which is how a Windows-only
-  # tar bug survived two months. workflow_dispatch is here for the same reason —
-  # a CI change must be testable without inventing an unrelated version bump.
+  # The cost it controlled is gone. The repository went public on 2026-09-05,
+  # and standard GitHub-hosted runners cost nothing on a public repository:
+  # run 35976155075 (v0.3.228) billed 0 ms on all six jobs, one Windows and five
+  # Ubuntu, for 31.7 minutes of wall time and about 87 runner-minutes. What a
+  # push costs now is queue time, not money: GitHub's Free plan runs 20
+  # standard jobs at once (its Actions limits page, read 2026-09-24), and one
+  # run of this workflow takes 6 of them, plus 1 for playtest.yml.
   #
-  # `.gitattributes` joined them on 2026-09-06, same reasoning one level lower
-  # down: it decides the BYTES every tracked file is written with on the runner,
-  # so changing it changes what CI compiles even when no other file moves. The
-  # commit that added it (5274d7e2) existed to fix the Windows leg, matched none
-  # of the paths below, and reached a runner only because two later commits
-  # happened to ride the same push.
+  # Do not reintroduce a paths filter to save time. If the repository goes
+  # private again, the filter is the owner's call about money, and it has to
+  # come back with a check that says out loud which commits it leaves ungated.
+  # `scripts/ci-status.mjs` reads this block at each commit it judges and calls
+  # a commit with no run of its own UNGATED unless a later run carried it.
+  # tests/scripts/ciTriggers.test.ts fails if a watched workflow filters its
+  # push to main.
   #
-  # `.nvmrc` is deliberately NOT here. Both watched workflows pin `node-version:`
-  # as a literal (20 here, 22 in playtest.yml) and neither reads the file, so a
-  # run triggered by a `.nvmrc` edit would execute on the old Node and report
-  # green — a gate answering "did not run" with "passed". Wire `setup-node` to
-  # `node-version-file:` first; that edit touches this file, so it triggers its
-  # own run, and the filter entry belongs in the same commit.
+  # `.nvmrc` still does not steer anything here: both watched workflows pin
+  # `node-version:` as a literal (20 here, 22 in playtest.yml) and neither reads
+  # the file. Wire `setup-node` to `node-version-file:` before relying on it.
   push:
     branches: [main]
-    paths:
-      - 'package.json'
-      - 'package-lock.json'
-      - '.gitattributes'
-      - '.github/voxel-commit'
-      - '.github/workflows/**'
   pull_request:
     branches: [main]
   workflow_dispatch:

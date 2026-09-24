@@ -1,5 +1,17 @@
-// Rebuild the linked sibling `../voxel` only when its sources are newer than
-// its dist — and never concurrently with another builder.
+// Rebuild the linked voxel package only when its sources are newer than its
+// dist — and never concurrently with another builder.
+//
+// WHICH voxel: the directory this checkout's `node_modules/voxel` links to,
+// found from this script's own location, never from the working directory.
+// It used to be `resolve(process.cwd(), '..', 'voxel')`, which is right only
+// in the main checkout. A worktree lives at `../aoe2-worktrees/<name>`, where
+// `../voxel` does not exist, so every script whose first step is voxel:build
+// (test, typecheck, lint, build, dev) exited 127 there (measured 2026-09-22,
+// fixed 2026-09-24). `node_modules/voxel` is what tsc, vitest and vite import
+// — in the main checkout, in a worktree (whose node_modules is a junction to
+// the main one) and on CI (where `npm ci` links it to ../voxel) — so it is the
+// only copy worth checking. `--print-root` prints it and builds nothing.
+// tests/scripts/voxelBuildIfStale.test.ts holds this.
 //
 // Every gate here (`predev`, `prebuild`, `pretypecheck`, `pretest`,
 // `prelint`) ran `npm --prefix ../voxel run build` unconditionally, and the
@@ -12,9 +24,9 @@
 // invalid resolved id, and a rendering agent's build failed on "Could not
 // resolve ./ThreeRenderRuntime.js" — every one a dist mid-rewrite.
 //
-// Two rules. (1) Stale means any file under ../voxel/src, or its
+// Two rules. (1) Stale means any file under voxel's src/, or its
 // package.json / tsconfig*, is newer than the newest file under
-// ../voxel/dist, or dist is missing. (2) One builder at a time: a lock file in
+// its dist/, or dist is missing. (2) One builder at a time: a lock file in
 // the OS temp dir, keyed by the sibling's absolute path, held for the build.
 // A caller that finds the lock held WAITS for it, then re-checks freshness —
 // which is now satisfied by the build it waited for — and skips. A lock
@@ -22,12 +34,25 @@
 // a build (still under the lock).
 
 import { spawnSync } from 'node:child_process';
-import { readdirSync, statSync, existsSync, openSync, closeSync, unlinkSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { readdirSync, statSync, existsSync, openSync, closeSync, unlinkSync, writeFileSync, realpathSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 
-const voxelRoot = resolve(process.cwd(), '..', 'voxel');
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const voxelLink = join(repoRoot, 'node_modules', 'voxel');
+if (!existsSync(join(voxelLink, 'package.json'))) {
+  console.error(`[voxel:build] FAILED: no voxel package at ${voxelLink}.`
+    + ' This checkout imports voxel through that link, and without it this script cannot tell which'
+    + ' voxel to check or build, so it stops (exit 1). In the main checkout, run `npm install`'
+    + ' (package.json links voxel from ../voxel). A new worktree gets the link from'
+    + ' `node scripts/controlWorktree.mjs create <name>`; an existing worktree with no node_modules needs a'
+    + ' junction named node_modules pointing at the main checkout\'s node_modules.');
+  process.exit(1);
+}
+const voxelRoot = realpathSync(voxelLink);
+if (process.argv.includes('--print-root')) { console.log(voxelRoot); process.exit(0); }
 const src = join(voxelRoot, 'src');
 const dist = join(voxelRoot, 'dist');
 const lockPath = join(tmpdir(), `voxel-build-${createHash('sha1').update(voxelRoot.toLowerCase()).digest('hex').slice(0, 12)}.lock`);
@@ -102,14 +127,14 @@ function waitForOtherBuilder() {
 }
 
 function build(reason) {
-  console.log(`[voxel:build] building ../voxel — ${reason}`);
+  console.log(`[voxel:build] building ${voxelRoot} — ${reason}`);
   const result = spawnSync('npm', ['--prefix', voxelRoot, 'run', 'build'], { stdio: 'inherit', shell: true });
   return result.status ?? 1;
 }
 
 const force = process.env.FORCE_VOXEL_BUILD === '1';
 let reason = force ? 'FORCE_VOXEL_BUILD=1' : isStale();
-if (!reason) { console.log('[voxel:build] ../voxel/dist is up to date — skipping rebuild'); process.exit(0); }
+if (!reason) { console.log(`[voxel:build] ${dist} is up to date — skipping rebuild`); process.exit(0); }
 
 if (!tryLock()) {
   waitForOtherBuilder();

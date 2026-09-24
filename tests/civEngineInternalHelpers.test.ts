@@ -55,7 +55,7 @@
 //    The 2026-09-06 investigation reported it byte-equivalent to a fresh
 //    install; that was NOT re-measured here. CI resolves through the same link
 //    but fills it from the rolling `engine-dist` tarball
-//    (`.github/workflows/ci.yml:76-81`), so CI and a developer machine can be
+//    (the "Fetch the prebuilt civ-engine" step in `.github/workflows/ci.yml`), so CI and a developer machine can be
 //    two different sets of bytes making the same claim. Each failure message
 //    says which of the two it read.
 
