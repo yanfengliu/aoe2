@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.224
+
+- **Double-clicking a unit works on a slow computer.** Double-clicking one of your units selects every unit of that type on screen, but on a computer that draws the game slowly (one with no graphics card, or any machine drawing the game in software) it often selected only the one you clicked. The game timed your two clicks by when it got round to handling them, and it draws a frame before it handles a click, so a slow frame between them made a quick double-click look like two slow single clicks. It now times the clicks by when you made them.
+
 ## 0.3.223
 
 - **Clicking Train Villager three times now makes three villagers.** It used to make one and then ring the town bell. The moment the first villager entered the queue, its progress card appeared in the middle of the command panel and shoved every button 140 pixels to the right — so your second and third clicks, in the same place, landed on Ring Town Bell and called your own villagers off their work and into the Town Centre. The command panel holds its shape now: nothing that appears while you are playing sits in front of the buttons, and the production queue has moved to the end of the bar where it can grow without pushing anything. A long queue scrolls inside the panel instead of running off the bottom of it.
