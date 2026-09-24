@@ -27,6 +27,11 @@ export type ArtStyleId = 'moebius' | 'de';
  *  tone-mapped, and the pass's own final draw applies no curve either. */
 export type ArtStyleToneMapping = 'none' | 'aces-filmic';
 
+/** What draws the ground. `voxel`: one flat-coloured voxel per cell, the voxel runtime's terrain chunks.
+ *  `textured`: AoE's own ground mesh (`voxel/aoeDeGround.ts`), with painted surfaces, soft blends between
+ *  kinds and soft fog edges, drawn in place of the chunks (the de-look plan's step 2). */
+export type ArtStyleGround = 'voxel' | 'textured';
+
 export interface ArtStyle {
   readonly id: ArtStyleId;
   /** What the menu row shows. */
@@ -41,6 +46,8 @@ export interface ArtStyle {
   /** Brightness multiplier on ground the player has explored but cannot see
    *  now. Visible ground is 1. Unexplored ground is black in every style. */
   readonly exploredGround: number;
+  /** What draws the ground. */
+  readonly ground: ArtStyleGround;
 }
 
 /**
@@ -155,6 +162,7 @@ export const ART_STYLES: readonly ArtStyle[] = [
     // Unchanged since the voxel renderer shipped. The resolve's 1.12 gain
     // lifts it, so it reads as dimmed ground rather than as black.
     exploredGround: 0.32,
+    ground: 'voxel',
   },
   {
     id: 'de',
@@ -164,6 +172,7 @@ export const ART_STYLES: readonly ArtStyle[] = [
     toneMapping: 'aces-filmic',
     exposure: DE_EXPOSURE,
     exploredGround: DE_EXPLORED_GROUND,
+    ground: 'textured',
   },
 ];
 

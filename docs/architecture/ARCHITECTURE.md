@@ -230,7 +230,13 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     frame measurement it was chosen against. Style is never world state and
     never enters a save. How UNEXPLORED ground looks is not a style field: the
     adapter names the unexplored cells and `aoeVoxelTerrain.ts` draws them
-    black without reading them. `rendering/voxel/` owns the sole world adapter,
+    black without reading them. What draws the ground IS a style field: in the
+    DE style `AoeVoxelWorldRenderer` lends the runtime a `Scene` of its own
+    holding `aoeDeGround.ts`'s textured mesh (surfaces baked by
+    `aoeDeGroundDetail.ts`, per-cell kind, dirt and fog bytes packed by
+    `aoeDeGroundData.ts`, spliced into Three's Lambert program by
+    `aoeDeGroundShader.ts`), and the adapter leaves the terrain chunks and the
+    shore surf out of the snapshot while it shows. `rendering/voxel/` owns the sole world adapter,
     procedural art, feedback parts, and Three runtime integration.
     `aoeVoxelDaylight.ts` is the one source for the daylight rig the renderer
     hands to the runtime AND for the sun projection every entity's ground
@@ -323,7 +329,7 @@ design/stats ──build──► generated/content.json ──load──► Sim
   chunk meshing, bounded injected-time rigid-instance playback, Three resource
   presentation, capture, metrics, and disposal.
   AoE concepts and authoritative state never cross that package boundary.
-- AoE keeps mixed terrain in opaque palette chunks and layers deterministic low-profile detail through its own rigid-instance recipes. Water owns a dedicated low-roughness standard-material surface with static and animated batches; the static lane is the budget-overflow fallback, and neither lane enters entity hit state or changes ground-plane terrain picking.
+- AoE keeps mixed terrain in opaque palette chunks (Moebius; the DE style draws its own textured ground mesh in the scene it lends the runtime, and no chunks) and layers deterministic low-profile detail through its own rigid-instance recipes. Water owns a dedicated low-roughness standard-material surface with static and animated batches; the static lane is the budget-overflow fallback, and neither lane enters entity hit state or changes ground-plane terrain picking.
 - The DOM HUD is a pure consumer of render frames and selection state. It emits
   commands through the same seam as right-click orders from the voxel view.
 - Content flows one-way: design CSVs under `design/stats/*.csv` are normalized at

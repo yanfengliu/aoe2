@@ -25,6 +25,12 @@ describe('the art-style roster', () => {
     expect(new Set(ART_STYLES.map((style) => style.label)).size).toBe(ART_STYLES.length);
   });
 
+  it('draws Moebius on the voxel terrain and the DE style on its own textured ground', () => {
+    // The de-look plan's step 2: the Natural style replaces the voxel chunks; Moebius keeps them.
+    expect(artStyleById('moebius').ground).toBe('voxel');
+    expect(artStyleById('de').ground).toBe('textured');
+  });
+
   it('cycles through every style and wraps', () => {
     expect(nextArtStyleId('moebius')).toBe('de');
     expect(nextArtStyleId('de')).toBe('moebius');

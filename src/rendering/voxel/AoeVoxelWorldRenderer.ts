@@ -1,6 +1,7 @@
 import {
   ACESFilmicToneMapping,
   NoToneMapping,
+  Scene,
   WebGLRenderer,
   type ToneMapping,
   type WebGLRendererParameters,
@@ -17,10 +18,12 @@ import {
 } from 'voxel/three';
 
 import type { ProjectedEntityView } from '../../game/simulation/types';
-import { artStyleById, type ArtStyle, type ArtStyleId } from '../artStyles';
+import { artStyleById, type ArtStyle, type ArtStyleGround, type ArtStyleId } from '../artStyles';
 import { readArtStylePreference } from '../artStylePreference';
 import type { CameraState } from '../viewTypes';
 import { cameraStateToVoxelView } from './aoeCameraSync';
+import { AoeDeGround } from './aoeDeGround';
+import { packDeGround } from './aoeDeGroundData';
 import { AoeVoxelAdapter } from './aoeVoxelAdapter';
 import { AOE_DAYLIGHT } from './aoeVoxelDaylight';
 import type { AoeVoxelOverlayInput } from './aoeVoxelOverlayParts';
@@ -66,6 +69,8 @@ export interface AoeVoxelRendererState {
   readonly mode: 'voxel';
   /** The art style the canvas is drawn in. */
   readonly artStyle: ArtStyleId;
+  /** What draws the ground: the voxel chunks (`metrics.chunks`) or AoE's textured ground mesh. */
+  readonly ground: ArtStyleGround;
   readonly metrics: ThreeRenderMetrics;
   /** Every call to frame() so far, by the frame loop or by a hit test that had
    *  to draw first. A call while the context is lost or restoring draws
@@ -114,6 +119,10 @@ export class AoeVoxelWorldRenderer {
   private disposed = false;
   private artStyle: ArtStyle;
   private webglRenderer: ToneMappedRenderer | null = null;
+  // The scene the runtime draws is AoE's, lent to it, so it can hold AoE's own ground mesh beside the voxel
+  // content; the runtime adds only its root group and its daylight rig, which lights both.
+  private readonly scene = new Scene();
+  private readonly ground = new AoeDeGround();
 
   constructor(options: AoeVoxelWorldRendererOptions) {
     this.width = options.width;
@@ -130,8 +139,11 @@ export class AoeVoxelWorldRenderer {
     const createWebGLRenderer = options.createWebGLRenderer ?? defaultWebGLRenderer;
     this.artStyle = artStyleById(options.artStyleId ?? readArtStylePreference());
     this.adapter.setExploredGround(this.artStyle.exploredGround);
+    this.scene.add(this.ground.mesh);
+    this.applyGround(this.artStyle.ground);
     this.runtime = createRuntime({
       canvas: this.canvas,
+      scene: this.scene,
       width: this.width,
       height: this.height,
       pixelRatio: this.pixelRatio,
@@ -183,7 +195,15 @@ export class AoeVoxelWorldRenderer {
     this.runtime.setStylizedResolve(style.resolve);
     if (this.webglRenderer) applyToneMapping(this.webglRenderer, style);
     this.adapter.setExploredGround(style.exploredGround);
+    this.applyGround(style.ground);
     this.artStyle = style;
+  }
+
+  /** One ground at a time: the voxel chunks leave the next snapshot when the textured ground shows, and come
+   *  back when it hides. Both drawn at once z-fight (the de-look plan's experiment E3). */
+  private applyGround(ground: ArtStyleGround): void {
+    this.adapter.setVoxelGround(ground === 'voxel');
+    this.ground.setVisible(ground === 'textured');
   }
 
   present(
@@ -198,6 +218,10 @@ export class AoeVoxelWorldRenderer {
       throw new Error(
         `Voxel snapshot rejected (${result.code} at ${result.path}): ${result.message}`,
       );
+    }
+    // The textured ground takes the same frame's cells and fog, so it shows with the snapshot it belongs to.
+    if (this.artStyle.ground === 'textured') {
+      this.ground.update(packDeGround(entities, overlays?.frame ?? null, this.artStyle.exploredGround));
     }
     // Voxel ambient animation and hit geometry share a monotonic clock driven
     // only by forward simulation display progress. Browser RAF time advances
@@ -266,7 +290,13 @@ export class AoeVoxelWorldRenderer {
   }
 
   state(): AoeVoxelRendererState {
-    return { mode: 'voxel', artStyle: this.artStyle.id, metrics: this.runtime.metrics(), framesDrawn: this.frameIndex };
+    return {
+      mode: 'voxel',
+      artStyle: this.artStyle.id,
+      ground: this.artStyle.ground,
+      metrics: this.runtime.metrics(),
+      framesDrawn: this.frameIndex,
+    };
   }
 
   inspectUnitMotion(identity: string): AoeUnitMotionHistory | null {
@@ -339,6 +369,7 @@ export class AoeVoxelWorldRenderer {
     this.pendingHitState = null;
     this.presentedHitState = null;
     this.runtime.dispose();
+    this.ground.dispose();
     this.canvas.remove();
   }
 

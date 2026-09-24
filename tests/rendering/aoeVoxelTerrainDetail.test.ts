@@ -64,6 +64,17 @@ describe('AoE voxel terrain surface detail', () => {
     expect(keys.some((key) => key.includes('water-shore-foam'))).toBe(false);
   });
 
+  it('leaves the shore surf out, and nothing else, when the Natural ground draws the shoreline', () => {
+    // The surf follows each water tile's land edges; the Natural ground's shoreline wanders off them.
+    const entities = (['grass', 'water'] as const)
+      .flatMap((kind, row) => patch(kind, 6).map((entity) => ({ ...entity, y: entity.y + row * 6 })));
+    const withSurf = createTerrainDetailParts(entities);
+    const without = createTerrainDetailParts(entities, { shoreSurf: false });
+    expect(withSurf.some((part) => part.key.includes('water-shore-surf'))).toBe(true);
+    expect(without.some((part) => part.key.includes('water-shore-surf'))).toBe(false);
+    expect(without).toEqual(withSurf.filter((part) => !part.key.includes('water-shore-surf')));
+  });
+
   describe('shoreline surf is a connected meandering curve', () => {
     // A straight 12-tile coastline: grass row at z=0, water at z=1..2.
     const coastline = () => [

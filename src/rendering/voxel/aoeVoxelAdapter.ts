@@ -163,6 +163,7 @@ export class AoeVoxelAdapter {
   private currentHitState: PreparedVoxelHitState | null = null;
   private currentOccludedUnits: readonly OccludedUnitState[] = [];
   private exploredGround = artStyleById(DEFAULT_ART_STYLE_ID).exploredGround;
+  private voxelGround = true;
 
   constructor(options: AoeVoxelAdapterOptions = {}) {
     this.worldId = requireName('worldId', options.worldId ?? 'aoe2');
@@ -178,6 +179,13 @@ export class AoeVoxelAdapter {
       );
     }
     this.exploredGround = level;
+  }
+
+  /** Whether snapshots carry the voxel terrain chunks and the shore surf that follows their tile edges, from
+   *  the next snapshot on. The Natural style draws its own ground (aoeDeGround.ts) and leaves both out; turned
+   *  back on, the chunks return as new incarnations. */
+  setVoxelGround(enabled: boolean): void {
+    this.voxelGround = enabled;
   }
 
   get epoch(): string {
@@ -207,8 +215,10 @@ export class AoeVoxelAdapter {
     if (!Number.isFinite(sampleTimeMs) || sampleTimeMs < 0) {
       throw new RangeError('AoE voxel sample time must be a non-negative finite number.');
     }
-    const fogged = terrainWithVoxelFog(entities, overlays.frame, this.exploredGround);
-    const cells = terrainCells(fogged.entities, fogged.isUnexplored);
+    const fogged = this.voxelGround
+      ? terrainWithVoxelFog(entities, overlays.frame, this.exploredGround)
+      : null;
+    const cells = fogged ? terrainCells(fogged.entities, fogged.isUnexplored) : [];
     const nextRevision = this.revision + 1;
     if (!Number.isSafeInteger(nextRevision)) throw new RangeError('AoE voxel revision overflow.');
     const nextPaletteSignature = [...new Set(cells.map((cell) => cell.tint))]
@@ -230,7 +240,7 @@ export class AoeVoxelAdapter {
     const occlusion = computeOcclusionSilhouettes(prepared.entities);
     this.currentOccludedUnits = occlusion.occluded;
     const parts = [
-      ...createTerrainDetailParts(terrainDetailEntities),
+      ...createTerrainDetailParts(terrainDetailEntities, { shoreSurf: this.voxelGround }),
       ...prepared.entities.flatMap((entity) => entity.parts),
       ...createAoeVoxelOverlayParts(prepared.entities, {
         ...overlays,

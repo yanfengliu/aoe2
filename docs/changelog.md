@@ -4,6 +4,10 @@ This changelog lists user-visible behavior changes only. Pure refactors, doc swe
 
 ## 0.3.231
 
+- **The Natural art style has painted ground.** In the Natural style (game menu, Settings, Art style) the ground is no longer one flat colour per tile. Grass has lighter and darker patches, tufts and dry specks; forests have a dark floor with fallen leaves; hills are drier grass; sand lines the water's edge; and every building stands on a patch of bare earth. One kind of ground blends softly into the next, and no tile grid shows. The edge of the ground you have explored fades softly into black instead of stepping tile by tile, and ground you have explored but cannot see now is dimmed with a soft edge. Unexplored ground stays black. The white surf lines along shores are not drawn in this style for now. Moebius, still the default look, is unchanged.
+
+## 0.3.231
+
 - **A quick double-click on a unit selects every unit of its type on screen, even when that unit is already selected.** Where a unit stands in front of something else, such as a villager in front of the Town Center or a soldier on a sheep, clicking it once and then double-clicking it selected what stood behind it instead, and then whatever stood behind that. The double-click now works whatever was selected before. Clicking the same spot again more slowly still steps through everything under the cursor.
 - **A click on something else breaks a double-click, as in Definitive Edition.** Clicking a unit, then a building, then the same unit again quickly used to select every unit of its type. Now the last two clicks have to be on the unit.
 

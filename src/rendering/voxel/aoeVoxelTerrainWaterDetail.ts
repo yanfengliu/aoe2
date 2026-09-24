@@ -217,6 +217,7 @@ export function waterDetailParts(
   x: number,
   z: number,
   terrainKinds: ReadonlyMap<string, TerrainKind>,
+  shoreSurf = true,
 ): VoxelPart[] {
   const parts: VoxelPart[] = [];
   const noise = hash01(x, z, 79);
@@ -290,7 +291,7 @@ export function waterDetailParts(
   const kindAt = (probeX: number, probeZ: number): TerrainKind | undefined => (
     terrainKinds.get(`${String(probeX)}:${String(probeZ)}`)
   );
-  for (const edge of SHORE_EDGES) {
+  for (const edge of shoreSurf ? SHORE_EDGES : []) {
     if (!isLand(kindAt(x + edge.dx, z + edge.dz))) continue;
     parts.push(...surfParts({ entity, identity, x, z, edge, kindAt }));
   }

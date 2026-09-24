@@ -166,8 +166,15 @@ export function draftTerrainChunks(
     });
 }
 
+export interface TerrainDetailOptions {
+  /** The surf strokes along each water tile's land edges. The Natural ground leaves them out: its shoreline
+   *  wanders off the tile edge the strokes follow, and they would draw a white tile outline round every pond. */
+  readonly shoreSurf?: boolean;
+}
+
 export function createTerrainDetailParts(
   entities: readonly ProjectedEntityView[],
+  options: TerrainDetailOptions = {},
 ): VoxelPart[] {
   const parts: VoxelPart[] = [];
   const cells = entities
@@ -184,7 +191,7 @@ export function createTerrainDetailParts(
     const identity = `terrain:${String(x)}:${String(z)}`;
     const kind = entity.entityType as TerrainKind;
     if (kind === 'water') {
-      parts.push(...waterDetailParts(entity, identity, x, z, terrainKinds));
+      parts.push(...waterDetailParts(entity, identity, x, z, terrainKinds, options.shoreSurf ?? true));
     } else {
       parts.push(...landDecorParts(entity, identity, kind, x, z));
     }
