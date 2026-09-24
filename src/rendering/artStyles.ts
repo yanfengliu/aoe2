@@ -136,6 +136,12 @@ export const MOEBIUS_RESOLVE: StylizedResolveOptions = MOEBIUS;
  * darkening the cells at the edge of vision; Moebius rose from L=113.0,
  * saturation 0.610 to L=114.5, saturation 0.611 on the same mask for the same
  * reason.
+ *
+ * Those figures are the style before its own ground. With the textured ground
+ * (v0.3.231) the same mask measures L=111.6, saturation 0.560: the mask reaches
+ * the rim of vision, which the soft fog edge darkens. Inside the explored area
+ * the frame measures L=126.4, saturation 0.523, against 132.2 and 0.489 on the
+ * voxel ground.
  */
 const DE_EXPOSURE = 1.5;
 

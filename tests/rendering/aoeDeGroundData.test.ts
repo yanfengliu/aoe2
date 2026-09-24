@@ -159,9 +159,19 @@ describe('Natural ground data', () => {
           expect(changed.cells, `cell (${x}, ${y}) as ${other}`).toEqual(baseline.cells);
           expect(changed.fog, `cell (${x}, ${y}) as ${other}`).toEqual(baseline.fog);
         }
+        // A building standing only on unexplored ground: its ring would reach known cells beside it.
+        const built = packDeGround([...map(), building(x, y, 1, 1)], frame, 0.6);
+        expect(built.cells, `a building on cell (${x}, ${y})`).toEqual(baseline.cells);
       }
     }
     expect(unexplored).toBeGreaterThan(30);
+  });
+
+  it('packs kind codes 1 to 4, which the shader indexes a four-component weight by', () => {
+    // aoeDeGroundShader.ts accumulates each surface's weight at kindWeight[kind - 1] of a vec4; a code outside
+    // 1..4 would index past its end, which GLSL leaves undefined.
+    expect(Object.values(DE_GROUND_KIND_CODE).sort()).toEqual([1, 2, 3, 4]);
+    expect(DE_GROUND_UNEXPLORED).toBe(0);
   });
 
   it('keeps dirt off unexplored cells, so a remembered building beside them marks only known ground', () => {

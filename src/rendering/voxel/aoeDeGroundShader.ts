@@ -8,8 +8,9 @@
 //     ripple parts (aoeVoxelTerrainWaterDetail.ts) sit inside the water tiles;
 //   * lays sand on land within about half a tile of water, lightens water near land, and lays dirt around
 //     building footprints (the cell texture's dirt channel);
-//   * leaves a cell the player has never explored black, and fades known ground to black over the half tile
-//     next to one. Nothing in an unexplored cell is ever read, because nothing about it is packed;
+//   * leaves a cell the player has never explored black, and fades known ground to black beside one, over
+//     about 0.7 of a tile (0.54 to 1.0 as the wander field moves it). Nothing in an unexplored cell is ever
+//     read, because nothing about it is packed;
 //   * darkens explored-but-unseen ground to the style's level through the linearly filtered fog texture, so
 //     the edge of vision is a gradient that reaches at most half a tile past the visible cells.
 // Every surface is sampled with explicit gradients, because a mipmapped lookup inside a branch has no

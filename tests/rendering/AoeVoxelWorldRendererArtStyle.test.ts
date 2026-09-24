@@ -194,19 +194,31 @@ describe('AoeVoxelWorldRenderer art style', () => {
     const returned = runtime.accepted.at(-1)!.chunks;
     expect(returned.map((chunk) => chunk.key)).toEqual(chunks.map((chunk) => chunk.key));
     expect(returned[0]!.incarnation).toBe(chunks[0]!.incarnation + 1);
+    // The ground goes before the runtime, whose disposal takes the WebGL renderer that could free its textures.
+    let groundGoneFirst = false;
+    runtime.dispose.mockImplementation(() => {
+      groundGoneFirst = options.scene?.getObjectByName('aoe2-de-ground') === undefined;
+    });
     renderer.dispose();
-    expect(options.scene?.getObjectByName('aoe2-de-ground')).toBeUndefined();
+    expect(groundGoneFirst).toBe(true);
   });
 
   it('keeps drawing the old style when the runtime refuses the new pass', () => {
     // Voxel keeps the old pass drawing when a swap throws, so the renderer
-    // must not record, tone-map or re-fog for a style the canvas is not in.
-    const { runtime, renderer, webgl } = build('de');
+    // must not record, tone-map, re-fog or swap the ground for a style the
+    // canvas is not in.
+    const { runtime, renderer, webgl, options } = build('de');
+    const ground = [terrain(), { ...terrain(), id: 2, x: 1 }];
+    renderer.present(ground, 100, fogOverlays);
     runtime.setStylizedResolve.mockImplementationOnce(() => { throw new Error('refused'); });
 
     expect(() => renderer.setArtStyle('moebius')).toThrow('refused');
     expect(renderer.artStyleId()).toBe('de');
     expect(webgl.toneMapping).toBe(ACESFilmicToneMapping);
+    expect(groundMesh(options).visible).toBe(true);
+    renderer.present(ground, 200, fogOverlays);
+    expect(runtime.accepted.at(-1)!.chunks).toEqual([]);
+    expect(groundData(options).fog[0]).toBe(Math.round(artStyleById('de').exploredGround * 255));
     renderer.dispose();
   });
 

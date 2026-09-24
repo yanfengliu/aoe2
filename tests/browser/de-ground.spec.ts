@@ -6,23 +6,27 @@ import * as game from './helpers/gameTestHelpers';
 //
 // 1. It REPLACES the voxel terrain rather than drawing over it: the runtime holds no terrain chunks, because a
 //    mesh laid over them z-fights (the plan's experiment E3).
-// 2. It keeps the fog-of-war rule at the RIM of the explored area, where a soft edge could leak: every pixel of
-//    an unexplored cell next to explored ground is black, and the known cell beside it darkens toward it
-//    instead, so the edge is soft. art-style-setting.spec.ts samples only DEEP unexplored cells (none explored
+// 2. It keeps the fog-of-war rule at the RIM of the explored area, where a soft edge could leak: the sampled
+//    points of unexplored cells next to explored ground are black, and the known cell beside each darkens toward
+//    it instead, so the edge is soft. art-style-setting.spec.ts samples only DEEP unexplored cells (none explored
 //    within three), which a soft edge reaching into the unexplored cell would never touch.
-// 3. It comes back after the WebGL context is lost and restored. Three re-uploads its textures from the data it
+// 3. It dims explored-but-unseen ground to about half the brightness of visible ground. The style's level
+//    scales the sRGB colour, and applying it to the linear colour instead (the first shader did) left explored
+//    ground at three quarters of visible, which read as seen.
+// 4. It comes back after the WebGL context is lost and restored. Three re-uploads its textures from the data it
 //    keeps, and nothing in the ground is created only once per context.
 //
 // HOW THE RIM IS SAMPLED. On the world canvas (no HUD), at unexplored cells on the NEAR side of the explored area:
 // every cell in front of the cell (larger x and y, three deep) is unexplored too, and so holds nothing drawn,
 // because anything standing on ground reaches up the screen over the cells behind it, never over the cells in
-// front. A cell with a displayed entity within two cells is skipped all the same (a tree's canopy can lean over
+// front. A cell with a displayed entity within one cell is skipped all the same (a tree's canopy can lean over
 // its cell's edge). Each cell is sampled at its centre and at three points 0.1 of a tile inside each edge it
 // shares with explored ground: the points a soft edge reaching into it would light first.
 //
-// BOUND: one map (aoe2-prototype) at tick 0, one camera (the default zoom at 1280x720), whatever rasteriser the
-// suite runs on. Explored-but-unseen ground and the half-tile limit on the edge of vision are not measured here:
-// they come from a linearly filtered fog texture whose bytes tests/rendering/aoeDeGroundData.test.ts holds.
+// BOUND: one map (aoe2-prototype), the rim at tick 0 and the explored ground after the human's units walk east
+// for 150 ticks, one camera (zoom 0.7 at 1280x720), whatever rasteriser the suite runs on. Sample points only,
+// not every pixel, and grass only for the explored brightness. The half-tile limit on the edge of vision is not measured here: it comes from a linearly
+// filtered fog texture whose bytes tests/rendering/aoeDeGroundData.test.ts holds.
 
 interface RimReport {
   readonly cells: number;
@@ -163,6 +167,87 @@ test.describe('the Natural style\'s textured ground', () => {
       median(rim.knownEdgeLuma) / median(rim.knownCentreLuma),
       `known ground 0.06 of a tile from the unexplored edge, over its centre: ${median(rim.knownEdgeLuma)} / ${median(rim.knownCentreLuma)}`,
     ).toBeLessThan(0.35);
+  });
+
+  test('dims explored-but-unseen ground to about half the brightness of visible ground', async ({ page }) => {
+    // The walk below advances the simulation in the page (150 ticks took 5 to 22 s on the development machine,
+    // 2026-09-24, depending on load), so this test takes the time its scenario needs.
+    test.setTimeout(90_000);
+    await bootNatural(page, 0.7);
+    // Step 1's setup: every human unit walks toward (26, 14) and leaves explored ground behind. 150 ticks leave
+    // 7 cells to sample; step 1 walked 900.
+    const moved = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      const size = api.getMapSize();
+      return api.selectUnitsInBox(0, 0, size.width, size.height) && api.issueMoveCommand(26, 14);
+    });
+    expect(moved, 'every human unit ordered to (26, 14)').toBe(true);
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(150); });
+    await page.evaluate(() => { window.__AOE2_TEST__!.centerCameraOnWorldPosition(20, 12); });
+    await game.waitForRenderedFrames(page, 2);
+
+    // Median luma at the centres of grass cells. At a cell's centre the fog texture reads exactly that cell's
+    // level and the blend shows only that cell's surface, so the only neighbours that matter are an unexplored
+    // one (the fade toward black reaches the centre), water (sand), and anything standing on the cell or in front
+    // of it, which is drawn over it.
+    const report = await page.evaluate(async () => {
+      const api = window.__AOE2_TEST__!;
+      const state = api.getRenderState();
+      const frame = state.frame!;
+      const width = frame.mapWidth;
+      const visible = new Set(frame.visibleCells);
+      const explored = new Set(frame.exploredCells);
+      const kinds = new Map(state.entities.filter((e) => e.layer === 'terrain').map((e) => [e.y * width + e.x, e.entityType]));
+      const occupied = new Set(state.entities.filter((e) => e.layer !== 'terrain').map((e) => Math.floor(e.y) * width + Math.floor(e.x)));
+      const origin = api.worldToScreen(0, 0);
+      const alongX = api.worldToScreen(1, 0);
+      const alongY = api.worldToScreen(0, 1);
+      const capture = api.captureWorldFrame();
+      const image = new Image();
+      image.src = capture.dataUrl;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext('2d')!;
+      context.drawImage(image, 0, 0);
+      const rect = document.querySelector('.voxel-world-canvas')!.getBoundingClientRect();
+      const scale = image.width / rect.width;
+      const lumas: Record<'visible' | 'explored', number[]> = { visible: [], explored: [] };
+      for (let y = 1; y < frame.mapHeight - 1; y += 1) {
+        for (let x = 1; x < width - 1; x += 1) {
+          const classOf = (i: number) => (visible.has(i) ? 'visible' : explored.has(i) ? 'explored' : 'unexplored');
+          const own = classOf(y * width + x);
+          if (own === 'unexplored') continue;
+          let clean = kinds.get(y * width + x) === 'grass';
+          for (let dy = -1; dy <= 1 && clean; dy += 1) {
+            for (let dx = -1; dx <= 1; dx += 1) {
+              const i = (y + dy) * width + x + dx;
+              if (classOf(i) === 'unexplored' || kinds.get(i) === 'water') clean = false;
+            }
+          }
+          for (let dy = -1; dy <= 2 && clean; dy += 1) {
+            for (let dx = -1; dx <= 2; dx += 1) if (occupied.has((y + dy) * width + x + dx)) clean = false;
+          }
+          if (!clean) continue;
+          const px = Math.round((origin.x + (alongX.x - origin.x) * x + (alongY.x - origin.x) * y - rect.left) * scale);
+          const py = Math.round((origin.y + (alongX.y - origin.y) * x + (alongY.y - origin.y) * y - rect.top) * scale);
+          if (px < 0 || py < 0 || px >= image.width || py >= image.height) continue;
+          const [r, g, b] = context.getImageData(px, py, 1, 1).data;
+          lumas[own].push(0.2126 * r! + 0.7152 * g! + 0.0722 * b!);
+        }
+      }
+      return lumas;
+    });
+    const seen = `${report.explored.length} explored and ${report.visible.length} visible grass cells`;
+    expect(report.explored.length, seen).toBeGreaterThanOrEqual(5);
+    expect(report.visible.length, seen).toBeGreaterThanOrEqual(5);
+    const ratio = median(report.explored) / median(report.visible);
+    // Measured 2026-09-24: 0.498 (67.1 over 134.8, 7 explored and 8 visible cells). Step 1 measured 0.506 for the
+    // style's 0.6 on the voxel ground; the level applied to the linear colour instead drew explored ground at
+    // three quarters of visible.
+    expect(ratio, `explored over visible luma, ${seen}`).toBeGreaterThan(0.4);
+    expect(ratio, `explored over visible luma, ${seen}`).toBeLessThan(0.62);
   });
 
   test('draws again after the WebGL context is lost and restored', async ({ page }) => {

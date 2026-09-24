@@ -159,7 +159,8 @@ export class AoeDeGround {
     return this.mesh.visible;
   }
 
-  /** Shows or hides the ground. The first show bakes the surface textures (under a tenth of a second). */
+  /** Shows or hides the ground. The first show bakes the surface textures (85-91 ms on the development machine,
+   *  2026-09-24). */
   setVisible(visible: boolean): void {
     if (visible && !this.detail) {
       this.detail = detailTexture();

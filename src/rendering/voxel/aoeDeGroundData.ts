@@ -35,8 +35,9 @@ export interface DeGroundData {
   /** RGBA per cell, row-major from (0, 0): R the kind code, G dirt (0-255), B 0, A 255. */
   readonly cells: Uint8Array;
   /** One byte per cell: how bright the fog leaves the ground, 255 for visible. An unexplored cell holds the
-   *  explored level, so linear filtering toward it neither brightens nor darkens its known neighbours: the
-   *  shader darkens toward unexplored ground itself, inside the known cell. */
+   *  explored level, so linear filtering treats it as explored ground: a visible neighbour's outer half dims
+   *  toward it as toward any explored cell, and nothing is lit by it. The darkening toward black is the
+   *  shader's own, inside the known cell. */
   readonly fog: Uint8Array;
 }
 
@@ -101,12 +102,18 @@ export function packDeGround(
     if (!known(index)) continue;
     const code = DE_GROUND_KIND_CODE[entity.entityType as TerrainKind];
     if (code === undefined) {
-      throw new RangeError(`Terrain cell (${String(x)}, ${String(y)}) has kind "${entity.entityType}", which the Natural ground does not draw.`);
+      throw new RangeError(
+        `Terrain cell (${String(x)}, ${String(y)}) has kind "${entity.entityType}", which the Natural ground does not `
+        + `draw; it draws ${Object.keys(DE_GROUND_KIND_CODE).join(', ')}. A new kind needs a code here and a surface `
+        + 'in aoeDeGroundShader.ts.',
+      );
     }
     cells[index * 4] = code;
   }
   // Dirt: every building the player knows of (live and visible, or remembered) marks its footprint and the ring
-  // of cells around it. Water keeps none (a Dock stands on water), and neither does an unexplored cell.
+  // of cells around it. Water keeps none (a Dock stands on water), and neither does an unexplored cell. A
+  // building with no explored cell under it lays nothing, so its ring cannot mark known ground beside it: the
+  // bridge never projects such a building, and this does not rely on that.
   const dirt = (x: number, y: number, amount: number): void => {
     if (x < 0 || y < 0 || x >= width || y >= height) return;
     const offset = (y * width + x) * 4;
@@ -120,6 +127,13 @@ export function packDeGround(
     const y0 = Math.floor(entity.y);
     const w = Math.max(1, Math.round(entity.footprintWidth));
     const h = Math.max(1, Math.round(entity.footprintHeight));
+    let standsOnKnownGround = false;
+    for (let y = Math.max(0, y0); y < Math.min(height, y0 + h) && !standsOnKnownGround; y += 1) {
+      for (let x = Math.max(0, x0); x < Math.min(width, x0 + w); x += 1) {
+        if (known(y * width + x)) standsOnKnownGround = true;
+      }
+    }
+    if (!standsOnKnownGround) continue;
     for (let y = y0 - 1; y <= y0 + h; y += 1) {
       for (let x = x0 - 1; x <= x0 + w; x += 1) {
         const inside = x >= x0 && x < x0 + w && y >= y0 && y < y0 + h;

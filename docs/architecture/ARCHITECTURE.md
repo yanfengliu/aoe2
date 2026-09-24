@@ -230,9 +230,9 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     frame measurement it was chosen against. Style is never world state and
     never enters a save. How UNEXPLORED ground looks is not a style field: the
     adapter names the unexplored cells and `aoeVoxelTerrain.ts` draws them
-    black without reading them. What draws the ground IS a style field: in the
-    DE style `AoeVoxelWorldRenderer` lends the runtime a `Scene` of its own
-    holding `aoeDeGround.ts`'s textured mesh (surfaces baked by
+    black without reading them. What draws the ground IS a style field:
+    `AoeVoxelWorldRenderer` lends the runtime a `Scene` of its own in every
+    style, and in the DE style `aoeDeGround.ts`'s textured mesh shows in it (surfaces baked by
     `aoeDeGroundDetail.ts`, per-cell kind, dirt and fog bytes packed by
     `aoeDeGroundData.ts`, spliced into Three's Lambert program by
     `aoeDeGroundShader.ts`), and the adapter leaves the terrain chunks and the

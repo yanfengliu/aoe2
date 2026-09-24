@@ -212,6 +212,12 @@ export class AoeVoxelWorldRenderer {
     overlays?: AoeVoxelOverlayInput,
   ): void {
     this.assertActive();
+    // The textured ground takes the same frame's cells and fog, so it shows with the snapshot it belongs to.
+    // Packed before the snapshot is accepted: if packing throws, the runtime keeps the previous frame whole
+    // rather than holding a chunk-less snapshot over a stale ground.
+    const ground = this.artStyle.ground === 'textured'
+      ? packDeGround(entities, overlays?.frame ?? null, this.artStyle.exploredGround)
+      : null;
     const snapshot = this.adapter.createSnapshot(entities, simulationDisplayTimeMs, overlays);
     const result = this.runtime.acceptSnapshot(snapshot);
     if (result.status === 'rejected') {
@@ -219,10 +225,7 @@ export class AoeVoxelWorldRenderer {
         `Voxel snapshot rejected (${result.code} at ${result.path}): ${result.message}`,
       );
     }
-    // The textured ground takes the same frame's cells and fog, so it shows with the snapshot it belongs to.
-    if (this.artStyle.ground === 'textured') {
-      this.ground.update(packDeGround(entities, overlays?.frame ?? null, this.artStyle.exploredGround));
-    }
+    if (ground) this.ground.update(ground);
     // Voxel ambient animation and hit geometry share a monotonic clock driven
     // only by forward simulation display progress. Browser RAF time advances
     // while paused, while replay scrubs can move simulation time backward;
@@ -368,8 +371,10 @@ export class AoeVoxelWorldRenderer {
     this.disposed = true;
     this.pendingHitState = null;
     this.presentedHitState = null;
-    this.runtime.dispose();
+    // The ground first: disposing the runtime disposes the WebGL renderer, after which Three no longer tracks
+    // the ground's textures and could not free them.
     this.ground.dispose();
+    this.runtime.dispose();
     this.canvas.remove();
   }
 

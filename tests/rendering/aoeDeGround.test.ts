@@ -81,7 +81,8 @@ describe('Natural ground mesh', () => {
   it('bakes the same surface layers every time, each in its own colour family', () => {
     const detail = bakeDeGroundDetail();
     expect(detail.length).toBe(DE_GROUND_DETAIL_SIZE ** 2 * 4 * DE_GROUND_LAYERS.length);
-    expect(bakeDeGroundDetail()).toEqual(detail);
+    // Byte equality without a 1.5 MB structural diff (toEqual took three seconds of the unit suite).
+    expect(Buffer.from(bakeDeGroundDetail()).equals(Buffer.from(detail))).toBe(true);
     expect(bakeDeGroundMacro().length).toBe(DE_GROUND_MACRO_SIZE ** 2 * 4);
     const mean = (layer: (typeof DE_GROUND_LAYERS)[number]) => {
       const start = DE_GROUND_LAYERS.indexOf(layer) * DE_GROUND_DETAIL_SIZE ** 2 * 4;
