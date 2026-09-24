@@ -1,0 +1,1 @@
+[{"completedAt":"2026-09-03T07:48:06Z","conclusion":"failure","failedSteps":[],"name":"windows-latest — typecheck + lint + test + build","runner":"","steps":0},{"completedAt":"2026-09-03T07:48:06Z","conclusion":"failure","failedSteps":[],"name":"ubuntu-latest — typecheck + lint + test + build","runner":"","steps":0}]

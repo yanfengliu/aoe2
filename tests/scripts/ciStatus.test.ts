@@ -29,136 +29,26 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
 
-type Exec = (bin: string, args: string[]) => string;
+import { fixture, makeHandler, runScript } from './helpers/ciStatusHarness';
 
-let handler: Exec = () => {
-  throw new Error('ci-status called a subprocess before a scenario was installed');
-};
-
-vi.mock('node:child_process', () => ({
-  execFileSync: (bin: string, args: string[]) => handler(bin, args),
-}));
+// The fake gh and git, and the frozen filtered workflows, live in the harness.
+vi.mock('node:child_process', async () => {
+  const { exec } = await import('./helpers/ciStatusHarness');
+  return { execFileSync: exec };
+});
 
 const SCRIPT = new URL('../../scripts/ci-status.mjs', import.meta.url).href;
-const fixture = (name: string) =>
-  readFileSync(fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url)), 'utf8');
 
 const TIP_BLOCKED = 'b1d0a0ff75c9aa77f8c9e84191b1b7e5b234d0df';
 const TIP_GREEN = 'c538545865c3b2ee5b3ae3fee9351e48b2eccaf2';
 const TIP_RED = '619e3994fd91178c1863257130616c88d6990966';
 const TIP_DOCS = '3924431040fab4898add984f16af131de13022c3';
 
-// The workflows as they stood while both watched workflows filtered `on.push.paths`, last copied at `ecfaa3ff`
-// (2026-09-06). The script reads the filter at the commit it judges (`git show <sha>:...`), so these are frozen on
-// purpose: they stand for history, not for today's files, and are never refreshed from .github/workflows. They are
-// not byte-for-byte what every scenario commit carried. Those commits run from 2026-08-28 (`619e3994`) to 2026-09-05,
-// none of them had `.gitattributes` in the filter yet, and `619e3994` also lacked `.github/workflows/**`. Neither
-// changed-files fixture names either path, so no outcome here depends on the difference. The case that judges a
-// commit against TODAY's workflows reads the real files instead.
-const FILTERED_WORKFLOWS: Record<string, string> = {
-  'ci.yml': fixture('workflow--ci.yml'),
-  'playtest.yml': fixture('workflow--playtest.yml'),
-  'playtest-llm.yml': fixture('workflow--playtest-llm.yml'),
-};
-
 const WORKFLOW_DIR = fileURLToPath(new URL('../../.github/workflows/', import.meta.url));
 const realWorkflow = (name: string) => readFileSync(`${WORKFLOW_DIR}${name}`, 'utf8');
 const CURRENT_WORKFLOWS: Record<string, string> = Object.fromEntries(
   readdirSync(WORKFLOW_DIR).filter((name) => /\.ya?ml$/.test(name)).map((name) => [name, realWorkflow(name)]),
 );
-
-interface Scenario {
-  tip: string;
-  subject: string;
-  runsForSha: string;
-  history: Record<string, string>;
-  jobs: Record<string, string>;
-  annotations?: Record<string, string>;
-  changed: string;
-  /** A sha the tip is an ancestor OF — i.e. a later push that carried it. */
-  descendant?: string;
-  /** The workflow files the commit carried; the frozen filtered set when omitted. */
-  workflows?: Record<string, string>;
-}
-
-function makeHandler(scenario: Scenario): Exec {
-  const refuse = (bin: string, args: string[]) => {
-    throw new Error(`unstubbed command: ${bin} ${args.join(' ')}`);
-  };
-  const workflowFiles = scenario.workflows ?? FILTERED_WORKFLOWS;
-  return (bin, args) => {
-    if (bin === 'git') {
-      // Every ref resolves to the commit under test: these scenarios put HEAD
-      // and origin/main on the same commit, so the script reports one target.
-      if (args[0] === 'rev-parse') return scenario.tip;
-      if (args[0] === 'merge-base') {
-        const [, , a, b] = args;
-        const ancestorOfTip = b === scenario.tip && a !== scenario.tip && a !== scenario.descendant;
-        const carried = a === scenario.tip && b === scenario.descendant;
-        if (ancestorOfTip || carried) return '';
-        throw Object.assign(new Error('Command failed'), { status: 1 });
-      }
-      if (args[0] === 'log') return scenario.subject;
-      if (args[0] === 'ls-tree') return Object.keys(workflowFiles).join('\n');
-      if (args[0] === 'show') {
-        const file = String(args[1]).split('/').pop() ?? '';
-        return workflowFiles[file] ?? refuse(bin, args);
-      }
-      if (args[0] === 'diff' || args[0] === 'diff-tree') return scenario.changed;
-      return refuse(bin, args);
-    }
-    if (bin === 'gh') {
-      if (args[0] === 'run') {
-        const workflow = args[args.indexOf('--workflow') + 1];
-        return scenario.history[workflow] ?? refuse(bin, args);
-      }
-      const path = String(args[1]);
-      if (path.includes('actions/runs?head_sha=')) return scenario.runsForSha;
-      const jobsAt = /actions\/runs\/(\d+)\/jobs/.exec(path);
-      if (jobsAt) return scenario.jobs[jobsAt[1]] ?? refuse(bin, args);
-      const annotationsAt = /check-runs\/(\d+)\/annotations/.exec(path);
-      if (annotationsAt) return scenario.annotations?.[annotationsAt[1]] ?? '[]';
-      return refuse(bin, args);
-    }
-    return refuse(bin, args);
-  };
-}
-
-let caseId = 0;
-
-async function runScript(scenario: Scenario): Promise<{ out: string; exitCode: number }> {
-  handler = makeHandler(scenario);
-  const logged: string[] = [];
-  const log = vi.spyOn(console, 'log').mockImplementation((...parts: unknown[]) => {
-    logged.push(parts.map(String).join(' '));
-  });
-  const exit = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
-    throw Object.assign(new Error('process.exit'), { exitCode: code ?? 0 });
-  }) as never);
-  const savedArgv = process.argv;
-  process.argv = [savedArgv[0], fileURLToPath(SCRIPT)];
-  let exitCode = -1;
-  try {
-    caseId += 1;
-    // A fresh evaluation per case. `main` is called only when it exists:
-    // revisions of this script before the fix ran on import and had no export,
-    // and that tolerance is what lets this same gate be pointed at the pre-fix
-    // script to prove it red (docs/learning/gate-proofs.md).
-    const module = (await import(`${SCRIPT}?case=${caseId}`)) as {
-      main?: (argv: string[]) => number;
-    };
-    if (typeof module.main === 'function') exitCode = module.main([]);
-  } catch (error) {
-    const thrown = error as { exitCode?: number };
-    if (typeof thrown.exitCode !== 'number') throw error;
-    exitCode = thrown.exitCode;
-  } finally {
-    process.argv = savedArgv;
-    log.mockRestore();
-    exit.mockRestore();
-  }
-  return { out: logged.join('\n'), exitCode };
-}
 
 const BLOCKED_HISTORY = {
   CI: fixture('run-list--ci-blocked.json'),

@@ -37,13 +37,26 @@
 // judged (`git show <sha>:.github/workflows/...`), because the filter that
 // decided whether that push got a run is the one that commit carried, not the
 // one in today's working tree.
+//
+// A run's conclusion is its NEWEST attempt's, so a run whose first attempt
+// failed and whose re-run passed says "success" everywhere GitHub lists it.
+// Until 2026-09-24 this command called that GREEN, and a flaky spec stayed out
+// of the defect register because of it (ci-status-attempts.mjs has the case).
+// Now a commit's own run that passed only on a re-run is GREEN ONLY ON A
+// RE-RUN, names the job and step that failed first, and exits 1; the history
+// line names every run in its window that passed that way.
 
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
+import { attemptsForWorkflow, describeEarlierAttempts, laterRunVerdict } from './ci-status-attempts.mjs';
+import { globToRegExp, matchesFilter, parsePushTrigger } from './ci-status-triggers.mjs';
+
+export { globToRegExp, matchesFilter, parsePushTrigger };
+
 export const WATCHED = ['CI', 'playtest-corpus'];
 const WORKFLOW_DIR = '.github/workflows';
-const RUN_FIELDS = 'conclusion,displayTitle,createdAt,databaseId,headSha,status,event';
+const RUN_FIELDS = 'conclusion,displayTitle,createdAt,databaseId,headSha,status,event,workflowDatabaseId';
 
 function capture(bin, args) {
   return execFileSync(bin, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -68,101 +81,8 @@ function gitOrNull(args) {
 const isAncestor = (a, b) => gitOrNull(['merge-base', '--is-ancestor', a, b]) !== null;
 
 // ---------------------------------------------------------------------------
-// Workflow push triggers
+// Workflow push triggers (the pure parser lives in ci-status-triggers.mjs)
 // ---------------------------------------------------------------------------
-
-function yamlRows(text) {
-  return text
-    .split(/\r?\n/)
-    .map((raw) => ({ indent: raw.length - raw.trimStart().length, text: raw.trim() }))
-    .filter((row) => row.text && !row.text.startsWith('#'));
-}
-
-function blockRange(rows, headerIndex) {
-  const base = rows[headerIndex].indent;
-  let end = headerIndex + 1;
-  while (end < rows.length && rows[end].indent > base) end += 1;
-  return [headerIndex + 1, end];
-}
-
-function findChild(rows, headerIndex, key) {
-  const [start, end] = blockRange(rows, headerIndex);
-  if (start >= end) return -1;
-  let childIndent = Infinity;
-  for (let i = start; i < end; i += 1) childIndent = Math.min(childIndent, rows[i].indent);
-  for (let i = start; i < end; i += 1) {
-    if (rows[i].indent === childIndent && rows[i].text.replace(/:.*$/, '') === key) return i;
-  }
-  return -1;
-}
-
-// `{ parsed: false }` means we did not understand the file, and that is NOT the
-// same as "no filter": an unparsed trigger makes a missing run UNGATED and
-// loud, because a filter we half-understand would answer "never asked" for a
-// commit that was in fact never checked.
-export function parsePushTrigger(text) {
-  const rows = yamlRows(text);
-  const name = /^name:\s*(.+)$/m.exec(text)?.[1]?.trim().replace(/^['"]|['"]$/g, '') ?? null;
-  const onAt = rows.findIndex((row) => row.indent === 0 && row.text === 'on:');
-  if (onAt === -1) return { name, parsed: false };
-  const pushAt = findChild(rows, onAt, 'push');
-  if (pushAt === -1) return { name, parsed: true, hasPush: false, paths: [] };
-  if (rows[pushAt].text !== 'push:') return { name, parsed: false };
-  // Only `branches` and a block-style `paths` list are read. Any other key
-  // (`paths-ignore`, `tags`, `branches-ignore`) is a filter this parser would
-  // otherwise report as "no filter", so the whole trigger is refused instead.
-  const [pushStart, pushEnd] = blockRange(rows, pushAt);
-  const pushIndent = Math.min(...rows.slice(pushStart, pushEnd).map((row) => row.indent));
-  for (let i = pushStart; i < pushEnd; i += 1) {
-    if (rows[i].indent !== pushIndent) continue;
-    const key = rows[i].text.replace(/:.*$/, '');
-    if (key !== 'branches' && key !== 'paths') return { name, parsed: false };
-  }
-  const pathsAt = findChild(rows, pushAt, 'paths');
-  if (pathsAt === -1) return { name, parsed: true, hasPush: true, paths: null };
-  if (rows[pathsAt].text !== 'paths:') return { name, parsed: false };
-  const [start, end] = blockRange(rows, pathsAt);
-  const paths = [];
-  for (let i = start; i < end; i += 1) {
-    const item = /^-\s*(.+)$/.exec(rows[i].text);
-    if (!item) return { name, parsed: false };
-    paths.push(item[1].trim().replace(/^['"]|['"]$/g, ''));
-  }
-  return { name, parsed: true, hasPush: true, paths };
-}
-
-// GitHub's filter syntax minus the parts these workflows do not use. A pattern
-// with `!`, a character class or a brace group is REFUSED (null) rather than
-// approximated, for the reason above.
-export function globToRegExp(pattern) {
-  if (/[![\]{}+]/.test(pattern)) return null;
-  let out = '';
-  for (let i = 0; i < pattern.length; i += 1) {
-    const ch = pattern[i];
-    if (ch === '*' && pattern[i + 1] === '*') {
-      out += '.*';
-      i += 1;
-    } else if (ch === '*') {
-      out += '[^/]*';
-    } else if (ch === '?') {
-      out += '[^/]';
-    } else {
-      out += ch.replace(/[.\\^$()|]/g, '\\$&');
-    }
-  }
-  return new RegExp(`^${out}$`);
-}
-
-export function matchesFilter(files, paths) {
-  if (paths === null) return { due: true, matched: [] };
-  const matched = [];
-  for (const pattern of paths) {
-    const re = globToRegExp(pattern);
-    if (re === null) return { due: true, matched: [], unparsed: pattern };
-    for (const file of files) if (re.test(file)) matched.push(`${file} (${pattern})`);
-  }
-  return { due: matched.length > 0, matched };
-}
 
 function triggerForCommit(sha, workflow) {
   let entries;
@@ -229,7 +149,7 @@ function runsForCommit(sha) {
   return JSON.parse(gh([
     'api', `repos/{owner}/{repo}/actions/runs?head_sha=${sha}`,
     '--jq', '[.workflow_runs[] | {name, conclusion, status, id, createdAt: .created_at,'
-      + ' title: .display_title, event}]',
+      + ' title: .display_title, event, attempt: .run_attempt}]',
   ]));
 }
 
@@ -241,6 +161,7 @@ const asRun = (workflow, entry) => ({
   createdAt: entry.createdAt,
   title: entry.displayTitle,
   event: entry.event,
+  attempt: entry.attempt,
 });
 
 // A run that FAILED and a run that could never START look identical in the
@@ -314,26 +235,50 @@ const QUOTA_TAIL = 'This is the ACCOUNT, not the code, so it is NOT a red gate a
   + ' next task. The local gate (`npm run verify`) is what carries the weight until the'
   + ' allowance resets.';
 
+// A run's conclusion is its NEWEST attempt's (see ci-status-attempts.mjs), so
+// every verdict below also says what the attempts before it did.
 function describeRun(label, run, note = '') {
-  const stamp = `run ${run.id} (${run.event}) at ${run.createdAt}`;
+  const again = describeEarlierAttempts(gh, run);
+  const attempt = again && again.kind !== 'unnumbered' ? ` attempt ${String(run.attempt)}` : '';
+  const stamp = `run ${run.id}${attempt} (${run.event}) at ${run.createdAt}`;
+  const said = again ? `; ${again.text}` : '';
   if (run.status !== 'completed') {
-    return { red: false, line: `${label}: STILL RUNNING (${run.status})${note} — ${stamp}.` };
+    // A re-run still going does not clear the attempt before it that failed.
+    const state = again?.red ? 'RED, RE-RUN STILL RUNNING' : 'STILL RUNNING';
+    return { red: Boolean(again?.red), line: `${label}: ${state} (${run.status})${note}${said} — ${stamp}.` };
   }
   if (run.conclusion === 'success') {
-    return { red: false, line: `${label}: GREEN${note} — ${stamp}.` };
+    if (again?.red) {
+      const state = again.kind === 'failed' ? 'GREEN ONLY ON A RE-RUN' : 'GREEN ON A RE-RUN, EARLIER ATTEMPT UNKNOWN';
+      return {
+        red: true,
+        line: `${label}: ${state}${note} — ${again.text}.${again.tail ? ` ${again.tail}` : ''} ${stamp}.`,
+      };
+    }
+    return { red: false, line: `${label}: GREEN${note}${again ? ` (${again.text})` : ''} — ${stamp}.` };
   }
+  const noted = `${note}${said}`;
   if (neverGotARunner(run.id)) {
+    // The newest attempt never ran, and one before it failed or cannot be read:
+    // an attempt that could not start clears nothing.
+    if (again?.red) {
+      return {
+        red: true,
+        line: `${label}: RED${note} — ${again.text}; the newest attempt could not start (no runner`
+          + ` was assigned to any job), and that clears nothing. ${stamp}.`,
+      };
+    }
     const notes = blockedReasons(run.id);
     const quoted = notes.length > 0
       ? ` GitHub's own annotation on the job, verbatim: ${notes.map((n) => `"${n}"`).join(' / ')}.`
       : '';
     return {
       red: false,
-      line: `${label}: COULD NOT RUN${note} — no runner was assigned to any job (every job`
+      line: `${label}: COULD NOT RUN${noted} — no runner was assigned to any job (every job`
         + ` finished with zero steps).${quoted} ${QUOTA_TAIL} ${stamp}.`,
     };
   }
-  return { red: true, line: `${label}: RED (${run.conclusion})${note} — ${stamp}.` };
+  return { red: true, line: `${label}: RED (${run.conclusion})${noted} — ${stamp}.` };
 }
 
 function describeMissingRun(label, short, trigger, files) {
@@ -366,7 +311,44 @@ function describeMissingRun(label, short, trigger, files) {
     + ` ${where}'s \`on.push.paths\` (${(trigger.paths ?? []).join(', ')})`);
 }
 
-function describeHistory(workflow, runs, limit) {
+// Gives each run in a workflow's history window its attempt number, from one
+// more call over the same window. Returns why it could not, or null.
+function addAttempts(runs, limit) {
+  const workflowId = runs.find((run) => run.workflowDatabaseId !== undefined)?.workflowDatabaseId;
+  if (workflowId === undefined) return 'gh run list gave no workflow id to ask with';
+  let attempts;
+  try {
+    attempts = attemptsForWorkflow(gh, workflowId, limit);
+  } catch (error) {
+    return reason(error);
+  }
+  for (const run of runs) run.attempt = attempts.has(run.databaseId) ? attempts.get(run.databaseId) : null;
+  return null;
+}
+
+// A green streak is not a clean one if some of it passed only on a re-run:
+// the streak counts final conclusions, and a re-run's final conclusion hides
+// the red attempt before it. So the history line names every such run.
+function rerunsIn(workflow, finished, unknownWhy) {
+  if (unknownWhy !== null) return ` Whether any of them needed a re-run is unknown (${unknownWhy}).`;
+  const hidden = [];
+  const unread = [];
+  let unnumbered = 0;
+  for (const entry of finished) {
+    if (entry.attempt === null) unnumbered += 1;
+    if (entry.conclusion !== 'success' || !(entry.attempt > 1)) continue;
+    const again = describeEarlierAttempts(gh, asRun(workflow, entry));
+    const which = `run ${entry.databaseId} at ${String(entry.headSha).slice(0, 8)}`;
+    if (again?.kind === 'failed') hidden.push(`${which}, ${again.text}`);
+    if (again?.kind === 'unreadable') unread.push(which);
+  }
+  const missing = (unnumbered === 0 ? '' : ` ${unnumbered} of them had no attempt number.`)
+    + (unread.length === 0 ? '' : ` The earlier attempts of ${unread.join(', ')} could not be read.`);
+  if (hidden.length === 0) return missing;
+  return ` ${hidden.length} of the last ${finished.length} passed only on a re-run: ${hidden.join('; ')}.${missing}`;
+}
+
+function describeHistory(workflow, runs, limit, unknownWhy) {
   const finished = runs.filter((run) => run.conclusion);
   if (finished.length === 0) {
     return { red: false, line: `${workflow} on main: no finished runs in the last ${limit}.` };
@@ -376,12 +358,20 @@ function describeHistory(workflow, runs, limit) {
   while (streak < finished.length && finished[streak].conclusion === latest.conclusion) streak += 1;
   const tail = streak === finished.length ? `${streak}+` : String(streak);
   const green = latest.conclusion === 'success';
-  const blocked = !green && neverGotARunner(latest.databaseId);
-  const state = green ? 'GREEN' : (blocked ? `COULD NOT RUN (${latest.conclusion})` : `RED (${latest.conclusion})`);
+  let blocked = !green && neverGotARunner(latest.databaseId);
+  let state = green ? 'GREEN' : (blocked ? `COULD NOT RUN (${latest.conclusion})` : `RED (${latest.conclusion})`);
+  // As for a commit's own run: a re-run that could not start does not clear
+  // the attempt before it that failed.
+  const again = blocked && unknownWhy === null ? describeEarlierAttempts(gh, asRun(workflow, latest)) : null;
+  if (again?.red) {
+    blocked = false;
+    state = `RED (${again.text}; the re-run after it could not start)`;
+  }
   return {
     red: !green && !blocked,
     line: `${workflow} on main: ${state} — ${tail} consecutive, latest "${latest.displayTitle}"`
-      + ` (${String(latest.headSha).slice(0, 8)}) at ${latest.createdAt}.`,
+      + ` (${String(latest.headSha).slice(0, 8)}) at ${latest.createdAt}.`
+      + rerunsIn(workflow, finished, unknownWhy),
   };
 }
 
@@ -414,13 +404,16 @@ export function report(argv = []) {
   }
 
   const history = new Map();
+  const attemptsUnknown = new Map();
   for (const workflow of WATCHED) {
     try {
       history.set(workflow, historyForWorkflow(workflow, limit));
     } catch (error) {
       lines.push(`${workflow}: UNKNOWN — could not reach GitHub (${reason(error)})`);
       anyRed = true;
+      continue;
     }
+    attemptsUnknown.set(workflow, addAttempts(history.get(workflow), limit));
   }
 
   for (const target of targets) {
@@ -444,8 +437,14 @@ export function report(argv = []) {
     for (const workflow of WATCHED) {
       if (!history.has(workflow)) continue;
       const label = `  ${workflow} @ ${short}`;
-      const own = runs.find((candidate) => candidate.name === workflow);
+      // Newest first, and every run of this workflow on the commit is read: a
+      // later run does not clear an earlier one that failed. A pull-request run
+      // tests a merge of its branch, not this commit, so it is not read.
+      const mine = runs.filter((c) => c.name === workflow && !String(c.event).startsWith('pull_request'))
+        .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      const own = mine[0];
       let verdict = own ? describeRun(label, own) : null;
+      if (verdict && !verdict.red) verdict = laterRunVerdict(gh, label, own, mine.slice(1), neverGotARunner) ?? verdict;
       if (verdict === null) {
         // Order matters. "No run was due" is the primary answer and is checked
         // FIRST; only a commit that did owe a run and has none falls through to
@@ -466,7 +465,7 @@ export function report(argv = []) {
 
   for (const workflow of WATCHED) {
     if (!history.has(workflow)) continue;
-    const verdict = describeHistory(workflow, history.get(workflow), limit);
+    const verdict = describeHistory(workflow, history.get(workflow), limit, attemptsUnknown.get(workflow));
     lines.push(verdict.line);
     if (verdict.red) anyRed = true;
   }
