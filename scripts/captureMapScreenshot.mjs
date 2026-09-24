@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 import { mkdir, readdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { captureRasteriserLaunch, refuseFrameFromOtherRasteriser } from './captureRasteriser.mjs';
 
 const label = process.env.LABEL ?? 'screenshot';
 // SEED selects the scenario to capture. Defaults to the real default view
@@ -113,11 +114,19 @@ if (servedBundle !== localBundle) {
   );
 }
 
+// RASTERISER=swiftshader|gpu chooses what draws the frame: `swiftshader` (the
+// default, and what every capture before 2026-09-24 used) is the CPU rasteriser
+// CI's browser suite draws with, and `gpu` is ANGLE's Direct3D 11 backend, what
+// a player's graphics card draws (Windows only). A shader change is looked at on
+// both. The rules, and the refusal of a frame another rasteriser drew, live in
+// captureRasteriser.mjs, which tests/scripts/captureRasteriser.test.ts holds.
+const launch = captureRasteriserLaunch(process.env.RASTERISER, process.platform);
+
 await mkdir(dirname(outputPath), { recursive: true });
 
 const browser = await chromium.launch({
   headless: true,
-  args: ['--use-angle=swiftshader'],
+  args: launch.args,
 });
 
 try {
@@ -209,6 +218,16 @@ try {
       + '(v0.3.227 or later), from an origin whose storage is not blocked.',
     );
   }
+  // ...and drawn by the rasteriser it is labelled with, asked of the game
+  // canvas's own WebGL context rather than of the launch arguments.
+  const drawnBy = await page.evaluate(() => {
+    const canvas = document.querySelector('.voxel-world-canvas');
+    const gl = canvas?.getContext('webgl2') ?? canvas?.getContext('webgl');
+    const info = gl?.getExtension('WEBGL_debug_renderer_info');
+    return info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : undefined;
+  });
+  refuseFrameFromOtherRasteriser(launch.rasteriser, drawnBy);
+  console.log(`drawn by ${drawnBy}`);
   // Freeze the sim the moment it boots: the page otherwise free-runs in real
   // time through staging (BUILD/FOCUS/ZOOM evaluates take real seconds), so a
   // capture's tick was "TICKS plus however long the tooling took" — and any
