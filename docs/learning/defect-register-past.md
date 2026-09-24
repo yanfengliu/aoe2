@@ -93,6 +93,25 @@ The 2026-09-23 rollover of "Three defects in the input path, found while fixing 
 - Here, "Three defects in the input path ...": its first paragraph's "the five entries above" means the five 2026-09-11 entries on repeating the commonest click, cancelling a build placement, Escape, double-click behind the villager and the minimap right click, which are all still ACTIVE. Its other "above" and "below" words are prose about code comments and gestures, not pointers at a neighbouring entry.
 - In the active file, the double-click and CI-headroom entry's `Fixed` paragraph says it "supersedes the clock paragraph of the 2026-09-11 "Three defects in the input path" entry". It names the entry and its date, so it resolves here and nothing in it needs repair.
 
+The 2026-09-24 rollover of "A right click on the minimap did nothing" (with the verification-plumbing entry) added none and moved one end of an existing one. Checked rather than assumed:
+
+- Here, "Three defects in the input path ...": of "the five entries above" in its first paragraph, the minimap right click is now the entry directly above it, here; the other four 2026-09-11 entries are still ACTIVE. The bullet above that says all five are active is out of date and left as written.
+- The moved entry itself says "above" or "below" about no neighbouring entry.
+
+## 2026-09-11 — A right click on the minimap did nothing (found by the standing loop, FIXED and gated)
+
+**Symptom, as the player met it.** Left-click on the minimap pans, which is right. Right-click does nothing at all: no order, no move, no camera change. In DE it is how an army is sent across the map without looking away from what you are doing.
+
+**Attribution.** Found by the standing loop.
+
+**Root cause.** `createHudController`'s minimap `mousedown` handler returned on `event.button !== 0`, and the minimap had no `contextmenu` listener either — the canvas's own `preventDefault` does not reach it.
+
+**Fix.** `src/ui/hud/minimapInput.ts` (split out because `createHudController.ts` was at 498 of the 500-line ceiling) owns both buttons: the right button converts the point to a cell through the same inversion the left button uses — so neither can act on a cell the other would reject — and issues `issueContextCommand` on PRESS, like the world's right click. A `contextmenu` handler stops the browser menu.
+
+**How this class is checked from now on.** `de-command-surface.spec.ts`, "right-clicking the minimap orders the selection there and does not pan": every villager selected, right-click at minimap (0.72, 0.72), then the villagers' cells must change and both camera scroll values must be exactly what they were. **Bounds:** a move over open ground at 1280x720; it does not right-click an enemy on the minimap and does not assert WHICH cell the order resolved to.
+
+**Mutation proof.** `event.button === 9`: `Error: a right click on the minimap gave the selection no order / Expected: not "6,8 6,9 7,9"`, 1 failed.
+
 ## 2026-09-11 — Three defects in the input path, found while fixing five others, and one of them is a regression of a fix that shipped in v0.3.102 (found at integration, FIXED and gated)
 
 These were not reported by anyone. They came out of fixing the five entries above, and each was doing damage on its own, so each gets its own paragraph rather than a line inside somebody else's entry.
