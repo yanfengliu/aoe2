@@ -31,6 +31,8 @@ export interface VoxelPointerInputControllerDeps {
     worldY: number,
     isoX: number,
     isoY: number,
+    /** The pointerup's own `timeStamp`: when the player clicked, not when this ran. */
+    pointerTimeMs: number,
   ) => boolean;
   // M6 control: attack-move arming state, owned by the app so the HUD and the
   // hotkey can both drive it. Optional so existing callers/tests are unaffected.
@@ -261,7 +263,7 @@ export function createVoxelPointerInputController(
       if (!didSelect) deps.getBridge().clearSelection();
       return;
     }
-    deps.selectEntityAtWorldPosition(cell.x, cell.y, cell.isoX, cell.isoY);
+    deps.selectEntityAtWorldPosition(cell.x, cell.y, cell.isoX, cell.isoY, event.timeStamp);
   }
 
   function handleContextMenu(event: MouseEvent): void {

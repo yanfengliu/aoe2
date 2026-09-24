@@ -27,19 +27,6 @@ import {
 
 export interface VoxelSelectionControllerDeps {
   isActive: () => boolean;
-  /**
-   * The INPUT clock, in milliseconds — the only thing the double-click window
-   * is measured against.
-   *
-   * It must not be the RENDER clock. The view used to pass the timestamp of
-   * the last rendered frame, so two clicks 80 ms apart measured 0 ms apart
-   * when one frame covered both and over 300 ms apart when a slow frame fell
-   * between them: the gesture stopped working exactly when the machine was
-   * busy. Measured 2026-09-11 at 1600x900 — identical double-clicks selected
-   * "all 3 villagers" or "the Town Centre behind them" depending only on which
-   * frame was in flight.
-   */
-  nowMs: () => number;
   getBridge: () => SimulationBridge;
   // Read fresh so a stale array is never captured across frames.
   getDisplayedEntities: () => ProjectedEntityView[];
@@ -62,8 +49,22 @@ export interface VoxelSelectionController {
     worldY: number,
     isoX?: number,
     isoY?: number,
-    /** True when this came from the pointer. See the double-click note below. */
-    isPointerClick?: boolean,
+    /**
+     * When the player clicked: the pointer event's own `timeStamp`, in ms.
+     * Present only for a pointer click, and the ONLY clock the double-click
+     * window is measured on.
+     *
+     * It must not be a clock read while the click is being handled. Before
+     * v0.3.223 the view passed the last rendered frame's time; v0.3.223 read
+     * `performance.now()` inside the handler instead, which still measured the
+     * page rather than the player: the view renders a frame before this runs,
+     * and a slow frame between two clicks delays the second one's handling. On
+     * SwiftShader (2026-09-23) two clicks 20 ms apart measured 305 ms, because
+     * the second click's own render took 297 ms, and CI dropped the gesture on
+     * both attempts of run 35896557214. An input timestamp is taken when the
+     * input happens, so a busy page cannot stretch it.
+     */
+    pointerTimeMs?: number,
   ): boolean;
   issueContextCommandAtWorldPosition(
     worldX: number,
@@ -80,7 +81,7 @@ export interface VoxelSelectionController {
 export function createVoxelSelectionController(
   deps: VoxelSelectionControllerDeps,
 ): VoxelSelectionController {
-  const { isActive, nowMs, getBridge, getDisplayedEntities } = deps;
+  const { isActive, getBridge, getDisplayedEntities } = deps;
 
   let recentExactSelectionClick: RecentExactSelectionClick | null = null;
   let recentFriendlyUnitClick: RecentFriendlyUnitClick | null = null;
@@ -90,7 +91,7 @@ export function createVoxelSelectionController(
     worldY: number,
     isoX?: number,
     isoY?: number,
-    isPointerClick = false,
+    pointerTimeMs?: number,
   ): boolean {
     if (!isActive()) {
       return false;
@@ -125,14 +126,19 @@ export function createVoxelSelectionController(
     // `16-dblclick-villagers.png`). Select-all-of-type is what a DE player
     // means by two quick clicks; a slower repeat still walks the stack.
     //
-    // Only a POINTER click can be half of a double-click. A caller that is not
-    // the pointer — `selectEntityAtCell`, and the harness scans built on it —
-    // has no tempo, so it neither claims a double-click nor records one; without
-    // that, a scan firing four selections inside one `page.evaluate` reads as a
-    // 0 ms double-click every time and the stack cycle becomes unreachable.
+    // Only a POINTER click can be half of a double-click, and only a pointer
+    // click carries `pointerTimeMs`. A caller that is not the pointer —
+    // `selectEntityAtCell`, and the harness scans built on it — has no tempo,
+    // so it neither claims a double-click nor records one; without that, a
+    // scan firing four selections inside one `page.evaluate` reads as a 0 ms
+    // double-click every time and the stack cycle becomes unreachable.
     // BOUND: the double-click is therefore only exercised through real pointer
-    // input, which is where `de-command-surface.spec.ts` drives it.
-    if (isPointerClick && trySelectSameTypeOnDoubleClick(clickCellX, clickCellY)) {
+    // input, which is where `de-command-surface.spec.ts` and
+    // `double-click-busy-page.spec.ts` drive it.
+    if (
+      pointerTimeMs !== undefined
+      && trySelectSameTypeOnDoubleClick(clickCellX, clickCellY, pointerTimeMs)
+    ) {
       clearRecentSelectionClicks();
       return true;
     }
@@ -195,7 +201,9 @@ export function createVoxelSelectionController(
       return true;
     }
 
-    if (isPointerClick) updateRecentFriendlyUnitClick(clickCellX, clickCellY);
+    if (pointerTimeMs !== undefined) {
+      updateRecentFriendlyUnitClick(clickCellX, clickCellY, pointerTimeMs);
+    }
     return true;
   }
 
@@ -258,13 +266,17 @@ export function createVoxelSelectionController(
     return getBridge().issueContextCommand(clampedCellX, clampedCellY, garrison);
   }
 
-  function trySelectSameTypeOnDoubleClick(cellX: number, cellY: number): boolean {
+  function trySelectSameTypeOnDoubleClick(
+    cellX: number,
+    cellY: number,
+    pointerTimeMs: number,
+  ): boolean {
     const recentClick = recentFriendlyUnitClick;
     if (
       recentClick === null
       || recentClick.cellX !== cellX
       || recentClick.cellY !== cellY
-      || nowMs() - recentClick.atMs > DOUBLE_CLICK_WINDOW_MS
+      || pointerTimeMs - recentClick.atMs > DOUBLE_CLICK_WINDOW_MS
     ) {
       return false;
     }
@@ -279,7 +291,11 @@ export function createVoxelSelectionController(
     );
   }
 
-  function updateRecentFriendlyUnitClick(cellX: number, cellY: number): void {
+  function updateRecentFriendlyUnitClick(
+    cellX: number,
+    cellY: number,
+    pointerTimeMs: number,
+  ): void {
     const selectionState = getBridge().getSelectionState();
     if (
       selectionState.owner !== HUMAN_PLAYER_ID
@@ -298,7 +314,7 @@ export function createVoxelSelectionController(
     }
 
     recentFriendlyUnitClick = {
-      atMs: nowMs(),
+      atMs: pointerTimeMs,
       cellX,
       cellY,
       unitType: isOwnedSheep ? 'sheep' : (selectionState.selectedEntityType as UnitType),

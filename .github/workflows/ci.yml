@@ -60,9 +60,18 @@ jobs:
     # Linux runner and longer on Windows (the vitest worker-RPC overhead). 60m
     # gives the Windows leg headroom (it timed out the previous 30m cap).
     # Follow-up to speed this up: shard the suite, or move Windows to nightly.
+    # Measured 2026-09-06..23: Linux 18-25 min, Windows 22-34 min (at most 56%
+    # of this limit). The last step fails the job past two thirds of it.
     timeout-minutes: 60
 
     steps:
+      # The clock for the headroom step at the end of this job. It is the first
+      # step so the measurement covers the whole job; see
+      # scripts/ci-job-headroom.mjs.
+      - name: Start the headroom clock
+        shell: bash
+        run: echo "JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -131,6 +140,13 @@ jobs:
           # Avoid color output in CI logs.
           FORCE_COLOR: '0'
 
+      # Red past two thirds of timeout-minutes, so a job creeping towards its
+      # limit fails with its numbers before the limit cancels it with none.
+      # tests/scripts/ciJobHeadroom.test.ts holds this number equal to the
+      # job's timeout-minutes.
+      - name: Headroom under the job's time limit
+        run: node scripts/ci-job-headroom.mjs --limit-minutes 60
+
   # Half of `npm run verify` had never run remotely. The gate is
   # `content:validate && test && typecheck && test:browser && lint && build`;
   # the job above runs everything except `test:browser`, and nothing in this
@@ -141,29 +157,42 @@ jobs:
   # runner, because a local tree written by editors never sees the CRLF checkout
   # a fresh clone gets. Every browser spec was in that same position.
   browser:
-    name: ubuntu-latest — browser suite
+    name: ubuntu-latest — browser suite ${{ matrix.shard }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
 
-    # A SEPARATE job, on ONE platform. Both halves are deliberate.
+    # SEPARATE jobs, SHARDED, on ONE platform. All three are deliberate.
     #
-    # Separate, because the suite takes 14-17 minutes and the `gates` matrix
-    # already needed its cap raised from 30m to 60m for the Windows leg.
-    # Appending these minutes to `gates` would spend that headroom; a job of its
-    # own runs in PARALLEL, so the workflow still finishes when its slowest leg
-    # does and no wall-clock is added.
+    # Separate, because the `gates` matrix already needed its cap raised from
+    # 30m to 60m for the Windows leg. A job of its own runs in PARALLEL, so the
+    # workflow still finishes when its slowest leg does.
     #
-    # ubuntu-latest only. The trade, in minutes: this job costs ~20-25 billable
-    # minutes per triggered run. Adding windows-latest would cost roughly 15-20
-    # wall-clock minutes more at Windows' 2x billing multiplier — ~30-40
-    # billable minutes on top — on an account that has already had runs refused
-    # this month for a spending block (`npm run ci:status` reports those as
-    # COULD NOT RUN). And Windows is the platform the suite is LEAST unproven
+    # Sharded (2026-09-23). The comment here used to say the suite takes 14-17
+    # minutes; that was the local Windows number. On this runner, as one job,
+    # the suite step took 37.9-43.7 minutes on every run from 2026-09-06 to
+    # 2026-09-23 except one (33.9), against this job's 45-minute limit, and run
+    # 35896557214 was cancelled at the limit. The spread was the runner, not the
+    # suite: the same specs measured 33.6 and 43.3 minutes on two runners, every
+    # spec file slower by 1.12x-1.42x. Playwright's `--shard` splits the spec
+    # files into contiguous runs of equal TEST COUNT (runner/testGroups.js in
+    # 1.59), and on the slower run's per-file times four shards take 10.4, 11.8,
+    # 9.7 and 11.6 minutes of tests, plus about 1.5 minutes of setup and build
+    # each. Four rather than three (16.2 minutes at worst) for room to grow: the
+    # headroom step fails a shard past 30 minutes, two thirds of 45, which three
+    # shards reach when the tests grow 1.8x and four at 2.4x. The shard count is
+    # `strategy.job-total`, so the matrix and the split cannot disagree.
+    # Standard runners cost nothing on a public repository (this one since
+    # 2026-09-05; run 35896557214's billable time was 0 ms).
+    #
+    # ubuntu-latest only. Windows is the platform the suite is LEAST unproven
     # on: `npm run verify` on the one Windows development machine has run it
-    # before every code commit for months. Linux is where these specs had never
-    # executed once. Buying the platform that is already covered, at double
-    # rate, on a blocked account, is the wrong half to buy first. What this
-    # leaves unproven is stated plainly: a Chromium behaviour that differs
-    # between the Linux runner and Windows is not covered here, only locally.
+    # before every code commit for months, and Linux is where these specs had
+    # never executed once. What this leaves unproven is stated plainly: a
+    # Chromium behaviour that differs between the Linux runner and Windows is
+    # not covered here, only locally.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     timeout-minutes: 45
 
     # Checkout/engine/voxel/node below are copied from `gates`. Duplicated
@@ -172,6 +201,10 @@ jobs:
     # and tests/architecture/workflowSecretExposure.test.ts records its absence
     # as a bound on what that gate can see. Factor when a third job wants them.
     steps:
+      - name: Start the headroom clock
+        shell: bash
+        run: echo "JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -249,27 +282,35 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      # The exact command `npm run verify` runs, so this leg and the local gate
-      # cannot drift apart on how the suite is invoked. Its `pretest:browser`
-      # runs `npm run build`, which is what produces the dist/ the config's
-      # globalSetup (verifyPreviewServesThisBuild) compares against what the
-      # preview serves — that guard aborts the run rather than measuring a stale
-      # or foreign bundle, and it works unchanged here because Playwright starts
-      # the `vite preview` itself: nothing else holds 127.0.0.1:4173 on a fresh
-      # runner, so `reuseExistingServer` has nothing to reuse.
+      # The exact command `npm run verify` runs, plus this job's shard, so this
+      # leg and the local gate cannot drift apart on how the suite is invoked.
+      # Its `pretest:browser` runs `npm run build`, which is what produces the
+      # dist/ the config's globalSetup (verifyPreviewServesThisBuild) compares
+      # against what the preview serves — that guard aborts the run rather than
+      # measuring a stale or foreign bundle, and it works unchanged here because
+      # Playwright starts the `vite preview` itself: nothing else holds
+      # 127.0.0.1:4173 on a fresh runner, so `reuseExistingServer` has nothing
+      # to reuse. npm passes the argument after `--` to `playwright test` only,
+      # not to the pre-script.
       - name: Browser suite
-        run: npm run test:browser
+        run: npm run test:browser -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
         env:
           FORCE_COLOR: '0'
 
+      # See the same step in `gates`, and scripts/ci-job-headroom.mjs.
+      - name: Headroom under the job's time limit
+        run: node scripts/ci-job-headroom.mjs --limit-minutes 45
+
       # `trace: 'retain-on-failure'` and `screenshot: 'only-on-failure'` write
       # into test-results/ only when a spec fails. A green run uploads nothing;
-      # a red one is otherwise undiagnosable from here.
+      # a red one is otherwise undiagnosable from here. The name carries the
+      # shard and the attempt, because two uploads under one name in one run
+      # are refused.
       - name: Upload Playwright traces and screenshots
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-failures-${{ github.run_id }}
+          name: playwright-failures-${{ github.run_id }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
           path: test-results/
           if-no-files-found: ignore
           retention-days: 7

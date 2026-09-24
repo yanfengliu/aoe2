@@ -1,8 +1,65 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
 import { createVoxelSelectionController } from '../../src/input/voxelSelectionController';
+
+// The double-click window is measured between the two clicks' OWN input times
+// — the pointerup `timeStamp`s the pointer passes in — and never on a clock
+// read while a click is being handled. On a slow page the handler runs late
+// (the view renders a frame first, and a slow frame can fall between the two
+// clicks), so a handler clock drops a real double-click: on SwiftShader two
+// clicks 20 ms apart measured 305 ms (2026-09-23, register entry of that date).
+// BOUND: the controller alone, on the double-click fixture's three villagers;
+// the pointer controller's hand-off of `event.timeStamp` and the real page are
+// covered by tests/browser/double-click-busy-page.spec.ts.
+describe('voxel selection controller: the double-click is timed on the input clock', () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  function doubleClickFixture() {
+    const bridge = createSimulationBridge('double-click-selection-fixture');
+    const displayed = bridge.getRenderState().entities;
+    const villager = findEntity(displayed, 'villager');
+    const controller = createVoxelSelectionController({
+      isActive: () => true,
+      getBridge: () => bridge,
+      getDisplayedEntities: () => displayed,
+      getVoxelHitEntities: () => [villager],
+      getViewportCellBounds: () => ({ minX: 0, minY: 0, maxX: 31, maxY: 31 }),
+    });
+    const click = (pointerTimeMs?: number): boolean => controller.selectEntityAtWorldPosition(
+      villager.x + 0.5, villager.y + 0.5, 0, 0, pointerTimeMs,
+    );
+    return { bridge, click };
+  }
+
+  it('selects every villager when the second click lands inside the window, however late it is handled', () => {
+    const { bridge, click } = doubleClickFixture();
+    // The page handles the two clicks five seconds apart; the player made them 100 ms apart.
+    let handlingAt = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => handlingAt);
+    expect(click(1_000)).toBe(true);
+    expect(bridge.getSelectionState().selectedCount).toBe(1);
+    handlingAt = 5_000;
+    expect(click(1_100)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({ selectedCount: 3, selectedEntityType: 'villager' });
+  });
+
+  it('keeps one villager when the clicks are further apart than the window, however quickly they are handled', () => {
+    const { bridge, click } = doubleClickFixture();
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    expect(click(1_000)).toBe(true);
+    expect(click(1_400)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({ selectedCount: 1, selectedEntityType: 'villager' });
+  });
+
+  it('never reads two clicks without an input time as a double-click', () => {
+    const { bridge, click } = doubleClickFixture();
+    expect(click()).toBe(true);
+    expect(click()).toBe(true);
+    expect(bridge.getSelectionState().selectedCount).toBe(1);
+  });
+});
 
 describe('voxel selection controller', () => {
   it('keeps only current hits while preserving their prior semantic order', () => {
@@ -20,7 +77,6 @@ describe('voxel selection controller', () => {
     let hitRead = 0;
     const controller = createVoxelSelectionController({
       isActive: () => true,
-      nowMs: () => 0,
       getBridge: () => bridge,
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: () => hitOrders[Math.min(hitRead++, hitOrders.length - 1)]!,
@@ -42,7 +98,6 @@ describe('voxel selection controller', () => {
     ];
     const controller = createVoxelSelectionController({
       isActive: () => true,
-      nowMs: () => 0,
       getBridge: () => bridge,
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: () => hits,
@@ -62,7 +117,6 @@ describe('voxel selection controller', () => {
     const boar = findEntity(displayed, 'boar');
     const controller = createVoxelSelectionController({
       isActive: () => true,
-      nowMs: () => 0,
       getBridge: () => bridge,
       getDisplayedEntities: () => displayed,
       // Presented silhouettes rank units above resources. The controller must

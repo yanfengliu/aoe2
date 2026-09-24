@@ -50,6 +50,14 @@ export function findClearGapBetweenUnitBodies(
   return bestGap;
 }
 
+// A double-click the way a player makes one: the second click leaves the mouse
+// without waiting for the page to finish handling the first. Two awaited
+// `page.mouse.click` calls did wait, because Playwright resolves a click only
+// once the page has handled it, and this game renders a frame inside its click
+// handler. On a slow page the pair drifted apart by however long the page took,
+// so the spec measured the host rather than the gesture (CI run 35896557214,
+// 2026-09-23). `mouse.dblclick` dispatches both clicks together, with click
+// counts 1 and 2, so their own timestamps are milliseconds apart on any host.
 export async function doubleClickWorldPosition(
   page: Page,
   worldX: number,
@@ -57,8 +65,7 @@ export async function doubleClickWorldPosition(
 ): Promise<void> {
   const point = await getScreenPointForWorldPosition(page, worldX, worldY);
   await page.mouse.move(point.x, point.y);
-  await page.mouse.click(point.x, point.y, { button: 'left' });
-  await page.mouse.click(point.x, point.y, { button: 'left' });
+  await page.mouse.dblclick(point.x, point.y, { button: 'left' });
 }
 
 // Drag a marquee whose screen rectangle bounds all four supplied corners.

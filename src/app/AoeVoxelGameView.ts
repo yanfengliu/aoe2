@@ -104,7 +104,6 @@ export class AoeVoxelGameView {
 
       this.selection = createVoxelSelectionController({
       isActive: () => this.booted && !this.disposed,
-      nowMs: () => performance.now(), // input clock; see the dep's own doc
       getBridge: () => this.bridge,
       getDisplayedEntities: () => this.presentation?.displayedEntities() ?? [],
       getVoxelHitEntities: (isoX, isoY, purpose) => (
@@ -121,8 +120,8 @@ export class AoeVoxelGameView {
       // wrapper and left this one two-armed, so a selecting click re-derived the
       // iso pick from flat ground and hit a villager in front of the Town Centre
       // only when its idle animation had the body there (2026-09-11).
-      selectEntityAtWorldPosition: (x, y, isoX, isoY) =>
-        this.selectEntityAtWorldPosition(x, y, isoX, isoY),
+      selectEntityAtWorldPosition: (x, y, isoX, isoY, pointerTimeMs) =>
+        this.selectEntityAtWorldPosition(x, y, isoX, isoY, pointerTimeMs),
       issueContextCommandAtWorldPosition: (x, y, isoX, isoY, garrison, forceAttack, queueMove) =>
         this.issueContextCommandAtWorldPosition(x, y, isoX, isoY, garrison, forceAttack, queueMove),
       clearRecentSelectionClicks: () => this.selection.clearRecentSelectionClicks(),
@@ -300,14 +299,14 @@ export class AoeVoxelGameView {
     worldY: number,
     isoX?: number,
     isoY?: number,
+    pointerTimeMs?: number,
   ): boolean {
     this.syncFromBridge();
     this.renderer.frame(this.camera.getState(), this.currentFrameTimeMs, 0);
     if (!this.renderer.isInteractionReady()) return false;
-    // Screen point = POINTER; without one, not half of a double-click.
-    const pointer = isoX !== undefined && isoY !== undefined;
-    const iso = pointer ? { x: isoX, y: isoY } : worldToIso(worldX, worldY);
-    return this.selection.selectEntityAtWorldPosition(worldX, worldY, iso.x, iso.y, pointer);
+    const iso = isoX !== undefined && isoY !== undefined ? { x: isoX, y: isoY } : worldToIso(worldX, worldY);
+    // Only the pointer passes a click time; without one, not half of a double-click.
+    return this.selection.selectEntityAtWorldPosition(worldX, worldY, iso.x, iso.y, pointerTimeMs);
   }
 
   issueContextCommandAtWorldPosition(
