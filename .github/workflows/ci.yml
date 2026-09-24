@@ -60,14 +60,18 @@ jobs:
     # Linux runner and longer on Windows (the vitest worker-RPC overhead). 60m
     # gives the Windows leg headroom (it timed out the previous 30m cap).
     # Follow-up to speed this up: shard the suite, or move Windows to nightly.
-    # Measured 2026-09-06..23: Linux 18-25 min, Windows 22-34 min (at most 56%
-    # of this limit). The last step fails the job past two thirds of it.
+    # Measured 2026-09-06..24: Linux 17-25 min, Windows 19-34 min. The last step
+    # fails the job past 40 minutes, two thirds of this limit, and the Windows
+    # leg is the job nearest that line: its slowest run, 33.5 minutes, is 84% of
+    # the way there, and runner speed alone has moved it 1.78x (18.8 to 33.5).
+    # So the first red from that step is likeliest to be this leg on a slow
+    # runner, and the follow-up above is the fix for it, not a raised timeout.
     timeout-minutes: 60
 
     steps:
       # The clock for the headroom step at the end of this job. It is the first
-      # step so the measurement covers the whole job; see
-      # scripts/ci-job-headroom.mjs.
+      # step, so it covers every step but "Set up job" and the post-job cleanup
+      # (0-4 seconds a job on run 35940039145); see scripts/ci-job-headroom.mjs.
       - name: Start the headroom clock
         shell: bash
         run: echo "JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"

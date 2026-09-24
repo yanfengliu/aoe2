@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.225
+
+- **Tapping a control-group number twice centres the view on a slow computer too.** Pressing a group's number twice quickly jumps the view to that group, but on a computer that draws the game slowly the second press often only selected the group again. The game timed the two presses by when it got round to handling them; it now times them by when you pressed the keys.
+
 ## 0.3.224
 
 - **Double-clicking a unit works on a slow computer.** Double-clicking one of your units selects every unit of that type on screen, but on a computer that draws the game slowly (one with no graphics card, or any machine drawing the game in software) it often selected only the one you clicked. The game timed your two clicks by when it got round to handling them, and it draws a frame before it handles a click, so a slow frame between them made a quick double-click look like two slow single clicks. It now times the clicks by when you made them.

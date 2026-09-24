@@ -4,8 +4,15 @@
 
 import type { SimulationBridge } from '../../game/simulation/createSimulationBridge';
 
+/** A second tap of the same group key inside this window centres the camera.
+ *  Measured between the two keydowns' own `timeStamp`s, never on a clock read
+ *  in the handler: a slow frame between two quick taps delays the second one's
+ *  handling, and the game used to read that as a slow second tap (2026-09-23,
+ *  tests/browser/control-group-double-tap.spec.ts). */
+export const CONTROL_GROUP_DOUBLE_TAP_MS = 450;
+
 interface HotkeyRegistryLike {
-  register(spec: { key: string; ctrl?: boolean }, handler: () => void): void;
+  register(spec: { key: string; ctrl?: boolean }, handler: (event: KeyboardEvent) => void): void;
 }
 
 interface CameraViewLike {
@@ -40,13 +47,13 @@ export function registerSelectionRecallHotkeys(
     hotkeyRegistry.register({ key: String(digit), ctrl: true }, () => {
       bridgeRef().assignControlGroup(digit);
     });
-    hotkeyRegistry.register({ key: String(digit) }, () => {
+    hotkeyRegistry.register({ key: String(digit) }, (event) => {
       if (!bridgeRef().recallControlGroup(digit)) return;
-      const now = performance.now();
-      if (lastRecall.digit === digit && now - lastRecall.atMs < 450) {
+      const tappedAt = event.timeStamp;
+      if (lastRecall.digit === digit && tappedAt - lastRecall.atMs < CONTROL_GROUP_DOUBLE_TAP_MS) {
         centerOnPrimarySelection(bridgeRef(), view);
       }
-      lastRecall = { digit, atMs: now };
+      lastRecall = { digit, atMs: tappedAt };
     });
   }
   // The Delete key (v0.3.114): remove the primary selected own entity —

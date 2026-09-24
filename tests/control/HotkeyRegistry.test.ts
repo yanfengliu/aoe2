@@ -25,6 +25,20 @@ describe('HotkeyRegistry', () => {
     registry.dispose();
   });
 
+  // The control-group double-tap times its window between two presses' own
+  // `timeStamp`s (selectionRecallHotkeys.ts), so the handler must get the
+  // keydown itself; without it the only clock left is one read in the handler,
+  // which a busy page stretches.
+  it('hands the handler the keydown that fired it', () => {
+    const handler = vi.fn();
+    const registry = createHotkeyRegistry();
+    registry.register({ key: '1' }, handler);
+    const event = new KeyboardEvent('keydown', { key: '1', bubbles: true });
+    document.dispatchEvent(event);
+    expect(handler).toHaveBeenCalledWith(event);
+    registry.dispose();
+  });
+
   it('case-insensitive key matching for single chars', () => {
     const handler = vi.fn();
     const registry = createHotkeyRegistry();

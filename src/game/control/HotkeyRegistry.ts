@@ -16,9 +16,13 @@ export interface HotkeySpec {
   readonly meta?: boolean;
 }
 
+/** Gets the keydown itself, so a gesture timed across two presses can read
+ *  each press's own `timeStamp` rather than a clock read in the handler. */
+export type HotkeyHandler = (event: KeyboardEvent) => void;
+
 export interface HotkeyRegistry {
   /** Register a handler for a chord. Returns an unregister function. */
-  register(spec: HotkeySpec, handler: () => void): () => void;
+  register(spec: HotkeySpec, handler: HotkeyHandler): () => void;
   /** Unbind the keydown listener; subsequent registers throw. */
   dispose(): void;
 }
@@ -32,7 +36,7 @@ export interface HotkeyRegistryOptions {
 
 interface Registration {
   readonly spec: HotkeySpec;
-  readonly handler: () => void;
+  readonly handler: HotkeyHandler;
 }
 
 const isTextInputElement = (el: EventTarget | null): boolean => {
@@ -108,7 +112,7 @@ export function createHotkeyRegistry(options: HotkeyRegistryOptions = {}): Hotke
     for (const reg of registrations) {
       if (matches(reg.spec, event)) {
         event.preventDefault();
-        reg.handler();
+        reg.handler(event);
         return;
       }
     }
