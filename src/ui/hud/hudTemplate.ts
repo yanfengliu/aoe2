@@ -54,9 +54,9 @@ const GAME_MENU_HTML = `
               ${gameMenuGlyph('debug')}
               <span class="hud-menu-item__state" data-hud="menu-debug-mode" aria-live="polite" aria-atomic="true">off</span>
             </button>
-            <button type="button" class="hud-menu-item hud-menu-item--toggle" data-hud="menu-art-style-cycle" aria-label="Art style: Moebius" data-tooltip="Art style — switch between ink contours over flat colour (Moebius) and natural light and colour with no outlines (Natural).">
+            <button type="button" class="hud-menu-item hud-menu-item--toggle" data-hud="menu-art-style-cycle" aria-label="Art style: Natural" data-tooltip="Art style — switch between natural light and colour with no outlines (Natural) and ink contours over flat colour (Moebius).">
               ${gameMenuGlyph('artStyle')}
-              <span class="hud-menu-item__state" data-hud="menu-art-style" aria-live="polite" aria-atomic="true">Moebius</span>
+              <span class="hud-menu-item__state" data-hud="menu-art-style" aria-live="polite" aria-atomic="true">Natural</span>
             </button>
           </div>
           <div class="hud-load-panel" data-hud="load-panel" hidden>

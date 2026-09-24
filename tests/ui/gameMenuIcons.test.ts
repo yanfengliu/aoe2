@@ -19,7 +19,7 @@ const MENU_ACTIONS = [
   { hook: 'menu-restart', label: 'Restart match', icon: 'restart', state: '' },
   { hook: 'menu-quit', label: 'Quit to title', icon: 'quit', state: '' },
   { hook: 'menu-debug-cycle', label: 'Debug overlay: off', icon: 'debug', state: 'off' },
-  { hook: 'menu-art-style-cycle', label: 'Art style: Moebius', icon: 'artStyle', state: 'Moebius' },
+  { hook: 'menu-art-style-cycle', label: 'Art style: Natural', icon: 'artStyle', state: 'Natural' },
 ] as const;
 
 // Every toggle's state must be announced, not just rendered.

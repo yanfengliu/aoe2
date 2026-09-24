@@ -1,12 +1,13 @@
 // The art styles the player can switch between, and the tuning each applies.
 //
 // Two ship (spec §14.5). `moebius` is voxel's stylized resolve pass tuned for
-// this game: ink contours over flat tone bands. `de` is the first step toward
-// Age of Empires II: Definitive Edition's look: no resolve pass, and a filmic
-// tone curve instead. Moebius is the DEFAULT until the DE style has its own
-// textured terrain (the de-look plan's step 2). The owner withdrew the unstyled
-// "Painted" look on 2026-09-03, and step 1's DE frame is that same unstyled
-// render with a better grade, so the default flips only when it looks its own.
+// this game: ink contours over flat tone bands. `de` (the menu's "Natural") is
+// the way toward Age of Empires II: Definitive Edition's look: no resolve pass,
+// a filmic tone curve, and its own textured ground. The DE style is the
+// DEFAULT since that ground landed (v0.3.232; the de-look plan's decision D1).
+// The owner withdrew the unstyled "Painted" look on 2026-09-03, and step 1's
+// DE frame was that same unstyled render with a better grade, so the default
+// waited until the style looked its own. Moebius stays one menu row away.
 //
 // A style is a player setting: it lives in `artStylePreference.ts`, never in
 // world state, saves or replays. Adding a style is adding an entry to
@@ -182,9 +183,10 @@ export const ART_STYLES: readonly ArtStyle[] = [
   },
 ];
 
-/** Moebius until the DE style's textured terrain lands (the de-look plan,
- *  decision D1). Changing this one constant is the whole flip. */
-export const DEFAULT_ART_STYLE_ID: ArtStyleId = 'moebius';
+/** The DE style since its textured terrain landed (v0.3.232; the de-look plan,
+ *  decision D1). Moebius was the default before; this one constant is the whole
+ *  flip, and a player's stored choice still wins over it. */
+export const DEFAULT_ART_STYLE_ID: ArtStyleId = 'de';
 
 export function isArtStyleId(value: unknown): value is ArtStyleId {
   return typeof value === 'string' && ART_STYLES.some((style) => style.id === value);

@@ -25,9 +25,9 @@ import * as game from './helpers/gameTestHelpers';
 //
 // BOUND: one map (aoe2-prototype), the rim at tick 0 and the explored ground after the human's units walk east
 // for 150 ticks, zoom 0.7 at 1280x720 for both and the default zoom for the context loss, whatever rasteriser
-// the suite runs on. Sample points only,
-// not every pixel, and grass only for the explored brightness. The half-tile limit on the edge of vision is not measured here: it comes from a linearly
-// filtered fog texture whose bytes tests/rendering/aoeDeGroundData.test.ts holds.
+// the suite runs on. Sample points only, not every pixel, and grass only for the explored brightness. The
+// half-tile limit on the edge of vision is not measured here: it comes from a linearly filtered fog texture whose
+// bytes tests/rendering/aoeDeGroundData.test.ts holds.
 
 interface RimReport {
   readonly cells: number;

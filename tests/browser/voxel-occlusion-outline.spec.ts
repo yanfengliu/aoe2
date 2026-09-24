@@ -60,7 +60,12 @@ test.describe('voxel behind-building unit silhouette', () => {
     // constant it renders from: deriving the expectation from the same value
     // the renderer uses makes the two move together, and reverting the tint to
     // white left this green. The claim is "bright and blue-dominant", which a
-    // white silhouette fails.
+    // white silhouette fails. "Bright" is a blue channel above 150, which the
+    // cue reaches in both art styles and a white or grey one never does with
+    // blue 50 over red: measured 2026-09-24 at boot, 27 such pixels in Moebius
+    // (whose resolve lifts chroma) and 121 in the Natural style, the default
+    // since v0.3.232, whose Lambert-lit cue under ACES never passes 200 in blue.
+    // The threshold was 200, tuned when Moebius was the only default.
     const cuePixels = await page.evaluate(async (screen) => {
       const api = window.__AOE2_TEST__!;
       const frame = api.captureWorldFrame();
@@ -88,7 +93,7 @@ test.describe('voxel behind-building unit silhouette', () => {
         const red = data[index]!;
         const green = data[index + 1]!;
         const blue = data[index + 2]!;
-        if (blue > 200 && blue - red > 50 && green > red) matches += 1;
+        if (blue > 150 && blue - red > 50 && green > red) matches += 1;
         if (red > 235 && green > 235 && blue > 235) white += 1;
       }
       return { matches, white };

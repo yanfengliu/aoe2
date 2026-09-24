@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.232
+
+- **The game now opens in the Natural art style.** Natural, with its painted ground, soft fog and no outlines, is the default look. Moebius, the ink-and-flat-colour look that was the default until now, is one click away: open the game menu (Esc, or the menu button at the top right) and, under Settings, click the art style row that reads Natural; it switches to Moebius at once, with no reload. The choice is remembered in this browser, so if you had already picked Moebius you keep it.
+
 ## 0.3.231
 
 - **The Natural art style has painted ground.** In the Natural style (game menu, Settings, Art style) the ground is no longer one flat colour per tile. Grass has lighter and darker patches, tufts and dry specks; forests have a dark floor with fallen leaves; hills are drier grass; sand lines the water's edge; and every building stands on a patch of bare earth. One kind of ground blends softly into the next, and no tile grid shows. The edge of the ground you have explored fades softly into black instead of stepping tile by tile, and ground you have explored but cannot see now is dimmed with a soft edge. Unexplored ground stays black. The white surf lines along shores are not drawn in this style for now. Moebius, still the default look, is unchanged.
