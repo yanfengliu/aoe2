@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { researchTimeTicks } from '../../src/game/simulation/prototypeEconomyRules';
 import {
   selectOwnedBuildingDirect,
   selectOwnedUnitDirect,
@@ -55,7 +56,7 @@ describe('Imperial-Age Castle upgrade (Britons-gated Elite Longbowman)', () => {
         () =>
           countOwnedUnits(bridge, 1, 'elite-longbowman') === 1
           && countOwnedUnits(bridge, 1, 'longbowman') === 0,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('elite-longbowman-upgrade') + 650 },
       ),
     ).toBe(true);
 
@@ -76,7 +77,7 @@ describe('Imperial-Age Castle upgrade (Britons-gated Elite Longbowman)', () => {
       stepBridgeUntil(
         bridge,
         () => countOwnedUnits(bridge, 1, 'elite-longbowman') >= 1,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('elite-longbowman-upgrade') + 650 },
       ),
     ).toBe(true);
 
@@ -108,7 +109,7 @@ describe('Imperial-Age Castle upgrade (Britons-gated Elite Longbowman)', () => {
       stepBridgeUntil(
         bridge,
         () => countOwnedUnits(bridge, 1, 'elite-longbowman') === 1,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('elite-longbowman-upgrade') + 650 },
       ),
     ).toBe(true);
 
@@ -179,7 +180,7 @@ describe('Imperial-Age Blacksmith upgrades', () => {
       stepBridgeUntil(
         bridge,
         () => bridge.getSelectionState().trainOptions.includes('arbalest'),
-        { maxSteps: 700 },
+        { maxSteps: researchTimeTicks('arbalest-upgrade') + 250 },
       ),
     ).toBe(true);
 
@@ -255,7 +256,7 @@ describe('Imperial-Age Blacksmith upgrades', () => {
           const champ = findFirstOwnedUnit(bridge, 1, 'champion');
           return !!champ && champ.attackDamage === 15;
         },
-        { maxSteps: 800 },
+        { maxSteps: researchTimeTicks('blast-furnace') + 200 },
       ),
     ).toBe(true);
   }, 90_000); // 90s: 30.7-31.1s observed under full-suite contention vs the old 30s cap (2026-06-11); vitest-timeout-headroom precedent
@@ -275,7 +276,7 @@ describe('Imperial-Age Blacksmith upgrades', () => {
           const halb = findFirstOwnedUnit(bridge, 1, 'halberdier');
           return !!halb && halb.armor === 1;
         },
-        { maxSteps: 800 },
+        { maxSteps: researchTimeTicks('plate-mail-armor') + 200 },
       ),
     ).toBe(true);
 
@@ -298,7 +299,7 @@ describe('Imperial-Age Blacksmith upgrades', () => {
           const cav = findFirstOwnedUnit(bridge, 1, 'cavalier');
           return !!cav && cav.armor === 1;
         },
-        { maxSteps: 800 },
+        { maxSteps: researchTimeTicks('plate-barding') + 200 },
       ),
     ).toBe(true);
 

@@ -52,9 +52,11 @@ describe('isSiegeUnit — the siege classification', () => {
 });
 
 describe('Siege Engineers — cost & research-time tables', () => {
-  it('costs 500 food / 600 wood and takes 700 ticks', () => {
+  // technologies.csv: 500 food, 600 wood, 45 s. It took 70 s until 2026-09-23;
+  // tests/content/trainAndResearchCostsAndTimes.test.ts holds every row to the CSV.
+  it('costs 500 food / 600 wood and takes 450 ticks', () => {
     expect(researchCost('siege-engineers')).toEqual({ food: 500, wood: 600 });
-    expect(researchTimeTicks('siege-engineers')).toBe(700);
+    expect(researchTimeTicks('siege-engineers')).toBe(450);
   });
 });
 

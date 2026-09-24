@@ -60,9 +60,11 @@ describe('createSimulationBridge utility progression', () => {
     expect(bridge.queueTrainUnit('skirmisher')).toBe(true);
     // Phase 1B queue.train: spend lands at start of next step's processCommands.
     bridge.step(100);
+    // units.csv (and DE): a Skirmisher costs 25 food, 35 wood. Until 2026-09-23
+    // the table had the two transposed, and this pinned 215 food / 225 wood.
     expect(bridge.getHudState().playerResources).toMatchObject({
-      food: 215,
-      wood: 225,
+      food: 225,
+      wood: 215,
     });
 
     expect(

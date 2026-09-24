@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.226
+
+- **Units and technologies cost what they should, and take as long as they should.** Many prices were wrong. The Onager upgrade cost wood instead of gold. The Guard Tower and Keep upgrades cost a fraction of their real price, and in gold instead of wood. The Longbowman cost food instead of wood, and the Skirmisher had its food and wood swapped. Forging, Padded Archer Armor and Scale Barding Armor asked for 50 gold they should not, and Bracer, Bodkin Arrow, Berserkergang and several unit upgrades cost more or less than they should. Many times were off too: Paladin took 60 seconds instead of 170, Chemistry and Blast Furnace 60 instead of 100, and the Longbowman trained in 30 seconds instead of 18. In thirteen places where the game's own data is itself wrong for Definitive Edition, among them the Champion upgrade's cost and time and the Man-at-Arms upgrade's cost, the game follows Definitive Edition instead.
+
 ## 0.3.225
 
 - **Tapping a control-group number twice centres the view on a slow computer too.** Pressing a group's number twice quickly jumps the view to that group, but on a computer that draws the game slowly the second press often only selected the group again. The game timed the two presses by when it got round to handling them; it now times them by when you pressed the keys.

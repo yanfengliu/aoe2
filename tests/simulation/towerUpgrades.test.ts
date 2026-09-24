@@ -100,14 +100,17 @@ describe('towerTechOptions — linear gating at the Watch Tower', () => {
 });
 
 describe('tower-upgrade — cost & research-time tables', () => {
-  it('Guard Tower costs 100 food / 50 gold and takes 300 ticks', () => {
-    expect(researchCost('guard-tower')).toEqual({ food: 100, gold: 50 });
+  // technologies.csv. Until 2026-09-23 both were priced in gold at a fraction of
+  // the CSV's cost (Guard Tower 100 food + 50 gold, Keep 200 food + 100 gold, 40 s);
+  // tests/content/trainAndResearchCostsAndTimes.test.ts holds every row to the CSV.
+  it('Guard Tower costs 100 food / 250 wood and takes 300 ticks', () => {
+    expect(researchCost('guard-tower')).toEqual({ food: 100, wood: 250 });
     expect(researchTimeTicks('guard-tower')).toBe(300);
   });
 
-  it('Keep costs 200 food / 100 gold and takes 400 ticks', () => {
-    expect(researchCost('keep')).toEqual({ food: 200, gold: 100 });
-    expect(researchTimeTicks('keep')).toBe(400);
+  it('Keep costs 500 food / 350 wood and takes 750 ticks', () => {
+    expect(researchCost('keep')).toEqual({ food: 500, wood: 350 });
+    expect(researchTimeTicks('keep')).toBe(750);
   });
 
   it('gates both techs to the Watch Tower (validator ↔ options agreement)', () => {

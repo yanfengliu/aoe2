@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { researchTimeTicks } from '../../src/game/simulation/prototypeEconomyRules';
 import { stepBridgeUntil } from './createSimulationBridge.helpers';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
@@ -38,7 +39,7 @@ describe('iter-2 H2-1 — research idempotency across multiple producer building
           const militia = findOwnedMilitia(bridge, 1);
           return !!militia && militia.attackDamage === 5;
         },
-        { maxSteps: 600 },
+        { maxSteps: researchTimeTicks('forging') + 200 },
       ),
     ).toBe(true);
 

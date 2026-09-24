@@ -63,7 +63,9 @@ describe('Berserkergang — the technology', () => {
   it('is a Viking Castle technology, priced from the CSV, and no longer deferred', () => {
     const technology = uniqueTechnology('berserkergang');
     expect(technology?.civilization).toBe('Vikings');
-    expect(researchCost('berserkergang')).toEqual({ food: 850, gold: 400 });
+    // technologies.csv: 500 food, 850 gold. It charged 850 food + 400 gold, which
+    // no source gave, until 2026-09-23.
+    expect(researchCost('berserkergang')).toEqual({ food: 500, gold: 850 });
     // The doubling lives with the other unique-technology effects.
     expect(technology?.regenMultiplier).toBe(2);
     expect(canResearchAt('castle', 'berserkergang')).toBe(true);

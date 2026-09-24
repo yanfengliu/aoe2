@@ -102,9 +102,11 @@ describe('sappersBuildingAttackBonus — the derived +15 vs buildings', () => {
 });
 
 describe('Sappers — cost & research-time tables', () => {
-  it('costs 400 food / 200 gold and takes 200 ticks', () => {
+  // technologies.csv: 400 food, 200 gold, 10 s. It took 20 s until 2026-09-23;
+  // tests/content/trainAndResearchCostsAndTimes.test.ts holds every row to the CSV.
+  it('costs 400 food / 200 gold and takes 100 ticks', () => {
     expect(researchCost('sappers')).toEqual({ food: 400, gold: 200 });
-    expect(researchTimeTicks('sappers')).toBe(200);
+    expect(researchTimeTicks('sappers')).toBe(100);
   });
 });
 

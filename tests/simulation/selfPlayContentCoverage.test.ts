@@ -36,7 +36,8 @@
 // at a tick that producer happened to be idle. The two most expensive entries
 // on a list are therefore bought only out of a surplus the AI cannot spend on
 // anything else. On `a30af4fa` owner 2 bought `onager-upgrade` (800 food, 500
-// wood) and `heavy-scorpion-upgrade` (1,000 food, 1,100 wood) while holding 7
+// wood — itself mispriced: technologies.csv and DE ask 500 gold, corrected
+// 2026-09-23) and `heavy-scorpion-upgrade` (1,000 food, 1,100 wood) while holding 7
 // gold — upgrades to an Onager and a Heavy Scorpion it could never train, since
 // both units are priced in gold it did not have. Give the AI gold and it spends
 // it on units instead, those two never get bought, and the floor goes red while

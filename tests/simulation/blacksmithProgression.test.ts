@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { researchTimeTicks } from '../../src/game/simulation/prototypeEconomyRules';
 import {
   selectOwnedBuildingDirect,
   selectOwnedUnitDirect,
@@ -47,7 +48,7 @@ describe('Blacksmith melee attack progression (Forging / Iron Casting / Blast Fu
           const militia = findFirstOwnedUnit(bridge, 1, 'militia');
           return !!militia && militia.attackDamage === 5;
         },
-        { maxSteps: 600 },
+        { maxSteps: researchTimeTicks('forging') + 200 },
       ),
     ).toBe(true);
 
@@ -60,7 +61,7 @@ describe('Blacksmith melee attack progression (Forging / Iron Casting / Blast Fu
           const militia = findFirstOwnedUnit(bridge, 1, 'militia');
           return !!militia && militia.attackDamage === 6;
         },
-        { maxSteps: 600 },
+        { maxSteps: researchTimeTicks('iron-casting') + 100 },
       ),
     ).toBe(true);
 
@@ -73,7 +74,7 @@ describe('Blacksmith melee attack progression (Forging / Iron Casting / Blast Fu
           const militia = findFirstOwnedUnit(bridge, 1, 'militia');
           return !!militia && militia.attackDamage === 8;
         },
-        { maxSteps: 700 },
+        { maxSteps: researchTimeTicks('blast-furnace') + 100 },
       ),
     ).toBe(true);
   }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
@@ -108,7 +109,7 @@ describe('Blacksmith infantry armor progression (Scale Mail / Chain Mail / Plate
           const spearman = findFirstOwnedUnit(bridge, 1, 'spearman');
           return !!spearman && spearman.armor === 2;
         },
-        { maxSteps: 700 },
+        { maxSteps: researchTimeTicks('chain-mail-armor') + 200 },
       ),
     ).toBe(true);
 
@@ -121,7 +122,7 @@ describe('Blacksmith infantry armor progression (Scale Mail / Chain Mail / Plate
           const spearman = findFirstOwnedUnit(bridge, 1, 'spearman');
           return !!spearman && spearman.armor === 3;
         },
-        { maxSteps: 800 },
+        { maxSteps: researchTimeTicks('plate-mail-armor') + 200 },
       ),
     ).toBe(true);
   }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
@@ -143,7 +144,7 @@ describe('Blacksmith cavalry armor progression (Scale / Chain / Plate Barding)',
           const knight = findFirstOwnedUnit(bridge, 1, 'knight');
           return !!knight && knight.armor === 1;
         },
-        { maxSteps: 600 },
+        { maxSteps: researchTimeTicks('scale-barding-armor') + 200 },
       ),
     ).toBe(true);
 
@@ -156,7 +157,7 @@ describe('Blacksmith cavalry armor progression (Scale / Chain / Plate Barding)',
           const knight = findFirstOwnedUnit(bridge, 1, 'knight');
           return !!knight && knight.armor === 2;
         },
-        { maxSteps: 700 },
+        { maxSteps: researchTimeTicks('chain-barding-armor') + 200 },
       ),
     ).toBe(true);
 
@@ -169,7 +170,7 @@ describe('Blacksmith cavalry armor progression (Scale / Chain / Plate Barding)',
           const knight = findFirstOwnedUnit(bridge, 1, 'knight');
           return !!knight && knight.armor === 3;
         },
-        { maxSteps: 800 },
+        { maxSteps: researchTimeTicks('plate-barding') + 200 },
       ),
     ).toBe(true);
   }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
@@ -204,7 +205,7 @@ describe('Blacksmith archer armor progression (Padded / Leather / Ring Archer Ar
           const archer = findFirstOwnedUnit(bridge, 1, 'archer');
           return !!archer && archer.armor === 2;
         },
-        { maxSteps: 700 },
+        { maxSteps: researchTimeTicks('leather-archer-armor') + 200 },
       ),
     ).toBe(true);
 
@@ -217,7 +218,7 @@ describe('Blacksmith archer armor progression (Padded / Leather / Ring Archer Ar
           const archer = findFirstOwnedUnit(bridge, 1, 'archer');
           return !!archer && archer.armor === 3;
         },
-        { maxSteps: 800 },
+        { maxSteps: researchTimeTicks('ring-archer-armor') + 200 },
       ),
     ).toBe(true);
   }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
@@ -355,7 +356,7 @@ describe('Chemistry gates Bombard Cannon training', () => {
           }
           return bridge.getSelectionState().trainOptions.includes('bombard-cannon');
         },
-        { maxSteps: 700 },
+        { maxSteps: researchTimeTicks('chemistry') + 100 },
       ),
     ).toBe(true);
   }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)
@@ -374,7 +375,7 @@ describe('Chemistry grants +1 attack to archer-line units', () => {
           const archer = findFirstOwnedUnit(bridge, 1, 'archer');
           return !!archer && archer.attackDamage === 5;
         },
-        { maxSteps: 700 },
+        { maxSteps: researchTimeTicks('chemistry') + 100 },
       ),
     ).toBe(true);
   }, 90_000); // contention headroom (full-suite thread pool; NOT an engine regression — see docs/debugging/2026-06-30-engine-throughput-regression.md)

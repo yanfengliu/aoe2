@@ -47,8 +47,9 @@ export interface UniqueTechnology {
   readonly name: string;
   readonly civilization: string;
   readonly age: 'castle-age' | 'imperial-age';
-  readonly cost: Readonly<Partial<Record<'food' | 'wood' | 'gold' | 'stone', number>>>;
-  readonly researchTicks: number;
+  // No price or research time here: RESEARCH_COSTS and RESEARCH_TIME_TICKS
+  // (researchTables.ts) are the only copy, and the only one the game charges
+  // and tests/content/trainAndResearchCostsAndTimes.test.ts reads.
   /** One line, shown in the research tooltip. */
   readonly summary: string;
   readonly unitEffect?: UniqueUnitEffect;
@@ -108,8 +109,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Atheism',
     civilization: 'Huns',
     age: 'imperial-age',
-    cost: { food: 500, gold: 500 },
-    researchTicks: 600,
     summary: 'Wonder and Relic countdowns +100 years; Spies costs half.',
     countdownExtensionTicks: ATHEISM_COUNTDOWN_EXTENSION_TICKS,
   },
@@ -118,8 +117,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Berserkergang',
     civilization: 'Vikings',
     age: 'imperial-age',
-    cost: { food: 850, gold: 400 },
-    researchTicks: 400,
     summary: 'Berserks regenerate twice as fast.',
     regenMultiplier: 2,
   },
@@ -128,8 +125,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'El Dorado',
     civilization: 'Mayans',
     age: 'imperial-age',
-    cost: { food: 750, gold: 450 },
-    researchTicks: 500,
     summary: 'Eagle Warriors +40 hit points.',
     unitEffect: { applies: is('eagle-warrior', 'elite-eagle-warrior'), maxHp: 40 },
   },
@@ -144,8 +139,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Shatagni',
     civilization: 'Indians',
     age: 'imperial-age',
-    cost: { food: 500, gold: 650 },
-    researchTicks: 400,
     summary: 'Hand Cannoneers +2 range.',
     unitEffect: { applies: is('hand-cannoneer'), attackRange: 2 },
   },
@@ -154,8 +147,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Recurve Bow',
     civilization: 'Magyars',
     age: 'imperial-age',
-    cost: { wood: 600, gold: 400 },
-    researchTicks: 400,
     summary: 'Cavalry Archers +1 range, +1 attack.',
     unitEffect: {
       applies: is('cavalry-archer', 'heavy-cavalry-archer'),
@@ -168,8 +159,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Farimba',
     civilization: 'Malians',
     age: 'imperial-age',
-    cost: { food: 650, gold: 400 },
-    researchTicks: 400,
     // The wiki lists Scout Cavalry, Light Cavalry, Knight, Cavalier, Camel
     // Rider and Heavy Camel Rider. This roster has no camels and no separate
     // Scout Cavalry, so the set is the mounted melee line it does have —
@@ -185,8 +174,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Carrack',
     civilization: 'Portuguese',
     age: 'castle-age',
-    cost: { wood: 200, gold: 200 },
-    researchTicks: 400,
     summary: 'All ships gain +1 melee and +1 pierce armour.',
     unitEffect: {
       applies: isWaterUnit,
@@ -199,8 +186,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Sultans',
     civilization: 'Indians',
     age: 'castle-age',
-    cost: { gold: 400 },
-    researchTicks: 500,
     summary: 'Villagers gather gold 10% faster.',
     // The EFFECT lives in `GATHER_RATE_TECH_FACTORS` (economyTechEffects),
     // which is where every gather-rate technology lives — Gold Mining and Gold
@@ -221,8 +206,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Kasbah',
     civilization: 'Berbers',
     age: 'castle-age',
-    cost: { food: 250, gold: 250 },
-    researchTicks: 400,
     // AoE2 gives this to the whole TEAM. `uniqueTechTrainTimeMultiplier` reads
     // one owner's researched set, so here it is the researching player only —
     // identical in a 1v1 and narrower in a team game. Stated rather than left
@@ -236,8 +219,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Garland Wars',
     civilization: 'Aztecs',
     age: 'imperial-age',
-    cost: { food: 450, gold: 750 },
-    researchTicks: 600,
     summary: 'Infantry +4 attack.',
     unitEffect: { applies: isInfantry, attackDamage: 4 },
   },
@@ -246,8 +227,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Yeomen',
     civilization: 'Britons',
     age: 'imperial-age',
-    cost: { food: 750, gold: 450 },
-    researchTicks: 600,
     summary: 'Foot archers +1 range; towers +2 attack.',
     unitEffect: { applies: (unitType) => FOOT_ARCHERS.has(unitType), attackRange: 1 },
     buildingEffect: { applies: (building) => building === 'watch-tower', attackDamage: 2 },
@@ -257,8 +236,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Logistica',
     civilization: 'Byzantines',
     age: 'imperial-age',
-    cost: { food: 1000, gold: 600 },
-    researchTicks: 500,
     summary: 'Cataphracts +6 attack.',
     // The CSV also gives it +0.5 blast radius; trample damage is a separate
     // mechanic from the mangonel-line blast and is not wired.
@@ -269,8 +246,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Furor Celtica',
     civilization: 'Celts',
     age: 'imperial-age',
-    cost: { food: 750, gold: 450 },
-    researchTicks: 500,
     summary: 'Siege Workshop units +50% hit points.',
     unitEffect: {
       applies: (unitType) => SIEGE_WORKSHOP_UNITS.has(unitType),
@@ -282,8 +257,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Rocketry',
     civilization: 'Chinese',
     age: 'imperial-age',
-    cost: { food: 600, gold: 600 },
-    researchTicks: 600,
     summary: 'Chu Ko Nu +2 attack, Scorpions +4.',
     // Two different amounts, so it is two entries in the applier rather than
     // one — see `extraUnitEffects` below.
@@ -294,8 +267,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Bearded Axe',
     civilization: 'Franks',
     age: 'imperial-age',
-    cost: { food: 400, gold: 400 },
-    researchTicks: 600,
     summary: 'Throwing Axemen +1 range.',
     unitEffect: {
       applies: is('throwing-axeman', 'elite-throwing-axeman'),
@@ -307,8 +278,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Anarchy',
     civilization: 'Goths',
     age: 'castle-age',
-    cost: { food: 450, gold: 250 },
-    researchTicks: 600,
     summary: 'Huskarls can be trained at the Barracks.',
     unlocksTraining: { building: 'barracks', unitType: 'huskarl' },
   },
@@ -317,8 +286,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Perfusion',
     civilization: 'Goths',
     age: 'imperial-age',
-    cost: { food: 400, gold: 600 },
-    researchTicks: 400,
     summary: 'Barracks train twice as fast.',
     trainRate: { building: 'barracks', multiplier: 2 },
   },
@@ -327,8 +294,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Kataparuto',
     civilization: 'Japanese',
     age: 'imperial-age',
-    cost: { food: 750, gold: 400 },
-    researchTicks: 600,
     summary: 'Trebuchets reload 25% faster.',
     unitEffect: { applies: is('trebuchet'), reloadMultiplier: 0.75 },
   },
@@ -337,8 +302,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Shinkichon',
     civilization: 'Koreans',
     age: 'imperial-age',
-    cost: { food: 800, gold: 500 },
-    researchTicks: 600,
     summary: 'Mangonel line +1 range.',
     unitEffect: { applies: (unitType) => MANGONEL_LINE.has(unitType), attackRange: 1 },
   },
@@ -347,8 +310,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Drill',
     civilization: 'Mongols',
     age: 'imperial-age',
-    cost: { food: 500, gold: 450 },
-    researchTicks: 600,
     summary: 'Siege Workshop units move 50% faster.',
     unitEffect: {
       applies: (unitType) => SIEGE_WORKSHOP_UNITS.has(unitType),
@@ -360,8 +321,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Mahouts',
     civilization: 'Persians',
     age: 'imperial-age',
-    cost: { food: 300, gold: 300 },
-    researchTicks: 500,
     summary: 'War Elephants move 30% faster.',
     unitEffect: {
       applies: is('war-elephant', 'elite-war-elephant'),
@@ -373,8 +332,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Zealotry',
     civilization: 'Saracens',
     age: 'imperial-age',
-    cost: { food: 750, gold: 800 },
-    researchTicks: 500,
     summary: 'Mamelukes and camels +30 hit points.',
     unitEffect: {
       applies: (unitType) => CAMELS_AND_MAMELUKES.has(unitType),
@@ -386,8 +343,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Supremacy',
     civilization: 'Spanish',
     age: 'imperial-age',
-    cost: { food: 400, gold: 250 },
-    researchTicks: 600,
     summary: 'Villagers +6 attack, +40 hit points, +2/+2 armour.',
     unitEffect: {
       applies: is('villager'),
@@ -402,8 +357,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Crenellations',
     civilization: 'Teutons',
     age: 'imperial-age',
-    cost: { food: 600, gold: 400 },
-    researchTicks: 600,
     summary: 'Castles +3 range.',
     // The CSV's other half — garrisoned infantry firing arrows of their own —
     // needs a garrison-derived arrow count that buildingArrowCount does not
@@ -415,8 +368,6 @@ export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
     name: 'Artillery',
     civilization: 'Turks',
     age: 'imperial-age',
-    cost: { food: 500, gold: 450 },
-    researchTicks: 400,
     summary: 'Bombard units +2 range.',
     unitEffect: { applies: is('bombard-cannon'), attackRange: 2 },
   },

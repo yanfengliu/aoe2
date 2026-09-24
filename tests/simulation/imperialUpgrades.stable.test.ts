@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { researchTimeTicks } from '../../src/game/simulation/prototypeEconomyRules';
 import {
   selectOwnedBuildingDirect,
   selectOwnedUnitDirect,
@@ -143,7 +144,7 @@ describe('Imperial-Age Stable upgrades', () => {
         () =>
           countOwnedUnits(bridge, 1, 'cavalier') === 1
           && countOwnedUnits(bridge, 1, 'knight') === 0,
-        { maxSteps: 800 },
+        { maxSteps: researchTimeTicks('cavalier-upgrade') + 300 },
       ),
     ).toBe(true);
 
@@ -194,7 +195,7 @@ describe('Imperial-Age Stable upgrades', () => {
       stepBridgeUntil(
         bridge,
         () => countOwnedUnits(bridge, 1, 'cavalier') >= 1,
-        { maxSteps: 800 },
+        { maxSteps: researchTimeTicks('cavalier-upgrade') + 300 },
       ),
     ).toBe(true);
 

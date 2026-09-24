@@ -306,8 +306,10 @@ test.describe('browser gameplay smoke tests - production', () => {
     await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');
     await page.locator('[data-command="train-skirmisher"]').click();
     await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
-    await expect(page.locator('[data-hud="food"]')).toHaveText('215');
-    await expect(page.locator('[data-hud="wood"]')).toHaveText('225');
+    // units.csv (and DE): a Skirmisher costs 25 food, 35 wood. Until 2026-09-23
+    // the table had the two transposed, and this pinned 215 food / 225 wood.
+    await expect(page.locator('[data-hud="food"]')).toHaveText('225');
+    await expect(page.locator('[data-hud="wood"]')).toHaveText('215');
 
     const trainedSnapshot = await page.evaluate(() => {
       const api = window.__AOE2_TEST__!;

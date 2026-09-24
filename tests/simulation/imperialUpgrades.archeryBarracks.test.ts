@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { researchTimeTicks } from '../../src/game/simulation/prototypeEconomyRules';
 import {
   selectOwnedBuildingDirect,
   stepBridgeUntil,
@@ -49,7 +50,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
         () =>
           countOwnedUnits(bridge, 1, 'arbalest') === 1
           && countOwnedUnits(bridge, 1, 'crossbowman') === 0,
-        { maxSteps: 600 },
+        { maxSteps: researchTimeTicks('arbalest-upgrade') + 150 },
       ),
     ).toBe(true);
 
@@ -73,7 +74,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
       stepBridgeUntil(
         bridge,
         () => countOwnedUnits(bridge, 1, 'arbalest') >= 1,
-        { maxSteps: 600 },
+        { maxSteps: researchTimeTicks('arbalest-upgrade') + 150 },
       ),
     ).toBe(true);
 
@@ -161,7 +162,7 @@ describe('Imperial-Age Archery Range upgrades', () => {
       stepBridgeUntil(
         bridge,
         () => countOwnedUnits(bridge, 1, 'arbalest') === 1,
-        { maxSteps: 600 },
+        { maxSteps: researchTimeTicks('arbalest-upgrade') + 150 },
       ),
     ).toBe(true);
 
@@ -251,7 +252,7 @@ describe('Imperial-Age Barracks upgrades', () => {
         () =>
           countOwnedUnits(bridge, 1, 'champion') === 1
           && countOwnedUnits(bridge, 1, 'militia') === 0,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('champion-upgrade') + 650 },
       ),
     ).toBe(true);
 
@@ -271,7 +272,7 @@ describe('Imperial-Age Barracks upgrades', () => {
       stepBridgeUntil(
         bridge,
         () => countOwnedUnits(bridge, 1, 'champion') >= 1,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('champion-upgrade') + 650 },
       ),
     ).toBe(true);
 

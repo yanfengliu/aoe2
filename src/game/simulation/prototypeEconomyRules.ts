@@ -141,14 +141,14 @@ const TRAINING_TIME_TICKS: Record<TrainableUnitType, number> = {
   scorpion: 300,
   'battering-ram': 360,
   monk: 510,
-  longbowman: 300,
+  longbowman: 180, // DE 18 s, a named exception (the CSV's 19 s is not DE's)
   arbalest: 270,
   halberdier: 220,
   hussar: 300,
-  'heavy-cavalry-archer': 340,
+  'heavy-cavalry-archer': 300, // DE 30 s, a named exception (the CSV's 27 s is not DE's)
   cavalier: 300,
   champion: 210,
-  'elite-longbowman': 300,
+  'elite-longbowman': 180, // DE 18 s, a named exception (the CSV's 19 s is not DE's)
   onager: 460,
   'siege-onager': 460, // units.csv 46 s
   'heavy-scorpion': 300,

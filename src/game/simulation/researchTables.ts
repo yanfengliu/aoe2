@@ -27,21 +27,21 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   'crossbowman-upgrade': { food: 125, gold: 75 },
   'pikeman-upgrade': { food: 215, gold: 90 },
   'light-cavalry-upgrade': { food: 150, gold: 50 },
-  'arbalest-upgrade': { food: 300, gold: 300 },
+  'arbalest-upgrade': { food: 450, gold: 350 }, // DE, a named exception (the CSV's 350/300 is not DE's)
   'halberdier-upgrade': { food: 300, gold: 600 },
   'hussar-upgrade': { food: 500, gold: 600 },
-  'heavy-cavalry-archer-upgrade': { food: 750, gold: 600 },
+  'heavy-cavalry-archer-upgrade': { food: 900, gold: 500 },
   'cavalier-upgrade': { food: 300, gold: 300 },
-  'champion-upgrade': { food: 1000, gold: 450 },
-  'elite-longbowman-upgrade': { food: 850, gold: 750 },
-  'onager-upgrade': { food: 800, wood: 500 },
+  'champion-upgrade': { food: 650, gold: 350 }, // DE, a named exception (the CSV's 750/350 is not DE's)
+  'elite-longbowman-upgrade': { food: 850, gold: 850 },
+  'onager-upgrade': { food: 800, gold: 500 },
   'heavy-scorpion-upgrade': { food: 1000, wood: 1100 },
-  'siege-ram-upgrade': { food: 1000, wood: 800 },
+  'siege-ram-upgrade': { food: 1000 },
   'capped-ram-upgrade': { food: 300 }, // technologies.csv
   'siege-onager-upgrade': { food: 1450, gold: 1000 }, // technologies.csv
   'elite-skirmisher-upgrade': { wood: 250, gold: 160 }, // technologies.csv
   'elite-eagle-warrior-upgrade': { food: 800, gold: 500 }, // technologies.csv
-  'siege-engineers': { food: 500, wood: 600 }, // Siege Workshop, Imperial: +1 siege range.
+  'siege-engineers': { food: 500, wood: 600 }, // University, Imperial: +1 siege range.
   sappers: { food: 400, gold: 200 },
   // Castle (technologies.csv): Hoardings toughens castles, El Dorado is the
   // Mayans' Imperial unique technology.
@@ -57,7 +57,7 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   atheism: { food: 500, gold: 500 }, // Huns, Imperial (technologies.csv).
   banking: { food: 200, gold: 100 },
   // Vikings, Castle (technologies.csv): Berserks regenerate twice as fast.
-  berserkergang: { food: 850, gold: 400 },
+  berserkergang: { food: 500, gold: 850 }, // technologies.csv; DE has no Berserkergang (Bogsveigar holds its slot)
   'el-dorado': { food: 750, gold: 450 },
   // The three below are the first of the twelve expansion civilizations'
   // unique technologies. Costs and effects verified against the wiki rather
@@ -69,22 +69,22 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   kasbah: { food: 250, gold: 250 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
   sultans: { gold: 400 }, // Castle, Castle Age: +10% gold generation. UNVERIFIED (see below).
   carrack: { wood: 200, gold: 200 }, // Castle, Castle Age: all ships +1/+1 armour. UNVERIFIED (see below).
-  bracer: { food: 450, gold: 300 },
+  bracer: { food: 300, gold: 200 },
   'blast-furnace': { food: 275, gold: 225 },
   'plate-mail-armor': { food: 300, gold: 150 },
   'plate-barding': { food: 350, gold: 200 },
-  forging: { food: 150, gold: 50 },
+  forging: { food: 150 },
   'scale-mail-armor': { food: 100 },
-  'scale-barding-armor': { food: 150, gold: 50 },
-  'padded-archer-armor': { food: 100, gold: 50 },
+  'scale-barding-armor': { food: 150 },
+  'padded-archer-armor': { food: 100 },
   'iron-casting': { food: 220, gold: 120 },
-  'chain-mail-armor': { food: 200, gold: 100 },
+  'chain-mail-armor': { food: 200, gold: 100 }, // DE, a named exception (the CSV's 300 food is not DE's)
   'chain-barding-armor': { food: 250, gold: 150 },
   'leather-archer-armor': { food: 150, gold: 150 },
-  'bodkin-arrow': { food: 200, gold: 150 },
+  'bodkin-arrow': { food: 200, gold: 100 },
   'ring-archer-armor': { food: 250, gold: 250 },
   chemistry: { food: 300, gold: 200 },
-  'man-at-arms-upgrade': { food: 100, gold: 40 },
+  'man-at-arms-upgrade': { food: 100, gold: 40 }, // DE, a named exception (the CSV's 40 food is not DE's)
   'long-swordsman-upgrade': { food: 200, gold: 65 },
   'two-handed-swordsman-upgrade': { food: 300, gold: 100 },
   'paladin-upgrade': { food: 1300, gold: 750 },
@@ -100,8 +100,8 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   wheelbarrow: { food: 175, wood: 50 },
   'hand-cart': { food: 305, wood: 200 },
   loom: { gold: 50 }, // technologies.csv:86.
-  'guard-tower': { food: 100, gold: 50 }, // Watch Tower upgrades: Guard Tower / Keep.
-  keep: { food: 200, gold: 100 },
+  'guard-tower': { food: 100, wood: 250 }, // University upgrades of the Watch Tower: Guard Tower / Keep.
+  keep: { food: 500, wood: 350 },
   bloodlines: { food: 150, gold: 100 }, // Stable, Feudal: +20 mounted HP.
   husbandry: { food: 250 }, // Stable, Castle: +10% mounted speed (technologies.csv:79).
   squires: { food: 200 }, // Barracks, Castle: +10% infantry speed (technologies.csv:12).
@@ -198,22 +198,22 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'crossbowman-upgrade': 350,
   'pikeman-upgrade': 450,
   'light-cavalry-upgrade': 450,
-  'arbalest-upgrade': 450,
+  'arbalest-upgrade': 500,
   'halberdier-upgrade': 500,
   'hussar-upgrade': 500,
-  'heavy-cavalry-archer-upgrade': 550,
-  'cavalier-upgrade': 500,
-  'champion-upgrade': 550,
-  'elite-longbowman-upgrade': 550,
-  'onager-upgrade': 600,
-  'heavy-scorpion-upgrade': 550,
-  'siege-ram-upgrade': 600,
+  'heavy-cavalry-archer-upgrade': 500,
+  'cavalier-upgrade': 800, // DE 80 s, a named exception (the CSV's 100 s is not DE's)
+  'champion-upgrade': 700, // DE 70 s, a named exception (the CSV's 100 s is not DE's)
+  'elite-longbowman-upgrade': 600,
+  'onager-upgrade': 750,
+  'heavy-scorpion-upgrade': 500,
+  'siege-ram-upgrade': 750,
   'capped-ram-upgrade': 500, // technologies.csv 50 s
   'siege-onager-upgrade': 1500, // technologies.csv 150 s
   'elite-skirmisher-upgrade': 500, // technologies.csv 50 s
   'elite-eagle-warrior-upgrade': 400, // technologies.csv 40 s
-  'siege-engineers': 700, // Siege Workshop, Imperial: 70 s × 10 TPS.
-  sappers: 200, // Blacksmith, Imperial: quick 20 s research (AoE2 Sappers is a fast tech).
+  'siege-engineers': 450, // University, Imperial: technologies.csv 45 s x 10 TPS.
+  sappers: 100, // Castle, Imperial: technologies.csv 10 s x 10 TPS.
   hoardings: 750, // Castle, Imperial: 75 s x 10 TPS.
   guilds: 500, // Market, Imperial: 50 s x 10 TPS.
   coinage: 500, // Market, Feudal: 50 s x 10 TPS.
@@ -229,26 +229,26 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   kasbah: 400, // Castle, Castle Age: 40 s x 10 TPS (wiki: 0:40).
   sultans: 500, // Castle, Castle Age: 50 s x 10 TPS. UNVERIFIED (see RESEARCH_COSTS).
   carrack: 400, // Castle, Castle Age: 40 s x 10 TPS. UNVERIFIED (see RESEARCH_COSTS).
-  bracer: 500,
-  'blast-furnace': 600,
-  'plate-mail-armor': 600,
-  'plate-barding': 600,
-  forging: 400,
+  bracer: 400,
+  'blast-furnace': 1000,
+  'plate-mail-armor': 700,
+  'plate-barding': 750,
+  forging: 500,
   'scale-mail-armor': 400,
-  'scale-barding-armor': 400,
+  'scale-barding-armor': 450,
   'padded-archer-armor': 400,
-  'iron-casting': 500,
-  'chain-mail-armor': 500,
-  'chain-barding-armor': 500,
-  'leather-archer-armor': 500,
-  'bodkin-arrow': 500,
-  'ring-archer-armor': 600,
-  chemistry: 600,
+  'iron-casting': 750, // DE 75 s, a named exception (the CSV's 70 s is not DE's)
+  'chain-mail-armor': 550,
+  'chain-barding-armor': 600,
+  'leather-archer-armor': 550,
+  'bodkin-arrow': 350,
+  'ring-archer-armor': 700,
+  chemistry: 1000,
   'man-at-arms-upgrade': 400,
   'long-swordsman-upgrade': 450,
-  'two-handed-swordsman-upgrade': 500,
-  'paladin-upgrade': 600,
-  'heavy-camel-upgrade': 500,
+  'two-handed-swordsman-upgrade': 450, // DE 45 s, a named exception (the CSV's 75 s is not DE's)
+  'paladin-upgrade': 1700,
+  'heavy-camel-upgrade': 1050, // DE 105 s, a named exception (the CSV's 125 s is not DE's)
   // Economy gather-rate techs (CSV research seconds × 10 TPS).
   'double-bit-axe': 250,
   'bow-saw': 500,
@@ -261,7 +261,7 @@ export const RESEARCH_TIME_TICKS: Record<ResearchableTechnologyType, number> = {
   'hand-cart': 550,
   loom: 250, // technologies.csv:86 — 25 s × 10 TPS.
   'guard-tower': 300,
-  keep: 400,
+  keep: 750,
   bloodlines: 500, // Stable, Feudal: 50 s × 10 TPS.
   husbandry: 500, // Stable, Castle: 50 s × 10 TPS.
   squires: 400, // Barracks, Castle: 40 s × 10 TPS.

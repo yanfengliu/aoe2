@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { researchTimeTicks } from '../../src/game/simulation/prototypeEconomyRules';
 import {
   selectOwnedBuildingDirect,
   selectOwnedUnitDirect,
@@ -61,7 +62,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
         () =>
           countOwnedUnits(bridge, 1, 'onager') === 1
           && countOwnedUnits(bridge, 1, 'mangonel') === 0,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('onager-upgrade') + 600 },
       ),
     ).toBe(true);
 
@@ -81,7 +82,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
       stepBridgeUntil(
         bridge,
         () => countOwnedUnits(bridge, 1, 'onager') >= 1,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('onager-upgrade') + 600 },
       ),
     ).toBe(true);
 
@@ -192,7 +193,7 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
         () =>
           countOwnedUnits(bridge, 1, 'siege-ram') === 1
           && countOwnedUnits(bridge, 1, 'capped-ram') === 0,
-        { maxSteps: 1500 },
+        { maxSteps: researchTimeTicks('siege-ram-upgrade') + 900 },
       ),
     ).toBe(true);
     expect(bridge.getEconomyState().units.find((u) => u.id === ramId)?.unitType).toBe('siege-ram');

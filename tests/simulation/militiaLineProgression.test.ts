@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { researchTimeTicks } from '../../src/game/simulation/prototypeEconomyRules';
 import {
   selectOwnedBuildingDirect,
   selectOwnedUnitDirect,
@@ -185,7 +186,7 @@ describe('Militia-line intermediate tiers at Barracks', () => {
         () =>
           countOwnedUnits(bridge, 1, 'champion') === 1
           && countOwnedUnits(bridge, 1, 'two-handed-swordsman') === 0,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('champion-upgrade') + 650 },
       ),
     ).toBe(true);
 
@@ -210,7 +211,7 @@ describe('Militia-line intermediate tiers at Barracks', () => {
         () =>
           countOwnedUnits(bridge, 1, 'champion') === 1
           && countOwnedUnits(bridge, 1, 'militia') === 0,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('champion-upgrade') + 650 },
       ),
     ).toBe(true);
 
@@ -234,7 +235,7 @@ describe('Paladin upgrade at Stable', () => {
       stepBridgeUntil(
         bridge,
         () => countOwnedUnits(bridge, 1, 'cavalier') === 1,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('cavalier-upgrade') + 700 },
       ),
     ).toBe(true);
 
@@ -248,7 +249,7 @@ describe('Paladin upgrade at Stable', () => {
         () =>
           countOwnedUnits(bridge, 1, 'paladin') === 1
           && countOwnedUnits(bridge, 1, 'cavalier') === 0,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('paladin-upgrade') + 600 },
       ),
     ).toBe(true);
 
@@ -268,7 +269,7 @@ describe('Paladin upgrade at Stable', () => {
       stepBridgeUntil(
         bridge,
         () => countOwnedUnits(bridge, 1, 'cavalier') >= 1,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('cavalier-upgrade') + 700 },
       ),
     ).toBe(true);
     expect(selectOwnedBuildingDirect(bridge, 1, 'stable')).toBe(true);
@@ -277,7 +278,7 @@ describe('Paladin upgrade at Stable', () => {
       stepBridgeUntil(
         bridge,
         () => countOwnedUnits(bridge, 1, 'paladin') >= 1,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('paladin-upgrade') + 600 },
       ),
     ).toBe(true);
 
@@ -312,7 +313,7 @@ describe('Heavy Camel upgrade at Stable', () => {
         () =>
           countOwnedUnits(bridge, 1, 'heavy-camel') === 1
           && countOwnedUnits(bridge, 1, 'camel') === 0,
-        { maxSteps: 1200 },
+        { maxSteps: researchTimeTicks('heavy-camel-upgrade') + 700 },
       ),
     ).toBe(true);
 

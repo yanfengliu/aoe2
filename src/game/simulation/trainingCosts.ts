@@ -8,9 +8,9 @@ export const TRAINING_COSTS: Record<TrainableUnitType, Partial<PlayerResources>>
   villager: { food: 50 },
   scout: { food: 80 },
   militia: { food: 60, gold: 20 },
-  spearman: { food: 35, wood: 25 },
+  spearman: { food: 35, wood: 25 }, // DE, a named exception (the CSV's 15 wood is not DE's)
   archer: { wood: 25, gold: 45 },
-  skirmisher: { food: 35, wood: 25 },
+  skirmisher: { food: 25, wood: 35 },
   'elite-skirmisher': { food: 25, wood: 35 }, // units.csv
   'eagle-warrior': { food: 20, gold: 50 }, // units.csv
   'elite-eagle-warrior': { food: 20, gold: 50 }, // units.csv — the Elite upgrade is the whole cost
@@ -22,20 +22,20 @@ export const TRAINING_COSTS: Record<TrainableUnitType, Partial<PlayerResources>>
   camel: { food: 55, gold: 60 },
   'cavalry-archer': { wood: 40, gold: 70 },
   mangonel: { wood: 160, gold: 135 },
-  scorpion: { wood: 80, gold: 60 },
+  scorpion: { wood: 75, gold: 75 },
   'battering-ram': { wood: 160, gold: 75 },
   monk: { gold: 100 },
-  longbowman: { food: 35, gold: 40 },
+  longbowman: { wood: 35, gold: 40 },
   arbalest: { wood: 25, gold: 45 },
   halberdier: { food: 35, wood: 25 },
   hussar: { food: 80 },
   'heavy-cavalry-archer': { wood: 40, gold: 70 },
   cavalier: { food: 60, gold: 75 },
   champion: { food: 60, gold: 20 },
-  'elite-longbowman': { food: 35, gold: 40 },
+  'elite-longbowman': { wood: 35, gold: 40 },
   onager: { wood: 160, gold: 135 },
   'siege-onager': { wood: 160, gold: 135 }, // units.csv
-  'heavy-scorpion': { wood: 80, gold: 60 },
+  'heavy-scorpion': { wood: 75, gold: 75 },
   'siege-ram': { wood: 160, gold: 75 },
   'capped-ram': { wood: 160, gold: 75 }, // units.csv
   'bombard-cannon': { wood: 225, gold: 225 },

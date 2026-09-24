@@ -12,6 +12,7 @@ import {
   researchTimeTicks,
   trainingCost,
 } from '../../game/simulation/prototypeEconomyRules';
+import { SPIES_GOLD_PER_ENEMY_VILLAGER } from '../../game/simulation/spiesRules';
 
 // A short, human-readable cost like "60 food, 20 gold" from a partial resource
 // cost, listing only the non-zero resources in a stable food/wood/gold/stone
@@ -101,7 +102,7 @@ export function formatResearchTooltip(
   if (technologyType === 'spies') {
     // The one dynamically-priced technology: the table's 200 gold is only the
     // floor, so a static figure here would under-quote every real charge.
-    return `Research ${techDisplayName}. Cost: 200 gold per enemy villager (halved by Atheism); takes ${seconds}s.`;
+    return `Research ${techDisplayName}. Cost: ${String(SPIES_GOLD_PER_ENEMY_VILLAGER)} gold per enemy villager (halved by Atheism); takes ${seconds}s.`;
   }
   return `Research ${techDisplayName}. Cost: ${formatResourceCost(researchCost(technologyType))}; takes ${seconds}s.`;
 }
