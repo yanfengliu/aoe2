@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.229
+
+- **You cannot miss an attack on your town any more.** When an enemy hits your villagers or buildings, a message now says "You are under attack!" beside the horn, as in Definitive Edition, and it shows even with the sound off. The mark on the minimap is several times larger, with a ripple running out from it, and it stays up for as long as the raid keeps landing blows. Before, it vanished after 8 seconds even while the raid went on, so the minimap was dark for much of a long raid, and it also vanished while the game was paused. It now goes away only after a raid has been quiet for a while (200 game ticks, about 13 seconds at normal speed), and inside its ring the ground and units stay visible. Space now jumps the camera to the newest attack, rather than to the one that sounded the horn.
+
+- **Loading a save no longer silences the next warning.** After loading an earlier save, the first raid in the loaded game could come with no horn and no message, because the game still remembered the warning from before the load. A load now starts the warning afresh. The same stale memory could also silence the town bell and the order click after a load, and that is fixed too.
+
 ## 0.3.228
 
 - **Unit and technology costs and times now match Definitive Edition.** The game's data had most of them from the original Conquerors release, and Definitive Edition has rebalanced many since. Among what changes: the Militia line costs 50 food instead of 60; the Crossbowman upgrade costs 175 food and 100 gold; the Long Swordsman and Pikeman upgrades are cheaper and quicker; Squires and Husbandry cost 100 and 150 food; Coinage and Banking cost more and take longer; the Galley trains in 45 seconds and the War Galley, Galleon and Fire Ship in 27; and many unique units and unique technologies have their current prices, some in different resources (Yeomen, Drill, Kataparuto and Perfusion now cost wood, Crenellations stone). Five unique technologies Definitive Edition no longer has (Berserkergang, El Dorado, Mahouts, Zealotry and Bearded Axe) keep their old prices, and so does the Fast Fire Ship upgrade, which Definitive Edition folds into Galleon.

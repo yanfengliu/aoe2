@@ -15,6 +15,7 @@ import * as fixtures from '../fixtures';
 import { createAiIdleSurplusFixture } from '../fixtures/aiIdleSurplus';
 import { createCorridorSealFixture } from '../fixtures/corridorSeal';
 import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from '../fixtures/farmsAreWalkable';
+import { createRaidWarningFixture } from '../fixtures/raidWarning';
 import { createTrafficContestFixture } from '../fixtures/trafficContest';
 import { createArenaMap } from '../mapGeneration/arenaMap';
 import { createBlackForestMap } from '../mapGeneration/blackForestMap';
@@ -356,4 +357,5 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['farmer-on-farm-showcase-fixture', createFarmerOnFarmShowcaseFixture],
   ['traffic-contest-fixture', createTrafficContestFixture],
   ['ai-idle-surplus-fixture', createAiIdleSurplusFixture],
+  ['raid-warning-fixture', createRaidWarningFixture],
 ]);

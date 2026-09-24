@@ -6,15 +6,17 @@
 // without an AudioContext and the app wires the real voices in.
 //
 // It is also the ATTACK EVENT hub, not only an audio one: the same decision
-// that sounds the horn fixes where Space jumps to (v0.3.156) and where the
-// minimap flashes (v0.3.217). One decision point is the point — a warning
-// whose sound and picture could disagree is worse than either alone. The rule
-// itself lives in ui/hud/attackWarning.ts, with the argument for each of its
-// narrowings.
+// that sounds the horn raises the words (v0.3.229), and the same hit fixes
+// where Space jumps to (v0.3.156) and where the minimap flashes (v0.3.217).
+// One decision point is the point — a warning whose sound and picture could
+// disagree is worse than either alone. The rule itself lives in
+// ui/hud/attackWarning.ts, with the argument for each of its narrowings.
 
 import type { UnitAttackParticipants } from '../game/simulation/types';
 import {
+  ATTACK_WARNING_TEXT,
   ATTACK_WARNING_THROTTLE_TICKS,
+  clearAttackWarning,
   isAttackOnOwnEconomy,
   raiseAttackWarning,
 } from '../ui/hud/attackWarning';
@@ -45,7 +47,6 @@ interface AttackViewLike {
 
 export interface GameAudioControllerDeps {
   humanPlayerId: number;
-  getTick: () => number;
   getCurrentAge: () => string;
   getMatchOutcome: () => string | null;
   getRecentAttacks: () => readonly AttackViewLike[];
@@ -60,6 +61,9 @@ export interface GameAudioControllerDeps {
   /** The primary selected OWN unit and its role family, or null. */
   getPrimarySelection: () => { id: number; role: string } | null;
   playCue: (cue: GameAudioCue) => void;
+  /** Shows the attack warning's words (v0.3.229). Called outside the mute
+   *  switch, on the horn's throttled decision. */
+  announce: (text: string) => void;
   storage: Pick<Storage, 'getItem' | 'setItem'>;
 }
 
@@ -67,15 +71,18 @@ export interface GameAudioController {
   /** Space (v0.3.156): where the last town-under-attack landed. */
   getLastHomeAttackPosition(): { x: number; y: number } | null;
   poll(): void;
+  /** A save was loaded: forget the old world (v0.3.229). A load only —
+   *  never a replay step, whose bridge swap is the same recording. */
+  resetForNewWorld(): void;
   isMuted(): boolean;
   setMuted(muted: boolean): void;
 }
 
 export function createGameAudioController(deps: GameAudioControllerDeps): GameAudioController {
   const {
-    humanPlayerId, getTick, getCurrentAge, getMatchOutcome, getRecentAttacks,
+    humanPlayerId, getCurrentAge, getMatchOutcome, getRecentAttacks,
     getResearchedCount, getCountdownActive, getTownBellRings, getOrderAcks,
-    getPrimarySelection, playCue, storage,
+    getPrimarySelection, playCue, announce, storage,
   } = deps;
 
   let muted = readStoredMute(storage);
@@ -98,20 +105,27 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
   }
 
   function pollHorn(): void {
-    const tick = getTick();
     const fresh = getRecentAttacks().filter((attack) => attack.tick > lastSeenAttackTick);
     if (fresh.length === 0) return;
     lastSeenAttackTick = Math.max(...fresh.map((attack) => attack.tick));
-    if (tick - lastHornTick < ATTACK_WARNING_THROTTLE_TICKS) return;
-    const hit = fresh.find((attack) => isAttackOnOwnEconomy(attack, humanPlayerId));
-    if (!hit) return;
-    lastHornTick = tick;
-    // One decision, three cues: the horn, Space's jump target (v0.3.156), and
-    // the minimap mark (v0.3.217). The mark is raised OUTSIDE `cue`, so a
-    // muted player still sees where the raid is — which is the whole point,
-    // since the horn is the cue a real player most easily loses.
+    const hits = fresh.filter((attack) => isAttackOnOwnEconomy(attack, humanPlayerId));
+    if (hits.length === 0) return;
+    const hit = hits.reduce((newest, attack) => (attack.tick >= newest.tick ? attack : newest));
+    // EVERY hit moves Space's jump target (v0.3.156) and refreshes the minimap
+    // mark (v0.3.217), unthrottled: the mark holds on simulation time from the
+    // newest blow, so it stays lit for as long as the raid lasts (v0.3.229).
+    // Both happen OUTSIDE `cue`, so a muted player still sees the raid.
     lastHomeAttack = { x: hit.targetX, y: hit.targetY };
-    raiseAttackWarning(hit.targetX, hit.targetY);
+    raiseAttackWarning(hit.targetX, hit.targetY, hit.tick);
+    // The horn and the words are one throttled decision: one of each per
+    // window, because a warning on every blow is worse than none. The window
+    // is measured between HIT ticks, the clock the mark's hold counts on, so
+    // "the mark went dark" always means "the next hit sounds the horn", even
+    // when one frame steps several ticks between a hit and the poll that sees
+    // it (the independent review of v0.3.229 found the poll-tick version).
+    if (hit.tick - lastHornTick < ATTACK_WARNING_THROTTLE_TICKS) return;
+    lastHornTick = hit.tick;
+    announce(ATTACK_WARNING_TEXT);
     cue('town-under-attack');
   }
 
@@ -198,8 +212,38 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
     countdownWasActive = active;
   }
 
+  // v0.3.229 (defect register 2026-09-24): after a LOAD, everything observed
+  // so far belongs to the old world, so forget it, as at mount, and let the
+  // next poll take a fresh look at the new one instead of diffing it against
+  // the old. Called for a load only: a replay step, a scrub or a fog-owner
+  // switch also swaps the bridge, over the same recording, and resetting there
+  // re-announced the replayed world's recent hits on every step (found by the
+  // independent review, before this shipped). Without
+  // this, loading an earlier save kept the old horn's tick: the first raid
+  // after the load was inside a "throttle window" measured across two
+  // different worlds, and it came with no horn and no words — measured in the
+  // real game by saving at tick 100, taking the tick-1444 raid, and loading.
+  // The per-bridge tallies (bell rings, order gestures) restart at zero in a
+  // new world, so the same stale memory silenced those cues until the new
+  // count passed the old one. A match already decided, or a countdown already
+  // running, in the loaded world is part of the snapshot, not news.
+  function resetForNewWorld(): void {
+    lastHornTick = Number.NEGATIVE_INFINITY;
+    lastSeenAttackTick = 0;
+    knownAge = null;
+    outcomePlayed = getMatchOutcome() !== null;
+    knownResearched = null;
+    countdownWasActive = getCountdownActive();
+    knownBellRings = null;
+    knownOrderAcks = null;
+    knownSelectionId = null;
+    lastHomeAttack = null;
+    clearAttackWarning();
+  }
+
   return {
     getLastHomeAttackPosition: () => lastHomeAttack,
+    resetForNewWorld,
     poll(): void {
       pollHorn();
       pollAge();

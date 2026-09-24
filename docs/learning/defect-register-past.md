@@ -98,6 +98,27 @@ The 2026-09-24 rollover of "A right click on the minimap did nothing" (with the 
 - Here, "Three defects in the input path ...": of "the five entries above" in its first paragraph, the minimap right click is now the entry directly above it, here; the other four 2026-09-11 entries are still ACTIVE. The bullet above that says all five are active is out of date and left as written.
 - The moved entry itself says "above" or "below" about no neighbouring entry.
 
+The second 2026-09-24 rollover, of "Double-click selected the Town Centre behind the villager ..." (with the attack-warning entry), added no new crossing. Checked rather than assumed:
+
+- Here, "Three defects in the input path ...": of "the five entries above" in its first paragraph, the double-click entry now also sits here, directly above the minimap right click; the other three 2026-09-11 entries are still ACTIVE.
+- The moved entry's "see the 2026-09-23 entry" names that entry's date, so it resolves in the active file. Its "below the cycle" is about code, not a neighbouring entry.
+
+## 2026-09-11 — Double-click selected the Town Centre behind the villager, and its gate used a fixture where nothing stands behind anything (found by the standing loop, FIXED and gated)
+
+**Symptom, as the player met it.** Double-clicking a villager selected one unit rather than every villager on screen. Reproduced twice in play.
+
+**Attribution.** Found by the standing loop.
+
+**Root cause, which is not "the feature is missing".** `trySelectSameTypeOnDoubleClick` existed and worked — on a villager with nothing else under the cursor. In the real opening a villager stands in front of the Town Centre and another stands on a sheep, and for those the stacked-entity CYCLE took the second click and returned before the double-click branch was reached. Measured on `b929d07d` at 1600x900: double-clicking the villager in front of the Town Centre selected the TOWN CENTRE; the one over a sheep selected the SHEEP; the one standing alone selected all three villagers. The existing gate (`game-selection-marquee.spec.ts`) passed throughout, because its fixture's villagers stand alone — the bound nobody had written down.
+
+Two more defects in the same path came out of the fix, and either alone was enough to make the gesture unreliable. `AoeVoxelGameView` passed the selection controller `this.currentFrameTimeMs` — the timestamp of the last RENDERED frame — as its clock, so the 300 ms double-click window was measured on the render clock: two clicks 80 ms apart measured 0 ms apart when one frame covered both and over 300 ms apart when a slow frame fell between them, and the gesture stopped working exactly when the machine was busy. And the pointer's `selectEntityAtWorldPosition` dep DROPPED isoX/isoY — the same defect the comment two lines below it says was fixed for the context-command wrapper in v0.3.102 — so every selecting click re-derived the iso pick from flat ground and hit a villager in front of the Town Centre only when its idle animation happened to have the body there. With both fixed the gesture went from 1 in 2 to 4 in 4.
+
+**Fix.** The same-type double-click is tried BEFORE the cycle; the cycle is what a SLOWER repeat click still means. The clock is `performance.now()`. (Superseded 2026-09-23: `performance.now()` read inside the handler was still the page's clock; see the 2026-09-23 entry.) The pointer dep is a full pass-through. And only a POINTER click can be half of a double-click: `selectEntityAtCell` and the harness scans built on it fire four selections inside one `page.evaluate`, which read as 0 ms double-clicks and made the stack cycle unreachable — `game-selection-click.spec.ts`'s scan went red with "Best margin -1 px" until the gesture was gated on a real screen point.
+
+**How this class is checked from now on.** `de-command-surface.spec.ts`, "double-clicking a villager standing on another entity selects every villager on screen". The spec FINDS its own precondition: it clicks each villager once, waits the double-click window out, clicks again, and takes the first villager whose slow repeat cycles to something else — and fails by name if the scenario no longer has one, because a fixture that quietly loses its overlap would take the gate with it. **Bounds:** the boot scenario's three villagers at 1280x720; it does not cover a military unit, a unit off screen, or a second stack. The double-click is now reachable only through real pointer input, so no direct-API test can exercise it.
+
+**Mutation proof.** Moving the double-click claim back below the cycle: `Error: the double-click landed on the entity behind the villager instead of selecting villagers / Expected: "villager" / Received: "town-center"`, 1 failed.
+
 ## 2026-09-11 — A right click on the minimap did nothing (found by the standing loop, FIXED and gated)
 
 **Symptom, as the player met it.** Left-click on the minimap pans, which is right. Right-click does nothing at all: no order, no move, no camera change. In DE it is how an army is sent across the map without looking away from what you are doing.

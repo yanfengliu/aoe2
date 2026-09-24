@@ -54,7 +54,6 @@ function makeController(state: Deps) {
   const played: GameAudioCue[] = [];
   const controller = createGameAudioController({
     humanPlayerId: 1,
-    getTick: () => state.tick,
     getCurrentAge: () => state.age,
     getMatchOutcome: () => state.outcome,
     getRecentAttacks: () => state.attacks,
@@ -64,6 +63,7 @@ function makeController(state: Deps) {
     getOrderAcks: () => state.orderAcks,
     getPrimarySelection: () => state.selection,
     playCue: (cue) => played.push(cue),
+    announce: () => {},
     storage: mapStorage(new Map<string, string>()),
   });
   return { controller, played, state };
@@ -146,7 +146,7 @@ describe('the attack horn', () => {
     harness.state.tick = 1;
     harness.controller.poll();
     expect(harness.played).toEqual([]);
-    expect(getAttackWarning()).toMatchObject({ x: 6.25, y: 8.75 });
+    expect(getAttackWarning(1)).toMatchObject({ x: 6.25, y: 8.75 });
   });
 });
 
@@ -170,6 +170,41 @@ describe('the age-up fanfare and the match stings', () => {
   });
 });
 
+// v0.3.229: a load swaps in a new bridge, whose tallies of bell rings and
+// order gestures start again at zero. The controller used to keep the old
+// world's counts, so the order click was silent after a load until the new
+// count passed the old one — 50 gestures here. The audio mount now calls
+// resetForNewWorld on the swap (the browser case for the horn proves the
+// wiring); this holds the controller's half.
+describe('a load', () => {
+  it("forgets the old world's tallies, so the next order clicks at once", () => {
+    const harness = makeController({ attacks: [], age: 'dark-age', outcome: null, tick: 900, researched: 0, countdownActive: false, bellRings: 3, orderAcks: 50, selection: null });
+    harness.controller.poll();
+    harness.state.orderAcks = 0;
+    harness.state.bellRings = 0;
+    harness.state.tick = 100;
+    harness.controller.resetForNewWorld();
+    harness.controller.poll();
+    expect(harness.played).toEqual([]);
+    harness.state.orderAcks = 1;
+    harness.state.bellRings = 1;
+    harness.controller.poll();
+    expect(harness.played).toEqual(['town-bell', 'order-ack']);
+  });
+
+  it('does not announce what the loaded world already holds: its age, its research, its countdown, its result', () => {
+    const harness = makeController({ attacks: [], age: 'dark-age', outcome: null, tick: 900, researched: 2, countdownActive: false, bellRings: 0, orderAcks: 0, selection: null });
+    harness.controller.poll();
+    harness.state.age = 'castle-age';
+    harness.state.researched = 20;
+    harness.state.countdownActive = true;
+    harness.state.outcome = 'victory';
+    harness.controller.resetForNewWorld();
+    harness.controller.poll();
+    expect(harness.played).toEqual([]);
+  });
+});
+
 describe('the mute switch', () => {
   it('silences every cue and persists the choice', () => {
     const storage = new Map<string, string>();
@@ -177,7 +212,6 @@ describe('the mute switch', () => {
     const state: Deps = { attacks: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0, selection: null };
     const controller = createGameAudioController({
       humanPlayerId: 1,
-      getTick: () => state.tick,
       getCurrentAge: () => state.age,
       getMatchOutcome: () => state.outcome,
       getRecentAttacks: () => state.attacks,
@@ -187,6 +221,7 @@ describe('the mute switch', () => {
       getOrderAcks: () => state.orderAcks,
       getPrimarySelection: () => state.selection,
       playCue: (cue) => played.push(cue),
+      announce: () => {},
       storage: mapStorage(storage),
     });
     controller.setMuted(true);

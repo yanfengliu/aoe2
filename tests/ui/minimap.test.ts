@@ -303,7 +303,7 @@ describe('drawMinimap (iso diamond)', () => {
       canvas,
       { tick: 0, frame: visibleFrame(), entities: [] },
       null,
-      { x: 4, y: 6, intensity: 1 },
+      { x: 4, y: 6, intensity: 1, ripple: 0.5 },
     );
     const centre = cellToMinimap(4.5, 6.5, layout);
     const arcs = calls.filter(
@@ -311,11 +311,59 @@ describe('drawMinimap (iso diamond)', () => {
         && Math.abs(c.args[0]! - centre.x) < 0.001
         && Math.abs(c.args[1]! - centre.y) < 0.001,
     );
-    // Backing, ring, core.
-    expect(arcs).toHaveLength(3);
+    // Ring backing, ripple, ring, core halo, core.
+    expect(arcs).toHaveLength(5);
     const buildingMarker = Math.max(layout.hw * 1.4, 2);
     expect(Math.max(...arcs.map((c) => c.args[2]!))).toBeGreaterThan(buildingMarker);
     expect(canvas.dataset.attackWarningCell).toBe('4,6');
+  });
+
+  // v0.3.229 (defect register 2026-09-24): the core had a 3-canvas-pixel
+  // floor, and at the real minimap (220x160 over the 60x36 prototype map) the
+  // floor was what got drawn. The mark is now sized in SCREEN pixels, so the
+  // minimap below 1120px of window width (164px wide over the same 220px
+  // backing, and so at the browser suite's 800x600) does not shrink it.
+  // Bound: radii from draw calls; the pixels are the browser spec.
+  it('sizes the mark in screen pixels at the real minimap size, large and small', () => {
+    for (const shownWidth of [220, 164]) {
+      const { canvas, calls } = createCanvasSpy(220, 160);
+      Object.defineProperty(canvas, 'clientWidth', { value: shownWidth });
+      const frame = visibleFrame(60, 36);
+      const layout = getMinimapLayout(canvas, frame)!;
+      drawMinimap(canvas, { tick: 0, frame, entities: [] }, null, { x: 6, y: 8, intensity: 0, ripple: 0 });
+      const centre = cellToMinimap(6.5, 8.5, layout);
+      const arcs = calls.filter(
+        (c) => c.op === 'arc'
+          && Math.abs(c.args[0]! - centre.x) < 0.001
+          && Math.abs(c.args[1]! - centre.y) < 0.001,
+      );
+      const toScreen = shownWidth / 220;
+      const [, , ring, , core] = arcs.map((c) => c.args[2]! * toScreen);
+      expect(core, `core radius on screen at ${shownWidth}px`).toBeGreaterThanOrEqual(7 - 1e-9);
+      // At the pulse's trough the ring is 0.72 of its 20-pixel base.
+      expect(ring, `ring radius on screen at ${shownWidth}px`).toBeGreaterThanOrEqual(20 * 0.72 - 1e-9);
+    }
+  });
+
+  // v0.3.229: the mark must not hide what it points at. A backing disk the
+  // size of the ring darkened the whole early-game base on the minimap, raiders
+  // included (seen in the after-capture before it shipped). Only the core and
+  // its thin halo may be FILLED; everything out at the ring is a stroke.
+  it('fills nothing wider than the core, so the ground inside the ring stays visible', () => {
+    const { canvas, calls } = createCanvasSpy(220, 160);
+    const frame = visibleFrame(60, 36);
+    drawMinimap(canvas, { tick: 0, frame, entities: [] }, null, { x: 6, y: 8, intensity: 1, ripple: 0.5 });
+    const layout = getMinimapLayout(canvas, frame)!;
+    const centre = cellToMinimap(6.5, 8.5, layout);
+    const painted: Array<{ radius: number; op: string }> = [];
+    calls.forEach((call, index) => {
+      if (call.op !== 'arc' || Math.abs(call.args[0]! - centre.x) > 0.001 || Math.abs(call.args[1]! - centre.y) > 0.001) return;
+      const next = calls.slice(index + 1).find((c) => c.op === 'fill' || c.op === 'stroke');
+      painted.push({ radius: call.args[2]!, op: next!.op });
+    });
+    const ring = Math.max(...painted.filter((p) => p.op === 'stroke').map((p) => p.radius));
+    const widestFill = Math.max(...painted.filter((p) => p.op === 'fill').map((p) => p.radius));
+    expect(widestFill, `a filled disk of radius ${widestFill.toFixed(1)} inside a ring of ${ring.toFixed(1)}`).toBeLessThan(ring / 2);
   });
 
   it('draws nothing at all in a quiet frame', () => {

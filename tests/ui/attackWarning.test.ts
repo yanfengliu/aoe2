@@ -13,7 +13,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
-  ATTACK_WARNING_FLASH_MS,
+  ATTACK_WARNING_HOLD_TICKS,
   ATTACK_WARNING_THROTTLE_TICKS,
   clearAttackWarning,
   getAttackWarning,
@@ -94,16 +94,16 @@ describe('the mark on the minimap', () => {
   beforeEach(() => clearAttackWarning());
 
   it('is nothing at all until a warning is raised', () => {
-    expect(getAttackWarning(1_000)).toBeNull();
+    expect(getAttackWarning(100, 1_000)).toBeNull();
     // The repaint key's warning term must be EMPTY in a quiet frame, or every
     // still frame in the game would differ from the one before it.
-    expect(attackWarningSignature(1_000)).toBe('');
+    expect(attackWarningSignature(100, 1_000)).toBe('');
   });
 
   it('marks the cell that was hit, and pulses without ever going dark', () => {
-    raiseAttackWarning(12, 34, 1_000);
-    for (let ms = 0; ms < ATTACK_WARNING_FLASH_MS; ms += 37) {
-      const mark = getAttackWarning(1_000 + ms);
+    raiseAttackWarning(12, 34, 100, 1_000);
+    for (let ms = 0; ms < 3_000; ms += 37) {
+      const mark = getAttackWarning(100, 1_000 + ms);
       expect(mark, `at +${ms}ms`).not.toBeNull();
       expect(mark!.x).toBe(12);
       expect(mark!.y).toBe(34);
@@ -114,20 +114,42 @@ describe('the mark on the minimap', () => {
   });
 
   it('pulses: the repaint key changes while it is up', () => {
-    raiseAttackWarning(12, 34, 1_000);
-    expect(attackWarningSignature(1_000)).not.toBe(attackWarningSignature(1_400));
+    raiseAttackWarning(12, 34, 100, 1_000);
+    expect(attackWarningSignature(100, 1_000)).not.toBe(attackWarningSignature(100, 1_400));
   });
 
-  it('clears itself, and the quiet frame is byte-identical again', () => {
-    raiseAttackWarning(12, 34, 1_000);
-    expect(getAttackWarning(1_000 + ATTACK_WARNING_FLASH_MS)).toBeNull();
-    expect(attackWarningSignature(1_000 + ATTACK_WARNING_FLASH_MS)).toBe('');
+  // v0.3.229 (defect register 2026-09-24): the hold is SIMULATION time. It
+  // was 8 s of wall clock, so it expired during a pause and fell dark between
+  // horns of a sustained raid.
+  it('holds for a whole throttle window of SIMULATION ticks after the last hit', () => {
+    expect(ATTACK_WARNING_HOLD_TICKS).toBe(ATTACK_WARNING_THROTTLE_TICKS);
+    raiseAttackWarning(12, 34, 100, 1_000);
+    expect(getAttackWarning(100 + ATTACK_WARNING_HOLD_TICKS - 1, 1_000)).not.toBeNull();
+    expect(getAttackWarning(100 + ATTACK_WARNING_HOLD_TICKS, 1_000)).toBeNull();
+    expect(attackWarningSignature(100 + ATTACK_WARNING_HOLD_TICKS, 1_000)).toBe('');
+  });
+
+  it('does not expire on the wall clock: a paused game keeps it for an hour', () => {
+    raiseAttackWarning(12, 34, 100, 1_000);
+    expect(getAttackWarning(100, 1_000 + 3_600_000)).toMatchObject({ x: 12, y: 34 });
+  });
+
+  it('restarts its hold on every hit, so a raid that keeps hitting keeps it lit', () => {
+    raiseAttackWarning(12, 34, 100, 1_000);
+    raiseAttackWarning(12, 34, 280, 1_000);
+    expect(getAttackWarning(100 + ATTACK_WARNING_HOLD_TICKS + 50, 1_000)).not.toBeNull();
+  });
+
+  it('clears when time goes backwards past the hit (a load or a replay seek)', () => {
+    raiseAttackWarning(12, 34, 500, 1_000);
+    expect(getAttackWarning(499, 1_000)).toBeNull();
+    expect(getAttackWarning(500, 1_000)).toBeNull();
   });
 
   it('moves to the newest raid rather than keeping the first', () => {
-    raiseAttackWarning(12, 34, 1_000);
-    raiseAttackWarning(50, 51, 2_000);
-    expect(getAttackWarning(2_100)).toMatchObject({ x: 50, y: 51 });
+    raiseAttackWarning(12, 34, 100, 1_000);
+    raiseAttackWarning(50, 51, 110, 2_000);
+    expect(getAttackWarning(110, 2_100)).toMatchObject({ x: 50, y: 51 });
   });
 });
 

@@ -3,6 +3,8 @@
 // browser autoplay rule — a context made earlier starts suspended and the
 // first cue plays late or never), polls once per animation frame, and mounts
 // the speaker toggle beside the idle-villager bell. One call from createApp.
+// v0.3.229: it is also handed the HUD's toast, because the decision that
+// sounds the horn is the one that shows the attack warning's words.
 
 import type { SimulationBridge } from '../game/simulation/createSimulationBridge';
 import { HUMAN_PLAYER_ID } from '../game/simulation/prototypeScenario';
@@ -24,9 +26,17 @@ const BELL_GAP_PX = 10;
 // 190px, so this is where both sat when they were fixed viewport offsets).
 const FALLBACK_BOTTOM = '244px';
 
+/** Dispatched on the HUD root when a save has been loaded (createApp's load
+ *  path). The audio controller forgets the old world on it (v0.3.229). */
+export const WORLD_LOADED_EVENT = 'aoe2:world-loaded';
+
 // A GETTER, not the bridge: createApp swaps the bridge on save-load, and a
 // captured reference would leave the horn listening to the dead world.
-export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLElement): MountedGameAudio {
+export function mountGameAudio(
+  bridgeRef: () => SimulationBridge,
+  hudRoot: HTMLElement,
+  announce: (text: string) => void,
+): MountedGameAudio {
   let context: AudioContext | null = null;
   let ambience: AmbienceHandle | null = null;
   function ensureContext(): AudioContext | null {
@@ -56,7 +66,6 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
 
   const controller = createGameAudioController({
     humanPlayerId: HUMAN_PLAYER_ID,
-    getTick: () => bridgeRef().getHudState().tick,
     getCurrentAge: () => bridgeRef().getHudState().currentAge,
     getMatchOutcome: () => {
       const outcome = bridgeRef().getMatchState().outcome;
@@ -91,6 +100,7 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
       const audio = ensureContext();
       if (audio) playProceduralCue(audio, cue);
     },
+    announce,
     storage: window.localStorage,
   });
 
@@ -152,6 +162,13 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
     }
   }
 
+  // A load is announced by createApp's load path (v0.3.229). Not detected
+  // from the bridge's identity: a replay step, a scrub and a fog-owner switch
+  // swap the bridge too, and must keep the throttle and the other cues'
+  // memory — resetting there re-announced every step's recent hits.
+  const onWorldLoaded = (): void => controller.resetForNewWorld();
+  hudRoot.addEventListener(WORLD_LOADED_EVENT, onWorldLoaded);
+
   let rafHandle: number | null = null;
   function loop(): void {
     stackAboveBell();
@@ -165,6 +182,7 @@ export function mountGameAudio(bridgeRef: () => SimulationBridge, hudRoot: HTMLE
     getLastHomeAttackPosition: () => controller.getLastHomeAttackPosition(),
     dispose(): void {
       if (rafHandle !== null) cancelAnimationFrame(rafHandle);
+      hudRoot.removeEventListener(WORLD_LOADED_EVENT, onWorldLoaded);
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
       button.remove();

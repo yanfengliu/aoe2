@@ -18,7 +18,7 @@ import type {
 import type { SaveBlob } from '../../game/simulation/saveSchema';
 import { createTooltipController } from './tooltips';
 import { HUD_TEMPLATE_HTML } from './hudTemplate';
-import { createToastController } from './toast';
+import { createToastController, type ToastHandle } from './toast';
 import {
   createDebugOverlayController,
   type DebugOverlayMode,
@@ -135,7 +135,7 @@ export interface HudController {
   // exceeded, transaction abort) and MarkerListPanel can toast on
   // stale-ref clicks. The toast queue / DOM is private to this
   // controller; only the showToast entry point is exported.
-  toastHandle: { showToast(text: string): void };
+  toastHandle: ToastHandle;
   // Iter-3 V3-11 / iter-2 M2-6 / iter-1 H-7: tear-down hook so HMR,
   // browser-test teardown, or any future "reset to title" path can
   // cancel the per-frame RAF loop, drop window-level listeners, and

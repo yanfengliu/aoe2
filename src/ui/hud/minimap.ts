@@ -45,10 +45,12 @@ export interface MinimapCameraState {
 // v0.3.217: the attack-warning mark pulses on its own clock, so its quantised
 // phase joins the key — otherwise a paused or still frame would freeze the
 // mark mid-pulse. The term is EMPTY while no warning is up, so a quiet frame's
-// key is exactly what it was before the mark existed.
+// key is exactly what it was before the mark existed. v0.3.229: whether the
+// mark is up is read at the frame's own tick, because it holds on simulation
+// time.
 export function minimapContentSignature(
   renderState: RenderState,
-  warning = attackWarningSignature(),
+  warning = attackWarningSignature(renderState.tick),
 ): string {
   return `${renderState.tick}:${renderState.frame?.playerId ?? -1}:${warning}`;
 }
@@ -176,11 +178,21 @@ function resetTransform(context: CanvasRenderingContext2D): void {
 }
 
 // The attack-warning mark (v0.3.217): a pulsing red ring around a filled dot
-// at the cell that was hit, drawn ON the minimap rather than floating over it
-// — nothing may cover the minimap, and AoE2's own affordance is the minimap
-// itself flashing. Sized well above a building marker (which is `cellPx*1.4`)
-// so it is findable at a glance on a 160px canvas, and dark-backed like every
+// at the cell that was hit, with a ripple running out from it, drawn ON the
+// minimap rather than floating over it — nothing may cover the minimap, and
+// AoE2's own affordance is the minimap itself flashing. Dark-backed like every
 // other marker so it reads over grass, sand and shore alike.
+//
+// SIZE is set in DISPLAY pixels (v0.3.229). It used to be a multiple of one
+// cell with a 3-pixel floor, and at the real minimap size that floor was what
+// got drawn: the real play screenshots held 16 alert pixels out of 1.44
+// million (defect register, 2026-09-24). A canvas pixel is not a screen pixel
+// once CSS shrinks the canvas (below 1120px of window width the minimap is
+// 164px wide over its 220px backing — hudCommandPanel.css), so the floors
+// below are divided back out of the display scale: the core is at least 7
+// screen pixels in radius at every size.
+const ALERT_CORE_MIN_DISPLAY_PX = 7;
+const ALERT_RING_MIN_DISPLAY_PX = 20;
 // The core is WHITE-HOT, not red. Two reasons and both matter: owner 2's tint
 // is itself a red, so a red mark beside a red raider is a mark you have to
 // look for — and nothing else this minimap draws comes near white (terrain,
@@ -190,23 +202,53 @@ function resetTransform(context: CanvasRenderingContext2D): void {
 const ALERT_CORE_STYLE = 'rgb(255, 250, 245)';
 const ALERT_RING_STYLE = '255, 96, 78';
 
+/** Canvas pixels per screen pixel: 1 when the canvas is shown at its backing
+ *  size, and 1 wherever there is no layout to measure (no DOM in unit tests). */
+function canvasPixelsPerDisplayPixel(canvas: HTMLCanvasElement): number {
+  const shown = canvas.clientWidth;
+  return typeof shown === 'number' && shown > 0 ? canvas.width / shown : 1;
+}
+
 function drawAttackWarning(
   context: CanvasRenderingContext2D,
   layout: MinimapLayout,
   mark: AttackWarningMark,
+  pixelsPerDisplayPixel: number,
 ): void {
   const centre = cellToMinimap(mark.x + 0.5, mark.y + 0.5, layout);
-  const core = Math.max(layout.hw * 1.3, 3);
-  const ring = Math.max(layout.hw * 3.4, 7) * (0.72 + 0.28 * mark.intensity);
+  const core = Math.max(layout.hw * 1.3, ALERT_CORE_MIN_DISPLAY_PX * pixelsPerDisplayPixel);
+  const ringBase = Math.max(layout.hw * 3.4, ALERT_RING_MIN_DISPLAY_PX * pixelsPerDisplayPixel);
+  const ring = ringBase * (0.72 + 0.28 * mark.intensity);
+  const line = 2.5 * pixelsPerDisplayPixel;
+  const pad = 1.5 * pixelsPerDisplayPixel;
+  // Dark backing under the ring and around the core ONLY — never a filled
+  // disk. The ground inside the ring is where the raid is: a filled backing
+  // the size of the ring darkened the whole early-game base on the minimap
+  // and hid the raiders the mark was pointing at (seen in the v0.3.229
+  // after-capture before it shipped).
   context.beginPath();
-  context.arc(centre.x, centre.y, ring + 1.5, 0, Math.PI * 2);
-  context.fillStyle = MARKER_BACKING_STYLE;
-  context.fill();
+  context.arc(centre.x, centre.y, ring, 0, Math.PI * 2);
+  context.strokeStyle = MARKER_BACKING_STYLE;
+  context.lineWidth = line + pad * 2;
+  context.stroke();
+  // The ripple: a thinner ring running from the core out past the main ring
+  // and fading as it goes. Motion is what the eye catches in the corner of
+  // the screen, and a pulse that only breathes in place is easy to read as
+  // part of the map.
+  context.beginPath();
+  context.arc(centre.x, centre.y, core + (ringBase * 1.45 - core) * mark.ripple, 0, Math.PI * 2);
+  context.strokeStyle = `rgba(${ALERT_RING_STYLE}, ${(0.85 * (1 - mark.ripple)).toFixed(3)})`;
+  context.lineWidth = 1.5 * pixelsPerDisplayPixel;
+  context.stroke();
   context.beginPath();
   context.arc(centre.x, centre.y, ring, 0, Math.PI * 2);
   context.strokeStyle = `rgba(${ALERT_RING_STYLE}, ${(0.35 + 0.65 * mark.intensity).toFixed(3)})`;
-  context.lineWidth = 2;
+  context.lineWidth = line;
   context.stroke();
+  context.beginPath();
+  context.arc(centre.x, centre.y, core + pad, 0, Math.PI * 2);
+  context.fillStyle = MARKER_BACKING_STYLE;
+  context.fill();
   context.beginPath();
   context.arc(centre.x, centre.y, core, 0, Math.PI * 2);
   context.fillStyle = ALERT_CORE_STYLE;
@@ -220,7 +262,7 @@ export function drawMinimap(
   canvas: HTMLCanvasElement,
   renderState: RenderState,
   cameraState: MinimapCameraState | null,
-  warning: AttackWarningMark | null = getAttackWarning(),
+  warning: AttackWarningMark | null = getAttackWarning(renderState.tick),
 ): void {
   const frame = renderState.frame;
   if (!frame) {
@@ -305,7 +347,7 @@ export function drawMinimap(
   }
 
   if (warning) {
-    drawAttackWarning(context, layout, warning);
+    drawAttackWarning(context, layout, warning, canvasPixelsPerDisplayPixel(canvas));
     canvas.dataset.attackWarningCell = `${warning.x},${warning.y}`;
   } else {
     delete canvas.dataset.attackWarningCell;

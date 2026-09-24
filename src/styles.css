@@ -558,6 +558,19 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   transform: translateY(0);
 }
 
+/* v0.3.229: the attack warning's words. Larger and hotter than a rejection
+   toast, with the minimap mark's own red, because it is news nobody asked for. */
+.hud-toast[data-hud-toast-kind="alert"] {
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 96, 78, 0.9);
+  border-left-width: 4px;
+  background: rgba(72, 18, 14, 0.94);
+  color: #fff4ec;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
 .hud-debug-overlay {
   position: fixed;
   left: 14px;

@@ -42,7 +42,7 @@ import { mountReferencePanels } from './referencePanels';
 import { registerEscapeLayerHotkey } from './escapeLayers';
 import { registerDePlayHotkeys } from './dePlayHotkeys';
 import { registerSelectionRecallHotkeys } from './selectionRecallHotkeys';
-import { mountGameAudio } from '../../audio/mountGameAudio';
+import { mountGameAudio, WORLD_LOADED_EVENT } from '../../audio/mountGameAudio';
 import { registerReplayHotkeys } from '../../game/replay/ReplayHotkeys';
 import { replaceLiveBridgeAfterReplayExit } from './replaceBridgeForLoad';
 import { gateAnnotationHotkeyOnReplayMode } from './replayAnnotationGate';
@@ -279,6 +279,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
         view.setBridge(nextBridge);
       },
     });
+    hudRoot!.dispatchEvent(new Event(WORLD_LOADED_EVENT)); // the audio forgets the old world (v0.3.229)
     // Chain off any in-flight rebuild OR the live stack — whichever is
     // most recent. handleLoadGame only runs after the initial stack lands,
     // so `stack` is always defined here in practice; the explicit check
@@ -413,7 +414,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   });
   const selectNextIdleVillagerAndCenter = registerSelectionRecallHotkeys(hotkeyRegistry, bridgeRef, view);
   // Audio cues (v0.3.109): horn, age-up fanfare, match stings, mute toggle.
-  const gameAudio = mountGameAudio(bridgeRef, hudRoot);
+  const gameAudio = mountGameAudio(bridgeRef, hudRoot, (text) => hudController.toastHandle.showToast(text, { kind: 'alert' }));
   // The look-it-up panels: technology tree on F1, civilizations on F4. Both
   // live in `referencePanels.ts` — see its header for why they are one role.
   const referencePanels = mountReferencePanels({
