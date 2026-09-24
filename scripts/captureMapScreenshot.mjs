@@ -140,6 +140,29 @@ try {
   // through in between varied run to run, so a before/after pair could land
   // a second of game time apart (units, sheep and water moved) and the diff
   // was not confined to the change (2026-09-02, idle-bell captures).
+  // STYLE=moebius|de captures under a chosen art style. The style is a
+  // localStorage preference with no URL form, so a sweep that only boots the
+  // default sees one of the two looks the game ships, and they differ in
+  // kind: Moebius quantises shading into tone bands, so it can hide or
+  // exaggerate a change the DE style renders as a smooth gradient. Written
+  // before the first navigation so the renderer reads it at construction.
+  const style = process.env.STYLE ?? '';
+  if (style) {
+    if (style !== 'moebius' && style !== 'de') {
+      throw new Error(
+        'STYLE selects the art style to capture under and must be "moebius" or "de" '
+        + `(the two styles the game ships); got "${style}".`,
+      );
+    }
+    await page.addInitScript((chosen) => {
+      try {
+        window.localStorage.setItem('aoe2:art-style', chosen);
+      } catch {
+        // Storage disabled for the origin: the game falls back to its default
+        // style, and the capture below refuses a frame in the wrong style.
+      }
+    }, style);
+  }
   await page.addInitScript(() => {
     const timer = window.setInterval(() => {
       if (!window.__AOE2_TEST__) return;
@@ -151,6 +174,16 @@ try {
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true, {
     timeout: 60_000,
   });
+  // A capture labelled with a style must be OF that style: storage can be
+  // refused, and a build without the setting would ignore it silently.
+  const drawnStyle = await page.evaluate(() => window.__AOE2_TEST__?.getWorldRendererState().artStyle);
+  if (style && drawnStyle !== style) {
+    throw new Error(
+      `STYLE=${style} was asked for, but the canvas is drawn in "${drawnStyle}": the style is read `
+      + 'from localStorage (aoe2:art-style) at boot. Capture a build that has the art-style setting '
+      + '(v0.3.227 or later), from an origin whose storage is not blocked.',
+    );
+  }
   // Freeze the sim the moment it boots: the page otherwise free-runs in real
   // time through staging (BUILD/FOCUS/ZOOM evaluates take real seconds), so a
   // capture's tick was "TICKS plus however long the tooling took" — and any

@@ -218,8 +218,8 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
       } catch {
         // Private browsing or a full quota must never break the game; the
         // choice just does not persist. (The art-style preference set this
-        // precedent and was withdrawn in v0.3.196 with the second style, so
-        // this is now the rule's only live example rather than its second.)
+        // precedent, was withdrawn in v0.3.196 with the second style, and came
+        // back with the DE style in v0.3.227; `artStylePreference.ts`.)
       }
     },
   };

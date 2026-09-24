@@ -111,11 +111,12 @@ describe('AoeVoxelAdapter world feedback projection', () => {
     expect(snapshot.resources).toEqual(expect.arrayContaining([
       expect.objectContaining({ kind: 'material', key: 'aoe2:material:ui', shading: 'unlit' }),
     ]));
+    // Cell 0 is unexplored, so its ground is opaque black. This assertion used
+    // to accept any colour under 30 and above 0, which is how a 12% ground that
+    // leaked the map's lakes passed (defect register, 2026-09-23); the fog
+    // fairness suite owns the whole rule.
     const palette = snapshot.resources.find((resource) => resource.kind === 'palette')!;
-    expect(palette.entries.some((entry) => (
-      Math.max(entry.color.r, entry.color.g, entry.color.b) > 0
-      && Math.max(entry.color.r, entry.color.g, entry.color.b) < 30
-    ))).toBe(true);
+    expect(palette.entries).toContainEqual({ color: { r: 0, g: 0, b: 0, a: 255 } });
   });
 
   it('shows a bounded voxel impact flash after health drops', () => {

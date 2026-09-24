@@ -1,6 +1,7 @@
 import type { RenderSnapshotV1, VoxelChunkV1 } from 'voxel/core';
 
 import type { ProjectedEntityView } from '../../game/simulation/types';
+import { artStyleById, DEFAULT_ART_STYLE_ID } from '../artStyles';
 import { createBuildingParts } from './aoeVoxelBuildingRecipes';
 import { createResourceParts } from './aoeVoxelResourceRecipes';
 import { shade, type VoxelPart } from './aoeVoxelRecipeTypes';
@@ -13,6 +14,7 @@ import {
   TERRAIN_MATERIAL_KEY,
   terrainCells,
   createTerrainDetailParts,
+  type IsUnexplored,
 } from './aoeVoxelTerrain';
 import { createUnitParts } from './aoeVoxelUnitRecipes';
 import {
@@ -95,22 +97,27 @@ function compositionGround(entity: ProjectedEntityView): number {
   return 0;
 }
 
+/** Ground under fog: explored-but-unseen cells dimmed to the art style's
+ *  level, and the cells the player has never explored named, so the terrain
+ *  pipeline draws them black and never reads what they hold. */
 function terrainWithVoxelFog(
   entities: readonly ProjectedEntityView[],
   frame: AoeVoxelOverlayInput['frame'],
-): readonly ProjectedEntityView[] {
-  if (!frame) return entities;
+  exploredGround: number,
+): { readonly entities: readonly ProjectedEntityView[]; readonly isUnexplored?: IsUnexplored } {
+  if (!frame) return { entities };
   const visible = new Set(frame.visibleCells);
   const explored = new Set(frame.exploredCells);
-  return entities.map((entity) => {
-    if (entity.layer !== 'terrain') return entity;
-    const index = Math.floor(entity.y) * frame.mapWidth + Math.floor(entity.x);
-    if (visible.has(index)) return entity;
-    return {
-      ...entity,
-      tint: shade(entity.tint, explored.has(index) ? 0.32 : 0.12),
-    };
-  });
+  const cellIndex = (x: number, y: number) => Math.floor(y) * frame.mapWidth + Math.floor(x);
+  return {
+    entities: entities.map((entity) => {
+      if (entity.layer !== 'terrain') return entity;
+      const index = cellIndex(entity.x, entity.y);
+      if (visible.has(index) || !explored.has(index)) return entity;
+      return { ...entity, tint: shade(entity.tint, exploredGround) };
+    }),
+    isUnexplored: (x, y) => !explored.has(cellIndex(x, y)),
+  };
 }
 
 function partsFor(
@@ -155,10 +162,22 @@ export class AoeVoxelAdapter {
   private lastFeedbackTimeMs = 0;
   private currentHitState: PreparedVoxelHitState | null = null;
   private currentOccludedUnits: readonly OccludedUnitState[] = [];
+  private exploredGround = artStyleById(DEFAULT_ART_STYLE_ID).exploredGround;
 
   constructor(options: AoeVoxelAdapterOptions = {}) {
     this.worldId = requireName('worldId', options.worldId ?? 'aoe2');
     this.epochPrefix = requireName('epochPrefix', options.epochPrefix ?? 'aoe2:bridge', 230);
+  }
+
+  /** How bright explored-but-unseen ground is drawn, from the next snapshot
+   *  on. It is the art style's; unexplored ground is black whatever it is. */
+  setExploredGround(level: number): void {
+    if (!Number.isFinite(level) || level < 0 || level > 1) {
+      throw new RangeError(
+        `Explored ground brightness must be a number from 0 to 1; got ${String(level)}.`,
+      );
+    }
+    this.exploredGround = level;
   }
 
   get epoch(): string {
@@ -188,8 +207,8 @@ export class AoeVoxelAdapter {
     if (!Number.isFinite(sampleTimeMs) || sampleTimeMs < 0) {
       throw new RangeError('AoE voxel sample time must be a non-negative finite number.');
     }
-    const foggedTerrainEntities = terrainWithVoxelFog(entities, overlays.frame);
-    const cells = terrainCells(foggedTerrainEntities);
+    const fogged = terrainWithVoxelFog(entities, overlays.frame, this.exploredGround);
+    const cells = terrainCells(fogged.entities, fogged.isUnexplored);
     const nextRevision = this.revision + 1;
     if (!Number.isSafeInteger(nextRevision)) throw new RangeError('AoE voxel revision overflow.');
     const nextPaletteSignature = [...new Set(cells.map((cell) => cell.tint))]

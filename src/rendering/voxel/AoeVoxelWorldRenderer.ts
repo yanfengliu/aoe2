@@ -1,6 +1,14 @@
+import {
+  ACESFilmicToneMapping,
+  NoToneMapping,
+  WebGLRenderer,
+  type ToneMapping,
+  type WebGLRendererParameters,
+} from 'three';
 import type { ApplyResultV1, RenderSnapshotV1 } from 'voxel/core';
 import {
   ThreeRenderRuntime,
+  type RendererLike,
   type StylizedResolveOptions,
   type ThreeCaptureResult,
   type ThreeFrameContext,
@@ -9,7 +17,8 @@ import {
 } from 'voxel/three';
 
 import type { ProjectedEntityView } from '../../game/simulation/types';
-import { MOEBIUS_RESOLVE } from '../artStyles';
+import { artStyleById, type ArtStyle, type ArtStyleId } from '../artStyles';
+import { readArtStylePreference } from '../artStylePreference';
 import type { CameraState } from '../viewTypes';
 import { cameraStateToVoxelView } from './aoeCameraSync';
 import { AoeVoxelAdapter } from './aoeVoxelAdapter';
@@ -35,6 +44,12 @@ export interface AoeVoxelRuntime {
   dispose(): void;
 }
 
+/** The part of Three's `WebGLRenderer` an art style drives. */
+export interface ToneMappedRenderer extends RendererLike {
+  toneMapping: ToneMapping;
+  toneMappingExposure: number;
+}
+
 export interface AoeVoxelWorldRendererOptions {
   readonly host: HTMLElement;
   readonly width: number;
@@ -42,11 +57,30 @@ export interface AoeVoxelWorldRendererOptions {
   readonly pixelRatio?: number;
   readonly createRuntime?: (options: ThreeRenderRuntimeOptions) => AoeVoxelRuntime;
   /** Defaults to the persisted preference, then to `DEFAULT_ART_STYLE_ID`. */
+  readonly artStyleId?: ArtStyleId;
+  /** Builds the WebGL renderer the runtime draws with; a seam for tests. */
+  readonly createWebGLRenderer?: (parameters: WebGLRendererParameters) => ToneMappedRenderer;
 }
 
 export interface AoeVoxelRendererState {
   readonly mode: 'voxel';
+  /** The art style the canvas is drawn in. */
+  readonly artStyle: ArtStyleId;
   readonly metrics: ThreeRenderMetrics;
+}
+
+const TONE_MAPPING: Record<ArtStyle['toneMapping'], ToneMapping> = {
+  none: NoToneMapping,
+  'aces-filmic': ACESFilmicToneMapping,
+};
+
+function applyToneMapping(renderer: ToneMappedRenderer, style: ArtStyle): void {
+  renderer.toneMapping = TONE_MAPPING[style.toneMapping];
+  renderer.toneMappingExposure = style.exposure;
+}
+
+function defaultWebGLRenderer(parameters: WebGLRendererParameters): ToneMappedRenderer {
+  return new WebGLRenderer(parameters);
 }
 
 export interface PresentedVoxelPartMatrix {
@@ -74,6 +108,8 @@ export class AoeVoxelWorldRenderer {
   private lastSimulationDisplayTimeMs: number | null = null;
   private presentedNowMs = 0;
   private disposed = false;
+  private artStyle: ArtStyle;
+  private webglRenderer: ToneMappedRenderer | null = null;
 
   constructor(options: AoeVoxelWorldRendererOptions) {
     this.width = options.width;
@@ -87,12 +123,28 @@ export class AoeVoxelWorldRenderer {
     this.canvas.dataset.worldRenderer = 'voxel';
 
     const createRuntime = options.createRuntime ?? defaultRuntime;
+    const createWebGLRenderer = options.createWebGLRenderer ?? defaultWebGLRenderer;
+    this.artStyle = artStyleById(options.artStyleId ?? readArtStylePreference());
+    this.adapter.setExploredGround(this.artStyle.exploredGround);
     this.runtime = createRuntime({
       canvas: this.canvas,
       width: this.width,
       height: this.height,
       pixelRatio: this.pixelRatio,
-      stylizedResolve: MOEBIUS_RESOLVE,
+      // Omitted when the style has no pass, so the DE style costs nothing
+      // rather than paying for a pass configured to do nothing.
+      stylizedResolve: this.artStyle.resolve ?? undefined,
+      // AoE holds the WebGL renderer so a style can set its tone mapping.
+      // Three switches shader programs itself when that changes, so a live
+      // switch rebuilds no voxel content (the first switch to a curve
+      // recompiles the scene's shaders once). Moebius keeps its frame exactly
+      // because it sets no curve and its pass's final draw applies none.
+      rendererFactory: (parameters) => {
+        const renderer = createWebGLRenderer(parameters);
+        applyToneMapping(renderer, this.artStyle);
+        this.webglRenderer = renderer;
+        return renderer;
+      },
       tileWidthPixels: 64,
       tileHeightPixels: 32,
       // Shared with the cast-shadow projector, so the sun that lights a roof
@@ -105,6 +157,29 @@ export class AoeVoxelWorldRenderer {
       },
     });
     options.host.append(this.canvas);
+  }
+
+  /** The art style the canvas is drawn in. */
+  artStyleId(): ArtStyleId {
+    return this.artStyle.id;
+  }
+
+  /**
+   * Switches the look without rebuilding the world: the resolve pass and the
+   * tone mapping apply from the next frame, the explored-ground level from
+   * the next snapshot. The caller re-presents so a paused frame changes too.
+   */
+  setArtStyle(id: ArtStyleId): void {
+    this.assertActive();
+    const style = artStyleById(id);
+    // Recorded only after the runtime accepts the pass. The swap can throw — a
+    // refused renderer, a disposed or failed runtime — and voxel keeps the old
+    // pass drawing when it does. Recording first would leave `artStyleId()`
+    // and the menu naming a style the canvas is not in.
+    this.runtime.setStylizedResolve(style.resolve);
+    if (this.webglRenderer) applyToneMapping(this.webglRenderer, style);
+    this.adapter.setExploredGround(style.exploredGround);
+    this.artStyle = style;
   }
 
   present(
@@ -187,7 +262,7 @@ export class AoeVoxelWorldRenderer {
   }
 
   state(): AoeVoxelRendererState {
-    return { mode: 'voxel', metrics: this.runtime.metrics() };
+    return { mode: 'voxel', artStyle: this.artStyle.id, metrics: this.runtime.metrics() };
   }
 
   inspectUnitMotion(identity: string): AoeUnitMotionHistory | null {

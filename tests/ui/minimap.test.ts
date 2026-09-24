@@ -326,6 +326,75 @@ describe('drawMinimap (iso diamond)', () => {
   });
 });
 
+// Fog of war on the minimap (defect register, 2026-09-23). Unexplored cells
+// were drawn in their true colour and then covered by a 94%-opaque wash, so 6%
+// of every lake and forest showed through, and a contrast stretch of the
+// minimap drew the whole map. The contract is NON-INTERFERENCE: what the
+// minimap draws must not depend on what any unexplored cell holds. Bound: the
+// spy records draw calls, not pixels, so this is stricter than the picture (a
+// cell drawn and then painted over opaquely still fails it) and it cannot see
+// a compositing effect; the browser art-style spec reads the pixels.
+describe('minimap fog of war', () => {
+  const SIZE = 6;
+  const KINDS = [
+    ['grass', 0x587f4e], ['forest', 0x2f5e34], ['water', 0x295a75], ['hill', 0x6f8a4c],
+  ] as const;
+  const kindAt = (x: number, y: number) => (x * 3 + y * 5 + x * y) % KINDS.length;
+  // Explored: the 3x3 corner. Visible: its 2x2 corner. The rest is unexplored.
+  const indices = (limit: number) => Array.from({ length: SIZE * SIZE }, (_, index) => index)
+    .filter((index) => index % SIZE < limit && Math.floor(index / SIZE) < limit);
+  const frame: RenderState['frame'] = {
+    ...visibleFrame(SIZE, SIZE)!,
+    visibleCells: indices(2),
+    exploredCells: indices(3),
+  };
+  const unexplored = Array.from({ length: SIZE * SIZE }, (_, index) => index)
+    .filter((index) => !frame!.exploredCells.includes(index));
+
+  function terrainMap(override?: { index: number; kind: number }): ProjectedEntityView[] {
+    return Array.from({ length: SIZE * SIZE }, (_, index) => {
+      const x = index % SIZE;
+      const y = Math.floor(index / SIZE);
+      const [kind, tint] = KINDS[override?.index === index ? override.kind : kindAt(x, y)]!;
+      return entity({ id: 100 + index, x, y, entityType: kind, tint });
+    });
+  }
+
+  function drawn(entities: ProjectedEntityView[]): DrawCall[] {
+    const { canvas, calls } = createCanvasSpy();
+    drawMinimap(canvas, { tick: 0, frame, entities }, null, null);
+    return calls;
+  }
+
+  it('draws the same minimap whatever an unexplored cell holds', () => {
+    const baseline = drawn(terrainMap());
+    const leaks: string[] = [];
+    for (const index of unexplored) {
+      for (let kind = 0; kind < KINDS.length; kind += 1) {
+        if (kind === kindAt(index % SIZE, Math.floor(index / SIZE))) continue;
+        if (JSON.stringify(drawn(terrainMap({ index, kind }))) !== JSON.stringify(baseline)) {
+          leaks.push(`${String(index)}->${KINDS[kind]![0]}`);
+        }
+      }
+    }
+    expect(unexplored.length).toBe(SIZE * SIZE - 9);
+    expect(leaks, 'unexplored cells whose content changed the draw').toEqual([]);
+  });
+
+  it('still draws every explored cell in its own colour', () => {
+    const calls = drawn(terrainMap());
+    for (const index of frame!.exploredCells) {
+      const x = index % SIZE;
+      const y = Math.floor(index / SIZE);
+      const tint = `#${KINDS[kindAt(x, y)]![1].toString(16).padStart(6, '0')}`;
+      expect(calls.some((call) => (
+        call.op === 'fillRect' && call.fillStyle === tint
+        && Math.abs(call.args[0]! - x) < 0.1 && Math.abs(call.args[1]! - y) < 0.1
+      )), `cell ${String(index)}`).toBe(true);
+    }
+  });
+});
+
 describe('minimap redraw signatures (full-review M9)', () => {
   const frameForOwner = (owner: number): RenderState['frame'] => ({
     ...visibleFrame()!,

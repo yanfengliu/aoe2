@@ -4,6 +4,7 @@ import {
 } from '../../game/simulation/createSimulationBridge';
 import type { SaveBlob } from '../../game/simulation/saveSchema';
 import { AoeVoxelGameView } from '../AoeVoxelGameView';
+import { artStyleLabel, cycleArtStyle } from '../artStyleSetting';
 import { createHudController, type HudController } from '../../ui/hud/createHudController';
 import { installBrowserTestApi } from './browserTestApi';
 import { parseDisableAiParam } from './disableAiParam';
@@ -366,6 +367,8 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     onQuit: () => { window.location.href = window.location.origin + window.location.pathname; },
     // Art style is a display preference, not world state: it never enters a
     // save, and switching it re-resolves the frame rather than the world.
+    cycleArtStyle: () => cycleArtStyle(view),
+    artStyleLabel: () => artStyleLabel(view),
   });
   cleanupCallbacks.push(() => hudController.destroy());
   const timelinePanel = createTimelinePanel({ controller: replayController });

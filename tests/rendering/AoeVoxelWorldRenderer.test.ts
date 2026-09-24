@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
+import { ACESFilmicToneMapping, NoToneMapping, type ToneMapping } from 'three';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ApplyResultV1, RenderSnapshotV1 } from 'voxel/core';
+import type { ApplyResultV1, PaletteResourceV1, RenderSnapshotV1 } from 'voxel/core';
 import type {
   ThreeFrameContext,
   ThreeRenderMetrics,
@@ -9,12 +10,14 @@ import type {
 } from 'voxel/three';
 
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
-import { MOEBIUS_RESOLVE } from '../../src/rendering/artStyles';
+import { artStyleById, DEFAULT_ART_STYLE_ID, MOEBIUS_RESOLVE } from '../../src/rendering/artStyles';
 import { worldToIso } from '../../src/rendering/isometricProjection';
 import {
   AoeVoxelWorldRenderer,
   type AoeVoxelRuntime,
+  type ToneMappedRenderer,
 } from '../../src/rendering/voxel/AoeVoxelWorldRenderer';
+import type { AoeVoxelOverlayInput } from '../../src/rendering/voxel/aoeVoxelOverlayParts';
 
 function terrain(): ProjectedEntityView {
   return {
@@ -316,25 +319,145 @@ describe('AoeVoxelWorldRenderer', () => {
   });
 });
 
+// The art style is a player setting (spec §14.5). The renderer owns the three
+// things a style changes: the resolve pass, the WebGL renderer's tone curve,
+// and how bright explored ground is. A live switch must change all three and
+// rebuild nothing.
 describe('AoeVoxelWorldRenderer art style', () => {
-  it('always hands the Moebius resolve to the runtime', () => {
-    // One style, so there is nothing to select: what is worth asserting is
-    // that the pass actually reaches the runtime, and that it is the tuned
-    // options object rather than the library preset.
+  function fakeWebGLRenderer(): ToneMappedRenderer {
+    return {
+      domElement: { width: 320, height: 200 },
+      render: vi.fn(),
+      setSize: vi.fn(),
+      setPixelRatio: vi.fn(),
+      getSize: (target) => target,
+      getPixelRatio: () => 1,
+      dispose: vi.fn(),
+      toneMapping: -1 as ToneMapping,
+      toneMappingExposure: -1,
+    };
+  }
+
+  // Builds a renderer and plays the runtime's part: a real ThreeRenderRuntime
+  // calls `rendererFactory` once, while it is being constructed.
+  function build(artStyleId?: 'moebius' | 'de') {
     const runtime = new FakeRuntime();
     let seen: ThreeRenderRuntimeOptions | null = null;
-    const host = document.createElement('div');
-
     const renderer = new AoeVoxelWorldRenderer({
-      host,
+      host: document.createElement('div'),
       width: 320,
       height: 200,
+      ...(artStyleId ? { artStyleId } : {}),
       createRuntime: (options) => { seen = options; return runtime; },
+      createWebGLRenderer: fakeWebGLRenderer,
     });
+    const webgl = seen!.rendererFactory!({}) as ToneMappedRenderer;
+    return { runtime, renderer, options: seen!, webgl };
+  }
 
-    expect(seen!.stylizedResolve).toBe(MOEBIUS_RESOLVE);
-    expect(seen!.stylizedResolve).not.toBeUndefined();
+  // Cell 0 is explored and not visible; cell 1 is visible.
+  const fogOverlays: AoeVoxelOverlayInput = {
+    frame: {
+      tick: 1,
+      playerId: 1,
+      seed: 'art-style',
+      mapWidth: 2,
+      mapHeight: 1,
+      visibleCells: [1],
+      exploredCells: [0, 1],
+      recentUnitDeaths: [],
+      projectiles: [],
+    },
+    placementPreview: null,
+    selectionPreviewEntityIds: [],
+  };
+  const exploredGroundLuma = (snapshot: RenderSnapshotV1): number => {
+    const chunk = snapshot.chunks[0]!;
+    const palette = snapshot.resources.find(
+      (resource): resource is PaletteResourceV1 => resource.kind === 'palette',
+    )!;
+    const { r, g, b } = palette.entries[(chunk.voxels as Uint16Array)[0]!]!.color;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
 
+  it('draws Moebius through its tuned pass with no tone curve', () => {
+    const { renderer, options, webgl } = build('moebius');
+    expect(options.stylizedResolve).toBe(MOEBIUS_RESOLVE);
+    expect(webgl.toneMapping).toBe(NoToneMapping);
+    expect(webgl.toneMappingExposure).toBe(1);
+    expect(renderer.artStyleId()).toBe('moebius');
+    expect(renderer.state().artStyle).toBe('moebius');
+    renderer.dispose();
+  });
+
+  it('asks for no pass at all in the DE style, and tone-maps with ACES', () => {
+    // No pass rather than a pass configured to do nothing, which would still
+    // cost a second scene render every frame.
+    const { renderer, options, webgl } = build('de');
+    expect(options.stylizedResolve).toBeUndefined();
+    expect(webgl.toneMapping).toBe(ACESFilmicToneMapping);
+    expect(webgl.toneMappingExposure).toBeCloseTo(artStyleById('de').exposure, 10);
+    expect(renderer.state().artStyle).toBe('de');
+    renderer.dispose();
+  });
+
+  it('switches every part of the look live, without rebuilding the world', () => {
+    const { runtime, renderer, webgl } = build('moebius');
+
+    renderer.setArtStyle('de');
+    expect(renderer.artStyleId()).toBe('de');
+    expect(runtime.setStylizedResolve).toHaveBeenLastCalledWith(null);
+    expect(webgl.toneMapping).toBe(ACESFilmicToneMapping);
+    expect(webgl.toneMappingExposure).toBeCloseTo(1.5, 10);
+    // Switching the look must not touch voxel content by itself.
+    expect(runtime.acceptSnapshot).not.toHaveBeenCalled();
+
+    renderer.setArtStyle('moebius');
+    expect(runtime.setStylizedResolve).toHaveBeenLastCalledWith(MOEBIUS_RESOLVE);
+    expect(webgl.toneMapping).toBe(NoToneMapping);
+    expect(webgl.toneMappingExposure).toBe(1);
+    renderer.dispose();
+  });
+
+  it('dims explored ground to the new style\'s level from the next snapshot', () => {
+    const { runtime, renderer } = build('moebius');
+    const ground = [terrain(), { ...terrain(), id: 2, x: 1 }];
+
+    renderer.present(ground, 100, fogOverlays);
+    const moebius = exploredGroundLuma(runtime.accepted.at(-1)!);
+    renderer.setArtStyle('de');
+    renderer.present(ground, 100, fogOverlays);
+    const de = exploredGroundLuma(runtime.accepted.at(-1)!);
+
+    const expected = artStyleById('de').exploredGround / artStyleById('moebius').exploredGround;
+    expect(Math.abs(de / moebius / expected - 1)).toBeLessThan(0.06);
+    renderer.dispose();
+  });
+
+  it('keeps drawing the old style when the runtime refuses the new pass', () => {
+    // Voxel keeps the old pass drawing when a swap throws, so the renderer
+    // must not record, tone-map or re-fog for a style the canvas is not in.
+    const { runtime, renderer, webgl } = build('de');
+    runtime.setStylizedResolve.mockImplementationOnce(() => { throw new Error('refused'); });
+
+    expect(() => renderer.setArtStyle('moebius')).toThrow('refused');
+    expect(renderer.artStyleId()).toBe('de');
+    expect(webgl.toneMapping).toBe(ACESFilmicToneMapping);
+    renderer.dispose();
+  });
+
+  it('opens in the stored style when none is passed', () => {
+    window.localStorage.setItem('aoe2:art-style', 'de');
+    try {
+      const { renderer, options } = build();
+      expect(renderer.artStyleId()).toBe('de');
+      expect(options.stylizedResolve).toBeUndefined();
+      renderer.dispose();
+    } finally {
+      window.localStorage.removeItem('aoe2:art-style');
+    }
+    const { renderer } = build();
+    expect(renderer.artStyleId()).toBe(DEFAULT_ART_STYLE_ID);
     renderer.dispose();
   });
 });

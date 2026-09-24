@@ -17,11 +17,8 @@ import {
 } from '../input/voxelSelectionController';
 import type { SimulationBridge } from '../game/simulation/createSimulationBridge';
 import { isoToWorld, worldToIso } from '../rendering/isometricProjection';
-import {
-  AoeVoxelWorldRenderer,
-  type AoeVoxelRendererState,
-  type PresentedVoxelPartMatrix,
-} from '../rendering/voxel/AoeVoxelWorldRenderer';
+import type { ArtStyleId } from '../rendering/artStyles';
+import { AoeVoxelWorldRenderer, type AoeVoxelRendererState, type PresentedVoxelPartMatrix } from '../rendering/voxel/AoeVoxelWorldRenderer';
 import {
   createAoeVoxelPresentationCoordinator,
   type AoeVoxelPresentationCoordinator,
@@ -218,6 +215,10 @@ export class AoeVoxelGameView {
   getWorldRendererState(): AoeVoxelRendererState {
     return this.renderer.state();
   }
+
+  /** Art style: a player setting, not world state (§14.5); the forced sync re-fogs a paused frame. */
+  artStyleId(): ArtStyleId { return this.renderer.artStyleId(); }
+  setArtStyle(id: ArtStyleId): void { this.renderer.setArtStyle(id); this.syncFromBridge(true); }
 
   getWorldCanvasRect(): { x: number; y: number; width: number; height: number } {
     this.assertActive();

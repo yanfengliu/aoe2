@@ -41,10 +41,10 @@ function luma(tint: number): number {
   return ((tint >>> 16) & 0xff) * 0.35 + ((tint >>> 8) & 0xff) * 0.5 + (tint & 0xff) * 0.15;
 }
 
-/** Rescale `target` to the brightness of `base`, keeping its hue. Fog
- *  projection darkens hidden/explored cell tints before they reach the
- *  renderer; accents must inherit that darkness or hidden ground would glow
- *  (caught by the near-black palette assertion in the overlays suite). */
+/** Rescale `target` to the brightness of `base`, keeping its hue. The fog pass
+ *  darkens explored-but-unseen cell tints before they reach this pipeline;
+ *  accents must inherit that darkness or fogged ground would glow. Unexplored
+ *  cells never enter the pipeline at all (`terrainCells`), so they stay black. */
 function matchLuma(target: number, base: number): number {
   const targetLuma = luma(target);
   if (targetLuma <= 0) return target;
@@ -76,7 +76,7 @@ const WET_SAND = 0x9b8a5e;
 function patchColour(baseTint: number, kind: TerrainKind, x: number, z: number): number {
   // Accents are luma-matched to the base tint: the patch field shifts HUE,
   // while the shade term carries the brightness variation. This keeps the
-  // fields fog-safe — a near-black hidden cell stays near-black.
+  // fields fog-safe — a dimmed explored cell stays dim.
   if (kind === 'grass') {
     const p = patchField(x, z, 401, 409);
     const accent = matchLuma(mixTint(GRASS_COOL, GRASS_WARM, p), baseTint);

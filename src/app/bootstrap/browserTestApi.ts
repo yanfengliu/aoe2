@@ -1,4 +1,4 @@
-import type { ThreeCaptureResult, ThreeRenderMetrics } from 'voxel/three';
+import type { ThreeCaptureResult } from 'voxel/three';
 
 import type {
   UnitType,
@@ -25,7 +25,7 @@ import type { RecordingService } from '../../game/recording/RecordingService';
 import { makeAgentApi, type BrowserTestAgentApi } from './browserTestAgentApi';
 import { hasSingleThreeIdentity } from '../../rendering/voxel/threeIdentity';
 import type { AoeUnitMotionHistory } from '../../rendering/voxel/aoeVoxelUnitAnimation';
-import type { PresentedVoxelPartMatrix } from '../../rendering/voxel/AoeVoxelWorldRenderer';
+import type { AoeVoxelRendererState, PresentedVoxelPartMatrix } from '../../rendering/voxel/AoeVoxelWorldRenderer';
 import type { OccludedUnitState } from '../../rendering/voxel/aoeVoxelOcclusionSilhouettes';
 
 export interface BrowserTestBridge {
@@ -112,10 +112,8 @@ export interface BrowserTestSnapshot {
 /** The snapshot every caller reads, plus what the world was willing to do. */
 export interface BrowserTestAdvanceResult extends BrowserTestSnapshot, StepRunTally {}
 
-export interface BrowserWorldRendererState {
-  readonly mode: 'voxel';
-  readonly metrics: ThreeRenderMetrics;
-}
+/** The renderer's own state, so this API cannot drift from what it returns. */
+export type BrowserWorldRendererState = AoeVoxelRendererState;
 
 export interface BrowserCaptureState {
   readonly dataUrl: string;

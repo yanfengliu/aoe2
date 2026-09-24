@@ -61,6 +61,12 @@ export function minimapCameraSignature(cameraState: MinimapCameraState | null): 
 
 const MARKER_BACKING_STYLE = 'rgba(4, 8, 9, 0.72)';
 
+// Unexplored ground: one opaque colour, black as on the world canvas. It was
+// a 94% wash over each cell's true colour, so 6% of every lake and forest
+// showed through (defect register, 2026-09-23).
+const UNEXPLORED_STYLE = '#000000';
+const EXPLORED_FOG_STYLE = 'rgba(10, 16, 18, 0.58)';
+
 function tintToCss(tint: number): string {
   return `#${tint.toString(16).padStart(6, '0')}`;
 }
@@ -240,28 +246,33 @@ export function drawMinimap(
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   // Terrain + fog fill in CELL space under the iso transform (each unit cell
-  // renders as a diamond). The OPAQUE terrain fills overdraw by a hair to
-  // close AA seams; the TRANSLUCENT fog fills draw at exact cell bounds — an
-  // overdraw there would double-composite in the overlap band and paint a
-  // darker diamond lattice over the shroud (any hairline seam instead shows
-  // the already-gapless terrain beneath, which is invisible under the wash).
+  // renders as a diamond). The whole map diamond is filled with the
+  // unexplored colour FIRST, as one shape so no seam runs through it, and an
+  // unexplored cell's terrain is never drawn over it: what the player has not
+  // scouted cannot reach a pixel, not even through an anti-aliased edge. The
+  // OPAQUE terrain fills of known cells overdraw by a hair to close AA seams;
+  // the TRANSLUCENT explored-fog fills draw at exact cell bounds — an overdraw
+  // there would double-composite in the overlap band and paint a darker
+  // diamond lattice over the fog.
   applyIsoTransform(context, layout);
+  context.fillStyle = UNEXPLORED_STYLE;
+  context.fillRect(0, 0, frame.mapWidth, frame.mapHeight);
   const overdraw = 0.03;
   for (const entity of renderState.entities) {
     if (entity.layer !== 'terrain') {
       continue;
     }
+    if (!explored.has(Math.floor(entity.y) * frame.mapWidth + Math.floor(entity.x))) {
+      continue;
+    }
     context.fillStyle = tintToCss(entity.tint);
     context.fillRect(entity.x - overdraw, entity.y - overdraw, 1 + overdraw * 2, 1 + overdraw * 2);
   }
+  context.fillStyle = EXPLORED_FOG_STYLE;
   for (let y = 0; y < frame.mapHeight; y += 1) {
     for (let x = 0; x < frame.mapWidth; x += 1) {
       const index = y * frame.mapWidth + x;
-      if (!explored.has(index)) {
-        context.fillStyle = 'rgba(8, 16, 18, 0.94)';
-        context.fillRect(x, y, 1, 1);
-      } else if (!visible.has(index)) {
-        context.fillStyle = 'rgba(10, 16, 18, 0.58)';
+      if (explored.has(index) && !visible.has(index)) {
         context.fillRect(x, y, 1, 1);
       }
     }

@@ -218,12 +218,18 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     Three.js nor DOM/GPU renderer objects.
   - `rendering/` — pure isometric projection/interpolation/view contracts and
     AoE visual-role tables. `artStyles.ts` and `artStylePreference.ts` own the
-    display-only art-style layer: which resolve tuning each style applies to
-    the sibling `voxel` package's `StylizedResolvePass`, and where the choice
-    is remembered. The pass itself is engine-owned because it reads only depth,
+    display-only art-style layer (Moebius and the DE style): which resolve
+    tuning each style applies to the sibling `voxel` package's
+    `StylizedResolvePass`, which tone curve and exposure it sets on the WebGL
+    renderer AoE holds through the runtime's `rendererFactory`, how bright it
+    draws explored ground, and where the choice is remembered;
+    `src/app/artStyleSetting.ts` switches the live view and then stores the
+    choice. The pass itself is engine-owned because it reads only depth,
     normals, and luminance; AoE owns the tuning, and every constant records the
     frame measurement it was chosen against. Style is never world state and
-    never enters a save. `rendering/voxel/` owns the sole world adapter,
+    never enters a save. How UNEXPLORED ground looks is not a style field: the
+    adapter names the unexplored cells and `aoeVoxelTerrain.ts` draws them
+    black without reading them. `rendering/voxel/` owns the sole world adapter,
     procedural art, feedback parts, and Three runtime integration.
     `aoeVoxelDaylight.ts` is the one source for the daylight rig the renderer
     hands to the runtime AND for the sun projection every entity's ground

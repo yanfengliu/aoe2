@@ -11,6 +11,16 @@ const MAX_TERRAIN_LEVELS = 64;
 export const TERRAIN_PALETTE_KEY = 'aoe2:palette:terrain';
 export const TERRAIN_MATERIAL_KEY = 'aoe2:material:terrain';
 
+/** Unexplored ground, in every art style. Black carries nothing: drawn at 12%
+ *  of its colour, a contrast stretch showed every lake on the map (defect
+ *  register, 2026-09-23). Definitive Edition draws it black too. */
+export const UNEXPLORED_GROUND = 0x000000;
+
+/** Whether a cell is unexplored for the player whose view is being drawn. */
+export type IsUnexplored = (x: number, z: number) => boolean;
+
+const NOTHING_UNEXPLORED: IsUnexplored = () => false;
+
 export interface TerrainCell {
   readonly x: number;
   readonly z: number;
@@ -46,14 +56,22 @@ function tintToColor(tint: number, alpha = 255) {
   return { r: (tint >>> 16) & 0xff, g: (tint >>> 8) & 0xff, b: tint & 0xff, a: alpha };
 }
 
-export function terrainCells(entities: readonly ProjectedEntityView[]): TerrainCell[] {
+export function terrainCells(
+  entities: readonly ProjectedEntityView[],
+  isUnexplored: IsUnexplored = NOTHING_UNEXPLORED,
+): TerrainCell[] {
   const terrainEntities = entities.filter((entity) => entity.layer === 'terrain');
-  // The colour pipeline reads neighbours (seam blending, the shallow-water
-  // band), so gather every cell's kind and raw tint before colouring any.
-  const samples = new Map<string, TerrainCellSample>(terrainEntities.map((entity) => [
-    `${String(entity.x)}:${String(entity.y)}`,
-    { kind: entity.entityType as TerrainKind, tint: entity.tint },
-  ]));
+  // The colour pipeline reads neighbours (seam blending, wet sand, the
+  // shallow-water band), so gather every KNOWN cell's kind and raw tint before
+  // colouring any. An unexplored cell is left out, as if the map ended there:
+  // a neighbour that blended toward its true kind would outline the hidden
+  // lake or forest one cell deep along the edge of the explored area.
+  const samples = new Map<string, TerrainCellSample>(terrainEntities
+    .filter((entity) => !isUnexplored(entity.x, entity.y))
+    .map((entity) => [
+      `${String(entity.x)}:${String(entity.y)}`,
+      { kind: entity.entityType as TerrainKind, tint: entity.tint },
+    ]));
   const cellAt = (x: number, z: number): TerrainCellSample | undefined => (
     samples.get(`${String(x)}:${String(z)}`)
   );
@@ -67,7 +85,9 @@ export function terrainCells(entities: readonly ProjectedEntityView[]): TerrainC
         x,
         z,
         elevation: 0,
-        tint: terrainCellColor(entity.tint, kind, x, z, cellAt),
+        tint: isUnexplored(x, z)
+          ? UNEXPLORED_GROUND
+          : terrainCellColor(entity.tint, kind, x, z, cellAt),
         kind,
       };
     })
