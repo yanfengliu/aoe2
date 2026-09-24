@@ -2,6 +2,11 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.231
+
+- **A quick double-click on a unit selects every unit of its type on screen, even when that unit is already selected.** Where a unit stands in front of something else, such as a villager in front of the Town Center or a soldier on a sheep, clicking it once and then double-clicking it selected what stood behind it instead, and then whatever stood behind that. The double-click now works whatever was selected before. Clicking the same spot again more slowly still steps through everything under the cursor.
+- **A click on something else breaks a double-click, as in Definitive Edition.** Clicking a unit, then a building, then the same unit again quickly used to select every unit of its type. Now the last two clicks have to be on the unit.
+
 ## 0.3.230
 
 - **In a team game you see your ally's base.** Allies share sight from the start of a match, and their ground was lit, but none of an ally's units, buildings, trees or mines were drawn there. Now everything an ally can see is drawn, exactly as if you saw it yourself. Buildings an ally has seen, including an enemy's, stay on your map as last seen. You can click an ally's units and buildings, and the selection panel calls them Ally rather than Enemy. A right-click on an ally's unit or building never attacks or converts it: your soldiers, villagers and Monks walk there instead (a Trade Cart still opens a trade route with an ally's Market). A Monk can now convert an enemy that only your ally can see. Enemies nobody on your team can see stay hidden.

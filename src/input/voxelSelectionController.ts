@@ -156,7 +156,6 @@ export function createVoxelSelectionController(
       repeatedExactClick ? recentExactSelectionClick?.entityGroups ?? [] : [],
     );
     let targetEntity = targetEntities[0]!;
-    let didCycleExactSelection = false;
     if (currentSelectedId !== null && repeatedExactClick) {
       // Search the stable visible+ground stack circularly after the current
       // entity. Equivalent friendly units are skipped so their repeated click
@@ -177,7 +176,6 @@ export function createVoxelSelectionController(
             || candidate.owner !== current.owner
           ) {
             targetEntity = candidate;
-            didCycleExactSelection = true;
             break;
           }
         }
@@ -196,14 +194,20 @@ export function createVoxelSelectionController(
       entityGroups: exactClickStack.map(selectionCycleGroup),
     };
 
-    if (didCycleExactSelection) {
-      recentFriendlyUnitClick = null;
-      return true;
-    }
-
-    if (pointerTimeMs !== undefined) {
-      updateRecentFriendlyUnitClick(clickCellX, clickCellY, pointerTimeMs);
-    }
+    // Every click decides what a second click inside the window selects all
+    // of: the type of the player's own unit (or owned sheep) on top at the
+    // cursor, which is what a plain click there selects, whether this click
+    // walked the stack or not. DE has no stack walk, and two quick clicks on a
+    // unit select every unit of its type whatever was selected before. So the
+    // pair's first click counts when it walks AWAY from that unit, as it does
+    // when the unit was already selected, and when it walks BACK to it from
+    // something an earlier click walked to. Taking the unit the click walked
+    // from, or the entity it walked to, gets one of those two wrong (register,
+    // 2026-09-24). A click on anything else breaks the pair, and so does a
+    // click with no input time.
+    recentFriendlyUnitClick = pointerTimeMs === undefined
+      ? null
+      : friendlyUnitClick(targetEntities[0]!, clickCellX, clickCellY, pointerTimeMs);
     return true;
   }
 
@@ -291,33 +295,23 @@ export function createVoxelSelectionController(
     );
   }
 
-  function updateRecentFriendlyUnitClick(
+  // The first half of a double-click, if this entity can be one: one of the
+  // player's own units or owned sheep. Anything else answers null.
+  function friendlyUnitClick(
+    entity: ProjectedEntityView,
     cellX: number,
     cellY: number,
     pointerTimeMs: number,
-  ): void {
-    const selectionState = getBridge().getSelectionState();
-    if (
-      selectionState.owner !== HUMAN_PLAYER_ID
-      || selectionState.selectedCount !== 1
-    ) {
-      return;
-    }
-
-    const isUnit = selectionState.selectedKind === 'unit'
-      && isUnitType(selectionState.selectedEntityType);
-    const isOwnedSheep = selectionState.selectedKind === 'resource'
-      && selectionState.selectedEntityType === 'sheep';
-
-    if (!isUnit && !isOwnedSheep) {
-      return;
-    }
-
-    recentFriendlyUnitClick = {
+  ): RecentFriendlyUnitClick | null {
+    if (entity.owner !== HUMAN_PLAYER_ID) return null;
+    const isUnit = entity.kind === 'unit' && isUnitType(entity.entityType);
+    const isOwnedSheep = entity.kind === 'resource' && entity.entityType === 'sheep';
+    if (!isUnit && !isOwnedSheep) return null;
+    return {
       atMs: pointerTimeMs,
       cellX,
       cellY,
-      unitType: isOwnedSheep ? 'sheep' : (selectionState.selectedEntityType as UnitType),
+      unitType: isOwnedSheep ? 'sheep' : (entity.entityType as UnitType),
     };
   }
 

@@ -5,7 +5,7 @@
 // lookup isn't updated. Iter-3 V3-3 introduced this guard after the
 // FU2-era unit-type drift.
 
-import type { SelectionState, UnitType } from '../game/simulation/types';
+import type { ProjectedEntityView, SelectionState, UnitType } from '../game/simulation/types';
 
 export const ALL_UNIT_TYPES = {
   villager: true,
@@ -104,7 +104,7 @@ export const ALL_UNIT_TYPES = {
 } as const satisfies Record<UnitType, true>;
 
 export function isUnitType(
-  entityType: SelectionState['selectedEntityType'],
+  entityType: SelectionState['selectedEntityType'] | ProjectedEntityView['entityType'],
 ): entityType is UnitType {
   // `hasOwn`, not `in`: the latter walks the prototype chain, so an object
   // literal answers true for 'toString', 'constructor', and every other

@@ -61,6 +61,88 @@ describe('voxel selection controller: the double-click is timed on the input clo
   });
 });
 
+// A quick double-click on a stacked unit that is ALREADY selected is still a
+// double-click (register, 2026-09-24). The first click of the pair repeats the
+// earlier click at that point, so it walks the stack, and it used to leave no
+// double-click behind: the second click walked the stack again, and a player
+// who double-clicked a selected villager in front of the Town Centre got the
+// Town Centre, then whatever stood behind it. DE has no stack walk; two quick
+// clicks on a unit select every unit of its type on screen, whatever was
+// selected before. BOUND: the controller alone, with the villager and the
+// Town Centre handed in as the stack; the real page is
+// tests/browser/de-command-surface.spec.ts.
+describe('voxel selection controller: two quick clicks on a stacked unit that is already selected', () => {
+  // The villager stands in front of its Town Centre at iso point (0, 0); at
+  // (100, 0) only the Town Centre is under the cursor.
+  function stackedFixture() {
+    const bridge = createSimulationBridge('double-click-selection-fixture');
+    const displayed = bridge.getRenderState().entities;
+    const villager = findEntity(displayed, 'villager');
+    const townCenter = displayed.find((entity) => entity.entityType === 'town-center' && entity.owner === 1)!;
+    const controller = createVoxelSelectionController({
+      isActive: () => true,
+      getBridge: () => bridge,
+      getDisplayedEntities: () => displayed,
+      getVoxelHitEntities: (isoX) => (isoX === 0 ? [villager, townCenter] : [townCenter]),
+      getViewportCellBounds: () => ({ minX: 0, minY: 0, maxX: 31, maxY: 31 }),
+    });
+    const click = (pointerTimeMs: number): boolean => controller.selectEntityAtWorldPosition(
+      villager.x + 0.5, villager.y + 0.5, 0, 0, pointerTimeMs,
+    );
+    const clickTownCenterOnly = (pointerTimeMs: number): boolean => controller.selectEntityAtWorldPosition(
+      townCenter.x + 1.5, townCenter.y + 1.5, 100, 0, pointerTimeMs,
+    );
+    return { bridge, click, clickTownCenterOnly };
+  }
+
+  it('select every unit of its type, as they do when nothing was selected', () => {
+    const { bridge, click } = stackedFixture();
+    expect(click(20_000)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({ selectedCount: 1, selectedEntityType: 'villager' });
+    // Five seconds later, the pair. Its first click is a slow repeat, so it walks.
+    expect(click(25_000)).toBe(true);
+    expect(bridge.getSelectionState().selectedEntityType).toBe('town-center');
+    expect(click(25_100)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({ selectedCount: 3, selectedEntityType: 'villager' });
+  });
+
+  // The order the first fix got wrong (review of v0.3.231): a slow second
+  // click walked on to the Town Centre, so the pair's first click walks BACK to
+  // the villager. The villager is still on top at the cursor, and DE selects
+  // every villager.
+  it('select every unit of its type when the pair walks back to it from what an earlier click walked to', () => {
+    const { bridge, click } = stackedFixture();
+    click(20_000);
+    click(21_000);
+    expect(bridge.getSelectionState().selectedEntityType).toBe('town-center');
+    expect(click(25_000)).toBe(true);
+    expect(bridge.getSelectionState().selectedEntityType).toBe('villager');
+    expect(click(25_100)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({ selectedCount: 3, selectedEntityType: 'villager' });
+  });
+
+  // A click on something else between two clicks on the villager breaks the
+  // pair, as it does in DE. Before 2026-09-24 a click whose selection could not
+  // be half of a double-click left the earlier candidate in place, so these
+  // three clicks inside 300 ms selected every villager.
+  it('do not pair across a click on something else', () => {
+    const { bridge, click, clickTownCenterOnly } = stackedFixture();
+    click(30_000);
+    expect(clickTownCenterOnly(30_100)).toBe(true);
+    expect(bridge.getSelectionState().selectedEntityType).toBe('town-center');
+    expect(click(30_200)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({ selectedCount: 1, selectedEntityType: 'villager' });
+  });
+
+  it('still walk the stack when the second click is slower than the window', () => {
+    const { bridge, click } = stackedFixture();
+    click(20_000);
+    click(25_000);
+    expect(click(25_400)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({ selectedCount: 1, selectedEntityType: 'villager' });
+  });
+});
+
 describe('voxel selection controller', () => {
   it('keeps only current hits while preserving their prior semantic order', () => {
     const bridge = createSimulationBridge('tile-selection-cycle-fixture');

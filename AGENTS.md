@@ -68,7 +68,7 @@ Obtain independent, preferably read-only review for substantial or high-risk cha
 
 ## Session start
 
-Run `npm run ci:status` FIRST — it prints main's remote CI and playtest-corpus conclusions and exits non-zero when either is red. A red remote gate is the next task, ahead of whatever was planned. (This is a command because the intention was not enough: main's CI ran red for 200 consecutive runs over two months behind green local gates — see the 2026-08-29 defect-register entry.) Then read `docs/learning/lessons.md` (short by construction — every entry names the gate that will retire it), `docs/devlog/summary.md` and `docs/architecture/ARCHITECTURE.md` before starting work.
+Run `npm run ci:status` FIRST — it prints main's remote CI and playtest-corpus conclusions and exits non-zero when either is red, or when a red attempt or run on the tip is followed by a re-run or a later run, finished or still going (it names the job and step that failed first). A red remote gate is the next task, ahead of whatever was planned. (This is a command because the intention was not enough: main's CI ran red for 200 consecutive runs over two months behind green local gates — see the 2026-08-29 defect-register entry.) Then read `docs/learning/lessons.md` (short by construction — every entry names the gate that will retire it), `docs/devlog/summary.md` and `docs/architecture/ARCHITECTURE.md` before starting work.
 
 ## Invariants & boundaries
 

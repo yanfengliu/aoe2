@@ -48,9 +48,9 @@ import * as game from './helpers/gameTestHelpers';
 // BOUND: one fixture (three idle villagers at 800x600), one busy interval, a
 // left double-click on a unit, Chromium's input timestamps. It does not cover
 // double-clicking a sheep, two clicks that land on different cells, a busy
-// interval that falls inside a single click rather than between two, or a
+// interval that falls inside a single click rather than between two. A
 // stacked unit that is already selected, whose first click the stack cycle
-// takes (found by the 2026-09-23 review, not fixed here).
+// takes, is tests/browser/de-command-surface.spec.ts (register, 2026-09-24).
 const BUSY_MS = 500;
 
 interface HandledClick {

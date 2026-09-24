@@ -20,6 +20,43 @@ import { expect, test, type Page } from '@playwright/test';
 
 import * as game from './helpers/gameTestHelpers';
 
+/**
+ * Boots the opening at 1280x720 and finds a villager that stands on another
+ * selectable entity. A single click selects the villager; a repeat click AFTER
+ * the double-click window has expired walks the stack to whatever else is
+ * under that point, so a walk away from `villager` proves the overlap. Fails
+ * by name if the scenario no longer has one, because a fixture that quietly
+ * loses its overlap would take the gates below with it.
+ */
+async function bootWithStackedVillager(page: Page): Promise<{
+  villagers: Array<{ x: number; y: number }>;
+  stacked: { x: number; y: number };
+}> {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await game.waitForBoot(page);
+  const villagers = await game.getOwnedUnitCells(page, 1, 'villager');
+  expect(villagers.length).toBeGreaterThan(1);
+  let stacked: { x: number; y: number } | null = null;
+  for (const villager of villagers) {
+    await game.clickWorldPosition(page, villager.x + 0.5, villager.y + 0.5);
+    if ((await game.getSnapshot(page)).selectionState.selectedEntityType !== 'villager') continue;
+    // DOUBLE_CLICK_WINDOW_MS is 300; this waits it OUT, which more time only
+    // makes safer — it is not a budget for something to happen inside.
+    await page.waitForTimeout(600);
+    await game.clickWorldPosition(page, villager.x + 0.5, villager.y + 0.5);
+    if ((await game.getSnapshot(page)).selectionState.selectedEntityType !== 'villager') {
+      stacked = villager;
+      break;
+    }
+  }
+  expect(
+    stacked,
+    'no villager in the boot scenario overlaps another selectable entity any more, '
+    + 'so this spec can no longer reach the stack that made double-click select the wrong thing',
+  ).not.toBeNull();
+  return { villagers, stacked: stacked! };
+}
+
 /** Every command button's on-screen box, keyed by its `data-command`. */
 async function commandButtonRects(page: Page): Promise<Record<string, [number, number]>> {
   return page.evaluate(() => {
@@ -252,41 +289,47 @@ test.describe('the command surface behaves the way DE\'s does', () => {
   // BOUND: the boot scenario's three villagers, at 1280x720. It does not cover
   // double-clicking a military unit, a unit off screen, or a second stack.
   test('double-clicking a villager standing on another entity selects every villager on screen', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await game.waitForBoot(page);
-    const villagers = await game.getOwnedUnitCells(page, 1, 'villager');
-    expect(villagers.length).toBeGreaterThan(1);
-
-    // Find the stacked one. A single click selects the villager; a repeat click
-    // AFTER the double-click window has expired cycles to whatever else is
-    // under that point, so a cycle away from `villager` proves the overlap.
-    let stacked: { x: number; y: number } | null = null;
-    for (const villager of villagers) {
-      await game.clickWorldPosition(page, villager.x + 0.5, villager.y + 0.5);
-      if ((await game.getSnapshot(page)).selectionState.selectedEntityType !== 'villager') continue;
-      // DOUBLE_CLICK_WINDOW_MS is 300; this waits it OUT, which more time only
-      // makes safer — it is not a budget for something to happen inside.
-      await page.waitForTimeout(600);
-      await game.clickWorldPosition(page, villager.x + 0.5, villager.y + 0.5);
-      if ((await game.getSnapshot(page)).selectionState.selectedEntityType !== 'villager') {
-        stacked = villager;
-        break;
-      }
-    }
-    expect(
-      stacked,
-      'no villager in the boot scenario overlaps another selectable entity any more, '
-      + 'so this spec can no longer reach the stack that made double-click select the wrong thing',
-    ).not.toBeNull();
+    const { villagers, stacked } = await bootWithStackedVillager(page);
 
     await page.evaluate(() => { window.__AOE2_TEST__!.clearSelection(); });
     await page.waitForTimeout(600);
-    await game.doubleClickWorldPosition(page, stacked!.x + 0.5, stacked!.y + 0.5);
+    await game.doubleClickWorldPosition(page, stacked.x + 0.5, stacked.y + 0.5);
 
     const snapshot = await game.getSnapshot(page);
     expect(
       snapshot.selectionState.selectedEntityType,
       'the double-click landed on the entity behind the villager instead of selecting villagers',
+    ).toBe('villager');
+    expect(snapshot.selectionState.selectedCount).toBe(villagers.length);
+  });
+
+  // The same gesture on a villager that is ALREADY selected, by an earlier
+  // click at the same point (register, 2026-09-24). The pair's first click
+  // repeats that click, so it walks the stack, and until then it left no
+  // double-click behind: the second click walked again, and the player got the
+  // entity behind the villager, then the one behind that. DE has no stack walk,
+  // and two quick clicks on a unit select every unit of its type on screen
+  // whatever was selected before; spec §9.4.
+  //
+  // BOUND: the boot scenario's stacked villager at 1280x720, a selection made
+  // by one click there; not a selection made by a box or a hotkey.
+  test('double-clicking a stacked villager that is already selected selects every villager on screen', async ({ page }) => {
+    const { villagers, stacked } = await bootWithStackedVillager(page);
+
+    await page.evaluate(() => { window.__AOE2_TEST__!.clearSelection(); });
+    await page.waitForTimeout(600);
+    await game.clickWorldPosition(page, stacked.x + 0.5, stacked.y + 0.5);
+    expect((await game.getSnapshot(page)).selectionState).toMatchObject({
+      selectedCount: 1,
+      selectedEntityType: 'villager',
+    });
+    await page.waitForTimeout(600);
+    await game.doubleClickWorldPosition(page, stacked.x + 0.5, stacked.y + 0.5);
+
+    const snapshot = await game.getSnapshot(page);
+    expect(
+      snapshot.selectionState.selectedEntityType,
+      'the double-click walked the stack instead of selecting villagers',
     ).toBe('villager');
     expect(snapshot.selectionState.selectedCount).toBe(villagers.length);
   });
