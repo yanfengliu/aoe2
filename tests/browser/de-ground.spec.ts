@@ -12,7 +12,7 @@ import * as game from './helpers/gameTestHelpers';
 //    within three), which a soft edge reaching into the unexplored cell would never touch.
 // 3. It dims explored-but-unseen ground to about half the brightness of visible ground. The style's level
 //    scales the sRGB colour, and applying it to the linear colour instead (the first shader did) left explored
-//    ground at 0.781 of visible, which read as seen.
+//    ground at 0.730 of visible on this gate's sample, which read as seen.
 // 4. It comes back after the WebGL context is lost and restored. Three re-uploads its textures from the data it
 //    keeps, and nothing in the ground is created only once per context.
 //
@@ -149,9 +149,10 @@ async function groundSample(page: Page): Promise<GroundSample> {
     const visible = new Set(frame.visibleCells);
     const explored = new Set(frame.exploredCells);
     const kinds = new Map(state.entities.filter((e) => e.layer === 'terrain').map((e) => [e.y * width + e.x, e.entityType]));
-    // Whole footprints (a Town Center's too), widened by one cell on the far side and, on the near side, by as
-    // many cells as the thing is tall on screen at zoom 0.7 (a tile rises 22 px): two for a unit, tree or mine
-    // (a pine is about 50 px), four for a building, whose ring of dirt is covered by the same widening.
+    // Whole footprints (a Town Center's too), widened by one cell on the near side (larger x and y) and, on the
+    // far side, over the cells behind the thing that its height covers on screen at zoom 0.7 (a tile rises
+    // 22 px): two for a unit, tree or mine (a pine is about 50 px), four for a building. Those widenings also
+    // cover a building's ring of dirt.
     const blocked = new Set<number>();
     for (const entity of state.entities) {
       if (entity.layer === 'terrain') continue;
@@ -267,7 +268,7 @@ test.describe('the Natural style\'s textured ground', () => {
     expect(visible.length, seen).toBeGreaterThanOrEqual(4);
     // Measured 2026-09-24: 0.465 on the GPU and 0.467 on SwiftShader (7 explored and 5 visible cells). Step 1
     // measured 0.506 for the style's 0.6 on the voxel ground; the level applied to the linear colour instead
-    // drew explored ground at 0.781 of visible.
+    // drew explored ground at 0.730 of visible on this sample.
     const ratio = median(explored) / median(visible);
     expect(ratio, `explored over visible luma, ${seen}`).toBeGreaterThan(0.4);
     expect(ratio, `explored over visible luma, ${seen}`).toBeLessThan(0.62);
