@@ -49,7 +49,8 @@ const slug = (value: string) => value.trim().toLowerCase().replace(/ /g, '-');
 
 describe('units.csv attack-bonus differential', () => {
   const roster = new Set(Object.keys(UNIT_ARMOR_CLASSES));
-  const rows = readFileSync('design/stats/units.csv', 'utf-8').split('\n').slice(1);
+  const rows = readFileSync('design/stats/units.csv', 'utf-8').split('\n')
+    .filter((line) => !line.trimStart().startsWith('#')).slice(1);
   const perUnit = new Map<string, string>();
   for (const line of rows) {
     const cols = line.split(',');
@@ -118,7 +119,8 @@ describe('units.csv armor-bonus differential (v0.3.135)', () => {
     'ram armor': 'ram',
   };
   const roster = new Set(Object.keys(UNIT_ARMOR_CLASSES));
-  const rows = readFileSync('design/stats/units.csv', 'utf-8').split('\n').slice(1);
+  const rows = readFileSync('design/stats/units.csv', 'utf-8').split('\n')
+    .filter((line) => !line.trimStart().startsWith('#')).slice(1);
 
   it('models every class-armor and melee-armor entry', () => {
     const problems: string[] = [];

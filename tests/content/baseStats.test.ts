@@ -20,7 +20,8 @@ const slug = (value: string) => value.trim().toLowerCase().replace(/ /g, '-');
 
 describe('units.csv base-stat differential', () => {
   const roster = new Set(Object.keys(UNIT_ARMOR_CLASSES));
-  const rows = readFileSync('design/stats/units.csv', 'utf-8').split('\n').slice(1);
+  const rows = readFileSync('design/stats/units.csv', 'utf-8').split('\n')
+    .filter((line) => !line.trimStart().startsWith('#')).slice(1);
   const perUnit = new Map<string, string[]>();
   for (const line of rows) {
     const cols = line.split(',');

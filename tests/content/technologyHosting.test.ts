@@ -34,6 +34,7 @@ describe('technologies.csv hosting differential', () => {
 
   const rows = readFileSync('design/stats/technologies.csv', 'utf-8')
     .split('\n')
+    .filter((line) => !line.trimStart().startsWith('#'))
     .slice(1)
     .map((line) => line.split(','))
     .filter((cols) => cols.length >= 4 && cols[0]!.trim() && cols[3]!.trim());

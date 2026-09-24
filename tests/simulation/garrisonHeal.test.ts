@@ -159,8 +159,8 @@ describe('garrison healing', () => {
   });
 });
 
-// Herbal Medicine (v0.1.70): a Castle-Age Monastery tech (technologies.csv:65,
-// 350 gold) that makes an owner's GARRISONED units heal 4× faster — a DERIVED
+// Herbal Medicine (v0.1.70): a Castle-Age Monastery tech (technologies.csv,
+// 200 gold) that makes an owner's GARRISONED units heal 4× faster — a DERIVED
 // multiplier on the v0.1.63 garrison-heal rate, read from the researched set at
 // the garrison-heal site (monasteryTechEffects), no per-unit state, no save
 // change.
@@ -176,8 +176,8 @@ describe('Herbal Medicine — 4× garrison heal rate', () => {
     expect(garrisonHealRateMultiplier(HERBAL_ONLY)).toBe(4);
   });
 
-  it('costs 350 gold and takes 350 ticks, researchable only at the Monastery (Castle)', () => {
-    expect(researchCost('herbal-medicine')).toEqual({ gold: 350 });
+  it('costs 200 gold and takes 350 ticks, researchable only at the Monastery (Castle)', () => {
+    expect(researchCost('herbal-medicine')).toEqual({ gold: 200 });
     expect(researchTimeTicks('herbal-medicine')).toBe(350);
     expect(canResearchAt('monastery', 'herbal-medicine')).toBe(true);
     expect(canResearchAt('town-center', 'herbal-medicine')).toBe(false);

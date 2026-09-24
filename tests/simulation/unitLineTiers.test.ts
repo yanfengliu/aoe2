@@ -77,7 +77,7 @@ describe('the three missing unit tiers', () => {
     expect(researchCost('capped-ram-upgrade')).toEqual({ food: 300 });
     expect(researchTimeTicks('capped-ram-upgrade')).toBe(500);
     expect(researchCost('siege-onager-upgrade')).toEqual({ food: 1450, gold: 1000 });
-    expect(researchCost('elite-skirmisher-upgrade')).toEqual({ wood: 250, gold: 160 });
+    expect(researchCost('elite-skirmisher-upgrade')).toEqual({ wood: 230, gold: 130 });
     // The units themselves cost what their base tier costs, as AoE2 upgrades do.
     expect(trainingCost('capped-ram')).toEqual(trainingCost('siege-ram'));
     expect(trainingCost('elite-skirmisher')).toEqual({ food: 25, wood: 35 });

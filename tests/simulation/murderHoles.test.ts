@@ -61,8 +61,8 @@ describe('researching Murder Holes', () => {
   });
 
   it('costs what technologies.csv says', () => {
-    expect(RESEARCH_COSTS['murder-holes']).toEqual({ food: 200, stone: 200 });
-    expect(RESEARCH_TIME_TICKS['murder-holes']).toBe(600);
+    expect(RESEARCH_COSTS['murder-holes']).toEqual({ food: 200, stone: 100 });
+    expect(RESEARCH_TIME_TICKS['murder-holes']).toBe(350);
   });
 });
 

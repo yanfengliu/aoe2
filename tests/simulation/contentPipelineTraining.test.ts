@@ -149,7 +149,13 @@ function pass(bridge: Bridge, civilization: string, onlyDock: boolean): number {
       const age = bridge.getEconomyState().ages[1]!;
       const techs = new Set(bridge.getResearchedTechnologies(1));
       const purse = purseOf(bridge);
-      const knownIds = new Set(ownedUnits(bridge).map((unit) => unit.id));
+      // Only a unit of the SAME type can be mistaken for the one queued. Holding
+      // every id alive at queue time was wrong: the engine recycles entity ids, so
+      // a unit of another type deleted while this one trained could hand its id
+      // on, and the new unit never looked new (2026-09-23: an Aztec Petard spawned
+      // as id 2186, the id of a unit alive when it was queued, and the pass timed
+      // out with the Petard standing).
+      const knownIds = new Set(ownedUnits(bridge).filter((unit) => unit.unitType === unitType).map((unit) => unit.id));
       const accepted = bridge.queueTrainUnit(unitType);
       bridge.step(100);
       expect(accepted, `${label}: queue.train was refused although the producer offered it`).toBe(true);

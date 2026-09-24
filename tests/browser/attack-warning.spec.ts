@@ -16,10 +16,16 @@
 //  - One scenario (`aoe2-prototype`) and one raid, the reproduced one. The
 //    rule's other cases — the throttle, the things that must NOT warn — are
 //    `tests/ui/attackWarning.test.ts` over a synthetic feed.
-//  - The search window is ticks 3050-3600. `expect(damaged)` below fails with
-//    "no villager lost HP" if the scenario ever stops producing the raid, so
-//    a run that did not exercise the warning cannot report itself as one that
-//    did.
+//  - The raid is FOUND, not pinned to a tick: the match runs from boot in
+//    10-tick steps until a human villager first loses HP, up to tick 3600,
+//    and the mark is looked for from that step on. The raid was at tick 3084
+//    until DE's 50-food Militia (v0.3.228) moved it to 1450; a fixed window
+//    of 3050-3600 then read a villager hurt long before the window as "hurt
+//    and no mark", which is the wrong failure. `expect(raidTick)` below
+//    fails with "no villager lost HP" if the scenario stops producing a raid
+//    by tick 3600, so a run that did not exercise the warning cannot report
+//    itself as one that did, and cannot report itself as a broken warning
+//    either.
 //  - The quiet-frame half asserts the boot frame carries ZERO alert pixels,
 //    which is what makes the raid frame's count mean something.
 import { expect, test } from '@playwright/test';
@@ -67,33 +73,43 @@ test('an enemy raiding your villagers puts a mark on the minimap', async ({ page
     await page.locator('[data-hud="minimap"]').getAttribute('data-attack-warning-cell'),
   ).toBeNull();
 
-  // Run up to just before the raid in one step, then in small chunks so the
-  // HUD's own frame loop gets to observe the feed — it holds an attack for
-  // ten ticks, so a single 3110-tick step would step straight over it.
-  await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(3050, 100));
+  // Find the raid: run in 10-tick steps from boot, inside the page, and stop
+  // at the first step that leaves a human villager below full HP. The HUD
+  // holds an attack for ten ticks, so the mark is still due when this
+  // returns; one long step would step straight over it. Every villager is at
+  // full HP at boot, so the first hurt villager is a fresh hit.
+  const raidTick = await page.evaluate(() => {
+    const api = window.__AOE2_TEST__!;
+    for (let tick = 10; tick <= 3600; tick += 10) {
+      api.advanceTicks(10, 100);
+      const hurt = api.getRenderState().entities.some(
+        (entity) => entity.owner === 1
+          && entity.entityType === 'villager'
+          && entity.currentHp !== null
+          && entity.maxHp !== null
+          && entity.currentHp < entity.maxHp,
+      );
+      if (hurt) return tick;
+    }
+    return null;
+  });
 
-  let damaged = false;
+  // Distinguishes "the warning failed" from "the raid never happened".
+  expect(raidTick, 'no villager of the human\'s lost HP between boot and tick 3600 — '
+    + 'the scenario no longer produces the raid this gate is about, so nothing was tested').not.toBeNull();
+
+  // Let the HUD's frame loop see the feed, then look for the mark on this
+  // step and the next few, in small steps so the held attack is not skipped.
   let marked = 0;
   let markedCell: string | null = null;
-  for (let tick = 3050; tick < 3600 && marked === 0; tick += 10) {
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(10, 100));
+  for (let step = 0; step < 5 && marked === 0; step += 1) {
+    if (step > 0) await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(10, 100));
     await settleFrames(page);
-    damaged ||= await page.evaluate(() => window.__AOE2_TEST__!.getRenderState().entities.some(
-      (entity) => entity.owner === 1
-        && entity.entityType === 'villager'
-        && entity.currentHp !== null
-        && entity.maxHp !== null
-        && entity.currentHp < entity.maxHp,
-    ));
     marked = await countAlertPixels(page);
     markedCell ??= await page
       .locator('[data-hud="minimap"]')
       .getAttribute('data-attack-warning-cell');
   }
-
-  // Distinguishes "the warning failed" from "the raid never happened".
-  expect(damaged, 'no villager of the human\'s lost HP between ticks 3050 and 3600 — '
-    + 'the scenario no longer produces the raid this gate is about, so nothing was tested').toBe(true);
-  expect(marked, 'a villager was damaged and the minimap shows no attack mark').toBeGreaterThan(0);
+  expect(marked, `a villager was damaged at tick ${String(raidTick)} and the minimap shows no attack mark`).toBeGreaterThan(0);
   expect(markedCell, 'the mark must name the cell that was hit').not.toBeNull();
 });

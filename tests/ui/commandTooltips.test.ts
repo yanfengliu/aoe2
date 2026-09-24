@@ -26,10 +26,10 @@ describe('formatResourceCost — human-readable resource cost', () => {
 });
 
 describe('formatTrainTooltip — includes the unit cost', () => {
-  it('names the Militia cost (60 food, 20 gold)', () => {
+  it('names the Militia cost (50 food, 20 gold)', () => {
     const tip = formatTrainTooltip('militia', 'Militia');
     expect(tip).toContain('Militia');
-    expect(tip).toContain('60 food, 20 gold');
+    expect(tip).toContain('50 food, 20 gold');
   });
 });
 

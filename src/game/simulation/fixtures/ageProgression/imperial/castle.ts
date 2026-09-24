@@ -21,9 +21,10 @@ export function createImperialCastleBritonsFixture(seed: string): PrototypeScena
         townCenter: { x: 8, y: 8 },
         startingAge: 'imperial-age',
         civilization: 'Britons',
+        // Yeomen costs 750 wood + 450 gold (DE); uniqueTechnologies.test.ts researches it here.
         startingResources: {
           food: 2000,
-          wood: 500,
+          wood: 1000,
           gold: 2000,
           stone: 400,
         },

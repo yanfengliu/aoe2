@@ -49,7 +49,7 @@ describe('round-eight bonuses (sourced v0.3.151)', () => {
     expect(effectiveTrainingCost('Koreans', 'castle-age', 'archer', NONE))
       .toEqual({ wood: 13, gold: 45 });
     expect(effectiveTrainingCost('Koreans', 'feudal-age', 'militia', NONE))
-      .toEqual({ food: 60, gold: 20 });
+      .toEqual({ food: 50, gold: 20 });
     expect(effectiveTrainingCost('Koreans', 'feudal-age', 'galley', NONE))
       .toEqual({ wood: 72, gold: 30 });
   });

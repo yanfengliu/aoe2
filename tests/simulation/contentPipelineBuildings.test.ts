@@ -197,7 +197,11 @@ describe('content pipeline — buildings', () => {
       const anchor = findAnchor(bridge);
       expect(anchor, `${buildingType}: no cell on the map produced a valid placement preview`).not.toBeNull();
 
-      const knownIds = new Set(bridge.getEconomyState().buildings.map((building) => building.id));
+      // Same-type ids only: the engine recycles entity ids, so an id held by
+      // anything else can come back as the new foundation (the training
+      // pipeline timed out on exactly that, 2026-09-23).
+      const knownIds = new Set(bridge.getEconomyState().buildings
+        .filter((building) => building.buildingType === buildingType).map((building) => building.id));
       const purse = purseOf(bridge);
       const confirmed = bridge.confirmBuildingPlacement(anchor!.x, anchor!.y);
       bridge.step(100);

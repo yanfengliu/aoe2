@@ -211,12 +211,12 @@ describe('Mongols scout-line bonus — live twin-fixture HP', () => {
 
 describe('effectiveTrainingCost — Goths infantry ladder (sourced v0.3.146)', () => {
   it('discounts Goths infantry -15/20/25/30% by age, Dark included', () => {
-    // Militia base 60 food / 20 gold.
-    expect(effectiveTrainingCost('Goths', 'dark-age', 'militia', NO_TECHS)).toEqual({ food: 51, gold: 17 });
-    expect(effectiveTrainingCost('Goths', 'feudal-age', 'militia', NO_TECHS)).toEqual({ food: 48, gold: 16 });
+    // Militia base 50 food / 20 gold (DE); Dark x0.85 = 42.5, which the round lands on 43.
+    expect(effectiveTrainingCost('Goths', 'dark-age', 'militia', NO_TECHS)).toEqual({ food: 43, gold: 17 });
+    expect(effectiveTrainingCost('Goths', 'feudal-age', 'militia', NO_TECHS)).toEqual({ food: 40, gold: 16 });
     // Spearman base 35 food / 25 wood → ×0.75 Castle = 26 / 19.
     expect(effectiveTrainingCost('Goths', 'castle-age', 'spearman', NO_TECHS)).toEqual({ food: 26, wood: 19 });
-    expect(effectiveTrainingCost('Goths', 'imperial-age', 'militia', NO_TECHS)).toEqual({ food: 42, gold: 14 });
+    expect(effectiveTrainingCost('Goths', 'imperial-age', 'militia', NO_TECHS)).toEqual({ food: 35, gold: 14 });
   });
 
   it('does NOT discount Goths non-infantry (archers, cavalry, siege, villagers)', () => {
@@ -284,8 +284,8 @@ describe('Goths −35% infantry cost — live twin-fixture (gate + charge agree)
     const goths = createSimulationBridge('civ-goths-cost-fixture');
     const control = createSimulationBridge('civ-goths-cost-control-fixture');
 
-    // Both start with 55 food / 18 gold — enough for the Goths-discounted
-    // Feudal Militia (48/16, sourced ladder) but not the base one (60/20).
+    // Both start with 45 food / 18 gold — enough for the Goths-discounted
+    // Feudal Militia (40/16, sourced ladder) but not the base one (50/20).
     for (const bridge of [goths, control]) {
       expect(bridge.selectEntityAtCell(4, 10)).toBe(true); // Barracks
       expect(bridge.getSelectionState().selectedEntityType).toBe('barracks');
@@ -293,19 +293,19 @@ describe('Goths −35% infantry cost — live twin-fixture (gate + charge agree)
 
     // Goths: the affordability GATE accepts (validator uses the discount); a
     // step processes the queued command and the CHARGE spends the discounted
-    // 39/13 (both gate and charge use effectiveTrainingCost), leaving 11/2.
+    // 40/16 (both gate and charge use effectiveTrainingCost), leaving 5/2.
     expect(goths.queueTrainUnit('militia')).toBe(true);
     goths.step(100);
     const gothsRes = goths.getEconomyState().playerResources[1];
-    expect(gothsRes.food).toBe(7);
+    expect(gothsRes.food).toBe(5);
     expect(gothsRes.gold).toBe(2);
 
-    // Control (non-Goths): can't afford the base Militia (60/20), so the gate
+    // Control (non-Goths): can't afford the base Militia (50/20), so the gate
     // rejects synchronously and nothing is charged.
     expect(control.queueTrainUnit('militia')).toBe(false);
     control.step(100);
     const controlRes = control.getEconomyState().playerResources[1];
-    expect(controlRes.food).toBe(55);
+    expect(controlRes.food).toBe(45);
     expect(controlRes.gold).toBe(18);
   });
 });

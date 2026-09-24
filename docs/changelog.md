@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.228
+
+- **Unit and technology costs and times now match Definitive Edition.** The game's data had most of them from the original Conquerors release, and Definitive Edition has rebalanced many since. Among what changes: the Militia line costs 50 food instead of 60; the Crossbowman upgrade costs 175 food and 100 gold; the Long Swordsman and Pikeman upgrades are cheaper and quicker; Squires and Husbandry cost 100 and 150 food; Coinage and Banking cost more and take longer; the Galley trains in 45 seconds and the War Galley, Galleon and Fire Ship in 27; and many unique units and unique technologies have their current prices, some in different resources (Yeomen, Drill, Kataparuto and Perfusion now cost wood, Crenellations stone). Five unique technologies Definitive Edition no longer has (Berserkergang, El Dorado, Mahouts, Zealotry and Bearded Axe) keep their old prices, and so does the Fast Fire Ship upgrade, which Definitive Edition folds into Galleon.
+
 ## 0.3.227
 
 - **A second art style, Natural: the first step toward the look of Age of Empires II: Definitive Edition.** Open the menu (Esc) and use the art-style row under Settings to switch between Moebius, the ink-and-flat-colour look the game has had since August, and Natural, which draws the same world with no outlines, smooth shading and a brighter, sunlit palette. The switch is instant, even while paused, and the game remembers your choice in this browser. It is a setting, not part of the match: it never goes into a save or a replay. Moebius stays the default for now. Natural becomes the default once its ground gets its own textured terrain, which is the next step.

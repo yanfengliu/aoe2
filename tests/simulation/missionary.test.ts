@@ -19,7 +19,7 @@ import {
 
 describe('the Missionary — data', () => {
   it('costs what units.csv says and belongs to the monastic line', () => {
-    expect(trainingCost('missionary')).toEqual({ gold: 100 });
+    expect(trainingCost('missionary')).toEqual({ food: 30, gold: 100 });
     expect(trainingTimeTicks('missionary')).toBe(510);
     expect(canTrainAt('monastery', 'missionary')).toBe(true);
     expect(UNIT_MAX_HP.missionary).toBe(30);

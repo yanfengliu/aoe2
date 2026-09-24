@@ -18,13 +18,13 @@ import { MAP_WIDTH } from '../../src/game/simulation/prototypeScenario';
 
 const set = (...techs: ResearchableTechnologyType[]) => new Set(techs);
 
-describe('LoS techs — costs and research times (technologies.csv rows 9/88/92)', () => {
+describe('LoS techs — costs and research times (technologies.csv)', () => {
   it('Town Watch: 75 food, 25 s × 10 TPS', () => {
     expect(researchCost('town-watch')).toEqual({ food: 75 });
     expect(researchTimeTicks('town-watch')).toBe(250);
   });
-  it('Town Patrol: 300 food + 200 gold, 40 s × 10 TPS', () => {
-    expect(researchCost('town-patrol')).toEqual({ food: 300, gold: 200 });
+  it('Town Patrol: 300 food + 100 gold, 40 s × 10 TPS', () => {
+    expect(researchCost('town-patrol')).toEqual({ food: 300, gold: 100 });
     expect(researchTimeTicks('town-patrol')).toBe(400);
   });
 });

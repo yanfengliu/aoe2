@@ -116,13 +116,13 @@ describe('monasteryTechOptions — gating at the Monastery', () => {
 });
 
 describe('Monastery techs — cost / time / hosting', () => {
-  it('Block Printing costs 200g / 550 ticks; Sanctity 120g / 600 ticks; both at the Monastery', () => {
-    // technologies.csv:69 — Imperial, 200 gold, 55 s.
+  it('Block Printing costs 200g / 550 ticks; Sanctity 175g / 600 ticks; both at the Monastery', () => {
+    // technologies.csv — Imperial, 200 gold, 55 s.
     expect(researchCost('block-printing')).toEqual({ gold: 200 });
     expect(researchTimeTicks('block-printing')).toBe(550);
-    expect(researchCost('sanctity')).toEqual({ gold: 120 });
+    expect(researchCost('sanctity')).toEqual({ gold: 175 });
     expect(researchTimeTicks('sanctity')).toBe(600);
-    expect(researchCost('faith')).toEqual({ food: 750, gold: 1000 });
+    expect(researchCost('faith')).toEqual({ food: 550, gold: 750 });
     expect(canResearchAt('monastery', 'block-printing')).toBe(true);
     expect(canResearchAt('monastery', 'sanctity')).toBe(true);
     expect(canResearchAt('monastery', 'faith')).toBe(true);

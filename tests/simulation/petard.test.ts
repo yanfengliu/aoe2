@@ -22,8 +22,8 @@ import {
 // mechanic with.
 
 describe('the Petard — data from units.csv', () => {
-  it('costs 80 food + 20 gold and takes 25 seconds', () => {
-    expect(trainingCost('petard')).toEqual({ food: 80, gold: 20 });
+  it('costs 65 food + 20 gold and takes 25 seconds', () => {
+    expect(trainingCost('petard')).toEqual({ food: 65, gold: 20 });
     expect(trainingTimeTicks('petard')).toBe(250); // 25 s x 10 TPS.
   });
 

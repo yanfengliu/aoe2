@@ -1,6 +1,6 @@
 // Train and research cost + time gate (2026-09-23): every price and every
 // training or research time the game charges, against design/stats/units.csv
-// and technologies.csv, row by row, with each deliberate difference named.
+// and technologies.csv, row by row.
 //
 // Born from the 2026-09-23 blind-spot audit. Nothing compared these columns
 // with the stats files, and 38 rows disagreed in 52 places: the Onager upgrade
@@ -14,18 +14,15 @@
 // file reads the CSVs as the spec and the game's own accessors as the thing
 // under test.
 //
-// The CSV wins, with one exception (spec §1, and the owner rule in local-rules
-// "Behaviour matches the real Age of Empires II"): where a CSV row disagrees
-// with Definitive Edition, DE wins, but only with evidence, and the difference
-// is named below. With no DE value to set against it, the CSV wins outright:
-// Berserkergang charges the CSV's price, because DE has no Berserkergang
-// (Bogsveigar holds its slot). The evidence is the aoe2techtree dataset,
-// generated from the DE game files, pinned at DE_SOURCE. Every named exception
-// pins BOTH sides — what the CSV says today and what the game charges — so an
-// exception is never a hole: the game must charge exactly the recorded DE
-// value, and an entry goes red as soon as the CSV row changes under it (STALE)
-// or comes to say what the game charges (DISSOLVED), which is how a re-source
-// of the CSVs from DE deletes these entries rather than leaving them to rot.
+// The CSV is the authority, and since 2026-09-23 its cost and time columns are
+// Definitive Edition's, re-sourced from the aoe2techtree dataset (generated from
+// the DE game files) at the revision pinned in each CSV's header. Where a CSV
+// row disagrees with DE and the evidence is in hand, DE wins (spec §1): the row
+// is re-sourced, never charged differently from what the file says. The gate
+// landed with 13 named exceptions for fields the game had already moved to DE;
+// the re-source dissolved every one (each went red as DISSOLVED, as designed),
+// and the mechanism went with them: git history has it, with its mutation
+// proofs, if a deliberate difference from the file is ever needed again.
 //
 // A differential is only as honest as its parser. The rows come from
 // scripts/content-lib.mjs, the parser structureCostsAndBuildTimes uses, and a
@@ -41,12 +38,10 @@
 //  - It does not prove the command path charges these prices; the
 //    contentPipeline gates prove the charge equals the table, and this gate
 //    proves the table equals the CSV. Neither half alone is the claim.
-//  - It checks the game against the CSV, and against DE only through the
-//    named exceptions. When this gate landed (2026-09-23), 97 rows on which
-//    the game follows the CSV in full still differed from current DE, 117
-//    fields in all: the CSVs are mostly Conquerors-era for costs and times.
-//    That gap is the register's OPEN 2026-09-23 entry on the stats files,
-//    and this file cannot see it.
+//  - It checks the game against the CSV, never against DE directly: the CSV is
+//    DE only as of its pinned revision, and a later DE patch moves nothing
+//    here until the file is re-sourced. Rows DE has no price for keep their
+//    earlier values, and the CSV's header names them.
 //  - Six game technologies have no CSV row at all (TECHNOLOGIES_WITHOUT_ROW)
 //    and are compared with nothing. Rows that nobody trains
 //    (UNIT_ROWS_NOT_TRAINED) are not compared either.
@@ -69,67 +64,11 @@ import { SPIES_GOLD_PER_ENEMY_VILLAGER } from '../../src/game/simulation/spiesRu
 import { TRAINABLE_UNIT_TYPES } from '../../src/game/simulation/trainingCosts';
 import type { ResearchableTechnologyType, TrainableUnitType } from '../../src/game/simulation/types';
 
-/** The DE evidence every exception cites, pinned so a later patch cannot move it silently. */
-const DE_SOURCE = 'SiegeEngineers/aoe2techtree data/data.json at 3bb43b14 (2026-09-22, DE update 185872)';
-
 type Resource = 'food' | 'wood' | 'gold' | 'stone';
 type Cost = Partial<Record<Resource, number>>;
 const RESOURCE: Record<string, Resource> = { Food: 'food', Wood: 'wood', Gold: 'gold', Stone: 'stone' };
 /** The one non-resource key a priced row carries: Spies is 200 gold PER enemy villager. */
 const PER_ENEMY_VILLAGER = 'Enemy Villager';
-
-interface CostException { readonly csv: Cost; readonly game: Cost; readonly why: string }
-interface TimeException { readonly csvSeconds: number; readonly gameSeconds: number; readonly why: string }
-interface RowExceptions { readonly cost?: CostException; readonly time?: TimeException }
-
-const PENDING = 'Pending the re-source of the stats files from DE, which makes the CSV agree and deletes this entry.';
-const CSV_WRONG = 'The CSV row disagrees with DE and the game already charged DE\'s value, so it keeps it.';
-const NEITHER = 'Neither the CSV nor the old table was DE\'s value, so the game moved to DE\'s.';
-
-// Keyed by the game's technology id. Every value is DE's, from DE_SOURCE.
-const TECHNOLOGY_EXCEPTIONS: Record<string, RowExceptions> = {
-  'man-at-arms-upgrade': {
-    cost: { csv: { food: 40, gold: 40 }, game: { food: 100, gold: 40 }, why: `${CSV_WRONG} DE: 100 food, 40 gold (${DE_SOURCE}). ${PENDING}` },
-  },
-  'chain-mail-armor': {
-    cost: { csv: { food: 300, gold: 100 }, game: { food: 200, gold: 100 }, why: `${CSV_WRONG} DE: 200 food, 100 gold (${DE_SOURCE}). ${PENDING}` },
-  },
-  'arbalest-upgrade': {
-    cost: { csv: { food: 350, gold: 300 }, game: { food: 450, gold: 350 }, why: `${NEITHER} Old table 300 food, 300 gold; DE: 450 food, 350 gold (${DE_SOURCE}). ${PENDING}` },
-  },
-  'champion-upgrade': {
-    cost: { csv: { food: 750, gold: 350 }, game: { food: 650, gold: 350 }, why: `${NEITHER} Old table 1000 food, 450 gold; DE: 650 food, 350 gold (${DE_SOURCE}). ${PENDING}` },
-    time: { csvSeconds: 100, gameSeconds: 70, why: `${NEITHER} Old table 55 s; DE: 70 s (${DE_SOURCE}). ${PENDING}` },
-  },
-  'two-handed-swordsman-upgrade': {
-    time: { csvSeconds: 75, gameSeconds: 45, why: `${NEITHER} Old table 50 s; DE: 45 s (${DE_SOURCE}). ${PENDING}` },
-  },
-  'iron-casting': {
-    time: { csvSeconds: 70, gameSeconds: 75, why: `${NEITHER} Old table 50 s; DE: 75 s (${DE_SOURCE}). ${PENDING}` },
-  },
-  'cavalier-upgrade': {
-    time: { csvSeconds: 100, gameSeconds: 80, why: `${NEITHER} Old table 50 s; DE: 80 s (${DE_SOURCE}). ${PENDING}` },
-  },
-  'heavy-camel-upgrade': {
-    time: { csvSeconds: 125, gameSeconds: 105, why: `${NEITHER} Old table 50 s; DE: 105 s (${DE_SOURCE}). ${PENDING}` },
-  },
-};
-
-// Keyed by the game's unit id.
-const UNIT_EXCEPTIONS: Record<string, RowExceptions> = {
-  spearman: {
-    cost: { csv: { food: 35, wood: 15 }, game: { food: 35, wood: 25 }, why: `${CSV_WRONG} DE: 35 food, 25 wood (${DE_SOURCE}). ${PENDING}` },
-  },
-  'heavy-cavalry-archer': {
-    time: { csvSeconds: 27, gameSeconds: 30, why: `${NEITHER} Old table 34 s; DE: 30 s (${DE_SOURCE}). ${PENDING}` },
-  },
-  longbowman: {
-    time: { csvSeconds: 19, gameSeconds: 18, why: `${NEITHER} Old table 30 s; DE: 18 s (${DE_SOURCE}). ${PENDING}` },
-  },
-  'elite-longbowman': {
-    time: { csvSeconds: 19, gameSeconds: 18, why: `${NEITHER} Old table 30 s; DE: 18 s (${DE_SOURCE}). ${PENDING}` },
-  },
-};
 
 // technologies.csv name slug -> game id, where they differ by more than the slug (technologyHosting's list).
 const TECHNOLOGY_ALIASES: Record<string, string> = {
@@ -211,7 +150,7 @@ const unitRows = bundle.units.filter((row) => row.trainable);
  */
 function rawReading(file: string): Map<string, { cost: Record<string, number>; seconds: number }> {
   const out = new Map<string, { cost: Record<string, number>; seconds: number }>();
-  for (const line of readFileSync(file, 'utf-8').split(/\r?\n/).slice(1)) {
+  for (const line of readFileSync(file, 'utf-8').split(/\r?\n/).filter((row) => !row.trimStart().startsWith('#')).slice(1)) {
     if (!line.trim()) continue;
     const blob = /\{([^{}]*)\}\s*,\s*([\d.]+)/.exec(line);
     if (!blob) continue; // Gaia and starting rows nest braces or carry no price; they are not compared.
@@ -295,87 +234,59 @@ describe('units.csv and technologies.csv cost and time differential', () => {
     expect(problems, problems.join('\n')).toEqual([]);
   });
 
-  it('charges every technology what technologies.csv says, or its named exception', () => {
+  it('charges every technology what technologies.csv says', () => {
     const problems: string[] = [];
     for (const row of technologyRows) {
       const id = technologyId(row);
       if (!id) continue; // named by the accounting case above
-      const expected = TECHNOLOGY_EXCEPTIONS[id]?.cost?.game ?? csvCost(row);
+      const expected = csvCost(row);
       const actual = researchCost(id) as Cost;
       if (show(actual) !== show(expected)) {
-        problems.push(`${row.name} (${id}): charges ${show(actual)}, ${TECHNOLOGY_EXCEPTIONS[id]?.cost ? 'its named exception says' : 'technologies.csv says'} ${show(expected)}`);
+        problems.push(`${row.name} (${id}): charges ${show(actual)}, technologies.csv says ${show(expected)}`);
       }
     }
     expect(problems, problems.join('\n')).toEqual([]);
   });
 
-  it('researches every technology in the technologies.csv time, or its named exception', () => {
+  it('researches every technology in the technologies.csv time', () => {
     const problems: string[] = [];
     for (const row of technologyRows) {
       const id = technologyId(row);
       if (!id) continue; // named by the accounting case above
-      const seconds = TECHNOLOGY_EXCEPTIONS[id]?.time?.gameSeconds ?? row.buildTime!;
+      const seconds = row.buildTime!;
       const actual = researchTimeTicks(id);
       if (actual !== Math.round(seconds * TPS)) {
-        problems.push(`${row.name} (${id}): ${String(actual)} ticks (${String(actual / TPS)} s), ${TECHNOLOGY_EXCEPTIONS[id]?.time ? 'its named exception says' : 'technologies.csv says'} ${String(seconds)} s`);
+        problems.push(`${row.name} (${id}): ${String(actual)} ticks (${String(actual / TPS)} s), technologies.csv says ${String(seconds)} s`);
       }
     }
     expect(problems, problems.join('\n')).toEqual([]);
   });
 
-  it('charges every unit what units.csv says, or its named exception', () => {
+  it('charges every unit what units.csv says', () => {
     const problems: string[] = [];
     for (const row of unitRows) {
       const id = unitId(row);
       if (!id) continue; // named by the accounting case above
-      const expected = UNIT_EXCEPTIONS[id]?.cost?.game ?? csvCost(row);
+      const expected = csvCost(row);
       const actual = trainingCost(id) as Cost;
       if (show(actual) !== show(expected)) {
-        problems.push(`${row.name} (${id}): charges ${show(actual)}, ${UNIT_EXCEPTIONS[id]?.cost ? 'its named exception says' : 'units.csv says'} ${show(expected)}`);
+        problems.push(`${row.name} (${id}): charges ${show(actual)}, units.csv says ${show(expected)}`);
       }
     }
     expect(problems, problems.join('\n')).toEqual([]);
   });
 
-  it('trains every unit in the units.csv time, or its named exception', () => {
+  it('trains every unit in the units.csv time', () => {
     const problems: string[] = [];
     for (const row of unitRows) {
       const id = unitId(row);
       if (!id) continue; // named by the accounting case above
-      const seconds = UNIT_EXCEPTIONS[id]?.time?.gameSeconds ?? row.buildTime!;
+      const seconds = row.buildTime!;
       const actual = trainingTimeTicks(id);
       if (actual !== Math.round(seconds * TPS)) {
-        problems.push(`${row.name} (${id}): ${String(actual)} ticks (${String(actual / TPS)} s), ${UNIT_EXCEPTIONS[id]?.time ? 'its named exception says' : 'units.csv says'} ${String(seconds)} s`);
+        problems.push(`${row.name} (${id}): ${String(actual)} ticks (${String(actual / TPS)} s), units.csv says ${String(seconds)} s`);
       }
     }
-    expect(problems, problems.join('\n')).toEqual([]);
-  });
-
-  it('keeps every named exception live and sourced: the CSV still says what it records, and still disagrees', () => {
-    const problems: string[] = [];
-    const check = (file: string, rows: readonly StatRow[], idOf: (row: StatRow) => string | null, table: Record<string, RowExceptions>) => {
-      for (const [id, exceptions] of Object.entries(table)) {
-        const row = rows.find((candidate) => idOf(candidate) === id);
-        if (!row) { problems.push(`${file}: an exception names ${id}, which no row prices`); continue; }
-        if (exceptions.cost) {
-          const { csv, game, why } = exceptions.cost;
-          const now = show(csvCost(row));
-          if (now === show(game)) problems.push(`${id} cost: DISSOLVED — the CSV now says what the game charges (${now}); delete the exception`);
-          else if (now !== show(csv)) problems.push(`${id} cost: STALE — the exception records the CSV as ${show(csv)}, the CSV now says ${now}; re-read the row`);
-          if (show(csv) === show(game)) problems.push(`${id} cost: MALFORMED — the exception records the same value on both sides`);
-          if (!why.includes('3bb43b14')) problems.push(`${id} cost: the reason does not cite the pinned DE source`);
-        }
-        if (exceptions.time) {
-          const { csvSeconds, gameSeconds, why } = exceptions.time;
-          if (row.buildTime === gameSeconds) problems.push(`${id} time: DISSOLVED — the CSV now says what the game takes (${String(gameSeconds)} s); delete the exception`);
-          else if (row.buildTime !== csvSeconds) problems.push(`${id} time: STALE — the exception records the CSV as ${String(csvSeconds)} s, the CSV now says ${String(row.buildTime)} s; re-read the row`);
-          if (csvSeconds === gameSeconds) problems.push(`${id} time: MALFORMED — the exception records the same value on both sides`);
-          if (!why.includes('3bb43b14')) problems.push(`${id} time: the reason does not cite the pinned DE source`);
-        }
-      }
-    };
-    check('technologies.csv', technologyRows, technologyId, TECHNOLOGY_EXCEPTIONS);
-    check('units.csv', unitRows, unitId, UNIT_EXCEPTIONS);
     expect(problems, problems.join('\n')).toEqual([]);
   });
 

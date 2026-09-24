@@ -20,7 +20,7 @@ type Bridge = ReturnType<typeof createSimulationBridge>;
 describe('the Trade Cart — data', () => {
   it('costs what units.csv says and trains at the Market', () => {
     expect(trainingCost('trade-cart')).toEqual({ wood: 100, gold: 50 });
-    expect(trainingTimeTicks('trade-cart')).toBe(500);
+    expect(trainingTimeTicks('trade-cart')).toBe(510);
     expect(canTrainAt('market', 'trade-cart')).toBe(true);
   });
 });

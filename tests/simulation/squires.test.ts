@@ -51,8 +51,8 @@ function arrivalTick(
 }
 
 describe('Squires — cost & research-time tables', () => {
-  it('costs 200 food and takes 400 ticks (technologies.csv:12, 40 s × 10 TPS)', () => {
-    expect(researchCost('squires')).toEqual({ food: 200 });
+  it('costs 100 food and takes 400 ticks (technologies.csv, 40 s × 10 TPS)', () => {
+    expect(researchCost('squires')).toEqual({ food: 100 });
     expect(researchTimeTicks('squires')).toBe(400);
   });
 });

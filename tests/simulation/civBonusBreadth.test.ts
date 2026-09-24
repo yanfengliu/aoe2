@@ -95,10 +95,11 @@ describe('cost bonuses', () => {
     expect(effectiveTrainingCost('Berbers', 'castle-age', 'knight', NONE))
       .toEqual({ food: 51, gold: 64 });
     // Incas (sourced v0.3.145): military units cost -15/20/25/30% FOOD only.
+    // Militia base 50 food (DE): Castle x0.75 = 37.5, which the round lands on 38.
     expect(effectiveTrainingCost('Incas', 'castle-age', 'militia', NONE))
-      .toEqual({ food: 45, gold: 20 });
+      .toEqual({ food: 38, gold: 20 });
     expect(effectiveTrainingCost('Incas', 'imperial-age', 'militia', NONE))
-      .toEqual({ food: 42, gold: 20 });
+      .toEqual({ food: 35, gold: 20 });
     expect(effectiveTrainingCost('Incas', 'castle-age', 'villager', NONE))
       .toEqual({ food: 50 });
     // Not yet in Castle Age: full price at the stable.
@@ -110,10 +111,11 @@ describe('cost bonuses', () => {
 
   it('scales by age where the CSV scales by age', () => {
     // Huns cavalry archers (sourced v0.3.144): -10% Castle, -20% Imperial.
+    // Cavalry Archer base 40 wood + 60 gold (DE).
     expect(effectiveTrainingCost('Huns', 'castle-age', 'cavalry-archer', NONE))
-      .toEqual({ wood: 36, gold: 63 });
+      .toEqual({ wood: 36, gold: 54 });
     expect(effectiveTrainingCost('Huns', 'imperial-age', 'cavalry-archer', NONE))
-      .toEqual({ wood: 32, gold: 56 });
+      .toEqual({ wood: 32, gold: 48 });
     // Mayans archers: -10/-20/-30 by age.
     expect(effectiveTrainingCost('Mayans', 'feudal-age', 'archer', NONE))
       .toEqual({ wood: 23, gold: 41 });
@@ -149,9 +151,9 @@ describe('cost bonuses', () => {
   it('leaves the Goths discount and everyone unmatched exactly as before', () => {
     // Goths (sourced v0.3.146): -15/20/25/30% by age, Dark included.
     expect(effectiveTrainingCost('Goths', 'dark-age', 'militia', NONE))
-      .toEqual({ food: 51, gold: 17 });
+      .toEqual({ food: 43, gold: 17 });
     expect(effectiveTrainingCost('Goths', 'feudal-age', 'militia', NONE))
-      .toEqual({ food: 48, gold: 16 });
+      .toEqual({ food: 40, gold: 16 });
     expect(effectiveTrainingCost('Britons', 'castle-age', 'knight', NONE))
       .toEqual({ food: 60, gold: 75 });
   });

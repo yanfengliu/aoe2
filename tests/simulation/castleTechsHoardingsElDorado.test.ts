@@ -30,7 +30,7 @@ describe('Hoardings — a castle with 21% more hit points', () => {
   const HOARDINGS: ReadonlySet<ResearchableTechnologyType> = new Set(['hoardings']);
 
   it('costs what technologies.csv says and is researched at the Castle', () => {
-    expect(researchCost('hoardings')).toEqual({ food: 400, gold: 400 });
+    expect(researchCost('hoardings')).toEqual({ food: 400, wood: 400 });
     expect(researchTimeTicks('hoardings')).toBe(750); // 75 s x 10 TPS.
     expect(canResearchAt('castle', 'hoardings')).toBe(true);
   });

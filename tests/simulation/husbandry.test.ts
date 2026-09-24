@@ -15,7 +15,7 @@ import {
 } from './createSimulationBridge.helpers';
 
 // Husbandry (v0.1.66): the first movement-speed tech. Stable, Castle Age,
-// 250 food / 500 ticks (technologies.csv:79 — AoK values). +10% movement speed
+// 150 food / 400 ticks (technologies.csv, DE values). +10% movement speed
 // for MOUNTED units (cavalry + cavalry archers), DERIVED inside the single
 // step executor moveUnitOneSubgridStep via the per-unit carry accumulator
 // (movementTechEffects entitle/settle banking into
@@ -27,9 +27,9 @@ import {
 type Bridge = ReturnType<typeof createSimulationBridge>;
 
 describe('Husbandry — cost & research-time tables', () => {
-  it('costs 250 food and takes 500 ticks (technologies.csv:79, 50 s × 10 TPS)', () => {
-    expect(researchCost('husbandry')).toEqual({ food: 250 });
-    expect(researchTimeTicks('husbandry')).toBe(500);
+  it('costs 150 food and takes 400 ticks (technologies.csv, 40 s × 10 TPS)', () => {
+    expect(researchCost('husbandry')).toEqual({ food: 150 });
+    expect(researchTimeTicks('husbandry')).toBe(400);
   });
 });
 

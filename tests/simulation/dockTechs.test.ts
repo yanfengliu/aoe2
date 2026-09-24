@@ -57,11 +57,11 @@ describe('the Dock technologies — data and menu', () => {
   }
 
   it('costs what technologies.csv says', () => {
-    expect(researchCost('careening')).toEqual({ food: 250, gold: 150 });
+    expect(researchCost('careening')).toEqual({ food: 100, gold: 200 });
     expect(researchTimeTicks('careening')).toBe(500); // 50 s x 10 TPS.
-    expect(researchCost('dry-dock')).toEqual({ food: 600, gold: 400 });
+    expect(researchCost('dry-dock')).toEqual({ food: 200, gold: 400 });
     expect(researchTimeTicks('dry-dock')).toBe(600);
-    expect(researchCost('shipwright')).toEqual({ wood: 200, food: 1000 });
+    expect(researchCost('shipwright')).toEqual({ food: 1000, gold: 300 });
     expect(researchTimeTicks('shipwright')).toBe(600);
   });
 

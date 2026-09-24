@@ -57,11 +57,11 @@ describe('the tribute fee', () => {
 
 describe('Coinage and Banking — data', () => {
   it('cost what the CSV says and live at the Market', () => {
-    expect(researchCost('coinage')).toEqual({ food: 150, gold: 50 });
-    expect(researchTimeTicks('coinage')).toBe(500);
+    expect(researchCost('coinage')).toEqual({ food: 200, gold: 100 });
+    expect(researchTimeTicks('coinage')).toBe(700);
     expect(canResearchAt('market', 'coinage')).toBe(true);
-    expect(researchCost('banking')).toEqual({ food: 200, gold: 100 });
-    expect(researchTimeTicks('banking')).toBe(500);
+    expect(researchCost('banking')).toEqual({ food: 300, gold: 200 });
+    expect(researchTimeTicks('banking')).toBe(700);
     expect(canResearchAt('market', 'banking')).toBe(true);
   });
 });

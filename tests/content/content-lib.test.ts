@@ -56,6 +56,17 @@ describe('content-lib', () => {
     ]);
   });
 
+  it('skips comment lines that start with #, before the header and between rows, and keeps a # inside a cell', () => {
+    // The provenance lines at the top of units.csv and technologies.csv
+    // (2026-09-23) must not become the header or a row.
+    const rows = parseCsv('# SOURCED from somewhere, pinned\r\n# a second note\r\nname, cost\r\nMill, 100\r\n# between rows\r\nHouse, "#25"\r\nCamp, 1#2\r\n');
+    expect(rows).toEqual([
+      { name: 'Mill', cost: '100' },
+      { name: 'House', cost: '#25' },
+      { name: 'Camp', cost: '1#2' },
+    ]);
+  });
+
   it('normalizes starter-only unit variants without duplicate-id errors', () => {
     const bundle: ContentBundleLike = buildContentBundle();
     const scoutVariants = bundle.units.filter(

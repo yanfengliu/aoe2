@@ -76,7 +76,7 @@ describe('Atheism — the Huns unique technology', () => {
   it('is priced from the CSV, extends countdowns, and nothing is deferred any more', () => {
     const technology = uniqueTechnology('atheism');
     expect(technology?.civilization).toBe('Huns');
-    expect(researchCost('atheism')).toEqual({ food: 500, gold: 500 });
+    expect(researchCost('atheism')).toEqual({ food: 500, wood: 300 });
     expect(researchTimeTicks('atheism')).toBe(600);
     expect(canResearchAt('castle', 'atheism')).toBe(true);
     // +100 years at 10 ticks a year (the 2000-tick countdown is 200 years).
