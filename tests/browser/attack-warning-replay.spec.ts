@@ -7,13 +7,17 @@
 // and the replayed world carries its recent blows with their participants
 // (the hit feed since v0.3.235, which re-simulation refills), so each step
 // forgot the throttle and announced the same raid again: a horn
-// and a "You are under attack!" toast per step. The fix resets only on a load,
-// which createApp announces; a replay step keeps the controller's memory.
+// and a "You are under attack!" toast per step. The fix resets only on a
+// switch of world: a load, which createApp announces, and entering or leaving
+// the replay viewer, which the replay controller's mode change announces
+// (`attack-warning-replay-exit.spec.ts`). A replay step changes no mode and
+// keeps the controller's memory.
 //
-// THE CLASS this gates: a bridge swap that is not a load must not re-arm the
-// warning. The replay is stepped one tick at a time through a raid that lands
-// a blow every few ticks, with frames rendered between steps so the audio
-// mount polls each replayed world, and the alert toasts raised are counted.
+// THE CLASS this gates: a bridge swap that is not a switch of world must not
+// re-arm the warning. The replay is stepped one tick at a time through a raid
+// that lands a blow every few ticks, with frames rendered between steps so the
+// audio mount polls each replayed world, and the alert toasts raised are
+// counted.
 //
 // BOUNDS, so a green run is not read for more than it holds:
 //  - Forty single-tick steps with the step-forward button, on one recording.
@@ -23,8 +27,10 @@
 //    one decision in `gameAudioController`, so a horn storm would be a toast
 //    storm too. The selection chirp is audio only and is not observed.
 //  - At most one toast is allowed while stepping: the replay may announce the
-//    replayed raid once, as it happened, because the load that closed the
-//    live session reset the throttle.
+//    replayed raid once, as it happened, because entering the replay viewer
+//    resets the throttle (and so did the load that closed the live session).
+//    Measured: exactly one over the forty steps. A step BACK, and a scrub
+//    back, are `tests/ui/gameAudioMount.test.ts`.
 import { expect, test } from '@playwright/test';
 import * as game from './helpers/gameTestHelpers';
 

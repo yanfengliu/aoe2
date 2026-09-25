@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.236
+
+- **Coming back from a replay no longer silences the attack warning.** If you opened a recording in the replay viewer (game menu, Watch a replay…), watched it past the point your live match had reached, and then went back to the match, attacks on your villagers and buildings raised nothing until the match passed that point: no "You are under attack!", no mark on the minimap and no horn, and Space jumped to where the replayed attack had landed. Entering and leaving the replay viewer now start the warning afresh, as loading a save does. If a raid was already under way when you opened the viewer, its next blow after you come back brings the horn and the message again, and the minimap mark from before is cleared until that blow lands. Stepping through a raid in the replay still announces it once, not on every step.
+
 ## 0.3.235
 
 - **An enemy Town Centre, tower or Castle shooting your villagers now raises the attack warning.** You hear the horn, the message "You are under attack!" appears, and the minimap marks the spot, as in Definitive Edition. Until now only an enemy unit's own attack did that, so an enemy Town Centre could shoot a villager down to 10 of its 25 hit points with no sign on screen at all. The same goes for a mangonel stone or a bombardment that catches your villagers beside what it was aimed at, and for a demolition ship's blast.
