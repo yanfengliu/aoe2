@@ -158,6 +158,9 @@ export function makeReplayBridge(
     getRecentUnitAttacks() {
       return api.getRecentUnitAttacks();
     },
+    getRecentPlayerHits() {
+      return api.getRecentPlayerHits();
+    },
     // Replay is playback: deletions come from the recorded stream.
     deleteSelectedEntity: () => false,
     getTownBellRings: () => 0,

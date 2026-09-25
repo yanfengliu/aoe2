@@ -204,6 +204,7 @@ describe("visibility mutation batching", () => {
       markOutOfBandRenderChange: vi.fn(),
       refreshVisibilityAfterCombat,
       isMatchRunning: () => true,
+      recordPlayerHit: () => {},
     });
     expect(execute).toBeTypeOf("function");
     execute!(world);

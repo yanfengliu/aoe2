@@ -34,6 +34,7 @@ import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import { manhattanDistance, type GameWorld } from '../pureHelpers';
 import { unitMinAttackRange } from '../../prototypeUnitRules';
 import type { UnitMovementPlan } from '../movementTypes';
+import type { RecordPlayerHit } from '../playerHitFeed';
 
 export interface AttackStepDeps {
   activeWorld: CivWorld;
@@ -58,6 +59,7 @@ export interface AttackStepDeps {
   isTrebuchetSilent: (id: number) => boolean;
   beginTrebuchetUnpack: (id: number) => unknown;
   recordUnitAttack: (attackerId: number, targetId: number) => void;
+  recordPlayerHit: RecordPlayerHit;
   markOutOfBandRenderChange: () => void;
   ensurePlayerScoreCounters: (owner: number) => { unitsKilled: number };
   destroyUnitEntity: (id: number) => void;
@@ -73,7 +75,7 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
     moveUnitOneSubgridStep,
     advanceTrebuchetTransition, isTrebuchetStationary, isTrebuchetSilent,
     beginTrebuchetUnpack,
-    recordUnitAttack, markOutOfBandRenderChange,
+    recordUnitAttack, recordPlayerHit, markOutOfBandRenderChange,
     ensurePlayerScoreCounters, destroyUnitEntity, killWildlifeEntity,
     destroyBuildingEntity,
   } = deps;
@@ -168,6 +170,7 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
               addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
               markCombatDirty: () => { accessor.markDirty(combatStatesCodec); accessor.markDirty(projectilesCodec); },
               markRender: markOutOfBandRenderChange,
+              recordPlayerHit,
             });
             if (primaryDied) clearUnitCommand(id);
             return true;
@@ -301,6 +304,7 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
             addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
             markCombatDirty: () => { accessor.markDirty(combatStatesCodec); accessor.markDirty(projectilesCodec); },
             markRender: markOutOfBandRenderChange,
+            recordPlayerHit,
           });
 
           if (targetHealth.currentHp <= 0) {

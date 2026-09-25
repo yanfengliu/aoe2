@@ -29,6 +29,8 @@ import { registerVillagerEconomySystem } from './systems/villagerEconomySystem';
 import { registerWildlifeSystems } from './registerWildlifeSystems';
 import { registerVisibilitySystem } from './systems/visibilitySystem';
 import { createUnitAttackRecorder } from './unitAttackAnimationFeed';
+import { createPlayerHitRecorder } from './playerHitFeed';
+import { registerReplayPendingCommandDrainSystem } from './systems/replayPendingCommandDrainSystem';
 import { createMovementTrafficOps } from './movementTrafficOps';
 import { syncVisibilitySources } from './visibility';
 import {
@@ -191,6 +193,9 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     ensureVisibilityCurrent: syncCurrentVisibility,
     getVisibilitySourceRevision: playerCommandVisibilityRevision.current,
   });
+  // Every blow on a player's unit or building, whatever dealt it: the attack
+  // warning's source (playerHitFeed.ts, v0.3.235).
+  const recordPlayerHit = createPlayerHitRecorder({ world, feed: state.playerHits });
 
   if (systemMode === 'replay') {
     registerReplayPendingCommandDrainSystem(world, pendingCommands);
@@ -302,6 +307,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     },
     getEntityRef,
     recordUnitAttack,
+    recordPlayerHit,
     onBuildingConstructionComplete: (buildingId, owner, buildingType, visionSourceAdded) => {
       if (visionSourceAdded) {
         playerCommandVisibilityRevision.markMutation();
@@ -402,6 +408,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     destroyUnitEntity,
     markOutOfBandRenderChange,
     recordUnitAttack,
+    recordPlayerHit,
     setUnitAttackCommandDirect,
     isCellPassableForWildlife,
     getUnitTransform,
@@ -472,6 +479,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     markOutOfBandRenderChange,
     refreshVisibilityAfterCombat: syncCurrentVisibility,
     isMatchRunning,
+    recordPlayerHit,
   });
 
   registerMatchResolutionSystems({
@@ -484,16 +492,5 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     defaultRelicCountdownTicks,
     computePlayerScore,
     gameLength,
-  });
-}
-
-function registerReplayPendingCommandDrainSystem(world: RegisterAllSystemsDeps['world'], pendingCommands: RegisterAllSystemsDeps['pendingCommands']): void {
-  world.registerSystem({
-    name: 'aoe2ReplayPendingCommandDrain',
-    phase: 'update',
-    before: ['prototypeAi'],
-    execute() {
-      pendingCommands.length = 0;
-    },
   });
 }

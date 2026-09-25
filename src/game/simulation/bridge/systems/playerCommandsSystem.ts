@@ -93,6 +93,7 @@ export interface PlayerCommandsSystemDeps {
   destroyBuildingEntity: (id: number) => void;
   getEntityRef: (id: number) => EntityRef | null;
   recordUnitAttack: (attackerId: number, targetId: number) => void;
+  recordPlayerHit: import('../playerHitFeed').RecordPlayerHit;
   onBuildingConstructionComplete: (
     buildingId: number,
     owner: number,
@@ -128,7 +129,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     destroyUnitEntity,
     killWildlifeEntity,
     destroyBuildingEntity,
-    getEntityRef, recordUnitAttack,
+    getEntityRef, recordUnitAttack, recordPlayerHit,
     onBuildingConstructionComplete,
   } = deps;
 
@@ -160,7 +161,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             moveUnitOneSubgridStep,
             advanceTrebuchetTransition, isTrebuchetStationary, isTrebuchetSilent,
             beginTrebuchetUnpack,
-            recordUnitAttack, markOutOfBandRenderChange,
+            recordUnitAttack, recordPlayerHit, markOutOfBandRenderChange,
             ensurePlayerScoreCounters, destroyUnitEntity, killWildlifeEntity,
             destroyBuildingEntity,
           });

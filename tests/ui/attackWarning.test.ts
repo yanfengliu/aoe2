@@ -80,12 +80,12 @@ describe('what counts as an attack on you', () => {
 
   it('does NOT count wildlife, which carries no participants at all', () => {
     // A lured boar biting the villager that shot it happens in the opening of
-    // every match, on purpose, in full view. `readAttackParticipants` leaves
-    // the field undefined for a wildlife attacker or target.
+    // every match, on purpose, in full view. The hit feed records the bite
+    // with no participants (`playerHitFeed.ts`).
     expect(isAttackOnOwnEconomy(swing(undefined), HUMAN)).toBe(false);
   });
 
-  it('does NOT count an entry restored from a save, whose participants are dropped', () => {
+  it('does NOT count a blow that names no participants, whatever else it carries', () => {
     expect(isAttackOnOwnEconomy({ participants: undefined }, HUMAN)).toBe(false);
   });
 });

@@ -4,6 +4,7 @@
 
 import type { Position } from 'civ-engine';
 import type { ProjectedUnitAttackView, ProjectedUnitDeathView } from '../types';
+import type { PlayerHitView } from './playerHitFeed';
 import {
   createPendingCommandsQueue,
   type PendingCommandsQueue,
@@ -102,6 +103,9 @@ export interface BridgeState {
   // Successful unit hits, one latest event per attacker ref. Like deaths this
   // is a bounded transient render feed and deliberately has no save codec.
   unitAttackFeed: UnitAttackFeedRuntime;
+  // Every blow on a player's unit or building of the last few ticks, whatever
+  // dealt it: the attack warning's source (playerHitFeed.ts). Transient too.
+  playerHits: PlayerHitView[];
 }
 
 export function createBridgeState(): BridgeState {
@@ -118,5 +122,6 @@ export function createBridgeState(): BridgeState {
       persistenceDirty: false,
       lastPrunedTick: Number.NEGATIVE_INFINITY,
     },
+    playerHits: [],
   };
 }

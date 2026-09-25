@@ -71,12 +71,16 @@ export function mountGameAudio(
       const outcome = bridgeRef().getMatchState().outcome;
       return outcome === 'victory' || outcome === 'defeat' ? outcome : null;
     },
-    // v0.3.217: the feed now carries WHO was hit, so the warning rule reads it
+    // v0.3.217: the feed carries WHO was hit, so the warning rule reads it
     // directly. It used to be inferred by comparing the swing's target cell
     // against every own building and villager within one cell — which could
     // never match a 4x4 building, because a building's target cell is its
     // visual centre and its render entity's is its origin, 1.5 cells apart.
-    getRecentAttacks: () => bridgeRef().getRecentUnitAttacks(),
+    // v0.3.235: the feed is every BLOW that lands (playerHitFeed.ts), not the
+    // swing feed, which records only a unit's swing: a Town Centre, tower or
+    // Castle shooting a villager, a stone's blast and a bombardment of the
+    // ground warned of nothing (defect register 2026-09-24).
+    getRecentAttacks: () => bridgeRef().getRecentPlayerHits(),
     getResearchedCount: () => {
       const rows = bridgeRef().world.getState('aoe2.researchedTechnologies') as
         | ReadonlyArray<[number, string[]]>

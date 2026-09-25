@@ -23,6 +23,7 @@ import {
   getUnitAttackFeedEntries,
   pruneUnitAttackFeed,
 } from './unitAttackAnimationFeed';
+import { prunePlayerHits } from './playerHitFeed';
 
 export interface AssembleBridgeApiDeps
   extends Omit<
@@ -42,6 +43,7 @@ export interface AssembleBridgeApiDeps
     | 'selectByRefs'
     | 'getRecentUnitDeaths'
     | 'getRecentUnitAttacks'
+    | 'getRecentPlayerHits'
     | 'getInFlightProjectiles'
   > {
   world: GameWorld;
@@ -125,6 +127,10 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     getRecentUnitAttacks() {
       pruneUnitAttackFeed(state.unitAttackFeed, rest.world.tick);
       return getUnitAttackFeedEntries(state.unitAttackFeed);
+    },
+    getRecentPlayerHits() {
+      prunePlayerHits(state.playerHits, rest.world.tick);
+      return state.playerHits;
     },
     // Spec §10.4: shots in the air, straight from the authoritative slot — a
     // caller can never observe a projectile the simulation already resolved.

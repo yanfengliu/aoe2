@@ -183,6 +183,7 @@ describe('Parthian Tactics — landed damage at the projectile impact site', () 
       addKill: () => {},
       markCombatDirty: () => {},
       markRender: () => {},
+      recordPlayerHit: () => {},
     });
     return 1000 - targetCombat.currentHp;
   }

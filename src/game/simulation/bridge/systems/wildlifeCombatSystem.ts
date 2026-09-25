@@ -10,6 +10,7 @@ import { manhattanDistance, type GameWorld } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import { combatStatesCodec, unitCommandsCodec, wildlifeStatesCodec } from '../bridgeStateSerialize';
+import type { RecordPlayerHit } from '../playerHitFeed';
 
 type CivWorld = GameWorld;
 
@@ -41,6 +42,9 @@ export interface WildlifeCombatSystemDeps {
   // Spec §14.5 wildlife retaliation animation: landed bites publish through
   // the same witnessed successful-hit feed as unit attacks.
   recordUnitAttack: (attackerId: number, targetId: number) => void;
+  // Every blow on a player's unit is recorded, a bite included, with no
+  // owner for the animal: the attack warning stays silent for it.
+  recordPlayerHit: RecordPlayerHit;
   // A bitten unit fights back. Wildlife are `resource` entities, so the
   // ordinary auto-aggression path — which queries units — cannot see one, and
   // without this a wolf kills anything it meets while taking no damage at all.
@@ -63,6 +67,7 @@ export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): vo
     destroyUnitEntity,
     markOutOfBandRenderChange,
     recordUnitAttack,
+    recordPlayerHit,
     setUnitAttackCommandDirect,
   } = deps;
 
@@ -135,6 +140,7 @@ export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): vo
           ? effectiveMeleeArmor(biteTargetUnit.unitType, targetCombat.armor)
           : targetCombat.armor;
         targetCombat.currentHp -= Math.max(1, wildlife.attackDamage - targetMeleeArmor);
+        recordPlayerHit(id, null, targetId);
         accessor.markDirty(combatStatesCodec);
         wildlife.cooldownTicks = wildlife.reloadTicks;
         wildlifeDirty = true;

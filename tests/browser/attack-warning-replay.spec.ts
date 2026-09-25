@@ -4,8 +4,9 @@
 // THE DEFECT, caught before it shipped: the first version of the load fix
 // reset the audio controller whenever the bridge object changed. A replay
 // builds a new bridge on EVERY step, scrub, marker jump and fog-owner switch,
-// and the replayed world carries the recent swings with their participants,
-// so each step forgot the throttle and announced the same raid again: a horn
+// and the replayed world carries its recent blows with their participants
+// (the hit feed since v0.3.235, which re-simulation refills), so each step
+// forgot the throttle and announced the same raid again: a horn
 // and a "You are under attack!" toast per step. The fix resets only on a load,
 // which createApp announces; a replay step keeps the controller's memory.
 //

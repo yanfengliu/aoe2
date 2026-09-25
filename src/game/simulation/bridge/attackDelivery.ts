@@ -28,6 +28,7 @@ import { firesProjectile, launchProjectile } from './projectileOps';
 import type { GameWorld } from './pureHelpers';
 import type { ProjectileSlotState } from './projectileTypes';
 import type { CombatState } from './systems/systemTypes';
+import type { RecordPlayerHit } from './playerHitFeed';
 
 export interface DeliverAttackShared {
   world: GameWorld;
@@ -43,6 +44,9 @@ export interface DeliverAttackShared {
   attackerTechs?: ReadonlySet<ResearchableTechnologyType>;
   /** Where the target is walking to, for Ballistics leading. */
   targetDestination?: Position | null;
+  /** Every blow this attack lands on the spot, for the attack warning. A shot
+   *  records its own when it lands (`projectileOps.ts`). */
+  recordPlayerHit: RecordPlayerHit;
 }
 
 export interface DeliverUnitAttackParams extends DeliverAttackShared {
@@ -70,6 +74,7 @@ export function deliverUnitAttackOnUnit(params: DeliverUnitAttackParams): boolea
       markDirty: params.markCombatDirty,
       markRender: params.markRender,
       teamUnitBonus: params.teamUnitBonus,
+      recordPlayerHit: params.recordPlayerHit,
     });
   }
 
@@ -161,6 +166,7 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
   }
 
   params.applyBuildingDamage(target.id, damage);
+  params.recordPlayerHit(attacker.id, attacker.owner, target.id);
   // Blast/splash (spec §10.7): a melee siege hit on a building also catches
   // units clustered around it. Projectile siege splashes on impact instead.
   applyUnitBlast({
@@ -177,6 +183,7 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
     destroyUnit: params.destroyUnit,
     addKill: params.addKill,
     markDirty: params.markCombatDirty,
+    recordPlayerHit: params.recordPlayerHit,
   });
 
   // A demolition ship is spent against a building exactly as it is against a

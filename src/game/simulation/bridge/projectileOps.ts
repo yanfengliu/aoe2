@@ -11,7 +11,7 @@
 
 import type { Position } from 'civ-engine';
 
-import type { UnitComponent, UnitType } from '../types';
+import type { BuildingComponent, UnitComponent, UnitType } from '../types';
 import type { ResearchableTechnologyType } from '../types';
 import type { MapSize } from '../mapGeneration/constants';
 import { parthianSpearmanAttackBonus } from '../parthianTechEffects';
@@ -43,6 +43,7 @@ import {
 } from './pureHelpers';
 import type { ProjectileSlotState, ProjectileState } from './projectileTypes';
 import type { CombatState } from './systems/systemTypes';
+import type { RecordPlayerHit } from './playerHitFeed';
 
 export { firesProjectile };
 
@@ -175,6 +176,10 @@ export interface ResolveProjectilesDeps {
    *  bonus is derived here rather than stored on the shot, because it depends
    *  on the TARGET's armor class — known only once the arrow lands. */
   technologiesFor: (owner: number) => ReadonlySet<ResearchableTechnologyType>;
+  /** Every shot that lands on a unit or a building, and every unit its blast
+   *  catches, is a blow for the attack warning — a tower's and a Town
+   *  Centre's arrows as much as an archer's (v0.3.235). */
+  recordPlayerHit: RecordPlayerHit;
 }
 
 /**
@@ -213,6 +218,13 @@ function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): boolea
 
   if (shot.targetKind === 'building') {
     if (shot.willHit) {
+      // Recorded first, because a building the shot razes is gone after the
+      // damage. And only while the target is still a building: its id can pass
+      // to a new unit while the shot is in the air, and a shot at a building
+      // deals a unit nothing (independent review of v0.3.235).
+      if (world.getComponent<BuildingComponent>(shot.targetId, 'building')) {
+        deps.recordPlayerHit(shot.attackerId, shot.attackerOwner, shot.targetId);
+      }
       deps.damageBuilding(
         shot.targetId,
         shot.buildingDamage ?? shot.baseDamage,
@@ -249,6 +261,7 @@ function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): boolea
         effectiveMeleeArmor(targetUnit.unitType, targetCombat.armor),
         effectivePierceArmor(targetUnit.unitType, pierceArmorTechBonus(targetCombat)),
       );
+      deps.recordPlayerHit(shot.attackerId, shot.attackerOwner, shot.targetId);
       deps.markCombatDirty();
       if (targetCombat.currentHp <= 0) {
         if (targetUnit.owner !== shot.attackerOwner) deps.addKill(shot.attackerOwner);
@@ -278,6 +291,7 @@ function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): boolea
       },
       addKill: deps.addKill,
       markDirty: deps.markCombatDirty,
+      recordPlayerHit: deps.recordPlayerHit,
     });
   }
   return killed;

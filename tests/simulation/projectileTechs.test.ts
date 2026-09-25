@@ -152,6 +152,7 @@ describe('Ballistics wiring at the launch site', () => {
       addKill: () => {},
       markCombatDirty: () => {},
       markRender: () => {},
+      recordPlayerHit: () => {},
     });
     expect(projectiles.inFlight).toHaveLength(1);
     return projectiles.inFlight[0]!;
@@ -203,6 +204,7 @@ describe('Ballistics wiring at the launch site', () => {
         destroyUnit: () => {},
         addKill: () => {},
         markCombatDirty: () => {},
+        recordPlayerHit: () => {},
         markRender: () => {},
       });
       const shot = projectiles.inFlight[0]!;

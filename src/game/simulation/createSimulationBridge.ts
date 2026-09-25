@@ -112,7 +112,7 @@ export function createSimulationBridge(
     getPlacementPreview,
     getAgentBuildingOptions,
     findOpenPlacementAnchorsNear,
-    getEntityHealth, getWildlifeAlive, getUnitActiveVerb, getRecentUnitDeaths, getRecentUnitAttacks,
+    getEntityHealth, getWildlifeAlive, getUnitActiveVerb, getRecentUnitDeaths, getRecentUnitAttacks, getRecentPlayerHits,
     selectEntityAtCell,
     selectEntityById,
     selectOwnedUnitsByTypeInRect,
@@ -369,6 +369,7 @@ export function createSimulationBridge(
     getMatchState,
     getInFlightProjectiles,
     getRecentUnitAttacks,
+    getRecentPlayerHits,
     // Delete key (v0.3.114): one entity per press — the PRIMARY selection —
     // and only your own; the validator re-enforces ownership at the door.
     deleteSelectedEntity(): boolean {

@@ -129,8 +129,12 @@ export interface SimulationBridge {
   getMatchState(): MatchState;
   /** Shots currently in the air (spec §10.4). Read-only view for render + tests. */
   getInFlightProjectiles(): readonly ProjectileState[];
-  /** The witnessed attack feed (v0.3.109 audio; same view the renderer sees). */
+  /** The witnessed swing feed the renderer animates. The attack warning read
+   *  it from v0.3.109 until v0.3.235, and reads `getRecentPlayerHits` now. */
   getRecentUnitAttacks(): readonly import('./types').ProjectedUnitAttackView[];
+  /** Every blow on a player's unit or building of the last ten ticks, whatever
+   *  dealt it (v0.3.235): the attack warning reads this, not the swing feed. */
+  getRecentPlayerHits(): readonly import('./bridge/playerHitFeed').PlayerHitView[];
   /** Delete key (v0.3.114): remove the primary selected OWN unit/building. */
   deleteSelectedEntity(): boolean;
   /** Successful town-bell rings this session (v0.3.116 audio observable). */

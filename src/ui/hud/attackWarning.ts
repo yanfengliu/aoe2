@@ -20,14 +20,18 @@
 // the words ride the horn's throttled decision, and the mark is sized in
 // DISPLAY pixels (minimap.ts) so it is findable at the minimap's real size.
 //
-// THE RULE. A warning is raised when a unit owned by ANOTHER PLAYER swings at
-// a villager or a building owned by the human. Each half is a deliberate
+// THE RULE. A warning is raised when a blow from anything ANOTHER PLAYER owns
+// lands on a villager or a building owned by the human: a unit's swing or
+// shot, a tower's, Town Centre's or Castle's arrow, or the blast of a stone,
+// a bombardment or a demolition charge (v0.3.235; the blows are recorded where
+// the damage is dealt, `playerHitFeed.ts`). Each half is a deliberate
 // narrowing:
 //
-//  - Another player's unit, so a lured boar biting the villager that shot it
-//    raises nothing. Boar luring happens in the opening of every match, on
+//  - Another player's, so a lured boar biting the villager that shot it
+//    raises nothing, and neither does the human's own mangonel splashing its
+//    own villagers. Boar luring happens in the opening of every match, on
 //    purpose, under the player's eye; a horn for it is the storm this rule
-//    exists to avoid. Wildlife attackers carry no `participants` at all.
+//    exists to avoid. A wildlife blow carries no `participants` at all.
 //  - A villager or a building, so a pitched battle between armies is silent.
 //    A soldier taking a hit is the fight you went looking for. Villagers and
 //    buildings are the economy: nobody puts a villager in a fight on purpose,
@@ -42,12 +46,14 @@
 // camera on it, so a "you are already looking" rule would have suppressed the
 // very case this exists for.
 //
-// Known bound, stated because a gate is only as good as its edges: the feed
-// records a SWING, and only a unit can be an attacker in it. An enemy tower or
-// castle shooting a villager raises nothing today. That is the same gap the
-// horn already had; the case that matters (a raid, which is units) is covered.
+// Until v0.3.235 the rule read the swing feed, which records only a UNIT's
+// swing. So an enemy Town Centre, tower or Castle shooting a villager raised
+// nothing, and neither did a stone's blast on the villagers beside its target
+// or a bombardment of the ground. Reproduced on the real map: an enemy Town
+// Centre took a villager from 25 to 10 hit points at tick 678 with no mark,
+// no horn and no words (defect register 2026-09-24).
 
-import type { ProjectedUnitAttackView } from '../../game/simulation/types';
+import type { UnitAttackParticipants } from '../../game/simulation/types';
 
 // DE's own spacing was NOT settled from an authoritative source. The best
 // statement found is one post on the official Age of Empires forum (HestiaAoE,
@@ -115,7 +121,7 @@ function nowMs(): number {
 }
 
 /**
- * Does this recorded swing mean "your economy is under attack"?
+ * Does this recorded blow mean "your economy is under attack"?
  *
  * Exact, not proximity-based. The rule this replaced compared the swing's
  * target CELL against the render origin of each own building and villager
@@ -125,7 +131,7 @@ function nowMs(): number {
  * and the Wonder were silently dropped by the very rule meant to catch them.
  */
 export function isAttackOnOwnEconomy(
-  attack: Pick<ProjectedUnitAttackView, 'participants'>,
+  attack: { participants?: UnitAttackParticipants },
   humanPlayerId: number,
 ): boolean {
   const participants = attack.participants;

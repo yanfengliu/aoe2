@@ -14,6 +14,7 @@ import {
   researchedTechnologiesCodec,
 } from '../bridgeStateSerialize';
 import { resolveDueProjectiles } from '../projectileOps';
+import type { RecordPlayerHit } from '../playerHitFeed';
 import type { GameWorld } from '../pureHelpers';
 
 const EMPTY_TECH_SET: ReadonlySet<ResearchableTechnologyType> = new Set();
@@ -37,6 +38,8 @@ export interface ProjectileSystemDeps {
   /** Called once per pass if any unit died — a dead unit stops seeing. */
   refreshVisibilityAfterCombat: () => void;
   isMatchRunning: () => boolean;
+  /** Where every landed shot is recorded for the attack warning. */
+  recordPlayerHit: RecordPlayerHit;
 }
 
 export function registerProjectileSystem(deps: ProjectileSystemDeps): void {
@@ -49,6 +52,7 @@ export function registerProjectileSystem(deps: ProjectileSystemDeps): void {
     markOutOfBandRenderChange,
     refreshVisibilityAfterCombat,
     isMatchRunning,
+    recordPlayerHit,
   } = deps;
 
   world.registerSystem({
@@ -73,6 +77,7 @@ export function registerProjectileSystem(deps: ProjectileSystemDeps): void {
         addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
         markCombatDirty: () => accessor.markDirty(combatStatesCodec),
         markRender: markOutOfBandRenderChange,
+        recordPlayerHit,
       });
       if (slot.inFlight.length !== before) accessor.markDirty(projectilesCodec);
       if (killedAnyUnit) refreshVisibilityAfterCombat();

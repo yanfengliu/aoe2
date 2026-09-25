@@ -65,6 +65,7 @@ export interface CreateWorldResult {
   // projector, which applies the per-player fog filter in projectFrame.
   getRecentUnitDeaths: () => readonly import('../types').ProjectedUnitDeathView[];
   getRecentUnitAttacks: () => readonly import('../types').ProjectedUnitAttackView[];
+  getRecentPlayerHits: () => readonly import('./playerHitFeed').PlayerHitView[];
   getInFlightProjectiles: () => readonly import('./projectileTypes').ProjectileState[];
   selectEntityAtCell: (x: number, y: number) => boolean;
   selectEntityById: (id: number) => boolean;

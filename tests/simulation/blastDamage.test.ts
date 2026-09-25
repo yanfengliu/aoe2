@@ -108,6 +108,7 @@ describe('applyUnitBlast — scoring + friendly fire', () => {
       destroyUnit: (id) => destroyed.push(id),
       addKill: (owner) => kills.push(owner),
       markDirty: () => {},
+      recordPlayerHit: () => {},
     });
 
     expect(destroyed.sort((a, b) => a - b)).toEqual([2, 3]); // both die

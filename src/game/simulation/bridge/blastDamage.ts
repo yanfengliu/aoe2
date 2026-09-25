@@ -5,6 +5,8 @@
 
 import type { Position } from 'civ-engine';
 
+import type { RecordPlayerHit } from './playerHitFeed';
+
 import type { UnitComponent, UnitType } from '../types';
 import {
   attackBonusAgainstUnit,
@@ -89,6 +91,8 @@ export function applyUnitBlast(params: {
   destroyUnit: (id: number) => void;
   addKill: (owner: number) => void;
   markDirty: () => void;
+  /** Every splashed unit is a blow landed, for the attack warning. */
+  recordPlayerHit: RecordPlayerHit;
 }): void {
   const { world, combatStates, attacker } = params;
   if (unitBlastRadius(attacker.unitType) <= 0) return;
@@ -117,6 +121,7 @@ export function applyUnitBlast(params: {
     const splashCombat = combatStates.get(splash.id);
     if (!splashCombat) continue;
     splashCombat.currentHp -= splash.damage;
+    params.recordPlayerHit(attacker.id, attacker.owner, splash.id);
     if (splashCombat.currentHp <= 0) {
       const splashUnit = world.getComponent<UnitComponent>(splash.id, 'unit');
       if (splashUnit && splashUnit.owner !== attacker.owner) params.addKill(attacker.owner);
@@ -144,6 +149,8 @@ export function resolveUnitAttackOnUnit(params: {
   markRender: () => void;
   /** Caller-computed team extras (Persian knights vs archer-class). */
   teamUnitBonus?: number;
+  /** The primary hit and every splashed unit, for the attack warning. */
+  recordPlayerHit: RecordPlayerHit;
 }): boolean {
   const { attacker, target } = params;
   const raw = attacker.combat.attackDamage
@@ -155,6 +162,7 @@ export function resolveUnitAttackOnUnit(params: {
     effectiveMeleeArmor(target.unitType, target.combat.armor),
     effectivePierceArmor(target.unitType, pierceArmorTechBonus(target.combat)),
   );
+  params.recordPlayerHit(attacker.id, attacker.owner, target.id);
   attacker.combat.cooldownTicks = attacker.combat.reloadTicks;
   params.markDirty();
   params.markRender();
@@ -168,6 +176,7 @@ export function resolveUnitAttackOnUnit(params: {
     destroyUnit: params.destroyUnit,
     addKill: params.addKill,
     markDirty: params.markDirty,
+    recordPlayerHit: params.recordPlayerHit,
   });
 
   const primaryDied = target.combat.currentHp <= 0;
