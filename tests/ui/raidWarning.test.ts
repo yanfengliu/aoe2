@@ -74,6 +74,10 @@ function runMatch(speed: keyof typeof GAME_SPEEDS) {
   vi.spyOn(performance, 'now').mockImplementation(() => state.wallMs);
   const played: GameAudioCue[] = [];
   const said: string[] = [];
+  /** The blow each announcement names, and the tick the page was at when it
+   *  was made — the two clocks the sustained-raid spec once confused. */
+  const saidFor: number[] = [];
+  const saidOnTick: number[] = [];
   const controller = createGameAudioController({
     humanPlayerId: 1,
     getCurrentAge: () => 'dark-age',
@@ -85,7 +89,11 @@ function runMatch(speed: keyof typeof GAME_SPEEDS) {
     getOrderAcks: () => 0,
     getPrimarySelection: () => null,
     playCue: (cue) => played.push(cue),
-    announce: (text) => said.push(text),
+    announce: (text, hitTick) => {
+      said.push(text);
+      saidFor.push(hitTick);
+      saidOnTick.push(state.tick);
+    },
     storage: { getItem: () => null, setItem: () => {} },
   });
   function frame(frameMs = FRAME_MS) {
@@ -116,7 +124,7 @@ function runMatch(speed: keyof typeof GAME_SPEEDS) {
     state.feed = [];
     controller.resetForNewWorld();
   }
-  return { state, played, said, frame, runTo, loadSaveAt, controller };
+  return { state, played, said, saidFor, saidOnTick, frame, runTo, loadSaveAt, controller };
 }
 
 afterEach(() => {
@@ -132,9 +140,10 @@ describe('the words', () => {
     match.runTo(1_000);
     expect(ATTACK_WARNING_TEXT).toBe('You are under attack!');
     // 1,000 ticks of hits every 20 ticks from tick 20: horns at 20, 220, 420,
-    // 620 and 820 — and the words exactly beside each one.
+    // 620 and 820 — and the words exactly beside each one, naming its blow.
     expect(match.played.filter((cue) => cue === 'town-under-attack')).toHaveLength(5);
     expect(match.said).toEqual(Array(5).fill('You are under attack!'));
+    expect(match.saidFor, 'each announcement names the blow it is for').toEqual([20, 220, 420, 620, 820]);
   });
 
   it('are shown when the sound is muted', () => {
@@ -193,6 +202,11 @@ describe('the mark during a raid', () => {
   // apart, and a blow landing in the gap lit the mark again with no horn. Here
   // one frame steps ten ticks over the first blow (hit at 20, seen at 25), the
   // mark goes dark at 220, and the next blow lands at 222.
+  //
+  // The same case holds the words to the blow's clock (defect register
+  // 2026-09-24): the page made the two announcements at ticks 25 and 222, 197
+  // apart, for blows 202 apart. A check that stamps the words with the page's
+  // tick reads that as a throttle broken, so the words carry their blow's.
   it('sounds again for the first blow after the mark went dark, however far a frame stepped', () => {
     const match = runMatch('slow');
     match.state.hitAt = new Set([20, 222]);
@@ -206,6 +220,10 @@ describe('the mark during a raid', () => {
     match.runTo(222);
     expect(match.said, 'the mark went dark and the next blow came with no words').toHaveLength(2);
     expect(match.played).toEqual(['town-under-attack', 'town-under-attack']);
+    // First, that the two clocks disagree here; then which one the words carry.
+    expect(match.saidOnTick, 'the page was not a frame behind the first blow').toEqual([25, 222]);
+    expect(match.saidOnTick[1]! - match.saidOnTick[0]!).toBeLessThan(ATTACK_WARNING_THROTTLE_TICKS);
+    expect(match.saidFor, 'the words did not name the blows they announce').toEqual([20, 222]);
   });
 
   it('goes dark only when the next hit is sure to sound the horn and say so again', () => {

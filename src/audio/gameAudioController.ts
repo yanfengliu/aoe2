@@ -62,8 +62,11 @@ export interface GameAudioControllerDeps {
   getPrimarySelection: () => { id: number; role: string } | null;
   playCue: (cue: GameAudioCue) => void;
   /** Shows the attack warning's words (v0.3.229). Called outside the mute
-   *  switch, on the horn's throttled decision. */
-  announce: (text: string) => void;
+   *  switch, on the horn's throttled decision, with the tick of the blow the
+   *  words announce: the tick the throttle counts from. The page draws them
+   *  up to a frame of ticks later, so the tick it is at by then is not this
+   *  one (defect register 2026-09-24). */
+  announce: (text: string, hitTick: number) => void;
   storage: Pick<Storage, 'getItem' | 'setItem'>;
 }
 
@@ -125,7 +128,7 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
     // it (the independent review of v0.3.229 found the poll-tick version).
     if (hit.tick - lastHornTick < ATTACK_WARNING_THROTTLE_TICKS) return;
     lastHornTick = hit.tick;
-    announce(ATTACK_WARNING_TEXT);
+    announce(ATTACK_WARNING_TEXT, hit.tick);
     cue('town-under-attack');
   }
 

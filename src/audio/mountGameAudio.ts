@@ -35,7 +35,7 @@ export const WORLD_LOADED_EVENT = 'aoe2:world-loaded';
 export function mountGameAudio(
   bridgeRef: () => SimulationBridge,
   hudRoot: HTMLElement,
-  announce: (text: string) => void,
+  announce: (text: string, hitTick: number) => void,
 ): MountedGameAudio {
   let context: AudioContext | null = null;
   let ambience: AmbienceHandle | null = null;

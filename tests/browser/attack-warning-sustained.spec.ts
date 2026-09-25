@@ -31,6 +31,21 @@
 //  - Ticks per wall second must beat 10 (the fastest `slow` can go) to show
 //    `?speed=normal` took effect. A host under 4 frames a second cannot
 //    reach it and fails that check by name.
+//  - The words are spaced on the blow each one names (the toast's
+//    `data-hud-toast-hit-tick`), the clock the throttle counts on. Not on the
+//    tick the page is at when it draws them, which is up to a frame of ticks
+//    later: this spec stamped them that way until 2026-09-24, and horns for the
+//    blows at ticks 4 and 204, exactly 200 apart, read 199 whenever the frame
+//    that drew the first also stepped tick 5. That failed main's CI twice
+//    (defect register 2026-09-24).
+//  - Each named tick must fall in a frame across which the House lost health,
+//    so a toast naming no blow at all fails by name. That can tell a blow's
+//    frame, not which tick of it: the House gives no sight in this fixture,
+//    so the raiders and their swings are never drawn for the human, and the
+//    House's health, read once a frame, is the only record of the blows here.
+//    That the words carry the blow's own tick and not the tick of the frame
+//    that saw it is `tests/ui/raidWarning.test.ts`, across a frame that steps
+//    ten ticks.
 import { expect, test } from '@playwright/test';
 import { ALERT_SCREEN_PIXEL_FLOOR, WHITE_ENOUGH, countOnCanvas } from './helpers/attackWarningPixels';
 
@@ -44,10 +59,25 @@ interface Sample {
   houseHp: number | null;
 }
 
+/** An alert toast: its words, the blow it names, and the tick the page was
+ *  at when it drew it. Only the blow is the throttle's clock. */
+interface AlertToast {
+  text: string;
+  hitTick: number;
+  shownAtTick: number;
+}
+
+interface Sampled {
+  samples: Sample[];
+  timedOut: boolean;
+  /** The words raised up to the last sampled frame. */
+  toasts: AlertToast[];
+}
+
 declare global {
   interface Window {
     __aoe2CountAlert?: (canvas: HTMLCanvasElement, floor: number) => number;
-    __aoe2AlertToasts?: Array<{ text: string; tick: number }>;
+    __aoe2AlertToasts?: AlertToast[];
   }
 }
 
@@ -56,8 +86,8 @@ async function sampleFrames(
   page: import('@playwright/test').Page,
   houseId: number,
   stop: { ticksPast: number; msPast: number },
-): Promise<{ samples: Sample[]; timedOut: boolean }> {
-  return page.evaluate(({ id, ticksPast, msPast, floor }) => new Promise((resolve) => {
+): Promise<Sampled> {
+  return page.evaluate(({ id, ticksPast, msPast, floor }) => new Promise<Sampled>((resolve) => {
     const api = window.__AOE2_TEST__!;
     const canvas = document.querySelector<HTMLCanvasElement>('[data-hud="minimap"]')!;
     const samples: Sample[] = [];
@@ -67,7 +97,7 @@ async function sampleFrames(
     const finish = (timedOut: boolean): void => {
       if (settled) return;
       settled = true;
-      resolve({ samples, timedOut });
+      resolve({ samples, timedOut, toasts: [...window.__aoe2AlertToasts!] });
     };
     window.setTimeout(() => finish(true), 60_000);
     const step = (): void => {
@@ -101,7 +131,8 @@ test('a raid that keeps hitting keeps the warning up, and a pause does not take 
   await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
   expect(warnings, '?speed=normal must be accepted, or this is not the named speed').toEqual([]);
   await page.evaluate(`window.__aoe2CountAlert = ${countOnCanvas.toString()}`);
-  // Every alert toast the page raises, with the tick it appeared at.
+  // Every alert toast the page raises: the blow it names, and the tick the
+  // page had reached when it was drawn.
   await page.evaluate(() => {
     const api = window.__AOE2_TEST__!;
     window.__aoe2AlertToasts = [];
@@ -110,14 +141,20 @@ test('a raid that keeps hitting keeps the warning up, and a pause does not take 
       for (const record of records) {
         for (const node of record.addedNodes) {
           if (node instanceof HTMLElement && node.dataset.hudToastKind === 'alert') {
-            window.__aoe2AlertToasts!.push({ text: node.textContent ?? '', tick: api.getHudState().tick });
+            window.__aoe2AlertToasts!.push({
+              text: node.textContent ?? '',
+              hitTick: Number(node.dataset.hudToastHitTick),
+              shownAtTick: api.getHudState().tick,
+            });
           }
         }
       }
     }).observe(container, { childList: true });
   });
 
-  const houseId = await page.evaluate(async () => {
+  // The raid is ordered while paused, and the House's health read at that
+  // tick, before any blow: the start of the record the words are checked on.
+  const { houseId, before } = await page.evaluate(async () => {
     const api = window.__AOE2_TEST__!;
     const economy = api.getEconomyState();
     const house = economy.buildings.find((building) => building.owner === 1 && building.buildingType === 'house');
@@ -129,7 +166,8 @@ test('a raid that keeps hitting keeps the warning up, and a pause does not take 
       );
       if (!result.accepted) throw new Error(`owner 2's militia ${militia.id} refused the attack order: ${JSON.stringify(result)}`);
     }
-    return house.id;
+    const hp = api.getRenderState().entities.find((entity) => entity.id === house.id)?.currentHp ?? null;
+    return { houseId: house.id, before: { tick: api.getHudState().tick, houseHp: hp } };
   });
 
   // Run it: real time, at the named speed, sampled every frame.
@@ -159,10 +197,13 @@ test('a raid that keeps hitting keeps the warning up, and a pause does not take 
   expect(last.tick - lit.tick, 'the raid did not outlast the 200-tick throttle').toBeGreaterThan(200);
   expect(Math.max(...hitTicks), 'the raid stopped hitting before the window closed').toBeGreaterThan(last.tick - 40);
 
+  const toasts = running.toasts;
   test.info().annotations.push({
     type: 'measured',
     description: `${ticksPerSecond.toFixed(1)} ticks/s over ${samples.length} frames; lit at tick ${lit.tick}, `
-      + `${hitTicks.length} hits seen; dimmest lit frame ${Math.min(...samples.slice(litFrom).map((sample) => sample.lit)).toFixed(0)} px`,
+      + `${hitTicks.length} hits seen; dimmest lit frame ${Math.min(...samples.slice(litFrom).map((sample) => sample.lit)).toFixed(0)} px; `
+      + `words for the blows at ticks ${toasts.map((toast) => toast.hitTick).join(', ')}, `
+      + `drawn at ticks ${toasts.map((toast) => toast.shownAtTick).join(', ')}`,
   });
   // The claim: from the first lit frame on, no frame is dark.
   const dark = samples.slice(litFrom).filter((sample) => sample.lit < ALERT_SCREEN_PIXEL_FLOOR);
@@ -172,11 +213,25 @@ test('a raid that keeps hitting keeps the warning up, and a pause does not take 
   ).toEqual([]);
 
   // The words: one per horn, a throttle window apart, and exactly these.
-  const toasts = await page.evaluate(() => window.__aoe2AlertToasts!);
   expect(toasts.map((toast) => toast.text)).toEqual(Array(toasts.length).fill('You are under attack!'));
   expect(toasts.length, 'a raid spanning the throttle must be announced twice').toBeGreaterThanOrEqual(2);
+  // Instrument check: each toast names a tick no later than the one the page
+  // drew it at, inside a frame across which the House lost health. Otherwise
+  // its number is not a blow, and spacing it proves nothing.
+  const record = [before, ...samples];
+  for (const toast of toasts) {
+    expect(Number.isInteger(toast.hitTick), `the words drawn at tick ${toast.shownAtTick} carry no data-hud-toast-hit-tick`).toBe(true);
+    expect(toast.hitTick, 'the words named a tick after the one they were drawn at').toBeLessThanOrEqual(toast.shownAtTick);
+    const readBefore = record.filter((sample) => sample.tick < toast.hitTick).at(-1);
+    const readAfter = record.find((sample) => sample.tick >= toast.hitTick);
+    expect(
+      readBefore !== undefined && readAfter !== undefined && readAfter.houseHp! < readBefore.houseHp!,
+      `the words drawn at tick ${toast.shownAtTick} name tick ${toast.hitTick}, and the House's health went `
+        + `${readBefore?.houseHp} -> ${readAfter?.houseHp} between ticks ${readBefore?.tick} and ${readAfter?.tick}: no blow`,
+    ).toBe(true);
+  }
   for (let i = 1; i < toasts.length; i += 1) {
-    expect(toasts[i]!.tick - toasts[i - 1]!.tick, 'the words came faster than the horn is throttled').toBeGreaterThanOrEqual(200);
+    expect(toasts[i]!.hitTick - toasts[i - 1]!.hitTick, 'the words came faster than the horn is throttled').toBeGreaterThanOrEqual(200);
   }
 
   // Pause with the real key, and hold the pause past the old flash.

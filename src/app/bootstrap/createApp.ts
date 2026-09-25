@@ -414,7 +414,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   });
   const selectNextIdleVillagerAndCenter = registerSelectionRecallHotkeys(hotkeyRegistry, bridgeRef, view);
   // Audio cues (v0.3.109): horn, age-up fanfare, match stings, mute toggle.
-  const gameAudio = mountGameAudio(bridgeRef, hudRoot, (text) => hudController.toastHandle.showToast(text, { kind: 'alert' }));
+  const gameAudio = mountGameAudio(bridgeRef, hudRoot, (text, hitTick) => hudController.toastHandle.showToast(text, { kind: 'alert', hitTick }));
   // The look-it-up panels: technology tree on F1, civilizations on F4. Both
   // live in `referencePanels.ts` — see its header for why they are one role.
   const referencePanels = mountReferencePanels({
