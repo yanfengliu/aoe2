@@ -191,7 +191,7 @@ export const ART_STYLES: readonly ArtStyle[] = [
  *  SwiftShader (the de-look plan, decision D1; the flip in v0.3.233 went back in
  *  v0.3.234). This one constant is the whole flip, and a player's stored choice
  *  still wins over it. */
-export const DEFAULT_ART_STYLE_ID: ArtStyleId = 'moebius';
+export const DEFAULT_ART_STYLE_ID: ArtStyleId = 'de';
 
 export function isArtStyleId(value: unknown): value is ArtStyleId {
   return typeof value === 'string' && ART_STYLES.some((style) => style.id === value);
