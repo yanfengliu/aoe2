@@ -108,23 +108,29 @@ test('an enemy Town Centre shooting your villager raises the warning', async ({ 
   const hit = await page.evaluate(({ villagerId }) => {
     const api = window.__AOE2_TEST__!;
     const shooters = new Set<string>();
+    // Distances in the economy state's claimed cells, the cells melee reach is
+    // decided on; fog does not filter it, so every unit of owner 2 is there.
+    const cellOf = (id: number) => api.getEconomyState().units.find((unit) => unit.id === id) ?? null;
+    const nearestEnemyUnitTo = (cell: { x: number; y: number }): number => Math.min(...api.getEconomyState().units
+      .filter((unit) => unit.owner === 2)
+      .map((unit) => Math.hypot(unit.x - cell.x, unit.y - cell.y)));
     for (let step = 0; step < 4000; step += 1) {
       for (const shot of api.getInFlightProjectiles()) {
         if (shot.targetId === villagerId) {
           shooters.add(`${shot.attackerUnitType ?? 'building'}#${shot.attackerId}/owner${shot.attackerOwner}`);
         }
       }
+      const cellBefore = cellOf(villagerId);
       api.advanceTicks(1, 100);
       const villager = api.getRenderState().entities.find((entity) => entity.id === villagerId);
-      if (!villager) return { tick: api.getHudState().tick, hp: 'dead', shooters: [...shooters], nearestEnemyUnit: Number.NaN };
+      const cell = cellOf(villagerId) ?? cellBefore;
+      if (!villager || !cell) {
+        return { tick: api.getHudState().tick, hp: 'dead', shooters: [...shooters], nearestEnemyUnit: cell ? nearestEnemyUnitTo(cell) : -1 };
+      }
       if (villager.currentHp !== null && villager.maxHp !== null && villager.currentHp < villager.maxHp) {
-        // The nearest unit of owner 2, read from the economy state, which fog
-        // does not filter: a swing needs one beside the villager.
-        const nearestEnemyUnit = Math.min(...api.getEconomyState().units
-          .filter((unit) => unit.owner === 2)
-          .map((unit) => Math.hypot(unit.x - villager.x, unit.y - villager.y)));
         return {
-          tick: api.getHudState().tick, hp: `${villager.currentHp}/${villager.maxHp}`, shooters: [...shooters], nearestEnemyUnit,
+          tick: api.getHudState().tick, hp: `${villager.currentHp}/${villager.maxHp}`, shooters: [...shooters],
+          nearestEnemyUnit: nearestEnemyUnitTo(cell),
         };
       }
     }

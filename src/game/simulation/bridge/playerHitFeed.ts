@@ -61,8 +61,10 @@ export interface PlayerHitView {
 
 /** Records one blow on `targetId`. `attackerOwner` is null for wildlife. A
  *  target that is neither a unit nor a building (an animal being hunted) is
- *  nobody's economy, and is not recorded. Call it AFTER the hit points drop
- *  and BEFORE a killed target is destroyed, while its position still reads. */
+ *  nobody's economy, and is not recorded. Call it once the blow is sure to
+ *  land and BEFORE a killed target is destroyed, while its position still
+ *  reads: after the hit points drop, or just before the one call that drops
+ *  them and may raze the target (a shot at a building, `projectileOps.ts`). */
 export type RecordPlayerHit = (attackerId: number, attackerOwner: number | null, targetId: number) => void;
 
 /** Drops blows older than the feed's window. Blows arrive in tick order, so

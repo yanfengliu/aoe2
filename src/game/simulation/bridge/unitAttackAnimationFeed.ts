@@ -302,7 +302,10 @@ export function indexVisibleUnitAttackAnimations(
 }
 
 // Who this swing was between, when both ends are player-owned. `undefined`
-// leaves the attack warning silent — see `UnitAttackParticipants`. The two
+// is what a wildlife swing carries. Nothing reads these since v0.3.235, when
+// the attack warning moved to the hit feed (`playerHitFeed.ts`); they stay
+// because this feed is copied into replay snapshots, and bundles recorded
+// before then hold them — see `UnitAttackParticipants`. The two
 // component reads are the whole cost, and only on a tick that recorded a hit.
 function readAttackParticipants(
   world: GameWorld,
@@ -318,7 +321,7 @@ function readAttackParticipants(
   return {
     attackerOwner: attacker.owner,
     targetOwner: targetUnit ? targetUnit.owner : targetBuilding!.owner,
-    // The economy the warning is for: villagers and buildings. A soldier
+    // The economy the warning is for (on the hit feed now): villagers and buildings. A soldier
     // taking a hit is a fight, and a warning on every arrow is worse than
     // none — see `isAttackOnOwnEconomy` in src/ui/hud/attackWarning.ts.
     targetIsEconomy: targetBuilding !== undefined || targetUnit!.unitType === 'villager',

@@ -6,6 +6,7 @@ This changelog lists user-visible behavior changes only. Pure refactors, doc swe
 
 - **An enemy Town Centre, tower or Castle shooting your villagers now raises the attack warning.** You hear the horn, the message "You are under attack!" appears, and the minimap marks the spot, as in Definitive Edition. Until now only an enemy unit's own attack did that, so an enemy Town Centre could shoot a villager down to 10 of its 25 hit points with no sign on screen at all. The same goes for a mangonel stone or a bombardment that catches your villagers beside what it was aimed at, and for a demolition ship's blast.
 - **The warning comes when a blow lands.** An enemy archer's arrow warns you when it hits, not when it is loosed, and an arrow that misses does not warn you at all.
+- **In a team game, an ally's stone or charge landing among your villagers warns you too.** It is damage to your town by another player, so it sounds the horn like an enemy's.
 
 ## 0.3.234
 

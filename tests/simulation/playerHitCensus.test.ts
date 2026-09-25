@@ -21,11 +21,14 @@
 //
 // BOUNDS, so a green run is not read for more than it holds:
 //  - A death counts only when the entity is gone from the world, not when it
-//    merely left the map (garrisoned). An entity that dealt a blow on the tick
-//    it vanished is taken as a spent charge (a demolition ship), not as a
-//    death, and its own killing blow, if it had one, is not checked. A player
-//    deleting a unit, a razed building's garrison and a Monk's heresy remove
-//    entities without a blow; no scenario below does any of them.
+//    merely left the map (garrisoned). A demolition charge that struck on the
+//    tick it vanished was spent, not killed, and is not counted. A player's
+//    delete, a depleted farm, a razed building's garrison (never tracked: a
+//    garrisoned unit has no position) and a Monk's heresy remove entities
+//    without a blow; no scenario below does any of them.
+//  - A loss is read as the net change over a tick, so a foundation hit on the
+//    tick its builders add hit points can hide a blow. No scenario below hits
+//    a foundation.
 //  - Only the scenarios below, for their horizons. A damage path none of them
 //    reaches is not covered. The floors say which kinds each one reached.
 //  - The feed's contract only. That the warning reads the feed and shows the
@@ -35,6 +38,8 @@ import type { EntityRef } from 'civ-engine';
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { detonatesOnAttack } from '../../src/game/simulation/prototypeUnitRules';
+import type { UnitType } from '../../src/game/simulation/types';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
 
@@ -103,18 +108,22 @@ function census(bridge: Bridge, ticks: number, beforeTick?: (tick: number) => vo
     byAttacker: new Map(), onBuildingsBy: new Map(), widestBlow: 0,
   };
   let before = readOwned(bridge);
+  // Every player-owned entity seen so far, by id: a shot can land after its
+  // shooter died, and its owner still has to be checked.
+  const known = new Map(before);
   for (let step = 0; step < ticks; step += 1) {
     beforeTick?.(bridge.world.tick);
     bridge.step(100);
     const tick = bridge.world.tick;
     const after = readOwned(bridge);
+    for (const [id, entity] of after) known.set(id, entity);
     const blows = bridge.getRecentPlayerHits().filter((blow) => blow.tick === tick);
     const struck = new Set(blows.map((blow) => blow.targetId));
     const striking = new Set(blows.map((blow) => blow.attackerId));
     for (const [id, was] of before) {
       const gone = was.ref === null || !bridge.world.isCurrent(was.ref);
       if (gone) {
-        if (striking.has(id)) continue; // spent by its own charge
+        if (!was.building && detonatesOnAttack(was.type as UnitType) && striking.has(id)) continue; // spent by its own charge
         result.deaths += 1;
         if (!struck.has(id)) result.unrecorded.push(`tick ${tick}: owner ${was.owner}'s ${was.type} #${id} died and no blow was recorded`);
         continue;
@@ -133,7 +142,7 @@ function census(bridge: Bridge, ticks: number, beforeTick?: (tick: number) => vo
       if (target && standing && target.ref !== null && bridge.world.isCurrent(target.ref) && standing.hp >= target.hp) {
         result.phantom.push(`tick ${tick}: a blow was recorded on owner ${target.owner}'s ${target.type} #${blow.targetId}, which lost nothing`);
       }
-      const attacker = before.get(blow.attackerId) ?? after.get(blow.attackerId);
+      const attacker = before.get(blow.attackerId) ?? after.get(blow.attackerId) ?? known.get(blow.attackerId);
       const kind = attacker?.type ?? (blow.participants === undefined ? 'wildlife' : `gone #${blow.attackerId}`);
       result.byAttacker.set(kind, (result.byAttacker.get(kind) ?? 0) + 1);
       if (target?.building) result.onBuildingsBy.set(kind, (result.onBuildingsBy.get(kind) ?? 0) + 1);
