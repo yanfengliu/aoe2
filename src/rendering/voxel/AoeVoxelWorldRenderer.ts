@@ -24,6 +24,13 @@ import type { CameraState } from '../viewTypes';
 import { cameraStateToVoxelView } from './aoeCameraSync';
 import { AoeDeGround } from './aoeDeGround';
 import { packDeGround } from './aoeDeGroundData';
+import {
+  deGroundTierFor,
+  readDeGroundTierOverride,
+  webglRendererName,
+  type DeGroundTier,
+  type RendererNamingContext,
+} from './aoeDeGroundTier';
 import { AoeVoxelAdapter } from './aoeVoxelAdapter';
 import { AOE_DAYLIGHT } from './aoeVoxelDaylight';
 import type { AoeVoxelOverlayInput } from './aoeVoxelOverlayParts';
@@ -47,10 +54,11 @@ export interface AoeVoxelRuntime {
   dispose(): void;
 }
 
-/** The part of Three's `WebGLRenderer` an art style drives. */
+/** The part of Three's `WebGLRenderer` an art style drives, and the context the ground's tier is read from. */
 export interface ToneMappedRenderer extends RendererLike {
   toneMapping: ToneMapping;
   toneMappingExposure: number;
+  getContext?(): RendererNamingContext;
 }
 
 export interface AoeVoxelWorldRendererOptions {
@@ -71,6 +79,10 @@ export interface AoeVoxelRendererState {
   readonly artStyle: ArtStyleId;
   /** What draws the ground: the voxel chunks (`metrics.chunks`) or AoE's textured ground mesh. */
   readonly ground: ArtStyleGround;
+  /** Which shader the textured ground draws with when it shows (aoeDeGroundTier.ts). */
+  readonly groundTier: DeGroundTier;
+  /** The renderer the canvas's WebGL context names, which the tier is read from; null when it names none. */
+  readonly rasteriser: string | null;
   readonly metrics: ThreeRenderMetrics;
   /** Every call to frame() so far, by the frame loop or by a hit test that had
    *  to draw first. A call while the context is lost or restoring draws
@@ -123,6 +135,11 @@ export class AoeVoxelWorldRenderer {
   // content; the runtime adds only its root group and its daylight rig, which lights both.
   private readonly scene = new Scene();
   private readonly ground = new AoeDeGround();
+  // Read once, when the renderer is built; null lets the renderer's name decide.
+  private readonly groundTierOverride = readDeGroundTierOverride();
+  private rasteriser: string | null = null;
+  // A restored context can be a different renderer: Chromium falls back to SwiftShader when its GPU process fails.
+  private readonly redetectGroundTier = (): void => { this.detectGroundTier(); };
 
   constructor(options: AoeVoxelWorldRendererOptions) {
     this.width = options.width;
@@ -159,6 +176,7 @@ export class AoeVoxelWorldRenderer {
         const renderer = createWebGLRenderer(parameters);
         applyToneMapping(renderer, this.artStyle);
         this.webglRenderer = renderer;
+        this.detectGroundTier();
         return renderer;
       },
       tileWidthPixels: 64,
@@ -172,6 +190,7 @@ export class AoeVoxelWorldRenderer {
         powerPreference: 'high-performance',
       },
     });
+    this.canvas.addEventListener('webglcontextrestored', this.redetectGroundTier);
     options.host.append(this.canvas);
   }
 
@@ -197,6 +216,12 @@ export class AoeVoxelWorldRenderer {
     this.adapter.setExploredGround(style.exploredGround);
     this.applyGround(style.ground);
     this.artStyle = style;
+  }
+
+  /** The ground's tier from the renderer the WebGL context names (aoeDeGroundTier.ts), unless storage overrides it. */
+  private detectGroundTier(): void {
+    this.rasteriser = webglRendererName(this.webglRenderer?.getContext?.());
+    this.ground.setTier(this.groundTierOverride ?? deGroundTierFor(this.rasteriser));
   }
 
   /** One ground at a time: the voxel chunks leave the next snapshot when the textured ground shows, and come
@@ -297,6 +322,8 @@ export class AoeVoxelWorldRenderer {
       mode: 'voxel',
       artStyle: this.artStyle.id,
       ground: this.artStyle.ground,
+      groundTier: this.ground.tier,
+      rasteriser: this.rasteriser,
       metrics: this.runtime.metrics(),
       framesDrawn: this.frameIndex,
     };
@@ -371,6 +398,7 @@ export class AoeVoxelWorldRenderer {
     this.disposed = true;
     this.pendingHitState = null;
     this.presentedHitState = null;
+    this.canvas.removeEventListener('webglcontextrestored', this.redetectGroundTier);
     // The ground first: disposing the runtime disposes the WebGL renderer, after which Three no longer tracks
     // the ground's textures and could not free them.
     this.ground.dispose();

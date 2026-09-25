@@ -70,11 +70,12 @@ describe('AoeVoxelWorldRenderer art style', () => {
     if (!(mesh instanceof Mesh)) throw new Error('The runtime was not lent a scene holding aoe2-de-ground.');
     return mesh as Mesh<BufferGeometry, MeshLambertMaterial>;
   }
+  // fog: each cell's fog level, the R channel of the fields texture.
   function groundData(options: ThreeRenderRuntimeOptions): { cells: Uint8Array; fog: Uint8Array } {
     const uniforms = groundMesh(options).material.userData.deGroundUniforms as DeGroundUniforms;
     return {
       cells: (uniforms.deCells.value as DataTexture).image.data as Uint8Array,
-      fog: (uniforms.deFog.value as DataTexture).image.data as Uint8Array,
+      fog: ((uniforms.deFields.value as DataTexture).image.data as Uint8Array).filter((_, index) => index % 4 === 0),
     };
   }
 

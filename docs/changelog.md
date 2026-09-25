@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.236
+
+- **Natural costs less to draw on a computer that draws without a graphics card.** When the browser draws with the processor instead of a graphics card (Chrome falls back to its software renderer, SwiftShader, on some machines, and the automated browser tests draw that way too), the Natural style's ground now paints one texture per pixel instead of blending several. Each tile shows its own ground, sand lines the water and bare earth rings the buildings, and the edges between kinds follow the tile grid. The edge of the explored area still fades softly into black. A frame costs less there than in Moebius. With a graphics card nothing changes: the ground still blends softly. Moebius is still the default look.
+
 ## 0.3.235
 
 - **An enemy Town Centre, tower or Castle shooting your villagers now raises the attack warning.** You hear the horn, the message "You are under attack!" appears, and the minimap marks the spot, as in Definitive Edition. Until now only an enemy unit's own attack did that, so an enemy Town Centre could shoot a villager down to 10 of its 25 hit points with no sign on screen at all. The same goes for a mangonel stone or a bombardment that catches your villagers beside what it was aimed at, and for a demolition ship's blast.
