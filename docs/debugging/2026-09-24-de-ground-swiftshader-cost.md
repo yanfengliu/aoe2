@@ -39,7 +39,11 @@ The patch for the neighbourhood variant (packer, texture, shader) is kept at `tm
 The shipped ground ran nine cell fetches, six mipmapped surface samples and the whole blend for every ground fragment, unexplored ones included, because SwiftShader runs every branch; and on this map most known ground genuinely needs a blend of two surfaces plus the per-fragment 3x3 arithmetic, which cost as much again as the samples they feed. Only a fragment with nothing but its own surface near is as cheap as Moebius.
 
 ## Fix
-None landed here: v0.3.234 put Moebius back as the default. What would make the Natural default cheap enough, with what each costs:
+The coordinator chose the software tier (2026-09-25), and it landed in v0.3.237 (`src/rendering/voxel/aoeDeGroundTier.ts`): a CPU rasteriser, named by the game's own WebGL context, draws one surface sample per pixel, and a GPU keeps the blend, unchanged to the pixel on both rasterisers. Two findings changed what this record measured:
+- The one-sample arm below cost about Moebius only by luck of its sampling call. SwiftShader's explicit-gradient read (`textureGrad`, which the blend needs inside its branches) cost 0.18 of Moebius's whole frame more than a read at a mip level worked out from the fragment's own derivatives. A surface read inside a loop that a quad of unexplored fragments never enters also spares unexplored ground its read.
+- The `frameFinish.mjs` method counts the compositor's previous frame, the same in both styles, and so pulls every ratio toward 1 (the one-sample tier read 0.92 to 0.98 of Moebius on CI with it). Draining the GPU process's queue before the game's own callback, and timing only that callback, measures the game's frame: 0.85 to 0.87 on CI, 2.12 for the blend. `tests/browser/de-ground-frame-cost.spec.ts` uses that, and it is the gate the lesson named.
+
+What would have made the Natural default cheap enough, with what each costs, as weighed before the choice:
 - A software tier. When the renderer is SwiftShader (or another CPU rasteriser), draw each known fragment as its own surface with the fog rules kept (measured at 67-77 ms, about Moebius); a GPU keeps the blend. Costs a second path, and CI would then test a ground a GPU player does not see.
 - The suite pins Moebius for specs that are not about the look, and the Natural specs opt in. Keeps CI's time; leaves the Natural gameplay path untested on CI and the software-rendering player's cost unchanged. The decision record of 2026-09-24 argued against it.
 - A cheaper exact blend. The best exact structure measured is about 1.5-1.7 times Moebius; parity needs changes to the look, such as the kind weights from a hardware-filtered one-hot texture, the fade from a filtered explored mask instead of box distances, and one mip level per surface sample.
@@ -50,5 +54,4 @@ None landed here: v0.3.234 put Moebius back as the default. What would make the 
 - The revert's checks are in its commit (`0e00e74d`).
 
 ## Follow-ups
-- The owner's call among the options above, before the next attempt at decision D1.
-- The lesson in `docs/learning/lessons.md` stays open until a SwiftShader frame-cost spec lands with the ground change that makes Natural the default again; `frameFinish.mjs`'s method is the measurement that spec needs.
+- Closed 2026-09-25: the call among the options above was the software tier (v0.3.237), and the lesson in `docs/learning/lessons.md` left with the SwiftShader frame-cost spec that retires it (`docs/learning/gate-proofs.md`). The spec does not use `frameFinish.mjs`'s method, for the reason under Fix.

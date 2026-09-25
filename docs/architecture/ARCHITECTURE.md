@@ -236,7 +236,12 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     `aoeDeGroundDetail.ts`, per-cell kind, dirt and fog bytes packed by
     `aoeDeGroundData.ts`, spliced into Three's Lambert program by
     `aoeDeGroundShader.ts`), and the adapter leaves the terrain chunks and the
-    shore surf out of the snapshot while it shows. `rendering/voxel/` owns the sole world adapter,
+    shore surf out of the snapshot while it shows. The ground draws in one of two
+    tiers (`aoeDeGroundTier.ts`): the renderer factory asks the WebGL context it
+    built which renderer it names, again on a restored context, and a CPU
+    rasteriser such as SwiftShader gets one surface sample per pixel while
+    everything else keeps the blend; the tier is a define in the ground's one
+    material, and `aoe2:de-ground-tier` in localStorage overrides it for a spec. `rendering/voxel/` owns the sole world adapter,
     procedural art, feedback parts, and Three runtime integration.
     `aoeVoxelDaylight.ts` is the one source for the daylight rig the renderer
     hands to the runtime AND for the sun projection every entity's ground

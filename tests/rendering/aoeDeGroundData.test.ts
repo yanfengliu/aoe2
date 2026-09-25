@@ -5,6 +5,10 @@
 // unexplored cell holds": change any unexplored cell to every other kind, or put a building on it, and the bytes
 // must come out identical.
 //
+// The second texture, `fields`, is read linearly filtered, so each of its channels is a field between cell centres:
+// the fog level, the known mask, dirt and known water. The single-sample tier (aoeDeGroundTier.ts) reads the last
+// three in place of the 3x3 neighbourhood the blend reads, so they are held to the same rule.
+//
 // Bound: CPU data only, on one 8x8 map with one fog frame. That the shader draws kind 0 black, and fades known
 // ground toward it, is the browser suite's (tests/browser/de-ground.spec.ts).
 import { describe, expect, it } from 'vitest';
@@ -103,21 +107,27 @@ function fogFrame(): ProjectedFrameView {
 }
 
 describe('Natural ground data', () => {
-  it('packs each known cell\'s kind, and the fog level visible, explored and unexplored', () => {
+  it('packs each known cell\'s kind, the fog level visible, explored and unexplored, the known mask and known water', () => {
     const frame = fogFrame();
     const data = packDeGround(map(), frame, 0.6);
     expect(data.width).toBe(SIZE);
     expect(data.height).toBe(SIZE);
+    expect(data.fields.length).toBe(SIZE * SIZE * 4);
     const explored = new Set(frame.exploredCells);
     const visible = new Set(frame.visibleCells);
     for (let y = 0; y < SIZE; y += 1) {
       for (let x = 0; x < SIZE; x += 1) {
         const index = y * SIZE + x;
         const code = data.cells[index * 4];
-        if (explored.has(index)) expect(code, `cell (${x}, ${y})`).toBe(DE_GROUND_KIND_CODE[kindAt(x, y)]);
+        const known = explored.has(index);
+        if (known) expect(code, `cell (${x}, ${y})`).toBe(DE_GROUND_KIND_CODE[kindAt(x, y)]);
         else expect(code, `cell (${x}, ${y})`).toBe(DE_GROUND_UNEXPLORED);
-        expect(data.fog[index], `fog at (${x}, ${y})`).toBe(visible.has(index) ? 255 : 153);
         expect(data.cells[index * 4 + 3]).toBe(255);
+        const [level, knownByte, dirt, water] = data.fields.slice(index * 4, index * 4 + 4);
+        expect(level, `fog level at (${x}, ${y})`).toBe(visible.has(index) ? 255 : 153);
+        expect(knownByte, `known mask at (${x}, ${y})`).toBe(known ? 255 : 0);
+        expect(dirt, `dirt at (${x}, ${y})`).toBe(0);
+        expect(water, `known water at (${x}, ${y})`).toBe(known && kindAt(x, y) === 'water' ? 255 : 0);
       }
     }
   });
@@ -125,9 +135,10 @@ describe('Natural ground data', () => {
   it('with no fog frame, knows and sees every cell', () => {
     const data = packDeGround(map(), null, 0.6);
     expect(data.width).toBe(SIZE);
-    expect([...data.fog].every((level) => level === 255)).toBe(true);
     for (let index = 0; index < SIZE * SIZE; index += 1) {
-      expect(data.cells[index * 4]).toBe(DE_GROUND_KIND_CODE[kindAt(index % SIZE, Math.floor(index / SIZE))]);
+      const kind = kindAt(index % SIZE, Math.floor(index / SIZE));
+      expect(data.cells[index * 4]).toBe(DE_GROUND_KIND_CODE[kind]);
+      expect([...data.fields.slice(index * 4, index * 4 + 4)]).toEqual([255, 255, 0, kind === 'water' ? 255 : 0]);
     }
   });
 
@@ -135,6 +146,8 @@ describe('Natural ground data', () => {
     const kinds = (x: number, y: number): TerrainKind => (x === 4 && y === 2 ? 'water' : 'grass');
     const data = packDeGround([...map(kinds), building(2, 2, 2, 2)], null, 0.6);
     const dirtAt = (x: number, y: number) => data.cells[(y * SIZE + x) * 4 + 1];
+    // The filtered copy the single-sample tier reads holds the same byte in every cell.
+    for (let index = 0; index < SIZE * SIZE; index += 1) expect(data.fields[index * 4 + 2]).toBe(data.cells[index * 4 + 1]);
     expect(dirtAt(2, 2)).toBe(DE_GROUND_DIRT_FOOTPRINT);
     expect(dirtAt(3, 3)).toBe(DE_GROUND_DIRT_FOOTPRINT);
     expect(dirtAt(1, 1)).toBe(DE_GROUND_DIRT_RING);
@@ -157,11 +170,12 @@ describe('Natural ground data', () => {
           if (other === kindAt(x, y)) continue;
           const changed = packDeGround(map((cx, cy) => (cx === x && cy === y ? other : kindAt(cx, cy))), frame, 0.6);
           expect(changed.cells, `cell (${x}, ${y}) as ${other}`).toEqual(baseline.cells);
-          expect(changed.fog, `cell (${x}, ${y}) as ${other}`).toEqual(baseline.fog);
+          expect(changed.fields, `cell (${x}, ${y}) as ${other}`).toEqual(baseline.fields);
         }
         // A building standing only on unexplored ground: its ring would reach known cells beside it.
         const built = packDeGround([...map(), building(x, y, 1, 1)], frame, 0.6);
         expect(built.cells, `a building on cell (${x}, ${y})`).toEqual(baseline.cells);
+        expect(built.fields, `a building on cell (${x}, ${y})`).toEqual(baseline.fields);
       }
     }
     expect(unexplored).toBeGreaterThan(30);
@@ -183,6 +197,7 @@ describe('Natural ground data', () => {
       for (let x = 0; x < SIZE; x += 1) {
         const index = y * SIZE + x;
         if (!explored.has(index)) expect(data.cells[index * 4 + 1], `dirt at (${x}, ${y})`).toBe(0);
+        if (!explored.has(index)) expect(data.fields[index * 4 + 2], `filtered dirt at (${x}, ${y})`).toBe(0);
       }
     }
     expect(data.cells[(3 * SIZE + 4) * 4 + 1]).toBe(DE_GROUND_DIRT_FOOTPRINT);

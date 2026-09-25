@@ -32,13 +32,20 @@ export const DE_GROUND_DIRT_RING = 115;
 export interface DeGroundData {
   readonly width: number;
   readonly height: number;
-  /** RGBA per cell, row-major from (0, 0): R the kind code, G dirt (0-255), B 0, A 255. */
+  /** RGBA per cell, row-major from (0, 0): R the kind code, G dirt (0-255), B 0, A 255. Read unfiltered. */
   readonly cells: Uint8Array;
-  /** One byte per cell: how bright the fog leaves the ground, 255 for visible. An unexplored cell holds the
-   *  explored level, so linear filtering treats it as explored ground: a visible neighbour's outer half dims
-   *  toward it as toward any explored cell, and nothing is lit by it. The darkening toward black is the
-   *  shader's own, inside the known cell. */
-  readonly fog: Uint8Array;
+  /** RGBA per cell, row-major from (0, 0), read LINEARLY FILTERED, so each channel is a field that runs smoothly
+   *  from one cell centre to the next:
+   *  - R how bright the fog leaves the ground, 255 for visible. An unexplored cell holds the explored level, so
+   *    linear filtering treats it as explored ground: a visible neighbour's outer half dims toward it as toward
+   *    any explored cell, and nothing is lit by it. The darkening toward black is the shader's own.
+   *  - G 255 where the cell is known, 0 where it is unexplored.
+   *  - B the cell's dirt, the same byte as the cell texture's G.
+   *  - A 255 where the cell is known water.
+   *  The blend reads R alone. The single-sample tier (aoeDeGroundTier.ts) reads G, B and A in place of the 3x3
+   *  of cells the blend reads, so the fog rule holds for them as for the cells: nothing in them depends on
+   *  what an unexplored cell holds. */
+  readonly fields: Uint8Array;
 }
 
 function requireCell(entity: ProjectedEntityView, width: number, height: number): { x: number; y: number } {
@@ -85,7 +92,7 @@ export function packDeGround(
   }
   const count = width * height;
   const cells = new Uint8Array(count * 4);
-  const fog = new Uint8Array(count);
+  const fields = new Uint8Array(count * 4);
   const explored = frame ? new Set(frame.exploredCells) : null;
   const visible = frame ? new Set(frame.visibleCells) : null;
   const known = (index: number): boolean => explored === null || explored.has(index);
@@ -93,7 +100,7 @@ export function packDeGround(
 
   for (let index = 0; index < count; index += 1) {
     cells[index * 4 + 3] = 255;
-    fog[index] = visible === null || visible.has(index) ? 255 : exploredByte;
+    fields[index * 4] = visible === null || visible.has(index) ? 255 : exploredByte;
   }
   for (const entity of entities) {
     if (entity.layer !== 'terrain') continue;
@@ -109,6 +116,8 @@ export function packDeGround(
       );
     }
     cells[index * 4] = code;
+    fields[index * 4 + 1] = 255;
+    if (code === DE_GROUND_KIND_CODE.water) fields[index * 4 + 3] = 255;
   }
   // Dirt: every building the player knows of (live and visible, or remembered) marks its footprint and the ring
   // of cells around it. Water keeps none (a Dock stands on water), and neither does an unexplored cell. A
@@ -141,5 +150,6 @@ export function packDeGround(
       }
     }
   }
-  return { width, height, cells, fog };
+  for (let index = 0; index < count; index += 1) fields[index * 4 + 2] = cells[index * 4 + 1]!;
+  return { width, height, cells, fields };
 }

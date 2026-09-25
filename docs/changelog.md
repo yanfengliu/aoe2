@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.237
+
+- **Natural costs less to draw on a computer that draws without a graphics card.** When the browser draws with the processor instead of a graphics card (Chrome falls back to its software renderer, SwiftShader, on some machines, and the automated browser tests draw that way too), the Natural style's ground now paints one texture per pixel instead of blending several. Each tile shows its own ground, sand lines the water and bare earth rings the buildings, and the edges between kinds follow the tile grid. The edge of the explored area still fades softly into black. A frame costs less there than in Moebius. With a graphics card nothing changes: the ground still blends softly. Moebius is still the default look.
+
 ## 0.3.236
 
 - **The Siege Onager's stones splash.** A Siege Onager used to hit only the unit or building it aimed at. Its stone now hurts every unit within 1.5 tiles of where it lands, the units diagonal to its target included, friend and foe alike, as a Mangonel's and an Onager's already did.
