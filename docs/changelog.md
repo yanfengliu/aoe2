@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.236
+
+- **The Siege Onager's stones splash.** A Siege Onager used to hit only the unit or building it aimed at. Its stone now hurts every unit within 1.5 tiles of where it lands, the units diagonal to its target included, friend and foe alike, as a Mangonel's and an Onager's already did.
+- **A Siege Onager no longer fires at anything closer than 3 tiles**, like the Mangonel and the Onager, as in Definitive Edition. Now that its stones splash, a shot at point blank would have hit the units fighting beside it.
+- **Attack Ground keeps firing.** A Mangonel, Onager or Siege Onager told to attack the ground (G, then click the spot) fired one stone and then stood silent. It now bombards the spot every time it reloads, until you give it another order. A Siege Onager's ground order used to hit nothing at all; its stones now land and splash like the others'.
+- **Demolition Ships cannot attack the ground, as in Definitive Edition.** The order used to be accepted: the ship lobbed harmless shots at the spot and was never used up. Now a Demolition Ship ignores it, and in a mixed selection the siege that can attack the ground still does. A saved game in which a Demolition Ship held such an order drops it when loaded.
+- **Replays recorded before this version** that include a Siege Onager in a fight or an attack-ground order are re-simulated under the new rules, so they may not play out as they were recorded.
+
 ## 0.3.235
 
 - **An enemy Town Centre, tower or Castle shooting your villagers now raises the attack warning.** You hear the horn, the message "You are under attack!" appears, and the minimap marks the spot, as in Definitive Edition. Until now only an enemy unit's own attack did that, so an enemy Town Centre could shoot a villager down to 10 of its 25 hit points with no sign on screen at all. The same goes for a mangonel stone or a bombardment that catches your villagers beside what it was aimed at, and for a demolition ship's blast.

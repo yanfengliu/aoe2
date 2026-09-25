@@ -38,6 +38,7 @@ import type { EntityRef } from 'civ-engine';
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { BLAST_CENSUS_UNIT_TARGET, blastCensusSeed } from '../../src/game/simulation/fixtures/blastCensusLayout';
 import { detonatesOnAttack } from '../../src/game/simulation/prototypeUnitRules';
 import type { UnitType } from '../../src/game/simulation/types';
 
@@ -246,6 +247,26 @@ const SCENARIOS: Scenario[] = [
       const house = bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'house');
       if (!house) throw new Error('the fixture has no house of owner 2');
       orderAttack(bridge, ownUnit(bridge, 1, 'mangonel'), house.id);
+    },
+  },
+  // The Siege Onager's stone blasts where it lands (defect register
+  // 2026-09-24, "The Siege Onager fired direct hits with no splash"). On the
+  // blast census's fixture its target and the Villager diagonal to it, 1.41
+  // cells out and inside the 1.5 radius, both take the blow on the tick it
+  // lands. That the Villager just outside the radius is spared is the blast
+  // census's check (`blastCensus.test.ts`), not this one's.
+  {
+    name: "a Siege Onager stone's blast, reaching the diagonal",
+    seed: blastCensusSeed('siege-onager'),
+    ticks: 120,
+    attacker: 'siege-onager',
+    widestBlow: 2,
+    order: (bridge) => {
+      const target = bridge.getEconomyState().units.find(
+        (u) => u.owner === 2 && u.x === BLAST_CENSUS_UNIT_TARGET.x && u.y === BLAST_CENSUS_UNIT_TARGET.y,
+      );
+      if (!target) throw new Error('the blast census fixture has no unit target');
+      orderAttack(bridge, ownUnit(bridge, 1, 'siege-onager'), target.id);
     },
   },
   {

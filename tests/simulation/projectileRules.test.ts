@@ -54,14 +54,23 @@ describe('projectile rules — who fires, and how accurately', () => {
   });
 
   it('treats the mangonel line as area weapons that always land where aimed', () => {
-    expect(isAreaProjectile('mangonel')).toBe(true);
-    expect(isAreaProjectile('onager')).toBe(true);
+    // The whole line, the Imperial upgrade included: a hand list of its own
+    // once left the Siege Onager out (defect register, "The Siege Onager
+    // fired direct hits with no splash").
+    for (const unitType of ['mangonel', 'onager', 'siege-onager'] as const) {
+      expect(isAreaProjectile(unitType), unitType).toBe(true);
+      // An area weapon has no accuracy roll — its damage comes from the blast.
+      expect(unitAccuracy(unitType), unitType).toBe(1);
+    }
     for (const unitType of ['archer', 'scorpion', 'bombard-cannon', 'trebuchet'] as const) {
       expect(isAreaProjectile(unitType)).toBe(false);
     }
-    // An area weapon has no accuracy roll — its damage comes from the blast.
-    expect(unitAccuracy('mangonel')).toBe(1);
-    expect(unitAccuracy('onager')).toBe(1);
+    // The demolition line blasts by detonating against its target; it fires
+    // no shot at all.
+    for (const unitType of ['demolition-ship', 'heavy-demolition-ship'] as const) {
+      expect(firesProjectile(unitType), unitType).toBe(false);
+      expect(isAreaProjectile(unitType), unitType).toBe(false);
+    }
   });
 
   it('reports a positive accuracy for every projectile attacker', () => {

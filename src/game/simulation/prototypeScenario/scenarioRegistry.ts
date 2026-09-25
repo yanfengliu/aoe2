@@ -13,6 +13,8 @@ import * as fixtures from '../fixtures';
 // Imported directly, the way the map factories are: the barrel is at its
 // 500-line budget.
 import { createAiIdleSurplusFixture } from '../fixtures/aiIdleSurplus';
+import { createBlastCensusFixture } from '../fixtures/blastCensus';
+import { blastCensusSeed } from '../fixtures/blastCensusLayout';
 import { createCorridorSealFixture } from '../fixtures/corridorSeal';
 import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from '../fixtures/farmsAreWalkable';
 import { createRaidWarningFixture } from '../fixtures/raidWarning';
@@ -28,6 +30,7 @@ import {
   createNomadMap,
 } from '../mapGeneration/standardVariantMaps';
 import type { PrototypeScenario } from '../prototypeScenario';
+import { unitTypesWithBlast } from '../prototypeUnitRules';
 
 type ScenarioFactory = (seed: string) => PrototypeScenario;
 
@@ -359,4 +362,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['traffic-contest-fixture', createTrafficContestFixture],
   ['ai-idle-surplus-fixture', createAiIdleSurplusFixture],
   ['raid-warning-fixture', createRaidWarningFixture],
+  // The blast census: one fixture per unit with a blast radius, generated
+  // from the blast table, so a unit that gains a radius is censused too.
+  ...unitTypesWithBlast().map((unitType) => [blastCensusSeed(unitType), createBlastCensusFixture] as const),
 ]);

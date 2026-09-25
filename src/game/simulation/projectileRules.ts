@@ -13,7 +13,7 @@ import type { Position } from 'civ-engine';
 
 import { TPS } from './prototypeScenario';
 import type { UnitType } from './types';
-import { isMeleeUnit, unitAttackRange } from './prototypeUnitRules';
+import { isMeleeUnit, unitAttackRange, unitBlastRadius } from './prototypeUnitRules';
 
 /**
  * How close a projectile must land to a unit to connect, in tiles. A shot
@@ -120,11 +120,6 @@ const ATTACK_DELAY_SECONDS: Partial<Record<UnitType, number>> = {
   'elite-longboat': 0.0,
 };
 
-// The mangonel line does its damage with a blast at the impact point, so it
-// has no to-hit roll at all — the stone lands where it was aimed and everything
-// nearby suffers. units.csv leaves their accuracy column empty for this reason.
-const AREA_PROJECTILE_UNITS = new Set<UnitType>(['mangonel', 'onager']);
-
 /**
  * Whether this unit's attack flies as a projectile rather than landing
  * instantly. Ranged, non-melee attackers only: a battering ram has siege
@@ -135,9 +130,30 @@ export function firesProjectile(unitType: UnitType): boolean {
   return !isMeleeUnit(unitType) && unitAttackRange(unitType) > 1;
 }
 
-/** Whether the shot damages by blast at the impact point instead of on a hit. */
+/**
+ * Whether the shot damages by blast at the impact point instead of on a hit:
+ * every projectile attacker with a blast radius, which is the mangonel line.
+ * It has no to-hit roll at all — the stone lands where it was aimed and
+ * everything nearby suffers; units.csv leaves its accuracy column empty for
+ * this reason. Read from the blast table itself: a hand list of its own named
+ * the Mangonel and the Onager and not the Siege Onager, so the Imperial
+ * upgrade fired direct hits with no splash (defect register, "The Siege
+ * Onager fired direct hits with no splash", 2026-09-24).
+ */
 export function isAreaProjectile(unitType: UnitType): boolean {
-  return AREA_PROJECTILE_UNITS.has(unitType);
+  return firesProjectile(unitType) && unitBlastRadius(unitType) > 0;
+}
+
+/**
+ * Whether this unit may be ordered to attack the ground (spec §10.7): a unit
+ * whose shot blasts where it lands. The Demolition Ship line has a blast too,
+ * but it is its own detonation against a target, not a shot, and DE does not
+ * give it the order. DE also lets the Trebuchet, the Bombard Cannon and the
+ * Cannon Galleon and Turtle Ship lines attack the ground; their shots have no
+ * blast here, so a ground order would do nothing and they are refused.
+ */
+export function canAttackGround(unitType: UnitType): boolean {
+  return isAreaProjectile(unitType);
 }
 
 /**

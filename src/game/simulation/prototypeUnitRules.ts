@@ -307,3 +307,8 @@ const UNIT_BLAST_RADIUS: Partial<Record<UnitType, number>> = {
 export function unitBlastRadius(unitType: UnitType): number {
   return UNIT_BLAST_RADIUS[unitType] ?? 0;
 }
+
+/** Every unit with a blast radius: the blast census's roster. */
+export function unitTypesWithBlast(): UnitType[] {
+  return (Object.keys(UNIT_BLAST_RADIUS) as UnitType[]).filter((unitType) => unitBlastRadius(unitType) > 0);
+}

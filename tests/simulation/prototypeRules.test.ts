@@ -185,6 +185,11 @@ describe('prototype unit rules', () => {
   it('keeps key combat and vision values stable', () => {
     expect(unitAttackRange('trebuchet')).toBe(16);
     expect(unitMinAttackRange('bombard-cannon')).toBe(5);
+    // units.csv "3-7" and "3-8": the whole mangonel line, the Imperial
+    // upgrade included, holds fire inside 3.
+    for (const unitType of ['mangonel', 'onager', 'siege-onager'] as const) {
+      expect(unitMinAttackRange(unitType), unitType).toBe(3);
+    }
     expect(unitVisionRadius('hussar')).toBe(11);
     expect(attackBonusAgainstUnit('halberdier', 'paladin')).toBe(32);
     expect(attackBonusAgainstBuilding('bombard-cannon')).toBe(200);

@@ -4,10 +4,17 @@
 // (the resolver's `isArea` path). The order never self-clears: ground cannot
 // die, so the bombardment stands until the player says otherwise, exactly
 // AoE2's behaviour.
+//
+// The reload counts down here, as it does in the attack step for an entity
+// target. Until the defect register's "The Siege Onager fired direct hits
+// with no splash" (2026-09-24) nothing counted it down during this order, so
+// a bombardment fired one shot and then stood silent for as long as the order
+// stood.
 
 import type { Position } from 'civ-engine';
 
 import type { UnitComponent } from '../../types';
+import { canAttackGround } from '../../projectileRules';
 import { unitMinAttackRange } from '../../prototypeUnitRules';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import { combatStatesCodec, projectilesCodec } from '../bridgeStateSerialize';
@@ -43,11 +50,19 @@ export function runAttackGroundStep(deps: {
   } = deps;
 
   const combat = accessor.get(combatStatesCodec).get(id);
-  if (!combat || !command.target) {
+  // A unit that cannot attack the ground drops the order: the validator
+  // refuses it now, but a save made before that fix can still hold one on a
+  // Demolition Ship, which would lob shots that do nothing forever.
+  if (!combat || !command.target || !canAttackGround(unit.unitType)) {
     clearUnitCommand(id);
     return;
   }
   const cell = command.target;
+
+  if (combat.cooldownTicks > 0) {
+    combat.cooldownTicks -= 1;
+    accessor.markDirty(combatStatesCodec);
+  }
 
   if (manhattanDistance(position, cell) > combat.attackRange) {
     const plan = findUnitRangePlan(id, cell, combat.attackRange, world);

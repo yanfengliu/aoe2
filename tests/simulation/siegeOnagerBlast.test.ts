@@ -3,6 +3,12 @@
 // (√2 ≈ 1.41) an onager's 1.25 cannot. The table had listed siege-onager as
 // "off-roster" long after the roster and its upgrade line shipped, so the
 // upgrade silently changed nothing — a stale-deferral bug, El Dorado's twin.
+//
+// This file checks the radius on the pure function only, and that was not
+// enough: until the defect register's "The Siege Onager fired direct hits
+// with no splash" (2026-09-24) the Siege Onager's shot in live play was not
+// an area shot at all, so this radius reached no unit in a real match. The
+// live path is `blastCensus.test.ts`.
 
 import { describe, expect, it } from 'vitest';
 

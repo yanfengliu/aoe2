@@ -6,9 +6,16 @@
 import type { ResourceKind } from '../types';
 import type { UnitType } from '../unitTypes';
 
+// units.csv `range` gives the minimum before the dash. The Siege Onager's 3 was
+// missing, and once its shot blasted (defect register, "The Siege Onager fired
+// direct hits with no splash", 2026-09-24) a point-blank shot would have landed
+// its 1.5 blast on its own escorts. Other units' CSV minimums are not all here
+// yet (the Scorpion line, the Skirmisher line, the Trebuchet, the Cannon
+// Galleon line); that is flagged as its own task.
 export const UNIT_MIN_ATTACK_RANGE = new Map<UnitType, number>([
   ['mangonel', 3],
   ['onager', 3],
+  ['siege-onager', 3],
   ['bombard-cannon', 5],
 ]);
 
