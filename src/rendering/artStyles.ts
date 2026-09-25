@@ -3,15 +3,17 @@
 // Two ship (spec §14.5). `moebius` is voxel's stylized resolve pass tuned for
 // this game: ink contours over flat tone bands. `de` (the menu's "Natural") is
 // the way toward Age of Empires II: Definitive Edition's look: no resolve pass,
-// a filmic tone curve, and its own textured ground. Moebius is the DEFAULT.
-// The DE style was the default in v0.3.233 (the de-look plan's decision D1)
-// and went back one menu row in v0.3.234: its ground doubled the frame time on
-// SwiftShader, the CPU rasteriser CI draws with (CI's live frame median 116.6 ms
-// in Moebius against 233.3 ms). It becomes the default again once that ground
-// costs no more there than the voxel ground. The owner withdrew the unstyled
-// "Painted" look on 2026-09-03, and step 1's DE frame was that same unstyled
-// render with a better grade, so the default waited until the style looked its
-// own.
+// a filmic tone curve, and its own textured ground. The DE style is the
+// DEFAULT (the de-look plan's decision D1). It first was in v0.3.233 and went
+// back one menu row in v0.3.234, because its ground doubled the frame on
+// SwiftShader, the CPU rasteriser CI draws with. From v0.3.236 a CPU rasteriser
+// draws that ground one surface sample per pixel (voxel/aoeDeGroundTier.ts), and
+// the default view then costs less there than Moebius's (0.85-0.87 of it on
+// CI, tests/browser/de-ground-frame-cost.spec.ts), so it is the default again
+// from v0.3.237. The owner withdrew the unstyled "Painted" look on 2026-09-03,
+// and step 1's DE frame was that same unstyled render with a better grade, so
+// the default waited until the style looked its own. Moebius stays one menu row
+// away.
 //
 // A style is a player setting: it lives in `artStylePreference.ts`, never in
 // world state, saves or replays. Adding a style is adding an entry to
@@ -187,11 +189,11 @@ export const ART_STYLES: readonly ArtStyle[] = [
   },
 ];
 
-/** Moebius, until the DE style's ground costs no more than the voxel ground on
- *  SwiftShader (the de-look plan, decision D1; the flip in v0.3.233 went back in
- *  v0.3.234). This one constant is the whole flip, and a player's stored choice
- *  still wins over it. */
-export const DEFAULT_ART_STYLE_ID: ArtStyleId = 'moebius';
+/** The DE style (the de-look plan, decision D1): the default in v0.3.233, Moebius
+ *  again in v0.3.234, and the DE style again from v0.3.237, once its ground cost
+ *  less than Moebius's on SwiftShader. This one constant is the whole flip, and a
+ *  player's stored choice still wins over it. */
+export const DEFAULT_ART_STYLE_ID: ArtStyleId = 'de';
 
 export function isArtStyleId(value: unknown): value is ArtStyleId {
   return typeof value === 'string' && ART_STYLES.some((style) => style.id === value);
