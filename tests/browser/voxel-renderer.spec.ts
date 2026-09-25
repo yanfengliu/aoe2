@@ -51,11 +51,11 @@ test.describe('voxel world renderer', () => {
     expect(result.worldRect.width).toBeGreaterThan(0);
     expect(result.worldRect.height).toBeGreaterThan(0);
     expect(result.pointerEvents).toBe('auto');
-    // The default style (Natural, v0.3.233) draws AoE's own ground mesh in place
-    // of the voxel terrain, so the runtime holds no terrain chunks; Moebius holds
-    // the map's twelve 16x16 chunks (60x36 cells).
+    // The default style (Moebius) holds the map's twelve 16x16 terrain chunks
+    // (60x36 cells); the Natural style draws AoE's own ground mesh in place of
+    // the voxel terrain and holds none.
     const terrainChunks = result.state.ground === 'voxel' ? 12 : 0;
-    expect(result.state.ground).toBe('textured');
+    expect(result.state.ground).toBe('voxel');
     expect(result.state.metrics).toMatchObject({
       state: 'running',
       acceptedEpoch: 'aoe2:bridge:0',
@@ -86,10 +86,10 @@ test.describe('voxel world renderer', () => {
     expect(result.state.metrics!.drawCalls).toBeLessThanOrEqual(20);
     expect(result.state.metrics!.triangles).toBeLessThan(200_000);
     expect(result.state.metrics!.rendererGeometries).toBeLessThanOrEqual(20);
-    // Measured 2026-09-24 at boot: the default Natural style holds 5 (one the
-    // runtime holds, and the textured ground's cells, fog, surfaces and macro
-    // field); Moebius holds 4 (its resolve pass's targets) and no ground textures.
-    expect(result.state.metrics!.rendererTextures).toBeLessThanOrEqual(5);
+    // Measured 2026-09-24 at boot: Moebius, the default, holds 4 (its resolve
+    // pass's targets) and no ground textures; the Natural style holds 5 (one the
+    // runtime holds, and the textured ground's cells, fog, surfaces and macro field).
+    expect(result.state.metrics!.rendererTextures).toBeLessThanOrEqual(4);
   });
 
   test('presents paused click-selection feedback without waiting for a simulation tick', async ({

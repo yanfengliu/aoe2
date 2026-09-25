@@ -17,11 +17,12 @@ import {
 } from '../../src/rendering/artStyles';
 
 describe('the art-style roster', () => {
-  it('ships Moebius and the DE style, with the DE style the default', () => {
-    // Decision D1 of the de-look plan: the default flipped to the DE style when
-    // its textured terrain landed (v0.3.233), not before.
+  it('ships Moebius and the DE style, with Moebius the default', () => {
+    // Decision D1 of the de-look plan: the default flips to the DE style when its
+    // textured terrain lands. It did in v0.3.233 and went back in v0.3.234: that
+    // ground doubled CI's SwiftShader frame, and the flip waits until it does not.
     expect(ART_STYLES.map((style) => style.id)).toEqual(['moebius', 'de']);
-    expect(DEFAULT_ART_STYLE_ID).toBe('de');
+    expect(DEFAULT_ART_STYLE_ID).toBe('moebius');
     expect(new Set(ART_STYLES.map((style) => style.label)).size).toBe(ART_STYLES.length);
   });
 

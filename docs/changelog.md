@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.234
+
+- **The game opens in the Moebius art style again.** The Natural style, the default look in 0.3.233, is still one click away: open the game menu (Esc, or the menu button at the top right) and, under Settings, click the art style row that reads Moebius. Natural's painted ground made each frame take about twice as long to draw on a computer that draws without a graphics card, which is how the automated browser tests draw, and Natural becomes the default again once it costs no more there than Moebius. The choice is remembered in this browser, so if you picked Natural you keep it.
+
 ## 0.3.233
 
 - **The game now opens in the Natural art style.** Natural, with its painted ground, soft fog and no outlines, is the default look. Moebius, the ink-and-flat-colour look that was the default until now, is one click away: open the game menu (Esc, or the menu button at the top right) and, under Settings, click the art style row that reads Natural; it switches to Moebius at once, with no reload. The choice is remembered in this browser, so if you had already picked Moebius you keep it.

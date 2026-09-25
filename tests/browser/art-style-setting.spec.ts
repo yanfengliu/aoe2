@@ -119,38 +119,38 @@ test.describe('art style setting and fog of war', () => {
     await page.evaluate(() => window.__AOE2_TEST__!.setCameraZoom(0.7));
     await game.waitForRenderedFrames(page, 2);
 
-    // The DE style (Natural) is the default since its textured terrain landed
-    // (v0.3.233, decision D1); Moebius is one click on the menu row away.
-    expect(await artStyleDrawn(page)).toBe('de');
-    await expectUnexploredGroundHidden(page, 'de');
-    const deFrame = await page.evaluate(() => window.__AOE2_TEST__!.captureWorldFrame().dataUrl);
+    // Moebius is the default (decision D1: the DE style was the default in v0.3.233 and went back in v0.3.234,
+    // because its ground doubled CI's SwiftShader frame).
+    expect(await artStyleDrawn(page)).toBe('moebius');
+    await expectUnexploredGroundHidden(page, 'moebius');
+    const moebiusFrame = await page.evaluate(() => window.__AOE2_TEST__!.captureWorldFrame().dataUrl);
 
     await page.keyboard.press('Escape');
     const row = page.locator('[data-hud="menu-art-style-cycle"]');
-    await expect(row).toHaveAccessibleName('Art style: Natural');
-    await row.click();
     await expect(row).toHaveAccessibleName('Art style: Moebius');
-    await expect(page.locator('[data-hud="menu-art-style"]')).toHaveText('Moebius');
-    expect(await artStyleDrawn(page)).toBe('moebius');
-    expect(await page.evaluate(() => window.localStorage.getItem('aoe2:art-style'))).toBe('moebius');
+    await row.click();
+    await expect(row).toHaveAccessibleName('Art style: Natural');
+    await expect(page.locator('[data-hud="menu-art-style"]')).toHaveText('Natural');
+    expect(await artStyleDrawn(page)).toBe('de');
+    expect(await page.evaluate(() => window.localStorage.getItem('aoe2:art-style'))).toBe('de');
     // Live, with no reload: the paused canvas itself is drawn differently.
     await game.waitForRenderedFrames(page, 2);
-    const moebiusFrame = await page.evaluate(() => window.__AOE2_TEST__!.captureWorldFrame().dataUrl);
-    expect(moebiusFrame).not.toBe(deFrame);
-    await expectUnexploredGroundHidden(page, 'moebius');
+    const deFrame = await page.evaluate(() => window.__AOE2_TEST__!.captureWorldFrame().dataUrl);
+    expect(deFrame).not.toBe(moebiusFrame);
+    await expectUnexploredGroundHidden(page, 'de');
 
     // The choice survives a reload, and the row names the style drawn.
     await page.reload();
     await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
     await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
-    expect(await artStyleDrawn(page)).toBe('moebius');
-    await page.keyboard.press('Escape');
-    await expect(row).toHaveAccessibleName('Art style: Moebius');
-
-    // And the row wraps back to Natural.
-    await row.click();
-    await expect(row).toHaveAccessibleName('Art style: Natural');
     expect(await artStyleDrawn(page)).toBe('de');
-    expect(await page.evaluate(() => window.localStorage.getItem('aoe2:art-style'))).toBe('de');
+    await page.keyboard.press('Escape');
+    await expect(row).toHaveAccessibleName('Art style: Natural');
+
+    // And the row wraps back to Moebius.
+    await row.click();
+    await expect(row).toHaveAccessibleName('Art style: Moebius');
+    expect(await artStyleDrawn(page)).toBe('moebius');
+    expect(await page.evaluate(() => window.localStorage.getItem('aoe2:art-style'))).toBe('moebius');
   });
 });

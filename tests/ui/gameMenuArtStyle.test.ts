@@ -44,7 +44,7 @@ describe('game-menu art style row', () => {
 
     createGameMenu(root, {});
 
-    expect(row(root).state.textContent).toBe('Natural');
+    expect(row(root).state.textContent).toBe('Moebius');
   });
 
   it('cycles on click and republishes the new label to both surfaces', () => {

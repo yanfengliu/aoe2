@@ -10,7 +10,7 @@ When the gate lands, prove it red by reintroducing the defect, record that in [g
 
 ## Rules
 
-_Empty._
+- A change to what every frame draws is measured on SwiftShader, on CI's four CPUs, against the default it would replace, before it becomes the default. The local suite draws on the GPU on Windows, so a doubled SwiftShader frame passed it and failed CI. Gate it will retire with: a browser spec, run on SwiftShader, that draws the default view in both art styles in one page and fails when the DE style's frame costs more than Moebius's; it lands with the ground change that makes the DE style the default again. [Evidence](lessons-evidence.md#the-default-look-that-doubled-cis-frame-2026-09-24).
 
 (The duration-budget rule was deleted on 2026-09-06 without a gate, because the
 gate it named was BUILT and the measurement REFUSED it: per-test duration on one

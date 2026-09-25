@@ -63,9 +63,9 @@ test.describe('voxel behind-building unit silhouette', () => {
     // white silhouette fails. "Bright" is a blue channel above 150, which the
     // cue reaches in both art styles and a white or grey one never does with
     // blue 50 over red: measured 2026-09-24 at boot, 27 such pixels in Moebius
-    // (whose resolve lifts chroma) and 121 in the Natural style, the default
-    // since v0.3.233, whose Lambert-lit cue under ACES never passes 200 in blue.
-    // The threshold was 200, tuned when Moebius was the only default.
+    // (whose resolve lifts chroma) and 121 in the Natural style, whose
+    // Lambert-lit cue under ACES never passes 200 in blue. The threshold was 200,
+    // tuned when Moebius was the only style this spec ran in.
     const cuePixels = await page.evaluate(async (screen) => {
       const api = window.__AOE2_TEST__!;
       const frame = api.captureWorldFrame();
