@@ -152,7 +152,8 @@ jobs:
   # Half of `npm run verify` had never run remotely. The gate is
   # `content:validate && test && typecheck && test:browser && lint && build`;
   # the job above runs everything except `test:browser`, and nothing in this
-  # repository installed a browser outside the nightly LLM workflow. So every
+  # repository installed a browser outside the nightly LLM workflow (deleted
+  # 2026-09-25, when the owner retired it). So every
   # spec under tests/browser/ existed only as something ONE developer machine
   # had run — and on 2026-09-06 that machine was shown to be unrepresentative:
   # `tests/scripts/ciStatus.test.ts` passed there and failed on a clean Windows

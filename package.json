@@ -11,8 +11,6 @@
     "run-oracles": "tsx scripts/run-oracles.mjs",
     "playtest:corpus": "tsx scripts/playtest-corpus.mjs",
     "playtest:llm": "tsx scripts/playtest-llm.mjs",
-    "playtest:corpus-llm": "tsx scripts/playtest-corpus-llm.mjs",
-    "playtest:corpus-dashboard": "tsx scripts/playtest-corpus-llm-dashboard.mjs",
     "playtest:findings": "tsx scripts/playtest-findings.mjs",
     "playtest:self-improve": "tsx scripts/playtest-self-improve.mjs",
     "replay:inspect": "tsx scripts/replay-inspect.mjs",

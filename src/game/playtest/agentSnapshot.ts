@@ -31,8 +31,8 @@ const MAX_NEARBY_RESOURCES = 64;
 // if `ownerId` can currently see cell (x,y). When the predicate is
 // undefined OR `omniscient: true` is passed to buildAgentSnapshot, the
 // snapshot reverts to global ground-truth (intentional cheat-mode —
-// opt-in via --omniscient; since 2026-06-10 the corpus smoke row runs
-// fog-filtered like every default run). When provided, `enemiesFor` filters out enemies whose
+// opt-in via --omniscient; since 2026-06-10 every run without it is
+// fog-filtered). When provided, `enemiesFor` filters out enemies whose
 // footprint sits entirely in fog so the LLM doesn't get a free scout.
 export type VisibilityProbe = (ownerId: number, x: number, y: number) => boolean;
 

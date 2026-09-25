@@ -22,7 +22,7 @@
 //                                set. Explicit value overrides detection.
 //   --use-dev-server             dev mode (vite); default uses vite preview
 //   --no-screenshot              disable screenshot capture (token-only mode)
-//   --screenshot-every <ticks>   dashboard checkpoint screenshot cadence
+//   --screenshot-every <ticks>   checkpoint screenshot cadence
 //                                (default 1000; 0 disables; use multiples of
 //                                --decision-interval so captures land)
 //   --omniscient                 cheat-mode snapshot (Phase-6.B)
@@ -337,10 +337,10 @@ async function main() {
     mkdirSync(dirname(traceFilePath), { recursive: true });
     if (existsSync(traceFilePath)) writeFileSync(traceFilePath, ''); // truncate
 
-    // Dashboard checkpoint ticks: every --screenshot-every ticks up to
-    // maxTicks (option C — captures feed the corpus dashboard only; no
-    // baseline diffing, because a non-deterministic player has no
-    // "correct" reference image).
+    // Checkpoint ticks: every --screenshot-every ticks up to maxTicks
+    // (option C — captures are for a reader of the run and for
+    // playtest:findings; no baseline diffing, because a non-deterministic
+    // player has no "correct" reference image).
     const screenshotCheckpointTicks = [];
     if (args.screenshotEvery > 0) {
       for (let t = args.screenshotEvery; t <= args.maxTicks; t += args.screenshotEvery) {
@@ -375,12 +375,12 @@ async function main() {
       },
     });
 
-    // Stamp seed + maxTicks on the envelope for the dashboard's run
-    // table. The runner doesn't know these values; only the script does.
+    // Stamp seed + maxTicks on the envelope, so a saved envelope names
+    // its match. The runner doesn't know these values; only the script does.
     result.envelope.seed = args.seed;
     result.envelope.maxTicks = args.maxTicks;
 
-    // Persist checkpoint screenshots for the corpus dashboard
+    // Persist checkpoint screenshots for a reader of the run
     // (${out}-screenshots/<tick>.png). Option C (2026-06-10): no
     // baseline comparison — see design/spec-final.md §15.7.
     if (result.checkpointScreenshots.length > 0) {

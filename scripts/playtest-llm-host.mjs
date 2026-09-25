@@ -109,7 +109,7 @@ export async function makePlaywrightHost(page, hostOptions = {}) {
     },
     async snapshotForAgent(ownerId) {
       // Phase-6.B (impl-2 M7): forward host-level omniscient flag so the
-      // snapshot honors visibility-gating per the corpus row / CLI flag.
+      // snapshot honors visibility-gating per the --omniscient flag.
       return await page.evaluate(
         ([id, opts]) => window.__AOE2_TEST__.agent.snapshotForAgent(id, opts),
         [ownerId, { omniscient }],

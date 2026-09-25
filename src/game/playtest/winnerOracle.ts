@@ -2,8 +2,8 @@
 // playtests. Pure scoring function: takes per-owner entity counts at
 // the end of the run and returns whether anyone won, the game is
 // still in progress, or everybody died (tie). Result is appended to
-// the run envelope as `winner` so corpus runners + dashboards can
-// surface the outcome alongside cost/duration.
+// the run envelope as `winner` so a reader of the run, and the
+// conformance probe of `playtest:findings`, see the outcome.
 //
 // Pure data — no I/O, no engine coupling. The runner script collects
 // per-owner counts via the host (which reads the engine's
@@ -26,7 +26,7 @@ export function extractWinner(counts: PerOwnerEntityCounts): WinnerResult {
     }
   }
   // Ascending owner-id sort for stable serialization in trace logs +
-  // dashboard tables. Object.entries iteration order is insertion
+  // envelopes. Object.entries iteration order is insertion
   // order on modern engines, which is unstable for runtime-built
   // counts; pin it explicitly.
   aliveOwners.sort((a, b) => a - b);

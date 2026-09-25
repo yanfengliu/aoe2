@@ -10,7 +10,7 @@
 //
 // BOUND. This proves the trigger ASKS for a run on every push to main. It does not prove GitHub made one (a `[skip ci]`
 // commit message, an Actions outage, or an exhausted queue still leave a commit without a run; `ci:status` reports
-// those as UNGATED), and it says nothing about pull requests, schedules or the unwatched nightly LLM workflow.
+// those as UNGATED), and it says nothing about pull requests or schedules.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';

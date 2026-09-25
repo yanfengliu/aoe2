@@ -19,7 +19,7 @@
 //     passes `--shard=<shard>/<strategy.job-total>`, so the matrix and the
 //     split cannot disagree and no shard's specs are silently skipped.
 //
-// BOUND: this reads ci.yml only, not playtest.yml or playtest-llm.yml. It
+// BOUND: this reads ci.yml only, not playtest.yml. It
 // proves the check is wired and judges correctly; whether a real runner stays
 // under the ceiling is only known from real runs (the numbers are in ci.yml's
 // browser-job comment). It does not prove Playwright's `--shard` covers every

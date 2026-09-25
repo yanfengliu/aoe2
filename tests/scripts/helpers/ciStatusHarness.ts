@@ -37,7 +37,9 @@ export const fixture = (name: string): string =>
 // not byte-for-byte what every scenario commit carried. Those commits run from 2026-08-28 (`619e3994`) to 2026-09-05,
 // none of them had `.gitattributes` in the filter yet, and `619e3994` also lacked `.github/workflows/**`. Neither
 // changed-files fixture names either path, so no outcome here depends on the difference. The case that judges a
-// commit against TODAY's workflows reads the real files instead.
+// commit against TODAY's workflows reads the real files instead. `playtest-llm.yml` stays in this set after the
+// workflow's deletion on 2026-09-25: the judged commits carried it, the script reads every workflow file at the
+// commit, and its name, `playtest-corpus-llm`, begins with a watched one's.
 export const FILTERED_WORKFLOWS: Record<string, string> = {
   'ci.yml': fixture('workflow--ci.yml'),
   'playtest.yml': fixture('workflow--playtest.yml'),

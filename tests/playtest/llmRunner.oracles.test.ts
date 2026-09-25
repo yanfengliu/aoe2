@@ -12,7 +12,7 @@ import {
 
 describe('runLlmPlaytest — oracle wiring (checkpoints, screenshots, winner)', () => {
   // Checkpoint screenshots are captured at any checkpoint tick the
-  // loop's advance crosses (dashboard-only since option C). Verify the captures land in
+  // loop's advance crosses (for a reader of the run and for playtest:findings; option C). Verify the captures land in
   // result.checkpointScreenshots in tick-ascending order.
   it('captures checkpoint screenshots at screenshotCheckpointTicks the advance crosses', async () => {
     const host = new StubHost(MIN_BUNDLE);

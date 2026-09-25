@@ -73,8 +73,8 @@ export interface LlmRunnerConfig {
   screenshotEnabled: boolean;
   // Optional callback invoked once per decision (for trace streaming).
   onDecision?: (entry: TraceEntry) => void;
-  // Checkpoint ticks at which to capture an extra screenshot for the
-  // corpus dashboard (option C, 2026-06-10: no baseline comparison —
+  // Checkpoint ticks at which to capture an extra screenshot for a
+  // reader of the run (option C, 2026-06-10: no baseline comparison —
   // LLM runs are non-deterministic, so there is no "correct" reference
   // image; render regressions are covered by the deterministic
   // Playwright/browser suites). A capture fires only when an advance
@@ -102,8 +102,8 @@ export interface RunnerEnvelope {
   runStartedAt: string;
   runCompletedAt: string;
   errorMessage?: string;
-  // The corpus dashboard needs the run's seed + maxTicks for the
-  // run table. The runner itself doesn't know these (they come from
+  // The run's seed + maxTicks, so a saved envelope names its match.
+  // The runner itself doesn't know these (they come from
   // the runner script's CLI args), so the script stamps them onto
   // the envelope after `runLlmPlaytest` returns. Optional in the
   // type so unit tests that build envelopes manually don't have to
@@ -125,7 +125,7 @@ export interface RunLlmPlaytestResult {
   // screenshotEnabled was false or no decisions ran.
   finalScreenshotPng?: Uint8Array;
   // Per-checkpoint screenshots captured during the run, persisted by
-  // the script for the corpus dashboard. Empty when no
+  // the script to `<out>-screenshots/`. Empty when no
   // `screenshotCheckpointTicks` were configured or `screenshotEnabled`
   // was false.
   checkpointScreenshots: Array<{ tick: number; pngBytes: Uint8Array }>;
@@ -146,7 +146,7 @@ export async function runLlmPlaytest(input: {
   // Keep the most-recent screenshot so the decoupled post-hoc
   // conformance probe has the final-tick visual context to inspect.
   let lastScreenshotPng: Uint8Array | undefined;
-  // Checkpoint captures for the corpus dashboard.
+  // Checkpoint captures, persisted to `<out>-screenshots/` by the script.
   const checkpointScreenshots: Array<{ tick: number; pngBytes: Uint8Array }> = [];
   // Sort screenshot checkpoints ascending so the "crosses checkpoint"
   // detection is monotonic. Defensive copy so we don't mutate the
@@ -287,10 +287,10 @@ export async function runLlmPlaytest(input: {
       // no ticks move between there and here, so they remain current.)
 
       // Capture screenshots ONLY when an advance lands exactly on a
-      // checkpoint tick (dashboard thumbnails; no baseline diffing). If
+      // checkpoint tick (for a reader of the run; no baseline diffing). If
       // the advance overshoots a checkpoint (decisionInterval doesn't
       // divide it), the checkpoint is SKIPPED with a warn — better no
-      // thumbnail than a wrong-tick one.
+      // screenshot than a wrong-tick one.
       //
       // Operator guidance: align screenshotCheckpointTicks to
       // multiples of decisionIntervalTicks (the script derives them

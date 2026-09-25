@@ -1,5 +1,7 @@
 # A Definitive Edition art style, with Moebius kept — plan
 
+Status (2026-09-25, D3): the owner answered D3, *"Yes include HUD"*. The coordinator's reading, recorded as the coordinator's and not as the owner's words: the HUD becomes Definitive-Edition-like, and there is ONE HUD; Moebius stays selectable as an art style for the game world only. Section 7's gaps H1–H7 are steps now, ranked into the summary table; the next HUD step is H4 (villagers per resource), after step 3. Nothing HUD-side is built. The spec (§2.1, §14.1, §14.5) and the local rules record the decision; the rule it supersedes, "HUD styling: modern, not medieval" (2026-08-18), is rewritten rather than kept beside it.
+
 Status (2026-09-24, cost): why the Natural ground is dear on SwiftShader is traced in `docs/debugging/2026-09-24-de-ground-swiftshader-cost.md`: SwiftShader runs every branch of a shader, every texture read is a routine call, and on `aoe2-prototype` most known ground genuinely blends two surfaces. Measured on four CPUs at 800x600: Moebius 68-73 ms a frame, Natural as shipped 118-121, Natural with one surface sample per fragment 67-77. Loop-guarded branches and a one-fetch neighbourhood kept the picture to the pixel but saved nothing measurable. Redoing D1 needs an owner decision among a software tier (one sample per fragment when the renderer is a CPU rasteriser), pinning Moebius in the suite for specs not about the look, a cheaper blend that changes the look, or accepting the cost.
 
 Status (2026-09-24, D1 undone): Moebius is the default again from v0.3.234, and Natural is one menu row away. With Natural the default, main's CI browser shards ran 50-60% longer and two frame-timed specs failed: the ground doubled the live frame on CI's SwiftShader (233.3 ms against 116.6 in `unit-motion-smoothness.spec.ts`). Step 2 stays shipped; D1 is redone once the ground costs no more on SwiftShader than the voxel ground, measured on CI's CPU budget against Moebius and gated (the lesson in `docs/learning/lessons.md`). The GPU frame figure in the step 2 line below is withdrawn: its probe read animation-frame intervals, which do not measure a frame.
@@ -20,22 +22,31 @@ Written by the de-look scoping worker from main `9d660210`. Captures and experim
 
 ## The decision this plan serves
 
-The owner said on 2026-09-23: *"try to make it look as close to DE as possible, which preserve the other option of moebius"*. The coordinator reads this as follows: a Definitive Edition art style becomes the default once it exists, and Moebius, today's only style, stays selectable (spec §14.5, north-star paragraph and art-style bullet). All art stays original or procedural; no Age of Empires asset is reproduced (local rules, "What done means"). The owner has not said whether the DE target reaches the HUD, so the game world is scoped first and HUD gaps are listed apart (section 7).
+The owner said on 2026-09-23: *"try to make it look as close to DE as possible, which preserve the other option of moebius"*. The coordinator reads this as follows: a Definitive Edition art style becomes the default once it exists, and Moebius, today's only style, stays selectable (spec §14.5, north-star paragraph and art-style bullet). All art stays original or procedural; no Age of Empires asset is reproduced (local rules, "What done means"). The game world was scoped first, because the owner had not yet said whether the target reaches the HUD. On 2026-09-25 the owner said it does (*"Yes include HUD"*, decision D3), so the HUD steps are section 7, ranked into the table below.
 
 ## Ranked summary
 
 Ranked by visual impact per unit of work. Sizes: S is about one worker session, M is two to four, L is a week of lanes, XL is several weeks. "Voxel change" means an edit to the sibling `../voxel` repo.
+
+The HUD steps (H1–H7, section 7) joined on 2026-09-25 and are ranked by the same measure. A row's `#` is its step's id, which older text refers to, so the rows are in rank order and the ids are not consecutive. Steps 1 and 2 have shipped (v0.3.227 and v0.3.232). Two HUD rows are placed by a dependency as well as by the measure: H5 lands with or after H1, and H6 takes its frame from H1 and H2.
 
 | # | Gap closed | Where it lives | Approach | Size | Impact | Voxel change |
 |---|---|---|---|---|---|---|
 | 1 | Ink contours, tone bands and 1.4x chroma on every pixel; fog too dark or leaky | `src/rendering/` (styles, renderer, adapter), game menu, capture script | A DE style: no resolve pass, ACES tone mapping, DE fog levels. A style roster with DE the default and Moebius one menu row away | S–M | Whole frame | None |
 | 2 | Terrain is one flat colour per tile, with tile-aligned seams and fog edges | `src/rendering/` (new DE terrain module), adapter | An AoE-owned shader terrain in a borrowed Three scene. It replaces the voxel terrain chunks in the DE style only | M–L | About two thirds of the frame | None (measured, E3) |
 | 3 | Units are coloured by type, not by owner; chunky proportions | Owner palette (`playerColors.ts`, unit tint tables), unit recipes | One saturated colour per player on every unit's cloth at every tier, in AoE2's order; realistic proportions. Changes the spec's v0.3.60 player-colour rule | S–M | Armies, readability | None |
+| H4 | The resource bar shows totals only; DE shows how many villagers work each resource | HUD state projection, `hudTemplate.ts`, `createHudController.ts` | A count of the player's own villagers per gathered resource beside each stockpile | S | Every frame; the economy at a glance | None |
 | 4 | Every model is built from axis-aligned cubes; trees are short blocks | Shared geometries, part type, resource recipes | Add round and sloped part shapes, then DE-proportioned trees and dense forests | M | Every base and map edge | None |
+| H7 | Browser-default cursors; selection is thick yellow cell diamonds and green bars | Cursor CSS, `aoeVoxelOverlayParts.ts` | Original procedural cursors that change with the order under them; slim selection rings and health bars, one set in both art styles | M | Every selection and every fight | None |
+| H1 | Dark-glass panels with one hairline border | `hudChrome.css`, tokens in `styles.css`, `hudPalette.test.ts` | One DE-like procedural theme (a stone or wood face, a bevel, a metal trim), then one theme per civilization architecture set | M, then S–M | The whole HUD | None |
+| H5 | HUD type is IBM Plex Sans; DE uses a display serif | `--font-ui` in `styles.css`, the HUD sheets | A serif for headings and labels, bundled with the build the way IBM Plex Sans is (`@fontsource`). With or after H1 | S | Every label | None |
+| H2 | Floating panels; DE has one full-width bottom panel and a resource strip at the top left | `hudTemplate.ts`, `hudChrome.css`, `hudCommandPanel.css`, the HUD-shape browser specs | DE's layout: commands left, selection in the centre, minimap right, resources top left, with the local rules' HUD-shape rules kept | L | The whole HUD's shape | None |
 | 5 | Water is flat tiles with foam drawn along tile edges | DE terrain shader (step 2) | Depth gradient, animated ripples and glint, beaches, rolling shore foam | M | Water maps, shores | None |
 | 6 | Shadows are hard 22%-opacity slabs; no ambient occlusion | Renderer | Shadow maps with AoE-owned lights. AO needs a post pass: AoE owns the draw (embedded mode) or voxel gains a pass | M–L | Depth on everything | Only for the voxel AO route |
+| H6 | The minimap has one mode; not compared with DE in detail | `minimap.ts`, `minimapInput.ts` | Compare first; then normal, combat and economy modes, and the frame from H1 and H2 | M | The minimap | None |
 | 7 | Buildings are squat boxes with stepped roofs and flat colour | Building recipes (after step 4); texture lane | Sloped roofs, taller walls, round towers, props, per-age versions. Surface texture needs a decision (section 5) | L–XL | Bases | Maybe (texture lane) |
 | 8 | Unit bodies are box stacks | Unit recipes (after step 4) | Rounded limbs and torsos, family by family | L | Armies | None |
+| H3 | Procedural SVG glyphs, letters in circles for units; DE has painted portraits | `src/ui/hud/icons/`, the selection panel | Original painted-style portraits for units, buildings and technologies, generated at runtime (spec §14.1 and §14.5 allow no image files for icons) | L–XL | Command panel and selection | None |
 | 9 | No ambient life | New effect recipes | Birds with shadows, collapse dust, smoke on damaged buildings | M | Low | None |
 
 Deferred, each XL: raised terrain (the sim, render, picking, pathing and line of sight all change; spec §14.5 keeps it deferred), DE-grade animation, and per-civilization facade geometry (spec §14.5 lists it as deferred).
@@ -289,23 +300,72 @@ Docs:
 
 **Size and risk.** Size S–M. Low technical risk. The main risk is the owner reading DE v0 as the Painted style withdrawn on 2026-09-03. DE v0 differs from Painted in tone mapping, exposure and fog levels, but it keeps the same models and flat terrain (decision D1).
 
-## 7. HUD gaps (pending the owner's answer)
+## 7. HUD steps (in scope since 2026-09-25)
 
-The owner set a modern HUD on 2026-08-18 (spec §14.1, local rules "HUD styling: modern, not medieval"), and the 2026-09-23 decision does not mention it. DE's HUD art is copyrighted, so a DE-like HUD would still have to be original.
+The owner set a modern HUD on 2026-08-18, and the 2026-09-23 decision did not mention the HUD. Asked, the owner put it inside the target on 2026-09-25: *"Yes include HUD"* (decision D3). The coordinator reads this as ONE HUD: every H step changes the HUD in both art styles, H7's in-world marks included, and Moebius stays an art style for the game world only. DE's HUD art is copyrighted, so each step evokes it in original procedural art (spec §14.1).
 
-- **H1 chrome.** Ours is dark glass with one hairline border. DE uses themed panels per civilization, in stone, wood or metal, with emblems.
-- **H2 layout.** DE has a full-width bottom panel (command grid left, selection in the centre, minimap right) and a resource strip at the top left. Ours has floating panels: selection and commands at the bottom left, the minimap at the bottom right, and a full-width top bar.
-- **H3 icons.** DE uses painted portraits for units, buildings and technologies. Ours are procedural SVG glyphs, with letters in circles for units in the command deck (`13-army-crowd.png`). Original painted-style portraits would be a large procedural-art job.
-- **H4 resource bar.** DE shows villagers per resource beside each stockpile. Ours shows totals, age, population and time.
-- **H5 type.** DE uses a display serif; ours uses IBM Plex Sans.
-- **H6 minimap.** DE's minimap has terrain colours and normal, combat and economy modes. Ours is a diamond in a sunken well. Not compared in detail.
-- **H7 cursors and in-world UI.** DE has themed cursors and slim selection rings. Ours marks selection with thick yellow cell diamonds and green bars (`13-army-crowd-1x.png`). Low confidence on DE's exact styling.
+Each step is its own lane in its own worktree, like the world steps. It proves itself with before and after captures at 800x600, 1280x720 and 1920x1080, a pixel diff showing the change confined to the HUD (and, for H7, the marks), the HUD-shape browser specs, and a whole-frame look. Until a step lands, what it replaces keeps shipping and keeps its gates. The gaps below come from the default captures only (section 10), so each step first compares its own surface with DE more closely than this section did. Ranks are in the summary table.
+
+**Step H1 — chrome.** Ours is dark glass with one hairline border. DE uses themed panels per civilization, in stone, wood or metal, with emblems.
+
+- First one DE-like theme: opaque panels with a procedural stone or wood face, a bevel and a metal trim, drawn with CSS gradients and inline SVG patterns. No image files.
+- Judge every texture at the sizes the HUD renders. The wood-plank chrome of 2026-06-16 was dropped because its grain read as a plaid moire there (spec §14.1).
+- Re-measure the contrast floors (4.5:1 text, 3:1 labels) against the new face. `tests/ui/hudPalette.test.ts` has two checks that guard the modern chrome, the ban on the old wood-and-stone literals and the reduced-transparency fallback; this step revises them.
+- Then one theme per civilization architecture set.
+- Write the surfaces as token-driven classes, so H2 can join them into one frame without redoing them.
+
+Cost M for the first theme, S–M for the per-civilization set. Lives in `src/hudChrome.css` and the tokens in `src/styles.css`.
+
+**Step H2 — layout.** DE has a full-width bottom panel (command grid left, selection in the centre, minimap right) and a resource strip at the top left. Ours has floating panels: selection and commands at the bottom left, the minimap at the bottom right, and a full-width top bar.
+
+- Move to DE's layout and keep every rule in the local rules' "The HUD holds its shape, and nothing floats over the minimap": no button moves or shrinks when a mode starts, nothing floats over the minimap, the bar never hides what it holds (the common cards fit outright at 800x600 and the rest is reachable by wheeling the deck), and the bar never reaches the centre of the canvas.
+- How much of a small window the bottom panel may take is an open owner question (the 2026-09-05 register entry on the command bar's empty glass, now in `docs/learning/defect-register-past.md`). Measure DE's own proportion and propose it, rather than settle it.
+- Risks, from the local rules: a test that picks a world cell by pointer reachability chooses a different cell when the bar's height changes, and a test that clicks near the bottom of the canvas may find the bar in the way. On 2026-09-25, 11 browser spec and helper files named a HUD panel class and 12 specs named the minimap.
+
+Cost L. Lives in `src/ui/hud/hudTemplate.ts`, `hudChrome.css`, `hudCommandPanel.css`, `tooltips.ts` and those specs.
+
+**Step H3 — portraits.** DE uses painted portraits for units, buildings and technologies. Ours are procedural SVG glyphs, with letters in circles for units in the command deck (`13-army-crowd.png`). Original painted-style portraits are a large procedural-art job.
+
+- One route for units and buildings: render the game's own models once per page into small portraits under a portrait light. Technologies have no model and need authored procedural art.
+- Two spec rules allow no image files for icons: §14.1's resource and build icons paragraph and §14.5's HUD icons bullet. So a portrait is generated at runtime, or both rules are changed explicitly first.
+- Every icon keeps its visible label or its accessible name (spec §14.1).
+
+Cost L–XL. Lives in `src/ui/hud/icons/` and the selection panel.
+
+**Step H4 — villagers per resource.** DE shows how many villagers work each resource beside its stockpile. Ours shows totals, age, population and time.
+
+- Add the count from a HUD projection of the player's own villagers by the resource each one works. The AI groups its villagers by `gatherer.desiredResource` (`villagersByKind` in `src/game/simulation/bridge/aiDecisionOps.ts`), which is a starting point, not the answer: that is the assignment, so a villager who is building, idle or walking to a new site still counts there. Decide against DE which of those count.
+- Only the player's own villagers are counted, so nothing reaches the HUD through fog.
+
+Cost S. Lives in the HUD state projection, `hudTemplate.ts` and `createHudController.ts`.
+
+**Step H5 — type.** DE uses a display serif; ours is IBM Plex Sans (`--font-ui` in `src/styles.css`).
+
+- A serif for headings and labels, bundled with the build the way IBM Plex Sans is (`@fontsource/ibm-plex-sans`, imported in `src/main.ts`). The "no external fonts" in spec §14.1's game-menu paragraph rules out a font served from another site, not a bundled one.
+- With or after H1: a serif on the dark glass would mix the two looks.
+- Check labels at 10px and the command deck's fit at 800x600, since wider letters change widths.
+
+Cost S.
+
+**Step H6 — minimap.** DE's minimap has terrain colours and normal, combat and economy modes. Ours has one mode, a diamond in a sunken well; it already draws terrain per cell and unexplored ground black. Not compared in detail.
+
+- Compare first. Then add the modes as a control, and take the frame from H1 and H2.
+
+Cost M. Lives in `src/ui/hud/minimap.ts` and `minimapInput.ts`.
+
+**Step H7 — cursors and in-world marks.** DE has themed cursors that change with what is under them, and slim selection rings and health bars. Ours uses the browser's default cursors everywhere, and marks selection with thick yellow cell diamonds and green bars (`13-army-crowd-1x.png`). Medium confidence on DE's cursor set, low on its rings' exact styling.
+
+- Original procedural cursors, set in CSS: the default pointer, and one for each order a right-click would give (attack, gather, build, garrison).
+- A screenshot does not show the cursor, so the cursor half is checked by reading the computed `cursor` under the pointer over each kind of target, not by a pixel diff.
+- Slim rings and bars in place of the diamonds and bars, in `src/rendering/voxel/aoeVoxelOverlayParts.ts`, one set in both art styles.
+
+Cost M.
 
 ## 8. Decisions for the coordinator and the owner
 
 - **D1: when the default flips.** Recommend flipping at step 1, as the coordinator reads the owner's words. The DE frame is closer to DE on contours, palette and fog. The risk is named in section 6, and the fallback is one constant, `DEFAULT_ART_STYLE_ID`. The alternative is to hold the flip until step 2 lands, when the terrain first looks DE-specific.
 - **D2: is Moebius a frozen frame, or a treatment over the same models?** Recommend a treatment. There would be one set of recipes and colours and two frame treatments: steps 3, 4, 7 and 8 change both styles, and steps 1, 2, 5 and 6 are DE-only. Freezing Moebius instead would fork every recipe and the owner palette by style and double their upkeep. Step 3 also rewrites the spec's v0.3.60 player-colour rule, whichever way this goes.
-- **D3: HUD** in or out of the DE target. This is the owner's question.
+- **D3: HUD** in or out of the DE target. **Answered by the owner, 2026-09-25:** *"Yes include HUD"*. The coordinator's reading, recorded as the coordinator's and not as the owner's words: the HUD becomes Definitive-Edition-like, and there is ONE HUD; Moebius stays selectable as an art style for the game world only. Section 7's gaps are steps H1–H7, ranked in the summary table.
 - **D4: ambient occlusion and model texture.** Choose between a voxel feature and AoE owning the draw (embedded mode). Needed only at steps 6 and 7.
 
 ## 9. Found in passing

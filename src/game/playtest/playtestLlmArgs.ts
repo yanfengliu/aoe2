@@ -76,7 +76,7 @@ export function parsePlaytestLlmArgs(argv: readonly string[]): PlaytestLlmArgs {
     provider: null, // null = auto-detect
     useDevServer: false,
     noScreenshot: false,
-    screenshotEvery: 1000, // dashboard checkpoint cadence; 0 disables
+    screenshotEvery: 1000, // checkpoint screenshot cadence; 0 disables
     omniscient: false,
     knownFindings: null,
   };

@@ -54,8 +54,12 @@
 //   `.github/actions/`, through the body of a reusable workflow this repo calls
 //   (the caller's `secrets:` key is read, the callee's file never is), or
 //   through an environment-scoped secret would all pass. There is nothing to
-//   miss today: `.github/` holds `voxel-commit` and three workflow files, and
+//   miss today: `.github/` holds `voxel-commit` and two workflow files, and
 //   no `.github/actions/` exists.
+// * No workflow here references a secret since `playtest-llm.yml` was deleted
+//   on 2026-09-25 (the owner retired the nightly LLM playtest). So check (3)
+//   holds nothing today; it guards the next key-bearing workflow, and the
+//   fixtures in (2) are what show it still can.
 // * It says nothing about the controls that live in GitHub's web UI rather
 //   than in the repository — Actions variables, environment protection rules,
 //   the default workflow token permission, "require approval for fork pull
