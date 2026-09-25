@@ -197,6 +197,26 @@ try {
       }
     }, style);
   }
+  // GROUND_TIER=blend|single-sample draws the Natural ground with that shader
+  // whatever the rasteriser (src/rendering/voxel/aoeDeGroundTier.ts): unset,
+  // SwiftShader draws one sample per pixel and a graphics card the blend, so
+  // this is how the blend is looked at on SwiftShader.
+  const groundTier = process.env.GROUND_TIER ?? '';
+  if (groundTier) {
+    if (groundTier !== 'blend' && groundTier !== 'single-sample') {
+      throw new Error(
+        'GROUND_TIER selects the Natural ground\'s shader and must be "blend" or "single-sample"; '
+        + `got "${groundTier}".`,
+      );
+    }
+    await page.addInitScript((chosen) => {
+      try {
+        window.localStorage.setItem('aoe2:de-ground-tier', chosen);
+      } catch {
+        // Refused below, where the drawn tier is read back.
+      }
+    }, groundTier);
+  }
   await page.addInitScript(() => {
     const timer = window.setInterval(() => {
       if (!window.__AOE2_TEST__) return;
@@ -227,7 +247,15 @@ try {
     return info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : undefined;
   });
   refuseFrameFromOtherRasteriser(launch.rasteriser, drawnBy);
-  console.log(`drawn by ${drawnBy}`);
+  const drawnTier = await page.evaluate(() => window.__AOE2_TEST__?.getWorldRendererState().groundTier);
+  if (groundTier && drawnTier !== groundTier) {
+    throw new Error(
+      `GROUND_TIER=${groundTier} was asked for, but the ground draws with "${drawnTier}": the tier is read from `
+      + 'localStorage (aoe2:de-ground-tier) when the renderer is built. Capture a build that has the tier '
+      + '(v0.3.235 or later), from an origin whose storage is not blocked.',
+    );
+  }
+  console.log(`drawn by ${drawnBy}${drawnTier ? `, ground tier ${drawnTier}` : ''}`);
   // Freeze the sim the moment it boots: the page otherwise free-runs in real
   // time through staging (BUILD/FOCUS/ZOOM evaluates take real seconds), so a
   // capture's tick was "TICKS plus however long the tooling took" — and any

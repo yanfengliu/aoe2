@@ -7,6 +7,9 @@
 // voxel slab shows at the map's edge (y from -1 to 0). Everything on it comes from the shader
 // (aoeDeGroundShader.ts): the per-cell data changes with the fog every frame, the geometry only when the map
 // size does. Nothing here animates, so a paused frame is the same frame.
+//
+// It draws in one of two tiers (aoeDeGroundTier.ts): the full blend, or one surface sample per pixel where the
+// renderer is a CPU rasteriser. The tier is a define in the one material, so each tier is its own program.
 
 import {
   BufferGeometry,
@@ -19,7 +22,6 @@ import {
   Mesh,
   MeshLambertMaterial,
   NearestFilter,
-  RedFormat,
   RepeatWrapping,
   RGBAFormat,
   SRGBColorSpace,
@@ -36,6 +38,7 @@ import {
   deGroundMacroBytes,
 } from './aoeDeGroundDetail';
 import { DE_GROUND_PROGRAM_KEY, spliceDeGroundShader, type DeGroundUniforms } from './aoeDeGroundShader';
+import type { DeGroundTier } from './aoeDeGroundTier';
 
 /** The map's top face and its four edge faces, in world units: a cell (x, z) spans [x, x+1] x [z, z+1]. */
 export function createDeGroundGeometry(width: number, height: number): BufferGeometry {
@@ -104,10 +107,8 @@ function cellTexture(data: DeGroundData): DataTexture {
   return texture;
 }
 
-function fogTexture(data: DeGroundData): DataTexture {
-  const texture = new DataTexture(data.fog.slice(), data.width, data.height, RedFormat, UnsignedByteType);
-  // A width that is not a multiple of four would otherwise be read with four-byte row padding.
-  texture.unpackAlignment = 1;
+function fieldsTexture(data: DeGroundData): DataTexture {
+  const texture = new DataTexture(data.fields.slice(), data.width, data.height, RGBAFormat, UnsignedByteType);
   texture.magFilter = LinearFilter;
   texture.minFilter = LinearFilter;
   texture.wrapS = ClampToEdgeWrapping;
@@ -130,23 +131,24 @@ export class AoeDeGround {
   private detail: DataArrayTexture | null = null;
   private macro: DataTexture | null = null;
   private cells: DataTexture | null = null;
-  private fog: DataTexture | null = null;
+  private fields: DataTexture | null = null;
   private width = 0;
   private height = 0;
   /** Whether the style draws this ground; it shows once there is also ground to draw. */
   private shown = false;
+  private drawnTier: DeGroundTier = 'blend';
 
   constructor() {
     const material = new MeshLambertMaterial({ color: 0xffffff });
     this.uniforms = {
       deCells: { value: null },
-      deFog: { value: null },
+      deFields: { value: null },
       deDetail: { value: null },
       deMacro: { value: null },
       deMapSize: { value: this.mapSize },
     };
     material.onBeforeCompile = (shader) => spliceDeGroundShader(shader, this.uniforms);
-    material.customProgramCacheKey = () => DE_GROUND_PROGRAM_KEY;
+    material.customProgramCacheKey = () => `${DE_GROUND_PROGRAM_KEY}:${this.drawnTier}`;
     // Read-only diagnostics: the textures the shader samples, so a test can see what the ground was given.
     material.userData.deGroundUniforms = this.uniforms;
     this.mesh = new Mesh(createDeGroundGeometry(1, 1), material);
@@ -172,15 +174,29 @@ export class AoeDeGround {
     this.mesh.visible = visible && this.width > 0 && this.height > 0;
   }
 
-  /** Takes this frame's cells and fog. Uploads only what changed. */
+  /** Which shader draws the ground. */
+  get tier(): DeGroundTier {
+    return this.drawnTier;
+  }
+
+  /** Draws with the given tier from the next frame. A change builds that tier's program once. */
+  setTier(tier: DeGroundTier): void {
+    if (tier === this.drawnTier) return;
+    this.drawnTier = tier;
+    const material = this.mesh.material;
+    material.defines = tier === 'single-sample' ? { DE_GROUND_SINGLE_SAMPLE: '' } : {};
+    material.needsUpdate = true;
+  }
+
+  /** Takes this frame's cells and fields. Uploads only what changed. */
   update(data: DeGroundData): void {
-    if (data.width !== this.width || data.height !== this.height || !this.cells || !this.fog) {
+    if (data.width !== this.width || data.height !== this.height || !this.cells || !this.fields) {
       this.cells?.dispose();
-      this.fog?.dispose();
+      this.fields?.dispose();
       this.cells = cellTexture(data);
-      this.fog = fogTexture(data);
+      this.fields = fieldsTexture(data);
       this.uniforms.deCells.value = this.cells;
-      this.uniforms.deFog.value = this.fog;
+      this.uniforms.deFields.value = this.fields;
       this.mapSize.set(data.width, data.height);
       this.mesh.geometry.dispose();
       this.mesh.geometry = createDeGroundGeometry(data.width, data.height);
@@ -192,10 +208,10 @@ export class AoeDeGround {
         cells.set(data.cells);
         this.cells.needsUpdate = true;
       }
-      const fog = this.fog.image.data as Uint8Array;
-      if (!sameBytes(fog, data.fog)) {
-        fog.set(data.fog);
-        this.fog.needsUpdate = true;
+      const fields = this.fields.image.data as Uint8Array;
+      if (!sameBytes(fields, data.fields)) {
+        fields.set(data.fields);
+        this.fields.needsUpdate = true;
       }
     }
     this.mesh.visible = this.shown && data.width > 0 && data.height > 0;
@@ -208,10 +224,10 @@ export class AoeDeGround {
     this.detail?.dispose();
     this.macro?.dispose();
     this.cells?.dispose();
-    this.fog?.dispose();
+    this.fields?.dispose();
     this.detail = null;
     this.macro = null;
     this.cells = null;
-    this.fog = null;
+    this.fields = null;
   }
 }

@@ -22,7 +22,7 @@ function data(width: number, height: number, fill = 1): DeGroundData {
     cells[index * 4] = fill;
     cells[index * 4 + 3] = 255;
   }
-  return { width, height, cells, fog: new Uint8Array(width * height).fill(255) };
+  return { width, height, cells, fields: new Uint8Array(width * height * 4).fill(255) };
 }
 
 function uniformsOf(ground: AoeDeGround): DeGroundUniforms {
@@ -60,21 +60,41 @@ describe('Natural ground mesh', () => {
     ground.setVisible(true);
     ground.update(data(4, 3));
     const cells = uniformsOf(ground).deCells.value as DataTexture;
-    const fog = uniformsOf(ground).deFog.value as DataTexture;
-    const [cellVersion, fogVersion] = [cells.version, fog.version];
+    const fields = uniformsOf(ground).deFields.value as DataTexture;
+    const [cellVersion, fieldVersion] = [cells.version, fields.version];
     ground.update(data(4, 3));
-    expect([cells.version, fog.version]).toEqual([cellVersion, fogVersion]);
+    expect([cells.version, fields.version]).toEqual([cellVersion, fieldVersion]);
 
     const dimmed = data(4, 3);
-    dimmed.fog[5] = 153;
+    dimmed.fields[5 * 4] = 153;
     ground.update(dimmed);
     expect(cells.version).toBe(cellVersion);
-    expect(fog.version).toBe(fogVersion + 1);
-    expect((fog.image.data as Uint8Array)[5]).toBe(153);
+    expect(fields.version).toBe(fieldVersion + 1);
+    expect((fields.image.data as Uint8Array)[5 * 4]).toBe(153);
 
     ground.update(data(6, 5, 2));
     expect(uniformsOf(ground).deCells.value).not.toBe(cells);
     expect(ground.mesh.geometry.boundingBox!.max.x).toBe(6);
+    ground.dispose();
+  });
+
+  it('draws the blend until told otherwise, and builds one program per tier', () => {
+    const ground = new AoeDeGround();
+    const material = ground.mesh.material;
+    expect(ground.tier).toBe('blend');
+    expect(material.defines?.DE_GROUND_SINGLE_SAMPLE).toBeUndefined();
+    const blendKey = material.customProgramCacheKey();
+    const version = material.version;
+    ground.setTier('single-sample');
+    expect(ground.tier).toBe('single-sample');
+    expect(material.defines).toHaveProperty('DE_GROUND_SINGLE_SAMPLE');
+    expect(material.customProgramCacheKey()).not.toBe(blendKey);
+    expect(material.version, 'the program is rebuilt').toBe(version + 1);
+    ground.setTier('single-sample');
+    expect(material.version, 'the same tier again rebuilds nothing').toBe(version + 1);
+    ground.setTier('blend');
+    expect(material.defines?.DE_GROUND_SINGLE_SAMPLE).toBeUndefined();
+    expect(material.customProgramCacheKey()).toBe(blendKey);
     ground.dispose();
   });
 
@@ -111,7 +131,7 @@ describe('Natural ground mesh', () => {
 describe('Natural ground shader splice', () => {
   const uniforms = (): DeGroundUniforms => ({
     deCells: { value: null },
-    deFog: { value: null },
+    deFields: { value: null },
     deDetail: { value: null },
     deMacro: { value: null },
     deMapSize: { value: { x: 1, y: 1 } },
@@ -129,7 +149,32 @@ describe('Natural ground shader splice', () => {
     expect(shader.fragmentShader).toContain('uniform sampler2DArray deDetail;');
     expect(shader.fragmentShader.indexOf('diffuseColor.rgb *= deGroundSample.rgb * deGroundSample.a;'))
       .toBeGreaterThan(shader.fragmentShader.indexOf('#include <color_fragment>'));
-    expect((shader.uniforms as Record<string, unknown>).deFog).toBe(bound.deFog);
+    expect((shader.uniforms as Record<string, unknown>).deFields).toBe(bound.deFields);
+  });
+
+  it('holds both tiers, and the single-sample tier reads one cell and one surface texel per fragment', () => {
+    const shader = {
+      uniforms: {},
+      vertexShader: ShaderLib.lambert.vertexShader,
+      fragmentShader: ShaderLib.lambert.fragmentShader,
+    };
+    spliceDeGroundShader(shader as never, uniforms());
+    const source = shader.fragmentShader;
+    const start = source.indexOf('#ifdef DE_GROUND_SINGLE_SAMPLE');
+    const middle = source.indexOf('#else', start);
+    const end = source.indexOf('#endif', middle);
+    expect(start, 'the single-sample tier is compiled in only when its define is set').toBeGreaterThan(0);
+    const single = source.slice(start, middle);
+    const blend = source.slice(middle, end);
+    // What the tier is for (aoeDeGroundTier.ts): on a CPU rasteriser every texture read is a routine call. The one
+    // surface read is at an explicit mip level (explicit gradients cost SwiftShader far more), inside the loop that
+    // a quad of unexplored fragments skips.
+    expect(single.match(/\bdeDetail\b/g), 'surface reads in the single-sample tier').toHaveLength(1);
+    expect(single).toMatch(/for \( int known = kind == 0 \? 0 : 1; known > 0; known -- \) \{\s*texel = textureLod\( deDetail,/);
+    expect(single.match(/deCellAt\(/g), 'cell reads in the single-sample tier').toHaveLength(1);
+    expect(single).not.toMatch(/for \( int j = 0; j < 3/);
+    expect(blend.match(/deCellAt\(/g), 'the blend reads the 3x3 around the fragment').toHaveLength(1);
+    expect(blend).toMatch(/for \( int j = 0; j < 3; j \+\+ \)/);
   });
 
   it('refuses by name a Lambert program whose chunks moved', () => {
