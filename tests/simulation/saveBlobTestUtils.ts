@@ -1,4 +1,3 @@
-import type { VisibilityMapState } from 'civ-engine';
 import { expect } from 'vitest';
 
 import type { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
@@ -49,6 +48,7 @@ import {
   wonderCountdownOverridesCodec,
   wonderCountdownsCodec,
 } from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import { visibilityStateFromSlots } from '../../src/game/simulation/bridge/visibilitySlots';
 
 export const PENDING_COMMANDS_STATE_SLOT = 'aoe2.pendingCommands';
 
@@ -181,7 +181,8 @@ export function legacySchema1FromBridge(bridge: Bridge): SaveBlobV1 {
     schema: 1,
     seed: blob.seed,
     worldSnapshot: cloneJson(blob.worldSnapshot),
-    visibility: stateValue<VisibilityMapState>(state, TIER_3_SLOTS.visibility),
+    // Schema 1 carried the whole map in one field: both slots, joined.
+    visibility: visibilityStateFromSlots(state, (slot) => new Error(`the save is missing ${slot}`)),
     matchState: matchStateFromBridgeAndWorldState(bridge, state),
     sideMaps: sideMapsFromWorldState(state),
   };

@@ -26,9 +26,7 @@ import type {
   TerrainComponent,
   UnitComponent,
   UnitTransformComponent,
-  VisionSourceComponent,
 } from '../types';
-import { trackedVisibilitySourcesCodec } from './bridgeStateSerialize';
 import { visibleProjectiles } from './projectileProjection';
 import type { ProjectileState } from './projectileTypes';
 import {
@@ -247,114 +245,13 @@ export function createProjector(
   };
 }
 
-// Per-source fingerprint — captures the (playerId, x, y, radius) we last wrote
-// to the visibility map for a given vision-source entity. Used by
-// syncVisibilitySources to skip the no-op setSource/markDirty path when
-// nothing about the source has changed since last tick. Visibility traversal
-// is the second-most expensive per-tick operation behind A* path resolution;
-// without this gate, every stationary unit would re-trigger the visibility
-// cell's dirty flag every tick, defeating the cell's whole purpose.
-//
-// playerId is a load-bearing field: monk conversion (monkTaskAppliers) and
-// sheep claim transfer (syncSheepVisionSource) both mutate visionSource.
-// playerId in place. Without playerId in the fingerprint, those flips would
-// silently skip the setSource path AND leave a stale source registered for
-// the previous owner — the new owner gets no vision from the converted unit
-// until it moves, and the old owner retains vision indefinitely.
-export interface VisibilitySourceFingerprint {
-  playerId: number;
-  x: number;
-  y: number;
-  radius: number;
-}
-
-export function syncVisibilitySources(
-  world: GameWorld,
-  visibility: VisibilityMap,
-  accessor: import('./bridgeStateAccessor').BridgeStateAccessor,
-  fingerprints: Map<number, VisibilitySourceFingerprint>,
-  visibilityCell: import('./visibilityCell').VisibilityCell,
-): void {
-  // Phase 2D: trackedSources lives in world.state.aoe2.trackedVisibilitySources
-  // via the accessor + codec. Hot-loop pattern — fetch the cached Map once,
-  // mutate in place across the function body, mark dirty exactly once at
-  // the end if any mutation happened.
-  const trackedSources = accessor.get(trackedVisibilitySourcesCodec);
-  let trackedSourcesDirty = false;
-  const activeSources = new Map<number, number>();
-  let dirty = false;
-
-  for (const id of world.query('position', 'visionSource')) {
-    const position = world.getComponent<Position>(id, 'position');
-    const source = world.getComponent<VisionSourceComponent>(id, 'visionSource');
-    if (!position || !source) {
-      continue;
-    }
-
-    activeSources.set(id, source.playerId);
-    const prev = fingerprints.get(id);
-    if (
-      prev !== undefined
-      && prev.playerId === source.playerId
-      && prev.x === position.x
-      && prev.y === position.y
-      && prev.radius === source.radius
-    ) {
-      // No-op: source has the same fingerprint as last tick, so the
-      // visibility map already reflects it.
-      continue;
-    }
-
-    // Owner-flip path: VisibilityMap stores sources per (playerId, id), so
-    // a playerId change is logically a removal under the old key + a fresh
-    // insert under the new key. setSource alone would leak the old entry
-    // and leave the previous owner with permanent vision of the unit.
-    if (prev !== undefined && prev.playerId !== source.playerId) {
-      visibility.removeSource(prev.playerId, id);
-    }
-
-    visibility.setSource(source.playerId, id, {
-      x: position.x,
-      y: position.y,
-      radius: source.radius,
-    });
-    fingerprints.set(id, {
-      playerId: source.playerId,
-      x: position.x,
-      y: position.y,
-      radius: source.radius,
-    });
-    dirty = true;
-  }
-
-  for (const [id, playerId] of trackedSources.entries()) {
-    if (activeSources.has(id)) {
-      continue;
-    }
-    visibility.removeSource(playerId, id);
-    trackedSources.delete(id);
-    fingerprints.delete(id);
-    trackedSourcesDirty = true;
-    dirty = true;
-  }
-
-  for (const [id, playerId] of activeSources.entries()) {
-    if (trackedSources.get(id) !== playerId) {
-      trackedSources.set(id, playerId);
-      trackedSourcesDirty = true;
-    }
-  }
-
-  if (trackedSourcesDirty) {
-    accessor.markDirty(trackedVisibilitySourcesCodec);
-  }
-
-  if (dirty) {
-    visibilityCell.markDirty();
-  }
-
-  visibility.update();
-}
+// The per-tick source sync moved to ./visibilitySourceSync (2026-09-24, when a
+// building's sight moved to the middle of its footprint); re-exported here so
+// its callers keep one import.
+export {
+  syncVisibilitySources,
+  type VisibilitySourceFingerprint,
+} from './visibilitySourceSync';
 
 export function resolveSheepClaimOwner(
   activeWorld: GameWorld,

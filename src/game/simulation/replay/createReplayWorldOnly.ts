@@ -1,12 +1,9 @@
-import {
-  VisibilityMap,
-  type VisibilityMapState,
-  type WorldSnapshot,
-} from 'civ-engine';
+import type { VisibilityMapState, WorldSnapshot } from 'civ-engine';
 
 import { createWorld } from '../bridge/createWorld';
+import { LayeredVisibilityMap } from '../bridge/layeredVisibilityMap';
 import type { GameWorld } from '../bridge/pureHelpers';
-import { TIER_3_SLOTS } from '../bridge/bridgeStateSerialize';
+import { visibilityStateFromSlots } from '../bridge/visibilitySlots';
 import { SAVE_SCHEMA_VERSION, type SaveBlobV2 } from '../saveSchema';
 import { attachReplayWorldApi } from './replayWorldContext';
 
@@ -24,17 +21,13 @@ export function createReplayWorldOnly(
     seed,
     worldSnapshot: snapshot,
   };
-  const visibility = VisibilityMap.fromState(readVisibilityState(snapshot));
+  const visibility = LayeredVisibilityMap.fromState(readVisibilityState(snapshot));
   const result = createWorld(seed, visibility, savedGame, 'replay');
   attachReplayWorldApi(result.world, result);
   return result.world;
 }
 
 function readVisibilityState(snapshot: WorldSnapshot): VisibilityMapState {
-  const state = (snapshot as { state?: Record<string, unknown> }).state;
-  const visibility = state?.[TIER_3_SLOTS.visibility];
-  if (!visibility) {
-    throw new Error(`Replay snapshot is missing ${TIER_3_SLOTS.visibility}.`);
-  }
-  return visibility as VisibilityMapState;
+  const state = (snapshot as { state?: Record<string, unknown> }).state ?? {};
+  return visibilityStateFromSlots(state, (slot) => new Error(`Replay snapshot is missing ${slot}.`));
 }

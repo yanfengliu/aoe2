@@ -288,6 +288,8 @@ describe('Slice 5 Monastery + Monks + Relics — heal/convert', () => {
     const enemyMilitia = findFirstOwnedUnit(bridge, 2, 'militia');
     expect(enemyMilitia).toBeDefined();
     const militiaCell = { x: enemyMilitia!.x, y: enemyMilitia!.y };
+    // The premise: nothing of the human's sees the Militia's cell.
+    expect(bridge.isCellVisibleForOwner(1, militiaCell.x, militiaCell.y)).toBe(false);
 
     expect(selectOwnedUnitDirect(bridge, 1, 'monk')).toBe(true);
     const monkBefore = findFirstOwnedUnit(bridge, 1, 'monk');

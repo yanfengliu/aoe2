@@ -1,10 +1,11 @@
-import { RenderAdapter, VisibilityMap } from 'civ-engine';
+import { RenderAdapter } from 'civ-engine';
 import type { EntityRef } from 'civ-engine';
 
 import { clamp, toEngineWorld } from './bridge/pureHelpers';
 import { createProjector } from './bridge/visibility';
 import { createWorld } from './bridge/createWorld';
 import { visibilityStateFromSave } from './saveBlobReaders';
+import { LayeredVisibilityMap } from './bridge/layeredVisibilityMap';
 import { createRenderStateOps } from './bridge/renderStateOps';
 import { createTickHaltState, tryTick } from './bridge/tickHaltGuard';
 import {
@@ -82,8 +83,8 @@ export function createSimulationBridge(
     ? null
     : createPrototypeScenario(effectiveSeed, options.playerCount);
   const visibility = savedGame
-    ? VisibilityMap.fromState(visibilityStateFromSave(savedGame))
-    : new VisibilityMap(freshScenario!.width, freshScenario!.height);
+    ? LayeredVisibilityMap.fromState(visibilityStateFromSave(savedGame))
+    : new LayeredVisibilityMap(freshScenario!.width, freshScenario!.height);
   const {
     world,
     saveGame,

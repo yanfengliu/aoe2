@@ -456,8 +456,12 @@ describe("visibility mutation batching", () => {
       return onComplete.mock.calls[0]?.[3];
     };
 
-    expect(complete(10, "house")).toBe(false);
+    // Every building sees once finished (2026-09-24): a House adds a source
+    // too. It used to be the "adds none" case, because only seven types saw.
+    // The case that adds none is now a building that already has a source.
+    expect(complete(10, "house")).toBe(true);
     expect(complete(11, "watch-tower")).toBe(true);
     expect(complete(12, "watch-tower", true)).toBe(false);
+    expect(complete(13, "house", true)).toBe(false);
   });
 });

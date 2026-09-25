@@ -19,6 +19,7 @@ import type { UnitAttackFeedRuntime } from './bridgeState';
 import type { PersistedMatchState } from '../saveSchema';
 import type { PendingCommandsQueue } from '../dispatcher';
 import { TIER_3_SLOTS } from './bridgeStateSerialize';
+import { publishVisibility } from './visibilitySlots';
 import {
   flushPendingCommandsState,
   flushReplayUnitAttacksState,
@@ -67,13 +68,10 @@ export function bootstrapFlush(deps: {
   // initial dirty state. Symmetric with the matchState/bridgeMeta writes
   // above. After this write the cell stays clean until Phase 2E's
   // fingerprint-cache mutators start calling `cell.markDirty()`.
+  // A new map's building layer counts as changed, so its slot,
+  // `aoe2.buildingVisibility`, is written here too (visibilitySlots.ts).
   visibilityCell.markClean();
-  world.setState(
-    TIER_3_SLOTS.visibility,
-    visibilityCell.map.getState() as unknown as Parameters<
-      typeof world.setState
-    >[1],
-  );
+  publishVisibility(world, visibilityCell.map);
 
   // 3. aoe2.matchState — initial persisted shape (derived per-tick fields
   // stripped — they're recomputed by the live API). Shallow-clone `scores`

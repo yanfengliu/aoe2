@@ -40,9 +40,10 @@
 //    (defect register 2026-09-24).
 //  - Each named tick must fall in a frame across which the House lost health,
 //    so a toast naming no blow at all fails by name. That can tell a blow's
-//    frame, not which tick of it: the House gives no sight in this fixture,
-//    so the raiders and their swings are never drawn for the human, and the
-//    House's health, read once a frame, is the only record of the blows here.
+//    frame, not which tick of it: the spec's record of the blows is the
+//    House's health, read once a frame. (The House sees the raiders beside it
+//    since 2026-09-24, when every building gained sight, so they and their
+//    swings are drawn; this spec does not read them.)
 //    That the words carry the blow's own tick and not the tick of the frame
 //    that saw it is `tests/ui/raidWarning.test.ts`, across a frame that steps
 //    ten ticks.

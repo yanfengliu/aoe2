@@ -6,7 +6,7 @@
 import type { VisibilityMapState } from 'civ-engine';
 
 import { isSaveBlobV1, type SaveBlob } from './saveSchema';
-import { TIER_3_SLOTS } from './bridge/bridgeStateSerialize';
+import { visibilityStateFromSlots } from './bridge/visibilitySlots';
 
 export function worldSnapshotState(savedGame: SaveBlob): Record<string, unknown> {
   const snapshot = savedGame.worldSnapshot as { state?: Record<string, unknown> };
@@ -20,9 +20,8 @@ export function visibilityStateFromSave(savedGame: SaveBlob): VisibilityMapState
   if (isSaveBlobV1(savedGame)) {
     return savedGame.visibility;
   }
-  const visibility = worldSnapshotState(savedGame)[TIER_3_SLOTS.visibility];
-  if (!visibility) {
-    throw new Error(`Save schema ${savedGame.schema} is missing ${TIER_3_SLOTS.visibility}.`);
-  }
-  return visibility as VisibilityMapState;
+  return visibilityStateFromSlots(
+    worldSnapshotState(savedGame),
+    (slot) => new Error(`Save schema ${savedGame.schema} is missing ${slot}.`),
+  );
 }

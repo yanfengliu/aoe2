@@ -4,7 +4,9 @@
 // the output phase per `civ-engine/world.ts:1746`) sees current values.
 //
 // Visibility writes are gated by `VisibilityCell.consumeIfDirty()` so the
-// per-tick cost is paid only when a source actually moved. matchState writes
+// per-tick cost is paid only when a source actually moved, and the building
+// layer's own slot (`aoe2.buildingVisibility`) only when a building's sight
+// changed (`visibilitySlots.ts`). matchState writes
 // are unconditional (the object is small and flat). `aoe2.bridgeMeta` is
 // written once at game start by `bootstrapFlush` (Phase 2C); this system
 // does not re-write it because the dimensions never change after seed.
@@ -32,6 +34,7 @@ import type { UnitAttackFeedRuntime } from './bridgeState';
 import type { PersistedMatchState } from '../saveSchema';
 import { clonePendingCommand, type PendingCommandsQueue } from '../dispatcher';
 import { TIER_3_SLOTS } from './bridgeStateSerialize';
+import { publishVisibility } from './visibilitySlots';
 import {
   getUnitAttackFeedEntries,
   pruneUnitAttackFeed,
@@ -56,12 +59,7 @@ export function flushTier3State(
   visibilityCell: VisibilityCell,
   matchState: MatchState,
 ): void {
-  world.setState(
-    TIER_3_SLOTS.visibility,
-    visibilityCell.map.getState() as unknown as Parameters<
-      typeof world.setState
-    >[1],
-  );
+  publishVisibility(world, visibilityCell.map);
   visibilityCell.markClean();
 
   const persisted: PersistedMatchState = {
@@ -127,15 +125,10 @@ export function registerTier3SyncSystem(deps: {
     phase: 'output',
     execute: (activeWorld) => {
       if (visibilityCell.consumeIfDirty()) {
-        // VisibilityMap.getState() returns the JsonValue-compatible
+        // VisibilityMap state is the JsonValue-compatible
         // {width, height, players: Array<[id, {sources, explored}]>}
         // shape used by SaveBlob; safe to write directly.
-        activeWorld.setState(
-          TIER_3_SLOTS.visibility,
-          visibilityCell.map.getState() as unknown as Parameters<
-            typeof activeWorld.setState
-          >[1],
-        );
+        publishVisibility(activeWorld, visibilityCell.map);
       }
 
       // matchState is small and flat; unconditional rewrite. Build the

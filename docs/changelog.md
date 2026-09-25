@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.237
+
+- **Every building you finish now lets you see around it, as in Definitive Edition.** Until now only the Town Center, Dock, Outpost, towers, Castle and Wonder gave any sight. A House, Barracks, Mill, camp, Market, wall or any other building showed nothing around it, so enemies could burn down a House you could not see them at. How far each building sees is Definitive Edition's: a Farm or Fish Trap 1 tile, a House or wall 2, most buildings 6, the Town Center, Dock and Wonder 8, towers 10, the Castle 11. Town Watch and Town Patrol now reach every building too.
+- **A building's sight is centred on the building.** It used to be measured from the building's top-left corner, so your starting Town Center saw further to the north-west than to the south-east. The explored area at the start of a match is now even all round your Town Center, and a little larger (Town Center sight 8, was 7). A building still under construction gives no sight until it is finished.
+- **Games saved before this version**: every finished building that had no sight gets it when the game is loaded. The Town Centers, Docks, towers, Castles and Wonders that already saw keep the distance they were saved with (for example 7 for a starting Town Center), because that number already includes any Town Watch or Town Patrol and cannot be split apart again. **Replays recorded before this version** are re-simulated with the new sight, so they may not play out as they were recorded: buildings and towers now see, and shoot, what they could not before.
+
 ## 0.3.236
 
 - **The Siege Onager's stones splash.** A Siege Onager used to hit only the unit or building it aimed at. Its stone now hurts every unit within 1.5 tiles of where it lands, the units diagonal to its target included, friend and foe alike, as a Mangonel's and an Onager's already did.

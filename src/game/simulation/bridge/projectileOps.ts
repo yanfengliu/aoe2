@@ -187,9 +187,10 @@ export interface ResolveProjectilesDeps {
  * once and always leaves the air, including when its target died mid-flight —
  * an unresolvable shot is a spent shot, not a stuck one.
  *
- * Returns true when a unit died, so the caller can refresh visibility once for
- * the whole pass. Deaths matter to fog: a killed unit stops seeing, and
- * projectiles are now the ONLY way tower/Town Center arrows kill.
+ * Returns true when a unit died or a building was destroyed, so the caller can
+ * refresh visibility once for the whole pass. Deaths matter to fog: a killed
+ * unit stops seeing, and so does a destroyed building, since every building
+ * sees (2026-09-24); projectiles are the ONLY way tower/Town Center arrows kill.
  */
 export function resolveDueProjectiles(deps: ResolveProjectilesDeps): boolean {
   const { slot, tick } = deps;
@@ -202,15 +203,15 @@ export function resolveDueProjectiles(deps: ResolveProjectilesDeps): boolean {
   // Ascending id keeps resolution order deterministic when several shots land
   // on the same tick.
   due.sort((a, b) => a.id - b.id);
-  let killedAnyUnit = false;
+  let somethingDied = false;
   for (const shot of due) {
-    if (resolveOne(deps, shot)) killedAnyUnit = true;
+    if (resolveOne(deps, shot)) somethingDied = true;
   }
   deps.markRender();
-  return killedAnyUnit;
+  return somethingDied;
 }
 
-/** Resolves one shot. Returns true if it killed a unit. */
+/** Resolves one shot. Returns true if it killed a unit or destroyed a building. */
 function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): boolean {
   const { world, combatStates } = deps;
   const impact: Position = { x: shot.aimX, y: shot.aimY };
@@ -225,7 +226,7 @@ function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): boolea
       if (world.getComponent<BuildingComponent>(shot.targetId, 'building')) {
         deps.recordPlayerHit(shot.attackerId, shot.attackerOwner, shot.targetId);
       }
-      deps.damageBuilding(
+      killed = deps.damageBuilding(
         shot.targetId,
         shot.buildingDamage ?? shot.baseDamage,
         shot.attackerUnitType,

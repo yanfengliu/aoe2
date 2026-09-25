@@ -3,8 +3,9 @@
 // on any load, re-derive every owner's population cap against the match's
 // persisted §4.6 setting (the codec paths cannot see the settings slot from
 // inside a codec, so they re-derive at the standard 200 and this pass is
-// where a custom cap lands). Split from wireBridgeOps for the 500-LOC budget:
-// one role, "get the match's content into the world".
+// where a custom cap lands) and give every completed building its sight.
+// Split from wireBridgeOps for the 500-LOC budget: one role, "get the match's
+// content into the world".
 
 import type { PrototypeScenario } from '../prototypeScenario';
 import { HUMAN_PLAYER_ID } from '../prototypeScenario';
@@ -21,6 +22,7 @@ import {
 } from './bridgeConstants';
 import { ownerHardPopCap } from './ownerPopCap';
 import { populationCodec } from './bridgeStateSerialize';
+import { restoreCompletedBuildingVision } from './completedBuildingVision';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 
@@ -111,6 +113,10 @@ export function bootScenarioOrLoad(deps: BootDeps): void {
         population.cap = deriveCap(population.rawSupply, ownerHardPopCap(accessor, owner));
       }
     });
+    // Every completed building sees. A save from before 2026-09-24, when only
+    // seven building types did, holds Houses, Barracks and walls with no
+    // vision source; they get theirs here or stay blind for the whole match.
+    restoreCompletedBuildingVision(world, accessor);
   }
 
 }
