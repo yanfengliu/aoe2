@@ -3,10 +3,11 @@
 // `applyUnitBlast` wires it to the world; `resolveUnitAttackOnUnit` is the entry
 // point playerCommandsSystem calls (primary hit + splash + death handling).
 
-import type { Position } from 'civ-engine';
+import type { EntityRef, Position } from 'civ-engine';
 
 import type { RecordPlayerHit } from './playerHitFeed';
 
+import { areAllied } from '../alliances';
 import type { UnitComponent, UnitType } from '../types';
 import {
   attackBonusAgainstUnit,
@@ -17,9 +18,14 @@ import {
   unitAttackType,
   unitBlastRadius,
 } from '../prototypeUnitRules';
+import { blastSparesOwnSide } from '../projectileRules';
 import { pierceArmorTechBonus } from '../armorTechBonuses';
+import { damageAnimal, type AnimalDamageDeps } from './animalDamage';
 import { distanceSquared, type GameWorld } from './pureHelpers';
 import type { CombatState } from './systems/systemTypes';
+
+/** The animals a blast can catch, and how a blow on one lands. */
+export type BlastAnimals = AnimalDamageDeps;
 
 export interface BlastCandidate {
   readonly id: number;
@@ -74,13 +80,30 @@ export interface BlastAttacker {
   readonly unitType: UnitType;
   readonly owner: number;
   readonly baseDamage: number;
+  /** The attacker, for an animal the blast hurts to turn on; null once the
+   *  attacker is gone. */
+  readonly ref: EntityRef | null;
+}
+
+/**
+ * Where a blast a unit delivers in person is centred (spec §10.7). A
+ * detonation goes off where the unit that detonates stands, as a DE demolition
+ * ship's charge does ("Pilot near enemy ships and detonate", units.csv; the
+ * AoE2 wiki has it deal full damage even when it explodes before reaching its
+ * target). Any other blow's blast is centred on its target.
+ */
+export function inPersonBlastCentre(world: GameWorld, attacker: { id: number; unitType: UnitType }, target: Position): Position {
+  if (!detonatesOnAttack(attacker.unitType)) return target;
+  return world.getComponent<Position>(attacker.id, 'position') ?? target;
 }
 
 /**
  * Bridge wiring: enumerate the world's units, apply `computeBlastDamage` for a
  * blast attacker, mutate splashed units' HP and destroy the dead, and call
  * `markDirty` if anything was splashed. Friendly-fire kills do NOT score for the
- * attacker's owner. No-op for non-blast attackers.
+ * attacker's owner. A blast that spares its own side (`blastSparesOwnSide`, the
+ * demolition line's) skips the owner's units and its allies'. The animals in
+ * reach are hurt too, whoever's the blast. No-op for non-blast attackers.
  */
 export function applyUnitBlast(params: {
   world: GameWorld;
@@ -88,6 +111,9 @@ export function applyUnitBlast(params: {
   attacker: BlastAttacker;
   impact: Position;
   primaryTargetId: number;
+  /** Who is on whose side (`playerTeamsCodec`), for a blast that spares its own. */
+  teams: ReadonlyMap<number, number>;
+  animals: BlastAnimals;
   destroyUnit: (id: number) => void;
   addKill: (owner: number) => void;
   markDirty: () => void;
@@ -95,13 +121,16 @@ export function applyUnitBlast(params: {
   recordPlayerHit: RecordPlayerHit;
 }): void {
   const { world, combatStates, attacker } = params;
-  if (unitBlastRadius(attacker.unitType) <= 0) return;
+  const radius = unitBlastRadius(attacker.unitType);
+  if (radius <= 0) return;
+  const sparesOwnSide = blastSparesOwnSide(attacker.unitType);
   const candidates: BlastCandidate[] = [];
   for (const otherId of world.query('position', 'unit')) {
     const otherCombat = combatStates.get(otherId);
     const otherUnit = world.getComponent<UnitComponent>(otherId, 'unit');
     const otherPos = world.getComponent<Position>(otherId, 'position');
     if (!otherCombat || !otherUnit || !otherPos) continue;
+    if (sparesOwnSide && areAllied(params.teams, attacker.owner, otherUnit.owner)) continue;
     candidates.push({
       id: otherId,
       unitType: otherUnit.unitType,
@@ -129,6 +158,21 @@ export function applyUnitBlast(params: {
     }
   }
   if (splashes.length > 0) params.markDirty();
+
+  // The animals in reach. A boar or a wolf is a resource with a wildlife
+  // state, not a unit, and a blast hurts one with the attack whole, since
+  // animals carry no armour here (DE's blast falls off with distance, and
+  // this game's does not; spec §10.7). It belongs to nobody, so no blast
+  // spares it. In id order, like the units.
+  const radiusSq = radius * radius;
+  const animalsHit: number[] = [];
+  for (const [animalId, animal] of params.animals.states) {
+    if (!animal.isAlive || animalId === params.primaryTargetId) continue;
+    const at = world.getComponent<Position>(animalId, 'position');
+    if (at && distanceSquared(params.impact, at) <= radiusSq) animalsHit.push(animalId);
+  }
+  animalsHit.sort((a, b) => a - b);
+  for (const animalId of animalsHit) damageAnimal(params.animals, animalId, attacker.baseDamage, attacker.ref);
 }
 
 /**
@@ -149,6 +193,9 @@ export function resolveUnitAttackOnUnit(params: {
   markRender: () => void;
   /** Caller-computed team extras (Persian knights vs archer-class). */
   teamUnitBonus?: number;
+  /** For the blast: who is on whose side, and the animals it can catch. */
+  teams: ReadonlyMap<number, number>;
+  animals: BlastAnimals;
   /** The primary hit and every splashed unit, for the attack warning. */
   recordPlayerHit: RecordPlayerHit;
 }): boolean {
@@ -170,9 +217,17 @@ export function resolveUnitAttackOnUnit(params: {
   applyUnitBlast({
     world: params.world,
     combatStates: params.combatStates,
-    attacker: { id: attacker.id, unitType: attacker.unitType, owner: attacker.owner, baseDamage: attacker.combat.attackDamage },
-    impact: target.position,
+    attacker: {
+      id: attacker.id,
+      unitType: attacker.unitType,
+      owner: attacker.owner,
+      baseDamage: attacker.combat.attackDamage,
+      ref: params.world.getEntityRef(attacker.id),
+    },
+    impact: inPersonBlastCentre(params.world, attacker, target.position),
     primaryTargetId: target.id,
+    teams: params.teams,
+    animals: params.animals,
     destroyUnit: params.destroyUnit,
     addKill: params.addKill,
     markDirty: params.markDirty,

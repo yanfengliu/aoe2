@@ -141,6 +141,8 @@ describe('Ballistics wiring at the launch site', () => {
       combatStates: new Map(),
       projectiles,
       tick: 0,
+      teams: new Map(),
+      animals: { states: new Map(), kill: () => {}, markDirty: () => {} },
       attacker: { id: 1, unitType: 'archer', owner: 1, combat: combat() },
       target: {
         id: 2, unitType: 'militia',
@@ -194,6 +196,8 @@ describe('Ballistics wiring at the launch site', () => {
         combatStates: new Map(),
         projectiles,
         tick,
+        teams: new Map(),
+        animals: { states: new Map(), kill: () => {}, markDirty: () => {} },
         attacker: { id: 1, unitType: 'archer', owner: 1, combat: combat() },
         target: {
           id: 2, unitType: 'militia',

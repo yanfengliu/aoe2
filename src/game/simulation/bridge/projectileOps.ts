@@ -9,7 +9,7 @@
 // identically: nothing about the outcome depends on state that changes while
 // the arrow is in the air.
 
-import type { Position } from 'civ-engine';
+import type { EntityRef, Position } from 'civ-engine';
 
 import type { BuildingComponent, UnitComponent, UnitType } from '../types';
 import type { ResearchableTechnologyType } from '../types';
@@ -35,7 +35,8 @@ import {
   targetLeadVelocity,
   unitAccuracy,
 } from '../projectileRules';
-import { applyUnitBlast } from './blastDamage';
+import { damageAnimal } from './animalDamage';
+import { applyUnitBlast, type BlastAnimals } from './blastDamage';
 import {
   UNIT_SUBGRID_RESOLUTION,
   UNIT_SUBGRID_STEP_PER_TICK,
@@ -76,7 +77,8 @@ export interface LaunchProjectileParams {
   };
   target: {
     id: number;
-    kind: 'unit' | 'building';
+    /** A building's position is the centre of its footprint (spec §10.7). */
+    kind: 'unit' | 'building' | 'wildlife';
     position: Position;
     /** Where the target is walking to, or null if it is not going anywhere.
      *  Only consulted when the attacker leads (Ballistics). */
@@ -110,8 +112,8 @@ export function launchProjectile(params: LaunchProjectileParams): ProjectileStat
   const accuracy = params.accuracy
     ?? (unitType === null ? 1 : unitAccuracy(unitType));
   // A building is not going anywhere, and an area shot always lands where it
-  // was aimed — neither rolls to hit.
-  const rolls = target.kind === 'unit' && !isArea && accuracy < 1;
+  // was aimed — neither rolls to hit. A unit and an animal do.
+  const rolls = target.kind !== 'building' && !isArea && accuracy < 1;
   const willHit = !rolls || projectileRoll(tick, attacker.id, target.id, id) < accuracy;
 
   const motion = params.leads
@@ -176,10 +178,29 @@ export interface ResolveProjectilesDeps {
    *  bonus is derived here rather than stored on the shot, because it depends
    *  on the TARGET's armor class — known only once the arrow lands. */
   technologiesFor: (owner: number) => ReadonlySet<ResearchableTechnologyType>;
+  /** Who is on whose side (`playerTeamsCodec`), for a blast that spares its
+   *  own side. */
+  teams: ReadonlyMap<number, number>;
+  /** The animals a shot or its blast can hurt, and how a blow on one lands. */
+  animals: BlastAnimals;
   /** Every shot that lands on a unit or a building, and every unit its blast
    *  catches, is a blow for the attack warning — a tower's and a Town
    *  Centre's arrows as much as an archer's (v0.3.235). */
   recordPlayerHit: RecordPlayerHit;
+}
+
+/**
+ * The unit that loosed this shot, for an animal it hurts to turn on. A shot
+ * outlives its shooter, and civ-engine hands a freed id to the next entity it
+ * creates, so this is the entity at the shooter's id while that is a unit of
+ * the shooter's owner, and null otherwise. The owner check rules out another
+ * player's unit only: a new unit of the same owner that took a dead shooter's
+ * id is turned on in its place, which a shot would need the shooter's
+ * generation, a new save field, to tell apart.
+ */
+function shooterRef(world: GameWorld, shot: ProjectileState): EntityRef | null {
+  const unit = world.getComponent<UnitComponent>(shot.attackerId, 'unit');
+  return unit && unit.owner === shot.attackerOwner ? world.getEntityRef(shot.attackerId) : null;
 }
 
 /**
@@ -232,6 +253,15 @@ function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): boolea
         shot.attackerOwner,
       );
     }
+  } else if (shot.targetKind === 'wildlife') {
+    // A shot at an animal connects as one at a unit does: on an animal still
+    // alive and still standing where the shot was aimed. It deals the
+    // attacker's attack whole, as any blow on an animal does.
+    const animal = deps.animals.states.get(shot.targetId);
+    const at = world.getComponent<Position>(shot.targetId, 'position');
+    if (shot.willHit && !shot.isArea && animal?.isAlive === true && at !== undefined && projectileHitsTarget(impact, at)) {
+      damageAnimal(deps.animals, shot.targetId, shot.baseDamage, shooterRef(world, shot));
+    }
   } else {
     const targetUnit = world.getComponent<UnitComponent>(shot.targetId, 'unit');
     const targetPosition = world.getComponent<Position>(shot.targetId, 'position');
@@ -282,9 +312,12 @@ function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): boolea
         unitType: shot.attackerUnitType,
         owner: shot.attackerOwner,
         baseDamage: shot.baseDamage,
+        ref: shooterRef(world, shot),
       },
       impact,
       primaryTargetId: -1,
+      teams: deps.teams,
+      animals: deps.animals,
       destroyUnit: (id) => {
         killed = true;
         deps.destroyUnit(id);

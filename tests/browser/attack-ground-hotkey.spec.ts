@@ -17,7 +17,9 @@ import * as game from './helpers/gameTestHelpers';
 //
 // The fixture is the census's: owner 1's Siege Onager, an empty ground cell
 // six cells north of it, and owner 2's Villagers beside that cell, one inside
-// the 1.5 blast and one just outside it, with both AIs off. The pause is the
+// the 1.5 blast and one just outside it, with every AI off. Owner 1's own
+// Trade Cart and its ally's Villager stand inside that blast too; a stone
+// hurts them as well, and this spec reads only owner 2's. The pause is the
 // test API's, so `advanceTicks` steps exactly the ticks it is asked for.
 //
 // BOUND: one unit type, one order, 200 ticks. That a Demolition Ship is
@@ -32,7 +34,22 @@ test.describe('attack-ground interaction', () => {
     });
     await game.waitForRenderedFrames(page, 2);
 
-    await game.clickCell(page, BLAST_CENSUS_ATTACKER.x, BLAST_CENSUS_ATTACKER.y);
+    // Click the Siege Onager where the page draws it. A unit is drawn on the
+    // sub-cell slot its id picks (id mod 16, `worldOccupancy.ts`), up to three
+    // quarters of a cell from its cell's centre on each axis, so a click on
+    // the centre depends on the id: v0.3.238 gave the fixture one more entity
+    // before the Onager, its slot moved from 0.5 to 0.75 east, and the click
+    // at its cell's centre selected nothing.
+    const drawnAt = await page.evaluate((cell) => {
+      const api = window.__AOE2_TEST__!;
+      const onager = api.getEconomyState().units.find(
+        (u) => u.owner === 1 && u.unitType === 'siege-onager' && u.x === cell.x && u.y === cell.y,
+      );
+      const shown = onager === undefined ? undefined : api.getDisplayedEntities().find((e) => e.id === onager.id);
+      return shown === undefined ? null : { x: shown.x + 0.5, y: shown.y + 0.5 };
+    }, BLAST_CENSUS_ATTACKER);
+    expect(drawnAt, 'the page draws no Siege Onager of owner 1 from the census attacker cell').not.toBeNull();
+    await game.clickWorldPosition(page, drawnAt!.x, drawnAt!.y);
     await expect
       .poll(() => page.evaluate(() => window.__AOE2_TEST__!.getSelectionState().selectedEntityType))
       .toBe('siege-onager');

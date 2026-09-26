@@ -22,7 +22,10 @@
 // BOUNDS, so a green run is not read for more than it holds:
 //  - A death counts only when the entity is gone from the world, not when it
 //    merely left the map (garrisoned). A demolition charge that struck on the
-//    tick it vanished was spent, not killed, and is not counted. A player's
+//    tick it vanished was spent, not killed, and is not counted. A charge spent
+//    on an animal with no player's unit in its blast strikes nothing the feed
+//    records (v0.3.238: it goes off at an animal too), so it would read as an
+//    unrecorded death; no scenario below orders one. A player's
 //    delete, a depleted farm, a razed building's garrison (never tracked: a
 //    garrisoned unit has no position) and a Monk's heresy remove entities
 //    without a blow; no scenario below does any of them.
@@ -244,9 +247,9 @@ const SCENARIOS: Scenario[] = [
     attacker: 'mangonel',
     onBuilding: true,
     order: (bridge) => {
-      const house = bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'house');
-      if (!house) throw new Error('the fixture has no house of owner 2');
-      orderAttack(bridge, ownUnit(bridge, 1, 'mangonel'), house.id);
+      const outpost = bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'outpost');
+      if (!outpost) throw new Error('the fixture has no outpost of owner 2');
+      orderAttack(bridge, ownUnit(bridge, 1, 'mangonel'), outpost.id);
     },
   },
   // The Siege Onager's stone blasts where it lands (defect register

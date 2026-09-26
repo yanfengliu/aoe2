@@ -475,6 +475,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
       return true;
     },
     destroyUnitEntity,
+    killWildlifeEntity,
     ensurePlayerScoreCounters,
     markOutOfBandRenderChange,
     refreshVisibilityAfterCombat: syncCurrentVisibility,

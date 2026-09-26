@@ -182,11 +182,11 @@ describe('projectiles fly instead of landing instantly', () => {
     // instead of 40 and one-shot a full-health Spearman.
     const bridge = createSimulationBridge('mangonel-vs-building-splash-fixture');
     const spearman = findFirstOwnedUnit(bridge, 2, 'spearman');
-    const house = bridge.getEconomyState().buildings
-      .find((b) => b.owner === 2 && b.buildingType === 'house');
-    expect(spearman && house).toBeTruthy();
+    const outpost = bridge.getEconomyState().buildings
+      .find((b) => b.owner === 2 && b.buildingType === 'outpost');
+    expect(spearman && outpost).toBeTruthy();
     expect(selectOwnedUnitDirect(bridge, 1, 'mangonel')).toBe(true);
-    expect(bridge.issueContextCommandAtEntity(house!.id)).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(outpost!.id)).toBe(true);
 
     expect(stepBridgeUntil(
       bridge,
@@ -198,7 +198,7 @@ describe('projectiles fly instead of landing instantly', () => {
     expect(shot.buildingDamage).toBe(75); // 40 base + 35 vs buildings
     expect(shot.baseDamage).toBe(40); // what the blast is allowed to use
 
-    // And the Spearman beside the House survives the blast on 5 HP.
+    // And the Spearman beside the Outpost survives the blast on 5 HP.
     expect(stepBridgeUntil(
       bridge,
       () => !bridge.getInFlightProjectiles().some((p) => p.id === shot.id),

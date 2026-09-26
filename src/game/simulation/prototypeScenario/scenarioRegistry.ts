@@ -15,10 +15,12 @@ import * as fixtures from '../fixtures';
 import { createAiIdleSurplusFixture } from '../fixtures/aiIdleSurplus';
 import { createBlastCensusFixture } from '../fixtures/blastCensus';
 import { blastCensusSeed } from '../fixtures/blastCensusLayout';
+import { createBuildingShotLandingFixture } from '../fixtures/buildingShotLanding';
 import { createCorridorSealFixture } from '../fixtures/corridorSeal';
 import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from '../fixtures/farmsAreWalkable';
 import { createRaidWarningFixture } from '../fixtures/raidWarning';
 import { createTrafficContestFixture } from '../fixtures/trafficContest';
+import { createWildlifeShotsFixture } from '../fixtures/wildlifeShots';
 import { createArenaMap } from '../mapGeneration/arenaMap';
 import { createBlackForestMap } from '../mapGeneration/blackForestMap';
 import { createDefaultMap } from '../mapGeneration/defaultMap';
@@ -362,6 +364,8 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['traffic-contest-fixture', createTrafficContestFixture],
   ['ai-idle-surplus-fixture', createAiIdleSurplusFixture],
   ['raid-warning-fixture', createRaidWarningFixture],
+  ['building-shot-landing-fixture', createBuildingShotLandingFixture],
+  ['wildlife-shots-fixture', createWildlifeShotsFixture],
   // The blast census: one fixture per unit with a blast radius, generated
   // from the blast table, so a unit that gains a radius is censused too.
   ...unitTypesWithBlast().map((unitType) => [blastCensusSeed(unitType), createBlastCensusFixture] as const),

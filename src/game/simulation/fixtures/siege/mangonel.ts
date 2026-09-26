@@ -105,10 +105,13 @@ export function createMangonelVsClusteredInfantryFixture(seed: string): Prototyp
 }
 
 // Blast/splash on the unit-vs-BUILDING path (spec §10.7): a player-1 Mangonel
-// shells an enemy House (2×2, anchored at 22,20); an enemy Spearman one cell
-// west of the anchor (21,20, outside the footprint) is splashed even though the
-// primary target is a building. The whole scene sits far from BOTH Town Centers
-// so no base-fire arrow confounds the splashed Spearman's HP.
+// shells an enemy Outpost (1×1, at 22,20); an enemy Spearman on the cell west
+// of it (21,20) is splashed even though the primary target is a building. A
+// shot at a building lands on its centre, as in DE, so the target is a
+// one-cell building: every cell beside a House is 1.58 from its centre, beyond
+// the Mangonel's radius of 1 (until v0.3.238 this was a House, and the stone
+// came down on its north-west cell). The whole scene sits far from BOTH Town
+// Centers so no base-fire arrow confounds the splashed Spearman's HP.
 export function createMangonelVsBuildingSplashFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -123,9 +126,9 @@ export function createMangonelVsBuildingSplashFixture(seed: string): PrototypeSc
       ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
       ownedSpawn('mangonel', 1, 16, 20, { vision: 9 }),
       ownedSpawn('town-center', 2, 4, 30, { vision: 7 }),
-      // Enemy House (the primary target) + a Spearman orthogonally adjacent to
-      // the anchor cell (21,20), outside the 2×2 footprint.
-      ownedSpawn('house', 2, 22, 20, { vision: 3 }),
+      // Enemy Outpost (the primary target) + a Spearman on the cell west of it,
+      // 1 from the Outpost's centre.
+      ownedSpawn('outpost', 2, 22, 20, { vision: 3 }),
       ownedSpawn('spearman', 2, 21, 20, { vision: 3 }),
     ],
   };

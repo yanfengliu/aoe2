@@ -10,8 +10,10 @@ import type { ResearchableTechnologyType, UnitType } from '../../types';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import {
   combatStatesCodec,
+  playerTeamsCodec,
   projectilesCodec,
   researchedTechnologiesCodec,
+  wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
 import { resolveDueProjectiles } from '../projectileOps';
 import type { RecordPlayerHit } from '../playerHitFeed';
@@ -33,6 +35,8 @@ export interface ProjectileSystemDeps {
     attackerOwner: number,
   ) => boolean;
   destroyUnitEntity: (id: number) => void;
+  /** An animal a shot or its blast kills becomes its carcass. */
+  killWildlifeEntity: (id: number) => void;
   ensurePlayerScoreCounters: (owner: number) => PlayerScoreCountersLike;
   markOutOfBandRenderChange: () => void;
   /** Called once per pass if any unit died — a dead unit stops seeing. */
@@ -48,6 +52,7 @@ export function registerProjectileSystem(deps: ProjectileSystemDeps): void {
     accessor,
     damageBuilding,
     destroyUnitEntity,
+    killWildlifeEntity,
     ensurePlayerScoreCounters,
     markOutOfBandRenderChange,
     refreshVisibilityAfterCombat,
@@ -77,6 +82,12 @@ export function registerProjectileSystem(deps: ProjectileSystemDeps): void {
         addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
         markCombatDirty: () => accessor.markDirty(combatStatesCodec),
         markRender: markOutOfBandRenderChange,
+        teams: accessor.get(playerTeamsCodec),
+        animals: {
+          states: accessor.get(wildlifeStatesCodec),
+          kill: killWildlifeEntity,
+          markDirty: () => accessor.markDirty(wildlifeStatesCodec),
+        },
         recordPlayerHit,
       });
       if (slot.inFlight.length !== before) accessor.markDirty(projectilesCodec);

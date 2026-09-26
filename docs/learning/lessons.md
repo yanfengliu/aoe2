@@ -10,6 +10,8 @@ When the gate lands, prove it red by reintroducing the defect, record that in [g
 
 ## Rules
 
+- A browser spec selects a unit by clicking where the page draws it, never the centre of the unit's cell. A unit is drawn on the sub-cell slot its id picks (id mod 16, `worldOccupancy.ts`), up to three quarters of a cell off its cell's centre on each axis, so a click on the centre passes or fails on the unit's id, and a fixture that gains an entity can move it. Gate it will retire with: a `game.clickUnit(page, id)` helper that clicks the drawn body, and `clickCell` refusing a left click on a cell a unit stands on, naming that helper; two such clicks remain, in `new-tech-reach.spec.ts`. [Evidence](lessons-evidence.md#a-click-on-a-units-cell-centre-selected-nothing-2026-09-26).
+
 (The queue was emptied again on 2026-09-25 when the SwiftShader frame-cost gate landed — `tests/browser/de-ground-frame-cost.spec.ts`, proof in [gate-proofs.md](gate-proofs.md). Its evidence entry went with it and reads back out of git history.)
 
 (The duration-budget rule was deleted on 2026-09-06 without a gate, because the

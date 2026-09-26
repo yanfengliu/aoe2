@@ -9,11 +9,15 @@
 // Aim uses the authoritative cell `position`, the same coordinate the range
 // checks use — so the rule a player can actually see is "if the target left
 // the cell you shot at, you missed". Ballistics (once researched) removes that
-// by aiming where the target is going instead.
+// by aiming where the target is going instead. A building does not move, and a
+// shot at one is aimed at the centre of its footprint, as in Definitive
+// Edition (spec §10.7): until v0.3.238 it came down on the building's anchor,
+// its north-west cell, and a mangonel's blast reached only that side.
 
 import type { Position } from 'civ-engine';
 
-import type { ResearchableTechnologyType, UnitType } from '../types';
+import { getBuildingFootprint } from '../../content/buildingFootprints';
+import type { BuildingComponent, ResearchableTechnologyType, UnitType } from '../types';
 import { attackBonusAgainstBuilding, siegeEngineersBuildingMultiplier } from '../prototypeUnitRules';
 import { sappersBuildingAttackBonus } from '../sappersTechEffects';
 import { detonatesOnAttack } from '../prototypeUnitRules';
@@ -22,8 +26,10 @@ import {
   ballisticsLeadsShots,
   thumbRingAccuracy,
 } from '../projectileTechEffects';
-import { applyUnitBlast, resolveUnitAttackOnUnit } from './blastDamage';
+import { damageAnimal } from './animalDamage';
+import { applyUnitBlast, inPersonBlastCentre, resolveUnitAttackOnUnit, type BlastAnimals } from './blastDamage';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
+import { footprintCentre } from './footprintDistance';
 import { firesProjectile, launchProjectile } from './projectileOps';
 import type { GameWorld } from './pureHelpers';
 import type { ProjectileSlotState } from './projectileTypes';
@@ -44,6 +50,11 @@ export interface DeliverAttackShared {
   attackerTechs?: ReadonlySet<ResearchableTechnologyType>;
   /** Where the target is walking to, for Ballistics leading. */
   targetDestination?: Position | null;
+  /** Who is on whose side (`playerTeamsCodec`): a blast that spares its own
+   *  side, the demolition line's, reads it. */
+  teams: ReadonlyMap<number, number>;
+  /** The animals a blast can catch, and how a blow on one lands. */
+  animals: BlastAnimals;
   /** Every blow this attack lands on the spot, for the attack warning. A shot
    *  records its own when it lands (`projectileOps.ts`). */
   recordPlayerHit: RecordPlayerHit;
@@ -74,6 +85,8 @@ export function deliverUnitAttackOnUnit(params: DeliverUnitAttackParams): boolea
       markDirty: params.markCombatDirty,
       markRender: params.markRender,
       teamUnitBonus: params.teamUnitBonus,
+      teams: params.teams,
+      animals: params.animals,
       recordPlayerHit: params.recordPlayerHit,
     });
   }
@@ -143,6 +156,12 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
   params.markCombatDirty();
   params.markRender();
 
+  // Where an attack on a building lands, as in DE: the centre of its footprint.
+  const building = params.world.getComponent<BuildingComponent>(target.id, 'building');
+  const centre = building
+    ? footprintCentre(target.position, getBuildingFootprint(building.buildingType))
+    : target.position;
+
   if (firesProjectile(attacker.unitType)) {
     const attackerPosition = params.world.getComponent<Position>(attacker.id, 'position');
     launchProjectile({
@@ -152,13 +171,13 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
         id: attacker.id,
         owner: attacker.owner,
         unitType: attacker.unitType,
-        position: attackerPosition ?? target.position,
+        position: attackerPosition ?? centre,
         // Blast rides the raw attack stat; only the building takes the
         // anti-building total.
         baseDamage: attacker.combat.attackDamage,
         buildingDamage: damage,
       },
-      target: { id: target.id, kind: 'building', position: target.position },
+      target: { id: target.id, kind: 'building', position: centre },
       leads: ballisticsLeadsShots(params.attackerTechs ?? EMPTY_TECH_SET),
       mapSize: params.world.grid,
     });
@@ -167,8 +186,9 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
 
   params.applyBuildingDamage(target.id, damage);
   params.recordPlayerHit(attacker.id, attacker.owner, target.id);
-  // Blast/splash (spec §10.7): a melee siege hit on a building also catches
-  // units clustered around it. Projectile siege splashes on impact instead.
+  // Blast/splash (spec §10.7): a blast delivered in person on a building also
+  // catches units clustered around it, a detonation around the unit that goes
+  // off. Projectile siege splashes on impact instead.
   applyUnitBlast({
     world: params.world,
     combatStates: params.combatStates,
@@ -177,9 +197,12 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
       unitType: attacker.unitType,
       owner: attacker.owner,
       baseDamage: attacker.combat.attackDamage,
+      ref: params.world.getEntityRef(attacker.id),
     },
-    impact: target.position,
+    impact: inPersonBlastCentre(params.world, attacker, centre),
     primaryTargetId: target.id,
+    teams: params.teams,
+    animals: params.animals,
     destroyUnit: params.destroyUnit,
     addKill: params.addKill,
     markDirty: params.markCombatDirty,
@@ -193,4 +216,72 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
   if (detonatesOnAttack(attacker.unitType)) {
     params.destroyUnit(attacker.id);
   }
+}
+
+export interface DeliverAnimalAttackParams extends DeliverAttackShared {
+  attacker: { id: number; unitType: UnitType; owner: number; combat: CombatState };
+  target: { id: number; position: Position };
+}
+
+/**
+ * Deliver one unit's attack against an animal, a wolf or a boar. It is the
+ * unit's own attack, as against anything else in DE (spec §10.7): a shooter
+ * looses its shot, which can miss and lands on its impact tick, and a mangonel
+ * line's stone blasts where it lands (`projectileOps.ts`); a melee blow lands
+ * at once, and a demolition charge goes off as it does against anything else.
+ * Returns true when the animal died on the spot, which only a blow delivered in
+ * person can do.
+ */
+export function deliverUnitAttackOnAnimal(params: DeliverAnimalAttackParams): boolean {
+  const { attacker, target } = params;
+  attacker.combat.cooldownTicks = attacker.combat.reloadTicks;
+  params.markCombatDirty();
+  params.markRender();
+  if (!firesProjectile(attacker.unitType)) {
+    const attackerRef = params.world.getEntityRef(attacker.id);
+    const died = damageAnimal(params.animals, target.id, attacker.combat.attackDamage, attackerRef);
+    // A blast delivered in person, the demolition line's charge, catches what
+    // stands around and spends the unit, animal or not. No-op for a blow with
+    // no blast.
+    applyUnitBlast({
+      world: params.world,
+      combatStates: params.combatStates,
+      attacker: {
+        id: attacker.id,
+        unitType: attacker.unitType,
+        owner: attacker.owner,
+        baseDamage: attacker.combat.attackDamage,
+        ref: attackerRef,
+      },
+      impact: inPersonBlastCentre(params.world, attacker, target.position),
+      primaryTargetId: target.id,
+      teams: params.teams,
+      animals: params.animals,
+      destroyUnit: params.destroyUnit,
+      addKill: params.addKill,
+      markDirty: params.markCombatDirty,
+      recordPlayerHit: params.recordPlayerHit,
+    });
+    if (detonatesOnAttack(attacker.unitType)) params.destroyUnit(attacker.id);
+    return died;
+  }
+  const attackerPosition = params.world.getComponent<Position>(attacker.id, 'position');
+  const accuracy = thumbRingAccuracy(params.attackerTechs ?? EMPTY_TECH_SET, attacker.unitType);
+  launchProjectile({
+    slot: params.projectiles,
+    tick: params.tick,
+    attacker: {
+      id: attacker.id,
+      owner: attacker.owner,
+      unitType: attacker.unitType,
+      position: attackerPosition ?? target.position,
+      baseDamage: attacker.combat.attackDamage,
+    },
+    // An animal has no move order to lead, so Ballistics has nothing to aim at.
+    target: { id: target.id, kind: 'wildlife', position: target.position, destination: null },
+    leads: ballisticsLeadsShots(params.attackerTechs ?? EMPTY_TECH_SET),
+    mapSize: params.world.grid,
+    ...(accuracy === null ? {} : { accuracy }),
+  });
+  return false;
 }

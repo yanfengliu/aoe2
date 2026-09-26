@@ -26,9 +26,11 @@ import {
   wildlifeStatesCodec,
 } from '../bridgeStateSerialize';
 import {
+  deliverUnitAttackOnAnimal,
   deliverUnitAttackOnBuilding,
   deliverUnitAttackOnUnit,
 } from '../attackDelivery';
+import type { BlastAnimals } from '../blastDamage';
 import { teamAntiArcherBonus, teamBuildingAttackBonus } from '../../teamCombatBonuses';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import { manhattanDistance, type GameWorld } from '../pureHelpers';
@@ -44,7 +46,6 @@ export interface AttackStepDeps {
   position: Position;
   command: UnitCommand;
   currentEntityId: (world: CivWorld, ref: EntityRef | null | undefined) => number | null;
-  getEntityRef: (id: number) => EntityRef | null;
   clearUnitCommand: (id: number) => void;
   findUnitRangePlan: (
     id: number, target: Position, range: number, world: CivWorld,
@@ -70,7 +71,7 @@ export interface AttackStepDeps {
 export function runAttackCommandStep(deps: AttackStepDeps): boolean {
   const {
     activeWorld, accessor, id, unit, position, command,
-    currentEntityId, getEntityRef, clearUnitCommand,
+    currentEntityId, clearUnitCommand,
     findUnitRangePlan, findBuildingApproachPlan, distanceToBuilding,
     moveUnitOneSubgridStep,
     advanceTrebuchetTransition, isTrebuchetStationary, isTrebuchetSilent,
@@ -83,6 +84,14 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
 
           const attackerCombat = accessor.get(combatStatesCodec).get(id);
           const targetId = currentEntityId(activeWorld, command.targetEntityRef);
+          // What a blast needs besides the units: who is on whose side, and
+          // the animals it can catch.
+          const teams = accessor.get(playerTeamsCodec);
+          const animals: BlastAnimals = {
+            states: accessor.get(wildlifeStatesCodec),
+            kill: killWildlifeEntity,
+            markDirty: () => accessor.markDirty(wildlifeStatesCodec),
+          };
           if (targetId === null || !attackerCombat || !command.targetEntityKind) {
             clearUnitCommand(id);
             return true;
@@ -139,8 +148,9 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
               return true;
             }
 
-            // Primary hit + mangonel blast (spec §10.2/§10.7); splash hits
-            // friend and foe alike.
+            // The blow (spec §10.2): a melee strike lands now, a shot on its
+            // impact tick, blasting there if it is the mangonel line's (§10.4,
+            // §10.7); a demolition charge goes off here and spares its side.
             recordUnitAttack(id, targetId);
             const primaryDied = deliverUnitAttackOnUnit({
               world: activeWorld,
@@ -170,6 +180,8 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
               addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
               markCombatDirty: () => { accessor.markDirty(combatStatesCodec); accessor.markDirty(projectilesCodec); },
               markRender: markOutOfBandRenderChange,
+              teams,
+              animals,
               recordPlayerHit,
             });
             if (primaryDied) clearUnitCommand(id);
@@ -218,18 +230,30 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
               return true;
             }
 
+            // The unit's own attack, as at anything else: a shooter looses its
+            // shot, which lands later and can miss, and a mangonel line's
+            // stone blasts where it lands (spec §10.7). Until v0.3.238 this
+            // took the damage off the animal at once, with no shot and no
+            // blast, whatever the attacker was.
             recordUnitAttack(id, targetId);
-            targetWildlife.currentHp -= attackerCombat.attackDamage;
-            targetWildlife.targetEntityRef = getEntityRef(id);
-            attackerCombat.cooldownTicks = attackerCombat.reloadTicks;
-            accessor.markDirty(combatStatesCodec);
-            accessor.markDirty(wildlifeStatesCodec); // full-review H1: persist the wildlife HP mutation
-            markOutOfBandRenderChange();
-
-            if (targetWildlife.currentHp <= 0) {
-              killWildlifeEntity(targetId);
-              clearUnitCommand(id);
-            }
+            const animalDied = deliverUnitAttackOnAnimal({
+              world: activeWorld,
+              combatStates: accessor.get(combatStatesCodec),
+              projectiles: accessor.get(projectilesCodec),
+              tick: activeWorld.tick,
+              attackerTechs:
+                accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET,
+              attacker: { id, unitType: unit.unitType, owner: unit.owner, combat: attackerCombat },
+              target: { id: targetId, position: targetPosition },
+              destroyUnit: destroyUnitEntity,
+              addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
+              markCombatDirty: () => { accessor.markDirty(combatStatesCodec); accessor.markDirty(projectilesCodec); },
+              markRender: markOutOfBandRenderChange,
+              teams,
+              animals,
+              recordPlayerHit,
+            });
+            if (animalDied) clearUnitCommand(id);
             return true;
           }
 
@@ -304,6 +328,8 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
             addKill: (owner) => ensurePlayerScoreCounters(owner).unitsKilled++,
             markCombatDirty: () => { accessor.markDirty(combatStatesCodec); accessor.markDirty(projectilesCodec); },
             markRender: markOutOfBandRenderChange,
+            teams,
+            animals,
             recordPlayerHit,
           });
 

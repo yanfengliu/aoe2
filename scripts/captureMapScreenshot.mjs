@@ -356,6 +356,25 @@ try {
     }, [gatherX, gatherY]);
     if (gathered !== 'ok') throw new Error(`GATHER ${gather} failed: ${gathered}`);
   }
+  // ATTACK="mangonel@24,10" selects the human's first unit of that type and
+  // gives the right-click order on that cell before the TICKS run, so a
+  // capture can show a fight in progress: a shot in the air, where it lands,
+  // what its blast leaves. It is the context order a right-click gives, so
+  // whatever stands on the cell decides what the order is.
+  const attack = process.env.ATTACK ?? '';
+  if (attack) {
+    const match = /^([a-z-]+)@(\d+),(\d+)$/.exec(attack);
+    if (!match) throw new Error(`ATTACK must look like mangonel@24,10 (a unit type the human owns, then a cell); got "${attack}"`);
+    const [, unitType, ax, ay] = match;
+    const ordered = await page.evaluate(([type, x, y]) => {
+      const api = window.__AOE2_TEST__;
+      const unit = api.getEconomyState().units.find((u) => u.owner === 1 && u.unitType === type);
+      if (!unit) return `the human owns no ${type}`;
+      if (!api.selectEntityAtCell(unit.x, unit.y)) return `the ${type} at (${unit.x}, ${unit.y}) could not be selected`;
+      return api.issueContextCommand(Number(x), Number(y)) ? 'ok' : 'the order was refused';
+    }, [unitType, ax, ay]);
+    if (ordered !== 'ok') throw new Error(`ATTACK ${attack} failed: ${ordered}`);
+  }
   if (focus) {
     const [focusX, focusY] = focus.split(',').map(Number);
     if (!Number.isFinite(focusX) || !Number.isFinite(focusY)) {

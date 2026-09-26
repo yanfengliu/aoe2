@@ -17,7 +17,8 @@ export interface ProjectileState {
   /** `null` for a building's arrow (towers, Town Centers, Castles). */
   readonly attackerUnitType: UnitType | null;
   readonly targetId: number;
-  readonly targetKind: 'unit' | 'building';
+  /** `wildlife` is a wolf or a boar: a resource with a wildlife state (v0.3.238). */
+  readonly targetKind: 'unit' | 'building' | 'wildlife';
   readonly originX: number;
   readonly originY: number;
   /** Where the shot is headed — the lead point, or a scatter point on a miss. */

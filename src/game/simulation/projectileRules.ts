@@ -157,6 +157,24 @@ export function canAttackGround(unitType: UnitType): boolean {
 }
 
 /**
+ * Whether this unit's blast spares its own side, its owner's units and its
+ * allies' (spec §10.7): a blast a unit delivers in person, the demolition
+ * line's charge, does, and a shot's blast, the mangonel line's stone, hurts
+ * every unit in its radius. A reversible default. The sources on the ship say
+ * its blast "does not harm friendly units" (the AoE2 wiki) and that "petards
+ * and demolition ships do not injure friendlies" where the Onager's blast
+ * "hits all units regardless of their owner" (openage's notes); DE's data
+ * reads the other way, giving the line blast level 2 ("Damage nearby and
+ * allied units") with neither flag DE uses to spare a side (4 or 8). The
+ * Battle Elephant's trample has the same level and no flag, and the DE
+ * modding guide says it hurts "All enemy units", though in the words it uses
+ * for every blast's width, the Mangonel's included.
+ */
+export function blastSparesOwnSide(unitType: UnitType): boolean {
+  return unitBlastRadius(unitType) > 0 && !firesProjectile(unitType);
+}
+
+/**
  * Chance in (0,1] that a shot is aimed truly. Area weapons report 1: they
  * always land where aimed, and their damage comes from the blast radius.
  */

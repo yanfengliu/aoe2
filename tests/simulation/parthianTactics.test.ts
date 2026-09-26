@@ -183,6 +183,8 @@ describe('Parthian Tactics — landed damage at the projectile impact site', () 
       addKill: () => {},
       markCombatDirty: () => {},
       markRender: () => {},
+      teams: new Map(),
+      animals: { states: new Map(), kill: () => {}, markDirty: () => {} },
       recordPlayerHit: () => {},
     });
     return 1000 - targetCombat.currentHp;

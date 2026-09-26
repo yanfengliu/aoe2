@@ -200,6 +200,7 @@ describe("visibility mutation batching", () => {
         destroyed.push(id);
         combatStates.delete(id);
       },
+      killWildlifeEntity: () => {},
       ensurePlayerScoreCounters: () => ({ unitsKilled: 0 }),
       markOutOfBandRenderChange: vi.fn(),
       refreshVisibilityAfterCombat,

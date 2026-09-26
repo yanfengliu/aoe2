@@ -98,16 +98,16 @@ describe('Mangonel blast/splash (spec §10.7)', () => {
   it('splashes a unit adjacent to a building the Mangonel is shelling', () => {
     const bridge = createSimulationBridge('mangonel-vs-building-splash-fixture');
     const spearman = findFirstOwnedUnit(bridge, 2, 'spearman');
-    const house = bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'house');
-    expect(spearman && house).toBeTruthy();
+    const outpost = bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'outpost');
+    expect(spearman && outpost).toBeTruthy();
     expect(getHealthOfUnitAtCell(bridge, spearman!.x, spearman!.y)).toBe(45);
 
     expect(selectOwnedUnitDirect(bridge, 1, 'mangonel')).toBe(true);
-    expect(bridge.issueContextCommandAtEntity(house!.id)).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(outpost!.id)).toBe(true);
 
-    // The shot is aimed at the House; when it lands (spec §10.4) its blast is
-    // centered on the impact cell, so a unit standing beside the House at that
-    // moment is caught by it.
+    // The shot is aimed at the Outpost's centre, its one cell; when it lands
+    // (spec §10.4) its blast is centred there, so a unit standing beside the
+    // Outpost at that moment is caught by it.
     expect(stepBridgeUntil(
       bridge,
       () => bridge.getInFlightProjectiles().length > 0,

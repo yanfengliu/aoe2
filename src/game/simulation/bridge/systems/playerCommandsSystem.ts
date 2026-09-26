@@ -156,7 +156,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
         if (command.type === 'attack') {
           const handled = runAttackCommandStep({
             activeWorld, accessor, id, unit, position, command,
-            currentEntityId, getEntityRef, clearUnitCommand,
+            currentEntityId, clearUnitCommand,
             findUnitRangePlan, findBuildingApproachPlan, distanceToBuilding,
             moveUnitOneSubgridStep,
             advanceTrebuchetTransition, isTrebuchetStationary, isTrebuchetSilent,

@@ -23,3 +23,21 @@ export function manhattanDistanceToFootprint(
   const nearestY = Math.min(Math.max(origin.y, buildingOrigin.y), buildingOrigin.y + footprint.height - 1);
   return Math.abs(origin.x - nearestX) + Math.abs(origin.y - nearestY);
 }
+
+/**
+ * The centre of a building's footprint, in the cell space units stand in: a
+ * building's position is its anchor, the top-left cell, and its cells run east
+ * and south from there, so a 2x2 House at (24, 10) is centred on (24.5, 10.5)
+ * and a 3x3 Barracks at (32, 10) on its middle cell (33, 11). Definitive
+ * Edition places a building by this point (its data gives a House a collision
+ * half-size of 1 around it), and a shot at a building lands on it (spec §10.7).
+ */
+export function footprintCentre(
+  buildingOrigin: { x: number; y: number },
+  footprint: { width: number; height: number },
+): { x: number; y: number } {
+  return {
+    x: buildingOrigin.x + (footprint.width - 1) / 2,
+    y: buildingOrigin.y + (footprint.height - 1) / 2,
+  };
+}

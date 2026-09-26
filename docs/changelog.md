@@ -2,6 +2,15 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.238
+
+- **A siege stone at a building lands on the middle of it.** A Mangonel's, Onager's or Siege Onager's stone aimed at a building came down on the building's north-west corner, so its splash hit units on that side and never on the others. It now lands on the centre of the building, as in Definitive Edition, and treats every side alike. Arrows, bolts and boulders fly to the middle of a building too. A stone's splash reaches at most a tile and a half from where it lands, so units standing beside a House or any larger building are now out of it; beside a one-tile building, such as a wall, a gate, a tower or an outpost, they are still caught.
+- **A Demolition Ship's charge goes off where the ship is, and spares your side.** Its blast was centred on what it rammed, and it hurt your own ships and your allies' along with the enemy's. It now goes off around the Demolition Ship itself and hurts only enemies, as the Age of Empires II wiki and Forgotten Empires describe it. So an ally's charge no longer hurts your units, and no longer sounds your attack warning.
+- **Archers and siege shoot at wolves and boars.** An attack on a wolf or a boar took the damage off it at once, whatever attacked it. Now an archer, or any other unit that shoots, looses a shot that flies, lands a moment later and can miss, and a Mangonel's stone splashes where it lands, hurting every unit within reach, yours included. An arrow loosed at a boar or a wolf while it charges usually misses, because it lands where the animal was. Melee units still strike at once.
+- **A Petard or a Demolition Ship ordered at a wolf or a boar goes off and is used up**, as it is against anything else. It used to strike the animal again and again and survive.
+- **A splash hurts the animals it catches.** A stone or a demolition charge that lands near a wolf or a boar hurts it, and the animal turns on whoever hurt it.
+- **Replays recorded before this version** in which a unit shoots at a building or an animal, or a Demolition Ship goes off, are re-simulated under the new rules, so they may not play out as they were recorded.
+
 ## 0.3.237
 
 - **Natural costs less to draw on a computer that draws without a graphics card.** When the browser draws with the processor instead of a graphics card (Chrome falls back to its software renderer, SwiftShader, on some machines, and the automated browser tests draw that way too), the Natural style's ground now paints one texture per pixel instead of blending several. Each tile shows its own ground, sand lines the water and bare earth rings the buildings, and the edges between kinds follow the tile grid. The edge of the explored area still fades softly into black. A frame costs less there than in Moebius. With a graphics card nothing changes: the ground still blends softly. Moebius is still the default look.
