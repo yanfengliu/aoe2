@@ -6,12 +6,47 @@
 // The target is the owner's nearest enemy (aiSystem.pickAttackTarget), not the
 // human player. Looking it up on the human alone meant an AI occupying the
 // human slot had nobody to attack, and no AI ever attacked another AI.
+//
+// No order at a target inside the unit's minimum range (spec §10.4): the attack
+// step holds its fire there for as long as the order stands, and the AI kept
+// any order whose target lived, so an AI Onager ordered at a house beside it
+// never fired again (defect register, 2026-09-26). Every order an AI-owned unit
+// carries is the AI's own, so one whose target has come inside is not kept: it
+// is replaced as soon as the AI has a target the unit can fire at, and stands
+// until then.
 
 import { type Position } from 'civ-engine';
+import { getBuildingFootprint } from '../../../content/buildingFootprints';
 import type { BuildingComponent, ResourceComponent, UnitComponent } from '../../types';
 import { attackGroupSize } from '../../ai';
+import { unitMinAttackRange } from '../../prototypeUnitRules';
 import { wildlifeStatesCodec } from '../bridgeStateSerialize';
+import { distanceFromBuildingFootprint, manhattanDistance, type GameWorld } from '../pureHelpers';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+
+type TargetKind = 'unit' | 'building' | 'resource';
+
+/**
+ * Whether a unit at `position` can fire at `targetId` at all: not when the
+ * target is nearer than `minimumRange`, measured as the attack step measures it
+ * (attackCommandStep.ts): cells to a unit or an animal, and to a building's
+ * nearest footprint cell.
+ */
+function isOutsideMinimumRange(
+  activeWorld: GameWorld,
+  minimumRange: number,
+  position: Position,
+  targetId: number,
+  targetKind: TargetKind,
+): boolean {
+  if (minimumRange <= 0) return true;
+  const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
+  if (!targetPosition) return true;
+  if (targetKind !== 'building') return manhattanDistance(position, targetPosition) >= minimumRange;
+  const building = activeWorld.getComponent<BuildingComponent>(targetId, 'building');
+  return !building
+    || distanceFromBuildingFootprint(targetPosition, getBuildingFootprint(building.buildingType), position) >= minimumRange;
+}
 
 export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
   const {
@@ -67,6 +102,9 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
     const unit = activeWorld.getComponent<UnitComponent>(id, 'unit');
     const position = activeWorld.getComponent<Position>(id, 'position');
     if (!unit || !position) continue;
+    const minimumRange = unitMinAttackRange(unit.unitType);
+    const canFireAt = (targetId: number, targetKind: TargetKind): boolean =>
+      isOutsideMinimumRange(activeWorld, minimumRange, position, targetId, targetKind);
 
     const currentCommand = unitCommands.get(id);
     if (currentCommand?.type === 'attack') {
@@ -85,7 +123,8 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
           && activeWorld.getComponent<ResourceComponent>(targetId, 'resource')
           && accessor.get(wildlifeStatesCodec).get(targetId)?.isAlive
           && activeWorld.getComponent<Position>(targetId, 'position');
-        if (hasUnitTarget || hasBuildingTarget || hasResourceTarget) {
+        const keptKind: TargetKind = hasBuildingTarget ? 'building' : hasResourceTarget ? 'resource' : 'unit';
+        if ((hasUnitTarget || hasBuildingTarget || hasResourceTarget) && canFireAt(targetId, keptKind)) {
           continue;
         }
       }
@@ -98,18 +137,18 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
     // so the chain is split into separate clauses.
     const targetVillagerId =
       targetOwner === null ? null : findOwnedUnitOnMap(targetOwner, 'villager');
-    if (shouldPush && targetVillagerId !== null) {
+    if (shouldPush && targetVillagerId !== null && canFireAt(targetVillagerId, 'unit')) {
       submitUnitAttackIntention(id, targetVillagerId, 'unit');
       continue;
     }
 
-    const visibleTargetId = findPreferredVisibleEnemyUnit(owner, position);
+    const visibleTargetId = findPreferredVisibleEnemyUnit(owner, position, minimumRange);
     if (visibleTargetId !== null) {
       submitUnitAttackIntention(id, visibleTargetId, 'unit');
       continue;
     }
 
-    const visibleBuildingId = findPreferredVisibleEnemyBuilding(owner, position);
+    const visibleBuildingId = findPreferredVisibleEnemyBuilding(owner, position, minimumRange);
     if (visibleBuildingId !== null) {
       submitUnitAttackIntention(id, visibleBuildingId, 'building');
       continue;
@@ -117,7 +156,9 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
 
     if (shouldPush) {
       if (targetTownCenterId !== null) {
-        submitUnitAttackIntention(id, targetTownCenterId, 'building');
+        if (canFireAt(targetTownCenterId, 'building')) {
+          submitUnitAttackIntention(id, targetTownCenterId, 'building');
+        }
         continue;
       }
 
@@ -132,7 +173,9 @@ export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
       // and the match never ends (`gold-rush`: owner 2 held a blacksmith and a
       // house with zero units from tick 48,000 to the horizon).
       if (lastResortTargetId !== null) {
-        submitUnitAttackIntention(id, lastResortTargetId, 'building');
+        if (canFireAt(lastResortTargetId, 'building')) {
+          submitUnitAttackIntention(id, lastResortTargetId, 'building');
+        }
         continue;
       }
       if (lastResortTargetPosition) {

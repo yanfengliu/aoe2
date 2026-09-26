@@ -6,16 +6,24 @@
 import type { ResourceKind } from '../types';
 import type { UnitType } from '../unitTypes';
 
-// units.csv `range` gives the minimum before the dash. The Siege Onager's 3 was
-// missing, and once its shot blasted (defect register, "The Siege Onager fired
-// direct hits with no splash", 2026-09-24) a point-blank shot would have landed
-// its 1.5 blast on its own escorts. Other units' CSV minimums are not all here
-// yet (the Scorpion line, the Skirmisher line, the Trebuchet, the Cannon
-// Galleon line); that is flagged as its own task.
+// units.csv `range` gives the minimum before the dash, and Definitive Edition
+// agrees with every one (aoe2techtree 3bb43b14, DE update 185872). Until
+// 2026-09-26 only the mangonel line and the Bombard Cannon were here, so the
+// Skirmisher line, the Scorpion line, the Trebuchet and the Cannon Galleon line
+// fired point-blank (defect register, 2026-09-26). tests/content/
+// baseStats.test.ts holds this table to the CSV, and tests/simulation/
+// minimumRangeCensus.test.ts plays each row.
 export const UNIT_MIN_ATTACK_RANGE = new Map<UnitType, number>([
+  ['skirmisher', 1],
+  ['elite-skirmisher', 1],
+  ['scorpion', 2],
+  ['heavy-scorpion', 2],
   ['mangonel', 3],
   ['onager', 3],
   ['siege-onager', 3],
+  ['cannon-galleon', 3],
+  ['elite-cannon-galleon', 3],
+  ['trebuchet', 4],
   ['bombard-cannon', 5],
 ]);
 
@@ -103,7 +111,11 @@ export const MELEE_UNITS = new Set<UnitType>([
   'knight',
   'cavalier',
   'villager',
+  // Every tier of the ram line. The Capped Ram was missing, so until
+  // 2026-09-26 the middle tier's blows met pierce armour and it stood in a
+  // formation's second rank.
   'battering-ram',
+  'capped-ram',
   'siege-ram',
   'man-at-arms',
   'long-swordsman',

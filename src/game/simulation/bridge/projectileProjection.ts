@@ -9,17 +9,28 @@ import type { ProjectedProjectileView } from '../types';
 import type { MapSize } from '../mapGeneration/constants';
 import type { ProjectileState } from './projectileTypes';
 
-/** Visual class, derived from what fired the shot. */
+/**
+ * Visual class, derived from what fired the shot: DE's shot wherever this game
+ * has a look for it (spec §10.4). The Siege Onager, the Cannon Galleon line and
+ * the Turtle Ship line fell through to an arrow until 2026-09-26. DE's musket
+ * balls, thrown axes and scimitars, and fire-ship flames have no look here yet
+ * and are drawn as arrows; tests/simulation/projectileLooks.test.ts names them.
+ */
 export function projectileVisualKind(
   attackerUnitType: string | null,
 ): ProjectedProjectileView['visual'] {
   switch (attackerUnitType) {
     case 'mangonel':
     case 'onager':
+    case 'siege-onager':
       return 'stone';
     case 'trebuchet':
       return 'boulder';
     case 'bombard-cannon':
+    case 'cannon-galleon':
+    case 'elite-cannon-galleon':
+    case 'turtle-ship':
+    case 'elite-turtle-ship':
       return 'cannonball';
     case 'scorpion':
     case 'heavy-scorpion':

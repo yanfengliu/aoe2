@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import { UNIT_ARMOR_CLASSES } from '../../src/game/simulation/prototypeUnitRules/armorClasses';
 import {
-  unitMeleeArmor, unitPierceArmor, unitAttackDamage, unitMaxHp, unitAttackRange,
+  unitMeleeArmor, unitPierceArmor, unitAttackDamage, unitMaxHp, unitAttackRange, unitMinAttackRange,
 } from '../../src/game/simulation/prototypeUnitRules';
 import { ageScaledUnitAttack } from '../../src/game/simulation/ageScaledHp';
 
@@ -69,5 +69,37 @@ describe('units.csv base-stat differential', () => {
       }
     }
     expect(problems, problems.join('\n')).toEqual([]);
+  });
+
+  // The minimum range (defect register, 2026-09-26, "The Siege Onager, the
+  // Capped Ram and the Elite Skirmisher were left out of tables that named the
+  // rest of their line"): a "min-max" range gives the minimum before the dash,
+  // and the check above reads only the maximum. Seven rows' minimums were not
+  // in the game — the Skirmisher line's 1, the Scorpion line's 2, the Cannon
+  // Galleon line's 3 and the Trebuchet's 4 — so each fired point-blank.
+  // Definitive Edition agrees with every one of the eleven rows (SiegeEngineers/
+  // aoe2techtree data/data.json at 3bb43b14, DE update 185872, `MinRange`), so
+  // there is no DE exception. If one is ever needed, it goes in a list here that
+  // names its source and that this test fails on once the game and the CSV
+  // agree again, as the price gate's exceptions did until v0.3.228.
+  it('matches the minimum range of every "min-max" row, and gives no other unit one', () => {
+    const problems: string[] = [];
+    for (const [unit, cols] of perUnit) {
+      const rangeRaw = cols[12]!.trim();
+      const csvMinimum = rangeRaw.includes('-') ? Number(rangeRaw.split('-')[0]) : 0;
+      if (unitMinAttackRange(unit as never) !== csvMinimum) {
+        problems.push(`${unit}: minimum range ${String(unitMinAttackRange(unit as never))} vs csv "${rangeRaw}" (expect ${String(csvMinimum)})`);
+      }
+    }
+    // A minimum on a unit the CSV has no row for is one nothing above checks.
+    for (const unit of roster) {
+      if (!perUnit.has(unit) && unitMinAttackRange(unit as never) > 0) {
+        problems.push(`${unit}: minimum range ${String(unitMinAttackRange(unit as never))} but units.csv has no row for it`);
+      }
+    }
+    expect(problems, problems.join('\n')).toEqual([]);
+    // The instrument: the rows it compares include every minimum the CSV gives.
+    const minimumRows = [...perUnit.values()].filter((cols) => cols[12]!.includes('-'));
+    expect(minimumRows.length, 'units.csv rows with a "min-max" range').toBeGreaterThanOrEqual(11);
   });
 });

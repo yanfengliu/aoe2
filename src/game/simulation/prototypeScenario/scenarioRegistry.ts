@@ -18,8 +18,14 @@ import { blastCensusSeed } from '../fixtures/blastCensusLayout';
 import { createBuildingShotLandingFixture } from '../fixtures/buildingShotLanding';
 import { createCorridorSealFixture } from '../fixtures/corridorSeal';
 import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from '../fixtures/farmsAreWalkable';
+import { createMinimumRangeCensusFixture, minimumRangeCensusSeeds } from '../fixtures/minimumRangeCensus';
+import { createProjectileLookShowcaseFixture } from '../fixtures/projectileLookShowcase';
 import { createRaidWarningFixture } from '../fixtures/raidWarning';
 import { createTrafficContestFixture } from '../fixtures/trafficContest';
+import {
+  createUpgradeKeepsLineBonusesFixture,
+  UPGRADE_KEEPS_LINE_BONUSES_SEEDS,
+} from '../fixtures/upgradeKeepsLineBonuses';
 import { createWildlifeShotsFixture } from '../fixtures/wildlifeShots';
 import { createArenaMap } from '../mapGeneration/arenaMap';
 import { createBlackForestMap } from '../mapGeneration/blackForestMap';
@@ -366,7 +372,13 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['raid-warning-fixture', createRaidWarningFixture],
   ['building-shot-landing-fixture', createBuildingShotLandingFixture],
   ['wildlife-shots-fixture', createWildlifeShotsFixture],
+  ['projectile-look-showcase-fixture', createProjectileLookShowcaseFixture],
+  ...UPGRADE_KEEPS_LINE_BONUSES_SEEDS.map((seed) => [seed, createUpgradeKeepsLineBonusesFixture] as const),
   // The blast census: one fixture per unit with a blast radius, generated
   // from the blast table, so a unit that gains a radius is censused too.
   ...unitTypesWithBlast().map((unitType) => [blastCensusSeed(unitType), createBlastCensusFixture] as const),
+  // The minimum-range census: its scenes for every unit that fires a
+  // projectile, so the census can judge any unit units.csv gives a minimum,
+  // whatever the game's own table says.
+  ...minimumRangeCensusSeeds().map((seed) => [seed, createMinimumRangeCensusFixture] as const),
 ]);

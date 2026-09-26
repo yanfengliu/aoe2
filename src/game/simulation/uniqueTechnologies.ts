@@ -12,6 +12,7 @@
 // the CSV line it came from. Instead each technology names which units or
 // buildings it touches and what it adds, and one loop applies them all.
 
+import { TRAINABLE_UNITS_BY_BUILDING } from './buildingProductionTables';
 import { isWaterUnit } from './unitDomain';
 import { isInfantryUnit } from './prototypeUnitRules';
 import type { BuildingType } from './types';
@@ -75,15 +76,28 @@ export interface UniqueTechnology {
 // hand-widened unique-infantry list this file carried is folded into it.
 const isInfantry = (unitType: UnitType) => isInfantryUnit(unitType);
 
-const SIEGE_WORKSHOP_UNITS = new Set<UnitType>([
-  'mangonel', 'onager', 'scorpion', 'heavy-scorpion',
-  'battering-ram', 'siege-ram', 'bombard-cannon',
-]);
+// Read from the Siege Workshop's own roster. A hand list of its own left out
+// the Siege Onager and the Capped Ram, so their upgrades took Furor Celtica
+// and Drill off every unit they upgraded (defect register, 2026-09-26).
+const SIEGE_WORKSHOP_UNITS = new Set<UnitType>(siegeWorkshopRoster());
 
-const MANGONEL_LINE = new Set<UnitType>(['mangonel', 'onager']);
+function siegeWorkshopRoster(): readonly UnitType[] {
+  const roster = TRAINABLE_UNITS_BY_BUILDING.get('siege-workshop');
+  if (!roster) {
+    throw new Error(
+      "TRAINABLE_UNITS_BY_BUILDING has no 'siege-workshop' row, so Furor Celtica and Drill would reach no unit; "
+      + 'restore the row in buildingProductionTables.ts or point SIEGE_WORKSHOP_UNITS at its new key.',
+    );
+  }
+  return roster;
+}
+
+// Every tier of each line. tests/simulation/upgradeKeepsLineMemberships.test.ts
+// fails on an upgrade whose next tier a list here leaves out.
+const MANGONEL_LINE = new Set<UnitType>(['mangonel', 'onager', 'siege-onager']);
 
 const FOOT_ARCHERS = new Set<UnitType>([
-  'archer', 'crossbowman', 'arbalest', 'skirmisher',
+  'archer', 'crossbowman', 'arbalest', 'skirmisher', 'elite-skirmisher',
   'longbowman', 'elite-longbowman',
   'chu-ko-nu', 'elite-chu-ko-nu',
   'plumed-archer', 'elite-plumed-archer',

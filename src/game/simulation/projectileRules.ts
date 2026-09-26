@@ -13,7 +13,7 @@ import type { Position } from 'civ-engine';
 
 import { TPS } from './prototypeScenario';
 import type { UnitType } from './types';
-import { isMeleeUnit, unitAttackRange, unitBlastRadius } from './prototypeUnitRules';
+import { firesProjectile, unitBlastRadius } from './prototypeUnitRules';
 
 /**
  * How close a projectile must land to a unit to connect, in tiles. A shot
@@ -27,10 +27,13 @@ const DEFAULT_PROJECTILE_SPEED = 0.7;
 
 // Flight speed in tiles per tick, at 10 TPS. Arrows fly at AoE2's ~7 tiles per
 // second; siege stones arc slower, a trebuchet boulder slower still, and a
-// cannonball is the fastest thing on the field.
+// cannonball is the fastest thing on the field. Every tier of a line flies the
+// same shot: the Siege Onager was missing, so its stone flew at arrow speed
+// (tests/simulation/upgradeKeepsLineMemberships.test.ts).
 const PROJECTILE_SPEED: Partial<Record<UnitType, number>> = {
   mangonel: 0.5,
   onager: 0.5,
+  'siege-onager': 0.5,
   trebuchet: 0.4,
   'bombard-cannon': 0.9,
 };
@@ -43,6 +46,8 @@ const UNIT_ACCURACY: Partial<Record<UnitType, number>> = {
   crossbowman: 0.85,
   arbalest: 0.9,
   skirmisher: 0.9,
+  // Both tiers, as units.csv and DE give them (defect register, 2026-09-26).
+  'elite-skirmisher': 0.9,
   'cavalry-archer': 0.5,
   'heavy-cavalry-archer': 0.5,
   longbowman: 0.7,
@@ -80,6 +85,7 @@ const ATTACK_DELAY_SECONDS: Partial<Record<UnitType, number>> = {
   longbowman: 0.35,
   'elite-longbowman': 0.35,
   skirmisher: 0.5,
+  'elite-skirmisher': 0.5,
   'cavalry-archer': 1,
   'heavy-cavalry-archer': 1,
   scorpion: 0.21,
@@ -120,15 +126,9 @@ const ATTACK_DELAY_SECONDS: Partial<Record<UnitType, number>> = {
   'elite-longboat': 0.0,
 };
 
-/**
- * Whether this unit's attack flies as a projectile rather than landing
- * instantly. Ranged, non-melee attackers only: a battering ram has siege
- * damage but swings at contact range, and a monk's range is conversion, not an
- * attack.
- */
-export function firesProjectile(unitType: UnitType): boolean {
-  return !isMeleeUnit(unitType) && unitAttackRange(unitType) > 1;
-}
+// Who fires a projectile is decided in prototypeUnitRules.ts (see there for
+// why) and re-exported here with the rest of the projectile rules.
+export { firesProjectile };
 
 /**
  * Whether the shot damages by blast at the impact point instead of on a hit:

@@ -229,6 +229,18 @@ export function isMeleeUnit(unitType: UnitType): boolean {
   return MELEE_UNITS.has(unitType);
 }
 
+/**
+ * Whether this unit's attack flies as a projectile rather than landing
+ * instantly. Ranged, non-melee attackers only: a battering ram has siege
+ * damage but swings at contact range, and a monk's range is conversion, not an
+ * attack. It lives here rather than in projectileRules.ts, which re-exports
+ * it, because the scenario registry enumerates the shooters while it loads,
+ * and projectileRules.ts is in the scenario module's import cycle.
+ */
+export function firesProjectile(unitType: UnitType): boolean {
+  return !isMeleeUnit(unitType) && unitAttackRange(unitType) > 1;
+}
+
 // Slice 2b-ii: the anti-unit attack bonuses now live in the AoE2-accurate
 // armor-CLASS model (./prototypeUnitRules/armorClasses.ts) — a declarative
 // class taxonomy + cross-class SUMMATION with the CSV bonus VALUES. This stays

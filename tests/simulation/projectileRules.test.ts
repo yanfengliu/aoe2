@@ -53,6 +53,18 @@ describe('projectile rules — who fires, and how accurately', () => {
     expect(unitAccuracy('trebuchet')).toBeCloseTo(0.15, 10);
   });
 
+  it('gives both tiers of the Skirmisher its 90% and its half-second wind-up', () => {
+    // units.csv and DE (aoe2techtree 3bb43b14: 90%, 0.507 s) give the Elite
+    // Skirmisher the Skirmisher's accuracy and wind-up. Both tables named only
+    // the first tier, so the upgrade made it never miss and loose at once
+    // (defect register, 2026-09-26). Accuracy and wind-up are not asked by
+    // upgradeKeepsLineMemberships.test.ts, because other lines' tiers differ.
+    for (const unitType of ['skirmisher', 'elite-skirmisher'] as const) {
+      expect(unitAccuracy(unitType), unitType).toBeCloseTo(0.9, 10);
+      expect(projectileLaunchDelayTicks(unitType), unitType).toBe(Math.round(0.5 * TPS));
+    }
+  });
+
   it('treats the mangonel line as area weapons that always land where aimed', () => {
     // The whole line, the Imperial upgrade included: a hand list of its own
     // once left the Siege Onager out (defect register, "The Siege Onager

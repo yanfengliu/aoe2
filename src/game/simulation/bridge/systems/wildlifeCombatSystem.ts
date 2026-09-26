@@ -5,7 +5,7 @@
 
 import type { EntityRef, Position } from 'civ-engine';
 import type { UnitComponent } from '../../types';
-import { effectiveMeleeArmor } from '../../prototypeUnitRules';
+import { effectiveMeleeArmor, unitMinAttackRange } from '../../prototypeUnitRules';
 import { manhattanDistance, type GameWorld } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
@@ -169,7 +169,15 @@ export function registerWildlifeCombatSystem(deps: WildlifeCombatSystemDeps): vo
         // that ships. A unit under orders keeps them and does not defend
         // itself yet; resuming an interrupted order after a fight needs the
         // command to be saved and restored, and that is its own piece of work.
-        if (!accessor.get(unitCommandsCodec).has(targetId)) {
+        //
+        // Nor does a unit turn on an animal inside its minimum range (spec
+        // §10.4): it could not fire, and the order would hold it for as long as
+        // the animal lived and keep it from taking a target of its own. A
+        // Scorpion bitten by a wolf beside it stands and takes no such order
+        // (defect register, 2026-09-26).
+        const insideMinimum = biteTargetUnit !== undefined
+          && manhattanDistance(targetPosition, position) < unitMinAttackRange(biteTargetUnit.unitType);
+        if (!accessor.get(unitCommandsCodec).has(targetId) && !insideMinimum) {
           setUnitAttackCommandDirect(targetId, id, 'resource');
         }
 

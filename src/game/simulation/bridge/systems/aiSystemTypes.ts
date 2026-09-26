@@ -124,8 +124,8 @@ export interface AiSystemDeps {
     pushMonkContextAtEntityIntention: PushMonkContextAtEntityIntention,
   ) => void;
   pushMonkContextAtEntityIntention: PushMonkContextAtEntityIntention;
-  findPreferredVisibleEnemyUnit: (owner: number, position: Position) => number | null;
-  findPreferredVisibleEnemyBuilding: (owner: number, position: Position) => number | null;
+  findPreferredVisibleEnemyUnit: (owner: number, position: Position, minimumRange?: number) => number | null;
+  findPreferredVisibleEnemyBuilding: (owner: number, position: Position, minimumRange?: number) => number | null;
   // Phase 1C: AI-decision systems push intentions; the dispatcher submits
   // between ticks. These are NOT synchronous facades — return value is
   // always true (queued; handler runs at next tick). Renamed from

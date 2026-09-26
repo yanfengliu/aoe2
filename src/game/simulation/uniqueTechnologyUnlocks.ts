@@ -7,6 +7,7 @@
 // table.
 
 import { uniqueTechnologiesFor } from './uniqueTechnologies';
+import { uniqueUnitsFor } from './uniqueUnits';
 import type { BuildingType } from './types';
 import type { ResearchableTechnologyType } from './technologyTypes';
 import type { TrainableUnitType } from './unitTypes';
@@ -21,7 +22,11 @@ export function unlockedTrainingFor(
     const unlock = technology.unlocksTraining;
     if (!unlock || unlock.building !== buildingType) continue;
     if (!hasTechnology(technology.id)) continue;
-    unlocked.push(unlock.unitType);
+    // The unit's line, at the tier the owner has: once the elite upgrade is
+    // in, the Barracks trains the Elite Huskarl as the Castle does. Naming the
+    // first tier alone kept it on base Huskarls (defect register, 2026-09-26).
+    const elite = uniqueUnitsFor(civilization).find((entry) => entry.unitType === unlock.unitType)?.elite;
+    unlocked.push(elite && hasTechnology(elite[1]) ? elite[0] : unlock.unitType);
   }
   return unlocked;
 }

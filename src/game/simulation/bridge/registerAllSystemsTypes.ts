@@ -145,10 +145,10 @@ export interface RegisterAllSystemsDeps {
     targetEntityId: number,
     options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
   ) => void;
-  findPreferredVisibleEnemyUnit: (owner: number, position: Position) => number | null;
-  findPreferredVisibleEnemyBuilding: (owner: number, position: Position) => number | null;
-  findPreferredEnemyUnitInRadius: (owner: number, position: Position, radius: number) => number | null;
-  findPreferredEnemyBuildingInRadius: (owner: number, position: Position, radius: number) => number | null;
+  findPreferredVisibleEnemyUnit: (owner: number, position: Position, minimumRange?: number) => number | null;
+  findPreferredVisibleEnemyBuilding: (owner: number, position: Position, minimumRange?: number) => number | null;
+  findPreferredEnemyUnitInRadius: (owner: number, position: Position, radius: number, minimumRange?: number) => number | null;
+  findPreferredEnemyBuildingInRadius: (owner: number, position: Position, radius: number, minimumRange?: number) => number | null;
   findPreferredVisibleEnemyUnitInRangeOfBuilding: (
     owner: number,
     position: Position,

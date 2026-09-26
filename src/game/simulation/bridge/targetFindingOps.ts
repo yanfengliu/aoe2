@@ -57,8 +57,8 @@ export interface TargetFindingOps {
   // Per-buildingType targeting priority. Same lower-first convention.
   buildingTargetPriority(buildingType: BuildingType): number;
   // Scan every enemy unit visible to `viewerOwner`, pick the one with
-  // the best priority/distance.
-  findPreferredVisibleEnemyUnit(viewerOwner: number, origin: Position): number | null;
+  // the best priority/distance, none nearer than `minimumRange`.
+  findPreferredVisibleEnemyUnit(viewerOwner: number, origin: Position, minimumRange?: number): number | null;
   // Footprint-aware variant. Measures distance from the nearest
   // footprint cell so a 4x4 Castle's stated range lands evenly all
   // the way around the footprint (not just from the anchor corner).
@@ -69,8 +69,8 @@ export interface TargetFindingOps {
     range: number,
   ): number | null;
   // Scan every enemy building visible to `viewerOwner`, pick the one
-  // with the best priority/distance.
-  findPreferredVisibleEnemyBuilding(viewerOwner: number, origin: Position): number | null;
+  // with the best priority/distance, none nearer than `minimumRange`.
+  findPreferredVisibleEnemyBuilding(viewerOwner: number, origin: Position, minimumRange?: number): number | null;
   // Nearest owned, complete building that accepts drop-off of
   // `resourceKind`. `activeWorld` parameter lets system-loop callers
   // thread the world reference they already hold.
@@ -92,11 +92,14 @@ export interface TargetFindingOps {
   // sight radius — not the player-level fog state — so a Knight
   // standing next to an enemy spearman engages even if no allied
   // structure illuminates that tile. Returns the highest-priority
-  // enemy unit within `radius` Manhattan distance from `origin`.
+  // enemy unit within `radius` Manhattan distance from `origin`, and no
+  // closer than `minimumRange`: a unit cannot fire inside its minimum, so a
+  // target there would hold its fire for good (spec §10.4).
   findPreferredEnemyUnitInRadius(
     viewerOwner: number,
     origin: Position,
     radius: number,
+    minimumRange?: number,
   ): number | null;
   // Personal-LOS variant of `findPreferredVisibleEnemyBuilding`. Same
   // contract as `findPreferredEnemyUnitInRadius` for buildings.
@@ -108,6 +111,7 @@ export interface TargetFindingOps {
     viewerOwner: number,
     origin: Position,
     radius: number,
+    minimumRange?: number,
   ): number | null;
 }
 
@@ -156,7 +160,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     }
   }
 
-  function findPreferredVisibleEnemyUnit(viewerOwner: number, origin: Position): number | null {
+  function findPreferredVisibleEnemyUnit(viewerOwner: number, origin: Position, minimumRange = 0): number | null {
     const candidates = [...world.query('position', 'unit')]
       .map((id) => ({
         id,
@@ -170,7 +174,8 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
           entry.position !== undefined
           && entry.unit !== undefined
           && isEnemyOwner(teams(), viewerOwner, entry.unit.owner)
-          && visibility.isVisible(viewerOwner, entry.position.x, entry.position.y),
+          && visibility.isVisible(viewerOwner, entry.position.x, entry.position.y)
+          && manhattanDistance(origin, entry.position) >= minimumRange,
       )
       .sort((left, right) => {
         const priorityDelta = targetPriority(left.unit.unitType) - targetPriority(right.unit.unitType);
@@ -255,7 +260,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     return candidates[0]?.id ?? null;
   }
 
-  function findPreferredVisibleEnemyBuilding(viewerOwner: number, origin: Position): number | null {
+  function findPreferredVisibleEnemyBuilding(viewerOwner: number, origin: Position, minimumRange = 0): number | null {
     // Iter-2 M2-1: visibility check goes through the building footprint,
     // not just the anchor cell, so partially-visible large buildings
     // (Castles, Town Centers, Wonders) are targetable as soon as ANY
@@ -279,6 +284,9 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
             return false;
           }
           const footprint = getBuildingFootprint(entry.building.buildingType);
+          if (distanceFromBuildingFootprint(entry.position, footprint, origin) < minimumRange) {
+            return false;
+          }
           return isFootprintVisible(
             visibility,
             viewerOwner,
@@ -385,6 +393,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     viewerOwner: number,
     origin: Position,
     radius: number,
+    minimumRange = 0,
   ): number | null {
     let bestId: number | null = null;
     let bestPriority = Number.POSITIVE_INFINITY;
@@ -403,7 +412,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
       }
 
       const distance = manhattanDistance(origin, position);
-      if (distance > radius) {
+      if (distance > radius || distance < minimumRange) {
         continue;
       }
 
@@ -425,6 +434,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     viewerOwner: number,
     origin: Position,
     radius: number,
+    minimumRange = 0,
   ): number | null {
     let bestId: number | null = null;
     let bestPriority = Number.POSITIVE_INFINITY;
@@ -439,6 +449,14 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
 
       const distance = manhattanDistance(origin, position);
       if (distance > radius) {
+        continue;
+      }
+      // The minimum is measured as the attack step measures a building's
+      // reach: to the nearest cell of its footprint, not its anchor.
+      if (
+        minimumRange > 0
+        && distanceFromBuildingFootprint(position, getBuildingFootprint(building.buildingType), origin) < minimumRange
+      ) {
         continue;
       }
 

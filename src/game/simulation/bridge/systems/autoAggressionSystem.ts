@@ -20,7 +20,7 @@ import type {
   VisionSourceComponent,
 } from '../../types';
 import type { GameWorld } from '../pureHelpers';
-import { unitAttackRange, unitVisionRadius } from '../../prototypeUnitRules';
+import { unitAttackRange, unitMinAttackRange, unitVisionRadius } from '../../prototypeUnitRules';
 import {
   autoEngageRadius,
   defaultStanceFor,
@@ -45,11 +45,13 @@ export interface AutoAggressionSystemDeps {
     owner: number,
     position: Position,
     radius: number,
+    minimumRange?: number,
   ) => number | null;
   findPreferredEnemyBuildingInRadius: (
     owner: number,
     position: Position,
     radius: number,
+    minimumRange?: number,
   ) => number | null;
   // Phase 1B unit.attack: returns true if a `unit.move`/`unit.attack` intention
   // is already queued in pendingCommands for the given unit (preserves the
@@ -153,7 +155,10 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
           continue;
         }
 
-        const enemyUnitId = findPreferredEnemyUnitInRadius(unit.owner, position, radius);
+        // Nothing inside the unit's minimum range (spec §10.4): it could not
+        // fire there, and the attack step would hold the order for good.
+        const minimumRange = unitMinAttackRange(unit.unitType);
+        const enemyUnitId = findPreferredEnemyUnitInRadius(unit.owner, position, radius, minimumRange);
         if (enemyUnitId !== null) {
           submitUnitAttackIntention(id, enemyUnitId, 'unit');
           continue;
@@ -167,6 +172,7 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
           unit.owner,
           position,
           radius,
+          minimumRange,
         );
         if (enemyBuildingId !== null) {
           submitUnitAttackIntention(id, enemyBuildingId, 'building');
