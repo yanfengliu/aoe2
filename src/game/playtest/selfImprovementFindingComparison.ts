@@ -49,15 +49,8 @@ function uniqueFindingIdentities(findings: readonly ImprovementFinding[]): Findi
   return out;
 }
 
-// Stable identity key for cross-run finding comparison — oracle findings key
-// on the violation tuple so positional id-suffix churn does not defeat the
-// resolved/persisted/introduced deltas or the recursive pass's prove-fixed check.
-export function findingIdentityKey(finding: ImprovementFinding): string {
-  return findingIdentity(finding).key;
-}
-
 // Within a SINGLE run's union (markers ∪ envelope ∪ oracle), dedup with a FINER
-// key than the cross-run findingIdentityKey. Conformance findings key on their
+// key than the cross-run identity. Conformance findings key on their
 // per-finding id: the SAME defect surfaced by both markers and the envelope
 // carries the SAME id (tick + index) and still collapses, but two DISTINCT
 // defects in one [category, area] have distinct id suffixes and are BOTH kept —

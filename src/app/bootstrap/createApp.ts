@@ -151,8 +151,8 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     bridgeCell: {
       current: () => bridge,
       replace: (nextBridge) => {
-        bridge = nextBridge;
         view.setBridge(nextBridge);
+        bridge = nextBridge;
       },
     },
     isLivePaused: () => pauseControl.isPaused(),
@@ -275,8 +275,8 @@ export async function createApp(): Promise<AoeVoxelGameView> {
       replayController,
       createBridge: () => createSimulationBridge(seed, { savedGame: blob }),
       replaceBridge: (nextBridge) => {
-        bridge = nextBridge;
         view.setBridge(nextBridge);
+        bridge = nextBridge;
       },
     });
     hudRoot!.dispatchEvent(new Event(WORLD_LOADED_EVENT)); // the audio forgets the old world (v0.3.229)

@@ -116,7 +116,9 @@ function defaultRuntime(options: ThreeRenderRuntimeOptions): AoeVoxelRuntime {
 
 export class AoeVoxelWorldRenderer {
   readonly canvas: HTMLCanvasElement;
-  private readonly adapter = new AoeVoxelAdapter();
+  private adapter = new AoeVoxelAdapter();
+  private bridgeEpochIndex = 0;
+  private lastSnapshot: RenderSnapshotV1 | null = null;
   private readonly runtime: AoeVoxelRuntime;
   private readonly pixelRatio: number;
   private width: number;
@@ -250,6 +252,7 @@ export class AoeVoxelWorldRenderer {
         `Voxel snapshot rejected (${result.code} at ${result.path}): ${result.message}`,
       );
     }
+    this.lastSnapshot = snapshot;
     if (ground) this.ground.update(ground);
     // Voxel ambient animation and hit geometry share a monotonic clock driven
     // only by forward simulation display progress. Browser RAF time advances
@@ -277,7 +280,6 @@ export class AoeVoxelWorldRenderer {
 
   frame(
     camera: CameraState,
-    _wallNowMs: number,
     deltaMs: number,
   ): void {
     this.assertActive();
@@ -311,10 +313,37 @@ export class AoeVoxelWorldRenderer {
 
   resetForBridgeSwap(): void {
     this.assertActive();
-    this.adapter.resetForBridgeSwap();
+    this.adapter = new AoeVoxelAdapter({ epochPrefix: `aoe2:bridge:${++this.bridgeEpochIndex}` });
+    this.adapter.setExploredGround(this.artStyle.exploredGround);
+    this.adapter.setVoxelGround(this.artStyle.ground === 'voxel');
     this.lastSimulationDisplayTimeMs = null;
     this.pendingHitState = null;
     this.presentedHitState = null;
+  }
+
+  /** Rollback covers synchronous preparation/admission failures while the runtime remains usable. */
+  beginBridgeSwap(): { commit(): void; rollback(): void } {
+    this.assertActive();
+    const previous = { adapter: this.adapter, lastSimulationDisplayTimeMs: this.lastSimulationDisplayTimeMs,
+      pendingHitState: this.pendingHitState, presentedHitState: this.presentedHitState,
+      animationNowMs: this.animationNowMs, animationClockInitialized: this.animationClockInitialized,
+      lastSnapshot: this.lastSnapshot };
+    const groundUpdate = this.ground.beginUpdate();
+    this.resetForBridgeSwap();
+    return {
+      commit: () => groundUpdate.commit(),
+      rollback: () => {
+        const incomingWasAccepted = this.lastSnapshot !== previous.lastSnapshot;
+        groundUpdate.rollback();
+        Object.assign(this, previous);
+        if (incomingWasAccepted && previous.lastSnapshot) {
+          const result = this.runtime.acceptSnapshot(previous.lastSnapshot);
+          if (result.status === 'rejected') {
+            throw new Error(`Outgoing voxel snapshot could not be restored (${result.code} at ${result.path}): ${result.message}`);
+          }
+        }
+      },
+    };
   }
 
   state(): AoeVoxelRendererState {

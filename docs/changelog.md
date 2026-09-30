@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.241
+
+- Opening another replay keeps the current replay if the replacement fails. Its playback, tick and perspective remain available, and leaving replay restores the original live-match pause state. A successful replacement switches directly between replays.
+
 ## 0.3.240
 
 - **The game opens in the Natural art style again.** Natural, with its painted ground, soft fog and no outlines, is the default look. It went back to Moebius in 0.3.234 because it made each frame take about twice as long to draw on a computer without a graphics card; since 0.3.237 such a computer draws Natural's ground more simply, and a frame there now costs less than one in Moebius. To get Moebius back, open the game menu (Esc, or the menu button at the top right) and, under Settings, click the art style row that reads Natural; it switches to Moebius at once, with no reload. The choice is remembered in this browser, so if you had already picked Moebius you keep it.

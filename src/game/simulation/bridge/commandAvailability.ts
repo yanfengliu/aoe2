@@ -247,9 +247,3 @@ export function createCommandAvailability(
 
   return { unavailableCommands };
 }
-
-/** The HUD's own `data-command` hook for one of these entries, so the panel
- *  can hang the reason on the exact control the player is asking about. */
-export function commandKey(entry: { kind: string; id: string }): string {
-  return `${entry.kind}-${entry.id}`;
-}

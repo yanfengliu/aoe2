@@ -25,10 +25,6 @@ export function isEditableTarget(target: EventTarget | null): boolean {
     && (target.isContentEditable || Boolean(target.closest('input, textarea, select')));
 }
 
-export function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
 /**
  * The map cell a building ghost should be drawn on, or null for "no ghost".
  *

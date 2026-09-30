@@ -198,7 +198,6 @@ export function createOptionsRules(deps: OptionsRulesDeps): OptionsRulesOps {
           options.push('squires');
         }
       }
-      // Tracking (+2 infantry LoS): Feudal onward (this branch is non-Dark).
       if (isAtLeastAge(owner, 'imperial-age')) {
         if (!hasTechnology(owner, 'halberdier-upgrade')) {
           options.push('halberdier-upgrade');

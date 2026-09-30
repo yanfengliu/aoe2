@@ -13,6 +13,9 @@ function normalized(raw: string) {
   return (elision >= 0 ? raw.slice(0,elision) : raw).replace(/[./]+$/, '');
 }
 export function auditLivePointers(root: string, options: { roots?: string[]; extensions?: string[]; retainLegacyPointers?: boolean } = {}): { errors: string[]; counts: Record<string, number> } {
+  // Windows temporary roots may use short names or junctions. Compare resolved
+  // descendants against the same resolved root, while retaining their exact case.
+  if(existsSync(root))root=realpathSync.native(root);
   const errors: string[]=[];
   const counts: Record<string, number>={};
   const roots=options.roots ?? ROOTS, extensions=new Set(options.extensions ?? EXTENSIONS);

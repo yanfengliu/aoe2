@@ -37,6 +37,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     cannot end the loop; `frameHaltState.ts` holds the resulting decision —
     first failure stops the simulation and keeps drawing, second stops the loop
     — and `onFrameHalt` publishes it.
+  - `app/replacePresentedBridge.ts` — synchronous bridge-presentation ownership transfer. The view retains outgoing coordinator/renderer state while presenting a candidate, restores it on ordinary preparation/admission failure, and resets input only after success. The app publishes its shared bridge reference afterward. The renderer retains the outgoing snapshot and adapter; its ground lease delays superseded resource disposal and restores modified texture bytes on rollback. This boundary does not recover a terminal failed/disposed rendering runtime or device.
   - `game/` — gameplay rules, scenarios, content
     - `content/` — shared content tables (e.g., building footprints)
     - `playtest/` — headless playtest infrastructure. `runPlaytest.ts`
@@ -90,11 +91,10 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       here — it would replace the bridge's command-submission path with a
       `decide()` callback, but aoe2's AI lives inside `world.step` and
       pushes intentions to a side queue the bridge drains externally.
-      Phase-6 follow-ups (per the thread): real `economy-progression`
-      oracle via `SessionReplayer.stateAtTick`; auto-apply patches with
-      green-gates check; counterfactual fix-validation via
-      `SessionReplayer.forkAt`; cross-corpus regression detection; AI-vs-AI
-      via opponent-selection refactor.
+      The harness ends at observations and the ledger; the automated fix arm
+      was removed on 2026-08-01. Ordinary TDD, review and gates own fixes.
+      The manually invoked canary drill retains checked-in seeded bugs to
+      measure oracle sensitivity; it never generates or ships product fixes.
       See `docs/work/16_playtest-loop/historical/threads/done/playtest-loop/DESIGN.md`.
     - `replay/` — app-level replay orchestration. `ReplayController.ts`
       preserves and pauses the live bridge, swaps the mutable bridge cell to a
@@ -108,6 +108,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
       hotspot pins, and scrub controls against the controller boundary.
       `ReplayHotkeys.ts` binds replay navigation keys only while replay mode is
       active.
+    - `recording/RecordingService.ts` — serializes start, stop and prior-session operations through one lifecycle queue. Each recording attempt owns a fresh sink; stop releases its database connection after queued reads/finalization, and prior-session access can lazily reopen it. Undefined snapshot interval uses the default; null disables periodic snapshots.
     - `simulation/` — simulation bridge, scenario setup, command handlers.
       Top-level siblings of `createSimulationBridge.ts` include
       `worldOccupancy.ts` (the `OccupancyBinding` adapter that keeps the

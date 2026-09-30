@@ -41,7 +41,7 @@ export interface AoeVoxelPresentationCoordinatorDeps {
 
 export interface AoeVoxelPresentationCoordinator {
   syncFromBridge(force?: boolean): void;
-  resetForBridgeSwap(): void;
+  resetForBridgeSwap(): () => void;
   displayedEntities(): ProjectedEntityView[];
   getPlacementPreviewVisualState(): PlacementPreviewVisualState | null;
   getBuildingVisualStates(): BuildingVisualState[];
@@ -147,7 +147,8 @@ export function createAoeVoxelPresentationCoordinator(
   // COALESCED several ticks does not — a forward gap is bracketed by two
   // observed sim positions, so it is ordinary walking seen at its endpoints
   // and it glides, bounded by the smoother's own 1.5-tile distance guard.
-  const smoother = createDisplayedPositionSmoother();
+  let smoother = createDisplayedPositionSmoother();
+  let bridgeSwapPending = false;
   let displayedEntities: ProjectedEntityView[] = [];
   let hasCenteredOnBase = false;
   let lastPlacementVisual: PlacementPreviewVisualState | null = null;
@@ -155,8 +156,8 @@ export function createAoeVoxelPresentationCoordinator(
   let lastHealth: EntityHealthBarState[] = [];
 
   function interactionKey(): string {
-    const placement = deps.getPlacementPreviewState();
-    const box = deps.getSelectionBoxState();
+    const placement = bridgeSwapPending ? null : deps.getPlacementPreviewState();
+    const box = bridgeSwapPending ? null : deps.getSelectionBoxState();
     return JSON.stringify({
       placement,
       box: box
@@ -189,16 +190,8 @@ export function createAoeVoxelPresentationCoordinator(
     lastSelectionKey = nextSelectionKey;
     displayedEntities = smoother.apply(state.entities, state.tick, alpha);
 
-    if (!hasCenteredOnBase) {
-      const focus = computeBaseFocusCell(displayedEntities, HUMAN_PLAYER_ID);
-      if (focus) {
-        deps.centerCameraOnWorldPosition(focus.cellX, focus.cellY);
-        hasCenteredOnBase = true;
-      }
-    }
-
-    const placement = deps.getPlacementPreviewState();
-    const selectionBox = deps.getSelectionBoxState();
+    const placement = bridgeSwapPending ? null : deps.getPlacementPreviewState();
+    const selectionBox = bridgeSwapPending ? null : deps.getSelectionBoxState();
     const selectionMarqueeWorldCorners = selectionBox
       ? [
           deps.screenToWorldPosition(selectionBox.startX, selectionBox.startY),
@@ -213,21 +206,39 @@ export function createAoeVoxelPresentationCoordinator(
       selectionPreviewEntityIds: selectionBox?.previewEntityIds ?? [],
       selectionMarqueeWorldCorners,
     });
+    bridgeSwapPending = false;
+    if (!hasCenteredOnBase) {
+      const focus = computeBaseFocusCell(displayedEntities, HUMAN_PLAYER_ID);
+      if (focus) {
+        deps.centerCameraOnWorldPosition(focus.cellX, focus.cellY);
+        hasCenteredOnBase = true;
+      }
+    }
+
     lastPlacementVisual = placementVisual(placement);
     lastBuildings = buildingStates(displayedEntities);
     lastHealth = healthStates(displayedEntities);
   }
 
-  function resetForBridgeSwap(): void {
+  function resetForBridgeSwap(): () => void {
+    const previous = { lastRenderedTick, lastInterpolationAlpha, lastInteractionKey,
+      lastSelectionKey, smoother, displayedEntities, lastPlacementVisual,
+      lastBuildings, lastHealth, hasCenteredOnBase, bridgeSwapPending };
     lastRenderedTick = -1;
     lastInterpolationAlpha = Number.NaN;
     lastInteractionKey = '';
     lastSelectionKey = '';
-    smoother.reset();
+    smoother = createDisplayedPositionSmoother();
+    bridgeSwapPending = true;
     displayedEntities = [];
     lastPlacementVisual = null;
     lastBuildings = [];
     lastHealth = [];
+    return () => {
+      ({ lastRenderedTick, lastInterpolationAlpha, lastInteractionKey,
+        lastSelectionKey, smoother, displayedEntities, lastPlacementVisual,
+        lastBuildings, lastHealth, hasCenteredOnBase, bridgeSwapPending } = previous);
+    };
   }
 
   return {

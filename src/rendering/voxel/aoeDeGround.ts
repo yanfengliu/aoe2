@@ -137,6 +137,7 @@ export class AoeDeGround {
   /** Whether the style draws this ground; it shows once there is also ground to draw. */
   private shown = false;
   private drawnTier: DeGroundTier = 'blend';
+  private deferredDisposals: Set<{ dispose(): void }> | null = null;
 
   constructor() {
     const material = new MeshLambertMaterial({ color: 0xffffff });
@@ -188,17 +189,69 @@ export class AoeDeGround {
     material.needsUpdate = true;
   }
 
+  /** Keep the outgoing ground alive until a bridge's whole presentation commits. */
+  beginUpdate(): { commit(): void; rollback(): void } {
+    if (this.deferredDisposals) throw new Error('Natural ground already has an unfinished bridge update.');
+    const previous = { cells: this.cells, fields: this.fields, geometry: this.mesh.geometry,
+      width: this.width, height: this.height, mapX: this.mapSize.x, mapY: this.mapSize.y,
+      visible: this.mesh.visible,
+      cellBytes: this.cells ? new Uint8Array(this.cells.image.data as Uint8Array) : null,
+      fieldBytes: this.fields ? new Uint8Array(this.fields.image.data as Uint8Array) : null };
+    const deferred = new Set<{ dispose(): void }>();
+    this.deferredDisposals = deferred;
+    let active = true;
+    return {
+      commit: () => {
+        if (!active) return;
+        active = false;
+        this.deferredDisposals = null;
+        for (const resource of deferred) resource.dispose();
+      },
+      rollback: () => {
+        if (!active) return;
+        active = false;
+        this.deferredDisposals = null;
+        if (this.cells !== previous.cells) this.cells?.dispose();
+        if (this.fields !== previous.fields) this.fields?.dispose();
+        if (this.mesh.geometry !== previous.geometry) this.mesh.geometry.dispose();
+        this.cells = previous.cells;
+        this.fields = previous.fields;
+        this.mesh.geometry = previous.geometry;
+        this.width = previous.width;
+        this.height = previous.height;
+        this.mapSize.set(previous.mapX, previous.mapY);
+        this.mesh.visible = previous.visible;
+        this.uniforms.deCells.value = this.cells;
+        this.uniforms.deFields.value = this.fields;
+        if (this.cells && previous.cellBytes) {
+          (this.cells.image.data as Uint8Array).set(previous.cellBytes);
+          this.cells.needsUpdate = true;
+        }
+        if (this.fields && previous.fieldBytes) {
+          (this.fields.image.data as Uint8Array).set(previous.fieldBytes);
+          this.fields.needsUpdate = true;
+        }
+      },
+    };
+  }
+
+  private releasePrevious(resource: { dispose(): void } | null): void {
+    if (!resource) return;
+    if (this.deferredDisposals) this.deferredDisposals.add(resource);
+    else resource.dispose();
+  }
+
   /** Takes this frame's cells and fields. Uploads only what changed. */
   update(data: DeGroundData): void {
     if (data.width !== this.width || data.height !== this.height || !this.cells || !this.fields) {
-      this.cells?.dispose();
-      this.fields?.dispose();
+      this.releasePrevious(this.cells);
+      this.releasePrevious(this.fields);
       this.cells = cellTexture(data);
       this.fields = fieldsTexture(data);
       this.uniforms.deCells.value = this.cells;
       this.uniforms.deFields.value = this.fields;
       this.mapSize.set(data.width, data.height);
-      this.mesh.geometry.dispose();
+      this.releasePrevious(this.mesh.geometry);
       this.mesh.geometry = createDeGroundGeometry(data.width, data.height);
       this.width = data.width;
       this.height = data.height;

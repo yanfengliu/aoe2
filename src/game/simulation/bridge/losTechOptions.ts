@@ -1,6 +1,6 @@
 // Research/visible options for the line-of-sight techs (visionTechEffects):
 // Town Watch (TC, Feudal, +4 building LoS), Town Patrol (TC, Castle, requires
-// Town Watch, +4 more), Tracking (Barracks, Feudal, +2 infantry LoS).
+// Town Watch, +4 more).
 // Extracted from optionsRules.ts to keep that file under the 500-LOC budget,
 // following the economy/tower/monastery tech-options precedent. Pure: the age
 // and tech predicates are passed in (the bridge owns the underlying maps).

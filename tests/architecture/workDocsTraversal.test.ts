@@ -1,8 +1,8 @@
 // Bounds: actual temporary trees across all ten existing scan roots, four
-// independent populations, exact-case paths, and a 30-day maintenance clock.
+// independent populations, root aliases, exact-case paths, and a 30-day maintenance clock.
 // Fixture strings are assembled so they cannot inflate the live gate's count.
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { lstatSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
@@ -10,6 +10,7 @@ import { auditLivePointers } from './helpers/workDocsPointers.js';
 import { referenceClock, validateOpenWork } from './helpers/workDocsStatus.js';
 import { examplePlan } from './helpers/workDocsFixture.js';
 const owned: string[]=[];
+const aliases: string[]=[];
 const roots=['src','tests','scripts','design','docs/architecture','docs/policies','docs/learning','docs/engine-feedback','AGENTS.md','README.md'];
 const target=['docs','work','0_example','plan.md'].join('/');
 function write(root:string,path:string,text:string){mkdirSync(dirname(join(root,path)),{recursive:true});writeFileSync(join(root,path),text);}
@@ -20,9 +21,36 @@ function tree(){
   for(const name of ['src','tests','design','docs/architecture'])write(root,`${name}/pointers.${name==='src'||name==='tests'?'ts':'md'}`,`${target}\n${target}.\n${target.replace('/plan.md','/.../plan.md')}\n`);
   return root;
 }
-afterEach(()=>{for(const root of owned.splice(0)){if(!resolve(root).startsWith(resolve(tmpdir())+'\\aoe2-workdocs-')&&!resolve(root).startsWith(resolve(tmpdir())+'/aoe2-workdocs-'))throw new Error('Refusing cleanup outside owned temporary fixture');rmSync(root,{recursive:true,force:true});}});
+afterEach(()=>{
+  // Remove the owned root aliases without following them before deleting any fixture.
+  for(const alias of aliases.splice(0)) {
+    if(!owned.some(root=>dirname(alias)===root)||!lstatSync(alias).isSymbolicLink())throw new Error('Refusing cleanup of an unexpected root alias');
+    if(process.platform==='win32')rmdirSync(alias);else unlinkSync(alias);
+  }
+  for(const root of owned.splice(0)){if(!resolve(root).startsWith(resolve(tmpdir())+'\\aoe2-workdocs-')&&!resolve(root).startsWith(resolve(tmpdir())+'/aoe2-workdocs-'))throw new Error('Refusing cleanup outside owned temporary fixture');rmSync(root,{recursive:true,force:true});}
+});
 describe('real traversal mutation controls',()=>{
   test('reads all roots and accepts exact pointers, sentence punctuation and elision',()=>expect(auditLivePointers(tree()).errors).toEqual([]));
+  test.each([false,true])('resolves a root alias without relaxing descendant case (retained owners: %s)',retainLegacyPointers=>{
+    const root=tree(),alias=join(root,'root-alias');
+    symlinkSync(root,alias,process.platform==='win32'?'junction':'dir');aliases.push(alias);
+    expect(realpathSync.native(alias)).toBe(realpathSync.native(root));
+    expect(resolve(alias)).not.toBe(realpathSync.native(alias));
+    const old=['docs','threads','current','owner','PLAN.md'].join('/');
+    const pointer=retainLegacyPointers?old:target;
+    if(retainLegacyPointers)write(root,old,'Active owner record.');
+    write(root,'scripts/alias.mjs',pointer);
+    const options={retainLegacyPointers};
+    const measured=auditLivePointers(alias,options);
+    expect(measured.errors).toEqual([]);
+    expect(measured.counts).toEqual(auditLivePointers(root,options).counts);
+    write(root,'scripts/alias.mjs',pointer.replace(/plan\.md$/i,'Plan.md'));
+    expect(auditLivePointers(alias,options).errors.join('\n')).toContain('scripts/alias.mjs:1');
+    write(root,'scripts/alias.mjs',pointer.replace(retainLegacyPointers?'owner':'0_example',retainLegacyPointers?'Owner':'0_Example'));
+    expect(auditLivePointers(alias,options).errors.join('\n')).toContain('scripts/alias.mjs:1');
+    write(root,'scripts/alias.mjs',pointer.replace(/plan\.md$/i,'missing.md'));
+    expect(auditLivePointers(alias,options).errors.join('\n')).toContain('scripts/alias.mjs:1');
+  });
   test.each(['missing.md','Plan.md'])('rejects absent or wrong-case destination %s',name=>{
     const root=tree();write(root,'scripts/bad.mjs',target.replace('plan.md',name));expect(auditLivePointers(root).errors).not.toEqual([]);
   });

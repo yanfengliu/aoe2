@@ -175,7 +175,7 @@ export function extractImprovementFindingsFromRun(
   const envelopeFindings = envelopeConformanceFindings(run);
   const oracleFindings = oracleViolationsToImprovementFindings(run);
 
-  // Dedup by the WITHIN-run union key (finer than the cross-run findingIdentityKey
+  // Dedup by the WITHIN-run union key (finer than the cross-run identity
   // used by the prove stage + before/after comparison): conformance findings that
   // appear in BOTH markers and the envelope collapse by their per-finding id,
   // while oracle findings keep their violation tuple. Crucially, two DISTINCT

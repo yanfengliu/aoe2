@@ -15,7 +15,7 @@ seed, command, or steps to reproduce.
 - Actual: ...
 
 ## Reproduction
-- Which engine debug tool answers this, named BEFORE any probe of your own: `replay:inspect` on a recorded bundle for "what stood at tick T"; `diffBundles` / `SessionReplayer.forkAt` for two runs side by side; the path-queue and occupancy probes for who is blocking whom — or why none does (AGENTS.md, Debugging).
+- Which maintained debug tool answers this, named BEFORE any probe of your own: `bundleHotspots` for bundle triage; `snapshotAtTick` or `replay:inspect` for recorded world state; `diffBundles` / `SessionReplayer.forkAt` for two runs; `bridge.getDebugSnapshot()` (`coarseVsFine` and `unitPaths`) for live unit blockage — or why none does. Read the current instrument boundaries in AGENTS.md before choosing a probe.
 - Commands / URL / seed used to reproduce reliably.
 - Any temporary instrumentation added (remove before closing the session).
 
@@ -39,7 +39,7 @@ What changed, which files, and why this specific fix addresses the root cause
 rather than the symptom.
 
 ## Verification
-- Commands run (full gate: `npx vitest run`, `npx tsc --noEmit`, `npx vite build`).
+- Commands run (full code gate: `npm run verify`; affected checks while iterating).
 - Browser tests if relevant: `npm run test:browser`.
 - Any new regression tests added.
 

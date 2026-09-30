@@ -3,28 +3,12 @@
 
 import type { ProjectedEntityView } from '../game/simulation/types';
 import { doesIsoWorldRectIntersectEntity } from '../input/entityHitTest';
-import { isoToWorld, worldToIso } from './isometricProjection';
 
 export interface CellRect {
   minX: number;
   minY: number;
   maxX: number;
   maxY: number;
-}
-
-// Iso-pixel bounding box of the whole map region (a diamond whose left half
-// spans negative x), inflated by one tile of margin so edge diamonds aren't
-// clipped. Used for standalone camera bounds.
-export function isoWorldPixelBounds(
-  mapWidth: number,
-  mapHeight: number,
-  marginPx: number,
-): { x: number; y: number; width: number; height: number } {
-  const minX = worldToIso(0, mapHeight).x - marginPx;
-  const maxX = worldToIso(mapWidth, 0).x + marginPx;
-  const minY = worldToIso(0, 0).y - marginPx;
-  const maxY = worldToIso(mapWidth, mapHeight).y + marginPx;
-  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 }
 
 // The cell (Town Center centre, else the centroid of owned entities) the camera
@@ -53,25 +37,6 @@ export function computeBaseFocusCell(
     cellX: owned.reduce((sum, entity) => sum + entity.x + 0.5, 0) / owned.length,
     cellY: owned.reduce((sum, entity) => sum + entity.y + 0.5, 0) / owned.length,
   };
-}
-
-// Cell AABB covered by an axis-aligned iso-pixel viewport rectangle. Its four
-// corners project to a diamond of cells; the caller clamps/floors to the map.
-export function isoViewportCellBounds(view: {
-  x: number;
-  y: number;
-  right: number;
-  bottom: number;
-}): CellRect {
-  const corners = [
-    isoToWorld(view.x, view.y),
-    isoToWorld(view.right, view.y),
-    isoToWorld(view.x, view.bottom),
-    isoToWorld(view.right, view.bottom),
-  ];
-  const xs = corners.map((cell) => cell.cellX);
-  const ys = corners.map((cell) => cell.cellY);
-  return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };
 }
 
 // Iso-pixel AABB of an on-screen drag rectangle. `screenToIso` maps a canvas

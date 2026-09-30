@@ -89,11 +89,6 @@ export const TRAFFIC_CONTEST_FIRST_TREE: Position = { x: TRAFFIC_CONTEST_WOODLIN
 /** A cell on the Town Centre's side of the wall, for an order that has to cross it westward. */
 export const TRAFFIC_CONTEST_WEST_OF_WALL: Position = { x: 22, y: TRAFFIC_CONTEST_GAP_Y };
 
-/** The open cell just west of the gap. */
-export function trafficContestWestMouth(): Position {
-  return { x: TRAFFIC_CONTEST_WALL_X - 1, y: TRAFFIC_CONTEST_GAP_Y };
-}
-
 /** The open cell just east of the gap, where the parked villagers stand. */
 export function trafficContestEastMouth(wallThickness = TRAFFIC_CONTEST_DEFAULTS.wallThickness): Position {
   return { x: TRAFFIC_CONTEST_WALL_X + wallThickness, y: TRAFFIC_CONTEST_GAP_Y };

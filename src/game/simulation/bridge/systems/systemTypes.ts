@@ -37,13 +37,3 @@ export interface WildlifeState extends CombatState {
   aggroRange: number;
   targetEntityRef: EntityRef | null;
 }
-
-export type UnitCommandType = 'attack' | 'move' | 'build';
-
-export interface UnitCommand {
-  type: UnitCommandType;
-  target?: { x: number; y: number };
-  targetEntityRef?: EntityRef | null;
-  targetEntityKind?: 'unit' | 'building' | 'resource' | null;
-  buildingRef?: EntityRef | null;
-}

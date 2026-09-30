@@ -427,7 +427,6 @@ export function animateUnitParts(
     : locomotionParts;
   return poseUnitAttackParts(
     workedParts,
-    role,
     attackRig,
     normalizedState,
     scale,

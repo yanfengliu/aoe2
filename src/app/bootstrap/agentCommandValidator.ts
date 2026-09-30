@@ -28,11 +28,6 @@ const KNOWN_KINDS: ReadonlySet<keyof GameCommands> = new Set([
   'building.action',
 ] as const);
 
-export interface AgentCommandShape {
-  type: keyof GameCommands;
-  data: Record<string, unknown>;
-}
-
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }

@@ -24,16 +24,6 @@ export const SHIPWRIGHT_TRAIN_TIME_MULTIPLIER = 0.65;
 export const CAREENING_TRANSPORT_BONUS = 5;
 export const DRY_DOCK_TRANSPORT_BONUS = 10;
 
-/** Careening's pierce-only armour bonus for a ship: +1, or 0 for anything on
- *  land or without the technology. */
-export function careeningPierceArmor(
-  researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
-  unitType: UnitType,
-): number {
-  if (!researchedTechnologies.has('careening') || !isWaterUnit(unitType)) return 0;
-  return CAREENING_SHIP_PIERCE_ARMOR;
-}
-
 /** Whether Dry Dock's speed bonus applies to this unit. */
 export function dryDockSpeedsUp(
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,

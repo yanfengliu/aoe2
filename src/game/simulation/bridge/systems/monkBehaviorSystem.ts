@@ -32,13 +32,6 @@ const MONK_ACTION_RANGE = 4;
 // Conversion reaches much farther than the hands-on actions (AoE2: 9 vs 4).
 const MONK_CONVERT_RANGE = 9;
 
-export type MonkTaskKind = 'heal' | 'convert' | 'pickup' | 'deposit';
-
-export interface MonkTask {
-  kind: MonkTaskKind;
-  targetEntityRef: import('civ-engine').EntityRef | null;
-}
-
 export interface MonkBehaviorSystemDeps {
   world: GameWorld;
   monkConvertProcessedThisTick: Map<number, number>;

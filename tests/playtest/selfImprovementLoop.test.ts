@@ -100,7 +100,7 @@ describe('extractImprovementFindingsFromRun', () => {
   });
 
   it('keeps two DISTINCT conformance findings in the same category+area (iter-4 review)', () => {
-    // The cross-run findingIdentityKey coarsens conformance to [category, area]
+    // The cross-run identity coarsens conformance to [category, area]
     // for resolved/introduced stability; reusing it for the WITHIN-run union
     // collapsed two genuinely different ux-gap/command-card defects into one, so
     // a later HIGH could vanish behind an earlier LOW. The union must keep both

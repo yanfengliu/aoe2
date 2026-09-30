@@ -365,12 +365,6 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   letter-spacing: 0;
 }
 
-.hud-selection-meta {
-  color: var(--hud-text-muted);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
 .hud-selection-activity {
   margin-top: 2px;
   font-size: 0.85em;

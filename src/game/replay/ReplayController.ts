@@ -75,13 +75,7 @@ export interface ReplayController {
   onTickChange(listener: ReplayTickListener): () => void;
 }
 
-export function exitReplayBeforeLiveBridgeReplacement(
-  controller: Pick<ReplayController, 'mode' | 'exitReplay'>,
-): void {
-  if (controller.mode === 'replay') {
-    controller.exitReplay();
-  }
-}
+export { exitReplayBeforeLiveBridgeReplacement } from './replayControllerHelpers';
 
 export interface ReplayControllerConfig {
   bridgeCell: ReplayBridgeCell;
@@ -131,7 +125,7 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
 
   function buildReplayBridge(world: GameWorld, owner: number = fogOwner): SimulationBridge {
     return makeReplayBridge(world, {
-      getRenderInterpolationAlpha: () => renderInterpolationAlpha,
+      getRenderInterpolationAlpha: () => replayContext?.world === world ? renderInterpolationAlpha : 0,
       fogOwner: owner,
     });
   }
@@ -184,17 +178,19 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
       .getSelectedEntityRefs()
       .filter((ref) => world.isCurrent(ref));
     const bridge = buildReplayBridge(world);
-    if (selectedRefs.length > 0) {
-      bridge.select(selectedRefs);
+    try {
+      if (selectedRefs.length > 0) bridge.select(selectedRefs);
+      config.bridgeCell.replace(bridge);
+    } catch (err) {
+      disposeOutgoingReplayBridge(bridge);
+      throw err;
     }
     const nextContext = { ...current, world, bridge };
-    config.bridgeCell.replace(bridge);
     disposeOutgoingReplayBridge(current.bridge);
     replayContext = nextContext;
     pendingScrubTick = null;
     displayedTick = targetTick;
     renderInterpolationAlpha = 0;
-    emitTick();
   }
 
   function cancelFrame(): void {
@@ -235,6 +231,7 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
     if (pendingScrubTick === null) return;
     try {
       openReplayAt(pendingScrubTick);
+      emitTick();
     } catch (err) {
       const context = replayContext;
       if (context) {
@@ -320,9 +317,6 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
 
   function exitReplay(): void {
     if (mode === 'live') return;
-    playing = false;
-    cancelFrame();
-    resetPlaybackClock();
     const bridgeToRestore = liveBridge;
     const outgoingReplayBridge = replayContext?.bridge ?? null;
     if (bridgeToRestore) {
@@ -332,6 +326,9 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
     } else {
       displayedTick = config.bridgeCell.current().world.tick;
     }
+    playing = false;
+    cancelFrame();
+    resetPlaybackClock();
     // Past the restore throw-point — the replay session is gone for good.
     if (outgoingReplayBridge) {
       disposeOutgoingReplayBridge(outgoingReplayBridge);
@@ -347,17 +344,21 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
 
   function scrubTo(tick: number, options: { coalesce?: boolean } = {}): void {
     const context = requireReplayContext();
-    playing = false;
-    cancelFrame();
-    resetPlaybackClock();
     const targetTick = clampTick(context.bundle, tick);
     if (options.coalesce) {
+      playing = false;
+      cancelFrame();
+      resetPlaybackClock();
       pendingScrubTick = targetTick;
       displayedTick = targetTick;
       emitTick();
       return;
     }
     openReplayAt(targetTick);
+    playing = false;
+    cancelFrame();
+    resetPlaybackClock();
+    emitTick();
   }
 
   return {
@@ -386,22 +387,12 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
       // replay-fog-owner: new sessions default to the human perspective;
       // the closure var is only assigned after the swap succeeds below.
       const fogOwnerForNewSession = HUMAN_PLAYER_ID;
-      // Build the new replay context BEFORE mutating any state. If the
-      // SessionReplayer constructor or replayer.openAt throws, the
-      // controller stays in its pre-call state — no exitReplay(), no
-      // setPaused, no bridge swap. Closes the partial-apply bug class
-      // for bundles that fail engine-level validation (schemaVersion
-      // mismatch, missing metadata.engineVersion, range violations,
-      // etc.) when the user is already in replay mode. Slice-4 review.
+      // Validate/open before touching the current session: malformed imports
+      // must preserve an existing replay and the live world's pause state.
       const replayer = SessionReplayer.fromBundle(
         bundle,
-        // skipRegistrationCheck (civ-engine v0.8.18 absorb): aoe2's
-        // replay factory is DELIBERATELY instrumented — replay mode
-        // swaps in replay-safe AI-decision systems and registers
-        // aoe2ReplayPendingCommandDrain (see registerAllSystems), so
-        // its registration manifest intentionally differs from the
-        // live recording world. The engine's escape hatch exists for
-        // exactly this case; selfCheck remains the divergence backstop.
+        // Replay-safe AI and pending-command drain intentionally differ from
+        // live registration; selfCheck remains the divergence backstop.
         {
           worldFactory,
           skipRegistrationCheck: true,
@@ -410,36 +401,44 @@ export function createReplayController(config: ReplayControllerConfig): ReplayCo
       const targetTick = clampTick(bundle, atTick);
       const world = replayer.openAt(targetTick);
       const bridge = buildReplayBridge(world, fogOwnerForNewSession);
-      const nextContext: ReplayContext = {
-        bundle,
-        replayer,
-        world,
-        bridge,
-        commandsByTick: indexCommands(bundle.commands),
-        fogOwnerCandidates: Object.keys(bridge.getEconomyState().playerResources)
-          .map(Number)
-          .filter((owner) => Number.isInteger(owner))
-          .sort((left, right) => left - right),
-      };
-
-      // Construction succeeded — safe to mutate state from here.
-      if (mode === 'replay') {
-        exitReplay();
-      }
-      resetPlaybackClock();
-      const bridgeToRestore = config.bridgeCell.current();
-      const priorPaused = config.isLivePaused();
-      bridgeToRestore.setPaused(true);
+      let nextContext: ReplayContext;
+      const enteringFromLive = mode === 'live';
+      let bridgeToRestore: SimulationBridge;
+      let priorPaused: boolean;
+      const outgoingReplayBridge = replayContext?.bridge;
       try {
-        config.bridgeCell.replace(bridge);
+        nextContext = {
+          bundle,
+          replayer,
+          world,
+          bridge,
+          commandsByTick: indexCommands(bundle.commands),
+          fogOwnerCandidates: Object.keys(bridge.getEconomyState().playerResources)
+            .map(Number)
+            .filter((owner) => Number.isInteger(owner))
+            .sort((left, right) => left - right),
+        };
+
+        bridgeToRestore = liveBridge ?? config.bridgeCell.current();
+        priorPaused = liveBridge ? liveWasPausedBeforeReplay : config.isLivePaused();
+        if (enteringFromLive) bridgeToRestore.setPaused(true);
+        try {
+          config.bridgeCell.replace(bridge);
+        } catch (err) {
+          if (enteringFromLive) bridgeToRestore.setPaused(priorPaused);
+          throw err;
+        }
       } catch (err) {
-        bridgeToRestore.setPaused(priorPaused);
+        disposeOutgoingReplayBridge(bridge);
         throw err;
       }
+      playing = false;
+      cancelFrame();
+      resetPlaybackClock();
+      if (outgoingReplayBridge) disposeOutgoingReplayBridge(outgoingReplayBridge);
       liveBridge = bridgeToRestore;
       liveWasPausedBeforeReplay = priorPaused;
-      // iter-1 Codex HIGH: a throwing exitReplay/replace above leaves the
-      // prior session's fogOwner intact and consistent with its bridge.
+      // Commit only after replacement; failed entries preserve the prior session.
       fogOwner = fogOwnerForNewSession;
       replayContext = nextContext;
       mode = 'replay';

@@ -211,7 +211,7 @@ export interface RecordingService {
 }
 
 export function createRecordingService(config: RecordingServiceConfig): RecordingService {
-  const memorySink = new MemorySink({ allowSidecar: true });
+  let memorySink = new MemorySink({ allowSidecar: true });
   const persistenceListeners = new Set<PersistenceErrorListener>();
   const emitPersistenceError = (err: Error): void => {
     for (const listener of persistenceListeners) {
@@ -226,87 +226,110 @@ export function createRecordingService(config: RecordingServiceConfig): Recordin
         onPersistenceError: emitPersistenceError,
       });
 
-  const teeSink = new TeeSink(memorySink, mirror);
-
   let recorder: SessionRecorder | null = null;
   let started = false;
   let sessionId: string | null = null;
+  let lifecycle: Promise<void> = Promise.resolve();
+
+  // Opening and finalizing are asynchronous; keep one recorder owner at a time.
+  function runLifecycle<T>(operation: () => Promise<T>): Promise<T> {
+    const next = lifecycle.then(operation);
+    lifecycle = next.then(() => undefined, () => undefined); // Keep caller rejection on next.
+    return next;
+  }
+
+  async function closeMirror(): Promise<void> {
+    try { await mirror?.close(); } catch (err) {
+      emitPersistenceError(err instanceof Error ? err : new Error(String(err)));
+    }
+  }
 
   return {
-    async start(): Promise<void> {
-      if (started) return;
-      // Open the IDB connection BEFORE constructing the recorder so any
-      // open failures surface as start() rejections rather than
-      // mid-session toasts. inMemoryOnly skips this entirely.
-      if (mirror !== null) {
+    start(): Promise<void> {
+      return runLifecycle(async () => {
+        if (started) return;
+        // Engine sinks are single-use. Each start attempt owns a fresh session.
+        memorySink = new MemorySink({ allowSidecar: true });
+        const teeSink = new TeeSink(memorySink, mirror);
         try {
-          await mirror.open();
+          // Open persistence before connecting. If unavailable, report the
+          // error and keep recording in memory; inMemoryOnly skips IDB.
+          if (mirror !== null) {
+            try {
+              await mirror.open();
+            } catch (err) {
+              emitPersistenceError(err instanceof Error ? err : new Error(String(err)));
+            }
+          }
+          recorder = new SessionRecorder({
+            world: config.world,
+            sink: teeSink,
+            sourceKind: 'session',
+            sourceLabel: config.sourceLabel ?? `aoe2-session-${new Date().toISOString()}`,
+            snapshotInterval: config.snapshotInterval === undefined ? 1000 : config.snapshotInterval,
+          });
+          recorder.connect();
+          if (recorder.lastError) throw recorder.lastError;
+          sessionId = recorder.sessionId;
+          started = true;
         } catch (err) {
-          // Allow the recording service to continue without persistence
-          // (Safari private mode etc.). Emit the error to listeners and
-          // proceed with MemorySink only.
-          emitPersistenceError(err instanceof Error ? err : new Error(String(err)));
+          try { recorder?.disconnect(); } catch { /* preserve the startup error */ }
+          recorder = null;
+          sessionId = null;
+          await closeMirror();
+          throw err;
         }
-      }
-      recorder = new SessionRecorder({
-        world: config.world,
-        sink: teeSink,
-        sourceKind: 'session',
-        sourceLabel: config.sourceLabel ?? `aoe2-session-${new Date().toISOString()}`,
-        snapshotInterval: config.snapshotInterval ?? 1000,
       });
-      recorder.connect();
-      if (recorder.lastError) {
-        const err = recorder.lastError;
-        try { recorder.disconnect(); } catch { /* best effort */ }
-        recorder = null;
-        throw err;
-      }
-      sessionId = recorder.sessionId;
-      started = true;
     },
 
     isRecording(): boolean {
       return started && recorder !== null;
     },
 
-    async stop(): Promise<void> {
-      if (!started) return;
-      started = false;
-      // Capture finalized metadata BEFORE disconnect — toBundle is still
-      // safe pre-disconnect, and disconnect may write a terminal snapshot.
-      let finalMetadata: SessionMetadata | null = null;
-      if (recorder !== null) {
-        try {
-          finalMetadata = (recorder.toBundle() as SessionBundle).metadata;
-        } catch { /* best-effort */ }
-        try { recorder.disconnect(); } catch { /* best effort */ }
-        // After disconnect, toBundle reflects the terminal snapshot too.
-        // Refresh metadata so endTick covers the disconnect-time tick.
-        try {
-          finalMetadata = (recorder.toBundle() as SessionBundle).metadata;
-        } catch { /* best-effort */ }
-      }
-      if (mirror !== null && sessionId !== null && !mirror.isDisabled()) {
-        try {
-          await mirror.flushAll();
-          // impl-1 fix (Codex MAJOR): write the finalized metadata
-          // back to IDB so listSessions / exportPriorSession see the
-          // real endTick / durationTicks instead of the stuck-at-start
-          // values written at recordMeta time.
-          if (finalMetadata !== null) {
-            await mirror.updateMeta(sessionId, finalMetadata);
-          }
-          await mirror.markClosed(sessionId);
-        } catch (err) {
-          // Best-effort: log + emit but don't throw. The session_meta
-          // row stays at closed: false (will surface as "session ended
-          // abnormally" in MarkerListPanel's prior-sessions section).
-          emitPersistenceError(err instanceof Error ? err : new Error(String(err)));
+    stop(): Promise<void> {
+      return runLifecycle(async () => {
+        if (!started) {
+          // Prior-session queries reopen lazily even after recording has stopped.
+          await closeMirror();
+          return;
         }
-      }
-      recorder = null;
-      sessionId = null;
+        started = false;
+        // Capture finalized metadata BEFORE disconnect — toBundle is still
+        // safe pre-disconnect, and disconnect may write a terminal snapshot.
+        let finalMetadata: SessionMetadata | null = null;
+        if (recorder !== null) {
+          try {
+            finalMetadata = (recorder.toBundle() as SessionBundle).metadata;
+          } catch { /* best-effort */ }
+          try { recorder.disconnect(); } catch { /* best effort */ }
+          // After disconnect, toBundle reflects the terminal snapshot too.
+          // Refresh metadata so endTick covers the disconnect-time tick.
+          try {
+            finalMetadata = (recorder.toBundle() as SessionBundle).metadata;
+          } catch { /* best-effort */ }
+        }
+        if (mirror !== null && sessionId !== null && !mirror.isDisabled()) {
+          try {
+            await mirror.flushAll();
+            // impl-1 fix (Codex MAJOR): write the finalized metadata
+            // back to IDB so listSessions / exportPriorSession see the
+            // real endTick / durationTicks instead of the stuck-at-start
+            // values written at recordMeta time.
+            if (finalMetadata !== null) {
+              await mirror.updateMeta(sessionId, finalMetadata);
+            }
+            await mirror.markClosed(sessionId);
+          } catch (err) {
+            // Best-effort: log + emit but don't throw. The session_meta
+            // row stays at closed: false (will surface as "session ended
+            // abnormally" in MarkerListPanel's prior-sessions section).
+            emitPersistenceError(err instanceof Error ? err : new Error(String(err)));
+          }
+        }
+        recorder = null;
+        sessionId = null;
+        await closeMirror();
+      });
     },
 
     addMarker(input): string {
@@ -341,40 +364,48 @@ export function createRecordingService(config: RecordingServiceConfig): Recordin
     },
 
     async listPriorSessions(): Promise<readonly PriorSessionDescriptor[]> {
-      if (mirror === null) return [];
-      const all = await mirror.listSessions();
-      return all.filter((s) => s.sessionId !== sessionId);
+      return runLifecycle(async () => {
+        if (mirror === null) return [];
+        const all = await mirror.listSessions();
+        return all.filter((s) => s.sessionId !== sessionId);
+      });
     },
 
     async exportPriorSession(priorId: string): Promise<Blob> {
-      if (mirror === null) {
-        throw new SessionNotFoundError(priorId);
-      }
-      const bundle = await mirror.reconstructBundle(priorId);
-      return reembedBundle(bundle, async (id) => {
-        const bytes = await mirror.readAttachmentBytes(priorId, id);
-        if (bytes === null) {
-          throw new Error(`exportPriorSession: attachment ${id} bytes not found in IDB`);
+      return runLifecycle(async () => {
+        if (mirror === null) {
+          throw new SessionNotFoundError(priorId);
         }
-        return bytes;
+        const bundle = await mirror.reconstructBundle(priorId);
+        return reembedBundle(bundle, async (id) => {
+          const bytes = await mirror.readAttachmentBytes(priorId, id);
+          if (bytes === null) {
+            throw new Error(`exportPriorSession: attachment ${id} bytes not found in IDB`);
+          }
+          return bytes;
+        });
       });
     },
 
     async loadPriorSessionBundle(priorId: string): Promise<SessionBundle> {
-      if (mirror === null) {
-        throw new SessionNotFoundError(priorId);
-      }
-      return mirror.reconstructBundle(priorId);
+      return runLifecycle(async () => {
+        if (mirror === null) {
+          throw new SessionNotFoundError(priorId);
+        }
+        return mirror.reconstructBundle(priorId);
+      });
     },
 
     async discardPriorSession(priorId: string): Promise<void> {
-      if (mirror === null) throw new SessionNotFoundError(priorId);
-      if (priorId === sessionId) {
-        throw new Error(
-          'RecordingService.discardPriorSession: cannot discard the current session; call stop() first',
-        );
-      }
-      await mirror.discard(priorId);
+      return runLifecycle(async () => {
+        if (mirror === null) throw new SessionNotFoundError(priorId);
+        if (priorId === sessionId) {
+          throw new Error(
+            'RecordingService.discardPriorSession: cannot discard the current session; call stop() first',
+          );
+        }
+        await mirror.discard(priorId);
+      });
     },
 
     onPersistenceError(listener: PersistenceErrorListener): () => void {

@@ -59,10 +59,6 @@ export function buildingHitPointMultiplier(
   return multiplier;
 }
 
-/** The per-building technologies, for the appliers that walk one at a time. */
-export const PER_BUILDING_HP_TECHNOLOGIES: ReadonlySet<ResearchableTechnologyType> =
-  new Set(PER_BUILDING_HP.map((entry) => entry.technology));
-
 /** The multiplier ONE technology contributes to ONE building type. */
 export function singleBuildingHpMultiplier(
   technology: ResearchableTechnologyType,

@@ -1,4 +1,3 @@
-import type { UnitRole } from '../roles/unitRole';
 import type { VoxelPart } from './aoeVoxelRecipeTypes';
 import { voxelPartWorldCorners } from './aoeVoxelGeometry';
 import {
@@ -95,7 +94,6 @@ function attackArc(phase: number): number {
 
 export function poseUnitAttackParts(
   parts: readonly VoxelPart[],
-  _role: UnitRole,
   rig: UnitAttackRig,
   state: UnitAttackPoseState,
   scale: number,

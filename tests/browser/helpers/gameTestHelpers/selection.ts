@@ -1,6 +1,6 @@
 import { type Page } from '@playwright/test';
 
-import { getScreenPointForCell, getScreenPointForWorldPosition } from './camera';
+import { getScreenPointForWorldPosition } from './camera';
 import type { RenderedUnitState } from './types';
 
 interface UnitBodyGap {
@@ -85,22 +85,6 @@ async function dragScreenAabbOfCorners(
   await page.mouse.move(minX, minY);
   await page.mouse.down({ button: 'left' });
   await page.mouse.move(maxX, maxY, { steps: 6 });
-}
-
-export async function dragSelectCells(
-  page: Page,
-  startCellX: number,
-  startCellY: number,
-  endCellX: number,
-  endCellY: number,
-): Promise<void> {
-  const corners = await Promise.all([
-    getScreenPointForCell(page, startCellX, startCellY),
-    getScreenPointForCell(page, endCellX, startCellY),
-    getScreenPointForCell(page, startCellX, endCellY),
-    getScreenPointForCell(page, endCellX, endCellY),
-  ]);
-  await dragScreenAabbOfCorners(page, corners);
 }
 
 export async function dragSelectWorldRect(

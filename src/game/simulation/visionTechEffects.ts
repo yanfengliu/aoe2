@@ -1,5 +1,5 @@
 // Line-of-sight tech effects (v0.1.80): Town Watch / Town Patrol (+4 building
-// LoS each, stacking) and Tracking (+2 infantry LoS). Pure DERIVED helpers —
+// LoS each, stacking). Pure DERIVED helpers —
 // consumed two ways, mirroring the Loom pattern:
 //  - imperatively on research completion (`applyTechnology` bumps every owned
 //    entity's `visionSource.radius` in place; the visibility system

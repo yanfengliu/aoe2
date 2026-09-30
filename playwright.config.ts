@@ -7,8 +7,8 @@ import { rasteriserLaunchArgs } from './tests/browser/helpers/browserRasteriser'
 // listens on it the system under test: with several worktrees running gates on
 // one machine, a sibling's preview squatting on 4173 gets measured instead of
 // this build (2026-09-02 — a sibling worktree's preview held 4173 while this
-// one ran its red check). A lone checkout keeps the default (no workflow runs
-// this suite; it is a local gate); a worktree beside others runs
+// one ran its red check). A lone checkout keeps the default; CI also runs
+// this suite in isolated jobs. A worktree beside others runs
 // `PREVIEW_PORT=<free port> npm run test:browser`.
 const previewPort = Number(process.env.PREVIEW_PORT ?? 4173);
 if (!Number.isInteger(previewPort) || previewPort <= 0 || previewPort > 65535) {

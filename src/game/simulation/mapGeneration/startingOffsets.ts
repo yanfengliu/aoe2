@@ -14,8 +14,6 @@ import type { WanderBoundsComponent } from '../types';
 // the player's Town Center anchor and get mirrored to fit the
 // orientation of each player's home base.
 
-export const HUMAN_PLAYER_ID = 1;
-
 export const STARTING_VILLAGERS: Offset[] = [
   { x: -2, y: 0 },
   { x: -2, y: 1 },

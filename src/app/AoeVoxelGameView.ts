@@ -1,4 +1,5 @@
 import { ArmedGroundOrder } from './armedGroundOrder';
+import { replacePresentedBridge } from './replacePresentedBridge';
 import { isCameraKey, isEditableTarget, placementGhostCell } from './voxelGameViewHelpers';
 import type { EntityRef, Position } from 'civ-engine';
 import type { ThreeCaptureResult } from 'voxel/three';
@@ -63,7 +64,6 @@ export class AoeVoxelGameView {
   private resizeObserver: ResizeObserver | null = null;
   private animationFrameId: number | null = null;
   private lastFrameTimeMs: number | null = null;
-  private currentFrameTimeMs = 0;
   private booted = false;
   private disposed = false;
   private readonly frameHalt = createFrameHaltState();
@@ -158,7 +158,7 @@ export class AoeVoxelGameView {
 
       this.booted = true;
       this.presentation.syncFromBridge(true);
-      this.renderer.frame(this.camera.getState(), 0, 0);
+      this.renderer.frame(this.camera.getState(), 0);
     } catch (error) {
       this.booted = false;
       this.resizeObserver?.disconnect();
@@ -190,13 +190,16 @@ export class AoeVoxelGameView {
 
   setBridge(bridge: SimulationBridge): void {
     this.assertActive();
-    this.bridge = bridge;
+    replacePresentedBridge(bridge, {
+      current: () => this.bridge,
+      assign: (next) => { this.bridge = next; },
+      presentation: this.presentation,
+      renderer: this.renderer,
+      sync: () => this.syncFromBridge(true),
+    });
     this.pointer.reset();
     this.camera.resetEdgePanState();
     this.selection.clearRecentSelectionClicks();
-    this.presentation.resetForBridgeSwap();
-    this.renderer.resetForBridgeSwap();
-    this.syncFromBridge(true);
   }
 
   syncFromBridge(force = false): void {
@@ -241,7 +244,7 @@ export class AoeVoxelGameView {
 
   getWorldCapture(): ThreeCaptureResult {
     this.assertActive();
-    this.renderer.frame(this.camera.getState(), this.currentFrameTimeMs, 0);
+    this.renderer.frame(this.camera.getState(), 0);
     return this.renderer.captureWorld();
   }
 
@@ -259,10 +262,6 @@ export class AoeVoxelGameView {
   armAttackMove(): void { this.groundOrder.arm('attack-move'); }
   armPatrol(): void { this.groundOrder.arm('patrol'); }
   armAttackGround(): void { this.groundOrder.arm('attack-ground'); }
-
-  isAttackMoveArmed(): boolean {
-    return this.groundOrder.get() === 'attack-move';
-  }
 
   centerCameraOnWorldPosition(worldX: number, worldY: number): void {
     this.camera.centerOnWorldPosition(worldX, worldY);
@@ -317,7 +316,7 @@ export class AoeVoxelGameView {
   // a frame drawn with nothing waiting is a full render for nothing (register, 2026-09-24).
   private hitTestPoint(worldX: number, worldY: number, isoX?: number, isoY?: number): { x: number; y: number } | null {
     this.syncFromBridge();
-    if (!this.renderer.isInteractionReady()) this.renderer.frame(this.camera.getState(), this.currentFrameTimeMs, 0);
+    if (!this.renderer.isInteractionReady()) this.renderer.frame(this.camera.getState(), 0);
     if (!this.renderer.isInteractionReady()) return null;
     return isoX !== undefined && isoY !== undefined ? { x: isoX, y: isoY } : worldToIso(worldX, worldY);
   }
@@ -390,14 +389,13 @@ export class AoeVoxelGameView {
       const simulationDeltaMs = boundedVisibleSimulationDelta(elapsedMs) * this.simulationSpeedMultiplier;
       const cameraDeltaMs = Math.min(MAX_CAMERA_FRAME_DELTA_MS, elapsedMs);
       this.lastFrameTimeMs = timeMs;
-      this.currentFrameTimeMs = timeMs;
       // After a halt the world may be mid-tick, so it never steps again — but
       // camera and renderer keep going, so the stopped match stays lookable.
       const halted = this.frameHalt.current() !== null;
       if (!halted) this.bridge.step(simulationDeltaMs);
       this.camera.update(timeMs, cameraDeltaMs);
       if (!halted) this.syncFromBridge();
-      this.renderer.frame(this.camera.getState(), timeMs, simulationDeltaMs);
+      this.renderer.frame(this.camera.getState(), simulationDeltaMs);
     } catch (error) {
       // The reschedule below was this callback's LAST statement, so a throw
       // above it ended the loop with nothing said. A second failure stops it.

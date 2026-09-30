@@ -9,7 +9,7 @@ type Bridge = ReturnType<typeof createSimulationBridge>;
 
 // "X free" (spec §9.2): a civilization's free technologies research
 // themselves the moment the owner could legally research them — same menu,
-// same applier, zero cost. Twelve civilizations carry at least one.
+// same applier, zero cost. The roster follows civilizations.csv.
 
 function bootAs(civilization: string, seed = 'aoe2-prototype'): Bridge {
   const boot = createSimulationBridge(seed);
@@ -38,10 +38,10 @@ describe('civilization free technologies', () => {
     expect(researched(bridge, 1).has('loom')).toBe(false);
   });
 
-  it('gives the Slavs Tracking only once its Barracks stands', () => {
+  it('does not grant retired Tracking to a Slavs opening', () => {
     const bridge = bootAs('Slavs');
     for (let step = 0; step < 30; step += 1) bridge.step(100);
-    // No Barracks on the opening map: nothing to offer Tracking, nothing free.
+    // Tracking is retired; the opening must not receive it as a free technology.
     expect(researched(bridge, 1).has('tracking')).toBe(false);
   });
 

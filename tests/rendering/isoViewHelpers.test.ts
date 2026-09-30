@@ -1,13 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
-import { worldToIso } from '../../src/rendering/isometricProjection';
 import {
   computeBaseFocusCell,
   isDragSelectableEntity,
   isoDragPixelBounds,
-  isoViewportCellBounds,
-  isoWorldPixelBounds,
   marqueePreviewEntities,
 } from '../../src/rendering/isoViewHelpers';
 
@@ -35,18 +32,6 @@ function entity(overrides: Partial<ProjectedEntityView>): ProjectedEntityView {
   };
 }
 
-describe('isoWorldPixelBounds', () => {
-  it('is the iso diamond bounding box of the map, with a margin (negative min-x)', () => {
-    const bounds = isoWorldPixelBounds(60, 36, CELL_SIZE);
-    // Corners: (0,36)->left, (60,0)->right, (0,0)->top, (60,36)->bottom.
-    expect(bounds.x).toBe(worldToIso(0, 36).x - CELL_SIZE); // -1152 - 24
-    expect(bounds.y).toBe(worldToIso(0, 0).y - CELL_SIZE); // 0 - 24
-    expect(bounds.width).toBe(worldToIso(60, 0).x + CELL_SIZE - bounds.x);
-    expect(bounds.height).toBe(worldToIso(60, 36).y + CELL_SIZE - bounds.y);
-    expect(bounds.x).toBeLessThan(0); // left half spans negative x
-  });
-});
-
 describe('computeBaseFocusCell', () => {
   it('prefers the human Town Center centre', () => {
     const focus = computeBaseFocusCell(
@@ -67,18 +52,6 @@ describe('computeBaseFocusCell', () => {
 
   it('ignores enemy + memory entities and returns null when the player has none', () => {
     expect(computeBaseFocusCell([entity({ owner: 2 }), entity({ id: 2, isMemory: true })], 1)).toBeNull();
-  });
-});
-
-describe('isoViewportCellBounds', () => {
-  it('returns the cell AABB of the projected viewport corners', () => {
-    // A viewport around the iso origin covers cells near (0,0); isoToWorld of its
-    // corners bounds a small cell diamond.
-    const bounds = isoViewportCellBounds({ x: -64, y: 0, right: 64, bottom: 64 });
-    expect(bounds.minX).toBeLessThanOrEqual(bounds.maxX);
-    expect(bounds.minY).toBeLessThanOrEqual(bounds.maxY);
-    // Corner (right=64, bottom=64) → cell (isoToWorld) has the largest cellX.
-    expect(bounds.maxX).toBeGreaterThan(bounds.minX);
   });
 });
 

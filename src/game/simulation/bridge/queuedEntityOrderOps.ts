@@ -27,12 +27,6 @@ import {
 } from './bridgeStateSerialize';
 import type { GathererComponent, UnitComponent } from '../types';
 
-export interface QueuedEntityOrder {
-  target: EntityRef;
-  garrison: boolean;
-  forceAttack: boolean;
-}
-
 // A click storm cannot grow an unbounded save field (the v0.3.125 rule).
 export const QUEUED_ENTITY_ORDER_CAP = 8;
 

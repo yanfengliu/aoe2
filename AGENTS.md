@@ -82,7 +82,7 @@ Run `npm run ci:status` FIRST — it prints main's remote CI and playtest-corpus
 - File size: 500 LOC cap per file, enforced by `tests/architecture/fileSizeBudget.test.ts` (legacy violators grandfathered there with shrink-only caps; split by lifecycle/role and delete the entry).
 - TDD for behavior changes: tests first, testing the contract (app experience and mechanisms), not the code.
 - A visual change is not verified until a before screenshot, the change, an after screenshot, and a pixel diff exist alongside the normal gates, and the diff shows the delta confined to the region the change was meant to touch. `scripts/captureMapScreenshot.mjs` + `scripts/diffMapScreenshots.mjs` are the maintained pair (`SEED`/`LABEL` env vars reach any scenario); one-off capture scripts are not.
-- The playtest harness observes and reports; it never writes code, applies a patch, or touches git. (The automated fix arm was removed 2026-08-01 — see `docs/architecture/decisions.md`.)
+- Playtest runs and observation tools report; they never generate or apply product fixes or touch Git. The manually invoked `playtest:canary` developer drill is a retained exception: it temporarily applies a checked-in seeded bug and restores its clean baseline. It measures oracle sensitivity, never selects or ships a fix. (The automated fix arm was removed 2026-08-01 — see `docs/architecture/decisions.md`.)
 
 ## Conventions
 

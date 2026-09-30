@@ -21,11 +21,6 @@ export interface WildlifeProfile {
   targetEntityRef: null;
 }
 
-export interface UnitTintPalette {
-  human: number;
-  enemy: number;
-}
-
 export const MELEE_ATTACK_RANGE = 1;
 export const MONK_VISION_RADIUS = 9;
 

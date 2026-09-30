@@ -107,3 +107,9 @@ export function assertReplayPayloadsAvailable(bundle: ReplayBundle, targetTick: 
     { code: 'no_replay_payloads', requested: targetTick },
   );
 }
+
+export function exitReplayBeforeLiveBridgeReplacement(
+  controller: { readonly mode: 'live' | 'replay'; exitReplay(): void },
+): void {
+  if (controller.mode === 'replay') controller.exitReplay();
+}

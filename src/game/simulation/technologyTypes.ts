@@ -112,7 +112,7 @@ export type ResearchableTechnologyType =
   | 'herbal-medicine'
   // Heresy (Monastery, Castle): a unit whose owner has Heresy DIES instead of converting. DERIVED at the conversion flip site (applyMonkConvert) — destroyUnitEntity instead of flipConvertedUnit. Spec §10.9.
   | 'heresy'
-  // LoS techs (visionTechEffects): Town Watch (TC, Feudal, +4 building LoS), Town Patrol (TC, Castle, req Town Watch, +4 more), Tracking (Barracks, Feudal, +2 infantry LoS). Imperative visionSource.radius bump to existing entities + derived at creation for future ones.
+  // LoS techs (visionTechEffects): Town Watch (TC, Feudal, +4 building LoS), Town Patrol (TC, Castle, req Town Watch, +4 more). Imperative visionSource.radius bump to existing entities + derived at creation for future ones.
   | 'town-watch'
   | 'town-patrol'
   // Conscription (Castle, Imperial): units trained at Barracks/Archery Range/Stable/Castle are created 25% faster. DERIVED train-time multiplier (productionTechEffects) at the trainingMarketOps enqueue.

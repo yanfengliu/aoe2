@@ -36,16 +36,16 @@ describe('AoeVoxelWorldRenderer', () => {
     };
 
     renderer.present([terrain()], 500);
-    renderer.frame(camera, 1_000, 16);
-    renderer.frame(camera, 2_000, 1_000);
+    renderer.frame(camera, 16);
+    renderer.frame(camera, 1_000);
     expect(runtime.frame.mock.calls.map(([context]) => context.nowMs)).toEqual([500, 500]);
 
     renderer.resetForBridgeSwap();
     renderer.present([terrain()], 150);
-    renderer.frame(camera, 2_016, 16);
+    renderer.frame(camera, 16);
     expect(runtime.frame.mock.calls.at(-1)?.[0].nowMs).toBe(500);
     renderer.present([terrain()], 175);
-    renderer.frame(camera, 2_032, 16);
+    renderer.frame(camera, 16);
     expect(runtime.frame.mock.calls.at(-1)?.[0].nowMs).toBe(525);
   });
 
@@ -94,7 +94,7 @@ describe('AoeVoxelWorldRenderer', () => {
       viewWidth: 800,
       viewHeight: 600,
       viewCorners: [],
-    }, 100, 16);
+    }, 16);
 
     expect(runtime.setView).toHaveBeenCalledWith({ x: 0, y: 0, z: 0 }, 1);
     expect(runtime.frame).toHaveBeenCalledWith({ nowMs: 0, deltaMs: 16, frameIndex: 0 });
@@ -166,7 +166,7 @@ describe('AoeVoxelWorldRenderer', () => {
       viewWidth: 320,
       viewHeight: 200,
       viewCorners: [],
-    }, 0, 0);
+    }, 0);
     expect(renderer.isInteractionReady()).toBe(true);
     expect(renderer.findPresentedEntitiesAtIsoPoint(point.x, point.y, 'selection')[0]?.id)
       .toBe(villager.id);
@@ -184,7 +184,7 @@ describe('AoeVoxelWorldRenderer', () => {
       viewWidth: 320,
       viewHeight: 200,
       viewCorners: [],
-    }, 100, 100);
+    }, 100);
     expect(renderer.isInteractionReady()).toBe(false);
     expect(renderer.findPresentedEntitiesAtIsoPoint(point.x, point.y, 'selection')).toEqual([]);
 
@@ -200,7 +200,7 @@ describe('AoeVoxelWorldRenderer', () => {
       viewWidth: 320,
       viewHeight: 200,
       viewCorners: [],
-    }, 116, 16);
+    }, 16);
     expect(renderer.isInteractionReady()).toBe(true);
   });
 });

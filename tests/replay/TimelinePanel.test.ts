@@ -4,6 +4,13 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Marker, SessionMetadata, TickFailure } from 'civ-engine';
 
 import {
+  createReplayController,
+} from '../../src/game/replay/ReplayController';
+import { createHotkeyRegistry } from '../../src/game/control/HotkeyRegistry';
+import { registerReplayHotkeys } from '../../src/game/replay/ReplayHotkeys';
+import type { SimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { recordCommandReplayFixture } from './replayCommandHelpers';
+import {
   createTimelinePanel,
   replayTimelineUpperBound,
 } from '../../src/game/replay/TimelinePanel';
@@ -173,6 +180,75 @@ function mountPanel(controller = new FakeReplayController()): {
 }
 
 describe('Phase 3C - TimelinePanel', () => {
+  it.each(['step-forward', 'step-back', 'marker', 'hotspot', 'Home', 'End', 'coalesced range'] as const)('shows paused controls after the real controller handles %s during playback', (operation) => {
+    const { bridge: liveBridge, bundle: recorded } = recordCommandReplayFixture();
+    const endTick = recorded.metadata.endTick;
+    const replayBundle = { ...recorded,
+      markers: [marker({ id: 'end', tick: endTick })],
+      // Pin one diagnostic duration outlier; the game commands/world stay recorded.
+      ticks: recorded.ticks.map((tick) => ({ ...tick, metrics: {
+        tick: tick.tick, entityCount: 0, componentStoreCount: 0,
+        simulation: { tps: 10, tickBudgetMs: 100 },
+        commandStats: { pendingBeforeTick: 0, processed: 0 }, systems: [],
+        query: { calls: 0, cacheHits: 0, cacheMisses: 0, results: 0, membershipChecks: 0 },
+        spatial: { explicitSyncs: 0 },
+        durationMs: { total: tick.tick === endTick ? 5000 : 1, commands: 0, systems: 0, resources: 0, diff: 0 },
+      } })),
+    };
+    let current: SimulationBridge = liveBridge;
+    const scheduler = { request: vi.fn(() => 1), cancel: vi.fn() };
+    const controller = createReplayController({
+      bridgeCell: { current: () => current, replace: (incoming) => { current = incoming; } },
+      isLivePaused: () => false, scheduler,
+    });
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const panel = createTimelinePanel({ controller });
+    panel.mount(host);
+    const hotkeys = createHotkeyRegistry({ target: document });
+    const replayHotkeys = registerReplayHotkeys({ controller, panel, hotkeys });
+    try {
+      controller.enterReplay(replayBundle, endTick - 1);
+      const playToggle = host.querySelector<HTMLButtonElement>('[data-testid="timeline-play-toggle"]')!;
+      playToggle.click();
+      expect(playToggle.textContent).toBe('Pause');
+      expect(controller.isPlaying()).toBe(true);
+      const onTick = vi.fn();
+      controller.onTickChange(onTick);
+      if (operation === 'Home' || operation === 'End') {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: operation, bubbles: true }));
+      } else if (operation === 'coalesced range') {
+        const range = host.querySelector<HTMLInputElement>('[data-testid="timeline-range"]')!;
+        range.value = String(endTick);
+        range.dispatchEvent(new Event('input', { bubbles: true }));
+        range.dispatchEvent(new Event('change', { bubbles: true }));
+      } else {
+        const control = operation === 'marker' ? 'timeline-marker-pin'
+          : operation === 'hotspot' ? 'timeline-hotspot-pin' : `timeline-${operation}`;
+        const button = host.querySelector<HTMLButtonElement>(`[data-testid="${control}"]`);
+        expect(button).not.toBeNull();
+        expect(button!.disabled).toBe(false);
+        button!.click();
+      }
+      expect(controller.isPlaying()).toBe(false);
+      expect(onTick).toHaveBeenCalledTimes(operation === 'coalesced range' ? 2 : 1);
+      expect(playToggle.textContent).toBe('Play');
+      expect(playToggle.getAttribute('aria-label')).toBe('Play replay playback');
+      const expectedTick = operation === 'Home' ? recorded.metadata.startTick
+        : operation === 'step-back' ? endTick - 2 : endTick;
+      expect(controller.currentTick).toBe(expectedTick);
+      expect(playToggle.disabled).toBe(expectedTick === endTick);
+      expect(host.querySelector('[data-testid="timeline-tick"]')!.textContent).toBe(`${expectedTick} / ${endTick}`);
+      expect(scheduler.cancel).toHaveBeenCalledTimes(1);
+    } finally {
+      replayHotkeys.dispose();
+      hotkeys.dispose();
+      panel.dispose();
+      controller.exitReplay();
+      host.remove();
+    }
+  });
+
   it('stays hidden outside replay mode and renders replay ticks, marker pins, and hotspot pins after entry', () => {
     const { controller, host, panel } = mountPanel();
     const replayBundle = bundle({
