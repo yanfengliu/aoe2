@@ -1,10 +1,11 @@
-import { RenderAdapter, VisibilityMap } from 'civ-engine';
+import { RenderAdapter } from 'civ-engine';
 import type { EntityRef } from 'civ-engine';
 
 import { clamp, toEngineWorld } from './bridge/pureHelpers';
 import { createProjector } from './bridge/visibility';
 import { createWorld } from './bridge/createWorld';
 import { visibilityStateFromSave } from './saveBlobReaders';
+import { LayeredVisibilityMap } from './bridge/layeredVisibilityMap';
 import { createRenderStateOps } from './bridge/renderStateOps';
 import { createTickHaltState, tryTick } from './bridge/tickHaltGuard';
 import {
@@ -82,8 +83,8 @@ export function createSimulationBridge(
     ? null
     : createPrototypeScenario(effectiveSeed, options.playerCount);
   const visibility = savedGame
-    ? VisibilityMap.fromState(visibilityStateFromSave(savedGame))
-    : new VisibilityMap(freshScenario!.width, freshScenario!.height);
+    ? LayeredVisibilityMap.fromState(visibilityStateFromSave(savedGame))
+    : new LayeredVisibilityMap(freshScenario!.width, freshScenario!.height);
   const {
     world,
     saveGame,
@@ -175,7 +176,10 @@ export function createSimulationBridge(
     },
   });
 
-  renderAdapter.connect();
+  // 'on-read' (createSimulationBridgeOptions.ts): no projection while the
+  // world steps; each read projects the whole world once.
+  const projectOnRead = options.renderProjection === 'on-read';
+  if (!projectOnRead) renderAdapter.connect();
 
   function refreshRenderProjection(): void {
     renderAdapter.disconnect();
@@ -190,10 +194,25 @@ export function createSimulationBridge(
   let renderStoreVersion = 0;
 
   function flushOutOfBandRenderChange(): void {
-    if (consumeOutOfBandRenderChange()) {
+    if (consumeOutOfBandRenderChange() && !projectOnRead) {
       refreshRenderProjection();
       renderStoreVersion += 1;
     }
+  }
+
+  /** What every read of the render store does first. */
+  function projectForRead(): void {
+    if (!projectOnRead) {
+      flushOutOfBandRenderChange();
+      return;
+    }
+    consumeOutOfBandRenderChange();
+    try {
+      renderAdapter.connect();
+    } finally {
+      renderAdapter.disconnect();
+    }
+    renderStoreVersion += 1;
   }
 
   // Render-state assembly + per-tick memo lives in `bridge/renderStateOps`.
@@ -329,7 +348,7 @@ export function createSimulationBridge(
       selectByRefs(refs);
     },
     getRenderState() {
-      flushOutOfBandRenderChange();
+      projectForRead();
       return getRenderStateInternal();
     },
     getRenderInterpolationAlpha() {
@@ -341,6 +360,7 @@ export function createSimulationBridge(
       return clamp(accumulatorMs / tickMs, 0, 1);
     },
     getHudState() {
+      if (projectOnRead) projectForRead();
       const debugState = renderStore.getDebug();
       const frame = renderStore.getFrame();
       const metrics = debugState?.metrics;

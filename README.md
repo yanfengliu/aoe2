@@ -52,6 +52,11 @@ Camera:
 - Mouse hover near a screen edge to pan in that direction when the game is fullscreen or the browser window fully fills the monitor
 - Mouse wheel to zoom
 
+Annotations:
+
+- `Alt+M` opens the annotation form for the current selection or tick
+- `Alt+L` toggles the marker list for the current and prior recorded sessions
+
 ## Test fixtures
 
 The dev server accepts a `?seed=<name>` URL parameter to load deterministic test scenarios. See the devlog under `docs/devlog/` for the current list of seeds.
@@ -73,7 +78,7 @@ Caveat: bundle replay is same-engine-major tooling (civ-engine policy) — bundl
 ## See also
 
 - [Official spec](design/spec-final.md)
-- [Implementation plan](design/implementation-plan.md)
+- [Implementation plan](docs/work/102_phaser-prototype/historical/design/implementation-plan.md)
 
 ## Part of a fleet
 

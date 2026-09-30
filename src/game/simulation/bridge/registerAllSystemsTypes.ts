@@ -26,6 +26,7 @@ import type { MemoryEntry } from './memoryTypes';
 import type { BridgeState } from './bridgeState';
 import type { MonkTask } from './sharedTypes';
 import type { DropOffWalkFields } from './dropOffWalkField';
+import type { TargetScanIndex } from './targetScanIndex';
 
 type CivWorld = GameWorld;
 
@@ -147,8 +148,8 @@ export interface RegisterAllSystemsDeps {
   ) => void;
   findPreferredVisibleEnemyUnit: (owner: number, position: Position, minimumRange?: number) => number | null;
   findPreferredVisibleEnemyBuilding: (owner: number, position: Position, minimumRange?: number) => number | null;
-  findPreferredEnemyUnitInRadius: (owner: number, position: Position, radius: number, minimumRange?: number) => number | null;
-  findPreferredEnemyBuildingInRadius: (owner: number, position: Position, radius: number, minimumRange?: number) => number | null;
+  findPreferredEnemyUnitInRadius: (owner: number, position: Position, radius: number, minimumRange?: number, scan?: TargetScanIndex) => number | null;
+  findPreferredEnemyBuildingInRadius: (owner: number, position: Position, radius: number, minimumRange?: number, scan?: TargetScanIndex) => number | null;
   findPreferredVisibleEnemyUnitInRangeOfBuilding: (
     owner: number,
     position: Position,
@@ -157,6 +158,7 @@ export interface RegisterAllSystemsDeps {
     // Cells the building cannot reach because they are too CLOSE: an
     // attacker pressed against a Tower or Castle is under its arrow slits.
     minimumRange?: number,
+    scan?: TargetScanIndex,
   ) => number | null;
   findNearestHostileWildlifeTarget: (
     position: Position,

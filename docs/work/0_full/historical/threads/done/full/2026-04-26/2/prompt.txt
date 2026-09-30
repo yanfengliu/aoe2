@@ -1,0 +1,21 @@
+You are a senior code reviewer. The repo is a TypeScript Age-of-Empires-2 prototype built on top of `civ-engine`; entry points: `src/game/simulation/createSimulationBridge.ts` (332-LOC facade), `src/game/simulation/bridge/*` (~45 modules), `src/phaser/scenes/*`, `src/ui/*`, `tests/simulation/*` (Vitest), `tests/browser/*` (Playwright). AGENTS.md governs conventions (TDD, multi-CLI review, doc discipline, 500-line file ceiling, side-map ownership in `bridge/bridgeState.ts`).
+
+This is iteration 2 of today's full-codebase review. Iteration 1's full report is at `docs/reviews/full/2026-04-26/1/REVIEW.md` — read it first. Most V4-1 through V4-21 findings have been shipped on `main` (commits `608048f` through `8d20013`). DO NOT re-flag items already addressed there. Items still open: V4-22 (versioning + changelog discipline — pending user input), V4-24 (multi-base AI `findIdleProducer` first-match — deferred behavior gap). Also consider iter-1/2/3 REVIEWs from `docs/reviews/full/2026-04-25/` for items declared deferred.
+
+Task: Independently audit the current working tree (HEAD = `8d20013`). Flag real and important issues only. If you find no important issues in a category, say so explicitly instead of inventing nits. Cover:
+
+1. **Design** — boundaries, scalability, debuggability, leanness. Watch for re-emerging god classes (especially `createSimulationBridge.ts`, `bridge/wirePostSeedOps.ts`, `bridge/registerAllSystems.ts`, `bridge/aiSystem.ts`).
+2. **Correctness** — race conditions, off-by-one, save/load determinism, side-map sync (24 side maps in `bridge/bridgeState.ts`), conquest/win-condition logic, multi-cell footprint handling for fog memory + selection + targeting.
+3. **Test coverage** — gaps in regression coverage for behaviors that have already shipped; tests that test implementation rather than contract.
+4. **Cleanliness** — typing precision, efficiency, memory leaks, dead code, duplicated logic, unsafe casts (post-V4-1 fix), files >500 LOC. Strict ceiling 1000 LOC.
+5. **Documentation accuracy** — verify `docs/architecture/ARCHITECTURE.md`, `docs/architecture/drift-log.md`, `docs/architecture/decisions.md`, `docs/api-reference.md`, `README.md`, `docs/guides/*.md`, `docs/devlog/summary.md`, `AGENTS.md` against the current code. Flag stale signatures, removed APIs still mentioned, missing coverage of new APIs in canonical guides, outdated bridge topology.
+
+Output format:
+- **Severity-tagged findings** (Critical / High / Medium / Low / Nit) — Theme, Where (file:line), Finding, Fix shape. Cite line numbers.
+- **Verified-not-bugs** — patterns you specifically checked and concluded are fine; helps distinguish reviewed-and-good from reviewed-and-broken.
+- DO NOT modify files. DO NOT propose patches. Plain-text findings only.
+
+Important constraints:
+- Iter-1 deferred items C-2 (full enum validation), H-2 (wider save/load round-trip), H-4 (cache sweep) remain explicitly out of scope unless you find a *new* angle.
+- The `wirePostSeedOps` revert+restore (`9818df8` → `c73649b` → `4cbc1bf`) is byte-identical to the original extraction — verified in iter-1.
+- Side-map ownership has moved to `bridgeState.ts:createBridgeState()`. The 332-LOC `createSimulationBridge.ts` is now a thin facade.

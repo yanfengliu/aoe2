@@ -1,5 +1,4 @@
 import {
-  VisibilityMap,
   World,
   createTileGrid,
   type EntityRef,
@@ -21,6 +20,7 @@ import { assembleBridgeApi } from './assembleBridgeApi';
 import { createBridgeState } from './bridgeState';
 import { BridgeStateAccessor } from './bridgeStateAccessor';
 import { registerComponentTypes } from './scenarioSeedOps';
+import type { LayeredVisibilityMap } from './layeredVisibilityMap';
 import { wireBridgeOps } from './wireBridgeOps';
 import {
   MAP_HEIGHT,
@@ -76,7 +76,7 @@ export interface CreateWorldOptions {
 
 export function createWorld(
   seed: string,
-  visibility: VisibilityMap,
+  visibility: LayeredVisibilityMap,
   savedGame: SaveBlob | undefined,
   systemMode: 'live' | 'replay' = 'live',
   options: CreateWorldOptions = {},

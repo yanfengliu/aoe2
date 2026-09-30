@@ -32,6 +32,7 @@ import {
   unitCommandsCodec,
   unitStancesCodec,
 } from '../bridgeStateSerialize';
+import { createTargetScanIndex, type TargetScanIndex } from '../targetScanIndex';
 
 export interface AutoAggressionSystemDeps {
   world: GameWorld;
@@ -46,12 +47,14 @@ export interface AutoAggressionSystemDeps {
     position: Position,
     radius: number,
     minimumRange?: number,
+    scan?: TargetScanIndex,
   ) => number | null;
   findPreferredEnemyBuildingInRadius: (
     owner: number,
     position: Position,
     radius: number,
     minimumRange?: number,
+    scan?: TargetScanIndex,
   ) => number | null;
   // Phase 1B unit.attack: returns true if a `unit.move`/`unit.attack` intention
   // is already queued in pendingCommands for the given unit (preserves the
@@ -88,6 +91,9 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
     before: ['prototypePlayerCommands'],
     execute(activeWorld) {
       const unitCommands = accessor.get(unitCommandsCodec);
+      // One candidate list for the whole pass: this pass only queues
+      // intentions, so no position changes under it (targetScanIndex.ts).
+      const scan = createTargetScanIndex(activeWorld);
       for (const id of activeWorld.query('position', 'unit')) {
         // A unit executing an ATTACK-MOVE is the one case where a standing
         // order does not silence auto-aggression: the order is precisely
@@ -158,7 +164,7 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
         // Nothing inside the unit's minimum range (spec §10.4): it could not
         // fire there, and the attack step would hold the order for good.
         const minimumRange = unitMinAttackRange(unit.unitType);
-        const enemyUnitId = findPreferredEnemyUnitInRadius(unit.owner, position, radius, minimumRange);
+        const enemyUnitId = findPreferredEnemyUnitInRadius(unit.owner, position, radius, minimumRange, scan);
         if (enemyUnitId !== null) {
           submitUnitAttackIntention(id, enemyUnitId, 'unit');
           continue;
@@ -173,6 +179,7 @@ export function registerAutoAggressionSystem(deps: AutoAggressionSystemDeps): vo
           position,
           radius,
           minimumRange,
+          scan,
         );
         if (enemyBuildingId !== null) {
           submitUnitAttackIntention(id, enemyBuildingId, 'building');

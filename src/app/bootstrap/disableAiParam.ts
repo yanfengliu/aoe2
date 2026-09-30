@@ -1,5 +1,5 @@
 // Parse the ?disableAi=<csv> URL param for the LLM-agent harness.
-// Contract per docs/threads/done/llm-agent-playtest/DESIGN.md:
+// Contract per docs/work/15_llm-agent-playtest/historical/threads/done/llm-agent-playtest/DESIGN.md:
 //   - Comma-separated positive integers (player owner ids ≥ 2).
 //   - Owner 1 (the human slot) is rejected — passing it would leave
 //     nobody to attack and is therefore not a useful directive.

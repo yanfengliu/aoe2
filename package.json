@@ -1,6 +1,6 @@
 {
   "name": "aoe2",
-  "version": "0.3.239",
+  "version": "0.3.240",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,6 +19,7 @@
     "ai:selfplay-audit": "tsx scripts/selfplay-audit.mjs",
     "ai:tickrate": "tsx scripts/aiTickRate.mjs",
     "ai:gather-walk": "tsx scripts/aiGatherWalk.mjs",
+    "ai:tick-ab": "tsx scripts/aiTickAb.mjs",
     "prebuild": "npm run voxel:build && node scripts/build-content.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",

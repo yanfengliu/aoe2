@@ -5,10 +5,9 @@
 // `rewriteQueuedPredecessorUnits`) in one module.
 //
 // Same flat dep-bag pattern as the other `bridge/` extractions: the factory
-// closes over every side map and collaborator; ownership still lives in
-// createWorld so save/load serialization, production-queue bookkeeping, and
-// the other ~80 touches of these maps in the bridge keep using the same
-// references.
+// closes over its collaborators. Persisted technology, age and combat maps
+// live in world.state through BridgeStateAccessor; bridgeState owns runtime
+// caches. Save/load and production bookkeeping use those same owners.
 
 import { applyUniqueTechnologyToOwnedUnits } from './uniqueTechEffect';
 import { ATHEISM_COUNTDOWN_EXTENSION_TICKS } from '../uniqueTechnologies';

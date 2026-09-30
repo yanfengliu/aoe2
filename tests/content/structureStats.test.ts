@@ -28,7 +28,12 @@ const TOWER_UPGRADE_ROWS: Record<string, number> = {
 const slug = (value: string) => value.trim().toLowerCase().replace(/ /g, '-');
 
 describe('structures.csv differential', () => {
-  const rows = readFileSync('design/stats/structures.csv', 'utf-8').split('\n').slice(1);
+  // The file opens with a `#` provenance header (the line_of_sight column is
+  // DE-sourced); skip it, then the column-name row.
+  const rows = readFileSync('design/stats/structures.csv', 'utf-8')
+    .split('\n')
+    .filter((line) => !line.startsWith('#'))
+    .slice(1);
   const seen = new Map<string, string[]>();
   for (const line of rows) {
     const cols = line.split(',');

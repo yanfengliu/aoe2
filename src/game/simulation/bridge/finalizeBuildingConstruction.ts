@@ -9,25 +9,17 @@ import { deriveCap } from './bridgeConstants';
 import { ownerHardPopCap } from './ownerPopCap';
 import {
   buildingTint,
-  buildingVisionRadius,
   createBuildingCombatState,
 } from '../prototypeBuildingRules';
 import {
   buildingCombatStatesCodec,
   buildingHealthStatesCodec,
   constructionStatesCodec,
-  playerAgesCodec,
   playerCivilizationsCodec,
-  playerTeamsCodec,
   populationCodec,
-  researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
-import {
-  civBuildingBaseAttackBonus,
-  teamBuildingVisionBonus,
-} from '../civBuildingBonuses';
-import { buildingVisionBonus, outpostVisionRadiusForAge } from '../visionTechEffects';
-import { EMPTY_TECH_SET } from '../economyTechEffects';
+import { civBuildingBaseAttackBonus } from '../civBuildingBonuses';
+import { completedBuildingVisionRadius } from './completedBuildingVision';
 import { isGateBuilding } from '../gates';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { GameWorld } from './pureHelpers';
@@ -78,42 +70,23 @@ export function finalizeBuildingConstruction(params: {
     params.markRender();
   }
 
-  const defaultVisionRadius = buildingVisionRadius(building.buildingType);
+  // Every building sees once it is finished. The radius carries what the
+  // owner has earned so far — Town Watch and Town Patrol, the Outpost's step
+  // per age, the Ethiopian bonus — so a building finished late sees as far as
+  // one that stood through the bumps (completedBuildingVision).
   let visionSourceAdded = false;
-  if (
-    defaultVisionRadius !== null
-    && !world.getComponent<VisionSourceComponent>(buildingId, 'visionSource')
-  ) {
-    // Add the owner's DERIVED LoS bonus (Town Watch/Town Patrol) so a building
-    // finished after the tech is researched sees as far as ones bumped live.
-    const losBonus = buildingVisionBonus(
-      accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET,
-    );
-    // The Outpost's "+2 per age" is derived the same way: a post built in the
-    // Castle Age sees as far as one that has been standing since the Dark Age
-    // and was bumped twice on the way.
-    const baseRadius = building.buildingType === 'outpost'
-      ? outpostVisionRadiusForAge(
-        accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age',
-        defaultVisionRadius,
-      )
-      : defaultVisionRadius;
+  if (!world.getComponent<VisionSourceComponent>(buildingId, 'visionSource')) {
     world.addComponent(buildingId, 'visionSource', {
       playerId: building.owner,
-      // Ethiopian towers/outposts and Teuton TCs — same bonus the seed path adds.
-      radius: baseRadius + losBonus + teamBuildingVisionBonus(
-        accessor.get(playerTeamsCodec),
-        accessor.get(playerCivilizationsCodec),
-        building.owner,
-        building.buildingType,
-      ),
+      radius: completedBuildingVisionRadius(accessor, building.owner, building.buildingType),
     });
     visionSourceAdded = true;
   }
 
   const buildingCombatState = createBuildingCombatState(building.buildingType);
   if (buildingCombatState) {
-    // Teuton Town Centers hit for one more (civilizations.csv "+1 attack").
+    // A civilization's attack bonus for the building: none in current DE (the
+    // Teuton Town Center's +1 is DE-dead since v0.3.144; civBuildingBonuses.ts).
     buildingCombatState.attackDamage += civBuildingBaseAttackBonus(
       accessor.get(playerCivilizationsCodec).get(building.owner),
       building.buildingType,

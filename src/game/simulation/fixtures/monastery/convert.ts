@@ -258,7 +258,10 @@ export function createMonkFogFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      ownedSpawn('town-center', 1, 8, 8, { vision: 3 }),
+      // Sight 1 from the TC's centre (10, 10) lights only its four central
+      // cells. It was 3 while sight was measured from the top-left cell; from
+      // the centre, 3 reaches the Militia at (11, 12) (2026-09-24).
+      ownedSpawn('town-center', 1, 8, 8, { vision: 1 }),
       // Slice 12 Task B: moved from (8, 10) (inside TC footprint at
       // 8..11, 8..11). (8, 12) keeps the Monk just south of the TC
       // and still within MONK_ACTION_RANGE = 4 of the enemy militia.
@@ -266,8 +269,8 @@ export function createMonkFogFixture(seed: string): PrototypeScenario {
       ownedSpawn('monk', 1, 8, 12, { vision: 1 }),
       // Distance 3 from the Monk at (8, 12) (manhattan, to (11, 12))
       // → within MONK_ACTION_RANGE = 4 but outside Monk's radius-1
-      // vision; the TC's radius-3 vision from (8, 8) also does not
-      // reach. Fog hides the unit from the human.
+      // vision; the TC's sight does not reach either. Fog hides the
+      // unit from the human.
       ownedSpawn('militia', 2, 11, 12, { vision: 3 }),
       ownedSpawn('town-center', 2, 40, 8, { vision: 7 }),
     ],
@@ -296,7 +299,10 @@ export function createMonkAlliedSightFixture(seed: string): PrototypeScenario {
       { owner: 3, townCenter: { x: 40, y: 26 }, startingAge: 'castle-age' },
     ],
     spawns: [
-      ownedSpawn('town-center', 1, 8, 8, { vision: 3 }),
+      // Sight 1 from the TC's centre lights its four central cells only. It
+      // was 3, which kept (11, 12) hidden only while sight came from the
+      // top-left cell (2026-09-24).
+      ownedSpawn('town-center', 1, 8, 8, { vision: 1 }),
       ownedSpawn('monk', 1, 8, 12, { vision: 1 }),
       ownedSpawn('villager', 2, 9, 12, { vision: 1 }),
       ownedSpawn('monk', 2, 11, 12, { vision: 3 }),

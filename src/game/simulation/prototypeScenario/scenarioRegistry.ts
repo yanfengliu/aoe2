@@ -16,6 +16,7 @@ import { createAiIdleSurplusFixture } from '../fixtures/aiIdleSurplus';
 import { createBlastCensusFixture } from '../fixtures/blastCensus';
 import { blastCensusSeed } from '../fixtures/blastCensusLayout';
 import { createBuildingShotLandingFixture } from '../fixtures/buildingShotLanding';
+import { createBuildingVisionBuildFixture, createBuildingVisionFixture } from '../fixtures/buildingVision';
 import { createCorridorSealFixture } from '../fixtures/corridorSeal';
 import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from '../fixtures/farmsAreWalkable';
 import { createMinimumRangeCensusFixture, minimumRangeCensusSeeds } from '../fixtures/minimumRangeCensus';
@@ -381,4 +382,6 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   // projectile, so the census can judge any unit units.csv gives a minimum,
   // whatever the game's own table says.
   ...minimumRangeCensusSeeds().map((seed) => [seed, createMinimumRangeCensusFixture] as const),
+  ['building-vision-fixture', createBuildingVisionFixture],
+  ['building-vision-build-fixture', createBuildingVisionBuildFixture],
 ]);

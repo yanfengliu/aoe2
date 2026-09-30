@@ -1,13 +1,12 @@
 // Slice 5 Monk subsystem. Heal / convert / pickup / deposit task lifecycle,
 // plus the AI-side auto-assignment and human-side context-click routing.
 // Factored out of `createSimulationBridge.ts` so the bridge file only keeps
-// the plumbing (map declarations, save/load hydration, destroy-entity cleanup
-// hooks). The factory closes over every side map and collaborator function
-// these ops mutate; side-map ownership still lives in createWorld so
-// save/load and destroy hooks continue to work through the same references.
+// the plumbing. The factory closes over its collaborator functions; persisted
+// task and combat maps live in world.state through BridgeStateAccessor, while
+// bridgeState owns runtime caches. Load and destroy hooks use those same owners.
 //
-// See `createSimulationBridge.ts` for the MonkTask type and the
-// MONK_* / AI_MONK_* constants; the factory accepts both as deps rather
+// See sharedTypes.ts for MonkTask and bridgeConstants.ts for MONK_*/AI_MONK_*
+// constants; the factory accepts both as deps rather
 // than importing the constants so tests could tweak them if needed later.
 //
 // Design note on dep-bag size: this subsystem has more dependencies than the

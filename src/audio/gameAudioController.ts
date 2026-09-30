@@ -74,8 +74,9 @@ export interface GameAudioController {
   /** Space (v0.3.156): where the last town-under-attack landed. */
   getLastHomeAttackPosition(): { x: number; y: number } | null;
   poll(): void;
-  /** A save was loaded: forget the old world (v0.3.229). A load only —
-   *  never a replay step, whose bridge swap is the same recording. */
+  /** A save was loaded (v0.3.229), or the replay viewer was entered or left:
+   *  forget the old world. Never a replay step, whose bridge swap is the
+   *  same recording. */
   resetForNewWorld(): void;
   isMuted(): boolean;
   setMuted(muted: boolean): void;
@@ -218,10 +219,14 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
   // v0.3.229 (defect register 2026-09-24): after a LOAD, everything observed
   // so far belongs to the old world, so forget it, as at mount, and let the
   // next poll take a fresh look at the new one instead of diffing it against
-  // the old. Called for a load only: a replay step, a scrub or a fog-owner
-  // switch also swaps the bridge, over the same recording, and resetting there
-  // re-announced the replayed world's recent hits on every step (found by the
-  // independent review, before this shipped). Without
+  // the old. Called for a load, and on entering or leaving the replay viewer,
+  // which switch worlds as well: leaving once kept the replayed world's ticks,
+  // so a replay watched past the live match silenced every live blow up to its
+  // last tick (defect register 2026-09-24, "Coming back from a replay"). Never
+  // for a replay step, a scrub or a fog-owner switch: they also swap the
+  // bridge, over the same recording, and resetting there re-announced the
+  // replayed world's recent hits on every step (found by the independent
+  // review, before this shipped). Without
   // this, loading an earlier save kept the old horn's tick: the first raid
   // after the load was inside a "throttle window" measured across two
   // different worlds, and it came with no horn and no words — measured in the

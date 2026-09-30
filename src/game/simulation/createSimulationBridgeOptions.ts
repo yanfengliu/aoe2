@@ -56,4 +56,18 @@ export interface CreateSimulationBridgeOptions {
   /** §4.6 population cap (25..500; absent = the standard 200). Persisted, and
    *  re-applied to every owner's derived cap on load. */
   populationCap?: number;
+  /** When the render projection runs. 'every-tick' (the default, and the
+   *  game's) keeps the render store current as the world steps: a render diff
+   *  every tick, and the whole world projected again after any change the
+   *  diff cannot see. 'on-read' projects nothing while the world steps and
+   *  the whole world once each time getRenderState() or getHudState() is
+   *  read. It is for callers that step thousands of ticks and never draw —
+   *  the self-play gates — where the per-tick projection was 27% of the
+   *  castle match's CPU and 16% of the coverage lab's (profiled 2026-09-25).
+   *  The projection never writes world state, so both modes play the same
+   *  match (tests/simulation/renderProjectionOnRead.test.ts). What 'on-read'
+   *  gives up: a projection that throws halts an 'every-tick' world on the
+   *  tick it throws, while an 'on-read' world steps on and the throw reaches
+   *  whoever reads it next. Closure-local; never persisted. */
+  renderProjection?: 'every-tick' | 'on-read';
 }

@@ -29,6 +29,7 @@ import {
 } from '../bridgeStateSerialize';
 import { launchProjectile } from '../projectileOps';
 import { ballisticsLeadsShots } from '../../projectileTechEffects';
+import { createTargetScanIndex, type TargetScanIndex } from '../targetScanIndex';
 
 interface PlayerScoreCountersLike {
   unitsKilled: number;
@@ -47,6 +48,7 @@ export interface TowerCombatSystemDeps {
     // Cells too CLOSE to reach: an attacker pressed against a Tower or Castle
     // is under its arrow slits until Murder Holes is researched.
     minimumRange?: number,
+    scan?: TargetScanIndex,
   ) => number | null;
   destroyUnitEntity: (id: number) => void;
   refreshVisibilityAfterCombat: () => void;
@@ -69,7 +71,11 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
     execute(activeWorld) {
       // No kills happen here any more: a tower launches projectiles and the
       // projectile system applies the damage, counts the kill, and refreshes
-      // visibility when something dies.
+      // visibility when something dies. So nothing moves, appears or dies
+      // during this pass, and one candidate list serves every building in it
+      // (targetScanIndex.ts); made on the first search, since a pass where
+      // every building is reloading searches for nothing.
+      let scan: TargetScanIndex | undefined;
       for (const id of activeWorld.query('position', 'building')) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
@@ -143,12 +149,14 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
           buildingCombat.attackDamage + buildingArrowAttackBonus(ownerTechs)
           + towerAttackBonus(towerTechs) + uniqueBonus.attackDamage;
         const footprint = buildingFootprint(building.buildingType);
+        scan ??= createTargetScanIndex(activeWorld);
         const targetId = findPreferredVisibleEnemyUnitInRangeOfBuilding(
           building.owner,
           position,
           footprint,
           effectiveRange,
           buildingMinimumRange(building.buildingType, ownerTechs),
+          scan,
         );
         // cooldownTicks is guaranteed 0 here (the hoisted M11 guard above
         // `continue`d while reloading), so it no longer needs re-checking.

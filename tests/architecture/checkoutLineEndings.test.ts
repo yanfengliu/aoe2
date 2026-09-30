@@ -1,4 +1,5 @@
-// Every checkout of this repository gets LF, on every platform — the gate for
+// Ordinary text gets LF on every platform; reviewed import checkpoints retain
+// their declared bytes. This is the gate for
 // the 2026-09-06 register entry.
 //
 // What happened. The repository has no `.gitattributes` before this commit, and
@@ -34,8 +35,10 @@
 //     of `.gitattributes`, not a re-reading of the file, and it goes red on
 //     every platform the moment that rule is deleted, narrowed or flipped to
 //     `eol=crlf` — where the failure it stands for was visible only on Windows.
-// (3) No tracked file is STORED with CRLF: `eol=lf` fixes what checkout writes,
-//     and does nothing about a blob that already carries `\r` in the index.
+// (3) No ordinary/new text is STORED with CRLF. Registered historical/review
+//     imports may retain it only with effective -text and an actual INDEX
+//     digest matching their tracked registry checkpoint. Source identity is
+//     recorded provenance, not a claim that edited checkpoint bytes equal it.
 // (4) The shebang scripts — the 18 files that carry the exact defect — are text
 //     rows covered by (2) and (3), and there is at least one of them. A rule
 //     marking `scripts/**` binary would otherwise let (2) skip the only files
@@ -57,6 +60,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { isPreservedIndexImport, readPreservationBindings, storedLineEndingOffenders } from './helpers/checkoutLineEndingPreservation';
 
 const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -70,12 +74,13 @@ interface Row {
   path: string;
 }
 
-const git = (args: string[]): string =>
+const git = (args: string[], input?: string): string =>
   execFileSync('git', args, {
     cwd: REPO_ROOT,
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
-    stdio: ['ignore', 'pipe', 'pipe'],
+    input,
+    stdio: ['pipe', 'pipe', 'pipe'],
   });
 
 // `--eol` prints `i/<eol> w/<eol> attr/<attrs> <TAB> <path>`; `-z` keeps paths
@@ -98,15 +103,49 @@ function readRows(): { rows: Row[]; unparsed: string[] } {
 }
 
 const { rows, unparsed } = readRows();
+const preservation = readPreservationBindings(Buffer.from(git(['show', ':docs/work/registry.json'])));
+const crlfRows = rows.filter(row => row.index === 'crlf' || row.index === 'mixed');
+// One batch reads actual index blobs; working-tree bytes cannot authorize an
+// exception and one Git process per import would needlessly slow this gate.
+const indexBlobs = new Map<string, Buffer>();
+if (crlfRows.length) {
+  const batch = execFileSync('git', ['cat-file', '--batch'], {
+    cwd: REPO_ROOT, input: crlfRows.map(row => `:${row.path}`).join('\n') + '\n',
+    maxBuffer: 64 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  let offset = 0;
+  for (const row of crlfRows) {
+    const end = batch.indexOf(10, offset);
+    const header = batch.subarray(offset, end).toString('utf8');
+    const match = /^(?:[0-9a-f]{40}|[0-9a-f]{64}) blob (\d+)$/.exec(header);
+    if (end < 0 || !match) throw new Error(`Missing index blob for ${row.path}: ${header}`);
+    const size = Number(match[1]);
+    if (!Number.isSafeInteger(size) || end + size + 1 >= batch.length || batch[end + size + 1] !== 10) {
+      throw new Error(`Truncated index blob for ${row.path}; preservation measurement did not complete.`);
+    }
+    indexBlobs.set(row.path, batch.subarray(end + 1, end + size + 1));
+    offset = end + size + 2;
+  }
+  if (offset !== batch.length) throw new Error('Unexpected bytes after the indexed preservation measurements.');
+}
 // Read the INDEX column as well as the attributes: git reports `i/-text` from
 // its own content sniffing whether or not `.gitattributes` exists. Classifying
 // on the attributes alone would make the binary control below a restatement of
 // the very file this suite is here to check, and it would go red for the wrong
 // reason the moment that file is removed.
-const isBinary = (row: Row) => row.attrs.split(/\s+/).includes('-text') || row.index === '-text';
+const isBinary = (row: Row) => row.index === '-text';
 // A symlink has no line endings to speak of; git reports `i/none w/none`.
 const isSymlink = (row: Row) => row.index === 'none' && row.worktree === 'none';
 const textRows = rows.filter((row) => !isBinary(row) && !isSymlink(row));
+// ls-files omits inherited eol when text is unset. Measure it separately so
+// new LF work documents remain protected despite the byte-preserving rule.
+const eolFields = git(['check-attr', '-z', '--stdin', 'eol'], textRows.map(row => row.path).join('\0') + '\0').split('\0');
+const effectiveEol = new Map<string, string>();
+for (let i = 0; i + 2 < eolFields.length; i += 3) {
+  const [path, attribute, value] = eolFields.slice(i, i + 3);
+  if (attribute !== 'eol' || effectiveEol.has(path)) throw new Error(`Invalid eol attribute measurement for ${path}.`);
+  effectiveEol.set(path, value);
+}
 
 const listing = (paths: string[], cap = 12) =>
   paths.slice(0, cap).join(', ') + (paths.length > cap ? `, and ${paths.length - cap} more` : '');
@@ -153,7 +192,8 @@ describe('the instrument reads git, and reads more than nothing', () => {
 
 describe('a checkout of this repository gets LF, whatever platform runs it', () => {
   it('resolves `eol=lf` for every tracked text file', () => {
-    const offenders = textRows.filter((row) => !/(^|\s)eol=lf(\s|$)/.test(row.attrs));
+    const offenders = textRows.filter(row => effectiveEol.get(row.path) !== 'lf'
+      && !isPreservedIndexImport(row, preservation.get(row.path), indexBlobs.get(row.path)));
     expect(
       offenders.map((row) => `${row.path} (attr/${row.attrs || '<none>'})`),
       `${offenders.length} tracked text file(s) do not resolve \`eol=lf\`, so a checkout under`
@@ -165,16 +205,18 @@ describe('a checkout of this repository gets LF, whatever platform runs it', () 
     ).toEqual([]);
   });
 
-  it('has no tracked file stored with CRLF in the index', () => {
+  it('has no unpreserved text stored with CRLF in the index', () => {
     // `eol=lf` governs what checkout WRITES. A blob committed with `\r` in it
     // keeps the `\r` on every platform, and this is the only check on that.
-    const stored = rows.filter((row) => row.index === 'crlf' || row.index === 'mixed');
+    const stored = storedLineEndingOffenders(rows, preservation, indexBlobs);
     expect(
-      stored.map((row) => `${row.path} (i/${row.index})`),
-      `${stored.length} tracked file(s) are stored with CRLF in the index. \`eol=lf\` fixes what`
+      stored,
+      `${stored.length} unpreserved tracked file(s) are stored with CRLF in the index. \`eol=lf\` fixes what`
       + ' checkout writes and cannot fix a blob that already carries `\\r`, so these arrive with'
       + ' CRLF on Linux too. Satisfy this with `git add --renormalize <path> && git commit`.'
-      + ` Offenders: ${listing(stored.map((row) => row.path))}.`,
+      + ' Only a registered historical/review import with effective -text and the exact indexed'
+      + ' checkpoint digest can retain CRLF; new or changed work documents must store LF.'
+      + ` Offenders: ${listing(stored)}.`,
     ).toEqual([]);
   });
 

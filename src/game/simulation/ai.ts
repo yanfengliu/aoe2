@@ -1,7 +1,7 @@
 // Slice 10: planner-style AI helpers. The real decision loop lives in
-// `createSimulationBridge.ts` as the `prototypeAi` ECS system; this file
+// `bridge/systems/aiSystem.ts` as the `prototypeAi` ECS system; this file
 // carries the pure helpers (plan selection, unit mixes, difficulty
-// multipliers) so the bridge's system body stays readable.
+// multipliers) so the system body stays readable.
 //
 // These helpers are intentionally deterministic and stateless — they
 // consume plain data and return plain data so the bridge can drive them

@@ -30,6 +30,7 @@ export function registerOutputTail(deps: {
   pendingCommands: PendingCommandsQueue;
   unitAttackFeed: UnitAttackFeedRuntime;
   syncReplayUnitAttacks?: boolean;
+  syncBuildingVisibility?: boolean;
 }): void {
   const {
     world,
@@ -39,6 +40,7 @@ export function registerOutputTail(deps: {
     pendingCommands,
     unitAttackFeed,
     syncReplayUnitAttacks = true,
+    syncBuildingVisibility = true,
   } = deps;
   registerTier3SyncSystem({
     world,
@@ -47,6 +49,7 @@ export function registerOutputTail(deps: {
     pendingCommands,
     unitAttackFeed,
     syncReplayUnitAttacks,
+    syncBuildingVisibility,
   });
   registerBridgeSnapshotSystem({ world, accessor });
 }

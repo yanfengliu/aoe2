@@ -19,7 +19,7 @@
 // Every TICK, the wood force's time is split into chopping, walking and idle,
 // and a deposit ledger counts every wood load a villager carries home. Those
 // are the two halves of the revised done-condition in
-// `docs/threads/current/lumber-camp-routing/2026-09-01/DESIGN.md`: wood
+// `docs/work/97_lumber-camp-routing/historical/threads/current/lumber-camp-routing/2026-09-01/DESIGN.md`: wood
 // throughput rises AND the gathering share of wood villagers' time rises.
 // "Walking" is any task that is not chopping or idle, so a villager FROZEN in
 // a traffic jam counts as walking; the `frozen` column separates those out —

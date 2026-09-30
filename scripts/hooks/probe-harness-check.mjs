@@ -32,9 +32,11 @@ const TOOLS = [
   '`diffBundles` / `SessionReplayer.forkAt` + `Divergence` — two recorded runs compared structurally (an A/B)',
   '`SessionReplayer.selfCheck()` — whether the recording is deterministic, before you trust anything read off it',
   '`WorldHistoryRecorder` + `summarizeWorldHistoryRange` — record and fold a LIVE world with no bundle at all',
-  '`WorldDebugger` + `createVisibilityDebugProbe(key, visibility)` — type-compatible with the VisibilityMap built in simulation/createSimulationBridge.ts:84 (a local there; reaching it costs a one-line export)',
+  '`WorldDebugger` + `createVisibilityDebugProbe(key, visibility)` — type-compatible with the VisibilityMap built in simulation/createSimulationBridge.ts:85-87 (a local there; reaching it costs a one-line export; since 2026-09-25 an owner\'s buildings are a row of their own, `<owner>:buildings`)',
   '`bridge.getDebugSnapshot()` — who is blocking whom: per-unit cell and sub-cell position (`coarseVsFine`) and current move target (`unitPaths`)',
   'civ-engine\'s read-only MCP server (`node ../civ-engine/mcp/dist/cli.js --corpus <dir>`) — 14 tools over a bundle corpus',
+  '`npm run ai:tick-ab -- <scenario> <treeA> <treeB>` — whether a change made the simulation slower: two trees interleaved in one process, ratios beside the foreign load, both worlds digested every chunk',
+  '`scripts/profile-selfplay.mjs --config castle|lab` — where tick time goes: self and inclusive time by function and by file, on a self-play gate\'s own match',
 ];
 
 // Deliberately NOT listed: `createOccupancyDebugProbe` takes an OccupancyGrid

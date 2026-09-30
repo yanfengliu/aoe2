@@ -5,7 +5,10 @@
 // the speaker toggle beside the idle-villager bell. One call from createApp.
 // v0.3.229: it is also handed the HUD's toast, because the decision that
 // sounds the horn is the one that shows the attack warning's words.
+// It is also handed the replay controller's mode changes, because entering
+// and leaving the replay viewer put a different world behind the bridge.
 
+import type { ReplayController } from '../game/replay/ReplayController';
 import type { SimulationBridge } from '../game/simulation/createSimulationBridge';
 import { HUMAN_PLAYER_ID } from '../game/simulation/prototypeScenario';
 import { createGameAudioController } from './gameAudioController';
@@ -36,6 +39,7 @@ export function mountGameAudio(
   bridgeRef: () => SimulationBridge,
   hudRoot: HTMLElement,
   announce: (text: string, hitTick: number) => void,
+  replay: Pick<ReplayController, 'onModeChange'>,
 ): MountedGameAudio {
   let context: AudioContext | null = null;
   let ambience: AmbienceHandle | null = null;
@@ -166,12 +170,22 @@ export function mountGameAudio(
     }
   }
 
-  // A load is announced by createApp's load path (v0.3.229). Not detected
-  // from the bridge's identity: a replay step, a scrub and a fog-owner switch
-  // swap the bridge too, and must keep the throttle and the other cues'
-  // memory — resetting there re-announced every step's recent hits.
+  // Every switch of world resets the controller: a load, announced by
+  // createApp's load path (v0.3.229), and entering or leaving the replay
+  // viewer, announced by the replay controller's mode change. Leaving used to
+  // keep the replayed world's ticks, and the controller only moves its
+  // last-seen attack tick forward, so after a replay watched past the live
+  // match every live blow up to the replay's last tick was ignored: no mark,
+  // no words, no horn (defect register 2026-09-24). Not detected from the
+  // bridge's identity: a replay step, a scrub, a marker jump and a fog-owner
+  // switch swap the bridge too, over the same recording, change no mode, and
+  // must keep the throttle and the other cues' memory — resetting there
+  // re-announced every step's recent hits. Nor from the tick going
+  // backwards, which a step back does and a replay left at an earlier tick
+  // than the live match's does not (docs/architecture/decisions.md).
   const onWorldLoaded = (): void => controller.resetForNewWorld();
   hudRoot.addEventListener(WORLD_LOADED_EVENT, onWorldLoaded);
+  const stopWatchingReplayMode = replay.onModeChange(() => controller.resetForNewWorld());
 
   let rafHandle: number | null = null;
   function loop(): void {
@@ -187,6 +201,7 @@ export function mountGameAudio(
     dispose(): void {
       if (rafHandle !== null) cancelAnimationFrame(rafHandle);
       hudRoot.removeEventListener(WORLD_LOADED_EVENT, onWorldLoaded);
+      stopWatchingReplayMode();
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
       button.remove();

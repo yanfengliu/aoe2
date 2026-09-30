@@ -385,6 +385,9 @@ export const SLOT_CODECS_BY_KEY: ReadonlyMap<string, SlotCodec<unknown, unknown>
 // declared here so all writers go through one source of truth.
 export const TIER_3_SLOTS = {
   visibility: 'aoe2.visibility',
+  // Each owner's building sight (layeredVisibilityMap.ts), written only when
+  // a building's sight changes; `visibilitySlots.ts` writes and reads the pair.
+  buildingVisibility: 'aoe2.buildingVisibility',
   matchState: 'aoe2.matchState',
   bridgeMeta: 'aoe2.bridgeMeta',
   pendingCommands: 'aoe2.pendingCommands',

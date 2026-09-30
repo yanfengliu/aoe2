@@ -24,8 +24,8 @@ import * as game from './helpers/gameTestHelpers';
 // its cell's edge). Each cell is sampled at its centre and at three points 0.1 of a tile inside each edge it
 // shares with explored ground: the points a soft edge reaching into it would light first.
 //
-// BOUND: one map (aoe2-prototype), the rim at tick 0 and the explored ground after the human's units walk east
-// for 150 ticks, zoom 0.7 at 1280x720 for both and the default zoom for the context loss, in whichever tier the
+// BOUND: one map (aoe2-prototype), the rim at tick 0 and the explored ground after the human's units walk to (36, 14)
+// for 300 ticks, framed at (26, 14), zoom 0.7 at 1280x720 for both and the default zoom for the context loss, in whichever tier the
 // suite's rasteriser gets (aoeDeGroundTier.ts): the single-sample tier on CI's SwiftShader, the blend on a graphics
 // card. de-ground-full-blend.spec.ts draws the blend on SwiftShader. Sample points only, not every pixel, and grass only for the explored brightness. The
 // half-tile limit on the edge of vision is not measured here: it comes from a linearly filtered fields texture whose
@@ -109,6 +109,7 @@ async function bootNatural(page: Page, zoom?: number): Promise<void> {
   await game.waitForRenderedFrames(page, 2);
   const drawn = await page.evaluate(() => window.__AOE2_TEST__!.getWorldRendererState());
   expect(drawn.artStyle, 'the Natural style was asked for through aoe2:art-style').toBe('de');
+  test.info().annotations.push({ type: 'ground tier', description: String(drawn.groundTier) });
 }
 
 
@@ -136,20 +137,19 @@ test.describe('the Natural style\'s textured ground', () => {
   });
 
   test('dims explored-but-unseen ground to about half the brightness of visible ground', async ({ page }) => {
-    // The walk below advances the simulation in the page (150 ticks took 5 to 22 s on the development machine,
-    // 2026-09-24, depending on load), so this test takes the time its scenario needs.
+    // The walk advances the real simulation in the page, so this test takes the time its scenario needs.
     test.setTimeout(90_000);
     await bootNatural(page, 0.7);
-    // Step 1's setup: every human unit walks toward (26, 14) and leaves explored ground behind; step 1 walked 900
-    // ticks, and 150 already leave cells to sample.
+    // Walk beyond the Town Centre's permanent footprint sight. The old 150-tick walk to (26, 14) leaves no clean
+    // explored-but-unseen grass after building sight was corrected; this longer journey leaves a trail to sample.
     const moved = await page.evaluate(() => {
       const api = window.__AOE2_TEST__!;
       const size = api.getMapSize();
-      return api.selectUnitsInBox(0, 0, size.width, size.height) && api.issueMoveCommand(26, 14);
+      return api.selectUnitsInBox(0, 0, size.width, size.height) && api.issueMoveCommand(36, 14);
     });
-    expect(moved, 'every human unit ordered to (26, 14)').toBe(true);
-    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(150); });
-    await page.evaluate(() => { window.__AOE2_TEST__!.centerCameraOnWorldPosition(20, 12); });
+    expect(moved, 'every human unit ordered to (36, 14)').toBe(true);
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(300); });
+    await page.evaluate(() => { window.__AOE2_TEST__!.centerCameraOnWorldPosition(26, 14); });
     await game.waitForRenderedFrames(page, 2);
     const sample = await groundSample(page);
     const blocked = new Set(sample.blocked);
@@ -161,10 +161,11 @@ test.describe('the Natural style\'s textured ground', () => {
     const seen = `${String(explored.length)} explored and ${String(visible.length)} visible grass cells`;
     expect(explored.length, seen).toBeGreaterThanOrEqual(4);
     expect(visible.length, seen).toBeGreaterThanOrEqual(4);
-    // Measured 2026-09-24: 0.465 on the GPU and 0.467 on SwiftShader (7 explored and 5 visible cells). Step 1
+    // Before the building-sight correction, measured 2026-09-24: 0.465 on the GPU and 0.467 on SwiftShader (7 explored and 5 visible cells). Step 1
     // measured 0.506 for the style's 0.6 on the voxel ground; the level applied to the linear colour instead
     // drew explored ground at 0.730 of visible on this sample.
     const ratio = median(explored) / median(visible);
+    test.info().annotations.push({ type: 'measured', description: `${seen}; explored/visible median luma ${String(ratio)}` });
     expect(ratio, `explored over visible luma, ${seen}`).toBeGreaterThan(0.4);
     expect(ratio, `explored over visible luma, ${seen}`).toBeLessThan(0.62);
   });

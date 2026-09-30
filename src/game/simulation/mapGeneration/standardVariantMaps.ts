@@ -164,7 +164,7 @@ export function createFortressMap(seed: string): PrototypeScenario {
       if (!free) continue;
       spawns.addBuildingSpawn({
         kind: 'castle', x: anchor.x, y: anchor.y, owner: start.owner, baseOwner: start.owner,
-        vision: { playerId: start.owner, radius: 9 },
+        // Its sight comes from the table (structures.csv), like every building's.
       });
       break;
     }

@@ -36,7 +36,8 @@ export function applyStandardPlayerOpening(
       y: start.townCenter.y,
       owner: start.owner,
       baseOwner: start.owner,
-      vision: { playerId: start.owner, radius: 7 },
+      // No vision radius here: a completed building takes its sight from the
+      // table (structures.csv), and a starting Town Center is no exception.
     });
 
     applyResourcePatch(
@@ -138,7 +139,7 @@ export function applyStandardPlayerOpeningProcedural(
     y: start.townCenter.y,
     owner: start.owner,
     baseOwner: start.owner,
-    vision: { playerId: start.owner, radius: 7 },
+    // No vision radius: its sight comes from the table, as every building’s does.
   });
 
   const rng = createSeedPerBaseRng(seed, start.owner);

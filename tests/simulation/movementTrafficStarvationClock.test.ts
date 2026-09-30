@@ -1,7 +1,7 @@
 // The starvation clock counts contested WAITING, not standing still, and every
 // member of a jam reads the same clocks.
 //
-// Review E1 and E2 (docs/threads/current/concurrency-review-2026-09-02): the
+// Review E1 and E2 (docs/work/98_concurrency-review-2026-09-02): the
 // v0.3.175 clock was stamped on cell change alone, so it also ran while a unit
 // built a Town Centre, sat garrisoned, or stood parked. Such a unit, retasked
 // through a one-wide gap, was elected over units that had been asking for

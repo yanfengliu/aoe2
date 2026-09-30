@@ -342,57 +342,68 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
     );
     await page.mouse.up({ button: 'middle' });
 
-    await expect.poll(async () => {
-      const viewport = await game.getMinimapViewportState(page);
-      const snapshot = await game.getSnapshot(page);
-      const frame = snapshot.renderState.frame;
-      const camera = snapshot.cameraState;
-      const minimap = await game.getMinimapStats(page);
-
-      if (!viewport || !frame || !camera) {
-        return false;
-      }
-
-      // Iso DIAMOND minimap (v0.1.130): the viewport dataset is the bounding
-      // box of the 4 real view corners projected through the diamond transform
-      // (mirrors getMinimapLayout + cellToMinimap in src/ui/hud/minimap.ts).
-      // Full-review M8: project the actual corners, not their cell-space AABB.
-      const span = frame.mapWidth + frame.mapHeight;
-      const hw = Math.min(minimap.width / span, (2 * minimap.height) / span) * 0.96;
-      const hh = hw / 2;
-      const originX = minimap.width / 2 - ((frame.mapWidth - frame.mapHeight) / 2) * hw;
-      const originY = minimap.height / 2 - ((frame.mapWidth + frame.mapHeight) / 2) * hh;
-      const project = (cellX: number, cellY: number) => ({
-        x: originX + (cellX - cellY) * hw,
-        y: originY + (cellX + cellY) * hh,
-      });
-      const corners = camera.viewCorners.map((c) => project(c.cellX, c.cellY));
-      const xs = corners.map((c) => c.x);
-      const ys = corners.map((c) => c.y);
-      const minX = Math.min(...xs);
-      const minY = Math.min(...ys);
-      const expectedViewport = {
-        active: true,
-        x: Number(minX.toFixed(2)),
-        y: Number(minY.toFixed(2)),
-        width: Number((Math.max(...xs) - minX).toFixed(2)),
-        height: Number((Math.max(...ys) - minY).toFixed(2)),
+    // The camera stops with the drag, and the HUD redraws the minimap on the
+    // first frame whose camera differs, so after rendered frames the rectangle
+    // it exposes and the camera must agree: read both in ONE evaluate, once,
+    // rather than polling them in separate reads against the wall clock. The
+    // poll this replaces spent its five seconds on full snapshots and a
+    // minimap readback per try, and on CI's SwiftShader, with the Natural
+    // blend doubling the frame, the five seconds ran out (run 36077810827).
+    await game.waitForRenderedFrames(page, 3);
+    const read = await page.evaluate(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>('[data-hud="minimap"]')!;
+      const snapshot = window.__AOE2_TEST__!.getSnapshot();
+      const { viewportActive, viewportX, viewportY, viewportWidth, viewportHeight } = canvas.dataset;
+      return {
+        viewport: {
+          active: viewportActive === 'true',
+          x: Number(viewportX),
+          y: Number(viewportY),
+          width: Number(viewportWidth),
+          height: Number(viewportHeight),
+        },
+        minimap: { width: canvas.width, height: canvas.height },
+        camera: snapshot.cameraState,
+        map: { width: snapshot.renderState.frame?.mapWidth ?? 0, height: snapshot.renderState.frame?.mapHeight ?? 0 },
       };
+    });
+    expect(read.camera, 'the camera state').not.toBeNull();
+    const { viewport, minimap, map } = read;
+    const camera = read.camera!;
 
-      // Tolerance compare (not exact toFixed): the dataset is written one RAF
-      // behind the camera snapshot read here, and the diamond bbox folds BOTH
-      // cell axes into every coordinate, so a sub-pixel camera drift shifts all
-      // four fields. 1.5px tolerance confirms the viewport tracks the AABB
-      // without demanding the two frame-lagged reads be bit-identical.
-      const near = (a: number, b: number) => Math.abs(a - b) <= 1.5;
-      return (
-        viewport.active === expectedViewport.active
-        && near(viewport.x, expectedViewport.x)
-        && near(viewport.y, expectedViewport.y)
-        && near(viewport.width, expectedViewport.width)
-        && near(viewport.height, expectedViewport.height)
-      );
-    }).toBe(true);
+    // Iso DIAMOND minimap (v0.1.130): the viewport dataset is the bounding
+    // box of the 4 real view corners projected through the diamond transform
+    // (mirrors getMinimapLayout + cellToMinimap in src/ui/hud/minimap.ts).
+    // Full-review M8: project the actual corners, not their cell-space AABB.
+    const span = map.width + map.height;
+    const hw = Math.min(minimap.width / span, (2 * minimap.height) / span) * 0.96;
+    const hh = hw / 2;
+    const originX = minimap.width / 2 - ((map.width - map.height) / 2) * hw;
+    const originY = minimap.height / 2 - ((map.width + map.height) / 2) * hh;
+    const project = (cellX: number, cellY: number) => ({
+      x: originX + (cellX - cellY) * hw,
+      y: originY + (cellX + cellY) * hh,
+    });
+    const corners = camera.viewCorners.map((c) => project(c.cellX, c.cellY));
+    const xs = corners.map((c) => c.x);
+    const ys = corners.map((c) => c.y);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const expectedViewport = {
+      active: true,
+      x: minX,
+      y: minY,
+      width: Math.max(...xs) - minX,
+      height: Math.max(...ys) - minY,
+    };
+
+    // The dataset rounds to two decimals, and a camera still drifting by a
+    // fraction of a pixel shifts all four fields, so each is held to 1.5px.
+    const seen = `the minimap's rectangle ${JSON.stringify(viewport)} against the camera's ${JSON.stringify(expectedViewport)}`;
+    expect(viewport.active, seen).toBe(true);
+    for (const field of ['x', 'y', 'width', 'height'] as const) {
+      expect(Math.abs(viewport[field] - expectedViewport[field]), `${field}: ${seen}`).toBeLessThanOrEqual(1.5);
+    }
   });
 
   test('preserves the game aspect ratio with letterboxing after the browser viewport shrinks', async ({

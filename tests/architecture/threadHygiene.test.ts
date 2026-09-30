@@ -67,8 +67,8 @@ const MIN_REAL_POINTERS_PER_ROOT: Readonly<Record<string, number>> = {
 };
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'generated', 'coverage', 'tmp']);
 const TEXT_EXTS = new Set(['.ts', '.tsx', '.mjs', '.cjs', '.js', '.md', '.json', '.yml', '.yaml', '.css', '.html', '.txt']);
-const POINTER = /docs\/threads\/(?:current|done)\/[A-Za-z0-9_./-]*/g;
-const VACUOUS = new Set(['docs/threads/current', 'docs/threads/done']);
+const POINTER = /docs\/(?:threads\/(?:current|done)|work)\/[A-Za-z0-9_./-]*/g;
+const VACUOUS = new Set(['docs/threads/current', 'docs/threads/done', 'docs/work']);
 // Lookahead rather than a trailing \b, so an ISO timestamp's date part counts.
 const DATE = /\b(20\d\d)-(\d\d)-(\d\d)(?!\d)/g;
 const CLOSURE_LINE = /^Closed \d{4}-\d{2}-\d{2}/;

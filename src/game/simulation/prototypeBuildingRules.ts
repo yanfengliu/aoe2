@@ -162,15 +162,41 @@ const BUILDING_MAX_HP: Record<BuildingType, number> = {
   'fish-trap': 50, // structures.csv: Fish Trap hit points.
 };
 
-const BUILDING_VISION_RADIUS = new Map<BuildingType, number>([
-  ['dock', 5], // structures.csv line_of_sight.
-  ['outpost', 6], // structures.csv line_of_sight — its entire reason to exist.
-  ['town-center', 7],
-  ['watch-tower', 8],
-  ['bombard-tower', 10], // structures.csv line_of_sight
-  ['castle', 11],
-  ['wonder', 7],
-]);
+// Line of sight of every COMPLETED building, from structures.csv
+// `line_of_sight` (DE-sourced 2026-09-24; tests/content/structureLineOfSight
+// holds every row). Total over the roster on purpose: until 2026-09-24 this
+// was a partial map of seven types and every other building — the House, the
+// Barracks, the camps, the walls — gave its owner no sight, so a raid on a
+// lone House was drawn to nobody. The circle is measured from the footprint's
+// centre (buildingVisionSources.ts); a foundation sees nothing until complete.
+const BUILDING_VISION_RADIUS: Record<BuildingType, number> = {
+  'town-center': 8,
+  house: 2,
+  mill: 6,
+  'lumber-camp': 6,
+  'mining-camp': 6,
+  barracks: 6,
+  'watch-tower': 10,
+  'bombard-tower': 10,
+  stable: 6,
+  'archery-range': 6,
+  blacksmith: 6,
+  market: 6,
+  'siege-workshop': 6,
+  monastery: 6,
+  university: 6,
+  castle: 11,
+  wonder: 8,
+  'stone-wall': 2,
+  'palisade-wall': 2,
+  'stone-gate': 6,
+  'palisade-gate': 6,
+  farm: 1,
+  dock: 8,
+  // Its entire reason to exist; +2 per age on top (visionTechEffects).
+  outpost: 6,
+  'fish-trap': 1,
+};
 
 const BUILDING_COMBAT_STATES = new Map<BuildingType, BuildingCombatProfile>([
   ['town-center', { attackDamage: 5, attackRange: 6, reloadTicks: 12, cooldownTicks: 0 }],
@@ -272,8 +298,8 @@ export function buildingMaxHpForAge(buildingType: BuildingType, age: AgeType): n
   return BUILDING_HP_BY_AGE[buildingType]?.[age] ?? BUILDING_MAX_HP[buildingType];
 }
 
-export function buildingVisionRadius(buildingType: BuildingType): number | null {
-  return BUILDING_VISION_RADIUS.get(buildingType) ?? null;
+export function buildingVisionRadius(buildingType: BuildingType): number {
+  return BUILDING_VISION_RADIUS[buildingType];
 }
 
 export function createBuildingCombatState(

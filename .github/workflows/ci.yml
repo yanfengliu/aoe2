@@ -77,6 +77,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # The strict seven historical-import bindings read this immutable source.
+      # Keep checkout shallow and fetch only the source tree the validators need.
+      - name: Fetch historical work-document source
+        shell: bash
+        run: |
+          git fetch --no-tags --depth=1 origin 143ad5116f25393504328056764bcc8706917b9e
+          git cat-file -e 143ad5116f25393504328056764bcc8706917b9e^{commit}
+
       # aoe2 depends on its sibling engine via `file:../civ-engine` (a symlink
       # to ../civ-engine locally). CI checks out only aoe2, so we fetch the
       # engine's PREBUILT dist — packed + published by the engine's own CI as

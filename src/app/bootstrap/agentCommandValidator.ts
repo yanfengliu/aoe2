@@ -3,7 +3,7 @@
 // later inside `world.submitWithResult` during `drainPendingCommands`,
 // and any rejections surface via `bridge.consumeCommandRejection()`.
 //
-// Per docs/threads/done/llm-agent-playtest/DESIGN.md §1: this method
+// Per docs/work/15_llm-agent-playtest/historical/threads/done/llm-agent-playtest/DESIGN.md §1: this method
 // returns a structured `CommandDispatchResult` rather than a boolean so
 // the trace can distinguish concrete failure modes.
 

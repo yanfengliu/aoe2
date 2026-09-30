@@ -159,6 +159,10 @@ interface SelfPlayResult {
 function playSelfPlay(seed: string): SelfPlayResult {
   const bridge = createSimulationBridge(seed, {
     forceAiForOwners: new Set([HUMAN_PLAYER_ID]),
+    // Nothing here draws, and the per-tick render projection was 27% of this
+    // match's CPU (2026-09-25); it never writes the world, so the match is the
+    // same (renderProjectionOnRead.test.ts).
+    renderProjection: 'on-read',
   });
   const QUALIFYING = ['blacksmith', 'archery-range', 'stable', 'market'];
   const per: Record<number, {

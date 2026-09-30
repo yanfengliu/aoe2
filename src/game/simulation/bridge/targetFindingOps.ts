@@ -37,6 +37,7 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   combatStatesCodec,
 } from './bridgeStateSerialize';
+import type { TargetScanIndex } from './targetScanIndex';
 
 interface VisibilityQuery {
   isVisible: (playerId: number, x: number, y: number) => boolean;
@@ -67,6 +68,8 @@ export interface TargetFindingOps {
     buildingAnchor: Position,
     footprint: { width: number; height: number },
     range: number,
+    minimumRange?: number,
+    scan?: TargetScanIndex,
   ): number | null;
   // Scan every enemy building visible to `viewerOwner`, pick the one
   // with the best priority/distance, none nearer than `minimumRange`.
@@ -95,11 +98,14 @@ export interface TargetFindingOps {
   // enemy unit within `radius` Manhattan distance from `origin`, and no
   // closer than `minimumRange`: a unit cannot fire inside its minimum, so a
   // target there would hold its fire for good (spec §10.4).
+  // `scan` (here and below) is a system pass's candidate list: the same
+  // answer, without the engine's spatial grid (targetScanIndex.ts).
   findPreferredEnemyUnitInRadius(
     viewerOwner: number,
     origin: Position,
     radius: number,
     minimumRange?: number,
+    scan?: TargetScanIndex,
   ): number | null;
   // Personal-LOS variant of `findPreferredVisibleEnemyBuilding`. Same
   // contract as `findPreferredEnemyUnitInRadius` for buildings.
@@ -112,6 +118,7 @@ export interface TargetFindingOps {
     origin: Position,
     radius: number,
     minimumRange?: number,
+    scan?: TargetScanIndex,
   ): number | null;
 }
 
@@ -206,20 +213,19 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     // underneath them. 0 for everything else, and 0 once the owner researches
     // Murder Holes. See buildingMinimumRange.ts.
     minimumRange = 0,
+    // The pass's candidate list (targetScanIndex.ts): the same ids as the
+    // engine's spatial query, without walking every tree in range.
+    scan?: TargetScanIndex,
   ): number | null {
-    // The queryInRadius hook uses Manhattan distance from the anchor
-    // cell; expand the query radius by the building's max span so targets
-    // at the far edge of the footprint are still included in the initial
-    // candidate list. We then re-filter by footprint distance before
-    // returning.
+    // The spatial query measures a Euclidean disc from the anchor cell
+    // (SpatialGrid.getInRadius's default metric); expand its radius by the
+    // building's max span so targets at the far edge of the footprint are
+    // still included in the initial candidate list. We then re-filter by
+    // footprint distance before returning.
     const anchorQueryRadius = range + Math.max(footprint.width, footprint.height) - 1;
-    const candidates = [...world.queryInRadius(
-      buildingAnchor.x,
-      buildingAnchor.y,
-      anchorQueryRadius,
-      'position',
-      'unit',
-    )]
+    const candidates = [...(scan
+      ? scan.candidatesInRadius('unit', buildingAnchor.x, buildingAnchor.y, anchorQueryRadius)
+      : world.queryInRadius(buildingAnchor.x, buildingAnchor.y, anchorQueryRadius, 'position', 'unit'))]
       .map((id) => ({
         id,
         position: world.getComponent<Position>(id, 'position'),
@@ -394,12 +400,15 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     origin: Position,
     radius: number,
     minimumRange = 0,
+    scan?: TargetScanIndex,
   ): number | null {
     let bestId: number | null = null;
     let bestPriority = Number.POSITIVE_INFINITY;
     let bestDistance = Number.POSITIVE_INFINITY;
 
-    for (const id of world.queryInRadius(origin.x, origin.y, radius, 'position', 'unit')) {
+    for (const id of scan
+      ? scan.candidatesInRadius('unit', origin.x, origin.y, radius)
+      : world.queryInRadius(origin.x, origin.y, radius, 'position', 'unit')) {
       const position = world.getComponent<Position>(id, 'position');
       const unit = world.getComponent<UnitComponent>(id, 'unit');
       if (!position || !unit || !isEnemyOwner(teams(), viewerOwner, unit.owner)) {
@@ -435,12 +444,15 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
     origin: Position,
     radius: number,
     minimumRange = 0,
+    scan?: TargetScanIndex,
   ): number | null {
     let bestId: number | null = null;
     let bestPriority = Number.POSITIVE_INFINITY;
     let bestDistance = Number.POSITIVE_INFINITY;
 
-    for (const id of world.queryInRadius(origin.x, origin.y, radius, 'position', 'building')) {
+    for (const id of scan
+      ? scan.candidatesInRadius('building', origin.x, origin.y, radius)
+      : world.queryInRadius(origin.x, origin.y, radius, 'position', 'building')) {
       const position = world.getComponent<Position>(id, 'position');
       const building = world.getComponent<BuildingComponent>(id, 'building');
       if (!position || !building || !isEnemyOwner(teams(), viewerOwner, building.owner)) {

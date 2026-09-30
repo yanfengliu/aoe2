@@ -29,10 +29,9 @@ import type {
   WanderBoundsComponent,
 } from '../types';
 
-// Shared bridge-level type aliases. Mirrors the `GameEvents` / `GameCommands` /
-// `GameComponents` triple declared inline in `createSimulationBridge.ts`, but
-// lifted here so helper modules under `bridge/` can speak the same type
-// language without a circular import back into the bridge entry point.
+// Shared bridge-level type aliases. GameEvents/GameCommands/GameComponents
+// live here so the facade and helper modules share their type contracts
+// without a circular import back into createSimulationBridge.ts.
 export type GameEvents = Record<string, never>;
 // GameCommands is the civ-engine command surface (15 types per DESIGN v17 §6.1).
 // Imported here so World<...> wrappers below carry the right command map.
@@ -324,7 +323,7 @@ export function assignVillagerRole(owner: number, ordinal: number): EconomyResou
   return owner === HUMAN_PLAYER_ID ? 'food' : 'wood';
 }
 
-// Auto-(re)assign an idle villager to gather? Non-human owners always do; the human slot only if tasked (AoE2 idle-until-tasked). `isAiControlled` (`aiStates.has(owner)`) is an ADDITIVE clause covering a forced-AI human slot (the AI-vs-AI corpus forces an AI onto owner 1; without it that side idled forever) — non-human owners stay byte-identical (see docs/threads/done/forced-ai-gather-gate/).
+// Auto-(re)assign an idle villager to gather? Non-human owners always do; the human slot only if tasked (AoE2 idle-until-tasked). `isAiControlled` (`aiStates.has(owner)`) is an ADDITIVE clause covering a forced-AI human slot (the AI-vs-AI corpus forces an AI onto owner 1; without it that side idled forever) — non-human owners stay byte-identical (see docs/work/70_forced-ai-gather-gate/).
 export function shouldMaintainGatheringOrder(
   owner: number, gatherer: GathererComponent, isAiControlled: boolean,
 ): boolean {

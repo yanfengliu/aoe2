@@ -26,6 +26,10 @@ function runToResolution(seed: string): {
 } {
   const bridge = createSimulationBridge(seed, {
     forceAiForOwners: new Set([HUMAN_PLAYER_ID]),
+    // Nothing here draws until the last line reads the HUD, so the render
+    // projection runs once there instead of every tick; it never writes the
+    // world, so the fight is the same (renderProjectionOnRead.test.ts).
+    renderProjection: 'on-read',
   });
   bridge.step(100);
 

@@ -1,6 +1,5 @@
-// Shared bridge constants. Used by both createSimulationBridge.ts (for
-// scenario seeding) and bridge/createWorld.ts (for the createWorld factory
-// + per-tick logic).
+// Shared bridge constants for seeding, command wiring and the read facade.
+// Consumers include wirePreSeedOps, wireBridgeOps and assembleBridgeApi.
 
 import type { Position } from 'civ-engine';
 import type { PlayerResources } from '../types';

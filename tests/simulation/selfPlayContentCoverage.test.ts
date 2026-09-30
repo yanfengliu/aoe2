@@ -142,6 +142,10 @@ function playCoverageLab(seed: string): { census: Census; lastTick: number; outc
     victory: 'conquest-only',
     resourcePreset: 'high',
     difficulty: 'hard',
+    // Nothing here draws, and the per-tick render projection was 16% of this
+    // match's CPU (2026-09-25); it never writes the world, so the census is
+    // the same (renderProjectionOnRead.test.ts).
+    renderProjection: 'on-read',
   });
   const buildingsByOwner = new Map<number, Set<string>>(OWNERS.map((o) => [o, new Set<string>()]));
   const unitsByOwner = new Map<number, Set<string>>(OWNERS.map((o) => [o, new Set<string>()]));
