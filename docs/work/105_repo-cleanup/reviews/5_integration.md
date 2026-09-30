@@ -25,3 +25,5 @@ Worker typecheck, test-only lint, working/cached whitespace checks and owned-pro
 ## Round outcome
 
 Accept the final code and test contracts within the recorded coverage. All material review findings are resolved. Full local and hosted acceptance remain pending; no prior aborted or failed run is quoted as green.
+
+2026-09-30 verification supplement: the unchanged staged tree 4b326fe51c3f4a710fccdd3045f2ef5a0d4a308d passed npm run verify, exit 0, with 4268 unit passes / three skips and 230 browser passes / two skips, plus content, typecheck, lint and build. The owned-process wrapper recorded 84 descendants and zero leftovers. That exact tree is pushed on main as 71a7b393579989f0f175bae4b0cfc83c1d7d4ea2. Fresh hosted CI and corpus remain pending.

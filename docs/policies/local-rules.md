@@ -145,6 +145,8 @@ When a change is measured for cost, the number that counts is the change's OWN s
 
 ## Permanent work records and the retained-owner transition (2026-09-29)
 
+**Owner direction, 2026-09-29:** useful progress finishes on main. Once integration and recoverability are verified, retire the completed task's branches and temporary checkouts in that session. Remove the temporary parent folder only after every checkout is accounted for and it is empty; preserve unfinished work before retiring anything. This applies to the aoe2-worktrees cleanup and future completed task resources.
+
 New plans and every authored review round use permanent numbered folders under `docs/work/`, allocated by the fleet common allocator. `plan.md` holds the current status; a shipping or cancellation commit records its outcome in that plan. The checkpoint imported 429 documents, including 296 reviews, into allocations 0–103. Consolidation retained their exact registered digests and source revisions, repaired live references, and removed only 426 completed source copies whose current Git blobs were identical to the checkpoint's source revision.
 
 The three active source documents for lumber-camp routing and the concurrency review remain in their owners' current threads, together with the later de-look plan. The imported active wrappers preserve their source-backed status and dates; they do not claim renewed product verification. Work on either imported active objective updates its permanent plan and retained owner thread together until its owner supplies a closure boundary. Other documents created after the checkpoint remain in place; this is a bounded historical migration, not a fresh claim that their objectives shipped.
