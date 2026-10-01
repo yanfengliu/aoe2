@@ -12,6 +12,10 @@
 # tests/content/fixtures/deProjectileStats.json pins source IDs/fields and raw-input hashes; projectileStats.test.ts gates both columns.
 # Raw source data SHA-256: 66a439979afe62f71541cff05280837abfb04e7732e364e2eae2f318862ade6d (965553 bytes, verified before parsing).
 # Fire Ship description calls its base weapon melee damage, matching DE attack armor class 4 at this pinned revision.
+# Siege base fields SOURCED 2026-10-01 from the pinned DE dataset at SiegeEngineers/aoe2techtree 3bb43b14:
+# Onager attack/pierce armor, Battering/Capped/Siege Ram sight, and Heavy Scorpion HP/attack/melee/pierce armor/reload.
+# Official update 185872 independently supports the Onager/Ram changes; Heavy Scorpion values come from the verified dataset.
+# deSiegeBaseStats.json pins stable IDs and original raw data/name hashes. CSV reload 3.6s was already correct; runtime uses 36 ticks at 10 TPS.
 name, description, expansion, age, created_in, cost, build_time, reload_time, attack_delay, movement_rate, line_of_sight, hit_points, range, attack, armor, attack_bonus, armor_bonus, search_radius, accuracy, blast_radius
 Archer, Quick and light. Weak at close range; excels at battle from distance, Age of Kings, Feudal, Archery Range, {"Wood": 25;"Gold": 45}, 35, 2, 0.35, 0.96, 6, 30, 4, 4, 0/0,,,,80%,
 Crossbowman,Upgraded archer, Age of Kings, Castle, Archery Range, {"Wood": 25;"Gold": 45}, 27, 2, 0.35, 0.96, 7, 35, 5, 5, 0/0,+3 spearmen,,,85%,
@@ -64,13 +68,13 @@ Missionary, Spanish unique unit. Mounted monk, Age of Kings, Castle, Monastery, 
 Monk,Slow and weak. Converts enemy units and ships to your civilization (player color). Heals wounded villagers and military units (except siege weapons), Age of Kings, Castle, Monastery, {"Gold": 100}, 51, 5.5, 0, 0.7, 11, 30, 9 (4 heal range), 0, 0/0,,,,,
 Bombard Cannon,Powerful mobile anti-building siege weapon, Age of Kings, Imperial, Siege Workshop, {"Wood": 225;"Gold": 225}, 56, 6.5, 0.21, 0.7, 14, 80, 5-12, 40, 2/5,+200 buildings;+40 siege/camels;+20 siege;+40 stone defense,,,100%,0.5
 Mangonel,Wheeled siege weapon used to attack a small mass of units. Area of effect attack. Can attack ground. Weak vs. close nonranged units, Age of Kings, Castle, Siege Workshop, {"Wood": 160;"Gold": 135}, 46, 6, 0, 0.6, 9, 50, 3-7, 40, 0/6,+35 buildings;+12 siege,,,100%,1
-Onager,Upgraded Mangonel, Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 135}, 46, 6, 0, 0.6, 10, 60, 3-8, 50, 0/7,+45 buildings;+12 siege,,,100%,1.25
+Onager,Upgraded Mangonel, Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 135}, 46, 6, 0, 0.6, 10, 60, 3-8, 55, 0/8,+45 buildings;+12 siege,,,100%,1.25
 Siege Onager,Upgraded Onager, Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 135}, 46, 6, 0, 0.6, 10, 70, 3-8, 75, 0/8,+60 buildings;+12 siege,,,100%,1.5
-Battering Ram,Slow and lumbering siege weapon used to reduce enemy towns to ruins. Can garrison 4 units (affects movement rate +0.05 per unit), Age of Kings, Castle, Siege Workshop, {"Wood": 160;"Gold": 75}, 36, 5, 0, 0.5, 3, 175, 0, 2, 0/180,+125 (+165 full) buildings;+40 siege;+150 (+190 full) with siege engineers buildings,-3 melee,,,
-Capped Ram,Upgraded Battering Ram. Can garrison 4 units (affects movement rate +0.05 per unit). Max speed at 0.7, Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 75}, 36, 5, 0, 0.5, 3, 200, 0, 3, 0/190,+150 (+190 full) buildings;+50 siege;+180 (+220 full) with siege engineers buildings,-3 melee;+1 ram armor,,,1.5
-Siege Ram,Upgraded Capped Ram. Can garrison 6 units (affects movement rate +0.05 per unit), Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 75}, 36, 5, 0, 0.6, 3, 270, 0, 4, 0/195,+200 (+260 full) buildings;+65 siege;+240 (+300 full) with siege engineers buildings,-3 melee;+2 ram armor,,,2
+Battering Ram,Slow and lumbering siege weapon used to reduce enemy towns to ruins. Can garrison 4 units (affects movement rate +0.05 per unit), Age of Kings, Castle, Siege Workshop, {"Wood": 160;"Gold": 75}, 36, 5, 0, 0.5, 5, 175, 0, 2, 0/180,+125 (+165 full) buildings;+40 siege;+150 (+190 full) with siege engineers buildings,-3 melee,,,
+Capped Ram,Upgraded Battering Ram. Can garrison 4 units (affects movement rate +0.05 per unit). Max speed at 0.7, Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 75}, 36, 5, 0, 0.5, 5, 200, 0, 3, 0/190,+150 (+190 full) buildings;+50 siege;+180 (+220 full) with siege engineers buildings,-3 melee;+1 ram armor,,,1.5
+Siege Ram,Upgraded Capped Ram. Can garrison 6 units (affects movement rate +0.05 per unit), Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 75}, 36, 5, 0, 0.6, 5, 270, 0, 4, 0/195,+200 (+260 full) buildings;+65 siege;+240 (+300 full) with siege engineers buildings,-3 melee;+2 ram armor,,,2
 Scorpion, Damage to all units in the path, Age of Kings, Castle, Siege Workshop, {"Wood": 75;"Gold": 75}, 30, 3.6, 0.16, 0.65, 9, 40, 2-7, 12, 0/6,+2 buildings;+6 war elephants;+0 melee;+1 rams,,,100%,
-Heavy Scorpion, Upgraded Scorpion, Age of Kings, Imperial, Siege Workshop, {"Wood": 75;"Gold": 75}, 30, 3.6, 0.16, 0.65, 9, 50, 2-7, 16, 0/7,+4 buildings;+8 war elephants;+0 melee;+2 rams,,,100%,
+Heavy Scorpion, Upgraded Scorpion, Age of Kings, Imperial, Siege Workshop, {"Wood": 75;"Gold": 75}, 30, 3.6, 0.16, 0.65, 9, 60, 2-7, 14, 1/8,+4 buildings;+8 war elephants;+0 melee;+2 rams,,,100%,
 Camel, Excels at killing other mounted units. (not classified as cavalry), Age of Kings, Castle, Stable, {"Food": 55;"Gold": 60}, 22, 2, 0, 1.45, 4, 100, 0, 5, 0/0,+10 against cavalry;+5 ships/camels,,,,
 Heavy Camel,Upgraded Camel. Attack bonus vs. cavalry. (not classified as cavalry), Age of Kings, Imperial, Stable, {"Food": 55;"Gold": 60}, 22, 2, 0, 1.45, 5, 120, 0, 7, 0/0,+18 against cavalry;+9 ships/camels,,4,,
 Knight,Fast and heavy cavalry, Age of Kings, Castle, Stable, {"Food": 60;"Gold": 75}, 30, 1.8, 0, 1.35, 4, 100, 0, 10, 2/2,,,,,

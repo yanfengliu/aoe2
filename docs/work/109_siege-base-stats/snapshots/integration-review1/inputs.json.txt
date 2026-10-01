@@ -1,0 +1,226 @@
+{
+  "observedUtc": "2026-10-01T14:25:52.7266246Z",
+  "base": "10c26f52f0810321784603a7b73f3fbf6789dc44",
+  "target": "f0043d6c18ae29e052c299c47eaae6684388a354",
+  "cachedTreeDiffExit": 0,
+  "unstagedDiffExit": 0,
+  "frozenManifestSHA256": "2afcffa53b17e7edf12d58e9fc0ea022b1e909fa0a00aaaaa39e519942de4b7a",
+  "checks": [
+    {
+      "path": "design/spec-final.md",
+      "bytes": 458658,
+      "sha256": "431ac3f36b4664de832910fc3fb37644d30f378f60299bca701cae154b3086d4",
+      "blob": "77df8c0f67c8246c310e8347e3d627f808316607",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "design/stats/units.csv",
+      "bytes": 23366,
+      "sha256": "9b71ec6a2429a264800deac911ef673d0fdfe3182ec5548798752c16c61cd31f",
+      "blob": "d61c56c064967add4d48fa990ed6531f1933a938",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "docs/changelog.md",
+      "bytes": 353544,
+      "sha256": "cf31e0926156af8a5b51c845506ef09219bc718a769773582b93a2d1e6dd128b",
+      "blob": "d2af2636b7123297500f275f1811dff9c21b27d9",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "docs/devlog/detailed/2026-09-29_2026-09-30.md",
+      "bytes": 128245,
+      "sha256": "dce464577023b29c01733b8feefa9ec8d7fffea8d360f1a04bcd77e31a76e44c",
+      "blob": "301bb1557c212689c75d6d9438885c7b2c1a5baf",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "docs/devlog/summary.md",
+      "bytes": 16963,
+      "sha256": "84b36912558c0a1833829488409c243283cd11494e1155c1c300f36fe881dd2d",
+      "blob": "ad71b43150a1ac353bb713b2df586e47ce803a00",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "docs/learning/defect-register.md",
+      "bytes": 142384,
+      "sha256": "ebd4f01da4258dc7c18a4ee5e191e27c0163e2f67a054a3b41d95df4769f1a58",
+      "blob": "d81c6d32bde45d601512d3ede4bb75a2a2ddc88b",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/plan.md",
+      "bytes": 47592,
+      "sha256": "f97ae40dca3e2c77c5de02835818e4943f415846482443043860150eabd310d3",
+      "blob": "78f66ae11d50cf8ae3df689b6c0f09b19b19344d",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/plan.md",
+      "bytes": 12277,
+      "sha256": "e494c6f7e34e413908018f1bb45b79ac6f112d3d121845a981d36bb63a2dce45",
+      "blob": "9da1e867a9c42dc3fe27cdc94966a338b6f27119",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/reviews/0_implementation.md",
+      "bytes": 3788,
+      "sha256": "6072180c8e4086111329ff5f21be78396a0f9d416449e4d639f0a914ffa14e3f",
+      "blob": "eb672b8a107dee875cf50d8f522b485763680362",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/reviewed-before-RED-plan.md",
+      "bytes": 7298,
+      "sha256": "f85352a7250bd24b732a68e54dd96bfc1a2ebca209ffd1d0e6beaa241c746553",
+      "blob": "3452fdc41ad2e74150dcf2d7201da3e48c373e30",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/source-review0/inputs.json.txt",
+      "bytes": 20571,
+      "sha256": "b3c595cb7675169905a27bae0bcc8fb953c11f702a4054cc7f8640db390533a7",
+      "blob": "da597b9794f30f5e9a5597de4cb7c654c63c0889",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/source-review0/report.md",
+      "bytes": 12157,
+      "sha256": "3c6a0c62c043abf7867aa8e0f02164c77dceb9823f0117187a35a4f22bb6ec14",
+      "blob": "d81f7f7309bfd01bc3cdbb7f9e345ad895916a92",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/source-review0/test-label-delta.json.txt",
+      "bytes": 721,
+      "sha256": "ab97fd12443211764ca734d55e50e3c0ac3f982539586e42ce876ba87d7fb56c",
+      "blob": "02804bce871cbed4f51ac43cce4be9b3d8438e6e",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "docs/work/registry.json",
+      "bytes": 134825,
+      "sha256": "ca55e1a95046558a962fd0eafb7284424e0bb8e4980c0ab1ab165d8a9835ff2d",
+      "blob": "ae5c74dcc054e5a5810458f1a03f64575a39df7f",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 146755,
+      "sha256": "ff61685626e28351ee1eb7bbed0a854803715b60571c39f6eccbd8210b4cd5fc",
+      "blob": "a697ff3e843683599b44404d28e04b77715e03d0",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "package.json",
+      "bytes": 2635,
+      "sha256": "7bf359f16ab6f11dcb2b43d6f5fb22cfe557fc0be9d3076c7801e85c3182a130",
+      "blob": "abfda8ac73be72c89e8d4cf6439df58d4ed6075d",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "src/game/simulation/fixtures/siegeBaseStats.ts",
+      "bytes": 1576,
+      "sha256": "8cd1eeb80f2252b00e558f2d7b86b3e5c00cf617ffbf106666e460698e43defa",
+      "blob": "cee49bc1b8765b39fd559e5f29fcd601a6459248",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "src/game/simulation/prototypeScenario/scenarioRegistry.ts",
+      "bytes": 27365,
+      "sha256": "2d371c527f1da150bdec43122e1b0d028c234e1cc7ad72c7e714e53998ea89d5",
+      "blob": "5acc4b26231110f34aecba0c8f23f2dd28cbf39d",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/presentationTables.ts",
+      "bytes": 10724,
+      "sha256": "275172f001b29c31fe6f1dd6f67239ad6b1e5d6ab9cc6070bc6048ef862e2aec",
+      "blob": "93ae59d9a775228e64f1458965bf9b7647af5996",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/statTables.ts",
+      "bytes": 11310,
+      "sha256": "8b937b15ab8c545165d1d273804e96e9d1c706a118e45d09289eed4d7ba31543",
+      "blob": "5e2c0e20587390d455b531d6985f5d42b16ed366",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/unitArmorTables.ts",
+      "bytes": 5583,
+      "sha256": "23b1f980125336947994322bb00170810164353883de6edaa2b0c19f2cffa8af",
+      "blob": "533746be929e3c3ae3f587eac25a16d60600c581",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "tests/content/fixtures/deSiegeBaseStats.json",
+      "bytes": 3150,
+      "sha256": "c8b360f120def7b88b5c096002aadc1a3d91c73eb9cc471b8d5aeac2d04f82fd",
+      "blob": "15de2c4fbcac31764ba41628fe30d873521c81aa",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "tests/content/siegeBaseStats.test.ts",
+      "bytes": 6725,
+      "sha256": "aac3b273e7e5f8e3f82353cfad68aff8ec5c170a552d31ea07a2bfcfd7f80f98",
+      "blob": "3db2942a53593b1954483b9126c71ae0c75469e1",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    },
+    {
+      "path": "tests/simulation/siegeBaseStats.test.ts",
+      "bytes": 19823,
+      "sha256": "3cd76267189dd9a8c810cf6cbd6b0dd6538d322c239b9bde2260633d21371af8",
+      "blob": "7bbd48130eb4116176f174cea8758935b36afa3c",
+      "indexedRowMatches": true,
+      "rawBlobMatchesIndex": true,
+      "frozenMatches": true
+    }
+  ]
+}

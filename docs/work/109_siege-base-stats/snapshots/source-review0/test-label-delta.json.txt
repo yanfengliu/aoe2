@@ -1,0 +1,16 @@
+{
+  "path": "tests/content/siegeBaseStats.test.ts",
+  "reviewedPreimageSha256": "4a45969e995666413c911cc3b38508b89e9da61ef638e72906ee2723ab347ed6",
+  "currentSha256": "aac3b273e7e5f8e3f82353cfad68aff8ec5c170a552d31ea07a2bfcfd7f80f98",
+  "changes": [
+    {
+      "before": "// BOUND: five supported siege identities and ten changed DE185872 fields.",
+      "after": "// BOUND: ten fields pinned to dataset3bb43b14; five corroborated by DE185872."
+    },
+    {
+      "before": "describe('ten siege base fields match independently pinned DE185872', () => {",
+      "after": "describe('ten siege base fields match dataset3bb43b14, with five DE185872 corroborations', () => {"
+    }
+  ],
+  "inverseRestoresExactBytes": true
+}

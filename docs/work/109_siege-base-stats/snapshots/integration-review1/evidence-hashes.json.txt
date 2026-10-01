@@ -1,0 +1,229 @@
+[
+  {
+    "path": "tmp/siege-content-1001/source-verification.json",
+    "bytes": 3056,
+    "sha256": "381f68b4f7f567f2da912e9d27ff6ce7a5eb494841dc8b9a585d61e6a2b60587",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/source-extraction.json",
+    "bytes": 671,
+    "sha256": "56ff49c1c097e63ef4992a9c69ca764ff7075334cbb52eb675218d88929a304b",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/closing/allowed-path-manifest.json",
+    "bytes": 4457,
+    "sha256": "2f5251a2bee8ca0fc4ef9b79c57b6b8ab63288089205435523bd9e4fe3dda47d",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/closing/handoff.md",
+    "bytes": 10311,
+    "sha256": "7293d1ea2dfbae3d121a2cda8eda1962dd1fecb3bd8872039b1ba081289711fd",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/closing/source12-manifest.json",
+    "bytes": 2050,
+    "sha256": "365f596473877529affa1fecca6b4c2d1371f40b9935f964fda06458363f92b0",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/closing/type-lint-results.json",
+    "bytes": 1160,
+    "sha256": "91f30d9305a86708017727d6b408f6fec6c6bdbe18a9bdcd8164ba32ce81d56c",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/focused-green-02/receipt.json",
+    "bytes": 12600,
+    "sha256": "36971c23c01e42c97e86181264e3057e314e22b53c7c6c02115b868f9ad0af47",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/content-red/receipt.json",
+    "bytes": 6401,
+    "sha256": "353136d2dc3fbbd98bad4a19eda8bcc373370bdae20ba435be6a703d342e61af",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/runtime-red/receipt.json",
+    "bytes": 10150,
+    "sha256": "96145792c3ccfb08de20195de16153e56a6bdd98827f12532dbb5dde80273b2e",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/focused-green-01/receipt.json",
+    "bytes": 20103,
+    "sha256": "4bdb6ea64d8b232f3cd035640f1f6e75fd65e55c1ad95d55542552d65874c858",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/sensitivity/receipt.json",
+    "bytes": 6137,
+    "sha256": "1efc2703bbb61efcaf73a2d2f8a667097ca5d41bb4e5c27377561bd5d2d98750",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/fog-captures/allowed-regions.json",
+    "bytes": 909,
+    "sha256": "5e3444a01bdbbbfd2abe6b4860d2351820e2bff0f98a446fdb9554cc2a871005",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/fog-captures/pixel-bound-receipt.json",
+    "bytes": 1577,
+    "sha256": "57a96980a550672e601e72d9f49ce60a237403a38528ceb562906aff1fddcdfb",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/capture-before/receipt.json",
+    "bytes": 2445,
+    "sha256": "7799619522723fd02016f3fe0a14f21c2c529226150ed9fa09ca84d310c6f9e5",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/capture-after/receipt.json",
+    "bytes": 3254,
+    "sha256": "25fd0dda99ae7d50a6dcf92e8342ca4e8e3e30659725ab0ff7c34cb1fdcba2f5",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/real-controls-03/receipt.json",
+    "bytes": 6505,
+    "sha256": "940091c3213ba5f46b5e9c8c0f36d5db77f903856c419f6f8e315fe9db8f8588",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/real-controls-03/flow-receipt.json",
+    "bytes": 1352935,
+    "sha256": "b1bf08c9723c216bfdb515d988bf1cad043ad884436912b7f164197577b96c97",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/real-controls-03/run-owned-control-job.ps1",
+    "bytes": 17033,
+    "sha256": "1100189f4a8ad41721018fc1b72d5a4524168eeb657a14654689cc1217789460",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/full-verify/input-manifest.json",
+    "bytes": 619360,
+    "sha256": "2afcffa53b17e7edf12d58e9fc0ea022b1e909fa0a00aaaaa39e519942de4b7a",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/full-verify/collect-receipt.mjs",
+    "bytes": 4581,
+    "sha256": "cbb39cbe494b56eb900a340536df318ba7bc6baa6ff6fe6fae9e26e9efd2b884",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/fog-captures/siege-ram-sight-moebius-diff.png",
+    "bytes": 11314,
+    "sha256": "015e7d6e1372fb930751dcde6f7cdb32390da84ceda316b078eb96a2a7c4c5f6",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/fog-captures/siege-ram-sight-moebius-before.png",
+    "bytes": 71524,
+    "sha256": "70fe6867fa6e6f8f545660c5a0016b06bc1c01196c67269d7009e6de1665f959",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/fog-captures/siege-ram-sight-moebius-after.png",
+    "bytes": 88143,
+    "sha256": "b202ddbaa91f52c4960f4f773d7540a10f35f231bc2f315595d5e76380202ad9",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/fog-captures/siege-ram-sight-de-diff.png",
+    "bytes": 10807,
+    "sha256": "c65496775c236226f5b0e689784f02d1b3b4ee649ef32a06e1966f26f1d9bc63",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/fog-captures/siege-ram-sight-de-before.png",
+    "bytes": 131496,
+    "sha256": "c2f0769417bc0bb8cdf8e79b1e1c1c8666527ac55504452db09a5922f6cf86af",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/fog-captures/siege-ram-sight-de-after.png",
+    "bytes": 245057,
+    "sha256": "75d1f1c3443f44290185b88b46b8f90c5a4d06e0d603f43594dc4d6b108bd826",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/capture-before-retry-02/receipt.json",
+    "bytes": 7264,
+    "sha256": "a1e09669e1099ce8b7f2f8c578b50c7bbbd62a42bd5954d1094e05bd042e4773",
+    "matchesPreparedInventory": true
+  },
+  {
+    "path": "tmp/siege-content-1001/full-verify/receipt.json",
+    "bytes": 5588,
+    "sha256": "fcd71b016c641e908fd288306625b679c4d51e4de1c6febc694fa24e22c2e002"
+  },
+  {
+    "path": "tmp/siege-content-1001/full-verify/native-gate.json",
+    "bytes": 169,
+    "sha256": "e9572c62721e633616df1576015705b27cb2005564355e69fef739a5ebba8489"
+  },
+  {
+    "path": "tmp/siege-content-1001/full-verify/job-gate-result.json",
+    "bytes": 1035,
+    "sha256": "1e852d7a43aaf6cc5503f87c976ccabf851f6d604ab9f805802f467ca28aa53c"
+  },
+  {
+    "path": "tmp/siege-content-1001/full-verify/job.stdout.log",
+    "bytes": 100479,
+    "sha256": "db5a7147731d75f9f07121890661b78ab343115531c66cbc13dda8892545222c"
+  },
+  {
+    "path": "tmp/siege-content-1001/full-verify/job.stderr.log",
+    "bytes": 7954,
+    "sha256": "c042138576155ef372c3cc3c1037c2f13930d440f681591773faf150a40243b2"
+  },
+  {
+    "path": "tmp/siege-content-1001/full-verify/opening-input-check.json",
+    "bytes": 336,
+    "sha256": "423f4977713ffd747c6cdcbc851c94f51856a7058cdb36d06a2ac852e3113991"
+  },
+  {
+    "path": "tmp/siege-content-1001/full-verify/closing-input-check.json",
+    "bytes": 336,
+    "sha256": "3a90cd3f132b832ed3d97676b02cf236f467bfcb82dc09a98db461c65c54ede7"
+  },
+  {
+    "path": "tmp/siege-content-1001/full-verify/resource-closing.json",
+    "bytes": 195,
+    "sha256": "b1735b1f95a3effc04f7931504c543b859361cd2763013c275f5191ae0ebc57c"
+  },
+  {
+    "path": "tmp/siege-content-1001/full-verify/job-process-trace.log",
+    "bytes": 492,
+    "sha256": "1144814c5f22e35b0ea3c3a79c22f536b20b5f65f1c733837482e8abf7221c98"
+  },
+  {
+    "path": "tmp/siege-content-1001/full-verify/closing-notes.json",
+    "bytes": 3318,
+    "sha256": "b82c989734db4805f19a1e062a9de5f8390dd1ef67c57d188d55d4c5b7828794"
+  },
+  {
+    "path": "tmp/siege-content-1001/real-controls-03/real-player-flow.mjs",
+    "bytes": 11347,
+    "sha256": "fda0279e189e0fb922f5b7f7c825ad075d3341e63e3bcbf90df593f54f4a2d7f"
+  },
+  {
+    "path": "tmp/siege-content-1001/real-controls-03/helpers/gameTestHelpers.js",
+    "bytes": 25756,
+    "sha256": "63940c74df78f31f62baf48ea10ee42926f9dd7ce2358cd9d739f6c57b82a20f"
+  },
+  {
+    "path": "tmp/siege-content-1001/strings-raw.json",
+    "bytes": 192762,
+    "sha256": "94f3077c8011ef3e57a2012d9cc7158499257b4c2dc8e5382c77e007249618b3"
+  }
+]

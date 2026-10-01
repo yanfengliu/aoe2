@@ -23,6 +23,7 @@ import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from
 import { createMinimumRangeCensusFixture, minimumRangeCensusSeeds } from '../fixtures/minimumRangeCensus';
 import { createProjectileLookShowcaseFixture } from '../fixtures/projectileLookShowcase';
 import { createRaidWarningFixture } from '../fixtures/raidWarning';
+import { createSiegeBaseStatsFixture } from '../fixtures/siegeBaseStats';
 import { createTrafficContestFixture } from '../fixtures/trafficContest';
 import {
   createUpgradeKeepsLineBonusesFixture,
@@ -386,4 +387,5 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ...minimumRangeCensusSeeds().map((seed) => [seed, createMinimumRangeCensusFixture] as const),
   ['building-vision-fixture', createBuildingVisionFixture],
   ['building-vision-build-fixture', createBuildingVisionBuildFixture],
+  ['siege-base-stats-fixture', createSiegeBaseStatsFixture],
 ]);

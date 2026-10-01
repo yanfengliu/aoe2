@@ -1,0 +1,13 @@
+{
+  "observedUtc": "2026-10-01T14:33:22.9003006Z",
+  "target": "f0043d6c18ae29e052c299c47eaae6684388a354",
+  "sourceCount": 24,
+  "changedDuringReview": [],
+  "cachedTreeDiffExit": 0,
+  "unstagedDiffExit": 0,
+  "reportBytes": 14181,
+  "reportSha256": "2c0db6bac1660aa0cdb97e59b51970be27e6da2f581a90ae0a4b9af48143fd65",
+  "evidenceManifestSha256": "742e9bd889509c3d203a52b3c999302a60a455669aac6716ebe79144a4417187",
+  "targetManifestSha256": "1f021f249ec86f279ba06cdd4b3434703d9cb596b3f6ecd488c0c86f8257c02b",
+  "ownedPersistentProcessesLaunched": 0
+}

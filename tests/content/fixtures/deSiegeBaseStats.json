@@ -1,0 +1,114 @@
+{
+  "source": "SiegeEngineers/aoe2techtree 3bb43b14, DE update 185872; ten siege base fields only",
+  "officialUpdateUrl": "https://www.ageofempires.com/news/age-of-empires-ii-definitive-edition-update-185872/",
+  "dataUrl": "https://raw.githubusercontent.com/SiegeEngineers/aoe2techtree/3bb43b14/data/data.json",
+  "dataSha256": "66a439979afe62f71541cff05280837abfb04e7732e364e2eae2f318862ade6d",
+  "stringsUrl": "https://raw.githubusercontent.com/SiegeEngineers/aoe2techtree/3bb43b14/data/locales/en/strings.json",
+  "stringsSha256": "94f3077c8011ef3e57a2012d9cc7158499257b4c2dc8e5382c77e007249618b3",
+  "mapping": "Display name from LanguageNameId + 9000; HTML line breaks normalized; original input hashes verified before extraction.",
+  "units": [
+    {
+      "id": "onager",
+      "name": "Onager",
+      "sourceId": 550,
+      "displayStringId": 14448,
+      "attack": 55,
+      "pierceArmor": 8,
+      "lineOfSight": 10,
+      "hitPoints": 60,
+      "reloadSeconds": 6,
+      "meleeArmor": 0
+    },
+    {
+      "id": "battering-ram",
+      "name": "Battering Ram",
+      "sourceId": 1258,
+      "displayStringId": 14094,
+      "attack": 2,
+      "pierceArmor": 180,
+      "lineOfSight": 5,
+      "hitPoints": 175,
+      "reloadSeconds": 5,
+      "meleeArmor": -3
+    },
+    {
+      "id": "capped-ram",
+      "name": "Capped Ram",
+      "sourceId": 422,
+      "displayStringId": 14289,
+      "attack": 3,
+      "pierceArmor": 190,
+      "lineOfSight": 5,
+      "hitPoints": 200,
+      "reloadSeconds": 5,
+      "meleeArmor": -2
+    },
+    {
+      "id": "siege-ram",
+      "name": "Siege Ram",
+      "sourceId": 548,
+      "displayStringId": 14446,
+      "attack": 4,
+      "pierceArmor": 195,
+      "lineOfSight": 5,
+      "hitPoints": 270,
+      "reloadSeconds": 5,
+      "meleeArmor": -1
+    },
+    {
+      "id": "heavy-scorpion",
+      "name": "Heavy Scorpion",
+      "sourceId": 542,
+      "displayStringId": 14439,
+      "attack": 14,
+      "pierceArmor": 8,
+      "lineOfSight": 9,
+      "hitPoints": 60,
+      "reloadSeconds": 3.6,
+      "meleeArmor": 1
+    }
+  ],
+  "unchangedTiers": [
+    {
+      "id": "mangonel",
+      "name": "Mangonel",
+      "sourceId": 280,
+      "displayStringId": 14095,
+      "attack": 40,
+      "pierceArmor": 6,
+      "lineOfSight": 9,
+      "hitPoints": 50,
+      "reloadSeconds": 6,
+      "meleeArmor": 0
+    },
+    {
+      "id": "siege-onager",
+      "name": "Siege Onager",
+      "sourceId": 588,
+      "displayStringId": 14493,
+      "attack": 75,
+      "pierceArmor": 8,
+      "lineOfSight": 10,
+      "hitPoints": 70,
+      "reloadSeconds": 6,
+      "meleeArmor": 0
+    }
+  ],
+  "combatControls": {
+    "pierceAttacker": {
+      "id": "hand-cannoneer",
+      "sourceId": 5,
+      "attack": 17,
+      "baseAttackClass": 3,
+      "bonusAgainstOnager": 0
+    },
+    "survivingTarget": {
+      "id": "champion",
+      "sourceId": 567,
+      "hitPoints": 70,
+      "meleeArmor": 1,
+      "bonusFromOnager": 0
+    }
+  },
+  "heavyScorpionBound": "Attack14, HP60, meleeArmor1, pierceArmor8 and reload3.6seconds (36ticks) are adopted. Ram melee/class-armor interactions and all other fields are excluded."
+}

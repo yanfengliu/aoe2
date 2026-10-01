@@ -1,0 +1,12 @@
+{
+  "observedUtc": "2026-10-01T14:52:57.8396257Z",
+  "docsChecked": 9,
+  "changedDuringReview": [],
+  "original24RecoveryFailures": [],
+  "focusedReportBytes": 5174,
+  "focusedReportSha256": "14f10809028a1742a1a58819dddb7ac4516561b7e1ca8bd5a0d909fd4ee60c15",
+  "focusedInputsSha256": "29b116ea463e7a04582045413b617660c26ee4c5a94bbd0de07a9654919e53bf",
+  "I1": "resolved",
+  "runtimeRuns": 0,
+  "ownedPersistentProcessesLaunched": 0
+}

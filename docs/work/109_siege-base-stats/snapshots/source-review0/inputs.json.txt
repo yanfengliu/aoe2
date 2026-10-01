@@ -1,0 +1,464 @@
+{
+  "review": "siege-source-1001",
+  "date": "2026-10-01",
+  "reviewer": "/root/siege_source_review",
+  "workspace": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001",
+  "baseCommit": "10c26f52f0810321784603a7b73f3fbf6789dc44",
+  "observedHead": "10c26f52f0810321784603a7b73f3fbf6789dc44",
+  "scope": "Read-only source review of nine uncommitted scoped files. Whole-file hashes identify bytes; existing code and instruction files were inspected in relevant excerpts, not audited wholesale. Incidental search hits not relied on are excluded.",
+  "sourceInitial": [
+    {
+      "path": "design/stats/units.csv",
+      "bytes": 23366,
+      "sha256": "9b71ec6a2429a264800deac911ef673d0fdfe3182ec5548798752c16c61cd31f"
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/statTables.ts",
+      "bytes": 11310,
+      "sha256": "8b937b15ab8c545165d1d273804e96e9d1c706a118e45d09289eed4d7ba31543"
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/unitArmorTables.ts",
+      "bytes": 5583,
+      "sha256": "23b1f980125336947994322bb00170810164353883de6edaa2b0c19f2cffa8af"
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/presentationTables.ts",
+      "bytes": 10724,
+      "sha256": "275172f001b29c31fe6f1dd6f67239ad6b1e5d6ab9cc6070bc6048ef862e2aec"
+    },
+    {
+      "path": "src/game/simulation/fixtures/siegeBaseStats.ts",
+      "bytes": 1576,
+      "sha256": "8cd1eeb80f2252b00e558f2d7b86b3e5c00cf617ffbf106666e460698e43defa"
+    },
+    {
+      "path": "src/game/simulation/prototypeScenario/scenarioRegistry.ts",
+      "bytes": 27365,
+      "sha256": "2d371c527f1da150bdec43122e1b0d028c234e1cc7ad72c7e714e53998ea89d5"
+    },
+    {
+      "path": "tests/content/fixtures/deSiegeBaseStats.json",
+      "bytes": 3150,
+      "sha256": "c8b360f120def7b88b5c096002aadc1a3d91c73eb9cc471b8d5aeac2d04f82fd"
+    },
+    {
+      "path": "tests/content/siegeBaseStats.test.ts",
+      "bytes": 6700,
+      "sha256": "4a45969e995666413c911cc3b38508b89e9da61ef638e72906ee2723ab347ed6"
+    },
+    {
+      "path": "tests/simulation/siegeBaseStats.test.ts",
+      "bytes": 19823,
+      "sha256": "3cd76267189dd9a8c810cf6cbd6b0dd6538d322c239b9bde2260633d21371af8"
+    }
+  ],
+  "sourceClosing": [
+    {
+      "path": "design/stats/units.csv",
+      "bytes": 23366,
+      "sha256": "9b71ec6a2429a264800deac911ef673d0fdfe3182ec5548798752c16c61cd31f"
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/statTables.ts",
+      "bytes": 11310,
+      "sha256": "8b937b15ab8c545165d1d273804e96e9d1c706a118e45d09289eed4d7ba31543"
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/unitArmorTables.ts",
+      "bytes": 5583,
+      "sha256": "23b1f980125336947994322bb00170810164353883de6edaa2b0c19f2cffa8af"
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/presentationTables.ts",
+      "bytes": 10724,
+      "sha256": "275172f001b29c31fe6f1dd6f67239ad6b1e5d6ab9cc6070bc6048ef862e2aec"
+    },
+    {
+      "path": "src/game/simulation/fixtures/siegeBaseStats.ts",
+      "bytes": 1576,
+      "sha256": "8cd1eeb80f2252b00e558f2d7b86b3e5c00cf617ffbf106666e460698e43defa"
+    },
+    {
+      "path": "src/game/simulation/prototypeScenario/scenarioRegistry.ts",
+      "bytes": 27365,
+      "sha256": "2d371c527f1da150bdec43122e1b0d028c234e1cc7ad72c7e714e53998ea89d5"
+    },
+    {
+      "path": "tests/content/fixtures/deSiegeBaseStats.json",
+      "bytes": 3150,
+      "sha256": "c8b360f120def7b88b5c096002aadc1a3d91c73eb9cc471b8d5aeac2d04f82fd"
+    },
+    {
+      "path": "tests/content/siegeBaseStats.test.ts",
+      "bytes": 6700,
+      "sha256": "4a45969e995666413c911cc3b38508b89e9da61ef638e72906ee2723ab347ed6"
+    },
+    {
+      "path": "tests/simulation/siegeBaseStats.test.ts",
+      "bytes": 19823,
+      "sha256": "3cd76267189dd9a8c810cf6cbd6b0dd6538d322c239b9bde2260633d21371af8"
+    }
+  ],
+  "allNineUnchanged": true,
+  "allNineMatchFocusedGreen02": true,
+  "inspectedFilesystemInputs": [
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/design/stats/units.csv",
+      "bytes": 23366,
+      "sha256": "9b71ec6a2429a264800deac911ef673d0fdfe3182ec5548798752c16c61cd31f",
+      "role": "scoped-source"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/prototypeUnitRules/statTables.ts",
+      "bytes": 11310,
+      "sha256": "8b937b15ab8c545165d1d273804e96e9d1c706a118e45d09289eed4d7ba31543",
+      "role": "scoped-source"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/prototypeUnitRules/unitArmorTables.ts",
+      "bytes": 5583,
+      "sha256": "23b1f980125336947994322bb00170810164353883de6edaa2b0c19f2cffa8af",
+      "role": "scoped-source"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/prototypeUnitRules/presentationTables.ts",
+      "bytes": 10724,
+      "sha256": "275172f001b29c31fe6f1dd6f67239ad6b1e5d6ab9cc6070bc6048ef862e2aec",
+      "role": "scoped-source"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/fixtures/siegeBaseStats.ts",
+      "bytes": 1576,
+      "sha256": "8cd1eeb80f2252b00e558f2d7b86b3e5c00cf617ffbf106666e460698e43defa",
+      "role": "scoped-source"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/prototypeScenario/scenarioRegistry.ts",
+      "bytes": 27365,
+      "sha256": "2d371c527f1da150bdec43122e1b0d028c234e1cc7ad72c7e714e53998ea89d5",
+      "role": "scoped-source"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tests/content/fixtures/deSiegeBaseStats.json",
+      "bytes": 3150,
+      "sha256": "c8b360f120def7b88b5c096002aadc1a3d91c73eb9cc471b8d5aeac2d04f82fd",
+      "role": "scoped-source"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tests/content/siegeBaseStats.test.ts",
+      "bytes": 6700,
+      "sha256": "4a45969e995666413c911cc3b38508b89e9da61ef638e72906ee2723ab347ed6",
+      "role": "scoped-source"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tests/simulation/siegeBaseStats.test.ts",
+      "bytes": 19823,
+      "sha256": "3cd76267189dd9a8c810cf6cbd6b0dd6538d322c239b9bde2260633d21371af8",
+      "role": "scoped-source"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/AGENTS.md",
+      "bytes": 26294,
+      "sha256": "60ed5a0f2b5c29b6ba1d47cdf84e646d1745738bc0846652e897abf97a8db7e1",
+      "role": "instructions"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/docs/policies/local-rules.md",
+      "bytes": 73565,
+      "sha256": "9c96f5467964ab22c3d26256693c8e3711703711df9a27594fc73eae3a5f15a6",
+      "role": "instructions"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/docs/learning/lessons.md",
+      "bytes": 2969,
+      "sha256": "72e4bfb022b5e0ed82c181f3ffe7ca0022123acc12b4a3be09c4397c2f1fe4d0",
+      "role": "instructions"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/docs/devlog/summary.md",
+      "bytes": 17021,
+      "sha256": "9e014a1845f5732e3fb4ddb57226d2cdb0a0bf17a939194b4832b3697af4aad7",
+      "role": "instructions"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/docs/architecture/ARCHITECTURE.md",
+      "bytes": 55973,
+      "sha256": "cc406c18305f31bc76ef4d97ea2807dab77e71203ff599c33d99b8e9ad7b3018",
+      "role": "instructions"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/bridge/combatStateFactory.ts",
+      "bytes": 10314,
+      "sha256": "3b26e95581717b62a692a5e95caece2c1c9d0f16f19988b780d4d3e5cd83ecad",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/bridge/technologyUnitSweeps.ts",
+      "bytes": 5613,
+      "sha256": "c182eefe7e1faf18eb4090514367a54bf35258ae8d4b9b2ba1c0f4bfa8602277",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/bridge/systems/productionQueueSystem.ts",
+      "bytes": 10030,
+      "sha256": "67ae759b2adba6a165e4c24df489d81e6655fcb54bc30dc98add4024f46df930",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/bridge/hydrateFromSavedGame.ts",
+      "bytes": 18911,
+      "sha256": "11a9cf06b11e288b00343cb1f2eaafe51c8d35d2f17e2fa8fbff8acf65d54ffa",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/bridge/hydrateFromWorldState.ts",
+      "bytes": 9136,
+      "sha256": "69ab3d0c1205a5358475ba8c03548448c5f762bd3ceb8b0da2b8da480f5312e8",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/prototypeUnitRules.ts",
+      "bytes": 13593,
+      "sha256": "d7178eabe2152ad3995dea8eb774684cbd45b9712e0cdebdcf08e217634c44f0",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/bridge/projectileOps.ts",
+      "bytes": 13708,
+      "sha256": "d9f4de18da7fd8135013e36433d69aeb191fd891491adb544bba41c03b1adacd",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/bridge/blastDamage.ts",
+      "bytes": 10397,
+      "sha256": "72fad49fbe57dae4a2ff408d2af0d4500602115f0ad36ca28ea95a7d8b18645e",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/civBonusTable.ts",
+      "bytes": 15665,
+      "sha256": "e89afda85dd29b89a04b34e8776385fc088ac7e9ed28cf037e70903a5c9f33f9",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/civTechTree.ts",
+      "bytes": 16378,
+      "sha256": "934b7cb994b835d398f3e9a44c1c63ba0e0ea7431c0c8f29729988430d797c47",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/replay/createReplayWorldOnly.ts",
+      "bytes": 1320,
+      "sha256": "196a63b97ef9b64dac603158848ec7db54d602587820e70bd6764616aaa586f4",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tests/simulation/saveBlobTestUtils.ts",
+      "bytes": 9037,
+      "sha256": "0cbcefa88162da3016ac5de3111a0caaa49dcf45e0f57bc601efb396bd5afbe6",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/prototypeScenario.ts",
+      "bytes": 6634,
+      "sha256": "fd1a7f185f846c58f18119dc5427e6327cd2c46322a68b74636c57e7db6cadb6",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/mapGeneration/constants.ts",
+      "bytes": 2505,
+      "sha256": "811e21825819c73f2f33ae044bfc0a106c3d22ebdde6c42a4b012e1fd706b1e3",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/createSimulationBridge.ts",
+      "bytes": 17791,
+      "sha256": "359181ad95fa72a12d372fd98e576f0ab9d9ce5d8a757202225683c1e97f051b",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/src/game/simulation/bridge/createWorld.ts",
+      "bytes": 11505,
+      "sha256": "88d684f3917bc1bfa41446fea2a66bde920c5302733577f4b03afdcbdf1663fc",
+      "role": "sourceContext"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/source-verification.json",
+      "bytes": 3056,
+      "sha256": "381f68b4f7f567f2da912e9d27ff6ce7a5eb494841dc8b9a585d61e6a2b60587",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/source-extraction.json",
+      "bytes": 671,
+      "sha256": "56ff49c1c097e63ef4992a9c69ca764ff7075334cbb52eb675218d88929a304b",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/prepared-runtime-request.json",
+      "bytes": 4418,
+      "sha256": "94f1a3f7b9881ee3c3a012cad483c8508aaebedf8a3ecc6a028670f564edcc60",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/strings-raw.json",
+      "bytes": 192762,
+      "sha256": "94f3077c8011ef3e57a2012d9cc7158499257b4c2dc8e5382c77e007249618b3",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/focused-green-02/receipt.json",
+      "bytes": 12600,
+      "sha256": "36971c23c01e42c97e86181264e3057e314e22b53c7c6c02115b868f9ad0af47",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/focused-green-02/input-manifest.json",
+      "bytes": 2050,
+      "sha256": "231473c3ef8a3e2b2d52faf22a9ef761a27d1c4c2793beac474c5d87fd13a8b8",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/focused-green-02/closing-input-manifest.json",
+      "bytes": 1095,
+      "sha256": "453496d984695b6e27354bad14552804f2c5bb245435f6fcf754fa722c89f424",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/focused-green-02/job-gate-result.json",
+      "bytes": 1048,
+      "sha256": "e12ca5f5c15d5193ea7ee999e5a9f314572de24fa34cad937b9a15fc6e80ff27",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/focused-green-02/job-process-trace.log",
+      "bytes": 492,
+      "sha256": "3fcd5123ee966cdb06b17cb8ff9fe082b8e59f6c053c108bdda456fce5b47b60",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/focused-green-02/job.stdout.log",
+      "bytes": 141,
+      "sha256": "b2cab0a543e4716719690409151fc41e488e15db9b6f5dd6121e01d3ef9da9bf",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/focused-green-02/job.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/focused-green-02/vitest.json",
+      "bytes": 15423,
+      "sha256": "30f4d1bf4716210125e912ae63b4dbd5f3d694d21b602e6ede4c64fb058552f2",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/focused-green-02/run-owned-focused-job.ps1",
+      "bytes": 14455,
+      "sha256": "3ac363fc0f62fef893f46f5fd16b572184438f7892bd44678119d42c3e907200",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/content-red/receipt.json",
+      "bytes": 6401,
+      "sha256": "353136d2dc3fbbd98bad4a19eda8bcc373370bdae20ba435be6a703d342e61af",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/content-red/vitest.json",
+      "bytes": 31193,
+      "sha256": "bada09f96ea7ac1527d069e3b53d775e1559c45802ba9d209ed77fb5806d0dcf",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/runtime-red/receipt.json",
+      "bytes": 10150,
+      "sha256": "96145792c3ccfb08de20195de16153e56a6bdd98827f12532dbb5dde80273b2e",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/runtime-red/vitest.json",
+      "bytes": 23585,
+      "sha256": "2b202963f663babfb748880ff00f8e7f84c558b26e7a8924468a204b85f24d92",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/focused-green-01/receipt.json",
+      "bytes": 20103,
+      "sha256": "4bdb6ea64d8b232f3cd035640f1f6e75fd65e55c1ad95d55542552d65874c858",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/focused-green-01/vitest.json",
+      "bytes": 22060,
+      "sha256": "be7b882e88f8da7dd91bfac4350f1f6a492b1af72a96fc35c4dc9e1e30b66514",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/runtime-red/siegeBaseStats.test.before-preparation-fixes.ts",
+      "bytes": 18935,
+      "sha256": "bdf249fdc1081992934cb8ea95db46cfc7c70db772dff89e36391237ef683394",
+      "role": "evidence"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/package.json",
+      "bytes": 2635,
+      "sha256": "54a99d265626f4b61dad8bdb84958631c44b581a3a2bf14b9e064b8f5cf8b701",
+      "role": "frozenRuntimeIdentity"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/package-lock.json",
+      "bytes": 146755,
+      "sha256": "67c1cbe3a998c1215a4aa0357e0f23614b02b7bd699c1b716bf3eb275d289002",
+      "role": "frozenRuntimeIdentity"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/node_modules/civ-engine/package.json",
+      "bytes": 2524,
+      "sha256": "44b04b51aa19397bc94c52f44db97cc35c836237e0bd00cd7e61b766f5cbe973",
+      "role": "frozenRuntimeIdentity"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/fleet/docs/skills/multi-cli-review.md",
+      "bytes": 17008,
+      "sha256": "5a060f791c109fc0d3a326f379d4f9a2f01a0a5b05b84e8c645780c4a8563a58",
+      "role": "instructions"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/fleet/docs/skills/self-improvement/SKILL.md",
+      "bytes": 6135,
+      "sha256": "6158ad7f472d589f87b5b789f302c0128d6e5c1d131dc2a39dada6a6ab46672c",
+      "role": "instructions"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/parity-integration-0930/tmp/parity-106/source-raw-review/data.json",
+      "bytes": 965553,
+      "sha256": "66a439979afe62f71541cff05280837abfb04e7732e364e2eae2f318862ade6d",
+      "role": "pinned-raw-source"
+    }
+  ],
+  "webInputs": [
+    {
+      "url": "https://www.ageofempires.com/news/age-of-empires-ii-definitive-edition-update-185872/",
+      "retrievedOn": "2026-10-01",
+      "method": "web reader open and find",
+      "reviewedFacts": "Dated September 22, 2026; siege notes corroborate Ram-line sight3→5, Onager attack50→55 and pierce7→8; Heavy Scorpion text search has no match.",
+      "sha256": null,
+      "hashBound": "The web reader exposes parsed text, not original HTTP bytes. No claim of a hashed official-page capture. All adopted numeric values were independently checked in the hashed local raw dataset."
+    }
+  ],
+  "excludedAcceptance": [
+    "browser control file",
+    "visual image/diff acceptance",
+    "full npm verify",
+    "remote CI",
+    "canonical spec/changelog/docs integration",
+    "merge/push/main acceptance",
+    "M7+108 acceptance"
+  ],
+  "execution": "No tests, gates, builds, browser/server, external review CLI, or persistent process launched. Git reads only, with per-command safe.directory; no Git config or source mutation.",
+  "runtimePin": "node_modules/civ-engine/package.json identifies2.5.0; installed artifact identity beyond this metadata was not re-audited."
+}

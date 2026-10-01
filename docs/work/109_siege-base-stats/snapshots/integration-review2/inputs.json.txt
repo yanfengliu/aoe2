@@ -1,0 +1,257 @@
+{
+  "observedUtc": "2026-10-01T14:51:19.1556335Z",
+  "review": "Focused I1 correction and exact review publication; no runtime rerun",
+  "originalStagedTarget": "f0043d6c18ae29e052c299c47eaae6684388a354",
+  "docs": [
+    {
+      "path": "docs/work/106_de-parity-orchestration/plan.md",
+      "bytes": 47834,
+      "sha256": "4fd14bddaa4416704dd388ff7efb2ab16e8132728ba38c1695096ac062e1ea5a",
+      "CRLFs": 0
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/plan.md",
+      "bytes": 12741,
+      "sha256": "7fb3f54958c9bd37283b498561872cdd1e52e21ea14ecfc52f945c53a2840936",
+      "CRLFs": 0
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/reviews/1_integration.md",
+      "bytes": 4184,
+      "sha256": "976a2a16aaf9ca4ba6f23555710a1e1acf4dd27dde612e9f1140f862933bb4d4",
+      "CRLFs": 0
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review1/reviewed-work109-plan.md",
+      "bytes": 12277,
+      "sha256": "e494c6f7e34e413908018f1bb45b79ac6f112d3d121845a981d36bb63a2dce45",
+      "CRLFs": 0
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review1/reviewed-work106-plan.md",
+      "bytes": 47592,
+      "sha256": "f97ae40dca3e2c77c5de02835818e4943f415846482443043860150eabd310d3",
+      "CRLFs": 0
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review1/report.md",
+      "bytes": 14181,
+      "sha256": "2c0db6bac1660aa0cdb97e59b51970be27e6da2f581a90ae0a4b9af48143fd65",
+      "CRLFs": 0
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review1/inputs.json.txt",
+      "bytes": 8560,
+      "sha256": "1f021f249ec86f279ba06cdd4b3434703d9cb596b3f6ecd488c0c86f8257c02b",
+      "CRLFs": 226
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review1/evidence-hashes.json.txt",
+      "bytes": 8470,
+      "sha256": "742e9bd889509c3d203a52b3c999302a60a455669aac6716ebe79144a4417187",
+      "CRLFs": 229
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review1/closing.json.txt",
+      "bytes": 564,
+      "sha256": "fd572ae82164f237beef9800c4b4e342e5edf7f013b682aa582db745576462b1",
+      "CRLFs": 13
+    }
+  ],
+  "originalTargetRecovery": [
+    {
+      "path": "design/spec-final.md",
+      "recoveryPath": "design/spec-final.md",
+      "expectedSHA256": "431ac3f36b4664de832910fc3fb37644d30f378f60299bca701cae154b3086d4",
+      "actualSHA256": "431ac3f36b4664de832910fc3fb37644d30f378f60299bca701cae154b3086d4",
+      "matches": true
+    },
+    {
+      "path": "design/stats/units.csv",
+      "recoveryPath": "design/stats/units.csv",
+      "expectedSHA256": "9b71ec6a2429a264800deac911ef673d0fdfe3182ec5548798752c16c61cd31f",
+      "actualSHA256": "9b71ec6a2429a264800deac911ef673d0fdfe3182ec5548798752c16c61cd31f",
+      "matches": true
+    },
+    {
+      "path": "docs/changelog.md",
+      "recoveryPath": "docs/changelog.md",
+      "expectedSHA256": "cf31e0926156af8a5b51c845506ef09219bc718a769773582b93a2d1e6dd128b",
+      "actualSHA256": "cf31e0926156af8a5b51c845506ef09219bc718a769773582b93a2d1e6dd128b",
+      "matches": true
+    },
+    {
+      "path": "docs/devlog/detailed/2026-09-29_2026-09-30.md",
+      "recoveryPath": "docs/devlog/detailed/2026-09-29_2026-09-30.md",
+      "expectedSHA256": "dce464577023b29c01733b8feefa9ec8d7fffea8d360f1a04bcd77e31a76e44c",
+      "actualSHA256": "dce464577023b29c01733b8feefa9ec8d7fffea8d360f1a04bcd77e31a76e44c",
+      "matches": true
+    },
+    {
+      "path": "docs/devlog/summary.md",
+      "recoveryPath": "docs/devlog/summary.md",
+      "expectedSHA256": "84b36912558c0a1833829488409c243283cd11494e1155c1c300f36fe881dd2d",
+      "actualSHA256": "84b36912558c0a1833829488409c243283cd11494e1155c1c300f36fe881dd2d",
+      "matches": true
+    },
+    {
+      "path": "docs/learning/defect-register.md",
+      "recoveryPath": "docs/learning/defect-register.md",
+      "expectedSHA256": "ebd4f01da4258dc7c18a4ee5e191e27c0163e2f67a054a3b41d95df4769f1a58",
+      "actualSHA256": "ebd4f01da4258dc7c18a4ee5e191e27c0163e2f67a054a3b41d95df4769f1a58",
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/plan.md",
+      "recoveryPath": "docs/work/109_siege-base-stats/snapshots/integration-review1/reviewed-work106-plan.md",
+      "expectedSHA256": "f97ae40dca3e2c77c5de02835818e4943f415846482443043860150eabd310d3",
+      "actualSHA256": "f97ae40dca3e2c77c5de02835818e4943f415846482443043860150eabd310d3",
+      "matches": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/plan.md",
+      "recoveryPath": "docs/work/109_siege-base-stats/snapshots/integration-review1/reviewed-work109-plan.md",
+      "expectedSHA256": "e494c6f7e34e413908018f1bb45b79ac6f112d3d121845a981d36bb63a2dce45",
+      "actualSHA256": "e494c6f7e34e413908018f1bb45b79ac6f112d3d121845a981d36bb63a2dce45",
+      "matches": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/reviews/0_implementation.md",
+      "recoveryPath": "docs/work/109_siege-base-stats/reviews/0_implementation.md",
+      "expectedSHA256": "6072180c8e4086111329ff5f21be78396a0f9d416449e4d639f0a914ffa14e3f",
+      "actualSHA256": "6072180c8e4086111329ff5f21be78396a0f9d416449e4d639f0a914ffa14e3f",
+      "matches": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/reviewed-before-RED-plan.md",
+      "recoveryPath": "docs/work/109_siege-base-stats/snapshots/reviewed-before-RED-plan.md",
+      "expectedSHA256": "f85352a7250bd24b732a68e54dd96bfc1a2ebca209ffd1d0e6beaa241c746553",
+      "actualSHA256": "f85352a7250bd24b732a68e54dd96bfc1a2ebca209ffd1d0e6beaa241c746553",
+      "matches": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/source-review0/inputs.json.txt",
+      "recoveryPath": "docs/work/109_siege-base-stats/snapshots/source-review0/inputs.json.txt",
+      "expectedSHA256": "b3c595cb7675169905a27bae0bcc8fb953c11f702a4054cc7f8640db390533a7",
+      "actualSHA256": "b3c595cb7675169905a27bae0bcc8fb953c11f702a4054cc7f8640db390533a7",
+      "matches": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/source-review0/report.md",
+      "recoveryPath": "docs/work/109_siege-base-stats/snapshots/source-review0/report.md",
+      "expectedSHA256": "3c6a0c62c043abf7867aa8e0f02164c77dceb9823f0117187a35a4f22bb6ec14",
+      "actualSHA256": "3c6a0c62c043abf7867aa8e0f02164c77dceb9823f0117187a35a4f22bb6ec14",
+      "matches": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/source-review0/test-label-delta.json.txt",
+      "recoveryPath": "docs/work/109_siege-base-stats/snapshots/source-review0/test-label-delta.json.txt",
+      "expectedSHA256": "ab97fd12443211764ca734d55e50e3c0ac3f982539586e42ce876ba87d7fb56c",
+      "actualSHA256": "ab97fd12443211764ca734d55e50e3c0ac3f982539586e42ce876ba87d7fb56c",
+      "matches": true
+    },
+    {
+      "path": "docs/work/registry.json",
+      "recoveryPath": "docs/work/registry.json",
+      "expectedSHA256": "ca55e1a95046558a962fd0eafb7284424e0bb8e4980c0ab1ab165d8a9835ff2d",
+      "actualSHA256": "ca55e1a95046558a962fd0eafb7284424e0bb8e4980c0ab1ab165d8a9835ff2d",
+      "matches": true
+    },
+    {
+      "path": "package-lock.json",
+      "recoveryPath": "package-lock.json",
+      "expectedSHA256": "ff61685626e28351ee1eb7bbed0a854803715b60571c39f6eccbd8210b4cd5fc",
+      "actualSHA256": "ff61685626e28351ee1eb7bbed0a854803715b60571c39f6eccbd8210b4cd5fc",
+      "matches": true
+    },
+    {
+      "path": "package.json",
+      "recoveryPath": "package.json",
+      "expectedSHA256": "7bf359f16ab6f11dcb2b43d6f5fb22cfe557fc0be9d3076c7801e85c3182a130",
+      "actualSHA256": "7bf359f16ab6f11dcb2b43d6f5fb22cfe557fc0be9d3076c7801e85c3182a130",
+      "matches": true
+    },
+    {
+      "path": "src/game/simulation/fixtures/siegeBaseStats.ts",
+      "recoveryPath": "src/game/simulation/fixtures/siegeBaseStats.ts",
+      "expectedSHA256": "8cd1eeb80f2252b00e558f2d7b86b3e5c00cf617ffbf106666e460698e43defa",
+      "actualSHA256": "8cd1eeb80f2252b00e558f2d7b86b3e5c00cf617ffbf106666e460698e43defa",
+      "matches": true
+    },
+    {
+      "path": "src/game/simulation/prototypeScenario/scenarioRegistry.ts",
+      "recoveryPath": "src/game/simulation/prototypeScenario/scenarioRegistry.ts",
+      "expectedSHA256": "2d371c527f1da150bdec43122e1b0d028c234e1cc7ad72c7e714e53998ea89d5",
+      "actualSHA256": "2d371c527f1da150bdec43122e1b0d028c234e1cc7ad72c7e714e53998ea89d5",
+      "matches": true
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/presentationTables.ts",
+      "recoveryPath": "src/game/simulation/prototypeUnitRules/presentationTables.ts",
+      "expectedSHA256": "275172f001b29c31fe6f1dd6f67239ad6b1e5d6ab9cc6070bc6048ef862e2aec",
+      "actualSHA256": "275172f001b29c31fe6f1dd6f67239ad6b1e5d6ab9cc6070bc6048ef862e2aec",
+      "matches": true
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/statTables.ts",
+      "recoveryPath": "src/game/simulation/prototypeUnitRules/statTables.ts",
+      "expectedSHA256": "8b937b15ab8c545165d1d273804e96e9d1c706a118e45d09289eed4d7ba31543",
+      "actualSHA256": "8b937b15ab8c545165d1d273804e96e9d1c706a118e45d09289eed4d7ba31543",
+      "matches": true
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/unitArmorTables.ts",
+      "recoveryPath": "src/game/simulation/prototypeUnitRules/unitArmorTables.ts",
+      "expectedSHA256": "23b1f980125336947994322bb00170810164353883de6edaa2b0c19f2cffa8af",
+      "actualSHA256": "23b1f980125336947994322bb00170810164353883de6edaa2b0c19f2cffa8af",
+      "matches": true
+    },
+    {
+      "path": "tests/content/fixtures/deSiegeBaseStats.json",
+      "recoveryPath": "tests/content/fixtures/deSiegeBaseStats.json",
+      "expectedSHA256": "c8b360f120def7b88b5c096002aadc1a3d91c73eb9cc471b8d5aeac2d04f82fd",
+      "actualSHA256": "c8b360f120def7b88b5c096002aadc1a3d91c73eb9cc471b8d5aeac2d04f82fd",
+      "matches": true
+    },
+    {
+      "path": "tests/content/siegeBaseStats.test.ts",
+      "recoveryPath": "tests/content/siegeBaseStats.test.ts",
+      "expectedSHA256": "aac3b273e7e5f8e3f82353cfad68aff8ec5c170a552d31ea07a2bfcfd7f80f98",
+      "actualSHA256": "aac3b273e7e5f8e3f82353cfad68aff8ec5c170a552d31ea07a2bfcfd7f80f98",
+      "matches": true
+    },
+    {
+      "path": "tests/simulation/siegeBaseStats.test.ts",
+      "recoveryPath": "tests/simulation/siegeBaseStats.test.ts",
+      "expectedSHA256": "3cd76267189dd9a8c810cf6cbd6b0dd6538d322c239b9bde2260633d21371af8",
+      "actualSHA256": "3cd76267189dd9a8c810cf6cbd6b0dd6538d322c239b9bde2260633d21371af8",
+      "matches": true
+    }
+  ],
+  "publishedArtifacts": [
+    {
+      "original": "tmp/review-runs/siege-internal-acceptance-1001/report.md",
+      "published": "docs/work/109_siege-base-stats/snapshots/integration-review1/report.md",
+      "sha256": "2c0db6bac1660aa0cdb97e59b51970be27e6da2f581a90ae0a4b9af48143fd65",
+      "identical": true
+    },
+    {
+      "original": "tmp/review-runs/siege-internal-acceptance-1001/exact-target.json",
+      "published": "docs/work/109_siege-base-stats/snapshots/integration-review1/inputs.json.txt",
+      "sha256": "1f021f249ec86f279ba06cdd4b3434703d9cb596b3f6ecd488c0c86f8257c02b",
+      "identical": true
+    },
+    {
+      "original": "tmp/review-runs/siege-internal-acceptance-1001/evidence-hashes.json",
+      "published": "docs/work/109_siege-base-stats/snapshots/integration-review1/evidence-hashes.json.txt",
+      "sha256": "742e9bd889509c3d203a52b3c999302a60a455669aac6716ebe79144a4417187",
+      "identical": true
+    },
+    {
+      "original": "tmp/review-runs/siege-internal-acceptance-1001/closing.json",
+      "published": "docs/work/109_siege-base-stats/snapshots/integration-review1/closing.json.txt",
+      "sha256": "fd572ae82164f237beef9800c4b4e342e5edf7f013b682aa582db745576462b1",
+      "identical": true
+    }
+  ]
+}

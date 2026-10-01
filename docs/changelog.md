@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.243
+
+- The Onager now has 55 attack and 8 pierce armor; Battering, Capped and Siege Rams see 5 tiles; and the Heavy Scorpion has 14 attack, 60 hit points, 1 melee armor, 8 pierce armor and a 36-tick reload. Existing saved unit stats last until their usual rebuild; current target armor comes from the corrected tables, so old replays can resolve combat differently.
+
 ## 0.3.242
 
 - Contact attackers and ranged melee-damage weapons now meet the correct armor family, including Eagle Warriors, unique contact units, siege stones, cannonballs, throwing axes, Mamelukes and Fire Ships. Old saved direct shots keep their stored family; old saved area shots use the corrected family, and historical recordings may fight differently when re-executed.
