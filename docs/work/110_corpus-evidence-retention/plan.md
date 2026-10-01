@@ -1,7 +1,7 @@
 # Retain per-run corpus oracle reports
 
 Status: active
-Owner: Corpus evidence integration owner
+Owner: /root (integration), corpus evidence worker (source)
 Created: 2026-10-01
 Updated: 2026-10-01
 
@@ -22,7 +22,9 @@ Keep output/corpus/ and add output/playtests/*-report/REPORT.md to the existing 
 - [x] Summary and two distinct per-run report paths are selected.
 - [x] Representative recording JSON, envelopes, threshold files, finding JSON and raw captures are excluded.
 - [x] Upload condition and artifact name are unchanged.
-- [ ] Root final gates, independent review and main integration complete.
+- [x] Independent read-only source review accepts the unchanged workflow/test with no material findings.
+- [ ] Root final integrated gate, main/push and new hosted acceptance complete.
+- [ ] Inspect the first new hosted artifact for summary/every generated REPORT.md and absence of excluded payloads.
 
 ## Implementation steps
 
@@ -33,4 +35,8 @@ Keep output/corpus/ and add output/playtests/*-report/REPORT.md to the existing 
 
 ## Outcome
 
-Ready for independent review, uncommitted. Command: node node_modules/vitest/vitest.mjs run tests/scripts/corpusArtifacts.test.ts --maxWorkers=1 --minWorkers=1. Original workflow: exit 1, 1 failed test, missing arabia REPORT.md, 255 ms. Fixed workflow: exit 0, 1 passed test, 217 ms. Test and fixture paths stayed unchanged between runs. A prior sandbox invocation failed before collecting tests because esbuild could not read ancestor directories; both native proof runs used supported escalation. Bound: static workflow selection over representative filenames, not GitHub artifact delivery, report contents, oracle correctness or recovery of historical lost findings. No browser, server, simulation, corpus, World or full gate was run by this worker. Root must verify hosted delivery on the first new run.
+Source review accepted; prepared in root integration on published06efe6c0, uncommitted. Command: node node_modules/vitest/vitest.mjs run tests/scripts/corpusArtifacts.test.ts --maxWorkers=1 --minWorkers=1. Original workflow: exit 1, 1 failed test, missing arabia REPORT.md, 255 ms. Fixed workflow: exit 0, 1 passed test, 217 ms. Test and fixture paths stayed unchanged between runs. A prior sandbox invocation failed before collecting tests because esbuild could not read ancestor directories; both native proof runs used supported escalation. Bound: static workflow selection over representative filenames, not GitHub artifact delivery, report contents, oracle correctness or recovery of historical lost findings. No browser, server, simulation, corpus, World or full gate was run by this worker. Root must verify hosted delivery on the first new run.
+
+**Current integration and bound.** Root copied the two unchanged executable inputs reviewed from0d290ab5 into resource-chip-capture-1001 beside work111's two screenshot-test paths. The full independent source report remains root-retained at primary ignored tmp/corpus-evidence-review-1001/review.md, SHA256a615ab9525f7278fae2256e1b0ece10586cc9c2f83c8dabfdca14e75de95c5bf; the complete authored report is now retained in [review 0](reviews/0_implementation.md), with its exact original plan and target manifest under snapshots/. Its reviewer executed no runtime/compiler/linter/hosted upload and has no independent model-identity attestation. Positive minimatch representatives do not prove uploader traversal/archive root, report contents or actual delivery. Expected multi-path archive layout is corpus/<date>/SUMMARY.md plus playtests/<run>-report/REPORT.md; verify the actual first new artifact. Old43 medium details remain unrecovered. The independent integrated source and bounded capture-evidence review passed and is retained in [work111 review 0](../111_resource-chip-capture/reviews/0_integration.md). Root combined gate/main/push/new hosted delivery remain pending.
+
+**First integrated gate — 2026-10-01.** Root's native full verify exited1 after225.035s:4,377 unit tests passed,1 failed and3 skipped (566 passed files,1 failed,1 skipped). The sole failure was the defect-register12-closed cap after recording the shipped LF repair; its diagnostic selected the closed Siege Onager block for a verbatim rollover and left two older entries PINNED. Later && stages did not run. All2,966 frozen input rows were unchanged; Job cleanupProof=true with0 leftovers. First-gate evidence remains under ignored full-verify/attempt-01/. The bounded rollover and report publication are prepared, not yet accepted by affected indexed checks or focused re-review. A fresh full gate, main/push, affected hosted CI and first summary-plus-report artifact delivery remain pending.

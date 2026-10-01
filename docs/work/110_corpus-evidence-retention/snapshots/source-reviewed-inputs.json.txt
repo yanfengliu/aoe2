@@ -1,0 +1,12 @@
+{
+  "phase": "opening",
+  "base": "0d290ab5f3f74ab080537158c5de86a613fed800",
+  "workspace": "C:/Users/38909/Documents/github/aoe2-worktrees/corpus-evidence-1001",
+  "algorithm": "SHA-256",
+  "files": {
+    ".github/workflows/playtest.yml": "de4e2684b6c1b603db795bec9ae1d52a4b9b76019b992ce2366ba4e1f0d038d7",
+    "tests/scripts/corpusArtifacts.test.ts": "13a6ad960ae0e2583211c1927bb2ebc0f076977484fd6ab5332ede4a2504472f",
+    "docs/work/registry.json": "88b2d71bc8c7f2d738c9336afafb0633e8f29456b7dabbff58ca54c1ca32d3a4",
+    "docs/work/110_corpus-evidence-retention/plan.md": "266bfcbc16180ec7065d1017d378221cab83f4e52e183f94cf002939269236e3"
+  }
+}

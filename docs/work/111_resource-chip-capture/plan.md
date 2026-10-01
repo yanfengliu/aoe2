@@ -1,0 +1,52 @@
+# Bound resource HUD fixture capture
+
+Status: active
+Owner: root (integration); Codex worker (candidate and local experiment)
+Created: 2026-10-01
+Updated: 2026-10-01
+
+## Problem and outcome
+
+The hosted 1920px `large resource readouts stay inside fixed chips` browser case reached its 30-second timeout while capturing the final tooltip image. Its retained trace attributes substantial wall time to full-viewport screenshots and resource hovers. Reduce captured output in this rendered-fixture test while keeping the complete HUD evidence and every original assertion; elapsed, CPU, cost and hosted-timeout improvements require separate evidence.
+
+## Scope
+
+Change only `tests/browser/resource-workers.spec.ts` and its call into `tests/browser/helpers/playOpening.ts`. Add this permanent work plan. Do not change production UI/simulation/engine, dependencies, CI, screenshots' number or states, assertions, test values, viewports, timeout, or retries. Root owns canonical status docs, the full gate, review, integration, and acceptance.
+
+## Approach
+
+Capture the full `.hud-bar` with 32 CSS pixels of padding, and the union of the full bar and visible tooltip for the final max-value tooltip capture. Assert each native region is within the viewport and the crop. The shared screenshot helper's optional clip is omitted at every existing call except these fixture images, preserving its default path-only options. Build one app `dist/` and run base and candidate test arms sequentially against the same output, forcing SwiftShader for both. Restore candidate file bytes even if the baseline fails.
+
+## Acceptance criteria
+
+- [x] Base and candidate fixture arms run only the three resource readout cases at 800x600, 1280x720, and 1920x1080, each with the existing 30-second test timeout and zero retries.
+- [x] All original amounts, four resources, 12 hover/text/ARIA/tooltip paths, bar geometry and clipping assertions remain unchanged; each arm retains all 12 screenshots, including the final full bar plus tooltip at each width.
+- [x] Record native run/test/capture timings from Playwright results/traces, PNG dimensions and hashes, and inspect every before/after PNG at native scale for bar/tooltip coverage. Preserve the failed wrapper receipts and report incomplete attempt records.
+- [x] Verify both arms used the same built `dist/`, installed engine/voxel/package digests, and SwiftShader; report wall observations without a speedup claim.
+- [x] Verify KillOnClose job assignment/close and zero PID/start-time-identified leftovers; port 4291 is free after both arms; candidate source hashes match before and after and report the final tree/status.
+- [x] Keep the original real-input60-second test block byte-identical; the worker ran no full gate or remote acceptance job.
+- [x] Independent integrated source and bounded capture-evidence review accepts the exact four-path candidate; complete report retained in [review 0](reviews/0_integration.md).
+- [ ] Root combined full gate accepts the exact four-path candidate.
+- [ ] Main/push/new hosted CI proves the affected timeout no longer fails; do not infer it from the local pair.
+
+## Implementation steps
+
+- [x] Allocate ID 111 through the fleet allocator and create the isolated worktree through `scripts/controlWorktree.mjs`.
+- [x] Read the failing hosted trace, repository instructions, and applicable implementer contract; freeze the two-path candidate and packet for root inspection.
+- [x] Receive root authorization for one bounded local A/B experiment and prepare the exclusive primary gate lock procedure.
+- [x] Finish and statically validate the task-specific hidden KillOnClose launcher before runtime.
+- [x] Run the base arm, preserve its screenshots/logs/trace, then restore the candidate bytes in a `finally` path.
+- [x] Run the candidate arm against the same dist; preserve all screenshots/logs/trace.
+- [x] Inspect captures and verify source, build, installed-package, process, port, lock, and worktree cleanup evidence; update this plan with observed outcome and bounds.
+
+## Outcome
+
+The root authorized one local before/after experiment. The content build plus `npm --ignore-scripts run build` completed once under supported escalation after the sandboxed attempt failed to load Vite with `Access is denied`. The baseline Playwright arm passed all three cases in 23.0s; the existing duration reporter measured 5.9s at 800px, 5.7s at 1280px, and 7.9s at 1920px. Its wrapper then failed while reading `Start-Process`'s null `ExitTime`, after the test run. The 12 baseline screenshots and three traces were retained, and source restoration was checked against candidate hashes. The candidate-only arm then passed all three cases against the same `dist/` in 21.1s (outer Playwright-process wall 21.943s); reporter durations were 5.3s, 5.4s, and 7.2s. All six traces and all 24 screenshots are retained under ignored `tmp/gate-duration-inventory-1001/attempt-01-baseline/` and `attempt-02-candidate/`.
+
+Native Playwright trace action totals for the four screenshots per viewport were 2.600s, 2.428s, and 3.591s before, and 2.359s, 2.255s, and 3.691s after at 800px, 1280px, and 1920px respectively. Twelve hover actions totaled 0.818s, 1.081s, and 1.554s before and 0.774s, 0.960s, and 0.995s after. These are single-run wall observations; at 1920px the candidate screenshot actions were 0.100s slower, so the test-duration changes do not establish a speedup. The candidate images retain the full viewport width but are 114px high (131px for the tooltip union), compared with baseline full-height images. The 12 candidate PNGs total 413,292 bytes versus 5,512,339 baseline bytes. All 24 images were inspected at native resolution. Pairwise pixel comparisons at threshold 0.1 align the candidate crop origin to (0,0) in the matching baseline image: all 12 full clipped regions and header regions had zero differing pixels. `dist` digest stayed `3fc2c48dfea5a6766bc1ed8cb89e98d1750da984826c99d1358285d27013302a`; installed engine/voxel package and distribution digests matched before and after. Both arms used SwiftShader and 4291.
+
+The task-specific job wrapper assigned its held worker before release, reported a successful membership query and KillOnClose close, and found no PID/start-time-identical leftovers. The exclusive lock was released and port 4291 had no listener. Candidate source hashes after the run match `bf36c6ac29bec6623307faad943b00917d3f7ba2` and `a0f905c56764c46238e9e69f3ebb53b7bf170b3a`; the 60-second real-input block remains byte-identical. No full gate, remote job, independent review, commit, or integration was run. The first sandboxed build attempt's stderr was overwritten by a later build attempt before it could be preserved; its observed access-denied failure is recorded in the ignored attempt note. The local A/B is complete, but final acceptance remains with root.
+
+**Current root preparation and limits.** Root prepared these exact screenshot sources beside work110's reviewed workflow/static test in this maintained tree on published06efe6c0. Direct after-result.json binds resource-workers.spec.ts SHA25692dcaf7b5828e4a3d90680fb38b6296f00811c0f9622d6a0683ed285ac87df13 and playOpening.ts SHA25646a5451309ea38fb800b27723922ba1be056b862b412d6d5fbdbff4e88af0486. Its matching voxel package before/after digest is a96eebb96b6bbfdf97d767a8a0de9cee683abbe75a1cf8961b9bd7b4836194da; derivative timing-results.json has an extra character in that field and remains preserved unchanged. Measured capture bytes5,512,339→413,292 are92.50% lower and pixels13,900,800→1,892,000 are86.39% lower. Threshold0.1 paired zero diffs do not imply pixel identity:strict0 nonzero pixel differences are retained. Playwright23.0→21.1s, outer candidate Stopwatch21.943s and action subtotals are distinct single-pair metrics;1920 screenshots3.591→3.691s are not faster. No elapsed/CPU/cost improvement or CI-timeout fix is established. The original A/B statement that integration was not run describes its authoring time; root preparation and independent integrated source/bounded-evidence review are now complete, with combined gate, commit/main/push/new hosted outcome and final acceptance pending. The complete authored review is retained in [review 0](reviews/0_integration.md). The first sandbox build's overwritten stderr and baseline tests0/wrapper1 null-ExitTime fault remain disclosed; no browser ran in that first attempt. All twelve before images survive, source finally restoration and corrected candidate native0 are bound, Job leftovers0/port4291/locks free.
+
+**First integrated gate — 2026-10-01.** Root's native full verify exited1 after225.035s:4,377 unit tests passed,1 failed and3 skipped (566 passed files,1 failed,1 skipped). The sole failure was the defect-register12-closed cap after recording the shipped LF repair; its diagnostic selected the closed Siege Onager block for a verbatim rollover and left two older entries PINNED. Later && stages did not run. All2,966 frozen input rows were unchanged; Job cleanupProof=true with0 leftovers. First-gate evidence remains under ignored full-verify/attempt-01/. The bounded rollover and report publication are prepared, not yet accepted by affected indexed checks or focused re-review. A fresh full gate, main/push, affected hosted CI and first summary-plus-report artifact delivery remain pending.

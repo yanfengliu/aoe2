@@ -44,10 +44,14 @@ export async function startMatchFromLobby(page: Page): Promise<string> {
   return page.url();
 }
 
-export async function screenshot(page: Page, name: string): Promise<string> {
+export async function screenshot(
+  page: Page,
+  name: string,
+  clip?: { x: number; y: number; width: number; height: number },
+): Promise<string> {
   mkdirSync(PLAY_SCREENSHOT_DIR, { recursive: true });
   const file = path.join(PLAY_SCREENSHOT_DIR, name);
-  await page.screenshot({ path: file });
+  await page.screenshot({ path: file, ...(clip ? { clip } : {}) });
   return file;
 }
 

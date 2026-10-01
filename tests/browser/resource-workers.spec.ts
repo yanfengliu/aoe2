@@ -28,6 +28,44 @@ async function barGeometry(page: Page) {
   }));
 }
 
+async function screenshotResourceFixture(page: Page, name: string, includeTooltip = false) {
+  const coverage = await page.evaluate((withTooltip) => {
+    const bar = document.querySelector<HTMLElement>('.hud-bar')!.getBoundingClientRect();
+    const tooltip = withTooltip
+      ? document.querySelector<HTMLElement>('[data-hud="tooltip"]')!.getBoundingClientRect()
+      : null;
+    const margin = 32;
+    const left = Math.floor(Math.min(bar.left, tooltip?.left ?? bar.left) - margin);
+    const top = Math.floor(Math.min(bar.top, tooltip?.top ?? bar.top) - margin);
+    const right = Math.ceil(Math.max(bar.right, tooltip?.right ?? bar.right) + margin);
+    const bottom = Math.ceil(Math.max(bar.bottom, tooltip?.bottom ?? bar.bottom) + margin);
+    const x = Math.max(0, left);
+    const y = Math.max(0, top);
+    const clipRight = Math.min(window.innerWidth, right);
+    const clipBottom = Math.min(window.innerHeight, bottom);
+    return {
+      clip: { x, y, width: clipRight - x, height: clipBottom - y },
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      bar: { left: bar.left, top: bar.top, right: bar.right, bottom: bar.bottom },
+      tooltip: tooltip
+        ? { left: tooltip.left, top: tooltip.top, right: tooltip.right, bottom: tooltip.bottom }
+        : null,
+    };
+  }, includeTooltip);
+  const { clip, viewport, bar, tooltip } = coverage;
+  for (const region of [bar, ...(tooltip ? [tooltip] : [])]) {
+    expect(region.left).toBeGreaterThanOrEqual(0);
+    expect(region.top).toBeGreaterThanOrEqual(0);
+    expect(region.right).toBeLessThanOrEqual(viewport.width);
+    expect(region.bottom).toBeLessThanOrEqual(viewport.height);
+    expect(clip.x).toBeLessThanOrEqual(region.left);
+    expect(clip.y).toBeLessThanOrEqual(region.top);
+    expect(clip.x + clip.width).toBeGreaterThanOrEqual(region.right);
+    expect(clip.y + clip.height).toBeGreaterThanOrEqual(region.bottom);
+  }
+  return play.screenshot(page, name, clip);
+}
+
 for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 }, { width: 1920, height: 1080 }]) {
   test(`resource occupations stay readable and follow real orders at ${viewport.width}px`, async ({ page }) => {
     test.setTimeout(60_000);
@@ -89,7 +127,8 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
           workers.setAttribute('aria-label', `${kind[0].toUpperCase()}${kind.slice(1)} workers: 100`);
         }
       }, amount);
-      await play.screenshot(page, `r1-${viewport.width}-${amount}-${process.env.H4_LAYOUT_LABEL ?? 'after'}.png`);
+      const label = process.env.H4_LAYOUT_LABEL ?? 'after';
+      await screenshotResourceFixture(page, `r1-${viewport.width}-${amount}-${label}.png`);
       const layout = await readResourceLayout(page);
       expect.soft(layout).toHaveLength(4);
       for (const item of layout) {
@@ -105,7 +144,9 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
         await total.hover();
         await expect(page.locator('[data-hud="tooltip"]')).toBeVisible();
         await expect(page.locator('[data-hud="tooltip"]')).toContainText(`stockpile: ${amount}`);
-        if (amount.length > 7 && kind === 'stone') await play.screenshot(page, `r1-${viewport.width}-full-value-tooltip.png`);
+        if (amount.length > 7 && kind === 'stone') {
+          await screenshotResourceFixture(page, `r1-${viewport.width}-full-value-tooltip.png`, true);
+        }
       }
       await page.mouse.move(viewport.width - 1, viewport.height - 1);
     }
