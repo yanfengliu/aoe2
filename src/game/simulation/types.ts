@@ -118,6 +118,8 @@ export interface RenderableComponent {
 export interface UnitComponent {
   owner: number;
   unitType: UnitType;
+  /** Cosmetic last gathering occupation. Absent in older recordings. */
+  resourceOccupation?: EconomyResourceKind | null;
 }
 
 export interface BuildingComponent {
@@ -401,6 +403,7 @@ export interface HudState {
   population: PopulationState;
   matchState: MatchState;
   engineHalted: EngineHaltDetails | null;
+  resourceWorkers: Record<EconomyResourceKind, number>;
 }
 
 // Slice 11: debug-overlay snapshot. Each field populated so the HUD can safely

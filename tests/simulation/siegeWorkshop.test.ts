@@ -234,7 +234,7 @@ describe('Slice 4 Siege Workshop + siege units', () => {
   it('fires normally once the target is outside the Mangonel minimum range', () => {
     // Positive control for the min-range dead zone: with the Spearman at
     // distance 5 (outside the min-range 3), the Mangonel must fire on tick 1.
-    // Mangonel base 40 PIERCE vs the Spearman's 0 pierce armor = 40 dmg, so
+    // Mangonel base 40 MELEE vs the Spearman's 0 melee armor = 40 dmg, so
     // one hit brings the 45-HP Spearman to 5 — it does NOT one-shot (mangonel
     // anti-infantry is blast, deferred to M2). We assert the shot landed.
     const bridge = createSimulationBridge('mangonel-outside-min-range-fixture');

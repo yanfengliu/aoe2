@@ -11,6 +11,7 @@ import { STEP_REFUSED_REPLAY } from '../bridge/stepReport';
 import type { GameWorld } from '../bridge/pureHelpers';
 import { toEngineWorld } from '../bridge/pureHelpers';
 import { HUMAN_PLAYER_ID, TPS } from '../prototypeScenario';
+import { countResourceWorkers } from '../resourceWorkerCounts';
 import { RenderStore } from '../renderStore';
 import { createRenderMetricsCapture } from '../renderMetricsCapture';
 import type {
@@ -211,6 +212,7 @@ export function makeReplayBridge(
         seed: context.seed,
         currentAge: api.getPlayerAge(HUMAN_PLAYER_ID),
         playerResources: api.getPlayerResources(HUMAN_PLAYER_ID),
+        resourceWorkers: countResourceWorkers(world, HUMAN_PLAYER_ID),
         population: api.getPopulationState(HUMAN_PLAYER_ID),
         matchState: api.getMatchState(),
         engineHalted: null,

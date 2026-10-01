@@ -1,0 +1,245 @@
+// Bound: modern recording seek and command resimulation; legacy snapshots
+// stripped of ONLY this new cosmetic format, including training after boot.
+// This checks absent fields/slots, not every historical engine version.
+import { SessionRecorder, SessionReplayer, snapshotAtTick, type SessionBundle, type WorldSnapshot } from 'civ-engine';
+import { isDeepStrictEqual } from 'node:util';
+import { describe, expect, it } from 'vitest';
+import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { createReplayWorldOnly } from '../../src/game/simulation/replay/createReplayWorldOnly';
+import { makeReplayBridge } from '../../src/game/simulation/replay/makeReplayBridge';
+import { RESOURCE_OCCUPATION_SLOT } from '../../src/game/simulation/resourceWorkerCounts';
+import type { GameCommands, GameEvents } from '../../src/game/simulation/bridge/pureHelpers';
+import type { UnitComponent } from '../../src/game/simulation/types';
+
+const NO_AI = { disableAiForOwners: new Set([1, 2]) };
+const EMPTY = { food: 0, wood: 0, gold: 0, stone: 0 };
+type SnapshotParts = { state: Record<string, unknown>; components: Record<string, Array<[number, Record<string, unknown>]>> };
+function stripOccupation(snapshot: WorldSnapshot): void {
+  const parts = snapshot as unknown as SnapshotParts;
+  delete parts.state[RESOURCE_OCCUPATION_SLOT];
+  for (const [, unit] of parts.components.unit ?? []) delete unit.resourceOccupation;
+}
+function boot() {
+  const bridge = createSimulationBridge('aoe2-prototype', NO_AI);
+  const unit = bridge.getEconomyState().units.find((unit) => unit.owner === 1 && unit.unitType === 'villager')!;
+  const tree = bridge.getEconomyState().resources.find((resource) => resource.baseOwner === 1 && resource.resourceType === 'tree')!;
+  bridge.selectUnitsByIds([unit.id]);
+  return { bridge, unit, tree };
+}
+
+// World.serialize validates every value. Reuse only a detached clone whose
+// entire source still equals it; every value is checked on every serialize.
+// Scope the wrapper to synchronous serialization, never simulation stepping.
+function createExactSnapshotSerializer() {
+  const clones = new WeakMap<object, unknown>();
+  return (world: { serialize(): WorldSnapshot }): WorldSnapshot => {
+    const nativeClone = globalThis.structuredClone;
+    globalThis.structuredClone = (value, options) => {
+      if (options || value === null || typeof value !== 'object') return nativeClone(value, options);
+      const previous = clones.get(value);
+      if (previous !== undefined && isDeepStrictEqual(value, previous)) return previous as typeof value;
+      const detached = nativeClone(value);
+      clones.set(value, detached);
+      return detached;
+    };
+    try { return world.serialize(); } finally { globalThis.structuredClone = nativeClone; }
+  };
+}
+
+describe('resource worker occupation in saves and replay', () => {
+  it('keeps native structuredClone transfer semantics during snapshot instrumentation', () => {
+    const serialize = createExactSnapshotSerializer();
+    const buffer = new ArrayBuffer(8);
+    const output = serialize({ serialize: () => globalThis.structuredClone({ buffer }, { transfer: [buffer] }) as unknown as WorldSnapshot });
+    expect(buffer.byteLength).toBe(0);
+    expect((output as unknown as { buffer: ArrayBuffer }).buffer.byteLength).toBe(8);
+  });
+
+  it('refreshes detached snapshot clones after nested changes and restores native cloning on error', () => {
+    const serialize = createExactSnapshotSerializer();
+    const nativeClone = globalThis.structuredClone;
+    const source: { nested: { value: number }; array: number[]; optional?: null } = { nested: { value: 1 }, array: [1], optional: null };
+    const world = { serialize: () => globalThis.structuredClone(source) as unknown as WorldSnapshot };
+    const first = serialize(world);
+    source.nested.value = -0;
+    source.array.push(2);
+    delete source.optional;
+    const second = serialize(world);
+    expect(isDeepStrictEqual(first, { nested: { value: 1 }, array: [1], optional: null })).toBe(true);
+    expect(isDeepStrictEqual(second, { nested: { value: -0 }, array: [1, 2] })).toBe(true);
+    expect(second).not.toBe(first);
+    // stripOccupation edits returned clones. Neither that edit nor a later
+    // source mutation may make a cached value hide the source's real state.
+    (second as unknown as { nested: { value: number } }).nested.value = 99;
+    expect(isDeepStrictEqual(serialize(world), { nested: { value: -0 }, array: [1, 2] })).toBe(true);
+    source.nested.value = 3;
+    expect(isDeepStrictEqual(serialize(world), { nested: { value: 3 }, array: [1, 2] })).toBe(true);
+    expect(() => serialize({ serialize: () => { throw new Error('snapshot failed'); } })).toThrow('snapshot failed');
+    expect(globalThis.structuredClone).toBe(nativeClone);
+  });
+
+  it('keeps non-cosmetic world state identical across a gather, full carry and deposit', () => {
+    const { bridge, unit, tree } = boot();
+    const modern = createReplayWorldOnly(bridge.saveGame().worldSnapshot);
+    const oldSnapshot = bridge.saveGame().worldSnapshot;
+    stripOccupation(oldSnapshot);
+    const legacy = createReplayWorldOnly(oldSnapshot);
+    for (const world of [legacy, modern]) {
+      expect(world.submitWithResult('unit.gather', { unitId: unit.id, resourceId: tree.id }).accepted).toBe(true);
+    }
+    const serialize = createExactSnapshotSerializer();
+    let comparedTicks = 0;
+    for (let tick = 0; tick < 600; tick++) {
+      legacy.step(); modern.step();
+      const state = serialize(modern);
+      stripOccupation(state);
+      expect(isDeepStrictEqual(state, serialize(legacy)), `non-cosmetic state at tick ${tick + 1}`).toBe(true);
+      comparedTicks++;
+    }
+    expect(comparedTicks).toBe(600);
+  });
+
+  it('records assignment, preserved walking occupation and a non-gather clear in tick diffs', () => {
+    const { bridge, unit, tree } = boot();
+    const recorder = new SessionRecorder({ world: bridge.world, snapshotInterval: 20, terminalSnapshot: true });
+    recorder.connect();
+    expect(bridge.issueContextCommandAtEntity(tree.id)).toBe(true);
+    bridge.step(100);
+    expect(bridge.issueMoveCommand(16, 12)).toBe(true);
+    bridge.step(100);
+    const town = bridge.getEconomyState().buildings.find((building) => building.owner === 1 && building.buildingType === 'town-center')!;
+    expect(bridge.issueContextCommandAtEntity(town.id, { garrison: true })).toBe(true);
+    bridge.step(100);
+    for (let tick = 0; tick < 22; tick++) bridge.step(100);
+    recorder.disconnect();
+    const bundle = recorder.toBundle() as unknown as SessionBundle<GameEvents, GameCommands>;
+    for (const [tick, occupation] of [[1, 'wood'], [2, 'wood'], [3, null]] as const) {
+      const snapshot = snapshotAtTick(bundle, tick) as unknown as SnapshotParts;
+      expect(snapshot.components.unit.find(([id]) => id === unit.id)![1].resourceOccupation).toBe(occupation);
+    }
+    const replayer = SessionReplayer.fromBundle(bundle, { worldFactory: createReplayWorldOnly, skipRegistrationCheck: true });
+    expect(replayer.selfCheck()).toMatchObject({ ok: true, skippedSegments: [] });
+  });
+
+  it('preserves a walking occupation through user save/load and modern replay seek', () => {
+    const { bridge, unit, tree } = boot();
+    const recorder = new SessionRecorder({ world: bridge.world, snapshotInterval: 20, terminalSnapshot: false, sourceKind: 'session', sourceLabel: 'resource-worker-occupation' });
+    recorder.connect();
+    expect(bridge.issueContextCommandAtEntity(tree.id)).toBe(true);
+    bridge.step(100);
+    expect(bridge.issueMoveCommand(16, 12)).toBe(true);
+    for (let tick = 0; tick < 25; tick++) bridge.step(100);
+    expect(bridge.getEconomyState().units.find((worker) => worker.id === unit.id)?.task).toBe('moving');
+    expect(bridge.getHudState().resourceWorkers).toEqual({ ...EMPTY, wood: 1 });
+    const loaded = createSimulationBridge('ignored', { savedGame: bridge.saveGame() });
+    expect(loaded.getHudState().resourceWorkers).toEqual({ ...EMPTY, wood: 1 });
+    recorder.disconnect();
+    const bundle = recorder.toBundle() as unknown as SessionBundle<GameEvents, GameCommands>;
+    const replayer = SessionReplayer.fromBundle(bundle, { worldFactory: createReplayWorldOnly, skipRegistrationCheck: true });
+    for (const tick of [bundle.metadata.endTick, 1, 2, bundle.metadata.endTick]) {
+      const replay = makeReplayBridge(replayer.openAt(tick), { fogOwner: 2 });
+      expect(replay.getHudState().resourceWorkers).toEqual({ ...EMPTY, wood: 1 });
+      replay.disposeReplayRenderAdapter();
+    }
+    const check = replayer.selfCheck();
+    expect(check).toMatchObject({ ok: true });
+    expect(check.checkedSegments).toBeGreaterThan(0);
+    expect(check.skippedSegments).toHaveLength(0);
+  });
+
+  it('upgrades old user saves using active work, while unknown old walking occupation stays uncounted', () => {
+    const { bridge, tree } = boot();
+    expect(bridge.issueContextCommandAtEntity(tree.id)).toBe(true);
+    bridge.step(100);
+    const active = bridge.saveGame();
+    stripOccupation(active.worldSnapshot);
+    const loaded = createSimulationBridge('ignored', { savedGame: active });
+    expect(loaded.getHudState().resourceWorkers).toEqual({ ...EMPTY, wood: 1 });
+    expect(loaded.issueMoveCommand(16, 12)).toBe(false); // selection is not saved
+    const villager = loaded.getEconomyState().units.find((unit) => unit.owner === 1 && unit.unitType === 'villager')!;
+    loaded.selectUnitsByIds([villager.id]);
+    expect(loaded.issueMoveCommand(16, 12)).toBe(true);
+    loaded.step(100);
+    expect(loaded.getHudState().resourceWorkers).toEqual({ ...EMPTY, wood: 1 });
+    const walking = loaded.saveGame();
+    stripOccupation(walking.worldSnapshot);
+    const unknown = createSimulationBridge('ignored', { savedGame: walking });
+    expect(unknown.getHudState().resourceWorkers).toEqual(EMPTY);
+    expect(unknown.world.getState(RESOURCE_OCCUPATION_SLOT)).toBe(1);
+  });
+
+  it('keeps cosmetic fields and slot absent while legacy worlds gather, move and train a new villager', () => {
+    const { bridge, unit, tree } = boot();
+    const snapshot = bridge.saveGame().worldSnapshot;
+    stripOccupation(snapshot);
+    const legacy = createReplayWorldOnly(snapshot);
+    const modern = createReplayWorldOnly(bridge.saveGame().worldSnapshot);
+    const recorder = new SessionRecorder({ world: legacy, snapshotInterval: 70, terminalSnapshot: true });
+    const modernRecorder = new SessionRecorder({ world: modern, snapshotInterval: 70, terminalSnapshot: true });
+    recorder.connect();
+    modernRecorder.connect();
+    const town = bridge.getEconomyState().buildings.find((building) => building.owner === 1 && building.buildingType === 'town-center')!;
+    const originalWorkers = [...legacy.query('gatherer')].length;
+    expect(legacy.submitWithResult('unit.gather', { unitId: unit.id, resourceId: tree.id }).accepted).toBe(true);
+    legacy.step();
+    expect(modern.submitWithResult('unit.gather', { unitId: unit.id, resourceId: tree.id }).accepted).toBe(true);
+    modern.step();
+    expect(legacy.submitWithResult('unit.move', { unitId: unit.id, target: { x: unit.x, y: unit.y } }).accepted).toBe(true);
+    expect(legacy.submitWithResult('queue.train', { buildingId: town.id, unitType: 'villager' }).accepted).toBe(true);
+    expect(modern.submitWithResult('unit.move', { unitId: unit.id, target: { x: unit.x, y: unit.y } }).accepted).toBe(true);
+    expect(modern.submitWithResult('queue.train', { buildingId: town.id, unitType: 'villager' }).accepted).toBe(true);
+    for (let tick = 0; tick < 280; tick++) { legacy.step(); modern.step(); }
+    expect([...legacy.query('gatherer')].length).toBe(originalWorkers + 1);
+    expect(legacy.getState(RESOURCE_OCCUPATION_SLOT)).toBeUndefined();
+    for (const id of legacy.query('gatherer')) {
+      expect(Object.hasOwn(legacy.getComponent<UnitComponent>(id, 'unit')!, 'resourceOccupation')).toBe(false);
+    }
+    expect((legacy.serialize() as unknown as SnapshotParts).state[RESOURCE_OCCUPATION_SLOT]).toBeUndefined();
+    const modernState = modern.serialize();
+    stripOccupation(modernState);
+    expect(legacy.serialize()).toEqual(modernState);
+    recorder.disconnect();
+    modernRecorder.disconnect();
+    for (const [recording, isModern] of [[recorder, false], [modernRecorder, true]] as const) {
+      const bundle = recording.toBundle() as unknown as SessionBundle<GameEvents, GameCommands>;
+      const replayer = SessionReplayer.fromBundle(bundle, { worldFactory: createReplayWorldOnly, skipRegistrationCheck: true });
+      const check = replayer.selfCheck();
+      expect(check, JSON.stringify({ isModern, paths: check.stateDivergences.map((diff) => diff.firstDifferingPath) })).toMatchObject({ ok: true, skippedSegments: [] });
+      expect(check.checkedSegments).toBeGreaterThan(0);
+      for (const tick of [bundle.metadata.endTick, 1, 100, bundle.metadata.endTick]) {
+        const restored = replayer.openAt(tick);
+        expect(restored.getState(RESOURCE_OCCUPATION_SLOT)).toBe(isModern ? 1 : undefined);
+        for (const id of restored.query('gatherer')) {
+          expect(Object.hasOwn(restored.getComponent<UnitComponent>(id, 'unit')!, 'resourceOccupation')).toBe(isModern);
+        }
+      }
+    }
+  });
+
+  it('does not trust malformed occupation values or unknown format markers in user saves', () => {
+    const { bridge, unit, tree } = boot();
+    expect(bridge.issueContextCommandAtEntity(tree.id)).toBe(true);
+    bridge.step(100);
+    expect(bridge.issueMoveCommand(16, 12)).toBe(true);
+    bridge.step(100);
+    for (const value of ['silver', '__proto__', 42, {}, undefined]) {
+      const saved = bridge.saveGame();
+      const parts = saved.worldSnapshot as unknown as SnapshotParts;
+      const savedUnit = parts.components.unit.find(([id]) => id === unit.id)![1];
+      if (value === undefined) delete savedUnit.resourceOccupation;
+      else savedUnit.resourceOccupation = value;
+      const loaded = createSimulationBridge('ignored', { savedGame: saved });
+      expect(loaded.getHudState().resourceWorkers).toEqual(EMPTY);
+    }
+    for (const marker of [2, '1', undefined]) {
+      const saved = bridge.saveGame();
+      const state = (saved.worldSnapshot as unknown as SnapshotParts).state;
+      if (marker === undefined) delete state[RESOURCE_OCCUPATION_SLOT];
+      else state[RESOURCE_OCCUPATION_SLOT] = marker;
+      expect(createSimulationBridge('ignored', { savedGame: saved }).getHudState().resourceWorkers).toEqual(EMPTY);
+      const replay = makeReplayBridge(createReplayWorldOnly(saved.worldSnapshot));
+      expect(replay.getHudState().resourceWorkers).toEqual(EMPTY);
+      replay.disposeReplayRenderAdapter();
+    }
+  });
+});

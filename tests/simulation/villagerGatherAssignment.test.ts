@@ -33,6 +33,8 @@ function openGroundField(dropOff: Position, dropOffId: number): DropOffWalkField
 
 function makeWorld(entities: Record<number, Record<string, unknown>>): GameWorld {
   return {
+    // Legacy worlds have no resource-occupation format marker.
+    getState: () => undefined,
     getComponent: (id: number, name: string) => entities[id]?.[name],
     query: (...names: string[]) =>
       Object.keys(entities)

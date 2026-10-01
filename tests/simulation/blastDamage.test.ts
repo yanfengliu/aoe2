@@ -35,16 +35,16 @@ describe('computeBlastDamage — mangonel-line splash', () => {
   it('hits orthogonal neighbours (not diagonals), excludes the attacker + primary, sorted by id', () => {
     const candidates = [
       c(5, 'spearman', 10, 11), // dist 1 — IN
-      c(3, 'militia', 11, 10), // dist 1 — IN (pierce armor 1)
+      c(3, 'militia', 11, 10), // dist 1 — IN (melee armor 0)
       c(8, 'spearman', 11, 11), // dist √2 — OUT
       c(2, 'knight', 10, 10), // the primary target — EXCLUDED
       c(9, 'spearman', 9, 10), // the attacker's cell — EXCLUDED
     ];
-    // Mangonel base 40 PIERCE; no anti-infantry bonus. Spearman pierce armor 0
-    // → 40; Militia pierce armor 1 → 39.
+    // Mangonel base 40 MELEE; no anti-infantry bonus. Both targets have melee
+    // armor 0, so each takes 40; Militia's pierce armor does not reduce it.
     const result = computeBlastDamage('mangonel', 40, impact, candidates, new Set([2, 9]));
     expect(result).toEqual([
-      { id: 3, damage: 39 },
+      { id: 3, damage: 40 },
       { id: 5, damage: 40 },
     ]);
   });
@@ -56,8 +56,8 @@ describe('computeBlastDamage — mangonel-line splash', () => {
   });
 
   it('floors a splashed hit at 1 damage', () => {
-    // A ram has 180 pierce armor; mangonel base 40 pierce → floored to 1.
-    const result = computeBlastDamage('mangonel', 40, impact, [c(4, 'battering-ram', 10, 11)], new Set());
+    // A Spearman with 50 melee armor takes the connecting-hit floor from 40.
+    const result = computeBlastDamage('mangonel', 40, impact, [c(4, 'spearman', 10, 11, 50)], new Set());
     expect(result).toEqual([{ id: 4, damage: 1 }]);
   });
 

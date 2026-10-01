@@ -30,6 +30,8 @@ function worldWith(farPosition: Position, nearPosition: Position | null): GameWo
     entities[NEAR_BUT_CROWDED] = { position: nearPosition, resource: berry(100) };
   }
   return {
+    // Legacy worlds have no resource-occupation format marker.
+    getState: () => undefined,
     getComponent: (id: number, name: string) => entities[id]?.[name],
     query: (...names: string[]) => Object.keys(entities).map(Number)
       .filter((id) => names.every((n) => entities[id]?.[n] !== undefined)),

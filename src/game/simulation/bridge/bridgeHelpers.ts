@@ -4,6 +4,7 @@
 // createBridgeState — these helpers are pure operations on top.
 
 import type { EntityRef, Position } from 'civ-engine';
+import { setResourceOccupation } from '../resourceWorkerCounts';
 
 import type {
   GathererComponent,
@@ -137,6 +138,9 @@ export function createBridgeHelpers(deps: BridgeHelpersDeps): BridgeHelpers {
   }
 
   function setUnitCommand(unitId: number, command: UnitCommand): void {
+    if (command.type !== 'move') {
+      setResourceOccupation(world, unitId, null);
+    }
     movePathCache.delete(unitId);
     accessor.mutate(unitCommandsCodec, (m) => m.set(unitId, command));
   }
@@ -289,6 +293,7 @@ export function createGathererOrderOps(deps: {
     if (!gatherer) {
       return;
     }
+    setResourceOccupation(world, id, null);
     gatherer.hasExplicitGatherOrder = false;
     gatherer.task = 'idle';
     gatherer.targetResourceId = null;

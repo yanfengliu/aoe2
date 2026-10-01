@@ -35,6 +35,41 @@
   opacity: 1;
 }
 
+/* Resource glyphs and numeric readouts fit the fixed chip. Seven-digit totals
+   fit inline; longer values use an explicit ellipsis and the full tooltip. */
+.hud-chip:has(> .hud-resource-readout) .hud-chip-head {
+  height: 12px;
+  line-height: 12px;
+}
+.hud-chip:has(> .hud-resource-readout) .hud-chip-glyph {
+  width: 12px;
+  height: 12px;
+}
+.hud-resource-readout {
+  display: grid;
+  grid-template-rows: 14px 10px;
+  align-content: start;
+  min-width: 0;
+}
+.hud-resource-readout .hud-value {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hud-resource-workers {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--hud-text-muted);
+  font-size: 10px;
+  line-height: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.hud-resource-workers svg { width: 8px; height: 8px; }
+
 /* Build-command buttons: glyph sits left of the text label. The button
    is otherwise unchanged (same gradient, padding, hover, disabled). */
 .hud-command-button {

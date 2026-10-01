@@ -33,6 +33,37 @@ interface RawAttackRecord {
 }
 
 describe("unit attack animation feed persistence and projection", () => {
+  it("preserves the known participant fields without retaining foreign payloads", () => {
+    // Bound: optional checkpoint metadata is canonical and detached. Real
+    // snapshot re-simulation is checked by attackDamageTypes.test.ts.
+    for (const targetIsEconomy of [true, false]) {
+      const participants = { attackerOwner: 1, targetOwner: 2, targetIsEconomy, extra: "strip" };
+      const raw = {
+        attackerId: 7, attackerGeneration: 2, tick: 100,
+        sourceX: 12, sourceY: 8, targetX: 13, targetY: 8, witnessedBy: [1], participants,
+      };
+      const [attack] = hydrateUnitAttacks([raw], 100, new Set([1, 2]), MAP);
+      expect(attack?.participants).toEqual({ attackerOwner: 1, targetOwner: 2, targetIsEconomy });
+      expect(attack?.participants).not.toBe(participants);
+    }
+  });
+
+  it("keeps legacy absence and strips malformed optional participant metadata", () => {
+    const legacy = {
+      attackerId: 7, attackerGeneration: 2, tick: 100,
+      sourceX: 12, sourceY: 8, targetX: 13, targetY: 8, witnessedBy: [1],
+    };
+    const valid = { attackerOwner: 1, targetOwner: 2, targetIsEconomy: false };
+    for (const participants of [undefined, null, [], {},
+      { ...valid, attackerOwner: 0 }, { ...valid, attackerOwner: 1.5 },
+      { ...valid, attackerOwner: 3 }, { ...valid, targetOwner: 3 },
+      { ...valid, targetOwner: 9 }, { ...valid, targetOwner: null },
+      { ...valid, targetIsEconomy: "false" },
+    ]) {
+      expect(hydrateUnitAttacks([{ ...legacy, participants }], 100, new Set([1, 2]), MAP)).toStrictEqual([legacy]);
+    }
+  });
+
   it("tail-bounds imported records and canonicalizes witness suppression", () => {
     const raw = new Array<unknown>(1_025);
     Object.defineProperty(raw, 0, {

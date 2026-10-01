@@ -155,6 +155,19 @@ export function markUnitAttackMovementStartedForEntity(
     : false;
 }
 
+function hydrateAttackParticipants(value: unknown, validPlayerIds: ReadonlySet<number>): UnitAttackParticipants | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const participants = value as Partial<UnitAttackParticipants>;
+  const { attackerOwner, targetOwner, targetIsEconomy } = participants;
+  if (
+    !Number.isSafeInteger(attackerOwner) || (attackerOwner ?? 0) < 1 || (attackerOwner ?? 9) > MAX_ATTACK_PLAYER_ID
+    || !Number.isSafeInteger(targetOwner) || (targetOwner ?? 0) < 1 || (targetOwner ?? 9) > MAX_ATTACK_PLAYER_ID
+    || !validPlayerIds.has(attackerOwner!) || !validPlayerIds.has(targetOwner!)
+    || typeof targetIsEconomy !== 'boolean'
+  ) return undefined;
+  return { attackerOwner: attackerOwner!, targetOwner: targetOwner!, targetIsEconomy };
+}
+
 export function hydrateUnitAttacks(
   value: unknown,
   currentTick: number,
@@ -231,6 +244,7 @@ export function hydrateUnitAttacks(
         }
       }
     }
+    const participants = hydrateAttackParticipants(attack.participants, validPlayerIds);
     const canonical: ProjectedUnitAttackView = {
       attackerId: attack.attackerId!,
       attackerGeneration: attack.attackerGeneration!,
@@ -242,6 +256,7 @@ export function hydrateUnitAttacks(
       targetY: attack.targetY!,
       witnessedBy,
       ...(suppressedFor.length > 0 ? { suppressedFor } : {}),
+      ...(participants ? { participants } : {}),
     };
     const key = unitAttackKey(canonical.attackerId, canonical.attackerGeneration);
     attacks.delete(key);

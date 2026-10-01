@@ -1,7 +1,8 @@
 // Unit CLASSIFICATION tables — which units belong to which combat class, plus
 // the wildlife profiles. Split out of ./statTables.ts (per-unit NUMBERS) when
 // the roster grew past what one file could hold under the 500-LOC budget.
-// statTables re-exports every name here, so existing imports keep working.
+// statTables re-exports the existing names; damage-projectile membership is
+// imported directly by prototypeUnitRules.
 
 import type { ResourceKind } from '../types';
 import type { UnitType } from '../unitTypes';
@@ -122,6 +123,40 @@ export const MELEE_UNITS = new Set<UnitType>([
   'two-handed-swordsman',
   'paladin',
   'heavy-camel',
+  'eagle-warrior',
+  'elite-eagle-warrior',
+  'petard',
+  'demolition-ship',
+  'heavy-demolition-ship',
+  'jaguar-warrior',
+  'elite-jaguar-warrior',
+  'cataphract',
+  'elite-cataphract',
+  'woad-raider',
+  'elite-woad-raider',
+  'huskarl',
+  'elite-huskarl',
+  'tarkan',
+  'elite-tarkan',
+  'samurai',
+  'elite-samurai',
+  'war-elephant',
+  'elite-war-elephant',
+  'teutonic-knight',
+  'elite-teutonic-knight',
+  'berserk',
+  'elite-berserk',
+]);
+
+// DE base attack class 4 (melee armor) delivered by a projectile. These
+// remain shooters for delivery and formations; adding
+// them to MELEE_UNITS would turn their shots into instant contact attacks.
+// Independent pinned game-file rows: tests/content/deAttackDamageReference.ts.
+export const MELEE_DAMAGE_PROJECTILE_UNITS = new Set<UnitType>([
+  'mangonel', 'onager', 'siege-onager', 'bombard-cannon',
+  'cannon-galleon', 'elite-cannon-galleon',
+  'throwing-axeman', 'elite-throwing-axeman',
+  'mameluke', 'elite-mameluke', 'fire-ship', 'fast-fire-ship',
 ]);
 
 export const WILDLIFE_PROFILES = {

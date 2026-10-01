@@ -38,6 +38,7 @@
 // was the defect, not the weights.
 
 import type { Position } from 'civ-engine';
+import { setResourceOccupation } from '../resourceWorkerCounts';
 import type {
   BuildingComponent,
   UnitComponent,
@@ -378,6 +379,7 @@ export function assignNearestResource(
   // Reserve the chosen resource so other villagers assigned later THIS tick
   // already see it one fuller and spread to the next one.
   gatherTargetCounts.set(target.id, (gatherTargetCounts.get(target.id) ?? 0) + 1);
+  setResourceOccupation(activeWorld, villagerId, gatherer.desiredResource);
   gatherer.task = 'to-resource';
   gatherer.targetResourceId = target.id;
   // A hint only: the deposit leg re-resolves the drop-off from the carrier's

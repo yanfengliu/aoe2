@@ -6,6 +6,7 @@
 // reads/writes go through the same shared selection refs.
 
 import { isMonasticUnit } from '../monasticUnits';
+import { setResourceOccupation } from '../resourceWorkerCounts';
 import type { EntityRef, Position } from 'civ-engine';
 import { createContextRouter } from './contextRouter';
 import type {
@@ -102,13 +103,7 @@ export interface UnitCommandOps extends SheepCommandOps, UnitSelectionOps {
   // Returns the validator's accept/reject decision (NOT whether the move
   // happened — that's deferred to next step's processCommands).
   issueUnitMoveCommand(unitId: number, target: Position): boolean;
-  // Phase 1B (DESIGN v17 §6.4): private direct-mutation helper — used by
-  // deterministic-resolution systems (productionQueueSystem rally,
-  // monkTaskOps appliers). Mirrors the full facade body's invariants
-  // (unit guard, clearGathererOrder, guarded monkTasksCodec clear, target clamp,
-  // movePathCache.delete via setUnitCommand). Safe to call from ANY
-  // context. NOT for AI-decision systems (those use pendingCommands
-  // intentions per §6.5).
+  // Direct helper for deterministic resolution; AI decisions queue intentions.
   setUnitMoveCommandDirect(unitId: number, target: Position): boolean;
   appendMoveWaypointDirect(unitId: number, target: Position): boolean;
   setUnitAttackMoveCommandDirect(unitId: number, target: Position): boolean;
@@ -229,7 +224,9 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     // its own walks with keepPatrol, so the route survives its own legs.
     // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
     if (!keepPatrol) clearPatrolRoute(unitId);
+    const occupation = unit.resourceOccupation ?? null;
     clearGathererOrder(unitId);
+    if (type === 'move') setResourceOccupation(world, unitId, occupation);
     const monkTasks = accessor.get(monkTasksCodec);
     if (monkTasks.delete(unitId)) {
       accessor.markDirty(monkTasksCodec);

@@ -8,6 +8,7 @@
 import { CHINESE_TEAM_FARM_FOOD_MULTIPLIER, teamHasCivilization } from '../teamBonuses';
 import { slavsTeamMilitaryPop } from './teamPopulation';
 import { isMonasticUnit } from '../monasticUnits';
+import { initialResourceOccupation } from '../resourceWorkerCounts';
 import { civBuildingHpMultiplier, civPopulationProvidedBonus } from '../civBonusEffects';
 import { playerTeamsCodec, playerAgesCodec, playerCivilizationsCodec } from './bridgeStateSerialize';
 import { atheismCountdownExtension } from './atheismCountdowns';
@@ -157,7 +158,9 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
   ): number {
     const entity = world.createEntity();
     world.setPosition(entity, position);
-    world.addComponent(entity, 'unit', { owner, unitType });
+    world.addComponent(entity, 'unit', { owner, unitType,
+      ...(unitType === 'villager' || unitType === 'fishing-ship' ? initialResourceOccupation(world) : {}),
+    });
     world.addComponent(entity, 'unitTransform', getUnitTargetTransformForCell(entity, position));
     world.addComponent(entity, 'renderable', {
       kind: 'unit',

@@ -4,6 +4,7 @@ import type { EntityRef } from 'civ-engine';
 import { clamp, toEngineWorld } from './bridge/pureHelpers';
 import { createProjector } from './bridge/visibility';
 import { createWorld } from './bridge/createWorld';
+import { countResourceWorkers } from './resourceWorkerCounts';
 import { visibilityStateFromSave } from './saveBlobReaders';
 import { LayeredVisibilityMap } from './bridge/layeredVisibilityMap';
 import { createRenderStateOps } from './bridge/renderStateOps';
@@ -378,6 +379,7 @@ export function createSimulationBridge(
         seed: effectiveSeed,
         currentAge: getPlayerAge(HUMAN_PLAYER_ID),
         playerResources: getPlayerResources(HUMAN_PLAYER_ID),
+        resourceWorkers: countResourceWorkers(world, HUMAN_PLAYER_ID),
         population: getPopulationState(HUMAN_PLAYER_ID),
         matchState: getMatchState(),
         engineHalted: haltState.halted,

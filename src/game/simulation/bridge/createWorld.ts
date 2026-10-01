@@ -22,6 +22,7 @@ import { BridgeStateAccessor } from './bridgeStateAccessor';
 import { registerComponentTypes } from './scenarioSeedOps';
 import type { LayeredVisibilityMap } from './layeredVisibilityMap';
 import { wireBridgeOps } from './wireBridgeOps';
+import { initializeResourceOccupations } from '../resourceWorkerCounts';
 import {
   MAP_HEIGHT,
   MAP_WIDTH,
@@ -156,6 +157,7 @@ export function createWorld(
   if (!savedGame) {
     registerComponentTypes(world);
   }
+  initializeResourceOccupations(world, systemMode);
 
   // V4-8: scenario generation is only consumed by the fresh-bootstrap
   // path; on save-load it's discarded. Skip the procedural map build to

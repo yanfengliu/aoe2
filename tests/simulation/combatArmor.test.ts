@@ -13,8 +13,8 @@ import {
 } from '../../src/game/simulation/prototypeUnitRules';
 
 // Data-driven combat Slice 1: melee/pierce armor split. Pierce attackers
-// (archers, skirmishers, siege, towers) are reduced by the target's PIERCE
-// armor; melee attackers (infantry, cavalry, rams) by its melee armor. Values
+// (archers, skirmishers, towers) are reduced by the target's PIERCE armor;
+// contact attackers and melee-damage projectiles by its melee armor. Values
 // come from design/stats/units.csv (the `melee/pierce` armor column).
 
 describe('combatDamageAfterArmor — melee/pierce split', () => {
@@ -32,10 +32,10 @@ describe('combatDamageAfterArmor — melee/pierce split', () => {
 });
 
 describe('unitAttackType', () => {
-  it('classifies ranged/siege units as pierce and infantry/cavalry/rams as melee', () => {
+  it('classifies armor family independently of contact or projectile delivery', () => {
     expect(unitAttackType('archer')).toBe('pierce');
     expect(unitAttackType('skirmisher')).toBe('pierce');
-    expect(unitAttackType('mangonel')).toBe('pierce');
+    expect(unitAttackType('mangonel')).toBe('melee');
     expect(unitAttackType('knight')).toBe('melee');
     expect(unitAttackType('champion')).toBe('melee');
     expect(unitAttackType('battering-ram')).toBe('melee');

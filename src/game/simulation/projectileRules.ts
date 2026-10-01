@@ -38,9 +38,9 @@ const PROJECTILE_SPEED: Partial<Record<UnitType, number>> = {
   'bombard-cannon': 0.9,
 };
 
-// Accuracy percentages from design/stats/units.csv. These are the numbers that
-// drive AoE2 counter-play: cavalry archers spray at 50%, scorpions never miss,
-// and a trebuchet is nearly useless against anything that moves.
+// Base accuracy from units.csv, re-sourced from pinned DE update 185872
+// (aoe2techtree 3bb43b14) for every supported ranged attacker. Missing entries
+// are 100%; fire-ship flame accuracy is unused in DE and takes that default.
 const UNIT_ACCURACY: Partial<Record<UnitType, number>> = {
   archer: 0.8,
   crossbowman: 0.85,
@@ -49,12 +49,12 @@ const UNIT_ACCURACY: Partial<Record<UnitType, number>> = {
   // Both tiers, as units.csv and DE give them (defect register, 2026-09-26).
   'elite-skirmisher': 0.9,
   'cavalry-archer': 0.5,
-  'heavy-cavalry-archer': 0.5,
+  'heavy-cavalry-archer': 0.8,
   longbowman: 0.7,
-  'elite-longbowman': 0.7,
+  'elite-longbowman': 0.8,
   scorpion: 1,
   'heavy-scorpion': 1,
-  'bombard-cannon': 0.92,
+  'bombard-cannon': 1,
   trebuchet: 0.15,
   // M4 unique units, from units.csv `accuracy`. The Janissary is the
   // outlier: a devastating hit that misses half the time.
@@ -67,63 +67,66 @@ const UNIT_ACCURACY: Partial<Record<UnitType, number>> = {
   'longboat': 1,
   // Elite tier.
   'elite-chu-ko-nu': 0.85,
-  'elite-war-wagon': 1.0,
-  'elite-plumed-archer': 0.8,
+  'elite-war-wagon': 1,
+  'elite-plumed-archer': 0.9,
   'elite-mangudai': 0.95,
   'elite-conquistador': 0.7,
-  'elite-janissary': 0.5,
-  'elite-longboat': 1.0,
+  'elite-janissary': 0.65,
+  'elite-longboat': 1,
+  // Common gunpowder unit; it has no elite upgrade.
+  'hand-cannoneer': 0.75,
 };
 
-// Wind-up before the projectile actually leaves the attacker, in seconds
-// (units.csv `attack_delay`). A cavalry archer's full second of wind-up is why
-// it feels sluggish despite a short reload.
+// Wind-up before the projectile leaves, from the exact sourced units.csv
+// attack_delay seconds. The executor rounds these decimals to whole ticks;
+// Cavalry Archer 0.91 s and Heavy Cavalry Archer 0.897 s both round to nine.
 const ATTACK_DELAY_SECONDS: Partial<Record<UnitType, number>> = {
   archer: 0.35,
   crossbowman: 0.35,
-  arbalest: 0.35,
-  longbowman: 0.35,
-  'elite-longbowman': 0.35,
-  skirmisher: 0.5,
-  'elite-skirmisher': 0.5,
-  'cavalry-archer': 1,
-  'heavy-cavalry-archer': 1,
-  scorpion: 0.21,
-  'heavy-scorpion': 0.21,
+  arbalest: 0.342222,
+  longbowman: 0.5,
+  'elite-longbowman': 0.5,
+  skirmisher: 0.506667,
+  'elite-skirmisher': 0.506667,
+  'cavalry-archer': 0.91,
+  'heavy-cavalry-archer': 0.897,
+  scorpion: 0.16,
+  'heavy-scorpion': 0.16,
   'bombard-cannon': 0.21,
-  trebuchet: 0.6,
-  // M4 unique units, from units.csv `attack_delay`. The Longboat's CSV
-  // value reads 9 seconds, which would mean an arrow arriving a minute
-  // after the order; taken as the archer-standard 0.35 instead.
-  'chu-ko-nu': 0.21,
-  'throwing-axeman': 1.2,
-  'war-wagon': 1,
+  trebuchet: 0.88,
+  // Unique ranged units use the same sourced column, including Longboat 0.
+  'chu-ko-nu': 0.221667,
+  'throwing-axeman': 0.995556,
+  'war-wagon': 0.995556,
   'plumed-archer': 0.5,
-  'mangudai': 1,
-  'mameluke': 0.6,
-  'conquistador': 0.4,
-  'janissary': 0.28,
-  'longboat': 0.35,
+  'mangudai': 0.498333,
+  'mameluke': 0.4,
+  'conquistador': 0.404444,
+  'janissary': 0.4,
+  'longboat': 0,
   // Elite tier.
   'elite-jaguar-warrior': 0.0,
   'elite-cataphract': 0.0,
   'elite-woad-raider': 0.0,
-  'elite-chu-ko-nu': 0.21,
-  'elite-throwing-axeman': 0.8,
+  'elite-chu-ko-nu': 0.221667,
+  'elite-throwing-axeman': 0.815111,
   'elite-huskarl': 0.0,
   'elite-tarkan': 0.0,
   'elite-samurai': 0.0,
-  'elite-war-wagon': 1.0,
+  'elite-war-wagon': 0.995556,
   'elite-plumed-archer': 0.5,
-  'elite-mangudai': 0.0,
+  'elite-mangudai': 0.498333,
   'elite-war-elephant': 0.0,
-  'elite-mameluke': 0.0,
-  'elite-conquistador': 0.4,
+  'elite-mameluke': 0.2,
+  'elite-conquistador': 0.404444,
   'elite-teutonic-knight': 0.0,
-  'elite-janissary': 0.0,
+  'elite-janissary': 0,
   'elite-berserk': 0.0,
-  'elite-turtle-ship': 0.0,
-  'elite-longboat': 0.0,
+  'elite-turtle-ship': 0.15,
+  'elite-longboat': 0,
+  // Common Hand Cannoneer and the base Turtle Ship.
+  'hand-cannoneer': 0.35,
+  'turtle-ship': 0.15,
 };
 
 // Who fires a projectile is decided in prototypeUnitRules.ts (see there for
@@ -134,8 +137,8 @@ export { firesProjectile };
  * Whether the shot damages by blast at the impact point instead of on a hit:
  * every projectile attacker with a blast radius, which is the mangonel line.
  * It has no to-hit roll at all — the stone lands where it was aimed and
- * everything nearby suffers; units.csv leaves its accuracy column empty for
- * this reason. Read from the blast table itself: a hand list of its own named
+ * everything nearby suffers; units.csv records the line's sourced 100%
+ * accuracy. Read from the blast table itself: a hand list of its own named
  * the Mangonel and the Onager and not the Siege Onager, so the Imperial
  * upgrade fired direct hits with no splash (defect register, "The Siege
  * Onager fired direct hits with no splash", 2026-09-24).

@@ -7,7 +7,7 @@ import type { UnitType } from '../unitTypes';
 
 // Base PIERCE armor per unit, from design/stats/units.csv (the `melee/pierce`
 // armor column, second value). Data-driven combat Slice 1: pierce attacks
-// (archers/skirmishers/siege/towers) are reduced by this instead of the single
+// (archers/skirmishers/Scorpions/tower arrows) use this instead of the single
 // melee `armor`. The standouts drive AoE2 counter-play: skirmishers (3) shrug
 // off archer fire, rams (180+) are near-immune to arrows, cavalry/scout line
 // carry 2. Melee base armor stays 0 here (unchanged prototype behaviour); the

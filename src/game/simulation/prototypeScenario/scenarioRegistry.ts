@@ -13,6 +13,7 @@ import * as fixtures from '../fixtures';
 // Imported directly, the way the map factories are: the barrel is at its
 // 500-line budget.
 import { createAiIdleSurplusFixture } from '../fixtures/aiIdleSurplus';
+import { attackDamageTypesSeeds, createAttackDamageTypesFixture } from '../fixtures/attackDamageTypes';
 import { createBlastCensusFixture } from '../fixtures/blastCensus';
 import { blastCensusSeed } from '../fixtures/blastCensusLayout';
 import { createBuildingShotLandingFixture } from '../fixtures/buildingShotLanding';
@@ -374,6 +375,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['building-shot-landing-fixture', createBuildingShotLandingFixture],
   ['wildlife-shots-fixture', createWildlifeShotsFixture],
   ['projectile-look-showcase-fixture', createProjectileLookShowcaseFixture],
+  ...attackDamageTypesSeeds().map((seed) => [seed, createAttackDamageTypesFixture] as const),
   ...UPGRADE_KEEPS_LINE_BONUSES_SEEDS.map((seed) => [seed, createUpgradeKeepsLineBonusesFixture] as const),
   // The blast census: one fixture per unit with a blast radius, generated
   // from the blast table, so a unit that gains a radius is censused too.

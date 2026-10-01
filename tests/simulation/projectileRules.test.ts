@@ -43,12 +43,12 @@ describe('projectile rules — who fires, and how accurately', () => {
     expect(unitAccuracy('skirmisher')).toBeCloseTo(0.9, 10);
     // Cavalry archers are famously inaccurate; scorpions never miss.
     expect(unitAccuracy('cavalry-archer')).toBeCloseTo(0.5, 10);
-    expect(unitAccuracy('heavy-cavalry-archer')).toBeCloseTo(0.5, 10);
+    expect(unitAccuracy('heavy-cavalry-archer')).toBeCloseTo(0.8, 10);
     expect(unitAccuracy('scorpion')).toBeCloseTo(1, 10);
     expect(unitAccuracy('heavy-scorpion')).toBeCloseTo(1, 10);
     expect(unitAccuracy('longbowman')).toBeCloseTo(0.7, 10);
-    expect(unitAccuracy('elite-longbowman')).toBeCloseTo(0.7, 10);
-    expect(unitAccuracy('bombard-cannon')).toBeCloseTo(0.92, 10);
+    expect(unitAccuracy('elite-longbowman')).toBeCloseTo(0.8, 10);
+    expect(unitAccuracy('bombard-cannon')).toBeCloseTo(1, 10);
     // A trebuchet is a siege weapon, not an anti-unit weapon.
     expect(unitAccuracy('trebuchet')).toBeCloseTo(0.15, 10);
   });
@@ -129,9 +129,9 @@ describe('projectile flight', () => {
   it('adds the per-unit wind-up delay from the attack_delay column', () => {
     // attack_delay seconds × TPS, rounded to whole ticks.
     expect(projectileLaunchDelayTicks('archer')).toBe(Math.round(0.35 * TPS));
-    expect(projectileLaunchDelayTicks('scorpion')).toBe(Math.round(0.21 * TPS));
-    expect(projectileLaunchDelayTicks('cavalry-archer')).toBe(Math.round(1 * TPS));
-    expect(projectileLaunchDelayTicks('trebuchet')).toBe(Math.round(0.6 * TPS));
+    expect(projectileLaunchDelayTicks('scorpion')).toBe(Math.round(0.16 * TPS));
+    expect(projectileLaunchDelayTicks('cavalry-archer')).toBe(Math.round(0.91 * TPS));
+    expect(projectileLaunchDelayTicks('trebuchet')).toBe(Math.round(0.88 * TPS));
     for (const unitType of RANGED) {
       expect(projectileLaunchDelayTicks(unitType)).toBeGreaterThanOrEqual(0);
       expect(Number.isSafeInteger(projectileLaunchDelayTicks(unitType))).toBe(true);

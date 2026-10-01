@@ -81,8 +81,8 @@ describe('Mangonel blast/splash (spec §10.7)', () => {
 
     for (const before of inRadius) {
       const after = bridge.getEntityHealth(before.id)?.currentHp ?? null;
-      // Base 40 pierce less the target's pierce armor (Spearman 0, Militia 1,
-      // Villager 0). A unit whose remaining HP was under that simply dies —
+      // Base 40 melee less the target's melee armor (all three types have 0).
+      // A unit whose remaining HP was under that simply dies —
       // which is itself proof it took at least that much.
       if (after === null) continue;
       expect(before.hp! - after).toBeGreaterThanOrEqual(39);
@@ -118,7 +118,7 @@ describe('Mangonel blast/splash (spec §10.7)', () => {
     expect(atImpact).toBeDefined();
     expect(Math.hypot(atImpact!.x - shot.aimX, atImpact!.y - shot.aimY)).toBeLessThanOrEqual(1);
     const hpAfter = bridge.getEntityHealth(spearman!.id)?.currentHp ?? 0;
-    // Base 40 pierce, Spearman 0 pierce armor.
+    // Base 40 melee, Spearman 0 melee armor.
     expect(atImpact!.hp! - hpAfter).toBe(40);
   }, 10_000);
 });

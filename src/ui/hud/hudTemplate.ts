@@ -17,13 +17,16 @@ function chip(
   label: string,
   initialValue: string,
 ): string {
+  const workers = ['food', 'wood', 'gold', 'stone'].includes(key)
+    ? `<span class="hud-resource-workers" data-resource-workers="${key}" aria-label="${label} workers: 0" data-tooltip="${label} workers: 0"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4" r="3" fill="currentColor"/><path d="M2 15c0-4 2-6 6-6s6 2 6 6Z" fill="currentColor"/></svg><span data-resource-worker-count="${key}">0</span></span>`
+    : '';
   return `
         <div class="hud-chip" data-hud-chip="${key}" data-tooltip="${HUD_CHIP_TOOLTIPS[key]}">
           <div class="hud-chip-head">
             ${resourceGlyph(key)}
             <div class="hud-label">${label}</div>
           </div>
-          <div class="hud-value" data-hud="${key}">${initialValue}</div>
+          ${workers ? '<div class="hud-resource-readout">' : ''}<div class="hud-value" data-hud="${key}">${initialValue}</div>${workers}${workers ? '</div>' : ''}
         </div>`;
 }
 

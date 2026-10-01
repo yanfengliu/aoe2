@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.242
+
+- Contact attackers and ranged melee-damage weapons now meet the correct armor family, including Eagle Warriors, unique contact units, siege stones, cannonballs, throwing axes, Mamelukes and Fire Ships. Old saved direct shots keep their stored family; old saved area shots use the corrected family, and historical recordings may fight differently when re-executed.
+- Base accuracy and wind-up now follow pinned DE values for the 44 supported ranged attackers. Heavy Cavalry Archers use 80% accuracy, Bombard Cannons use 100%, and Cavalry Archers launch after nine ticks at the game's ten ticks per second.
+- Each resource stockpile shows your resource workforce, including walking former gatherers, active Fishing Ships and trade units. Modern saves retain the last gathering occupation; old saved walkers with no recorded occupation count after their next gathering assignment. Replay shows player 1's workforce, including when the fog perspective changes, and preserves older recording formats.
+- Resource chips keep six- and seven-digit stockpiles readable alongside worker counts. Longer totals use an ellipsis in the fixed footprint; their exact number remains available in the accessible label and hover tooltip.
+
 ## 0.3.241
 
 - Opening another replay keeps the current replay if the replacement fails. Its playback, tick and perspective remain available, and leaving replay restores the original live-match pause state. A successful replacement switches directly between replays.

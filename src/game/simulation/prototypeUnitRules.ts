@@ -5,6 +5,7 @@
 
 import type { ResourceKind, UnitType } from './types';
 import { armorClassBonus, UNIT_ARMOR_CLASSES } from './prototypeUnitRules/armorClasses';
+import { MELEE_DAMAGE_PROJECTILE_UNITS } from './prototypeUnitRules/unitClassSets';
 import {
   ARCHER_LINE_UNITS,
   CAVALRY_ARCHER_UNITS,
@@ -50,7 +51,7 @@ export function unitPierceArmor(unitType: UnitType): number {
 // Effective pierce armor = the unit's BASE pierce armor plus its accumulated
 // armor-tech bonus (`CombatState.armor`, which is base 0 + blacksmith
 // upgrades). So padded/leather/ring archer armor, mail armor, and barding keep
-// reducing arrow / tower / siege (pierce) damage exactly as they did before the
+// reducing arrow / tower / Scorpion (pierce) damage exactly as before the
 // melee/pierce split — this slice ADDS base pierce armor without dropping the
 // existing tech mitigation. NOTE: until Slice 2 separates melee-tech from
 // pierce-tech armor (the CSV armor classes), the single tech bonus applies to
@@ -73,12 +74,11 @@ export function effectiveMeleeArmor(unitType: UnitType, armorTechBonus: number):
   return unitMeleeArmor(unitType) + armorTechBonus;
 }
 
-// A unit's attack deals melee damage if it is a melee unit (infantry, cavalry,
-// rams), otherwise pierce (archers, skirmishers, siege, gunpowder). Towers and
-// other arrow-firing buildings are pierce too, but they are not units — their
-// callers pass 'pierce' directly.
+// Armor family is independent of delivery: stones, cannonballs, axes,
+// scimitars and fire-ship shots meet melee armor while remaining projectiles.
+// Buildings' arrows are pierce; their callers pass that family directly.
 export function unitAttackType(unitType: UnitType): AttackType {
-  return isMeleeUnit(unitType) ? 'melee' : 'pierce';
+  return isMeleeUnit(unitType) || MELEE_DAMAGE_PROJECTILE_UNITS.has(unitType) ? 'melee' : 'pierce';
 }
 
 // Final damage of one connecting hit: subtract the armor that matches the

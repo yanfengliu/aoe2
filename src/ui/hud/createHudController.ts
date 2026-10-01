@@ -158,6 +158,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   const wood = root.querySelector<HTMLElement>('[data-hud="wood"]');
   const gold = root.querySelector<HTMLElement>('[data-hud="gold"]');
   const stone = root.querySelector<HTMLElement>('[data-hud="stone"]');
+  const resourceWorkers = Array.from(root.querySelectorAll<HTMLElement>('[data-resource-workers]'));
   const age = root.querySelector<HTMLElement>('[data-hud="age"]');
   const pop = root.querySelector<HTMLElement>('[data-hud="pop"]');
   const time = root.querySelector<HTMLElement>('[data-hud="time"]');
@@ -345,10 +346,23 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     const selectionState = bridge.getSelectionState();
     const cameraState = bridge.getCameraState();
 
-    if (food) food.textContent = String(hudState.playerResources.food);
-    if (wood) wood.textContent = String(hudState.playerResources.wood);
-    if (gold) gold.textContent = String(hudState.playerResources.gold);
-    if (stone) stone.textContent = String(hudState.playerResources.stone);
+    for (const value of [food, wood, gold, stone]) {
+      if (!value) continue;
+      const kind = value.dataset.hud as 'food' | 'wood' | 'gold' | 'stone';
+      const amount = String(hudState.playerResources[kind]);
+      const label = `${kind[0].toUpperCase()}${kind.slice(1)} stockpile: ${amount}`;
+      value.textContent = amount;
+      value.setAttribute('aria-label', label);
+      value.dataset.tooltip = label;
+    }
+    for (const workers of resourceWorkers) {
+      const kind = workers.dataset.resourceWorkers as 'food' | 'wood' | 'gold' | 'stone';
+      const count = hudState.resourceWorkers[kind];
+      workers.querySelector('[data-resource-worker-count]')!.textContent = String(count);
+      const label = `${kind[0].toUpperCase()}${kind.slice(1)} workers: ${count}`;
+      workers.setAttribute('aria-label', label);
+      workers.dataset.tooltip = `${label}. Includes gathering, drop-off, and former gathering occupation while walking; fishing ships work food and active trade units work gold.`;
+    }
     if (age) age.textContent = formatAgeName(hudState.currentAge);
     if (pop) pop.textContent = `${hudState.population.current}/${hudState.population.cap}`;
     if (time) time.textContent = formatMatchTime(hudState.tick, hudState.fpsTarget);

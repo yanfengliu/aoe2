@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Replay a recorded LLM-playtest bundle with the engine's SessionReplayer
 // and inspect the ACTUAL per-owner ground-truth state at sampled ticks.
-// This is the engine debugging tool for "what really happened" — it
+// This aoe2 script wraps the engine replayer to inspect "what really happened" — it
 // verifies conformance findings against the real recorded run instead of
 // trusting the agent's (possibly mistaken) trace narration or a synthetic
 // repro. Resources, villager tasks, units, and buildings come straight
@@ -33,12 +33,12 @@ const ticks = ti >= 0
 // document as one string, and a full-length run's bundle is past V8's
 // 536,870,888-char cap — the same wall that used to lose the run at write time.
 const bundle = readBundleFile(bundlePath);
-// Workaround for an LLM-harness recording bug: campaign bundles export
-// metadata.endTick = 0 (durationTicks 0) even though the run is fully
-// recorded (ticks/executions/snapshots all reach persistedEndTick). The
-// engine's SessionReplayer.openAt clamps to endTick, so without this the
-// replayer refuses any tick > 0. Repair endTick from persistedEndTick (or
-// the highest recorded tick) so the recorded run is actually replayable.
+// Normalize legacy metadata; the historical custom writer is not identified.
+// Since engine 1.1.4, live sinks stamp endTick and complete bundles replay up
+// to max(endTick, persistedEndTick); incomplete bundles stay persisted-bound.
+// This retained script normalization also infers the highest recorded tick
+// for custom legacy exports whose endTick is absent or zero. It is not needed
+// to recover the engine's already-supported persisted horizon.
 if (bundle.metadata && (bundle.metadata.endTick ?? 0) <= 0) {
   const recordedMax = Math.max(
     bundle.metadata.persistedEndTick ?? 0,
@@ -46,7 +46,7 @@ if (bundle.metadata && (bundle.metadata.endTick ?? 0) <= 0) {
   );
   bundle.metadata.endTick = recordedMax;
   bundle.metadata.durationTicks = recordedMax - (bundle.metadata.startTick ?? 0);
-  console.log(`[replay-inspect] repaired bundle endTick 0 -> ${recordedMax} (harness recording bug)\n`);
+  console.log(`[replay-inspect] repaired bundle endTick 0 -> ${recordedMax} (legacy metadata normalization; writer attribution unknown)\n`);
 }
 const replayer = SessionReplayer.fromBundle(bundle, {
   worldFactory: (snapshot) => createReplayWorldOnly(snapshot),

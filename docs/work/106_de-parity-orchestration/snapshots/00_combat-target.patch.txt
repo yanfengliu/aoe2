@@ -1,0 +1,1412 @@
+diff --git a/design/stats/units.csv b/design/stats/units.csv
+index d297459d..d3907ffa 100644
+--- a/design/stats/units.csv
++++ b/design/stats/units.csv
+@@ -2,18 +2,24 @@
+ # SiegeEngineers/aoe2techtree data/data.json at 3bb43b14 (2026-09-22, DE update 185872), generated from the game files.
+ # Rows are matched by display name; DE spells six differently (Arbalest = Arbalester, Camel = Camel Rider, Heavy Camel = Heavy Camel Rider,
+ #   Longboat = Longship, Elite Longboat = Elite Longship, Heavy Demolition Ship = Heavy Demo Ship).
+-# Every other column is the earlier transcription. The King (Regicide only) has no DE price and keeps its earlier one;
++# Columns without their own provenance below keep the earlier transcription. The King (Regicide only) has no DE price and keeps its earlier one;
+ #   rows with no flat price (Gaia, the starting Scout and Eagle Warrior, the packed Trebuchet) are unchanged.
+ # tests/content/trainAndResearchCostsAndTimes.test.ts holds the game to this file row by row.
++# Accuracy and attack_delay for the 44 trainable ranged attackers (range > 0 and attack > 0) SOURCED 2026-09-30
++# from the same DE revision above, data.Unit AccuracyPercent and AttackDelaySeconds. Exact source decimals are retained;
++# the simulation rounds wind-up to whole ticks at 10 TPS. Trebuchet uses firing/unpacked ID 42, not packed ID 331.
++# Fire Ship and Fast Fire Ship encode unused AccuracyPercent 0 for flames; their accuracy cells remain blank, not 0%.
++# tests/content/fixtures/deProjectileStats.json pins source IDs/fields and raw-input hashes; projectileStats.test.ts gates both columns.
++# Fire Ship description calls its base weapon melee damage, matching DE attack armor class 4 at this pinned revision.
+ name, description, expansion, age, created_in, cost, build_time, reload_time, attack_delay, movement_rate, line_of_sight, hit_points, range, attack, armor, attack_bonus, armor_bonus, search_radius, accuracy, blast_radius
+ Archer, Quick and light. Weak at close range; excels at battle from distance, Age of Kings, Feudal, Archery Range, {"Wood": 25;"Gold": 45}, 35, 2, 0.35, 0.96, 6, 30, 4, 4, 0/0,,,,80%,
+ Crossbowman,Upgraded archer, Age of Kings, Castle, Archery Range, {"Wood": 25;"Gold": 45}, 27, 2, 0.35, 0.96, 7, 35, 5, 5, 0/0,+3 spearmen,,,85%,
+-Arbalest,Upgraded crossbowman, Age of Kings, Imperial, Archery Range, {"Wood": 25;"Gold": 45}, 27, 2, 0.35, 0.96, 7, 40, 5, 6, 0/0,+3 spearmen,,,90%,
+-Cavalry Archer,Fast with ranged attack. Ideal for hit-and-run attacks, Age of Kings, Castle, Archery Range, {"Wood": 40; "Gold": 60}, 37, 2, 1, 1.4, 5, 50, 4, 6, 0/0,+2 spearmen,,6,50%,
+-Heavy Cavalry Archer,Upgraded Cavalry Archer, Age of Kings, Imperial, Archery Range, {"Wood": 40; "Gold": 60}, 30, 2, 1, 1.4, 6, 60, 4, 7, 1/0,+2 spearmen,,,50%,
+-Hand Cannoneer,Powerful close attack; inaccurate at range. Attack bonus against spearman +11 in total, Age of Kings, Imperial, Archery Range, {"Food": 45;"Gold": 50}, 34, 3.45, 0.45, 0.96, 9, 35, 7, 17, 1/0,1 spearmen;+10 infantry;+2 rams,,,65%,
+-Skirmisher,Ranged unit equipped with armor vs. archer attacks, Age of Kings, Feudal, Archery Range, {"Food": 25;"Wood": 35}, 26, 3, 0.5, 0.96, 6, 30, 1-4, 2, 0/3,+3 spearmen;+3 archers/hand cannon/skirms/conquistadors,,,90%,
+-Elite Skirmisher, Upgraded skirmisher, Age of Kings, Castle, Archery Range, {"Food": 25;"Wood": 35}, 22, 3, 0.5, 0.96, 7, 35, 1-5, 3, 0/4,+3 spearmen;+4 archers/hand cannon/skirms/conquistadors;+6 against cavalry archers,,,90%,
++Arbalest,Upgraded crossbowman, Age of Kings, Imperial, Archery Range, {"Wood": 25;"Gold": 45}, 27, 2, 0.342222, 0.96, 7, 40, 5, 6, 0/0,+3 spearmen,,,90%,
++Cavalry Archer,Fast with ranged attack. Ideal for hit-and-run attacks, Age of Kings, Castle, Archery Range, {"Wood": 40; "Gold": 60}, 37, 2, 0.91, 1.4, 5, 50, 4, 6, 0/0,+2 spearmen,,6,50%,
++Heavy Cavalry Archer,Upgraded Cavalry Archer, Age of Kings, Imperial, Archery Range, {"Wood": 40; "Gold": 60}, 30, 2, 0.897, 1.4, 6, 60, 4, 7, 1/0,+2 spearmen,,,80%,
++Hand Cannoneer,Powerful close attack; inaccurate at range. Attack bonus against spearman +11 in total, Age of Kings, Imperial, Archery Range, {"Food": 45;"Gold": 50}, 34, 3.45, 0.35, 0.96, 9, 35, 7, 17, 1/0,1 spearmen;+10 infantry;+2 rams,,,75%,
++Skirmisher,Ranged unit equipped with armor vs. archer attacks, Age of Kings, Feudal, Archery Range, {"Food": 25;"Wood": 35}, 26, 3, 0.506667, 0.96, 6, 30, 1-4, 2, 0/3,+3 spearmen;+3 archers/hand cannon/skirms/conquistadors,,,90%,
++Elite Skirmisher, Upgraded skirmisher, Age of Kings, Castle, Archery Range, {"Food": 25;"Wood": 35}, 22, 3, 0.506667, 0.96, 7, 35, 1-5, 3, 0/4,+3 spearmen;+4 archers/hand cannon/skirms/conquistadors;+6 against cavalry archers,,,90%,
+ Eagle Warrior,Fast infantry with extensive sight; resists conversion; attack bonus vs. Monks, The Conquerors, Dark, Barracks, {"info":"1 Unit free at the start of the game for Aztecs and Mayans"}, 0, 2, 0, 1.1, 6, 50, 0, 4, 0/2,+8 monks;+3 siege,,,,
+ Eagle Warrior,Fast infantry with extensive sight; resists conversion; attack bonus vs. Monks, The Conquerors, Castle, Barracks, {"Food": 20;"Gold": 50}, 35, 2, 0, 1.1, 6, 50, 0, 7, 0/2,+8 monks;+3 siege;+2 cavalry;+1 ship/camel,,,,
+ Elite Eagle Warrior,Upgraded Eagle Warrior, The Conquerors, Imperial, Barracks, {"Food": 20;"Gold": 50}, 20, 2, 0, 1.3, 6, 60, 0, 9, 0/4,+10 monks;+5 siege;+4 cavalry;+2 ship/camel,,,,
+@@ -27,24 +33,24 @@ Two-Handed Swordsman, Upgraded Long Swordsman. Attack bonus vs. buildings, Age o
+ Champion,Upgraded Two-Handed Swordsman, Age of Kings, Imperial, Barracks, {"Food": 50; "Gold": 20}, 21, 2, 0, 0.9, 5, 70, 0, 13, 1/1,+6 eagles;+3 buildings,,5,,
+ King,Cannot be produced so the cost and build time just for the sake of interest, Age of Kings, Dark, Castle, {"Food": 50}, 30, 0, 0, 1.32, 6, 75, 0, 0, 0/0,,,,,
+ Petard,Demolition infantry unit armed with explosives. Bonuses add up - for example against walls and gates: +500 buildings +900 walls = +1400 bonus attack, The Conquerors, Castle, Castle, {"Food": 65; "Gold": 20}, 25, 0, 0, 0.8, 4, 50, 0, 25, 0/2,+500 buildings;+100 castle;+60 siege;+900 walls & gates,,,,0.5
+-Trebuchet, Powerful siege weapon used to destroy buildings and walls from long distance. Cannot fire on close units. Must be packed to move and unpacked to attack. Can cut paths through forests. Unpack time: 0:11, Age of Kings, Imperial, Castle, {"Wood": 200;"Gold": 200}, 50, 10, 0.6, 0, 18, 150, 4-16, 200, 1/150,+250 buildings,,,15%,
++Trebuchet, Powerful siege weapon used to destroy buildings and walls from long distance. Cannot fire on close units. Must be packed to move and unpacked to attack. Can cut paths through forests. Unpack time: 0:11, Age of Kings, Imperial, Castle, {"Wood": 200;"Gold": 200}, 50, 10, 0.88, 0, 18, 150, 4-16, 200, 1/150,+250 buildings,,,15%,
+ Trebuchet (packed), Powerful siege weapon used to destroy buildings and walls from long distance. Cannot fire on close units. Must be packed to move and unpacked to attack. Can cut paths through forests. Unpack time: 0:11, Age of Kings, Imperial, Castle, {"Wood": 200;"Gold": 200}, 50, 0, 0, 0.8, 18, 150, 0, 0, 2/8,+250 buildings,,,15% (80% if walls/towers/buildings with target radius 1),
+-Cannon Galleon,Long-range warship used to attack targets on shore to establish beachhead. Fires slowly and has minimum range, Age of Kings, Imperial, Dock, {"Wood": 200;"Gold": 150}, 46, 10, 0, 1.1, 15, 120, 3-13, 35, 0/6,+200 buildings;+15 infantry;+15 archers;+15 cavalry;+40 siege,,,50%,
+-Elite Cannon Galleon, Upgraded Cannon Galleon, Age of Kings, Imperial, Dock, {"Wood": 200;"Gold": 150}, 46, 10, 0, 1.1, 17, 150, 3-15, 45, 0/8,+275 buildings;+15 infantry;+15 archers;+15 cavalry;+40 siege,,,50%,
++Cannon Galleon,Long-range warship used to attack targets on shore to establish beachhead. Fires slowly and has minimum range, Age of Kings, Imperial, Dock, {"Wood": 200;"Gold": 150}, 46, 10, 0, 1.1, 15, 120, 3-13, 35, 0/6,+200 buildings;+15 infantry;+15 archers;+15 cavalry;+40 siege,,,100%,
++Elite Cannon Galleon, Upgraded Cannon Galleon, Age of Kings, Imperial, Dock, {"Wood": 200;"Gold": 150}, 46, 10, 0, 1.1, 17, 150, 3-15, 45, 0/8,+275 buildings;+15 infantry;+15 archers;+15 cavalry;+40 siege,,,100%,
+ Demolition Ship,Filled with explosives. Self-destructs when used. Pilot near enemy ships and detonate to wrest control of the sea from an entrenched opponent, Age of Kings, Castle, Dock, {"Wood": 45; "Gold": 80}, 31, 0, 0, 1.6, 6, 50, 0, 110, 0/3,+220 buildings,+3 ships/camel,,,2.5
+ Heavy Demolition Ship, Upgraded Demolition Ship, Age of Kings, Imperial, Dock, {"Wood": 45; "Gold": 80}, 31, 0, 0, 1.6, 6, 60, 0, 140, 0/3,+280 buildings,+5 ships/camel,5,,3.5
+-Fire Ship, Spews fire at other ships. Good at sinking galleys. Attack shows pierce attack, Age of Kings, Castle, Dock, {"Wood": 75;"Gold": 45}, 27, 0.25, 0, 1.35, 5, 100, 2.49, 2, 0/6,+2 buildings;+3 ships/camels;+2 turtle ships;+1 melee,+5 ships/camel,,,
++Fire Ship, Spews fire at other ships. Good at sinking galleys. Its fire deals melee damage, Age of Kings, Castle, Dock, {"Wood": 75;"Gold": 45}, 27, 0.25, 0, 1.35, 5, 100, 2.49, 2, 0/6,+2 buildings;+3 ships/camels;+2 turtle ships;+1 melee,+5 ships/camel,,,
+ Fast Fire Ship, Upgraded Fire Ship, Age of Kings, Imperial, Dock, {"Wood": 75;"Gold": 45}, 27, 0.25, 0, 1.43, 6, 120, 2.49, 3, 0/8,+3 buildings;+4 ships/camels;+3 turtle ships;+1 melee,+7 ships/camel,,,
+-Galley,Small and fast ship with weak attack. Used to scout the water and for early attacks on enemy fishing fleets, Age of Kings, Feudal, Dock, {"Wood": 90;"Gold": 30}, 45, 3, 0, 1.43, 7, 120, 5, 6, 0/6,+6 buildings;+8 ships/camels;+3 rams,,,,
+-War Galley,Upgraded Galley, Age of Kings, Castle, Dock, {"Wood": 90;"Gold": 30}, 27, 3, 0, 1.43, 8, 135, 6, 7, 0/6,+7 buildings;+9 ships/camels;+4 rams,,,,
+-Galleon, Upgraded War Galley, Age of Kings, Imperial, Dock, {"Wood": 90;"Gold": 30}, 27, 3, 0, 1.43, 9, 165, 7, 8, 0/8,+8 buildings;+11 ships/camels;+4 rams,,,,
+-Longboat,Viking unique unit. Fires multiple arrows. volley of 4 arrows (7-1-1-1). Castle needed. Because of the multiple arrows the delay between starts of attacks is roughly 3.34, Age of Kings, Castle, Dock, {"Wood": 100; "Gold": 50}, 25, 3, 9, 1.54, 8, 130, 6, 7, 0/6,+7 buildings;+9 ships;+4 rams,,,100%,
++Galley,Small and fast ship with weak attack. Used to scout the water and for early attacks on enemy fishing fleets, Age of Kings, Feudal, Dock, {"Wood": 90;"Gold": 30}, 45, 3, 0, 1.43, 7, 120, 5, 6, 0/6,+6 buildings;+8 ships/camels;+3 rams,,,100%,
++War Galley,Upgraded Galley, Age of Kings, Castle, Dock, {"Wood": 90;"Gold": 30}, 27, 3, 0, 1.43, 8, 135, 6, 7, 0/6,+7 buildings;+9 ships/camels;+4 rams,,,100%,
++Galleon, Upgraded War Galley, Age of Kings, Imperial, Dock, {"Wood": 90;"Gold": 30}, 27, 3, 0, 1.43, 9, 165, 7, 8, 0/8,+8 buildings;+11 ships/camels;+4 rams,,,100%,
++Longboat,Viking unique unit. Fires multiple arrows. volley of 4 arrows (7-1-1-1). Castle needed. Because of the multiple arrows the delay between starts of attacks is roughly 3.34, Age of Kings, Castle, Dock, {"Wood": 100; "Gold": 50}, 25, 3, 0, 1.54, 8, 130, 6, 7, 0/6,+7 buildings;+9 ships;+4 rams,,,100%,
+ Elite Longboat, Upgraded Longboat, Age of Kings, Imperial, Dock, {"Wood": 100; "Gold": 50}, 25, 3, 0, 1.54, 9, 160, 7, 8, 0/8,+8 buildings;+11 ships;+4 rams,,,100%,
+ Fishing Ship, Ship to harvest fish (resource), Age of Kings, Dark, Dock, {"Wood": 75}, 40, 0, 0, 1.26, 5, 60, 0, 0, 0/6,,,12,,
+ Trade Cog,Movement rate 2.00 with caravan, Age of Kings, Feudal, Dock, {"Wood": 100;"Gold": 50}, 36, 0, 0, 1.32, 6, 80, 0, 0, 0/6,,,,,
+ Transport Ship,Ship to carry units. Garrison inside 5 (10 with careening and 20 with dry dock), Age of Kings, Feudal, Dock, {"Wood": 125}, 46, 0, 0, 1.45, 5, 100, 0, 0, 4/8,,,,,
+-Turtle Ship,Korean unique unit. Slow and ironclad battleship used to destroy other ships at close range, The Conquerors, Castle, Dock, {"Wood": 190; "Gold": 130}, 50, 6, 0, 0.9, 8, 200, 6, 50, 6/5,,+8 ships,,,0.5
+-Elite Turtle Ship, Upgraded Turtle Ship, The Conquerors, Imperial, Dock, {"Wood": 190; "Gold": 130}, 50, 6, 0, 0.9, 8, 300, 6, 50, 8/6,,+11 ships;+1 turtle ship armor,,,0.5
++Turtle Ship,Korean unique unit. Slow and ironclad battleship used to destroy other ships at close range, The Conquerors, Castle, Dock, {"Wood": 190; "Gold": 130}, 50, 6, 0.15, 0.9, 8, 200, 6, 50, 6/5,,+8 ships,,100%,0.5
++Elite Turtle Ship, Upgraded Turtle Ship, The Conquerors, Imperial, Dock, {"Wood": 190; "Gold": 130}, 50, 6, 0.15, 0.9, 8, 300, 6, 50, 8/6,,+11 ships;+1 turtle ship armor,,100%,0.5
+ Wild Boar,Wild boar, Age of Kings, Dark, Gaia, {"Cost":"No cost"; "Provides":{"Food": 340; "Resource Decay": 0.25 } }, 0, 2, 0, 0.96, 4, 75, 0, 7, 0/0,,,,,
+ Deer,Wild deers running around, Age of Kings, Dark, Gaia, {"Cost":"No cost"; "Provides":{"Food": 140; "Resource Decay": 0.25 } }, 0, 0, 0, 0.737, 2, 5, 0, 0, 0/0,,,,,
+ Horse,Can be used as scout, Age of Kings, Dark, Gaia, {"Cost":"No cost"}, 0, 0, 0, 1.2, 2, 50, 0, 0, 0/0,,,,,
+@@ -55,15 +61,15 @@ Jaguar,Wild jaguar. Same as wolf on yucatan and other americas maps, Age of King
+ Trade Cart,Used to trade with other players by land. Carries goods from your Market to another player's Market and brings back gold. The farther the Market the higher your profit, Age of Kings, Feudal, Market, {"Wood": 100;"Gold": 50}, 51, 0, 0, 1, 7, 70, 0, 0, 0/0,,,,,
+ Missionary, Spanish unique unit. Mounted monk, Age of Kings, Castle, Monastery, {"Food": 30; "Gold": 100}, 51, 0, 0, 1.1, 9, 30, 7 (4 heal range), 0, 0/0,,,,,
+ Monk,Slow and weak. Converts enemy units and ships to your civilization (player color). Heals wounded villagers and military units (except siege weapons), Age of Kings, Castle, Monastery, {"Gold": 100}, 51, 5.5, 0, 0.7, 11, 30, 9 (4 heal range), 0, 0/0,,,,,
+-Bombard Cannon,Powerful mobile anti-building siege weapon, Age of Kings, Imperial, Siege Workshop, {"Wood": 225;"Gold": 225}, 56, 6.5, 0.21, 0.7, 14, 80, 5-12, 40, 2/5,+200 buildings;+40 siege/camels;+20 siege;+40 stone defense,,,92%,0.5
+-Mangonel,Wheeled siege weapon used to attack a small mass of units. Area of effect attack. Can attack ground. Weak vs. close nonranged units, Age of Kings, Castle, Siege Workshop, {"Wood": 160;"Gold": 135}, 46, 6, 0, 0.6, 9, 50, 3-7, 40, 0/6,+35 buildings;+12 siege,,,,1
+-Onager,Upgraded Mangonel, Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 135}, 46, 6, 0, 0.6, 10, 60, 3-8, 50, 0/7,+45 buildings;+12 siege,,,,1.25
+-Siege Onager,Upgraded Onager, Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 135}, 46, 6, 0, 0.6, 10, 70, 3-8, 75, 0/8,+60 buildings;+12 siege,,,,1.5
++Bombard Cannon,Powerful mobile anti-building siege weapon, Age of Kings, Imperial, Siege Workshop, {"Wood": 225;"Gold": 225}, 56, 6.5, 0.21, 0.7, 14, 80, 5-12, 40, 2/5,+200 buildings;+40 siege/camels;+20 siege;+40 stone defense,,,100%,0.5
++Mangonel,Wheeled siege weapon used to attack a small mass of units. Area of effect attack. Can attack ground. Weak vs. close nonranged units, Age of Kings, Castle, Siege Workshop, {"Wood": 160;"Gold": 135}, 46, 6, 0, 0.6, 9, 50, 3-7, 40, 0/6,+35 buildings;+12 siege,,,100%,1
++Onager,Upgraded Mangonel, Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 135}, 46, 6, 0, 0.6, 10, 60, 3-8, 50, 0/7,+45 buildings;+12 siege,,,100%,1.25
++Siege Onager,Upgraded Onager, Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 135}, 46, 6, 0, 0.6, 10, 70, 3-8, 75, 0/8,+60 buildings;+12 siege,,,100%,1.5
+ Battering Ram,Slow and lumbering siege weapon used to reduce enemy towns to ruins. Can garrison 4 units (affects movement rate +0.05 per unit), Age of Kings, Castle, Siege Workshop, {"Wood": 160;"Gold": 75}, 36, 5, 0, 0.5, 3, 175, 0, 2, 0/180,+125 (+165 full) buildings;+40 siege;+150 (+190 full) with siege engineers buildings,-3 melee,,,
+ Capped Ram,Upgraded Battering Ram. Can garrison 4 units (affects movement rate +0.05 per unit). Max speed at 0.7, Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 75}, 36, 5, 0, 0.5, 3, 200, 0, 3, 0/190,+150 (+190 full) buildings;+50 siege;+180 (+220 full) with siege engineers buildings,-3 melee;+1 ram armor,,,1.5
+ Siege Ram,Upgraded Capped Ram. Can garrison 6 units (affects movement rate +0.05 per unit), Age of Kings, Imperial, Siege Workshop, {"Wood": 160;"Gold": 75}, 36, 5, 0, 0.6, 3, 270, 0, 4, 0/195,+200 (+260 full) buildings;+65 siege;+240 (+300 full) with siege engineers buildings,-3 melee;+2 ram armor,,,2
+-Scorpion, Damage to all units in the path, Age of Kings, Castle, Siege Workshop, {"Wood": 75;"Gold": 75}, 30, 3.6, 0.21, 0.65, 9, 40, 2-7, 12, 0/6,+2 buildings;+6 war elephants;+0 melee;+1 rams,,,100%,
+-Heavy Scorpion, Upgraded Scorpion, Age of Kings, Imperial, Siege Workshop, {"Wood": 75;"Gold": 75}, 30, 3.6, 0.21, 0.65, 9, 50, 2-7, 16, 0/7,+4 buildings;+8 war elephants;+0 melee;+2 rams,,,100%,
++Scorpion, Damage to all units in the path, Age of Kings, Castle, Siege Workshop, {"Wood": 75;"Gold": 75}, 30, 3.6, 0.16, 0.65, 9, 40, 2-7, 12, 0/6,+2 buildings;+6 war elephants;+0 melee;+1 rams,,,100%,
++Heavy Scorpion, Upgraded Scorpion, Age of Kings, Imperial, Siege Workshop, {"Wood": 75;"Gold": 75}, 30, 3.6, 0.16, 0.65, 9, 50, 2-7, 16, 0/7,+4 buildings;+8 war elephants;+0 melee;+2 rams,,,100%,
+ Camel, Excels at killing other mounted units. (not classified as cavalry), Age of Kings, Castle, Stable, {"Food": 55;"Gold": 60}, 22, 2, 0, 1.45, 4, 100, 0, 5, 0/0,+10 against cavalry;+5 ships/camels,,,,
+ Heavy Camel,Upgraded Camel. Attack bonus vs. cavalry. (not classified as cavalry), Age of Kings, Imperial, Stable, {"Food": 55;"Gold": 60}, 22, 2, 0, 1.45, 5, 120, 0, 7, 0/0,+18 against cavalry;+9 ships/camels,,4,,
+ Knight,Fast and heavy cavalry, Age of Kings, Castle, Stable, {"Food": 60;"Gold": 75}, 30, 1.8, 0, 1.35, 4, 100, 0, 10, 2/2,,,,,
+@@ -78,35 +84,35 @@ Berserk,Viking unique unit. Infantry that slowly heals itself, Age of Kings, Cas
+ Elite Berserk, Upgraded Berserk, Age of Kings, Imperial, Castle, {"Food": 65; "Gold": 20}, 12, 2, 0, 1.05, 5, 72, 0, 14, 2/1,+3 eagles;+3 buildings,,,,
+ Cataphract,Byzantine unique unit. Heavily armored cavalry, Age of Kings, Castle, Castle, {"Food": 70;"Gold": 75}, 20, 1.8, 0, 1.35, 4, 110, 0, 9, 2/1,+9 infantry,+12 cavalry,,,
+ Elite Cataphract, Upgraded Cataphract, Age of Kings, Imperial, Castle, {"Food": 70;"Gold": 75}, 20, 1.7, 0, 1.35, 5, 150, 0, 12, 2/1,+12 infantry,+16 cavalry,,,
+-Chu Ko Nu,Chinese unique unit. Archer with mediocre range. Shoots a volley of 2 extra arrows with 3 attack. Because of the multiple arrows the delay between starts of attacks is more (roughly 3.6), Age of Kings, Castle, Castle, {"Wood": 40;"Gold": 35}, 16, 3.6, 0.21, 0.96, 6, 45, 4, 8, 0/0,+2 spearmen,,,85%,
+-Elite Chu Ko Nu, Upgraded Chu Ko Nu, Age of Kings, Imperial, Castle, {"Wood": 40;"Gold": 35}, 13, 3.75, 0.21, 0.96, 6, 50, 6, 8, 0/0,+2 spearmen,,,85%,
+-Conquistador,Spanish unique unit. Mounted Hand Cannoneer. Powerful close attack but inaccurate at range. (Only archer armor upgrades apply from blacksmith not range or attack), Age of Kings, Castle, Castle, {"Food": 75; "Gold": 60}, 26, 2.9, 0.4, 1.3, 8, 55, 6, 16, 2/2,+4 rams,,,65%,
+-Elite Conquistador, Upgraded Conquistador, Age of Kings, Imperial, Castle, {"Food": 75; "Gold": 60}, 24, 2.9, 0.4, 1.3, 8, 70, 6, 18, 2/2,+6 ram;+2 buildings,,,70%,
++Chu Ko Nu,Chinese unique unit. Archer with mediocre range. Shoots a volley of 2 extra arrows with 3 attack. Because of the multiple arrows the delay between starts of attacks is more (roughly 3.6), Age of Kings, Castle, Castle, {"Wood": 40;"Gold": 35}, 16, 3.6, 0.221667, 0.96, 6, 45, 4, 8, 0/0,+2 spearmen,,,85%,
++Elite Chu Ko Nu, Upgraded Chu Ko Nu, Age of Kings, Imperial, Castle, {"Wood": 40;"Gold": 35}, 13, 3.75, 0.221667, 0.96, 6, 50, 6, 8, 0/0,+2 spearmen,,,85%,
++Conquistador,Spanish unique unit. Mounted Hand Cannoneer. Powerful close attack but inaccurate at range. (Only archer armor upgrades apply from blacksmith not range or attack), Age of Kings, Castle, Castle, {"Food": 75; "Gold": 60}, 26, 2.9, 0.404444, 1.3, 8, 55, 6, 16, 2/2,+4 rams,,,65%,
++Elite Conquistador, Upgraded Conquistador, Age of Kings, Imperial, Castle, {"Food": 75; "Gold": 60}, 24, 2.9, 0.404444, 1.3, 8, 70, 6, 18, 2/2,+6 ram;+2 buildings,,,70%,
+ Huskarl,Gothic unique unit. Infantry with substantial pierce armor; virtually immune to archer fire. Attack bonus vs. buildings and archers, Age of Kings, Castle, Castle, {"Food": 75; "Gold": 35}, 13, 2, 0, 1.05, 3, 60, 0, 10, 0/6,+2 eagles;+2 buildings;+6 archers/hand cannoneers,,,,
+ Elite Huskarl, Upgraded Huskarl, Age of Kings, Imperial, Castle, {"Food": 75; "Gold": 35}, 13, 2, 0, 1.05, 5, 70, 0, 12, 0/8,+3 eagles;+3 buildings;+10 archers/hand cannoneers,,,,
+ Jaguar Warrior,Aztec unique unit. Attack bonus vs. other infantry, The Conquerors, Castle, Castle, {"Food": 60;"Gold": 30}, 12, 2, 0, 1, 3, 50, 0, 10, 1/0,+12 eagles;+2 buildings;+10 infantry,,,,
+ Elite Jaguar Warrior, Upgraded Jaguar Warrior, The Conquerors, Castle, Castle, {"Food": 60;"Gold": 30}, 12, 2, 0, 1, 5, 75, 0, 12, 2/0,+12 eagles;+2 buildings;+10 infantry,,,,
+-Janissary, Turkish unique unit. Hand Cannoneer with longer range and no minimum range, Age of Kings, Castle, Castle, {"Food": 60;"Gold": 55}, 21, 3.45, 0.28, 0.96, 10, 44, 8, 17, 1/0,+2 rams,,,50%,
+-Elite Janissary, Upgraded Janissary, Age of Kings, Imperial, Castle, {"Food": 60;"Gold": 55}, 21, 3.45, 0, 0.96, 10, 50, 8, 22, 2/0,+3 rams,,,50%,
+-Longbowman,British unique unit. Powerful archer with long range, Age of Kings, Castle, Castle, {"Wood": 35;"Gold": 40}, 18, 2, 0.35, 0.96, 8, 35, 6, 6, 0/0,+2 spearmen,,,70%,
+-Elite Longbowman, Upgraded Longbowman, Age of Kings, Imperial, Castle, {"Wood": 35;"Gold": 40}, 18, 2, 0.35, 0.96, 10, 40, 8, 7, 0/1,+2 spearmen,,,70%,
+-Mameluke,Saracen unique unit. Camel with hand-to-hand attack at distance. Excels vs. other mounted units, Age of Kings, Castle, Castle, {"Food": 55;"Gold": 85}, 23, 2, 0.6, 1.4, 5, 65, 3, 7, 0/0,+9 cavalry,+11 cavalry,,,
+-Elite Mameluke, Upgraded Mameluke, Age of Kings, Imperial, Castle, {"Food": 55;"Gold": 85}, 23, 2, 0, 1.4, 5, 80, 3, 10, 1/0,+12 cavalry,+11 cavalry,,,
+-Mangudai,Mongol unique unit. Cavalry archer with attack bonus vs. siege weapons, Age of Kings, Castle, Castle, {"Wood": 55;"Gold": 65}, 26, 1.68, 1, 1.45, 6, 60, 4, 6, 0/0,+1 spearmen;+3 siege,,5,95%,
+-Elite Mangudai, Upgraded Mangudai, Age of Kings, Imperial, Castle, {"Wood": 55;"Gold": 65}, 26, 1.68, 0, 1.45, 6, 60, 4, 8, 0/1,+1 spearmen;+5 siege,,6,95%,
++Janissary, Turkish unique unit. Hand Cannoneer with longer range and no minimum range, Age of Kings, Castle, Castle, {"Food": 60;"Gold": 55}, 21, 3.45, 0.4, 0.96, 10, 44, 8, 17, 1/0,+2 rams,,,50%,
++Elite Janissary, Upgraded Janissary, Age of Kings, Imperial, Castle, {"Food": 60;"Gold": 55}, 21, 3.45, 0, 0.96, 10, 50, 8, 22, 2/0,+3 rams,,,65%,
++Longbowman,British unique unit. Powerful archer with long range, Age of Kings, Castle, Castle, {"Wood": 35;"Gold": 40}, 18, 2, 0.5, 0.96, 8, 35, 6, 6, 0/0,+2 spearmen,,,70%,
++Elite Longbowman, Upgraded Longbowman, Age of Kings, Imperial, Castle, {"Wood": 35;"Gold": 40}, 18, 2, 0.5, 0.96, 10, 40, 8, 7, 0/1,+2 spearmen,,,80%,
++Mameluke,Saracen unique unit. Camel with hand-to-hand attack at distance. Excels vs. other mounted units, Age of Kings, Castle, Castle, {"Food": 55;"Gold": 85}, 23, 2, 0.4, 1.4, 5, 65, 3, 7, 0/0,+9 cavalry,+11 cavalry,,100%,
++Elite Mameluke, Upgraded Mameluke, Age of Kings, Imperial, Castle, {"Food": 55;"Gold": 85}, 23, 2, 0.2, 1.4, 5, 80, 3, 10, 1/0,+12 cavalry,+11 cavalry,,100%,
++Mangudai,Mongol unique unit. Cavalry archer with attack bonus vs. siege weapons, Age of Kings, Castle, Castle, {"Wood": 55;"Gold": 65}, 26, 1.68, 0.498333, 1.45, 6, 60, 4, 6, 0/0,+1 spearmen;+3 siege,,5,95%,
++Elite Mangudai, Upgraded Mangudai, Age of Kings, Imperial, Castle, {"Wood": 55;"Gold": 65}, 26, 1.68, 0.498333, 1.45, 6, 60, 4, 8, 0/1,+1 spearmen;+5 siege,,6,95%,
+ Plumed Archer,Mayan unique unit. Strong fast and well-armored archer with less attack than other archers, The Conquerors, Castle, Castle, {"Wood": 55; "Gold": 55}, 16, 1.9, 0.5, 1.2, 6, 50, 4, 5, 0/1,+1 infantry;+2 spearmen,,,80%,
+-Elite Plumed Archer, Upgraded Plumed Archer, The Conquerors, Castle, Castle, {"Wood": 55; "Gold": 55}, 16, 1.9, 0.5, 1.2, 7, 65, 5, 5, 0/2,+2 infantry;+2 spearmen,,,80%,
++Elite Plumed Archer, Upgraded Plumed Archer, The Conquerors, Castle, Castle, {"Wood": 55; "Gold": 55}, 16, 1.9, 0.5, 1.2, 7, 65, 5, 5, 0/2,+2 infantry;+2 spearmen,,,90%,
+ Samurai,Japanese unique unit. Infantry with fast attack. Attack bonus vs. other unique units and buildings, Age of Kings, Castle, Castle, {"Food": 45; "Gold": 30}, 9, 1.425, 0, 1, 4, 60, 0, 8, 1/1,+2 eagles;+2 buildings;+10 unique units,,,,
+ Elite Samurai, Upgraded Samurai, Age of Kings, Imperial, Castle, {"Food": 45; "Gold": 30}, 9, 1.425, 0, 1, 5, 80, 0, 12, 1/1,+3 eagles;+3 buildings;+12 unique units,,,,
+ Tarkan, Hun unique unit. Cavalry with attack bonus vs. buildings. (Attack bonuses stack - for example +16 against a palisade wall (8 buildings + 8 walls)), The Conquerors, Castle, Castle, {"Food": 60;"Gold": 60}, 14, 2.1, 0, 1.35, 5, 90, 0, 7, 1/2,+10 castle;+8 buildings;+12 stone defense;+8 walls and gates,,,,
+ Elite Tarkan, Upgraded Tarkan, The Conquerors, Castle, Castle, {"Food": 60;"Gold": 60}, 14, 2.1, 0, 1.35, 7, 150, 0, 11, 1/3,+10 castle;+10 buildings;+12 stone defense;+10 walls and gates,,,,
+ Teutonic Knight,Teutonic unique unit. Infantry with effective armor and slow but powerful attack, Age of Kings, Castle, Castle, {"Food": 85; "Gold": 30}, 12, 2, 0, 0.65, 3, 70, 0, 12, 5/2,+4 eagles;+4 buildings,,,,
+ Elite Teutonic Knight, Upgraded Teutonic Knight, Age of Kings, Imperial, Castle, {"Food": 85; "Gold": 30}, 12, 2, 0, 0.65, 5, 100, 0, 17, 10/2,+4 eagles;+4 buildings,,,,
+-Throwing Axeman,Frankish unique unit. Infantry with ranged attack, Age of Kings, Castle, Castle, {"Food": 55;"Gold": 25}, 13, 2, 1.2, 0.9, 5, 50, 3, 7, 0/0,+1 eagles;+1 buildings,,,,
+-Elite Throwing Axeman, Upgraded Throwing Axeman, Age of Kings, Imperial, Castle, {"Food": 55;"Gold": 25}, 13, 2, 0.8, 0.9, 6, 60, 4, 8, 1/0,+2 eagles;+2 buildings,,,,
++Throwing Axeman,Frankish unique unit. Infantry with ranged attack, Age of Kings, Castle, Castle, {"Food": 55;"Gold": 25}, 13, 2, 0.995556, 0.9, 5, 50, 3, 7, 0/0,+1 eagles;+1 buildings,,,100%,
++Elite Throwing Axeman, Upgraded Throwing Axeman, Age of Kings, Imperial, Castle, {"Food": 55;"Gold": 25}, 13, 2, 0.815111, 0.9, 6, 60, 4, 8, 1/0,+2 eagles;+2 buildings,,,100%,
+ War Elephant,Persian unique unit. Slow powerful strong and well-armored cavalry, Age of Kings, Castle, Castle, {"Food": 170; "Gold": 85}, 25, 2, 0, 0.6, 4, 450, 0, 15, 1/2,+7 buildings;+7 stone defense,,,,
+ Elite War Elephant, Upgraded War Elephant, Age of Kings, Imperial, Castle, {"Food": 170; "Gold": 85}, 25, 2, 0, 0.6, 5, 600, 0, 20, 1/3,+10 buildings;+10 stone defense,,,,
+-War Wagon,Korean unique unit. Heavily armored horse-drawn archery unit, The Conquerors, Castle, Castle, {"Wood": 200; "Gold": 60}, 21, 2.5, 1, 1.2, 6,  150, 4, 9, 0/3,+5 buildings,,6,100%,
+-Elite War Wagon, Upgraded War Wagon, The Conquerors, Imperial, Castle, {"Wood": 200; "Gold": 60}, 21, 2.5, 1, 1.2, 8, 200, 5, 9, 0/4,+5 buildings,,7,100%,
++War Wagon,Korean unique unit. Heavily armored horse-drawn archery unit, The Conquerors, Castle, Castle, {"Wood": 200; "Gold": 60}, 21, 2.5, 0.995556, 1.2, 6,  150, 4, 9, 0/3,+5 buildings,,6,100%,
++Elite War Wagon, Upgraded War Wagon, The Conquerors, Imperial, Castle, {"Wood": 200; "Gold": 60}, 21, 2.5, 0.995556, 1.2, 8, 200, 5, 9, 0/4,+5 buildings,,7,100%,
+ Woad Raider,Celtic unique unit. Exceptionally quick infantry. Attack bonus vs. buildings, Age of Kings, Castle, Castle, {"Food": 70; "Gold": 25}, 10, 2, 0, 1.38, 3, 65, 0, 8, 0/1,+2 eagles;+2 buildings,,,,
+ Elite Woad Raider, Upgraded Woad Raider, Age of Kings, Imperial, Castle, {"Food": 70; "Gold": 25}, 10, 2, 0, 1.38, 5, 80, 0, 13, 0/1,+3 eagles;+3 buildings,,,,
+diff --git a/src/game/simulation/bridge/unitAttackAnimationFeed.ts b/src/game/simulation/bridge/unitAttackAnimationFeed.ts
+index 90a34f81..0c2022a6 100644
+--- a/src/game/simulation/bridge/unitAttackAnimationFeed.ts
++++ b/src/game/simulation/bridge/unitAttackAnimationFeed.ts
+@@ -155,6 +155,19 @@ export function markUnitAttackMovementStartedForEntity(
+     : false;
+ }
+ 
++function hydrateAttackParticipants(value: unknown, validPlayerIds: ReadonlySet<number>): UnitAttackParticipants | undefined {
++  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
++  const participants = value as Partial<UnitAttackParticipants>;
++  const { attackerOwner, targetOwner, targetIsEconomy } = participants;
++  if (
++    !Number.isSafeInteger(attackerOwner) || (attackerOwner ?? 0) < 1 || (attackerOwner ?? 9) > MAX_ATTACK_PLAYER_ID
++    || !Number.isSafeInteger(targetOwner) || (targetOwner ?? 0) < 1 || (targetOwner ?? 9) > MAX_ATTACK_PLAYER_ID
++    || !validPlayerIds.has(attackerOwner!) || !validPlayerIds.has(targetOwner!)
++    || typeof targetIsEconomy !== 'boolean'
++  ) return undefined;
++  return { attackerOwner: attackerOwner!, targetOwner: targetOwner!, targetIsEconomy };
++}
++
+ export function hydrateUnitAttacks(
+   value: unknown,
+   currentTick: number,
+@@ -231,6 +244,7 @@ export function hydrateUnitAttacks(
+         }
+       }
+     }
++    const participants = hydrateAttackParticipants(attack.participants, validPlayerIds);
+     const canonical: ProjectedUnitAttackView = {
+       attackerId: attack.attackerId!,
+       attackerGeneration: attack.attackerGeneration!,
+@@ -242,6 +256,7 @@ export function hydrateUnitAttacks(
+       targetY: attack.targetY!,
+       witnessedBy,
+       ...(suppressedFor.length > 0 ? { suppressedFor } : {}),
++      ...(participants ? { participants } : {}),
+     };
+     const key = unitAttackKey(canonical.attackerId, canonical.attackerGeneration);
+     attacks.delete(key);
+diff --git a/src/game/simulation/fixtures/attackDamageTypes.ts b/src/game/simulation/fixtures/attackDamageTypes.ts
+new file mode 100644
+index 00000000..62a07fcd
+--- /dev/null
++++ b/src/game/simulation/fixtures/attackDamageTypes.ts
+@@ -0,0 +1,48 @@
++import { MAP_HEIGHT, MAP_WIDTH, type PrototypeScenario } from '../prototypeScenario';
++import { unitAttackDamage } from '../prototypeUnitRules';
++import { UNIT_MAX_HP } from '../prototypeUnitRules/statTables';
++import type { UnitType } from '../types';
++import { isWaterUnit } from '../unitDomain';
++import { createTerrainCell } from '../mapGeneration/sharedTerrainHelpers';
++import { createGrassFixtureTerrain, ownedSpawn } from './common';
++
++// Commanded damage-family census: a unit faces a target with unequal melee
++// and pierce armor. Both bases are far away and both AIs are off. The target
++// may retaliate normally; tests measure only the commanded attack's first hit.
++// Water attackers face a Galleon (0 melee / 8 pierce), land attackers a
++// Battering Ram (-3 melee / 180 pierce). No damage-family table sets the scene.
++export function attackDamageTypesSeed(unitType: UnitType): string {
++  return `attack-damage-types-${unitType}-fixture`;
++}
++
++export function attackDamageTypesSeeds(): string[] {
++  return (Object.keys(UNIT_MAX_HP) as UnitType[])
++    .filter(type => unitAttackDamage(type) > 0).map(attackDamageTypesSeed);
++}
++
++export function createAttackDamageTypesFixture(seed: string): PrototypeScenario {
++  const unitType = /^attack-damage-types-(.+)-fixture$/.exec(seed)?.[1] as UnitType | undefined;
++  if (!unitType || !attackDamageTypesSeeds().includes(seed)) {
++    throw new Error(`Scenario '${seed}' needs attack-damage-types-<unitType>-fixture naming a damaging unit.`);
++  }
++  const water = isWaterUnit(unitType);
++  const terrain = createGrassFixtureTerrain();
++  if (water) {
++    for (let y = 8; y <= 28; y += 1) {
++      for (let x = 20; x <= 46; x += 1) terrain[y]![x] = createTerrainCell(x, y, 'water');
++    }
++  }
++  return {
++    seed, width: MAP_WIDTH, height: MAP_HEIGHT, terrain,
++    starts: [
++      { owner: 1, townCenter: { x: 6, y: 6 }, startingAge: 'imperial-age', disableAi: true },
++      { owner: 2, townCenter: { x: 54, y: 30 }, startingAge: 'imperial-age', disableAi: true },
++    ],
++    spawns: [
++      ownedSpawn('town-center', 1, 6, 6, { vision: 7 }),
++      ownedSpawn('town-center', 2, 54, 30, { vision: 7 }),
++      ownedSpawn(unitType, 1, 30, 18, { vision: 12 }),
++      ownedSpawn(water ? 'galleon' : 'battering-ram', 2, 36, 18),
++    ],
++  };
++}
+diff --git a/src/game/simulation/projectileRules.ts b/src/game/simulation/projectileRules.ts
+index 21f40232..efb78ff6 100644
+--- a/src/game/simulation/projectileRules.ts
++++ b/src/game/simulation/projectileRules.ts
+@@ -38,9 +38,9 @@ const PROJECTILE_SPEED: Partial<Record<UnitType, number>> = {
+   'bombard-cannon': 0.9,
+ };
+ 
+-// Accuracy percentages from design/stats/units.csv. These are the numbers that
+-// drive AoE2 counter-play: cavalry archers spray at 50%, scorpions never miss,
+-// and a trebuchet is nearly useless against anything that moves.
++// Base accuracy from units.csv, re-sourced from pinned DE update 185872
++// (aoe2techtree 3bb43b14) for every supported ranged attacker. Missing entries
++// are 100%; fire-ship flame accuracy is unused in DE and takes that default.
+ const UNIT_ACCURACY: Partial<Record<UnitType, number>> = {
+   archer: 0.8,
+   crossbowman: 0.85,
+@@ -49,12 +49,12 @@ const UNIT_ACCURACY: Partial<Record<UnitType, number>> = {
+   // Both tiers, as units.csv and DE give them (defect register, 2026-09-26).
+   'elite-skirmisher': 0.9,
+   'cavalry-archer': 0.5,
+-  'heavy-cavalry-archer': 0.5,
++  'heavy-cavalry-archer': 0.8,
+   longbowman: 0.7,
+-  'elite-longbowman': 0.7,
++  'elite-longbowman': 0.8,
+   scorpion: 1,
+   'heavy-scorpion': 1,
+-  'bombard-cannon': 0.92,
++  'bombard-cannon': 1,
+   trebuchet: 0.15,
+   // M4 unique units, from units.csv `accuracy`. The Janissary is the
+   // outlier: a devastating hit that misses half the time.
+@@ -67,63 +67,64 @@ const UNIT_ACCURACY: Partial<Record<UnitType, number>> = {
+   'longboat': 1,
+   // Elite tier.
+   'elite-chu-ko-nu': 0.85,
+-  'elite-war-wagon': 1.0,
+-  'elite-plumed-archer': 0.8,
++  'elite-war-wagon': 1,
++  'elite-plumed-archer': 0.9,
+   'elite-mangudai': 0.95,
+   'elite-conquistador': 0.7,
+-  'elite-janissary': 0.5,
+-  'elite-longboat': 1.0,
++  'elite-janissary': 0.65,
++  'elite-longboat': 1,
++  'hand-cannoneer': 0.75,
+ };
+ 
+-// Wind-up before the projectile actually leaves the attacker, in seconds
+-// (units.csv `attack_delay`). A cavalry archer's full second of wind-up is why
+-// it feels sluggish despite a short reload.
++// Wind-up before the projectile leaves, from the exact sourced units.csv
++// attack_delay seconds. The executor rounds these decimals to whole ticks;
++// Cavalry Archer 0.91 s and Heavy Cavalry Archer 0.897 s both round to nine.
+ const ATTACK_DELAY_SECONDS: Partial<Record<UnitType, number>> = {
+   archer: 0.35,
+   crossbowman: 0.35,
+-  arbalest: 0.35,
+-  longbowman: 0.35,
+-  'elite-longbowman': 0.35,
+-  skirmisher: 0.5,
+-  'elite-skirmisher': 0.5,
+-  'cavalry-archer': 1,
+-  'heavy-cavalry-archer': 1,
+-  scorpion: 0.21,
+-  'heavy-scorpion': 0.21,
++  arbalest: 0.342222,
++  longbowman: 0.5,
++  'elite-longbowman': 0.5,
++  skirmisher: 0.506667,
++  'elite-skirmisher': 0.506667,
++  'cavalry-archer': 0.91,
++  'heavy-cavalry-archer': 0.897,
++  scorpion: 0.16,
++  'heavy-scorpion': 0.16,
+   'bombard-cannon': 0.21,
+-  trebuchet: 0.6,
+-  // M4 unique units, from units.csv `attack_delay`. The Longboat's CSV
+-  // value reads 9 seconds, which would mean an arrow arriving a minute
+-  // after the order; taken as the archer-standard 0.35 instead.
+-  'chu-ko-nu': 0.21,
+-  'throwing-axeman': 1.2,
+-  'war-wagon': 1,
++  trebuchet: 0.88,
++  // Unique ranged units use the same sourced column, including Longboat 0.
++  'chu-ko-nu': 0.221667,
++  'throwing-axeman': 0.995556,
++  'war-wagon': 0.995556,
+   'plumed-archer': 0.5,
+-  'mangudai': 1,
+-  'mameluke': 0.6,
+-  'conquistador': 0.4,
+-  'janissary': 0.28,
+-  'longboat': 0.35,
++  'mangudai': 0.498333,
++  'mameluke': 0.4,
++  'conquistador': 0.404444,
++  'janissary': 0.4,
++  'longboat': 0,
+   // Elite tier.
+   'elite-jaguar-warrior': 0.0,
+   'elite-cataphract': 0.0,
+   'elite-woad-raider': 0.0,
+-  'elite-chu-ko-nu': 0.21,
+-  'elite-throwing-axeman': 0.8,
++  'elite-chu-ko-nu': 0.221667,
++  'elite-throwing-axeman': 0.815111,
+   'elite-huskarl': 0.0,
+   'elite-tarkan': 0.0,
+   'elite-samurai': 0.0,
+-  'elite-war-wagon': 1.0,
++  'elite-war-wagon': 0.995556,
+   'elite-plumed-archer': 0.5,
+-  'elite-mangudai': 0.0,
++  'elite-mangudai': 0.498333,
+   'elite-war-elephant': 0.0,
+-  'elite-mameluke': 0.0,
+-  'elite-conquistador': 0.4,
++  'elite-mameluke': 0.2,
++  'elite-conquistador': 0.404444,
+   'elite-teutonic-knight': 0.0,
+-  'elite-janissary': 0.0,
++  'elite-janissary': 0,
+   'elite-berserk': 0.0,
+-  'elite-turtle-ship': 0.0,
+-  'elite-longboat': 0.0,
++  'elite-turtle-ship': 0.15,
++  'elite-longboat': 0,
++  'hand-cannoneer': 0.35,
++  'turtle-ship': 0.15,
+ };
+ 
+ // Who fires a projectile is decided in prototypeUnitRules.ts (see there for
+diff --git a/src/game/simulation/prototypeScenario/scenarioRegistry.ts b/src/game/simulation/prototypeScenario/scenarioRegistry.ts
+index cf9bdd3c..e8a9f628 100644
+--- a/src/game/simulation/prototypeScenario/scenarioRegistry.ts
++++ b/src/game/simulation/prototypeScenario/scenarioRegistry.ts
+@@ -13,6 +13,7 @@ import * as fixtures from '../fixtures';
+ // Imported directly, the way the map factories are: the barrel is at its
+ // 500-line budget.
+ import { createAiIdleSurplusFixture } from '../fixtures/aiIdleSurplus';
++import { attackDamageTypesSeeds, createAttackDamageTypesFixture } from '../fixtures/attackDamageTypes';
+ import { createBlastCensusFixture } from '../fixtures/blastCensus';
+ import { blastCensusSeed } from '../fixtures/blastCensusLayout';
+ import { createBuildingShotLandingFixture } from '../fixtures/buildingShotLanding';
+@@ -374,6 +375,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
+   ['building-shot-landing-fixture', createBuildingShotLandingFixture],
+   ['wildlife-shots-fixture', createWildlifeShotsFixture],
+   ['projectile-look-showcase-fixture', createProjectileLookShowcaseFixture],
++  ...attackDamageTypesSeeds().map((seed) => [seed, createAttackDamageTypesFixture] as const),
+   ...UPGRADE_KEEPS_LINE_BONUSES_SEEDS.map((seed) => [seed, createUpgradeKeepsLineBonusesFixture] as const),
+   // The blast census: one fixture per unit with a blast radius, generated
+   // from the blast table, so a unit that gains a radius is censused too.
+diff --git a/src/game/simulation/prototypeUnitRules.ts b/src/game/simulation/prototypeUnitRules.ts
+index 2af8de17..19ffd4dd 100644
+--- a/src/game/simulation/prototypeUnitRules.ts
++++ b/src/game/simulation/prototypeUnitRules.ts
+@@ -5,6 +5,7 @@
+ 
+ import type { ResourceKind, UnitType } from './types';
+ import { armorClassBonus, UNIT_ARMOR_CLASSES } from './prototypeUnitRules/armorClasses';
++import { MELEE_DAMAGE_PROJECTILE_UNITS } from './prototypeUnitRules/unitClassSets';
+ import {
+   ARCHER_LINE_UNITS,
+   CAVALRY_ARCHER_UNITS,
+@@ -73,12 +74,11 @@ export function effectiveMeleeArmor(unitType: UnitType, armorTechBonus: number):
+   return unitMeleeArmor(unitType) + armorTechBonus;
+ }
+ 
+-// A unit's attack deals melee damage if it is a melee unit (infantry, cavalry,
+-// rams), otherwise pierce (archers, skirmishers, siege, gunpowder). Towers and
+-// other arrow-firing buildings are pierce too, but they are not units — their
+-// callers pass 'pierce' directly.
++// Armor family is independent of delivery: stones, cannonballs, axes,
++// scimitars and fire-ship shots meet melee armor while remaining projectiles.
++// Buildings' arrows are pierce; their callers pass that family directly.
+ export function unitAttackType(unitType: UnitType): AttackType {
+-  return isMeleeUnit(unitType) ? 'melee' : 'pierce';
++  return isMeleeUnit(unitType) || MELEE_DAMAGE_PROJECTILE_UNITS.has(unitType) ? 'melee' : 'pierce';
+ }
+ 
+ // Final damage of one connecting hit: subtract the armor that matches the
+diff --git a/src/game/simulation/prototypeUnitRules/unitClassSets.ts b/src/game/simulation/prototypeUnitRules/unitClassSets.ts
+index fa8638b8..9734e541 100644
+--- a/src/game/simulation/prototypeUnitRules/unitClassSets.ts
++++ b/src/game/simulation/prototypeUnitRules/unitClassSets.ts
+@@ -122,6 +122,40 @@ export const MELEE_UNITS = new Set<UnitType>([
+   'two-handed-swordsman',
+   'paladin',
+   'heavy-camel',
++  'eagle-warrior',
++  'elite-eagle-warrior',
++  'petard',
++  'demolition-ship',
++  'heavy-demolition-ship',
++  'jaguar-warrior',
++  'elite-jaguar-warrior',
++  'cataphract',
++  'elite-cataphract',
++  'woad-raider',
++  'elite-woad-raider',
++  'huskarl',
++  'elite-huskarl',
++  'tarkan',
++  'elite-tarkan',
++  'samurai',
++  'elite-samurai',
++  'war-elephant',
++  'elite-war-elephant',
++  'teutonic-knight',
++  'elite-teutonic-knight',
++  'berserk',
++  'elite-berserk',
++]);
++
++// DE base attack class 4 (melee armor) delivered by a projectile. These
++// remain shooters for delivery, formations and garrison eligibility; adding
++// them to MELEE_UNITS would turn their shots into instant contact attacks.
++// Independent pinned game-file rows: tests/content/deAttackDamageReference.ts.
++export const MELEE_DAMAGE_PROJECTILE_UNITS = new Set<UnitType>([
++  'mangonel', 'onager', 'siege-onager', 'bombard-cannon',
++  'cannon-galleon', 'elite-cannon-galleon',
++  'throwing-axeman', 'elite-throwing-axeman',
++  'mameluke', 'elite-mameluke', 'fire-ship', 'fast-fire-ship',
+ ]);
+ 
+ export const WILDLIFE_PROFILES = {
+diff --git a/tests/content/attackDamageTypes.test.ts b/tests/content/attackDamageTypes.test.ts
+new file mode 100644
+index 00000000..20d3fd43
+--- /dev/null
++++ b/tests/content/attackDamageTypes.test.ts
+@@ -0,0 +1,44 @@
++// BOUND: base armor family and contact/projectile role for the present roster,
++// independently read from pinned DE class 3/4 attacks. Six non-damaging units
++// have no armor family and are not asserted to attack. This does not check
++// attack amounts, bonuses, projectile appearance/speed, or blast geometry.
++import { describe, expect, it } from 'vitest';
++import { firesProjectile, isMeleeUnit, unitAttackType } from '../../src/game/simulation/prototypeUnitRules';
++import { UNIT_MAX_HP } from '../../src/game/simulation/prototypeUnitRules/statTables';
++import { formationRank } from '../../src/game/simulation/unitFormation';
++import type { UnitType } from '../../src/game/simulation/types';
++import { DE_ATTACK_DAMAGE_REFERENCE } from './deAttackDamageReference';
++
++describe('DE attack armor family independent of delivery', () => {
++  it('covers the entire current roster with independent DE rows', () => {
++    expect(Object.keys(DE_ATTACK_DAMAGE_REFERENCE).sort()).toEqual(Object.keys(UNIT_MAX_HP).sort());
++    expect(new Set(Object.values(DE_ATTACK_DAMAGE_REFERENCE).map(row => row.id)).size).toBe(93);
++  });
++
++  it('uses every damaging unit\'s DE base armor family', () => {
++    const problems: string[] = [];
++    for (const [name, row] of Object.entries(DE_ATTACK_DAMAGE_REFERENCE)) {
++      if (row.family === 'none') continue;
++      const actual = unitAttackType(name as UnitType);
++      if (actual !== row.family) problems.push(`${name}: ${actual}, DE id ${row.id} uses ${row.family}`);
++    }
++    expect(problems, problems.join('\n')).toEqual([]);
++  });
++
++  it('keeps contact role and projectile delivery separate from damage family', () => {
++    const problems: string[] = [];
++    for (const [name, row] of Object.entries(DE_ATTACK_DAMAGE_REFERENCE)) {
++      if (row.family === 'none') continue;
++      const type = name as UnitType;
++      if (isMeleeUnit(type) !== (row.range === 0)) problems.push(`${name}: wrong contact role`);
++      if (firesProjectile(type) !== (row.range > 1)) problems.push(`${name}: wrong projectile delivery`);
++    }
++    expect(problems, problems.join('\n')).toEqual([]);
++    expect(formationRank('huskarl')).toBe(0);
++    // Its current base range stays below 5, so it keeps the ordinary shooter
++    // rank. Range parity is separate; damage family must not move it forward.
++    expect(formationRank('throwing-axeman')).toBe(1);
++    expect(formationRank('mameluke')).toBe(1);
++    expect(formationRank('mangonel')).toBe(2);
++  });
++});
+diff --git a/tests/content/deAttackDamageReference.ts b/tests/content/deAttackDamageReference.ts
+new file mode 100644
+index 00000000..d19e1f2c
+--- /dev/null
++++ b/tests/content/deAttackDamageReference.ts
+@@ -0,0 +1,102 @@
++// Independent DE attack armor-family contract, extracted 2026-09-30 from game-file data.
++// Source: https://github.com/SiegeEngineers/aoe2techtree/blob/3bb43b14/data/data.json
++// Names: https://github.com/SiegeEngineers/aoe2techtree/blob/3bb43b14/data/locales/en/strings.json
++// DE update 185872. Positive base attack class 4 = melee, 3 = pierce; no positive class = none.
++// Bound: primary armor family only, not attack values, bonuses, blast geometry or timing.
++// Retrieval JSON SHA-256: 7604d5117fa6201c7dd19a78660525bbab7ccce00c3274c42ce04d3ba61f0f14
++// Display-name aliases are documented in the two source names; game-only unit ids remain the keys.
++export const DE_ATTACK_DAMAGE_REFERENCE = {
++  'arbalest': { id: 492, range: 5, family: 'pierce' },
++  'archer': { id: 4, range: 4, family: 'pierce' },
++  'battering-ram': { id: 1258, range: 0, family: 'melee' },
++  'berserk': { id: 692, range: 0, family: 'melee' },
++  'bombard-cannon': { id: 36, range: 12, family: 'melee' },
++  'camel': { id: 329, range: 0, family: 'melee' },
++  'cannon-galleon': { id: 420, range: 13, family: 'melee' },
++  'capped-ram': { id: 422, range: 0, family: 'melee' },
++  'cataphract': { id: 40, range: 0, family: 'melee' },
++  'cavalier': { id: 283, range: 0, family: 'melee' },
++  'cavalry-archer': { id: 39, range: 4, family: 'pierce' },
++  'champion': { id: 567, range: 0, family: 'melee' },
++  'chu-ko-nu': { id: 73, range: 4, family: 'pierce' },
++  'conquistador': { id: 771, range: 6, family: 'pierce' },
++  'crossbowman': { id: 24, range: 5, family: 'pierce' },
++  'demolition-ship': { id: 527, range: 0, family: 'melee' },
++  'eagle-warrior': { id: 753, range: 0, family: 'melee' },
++  'elite-berserk': { id: 694, range: 0, family: 'melee' },
++  'elite-cannon-galleon': { id: 691, range: 15, family: 'melee' },
++  'elite-cataphract': { id: 553, range: 0, family: 'melee' },
++  'elite-chu-ko-nu': { id: 559, range: 4, family: 'pierce' },
++  'elite-conquistador': { id: 773, range: 6, family: 'pierce' },
++  'elite-eagle-warrior': { id: 752, range: 0, family: 'melee' },
++  'elite-huskarl': { id: 555, range: 0, family: 'melee' },
++  'elite-jaguar-warrior': { id: 726, range: 0, family: 'melee' },
++  'elite-janissary': { id: 557, range: 8, family: 'pierce' },
++  'elite-longboat': { id: 533, range: 7, family: 'pierce' },
++  'elite-longbowman': { id: 530, range: 6, family: 'pierce' },
++  'elite-mameluke': { id: 556, range: 3, family: 'melee' },
++  'elite-mangudai': { id: 561, range: 4, family: 'pierce' },
++  'elite-plumed-archer': { id: 765, range: 5, family: 'pierce' },
++  'elite-samurai': { id: 560, range: 0, family: 'melee' },
++  'elite-skirmisher': { id: 6, range: 5, family: 'pierce' },
++  'elite-tarkan': { id: 757, range: 0, family: 'melee' },
++  'elite-teutonic-knight': { id: 554, range: 0, family: 'melee' },
++  'elite-throwing-axeman': { id: 531, range: 6, family: 'melee' },
++  'elite-turtle-ship': { id: 832, range: 7, family: 'pierce' },
++  'elite-war-elephant': { id: 558, range: 0, family: 'melee' },
++  'elite-war-wagon': { id: 829, range: 5, family: 'pierce' },
++  'elite-woad-raider': { id: 534, range: 0, family: 'melee' },
++  'fast-fire-ship': { id: 532, range: 2.5, family: 'melee' },
++  'fire-ship': { id: 529, range: 2.5, family: 'melee' },
++  'fishing-ship': { id: 13, range: 0, family: 'none' },
++  'galleon': { id: 442, range: 7, family: 'pierce' },
++  'galley': { id: 539, range: 5, family: 'pierce' },
++  'halberdier': { id: 359, range: 0, family: 'melee' },
++  'hand-cannoneer': { id: 5, range: 7, family: 'pierce' },
++  'heavy-camel': { id: 330, range: 0, family: 'melee' },
++  'heavy-cavalry-archer': { id: 474, range: 4, family: 'pierce' },
++  'heavy-demolition-ship': { id: 528, range: 0, family: 'melee' },
++  'heavy-scorpion': { id: 542, range: 7, family: 'pierce' },
++  'huskarl': { id: 41, range: 0, family: 'melee' },
++  'hussar': { id: 441, range: 0, family: 'melee' },
++  'jaguar-warrior': { id: 725, range: 0, family: 'melee' },
++  'janissary': { id: 46, range: 7, family: 'pierce' },
++  'knight': { id: 38, range: 0, family: 'melee' },
++  'light-cavalry': { id: 546, range: 0, family: 'melee' },
++  'long-swordsman': { id: 77, range: 0, family: 'melee' },
++  'longboat': { id: 250, range: 6, family: 'pierce' },
++  'longbowman': { id: 8, range: 5, family: 'pierce' },
++  'mameluke': { id: 282, range: 3, family: 'melee' },
++  'man-at-arms': { id: 75, range: 0, family: 'melee' },
++  'mangonel': { id: 280, range: 7, family: 'melee' },
++  'mangudai': { id: 11, range: 4, family: 'pierce' },
++  'militia': { id: 74, range: 0, family: 'melee' },
++  'missionary': { id: 775, range: 7, family: 'none' },
++  'monk': { id: 125, range: 9, family: 'none' },
++  'onager': { id: 550, range: 8, family: 'melee' },
++  'paladin': { id: 569, range: 0, family: 'melee' },
++  'petard': { id: 440, range: 0, family: 'melee' },
++  'pikeman': { id: 358, range: 0, family: 'melee' },
++  'plumed-archer': { id: 763, range: 4, family: 'pierce' },
++  'samurai': { id: 291, range: 0, family: 'melee' },
++  'scorpion': { id: 279, range: 7, family: 'pierce' },
++  'scout': { id: 448, range: 0, family: 'melee' },
++  'siege-onager': { id: 588, range: 8, family: 'melee' },
++  'siege-ram': { id: 548, range: 0, family: 'melee' },
++  'skirmisher': { id: 7, range: 4, family: 'pierce' },
++  'spearman': { id: 93, range: 0, family: 'melee' },
++  'tarkan': { id: 755, range: 0, family: 'melee' },
++  'teutonic-knight': { id: 25, range: 0, family: 'melee' },
++  'throwing-axeman': { id: 281, range: 5, family: 'melee' },
++  'trade-cart': { id: 128, range: 0, family: 'none' },
++  'trade-cog': { id: 17, range: 0, family: 'none' },
++  'transport-ship': { id: 545, range: 0, family: 'none' },
++  'trebuchet': { id: 42, range: 16, family: 'pierce' },
++  'turtle-ship': { id: 831, range: 6, family: 'pierce' },
++  'two-handed-swordsman': { id: 473, range: 0, family: 'melee' },
++  'villager': { id: 83, range: 0, family: 'melee' },
++  'war-elephant': { id: 239, range: 0, family: 'melee' },
++  'war-galley': { id: 21, range: 6, family: 'pierce' },
++  'war-wagon': { id: 827, range: 4, family: 'pierce' },
++  'woad-raider': { id: 232, range: 0, family: 'melee' },
++} as const;
+diff --git a/tests/content/fixtures/deProjectileStats.json b/tests/content/fixtures/deProjectileStats.json
+new file mode 100644
+index 00000000..5a247f63
+--- /dev/null
++++ b/tests/content/fixtures/deProjectileStats.json
+@@ -0,0 +1,320 @@
++{
++  "source": "SiegeEngineers/aoe2techtree data/data.json and data/locales/en/strings.json at 3bb43b14 (DE update 185872)",
++  "dataUrl": "https://raw.githubusercontent.com/SiegeEngineers/aoe2techtree/3bb43b14/data/data.json",
++  "stringsUrl": "https://raw.githubusercontent.com/SiegeEngineers/aoe2techtree/3bb43b14/data/locales/en/strings.json",
++  "dataSha256": "7604d5117fa6201c7dd19a78660525bbab7ccce00c3274c42ce04d3ba61f0f14",
++  "stringsSha256": "94f3077c8011ef3e57a2012d9cc7158499257b4c2dc8e5382c77e007249618b3",
++  "mapping": "Display name from LanguageNameId + 9000, HTML line breaks normalized; aliases Arbalest/Longboat/Elite Longboat; Trebuchet uses unpacked ID 42.",
++  "accuracyNull": "Fire Ship and Fast Fire Ship encode AccuracyPercent 0 for their flames; it is unused, not a zero-percent chance to aim.",
++  "unusedSourceAccuracy": { "fire-ship": 0, "fast-fire-ship": 0 },
++  "units": [
++    {
++      "id": "archer",
++      "name": "Archer",
++      "sourceId": 4,
++      "accuracyPercent": 80,
++      "attackDelaySeconds": 0.35
++    },
++    {
++      "id": "crossbowman",
++      "name": "Crossbowman",
++      "sourceId": 24,
++      "accuracyPercent": 85,
++      "attackDelaySeconds": 0.35
++    },
++    {
++      "id": "arbalest",
++      "name": "Arbalest",
++      "sourceId": 492,
++      "accuracyPercent": 90,
++      "attackDelaySeconds": 0.342222
++    },
++    {
++      "id": "cavalry-archer",
++      "name": "Cavalry Archer",
++      "sourceId": 39,
++      "accuracyPercent": 50,
++      "attackDelaySeconds": 0.91
++    },
++    {
++      "id": "heavy-cavalry-archer",
++      "name": "Heavy Cavalry Archer",
++      "sourceId": 474,
++      "accuracyPercent": 80,
++      "attackDelaySeconds": 0.897
++    },
++    {
++      "id": "hand-cannoneer",
++      "name": "Hand Cannoneer",
++      "sourceId": 5,
++      "accuracyPercent": 75,
++      "attackDelaySeconds": 0.35
++    },
++    {
++      "id": "skirmisher",
++      "name": "Skirmisher",
++      "sourceId": 7,
++      "accuracyPercent": 90,
++      "attackDelaySeconds": 0.506667
++    },
++    {
++      "id": "elite-skirmisher",
++      "name": "Elite Skirmisher",
++      "sourceId": 6,
++      "accuracyPercent": 90,
++      "attackDelaySeconds": 0.506667
++    },
++    {
++      "id": "trebuchet",
++      "name": "Trebuchet",
++      "sourceId": 42,
++      "accuracyPercent": 15,
++      "attackDelaySeconds": 0.88
++    },
++    {
++      "id": "cannon-galleon",
++      "name": "Cannon Galleon",
++      "sourceId": 420,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "elite-cannon-galleon",
++      "name": "Elite Cannon Galleon",
++      "sourceId": 691,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "fire-ship",
++      "name": "Fire Ship",
++      "sourceId": 529,
++      "accuracyPercent": null,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "fast-fire-ship",
++      "name": "Fast Fire Ship",
++      "sourceId": 532,
++      "accuracyPercent": null,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "galley",
++      "name": "Galley",
++      "sourceId": 539,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "war-galley",
++      "name": "War Galley",
++      "sourceId": 21,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "galleon",
++      "name": "Galleon",
++      "sourceId": 442,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "longboat",
++      "name": "Longboat",
++      "sourceId": 250,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "elite-longboat",
++      "name": "Elite Longboat",
++      "sourceId": 533,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "turtle-ship",
++      "name": "Turtle Ship",
++      "sourceId": 831,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0.15
++    },
++    {
++      "id": "elite-turtle-ship",
++      "name": "Elite Turtle Ship",
++      "sourceId": 832,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0.15
++    },
++    {
++      "id": "bombard-cannon",
++      "name": "Bombard Cannon",
++      "sourceId": 36,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0.21
++    },
++    {
++      "id": "mangonel",
++      "name": "Mangonel",
++      "sourceId": 280,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "onager",
++      "name": "Onager",
++      "sourceId": 550,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "siege-onager",
++      "name": "Siege Onager",
++      "sourceId": 588,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "scorpion",
++      "name": "Scorpion",
++      "sourceId": 279,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0.16
++    },
++    {
++      "id": "heavy-scorpion",
++      "name": "Heavy Scorpion",
++      "sourceId": 542,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0.16
++    },
++    {
++      "id": "chu-ko-nu",
++      "name": "Chu Ko Nu",
++      "sourceId": 73,
++      "accuracyPercent": 85,
++      "attackDelaySeconds": 0.221667
++    },
++    {
++      "id": "elite-chu-ko-nu",
++      "name": "Elite Chu Ko Nu",
++      "sourceId": 559,
++      "accuracyPercent": 85,
++      "attackDelaySeconds": 0.221667
++    },
++    {
++      "id": "conquistador",
++      "name": "Conquistador",
++      "sourceId": 771,
++      "accuracyPercent": 65,
++      "attackDelaySeconds": 0.404444
++    },
++    {
++      "id": "elite-conquistador",
++      "name": "Elite Conquistador",
++      "sourceId": 773,
++      "accuracyPercent": 70,
++      "attackDelaySeconds": 0.404444
++    },
++    {
++      "id": "janissary",
++      "name": "Janissary",
++      "sourceId": 46,
++      "accuracyPercent": 50,
++      "attackDelaySeconds": 0.4
++    },
++    {
++      "id": "elite-janissary",
++      "name": "Elite Janissary",
++      "sourceId": 557,
++      "accuracyPercent": 65,
++      "attackDelaySeconds": 0
++    },
++    {
++      "id": "longbowman",
++      "name": "Longbowman",
++      "sourceId": 8,
++      "accuracyPercent": 70,
++      "attackDelaySeconds": 0.5
++    },
++    {
++      "id": "elite-longbowman",
++      "name": "Elite Longbowman",
++      "sourceId": 530,
++      "accuracyPercent": 80,
++      "attackDelaySeconds": 0.5
++    },
++    {
++      "id": "mameluke",
++      "name": "Mameluke",
++      "sourceId": 282,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0.4
++    },
++    {
++      "id": "elite-mameluke",
++      "name": "Elite Mameluke",
++      "sourceId": 556,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0.2
++    },
++    {
++      "id": "mangudai",
++      "name": "Mangudai",
++      "sourceId": 11,
++      "accuracyPercent": 95,
++      "attackDelaySeconds": 0.498333
++    },
++    {
++      "id": "elite-mangudai",
++      "name": "Elite Mangudai",
++      "sourceId": 561,
++      "accuracyPercent": 95,
++      "attackDelaySeconds": 0.498333
++    },
++    {
++      "id": "plumed-archer",
++      "name": "Plumed Archer",
++      "sourceId": 763,
++      "accuracyPercent": 80,
++      "attackDelaySeconds": 0.5
++    },
++    {
++      "id": "elite-plumed-archer",
++      "name": "Elite Plumed Archer",
++      "sourceId": 765,
++      "accuracyPercent": 90,
++      "attackDelaySeconds": 0.5
++    },
++    {
++      "id": "throwing-axeman",
++      "name": "Throwing Axeman",
++      "sourceId": 281,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0.995556
++    },
++    {
++      "id": "elite-throwing-axeman",
++      "name": "Elite Throwing Axeman",
++      "sourceId": 531,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0.815111
++    },
++    {
++      "id": "war-wagon",
++      "name": "War Wagon",
++      "sourceId": 827,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0.995556
++    },
++    {
++      "id": "elite-war-wagon",
++      "name": "Elite War Wagon",
++      "sourceId": 829,
++      "accuracyPercent": 100,
++      "attackDelaySeconds": 0.995556
++    }
++  ]
++}
+diff --git a/tests/content/projectileStats.test.ts b/tests/content/projectileStats.test.ts
+new file mode 100644
+index 00000000..13997f78
+--- /dev/null
++++ b/tests/content/projectileStats.test.ts
+@@ -0,0 +1,79 @@
++// BOUND: all 44 supported trainable ranged attackers, their base accuracy and
++// projectile wind-up only. Source fields are pinned DE 185872, not current DE
++// forever. This does not check flight speed, burst arrows, contact wind-up,
++// armor type, miss landing, or technology/civilization modifiers. Fire-ship
++// flames have unused DE accuracy 0; their empty CSV cell means certain aim.
++//
++// The 2026-09-26 independent review found 19 runtime rows differing from DE.
++// Seventeen already matched the stale CSV, so CSV->runtime alone hid them.
++// The compact fixture promotes the exact source ID/name/fields; source->CSV
++// and CSV->runtime must both agree, and source IDs prevent packed Trebuchet
++// statistics from being used for unpacked shots. Whole-tick rounding is the
++// precision available at 10 TPS; unchanged source decimals are kept in CSV.
++
++import { readFileSync } from 'node:fs';
++import { describe, expect, it } from 'vitest';
++
++import { buildContentBundle } from '../../scripts/content-lib.mjs';
++import { projectileLaunchDelayTicks, unitAccuracy } from '../../src/game/simulation/projectileRules';
++import { TPS } from '../../src/game/simulation/prototypeScenario';
++import type { UnitType } from '../../src/game/simulation/types';
++
++interface SourceRow {
++  readonly id: UnitType;
++  readonly name: string;
++  readonly sourceId: number;
++  readonly accuracyPercent: number | null;
++  readonly attackDelaySeconds: number;
++}
++interface CsvRow {
++  readonly id: string;
++  readonly name: string;
++  readonly trainable: boolean;
++  readonly attack: number | null;
++  readonly range: { readonly max: number | null };
++  readonly accuracyPercent: number | null;
++  readonly attackDelay: number | null;
++}
++const fixture = JSON.parse(readFileSync('tests/content/fixtures/deProjectileStats.json', 'utf8')) as {
++  readonly source: string;
++  readonly units: readonly SourceRow[];
++};
++const bundle = buildContentBundle() as { units: CsvRow[] };
++const csv = bundle.units.filter((row) => row.trainable && (row.range.max ?? 0) > 0 && (row.attack ?? 0) > 0);
++const sourceById = new Map(fixture.units.map((row) => [row.id, row]));
++
++describe('supported projectile stats match pinned DE and the CSV', () => {
++  it('compares the entire scoped roster with a valid independent source', () => {
++    expect(fixture.source).toContain('3bb43b14');
++    expect(fixture.units).toHaveLength(44);
++    expect(sourceById.size).toBe(44);
++    expect(new Set(csv.map((row) => row.id))).toEqual(new Set(sourceById.keys()));
++    expect(sourceById.get('archer')).toMatchObject({ sourceId: 4, accuracyPercent: 80, attackDelaySeconds: 0.35 });
++    expect(sourceById.get('trebuchet')).toMatchObject({ sourceId: 42, accuracyPercent: 15, attackDelaySeconds: 0.88 });
++    expect(fixture.units.filter((row) => row.accuracyPercent === null).map((row) => row.id)).toEqual(['fire-ship', 'fast-fire-ship']);
++    expect(sourceById.has('definitely-not-a-unit' as UnitType)).toBe(false);
++  });
++
++  it('keeps CSV accuracy and attack_delay at the pinned source values', () => {
++    const differences: string[] = [];
++    for (const row of csv) {
++      const source = sourceById.get(row.id as UnitType)!;
++      if (row.accuracyPercent !== source.accuracyPercent) differences.push(`${row.name}: CSV accuracy ${String(row.accuracyPercent)} vs DE ${String(source.accuracyPercent)}`);
++      if (row.attackDelay !== source.attackDelaySeconds) differences.push(`${row.name}: CSV delay ${String(row.attackDelay)} vs DE ${String(source.attackDelaySeconds)}`);
++    }
++    expect(differences, differences.join('\n')).toEqual([]);
++  });
++
++  it('uses every CSV accuracy and rounded wind-up in runtime projectile rules', () => {
++    const differences: string[] = [];
++    for (const row of csv) {
++      const unit = row.id as UnitType;
++      const expectedAccuracy = (row.accuracyPercent ?? 100) / 100;
++      const expectedDelay = Math.round((row.attackDelay ?? 0) * TPS);
++      if (unitAccuracy(unit) !== expectedAccuracy) differences.push(`${row.name}: accuracy ${String(unitAccuracy(unit))} vs CSV ${String(expectedAccuracy)}`);
++      if (projectileLaunchDelayTicks(unit) !== expectedDelay) differences.push(`${row.name}: delay ${String(projectileLaunchDelayTicks(unit))} vs CSV ${String(expectedDelay)} ticks`);
++    }
++    expect(differences, differences.join('\n')).toEqual([]);
++  });
++});
+diff --git a/tests/simulation/attackDamageTypes.test.ts b/tests/simulation/attackDamageTypes.test.ts
+new file mode 100644
+index 00000000..091a25ef
+--- /dev/null
++++ b/tests/simulation/attackDamageTypes.test.ts
+@@ -0,0 +1,140 @@
++// BOUND: first commanded hit for every changed contact/melee-projectile type
++// and stable melee/pierce controls, against two asymmetric-armor targets.
++// Commands use the live bridge facade without injecting world state. This
++// checks armor-family wiring and projectile delivery, not all DE combat stats.
++import { SessionRecorder, SessionReplayer, type SessionBundle } from 'civ-engine';
++import { describe, expect, it } from 'vitest';
++import { createSimulationBridge, type SimulationBridge } from '../../src/game/simulation/createSimulationBridge';
++import { attackBonusAgainstUnit, firesProjectile } from '../../src/game/simulation/prototypeUnitRules';
++import { attackDamageTypesSeed } from '../../src/game/simulation/fixtures/attackDamageTypes';
++import { createReplayWorldOnly } from '../../src/game/simulation/replay/createReplayWorldOnly';
++import { projectilesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
++import type { ProjectileSlotState } from '../../src/game/simulation/bridge/projectileTypes';
++import type { UnitType } from '../../src/game/simulation/types';
++import { DE_ATTACK_DAMAGE_REFERENCE } from '../content/deAttackDamageReference';
++import { stateSlot } from './saveBlobTestUtils';
++import type { GameEvents, GameCommands } from '../../src/game/simulation/bridge/pureHelpers';
++
++const CHANGED_CONTACT: UnitType[] = [
++  'eagle-warrior', 'elite-eagle-warrior', 'petard', 'demolition-ship', 'heavy-demolition-ship',
++  'jaguar-warrior', 'cataphract', 'woad-raider', 'huskarl', 'tarkan', 'samurai', 'war-elephant', 'teutonic-knight', 'berserk',
++  'elite-jaguar-warrior', 'elite-cataphract', 'elite-woad-raider', 'elite-huskarl', 'elite-tarkan', 'elite-samurai',
++  'elite-war-elephant', 'elite-teutonic-knight', 'elite-berserk',
++];
++const CHANGED_PROJECTILE: UnitType[] = [
++  'mangonel', 'onager', 'siege-onager', 'bombard-cannon', 'cannon-galleon', 'elite-cannon-galleon',
++  'throwing-axeman', 'elite-throwing-axeman', 'mameluke', 'elite-mameluke', 'fire-ship', 'fast-fire-ship',
++];
++
++function order(bridge: SimulationBridge, type: UnitType) {
++  const units = bridge.getEconomyState().units;
++  const attacker = units.find(u => u.owner === 1 && u.unitType === type)!;
++  const target = units.find(u => u.owner === 2)!;
++  expect(attacker, type).toBeDefined();
++  expect(target, type).toBeDefined();
++  expect(bridge.selectEntityById(attacker.id)).toBe(true);
++  expect(bridge.issueContextCommandAtEntity(target.id)).toBe(true);
++  return { attacker, target };
++}
++
++function firstHit(bridge: SimulationBridge, type: UnitType, ids: ReturnType<typeof order>) {
++  let sawProjectile = false;
++  for (let n = 0; n < 1000; n += 1) {
++    const before = bridge.getEntityHealth(ids.target.id)?.currentHp;
++    expect(bridge.step(100).ticks, `${type}: actual step`).toBe(1);
++    sawProjectile ||= bridge.getInFlightProjectiles().some(p => p.attackerId === ids.attacker.id);
++    if (bridge.getRecentPlayerHits().some(h => h.tick === bridge.world.tick
++      && h.attackerId === ids.attacker.id && h.targetId === ids.target.id)) {
++      expect(before).toBeDefined();
++      const after = bridge.getEntityHealth(ids.target.id)?.currentHp ?? 0;
++      return { damage: before! - after, sawProjectile };
++    }
++  }
++  throw new Error(`${type}: no commanded hit within 1000 actual ticks`);
++}
++
++function expectedDamage(type: UnitType, ids: ReturnType<typeof order>) {
++  const family = DE_ATTACK_DAMAGE_REFERENCE[type].family;
++  // Target armor is an independent constant, not a call to the damage code.
++  const armor = ids.target.unitType === 'battering-ram'
++    ? family === 'melee' ? -3 : 180
++    : family === 'melee' ? 0 : 8;
++  return Math.max(ids.attacker.attackDamage + attackBonusAgainstUnit(type, ids.target.unitType) - armor, 1);
++}
++
++describe('commanded attacks use their own DE armor family', () => {
++  for (const type of [...CHANGED_CONTACT, ...CHANGED_PROJECTILE, 'champion', 'scorpion', 'galley'] as UnitType[]) {
++    it(`${type}: correct first hit and delivery`, () => {
++      const bridge = createSimulationBridge(attackDamageTypesSeed(type));
++      const ids = order(bridge, type);
++      const hit = firstHit(bridge, type, ids);
++      expect(hit.damage, `${type}: first hit armor family`).toBe(expectedDamage(type, ids));
++      expect(hit.sawProjectile, `${type}: delivery preserved`).toBe(firesProjectile(type));
++    });
++  }
++
++  it('derives the corrected direct family for a shot fired after loading', () => {
++    const seed = attackDamageTypesSeed('throwing-axeman');
++    const initial = createSimulationBridge(seed);
++    const bridge = createSimulationBridge(seed, { savedGame: structuredClone(initial.saveGame()) });
++    const ids = order(bridge, 'throwing-axeman');
++    expect(firstHit(bridge, 'throwing-axeman', ids).damage).toBe(expectedDamage('throwing-axeman', ids));
++  });
++
++  for (const type of ['throwing-axeman', 'mangonel'] as const) {
++    it(`${type}: keeps new in-flight damage deterministic across save/load`, () => {
++      const seed = attackDamageTypesSeed(type);
++      const live = createSimulationBridge(seed);
++      const ids = order(live, type);
++      for (let n = 0; n < 300 && !live.getInFlightProjectiles().some(p => p.attackerId === ids.attacker.id); n += 1) live.step(100);
++      expect(live.getInFlightProjectiles().some(p => p.attackerId === ids.attacker.id)).toBe(true);
++      const loaded = createSimulationBridge(seed, { savedGame: structuredClone(live.saveGame()) });
++      expect(loaded.getInFlightProjectiles()).toEqual(live.getInFlightProjectiles());
++      const before = firstHit(live, type, ids);
++      const after = firstHit(loaded, type, ids);
++      expect(after.damage).toBe(before.damage);
++      expect(after.damage).toBe(expectedDamage(type, ids));
++    });
++
++    it(`${type}: explicitly follows the old saved shot's existing impact convention`, () => {
++      const seed = attackDamageTypesSeed(type);
++      const live = createSimulationBridge(seed);
++      const ids = order(live, type);
++      for (let n = 0; n < 300 && !live.getInFlightProjectiles().some(p => p.attackerId === ids.attacker.id); n += 1) live.step(100);
++      expect(live.getInFlightProjectiles().some(p => p.attackerId === ids.attacker.id)).toBe(true);
++      const saved = structuredClone(live.saveGame());
++      const slot = stateSlot<ProjectileSlotState>(saved, projectilesCodec.slot);
++      // Reconstruct the exact pre-fix serialized field, not live world state.
++      // Direct shots consume it; area blasts already derive from unit type.
++      slot.inFlight = slot.inFlight.map(shot => shot.attackerId === ids.attacker.id
++        ? { ...shot, attackType: 'pierce' } : shot);
++      const loaded = createSimulationBridge(seed, { savedGame: saved });
++      expect(loaded.getInFlightProjectiles().find(p => p.attackerId === ids.attacker.id)?.attackType).toBe('pierce');
++      const damage = firstHit(loaded, type, ids).damage;
++      expect(damage).toBe(type === 'throwing-axeman' ? 1 : expectedDamage(type, ids));
++    });
++  }
++
++  it('records and deterministically replays a corrected commanded hit', () => {
++    const bridge = createSimulationBridge(attackDamageTypesSeed('throwing-axeman'));
++    const recorder = new SessionRecorder({ world: bridge.world, snapshotInterval: 5, terminalSnapshot: false });
++    recorder.connect();
++    try {
++      const ids = order(bridge, 'throwing-axeman');
++      expect(firstHit(bridge, 'throwing-axeman', ids).damage).toBe(expectedDamage('throwing-axeman', ids));
++    } finally {
++      recorder.disconnect();
++    }
++    const bundle = recorder.toBundle() as unknown as SessionBundle<GameEvents, GameCommands>;
++    const replayer = SessionReplayer.fromBundle(bundle, {
++      worldFactory: snapshot => createReplayWorldOnly(snapshot), skipRegistrationCheck: true,
++    });
++    const checked = replayer.selfCheck();
++    expect(checked.ok, JSON.stringify({
++      state: checked.stateDivergences.map(d => ({ from: d.fromTick, to: d.toTick, path: d.firstDifferingPath })),
++      events: checked.eventDivergences, executions: checked.executionDivergences,
++    })).toBe(true);
++    expect(checked.checkedSegments).toBeGreaterThan(0);
++    expect(checked.skippedSegments).toEqual([]);
++  });
++});
+diff --git a/tests/simulation/blastDamage.test.ts b/tests/simulation/blastDamage.test.ts
+index 5c4967d4..95e7b53c 100644
+--- a/tests/simulation/blastDamage.test.ts
++++ b/tests/simulation/blastDamage.test.ts
+@@ -35,16 +35,16 @@ describe('computeBlastDamage — mangonel-line splash', () => {
+   it('hits orthogonal neighbours (not diagonals), excludes the attacker + primary, sorted by id', () => {
+     const candidates = [
+       c(5, 'spearman', 10, 11), // dist 1 — IN
+-      c(3, 'militia', 11, 10), // dist 1 — IN (pierce armor 1)
++      c(3, 'militia', 11, 10), // dist 1 — IN (melee armor 0)
+       c(8, 'spearman', 11, 11), // dist √2 — OUT
+       c(2, 'knight', 10, 10), // the primary target — EXCLUDED
+       c(9, 'spearman', 9, 10), // the attacker's cell — EXCLUDED
+     ];
+-    // Mangonel base 40 PIERCE; no anti-infantry bonus. Spearman pierce armor 0
+-    // → 40; Militia pierce armor 1 → 39.
++    // Mangonel base 40 MELEE; no anti-infantry bonus. Both targets have melee
++    // armor 0, so each takes 40; Militia's pierce armor does not reduce it.
+     const result = computeBlastDamage('mangonel', 40, impact, candidates, new Set([2, 9]));
+     expect(result).toEqual([
+-      { id: 3, damage: 39 },
++      { id: 3, damage: 40 },
+       { id: 5, damage: 40 },
+     ]);
+   });
+@@ -56,8 +56,8 @@ describe('computeBlastDamage — mangonel-line splash', () => {
+   });
+ 
+   it('floors a splashed hit at 1 damage', () => {
+-    // A ram has 180 pierce armor; mangonel base 40 pierce → floored to 1.
+-    const result = computeBlastDamage('mangonel', 40, impact, [c(4, 'battering-ram', 10, 11)], new Set());
++    // A Spearman with 50 melee armor takes the connecting-hit floor from 40.
++    const result = computeBlastDamage('mangonel', 40, impact, [c(4, 'spearman', 10, 11, 50)], new Set());
+     expect(result).toEqual([{ id: 4, damage: 1 }]);
+   });
+ 
+diff --git a/tests/simulation/combatArmor.test.ts b/tests/simulation/combatArmor.test.ts
+index 5fe2f6c8..34931112 100644
+--- a/tests/simulation/combatArmor.test.ts
++++ b/tests/simulation/combatArmor.test.ts
+@@ -13,8 +13,8 @@ import {
+ } from '../../src/game/simulation/prototypeUnitRules';
+ 
+ // Data-driven combat Slice 1: melee/pierce armor split. Pierce attackers
+-// (archers, skirmishers, siege, towers) are reduced by the target's PIERCE
+-// armor; melee attackers (infantry, cavalry, rams) by its melee armor. Values
++// (archers, skirmishers, towers) are reduced by the target's PIERCE armor;
++// contact attackers and melee-damage projectiles by its melee armor. Values
+ // come from design/stats/units.csv (the `melee/pierce` armor column).
+ 
+ describe('combatDamageAfterArmor — melee/pierce split', () => {
+@@ -32,10 +32,10 @@ describe('combatDamageAfterArmor — melee/pierce split', () => {
+ });
+ 
+ describe('unitAttackType', () => {
+-  it('classifies ranged/siege units as pierce and infantry/cavalry/rams as melee', () => {
++  it('classifies armor family independently of contact or projectile delivery', () => {
+     expect(unitAttackType('archer')).toBe('pierce');
+     expect(unitAttackType('skirmisher')).toBe('pierce');
+-    expect(unitAttackType('mangonel')).toBe('pierce');
++    expect(unitAttackType('mangonel')).toBe('melee');
+     expect(unitAttackType('knight')).toBe('melee');
+     expect(unitAttackType('champion')).toBe('melee');
+     expect(unitAttackType('battering-ram')).toBe('melee');
+diff --git a/tests/simulation/projectileRules.test.ts b/tests/simulation/projectileRules.test.ts
+index d75a4f9d..abe6b4c8 100644
+--- a/tests/simulation/projectileRules.test.ts
++++ b/tests/simulation/projectileRules.test.ts
+@@ -43,12 +43,12 @@ describe('projectile rules — who fires, and how accurately', () => {
+     expect(unitAccuracy('skirmisher')).toBeCloseTo(0.9, 10);
+     // Cavalry archers are famously inaccurate; scorpions never miss.
+     expect(unitAccuracy('cavalry-archer')).toBeCloseTo(0.5, 10);
+-    expect(unitAccuracy('heavy-cavalry-archer')).toBeCloseTo(0.5, 10);
++    expect(unitAccuracy('heavy-cavalry-archer')).toBeCloseTo(0.8, 10);
+     expect(unitAccuracy('scorpion')).toBeCloseTo(1, 10);
+     expect(unitAccuracy('heavy-scorpion')).toBeCloseTo(1, 10);
+     expect(unitAccuracy('longbowman')).toBeCloseTo(0.7, 10);
+-    expect(unitAccuracy('elite-longbowman')).toBeCloseTo(0.7, 10);
+-    expect(unitAccuracy('bombard-cannon')).toBeCloseTo(0.92, 10);
++    expect(unitAccuracy('elite-longbowman')).toBeCloseTo(0.8, 10);
++    expect(unitAccuracy('bombard-cannon')).toBeCloseTo(1, 10);
+     // A trebuchet is a siege weapon, not an anti-unit weapon.
+     expect(unitAccuracy('trebuchet')).toBeCloseTo(0.15, 10);
+   });
+@@ -129,9 +129,9 @@ describe('projectile flight', () => {
+   it('adds the per-unit wind-up delay from the attack_delay column', () => {
+     // attack_delay seconds × TPS, rounded to whole ticks.
+     expect(projectileLaunchDelayTicks('archer')).toBe(Math.round(0.35 * TPS));
+-    expect(projectileLaunchDelayTicks('scorpion')).toBe(Math.round(0.21 * TPS));
+-    expect(projectileLaunchDelayTicks('cavalry-archer')).toBe(Math.round(1 * TPS));
+-    expect(projectileLaunchDelayTicks('trebuchet')).toBe(Math.round(0.6 * TPS));
++    expect(projectileLaunchDelayTicks('scorpion')).toBe(Math.round(0.16 * TPS));
++    expect(projectileLaunchDelayTicks('cavalry-archer')).toBe(Math.round(0.91 * TPS));
++    expect(projectileLaunchDelayTicks('trebuchet')).toBe(Math.round(0.88 * TPS));
+     for (const unitType of RANGED) {
+       expect(projectileLaunchDelayTicks(unitType)).toBeGreaterThanOrEqual(0);
+       expect(Number.isSafeInteger(projectileLaunchDelayTicks(unitType))).toBe(true);
+diff --git a/tests/simulation/projectileStatTiming.test.ts b/tests/simulation/projectileStatTiming.test.ts
+new file mode 100644
+index 00000000..c662c35d
+--- /dev/null
++++ b/tests/simulation/projectileStatTiming.test.ts
+@@ -0,0 +1,84 @@
++// BOUND: base launch timing for the 44 pinned supported ranged attackers at
++// the production launcher, plus one actual Cavalry Archer context order and
++// its visible wind-up/save path. Six changed accuracy rows are sampled through
++// the launcher. This does not prove every unit's command menu, bursts, miss
++// collision or technology/civilization modifiers, nor historical replay parity.
++
++import { readFileSync } from 'node:fs';
++import { describe, expect, it } from 'vitest';
++
++import { launchProjectile } from '../../src/game/simulation/bridge/projectileOps';
++import { createEmptyProjectileSlot } from '../../src/game/simulation/bridge/projectileTypes';
++import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
++import type { UnitType } from '../../src/game/simulation/types';
++import { selectOwnedUnitDirect, stepBridgeUntil } from './createSimulationBridge.helpers';
++
++interface SourceRow {
++  readonly id: UnitType;
++  readonly accuracyPercent: number | null;
++  readonly attackDelaySeconds: number;
++}
++const source = (JSON.parse(readFileSync('tests/content/fixtures/deProjectileStats.json', 'utf8')) as { units: SourceRow[] }).units;
++
++function shoot(unitType: UnitType, tick: number) {
++  return launchProjectile({
++    slot: createEmptyProjectileSlot(), tick,
++    attacker: { id: 1, owner: 1, unitType, position: { x: 10, y: 10 }, baseDamage: 10 },
++    target: { id: 2, kind: 'unit', position: { x: 14, y: 10 }, destination: null },
++    leads: false, mapSize: { width: 60, height: 36 },
++  });
++}
++
++describe('DE projectile stats reach launched shots', () => {
++  it('schedules every supported shot from the pinned wind-up', () => {
++    const differences: string[] = [];
++    for (const row of source) {
++      const shot = shoot(row.id, 100);
++      const expected = 100 + Math.round(row.attackDelaySeconds * 10);
++      if (shot.launchTick !== expected) differences.push(`${row.id}: launch ${String(shot.launchTick)} vs DE ${String(expected)}`);
++      expect(shot.impactTick, row.id).toBeGreaterThan(shot.launchTick);
++    }
++    expect(differences, differences.join('\n')).toEqual([]);
++  });
++
++  it('makes changed accuracy units miss at their sourced base rate', () => {
++    const changed = new Set<UnitType>(['heavy-cavalry-archer', 'hand-cannoneer', 'elite-longbowman', 'elite-plumed-archer', 'bombard-cannon', 'elite-janissary']);
++    for (const row of source.filter((row) => changed.has(row.id))) {
++      let aimed = 0;
++      for (let tick = 0; tick < 800; tick += 1) if (shoot(row.id, tick).willHit) aimed += 1;
++      const fraction = aimed / 800;
++      const expected = row.accuracyPercent! / 100;
++      expect(fraction, `${row.id} aimed ${String(aimed)}/800`).toBeGreaterThanOrEqual(expected - 0.05);
++      expect(fraction, row.id).toBeLessThanOrEqual(expected + 0.05);
++      if (expected === 1) expect(aimed, row.id).toBe(800);
++    }
++  });
++
++  it('a real context order winds up nine ticks, stays hidden, and survives saving', () => {
++    const bridge = createSimulationBridge('cavalry-archer-ranged-fixture');
++    const target = bridge.getEconomyState().units.find((unit) => unit.owner === 2 && unit.unitType === 'militia');
++    expect(target).toBeDefined();
++    expect(selectOwnedUnitDirect(bridge, 1, 'cavalry-archer')).toBe(true);
++    const orderTick = bridge.world.tick;
++    expect(bridge.issueContextCommand(target!.x, target!.y)).toBe(true);
++    expect(stepBridgeUntil(bridge, () => bridge.getInFlightProjectiles().length > 0, { maxSteps: 30 })).toBe(true);
++    const shot = bridge.getInFlightProjectiles().find((shot) => shot.attackerUnitType === 'cavalry-archer')!;
++    expect(shot).toBeDefined();
++    // The fixture is in range before the command, so it fires on the first
++    // command-processing tick. The animation feed labels completed tick + 1;
++    // use the world tick the shot schedules from, not that presentation label.
++    expect(shot.launchTick - orderTick).toBe(9); // DE 0.91 s at 10 TPS; not the runtime accessor.
++    expect(bridge.getRenderState().frame!.projectiles.some((view) => view.id === shot.id)).toBe(false);
++
++    const saved = structuredClone(bridge.saveGame());
++    const restored = createSimulationBridge('cavalry-archer-ranged-fixture', { savedGame: saved });
++    expect(restored.getInFlightProjectiles()).toEqual(bridge.getInFlightProjectiles());
++    for (const run of [bridge, restored]) {
++      expect(stepBridgeUntil(run, () => run.getRenderState().tick >= shot.launchTick - 1, { maxSteps: 20 })).toBe(true);
++      expect(run.getRenderState().frame!.projectiles.some((view) => view.id === shot.id)).toBe(false);
++      run.step(100);
++      expect(run.getRenderState().tick).toBe(shot.launchTick);
++      expect(run.getRenderState().frame!.projectiles.some((view) => view.id === shot.id)).toBe(true);
++    }
++  });
++});
+diff --git a/tests/simulation/unitAttackAnimationFeedPersistence.test.ts b/tests/simulation/unitAttackAnimationFeedPersistence.test.ts
+index cb80e0c5..96e60e66 100644
+--- a/tests/simulation/unitAttackAnimationFeedPersistence.test.ts
++++ b/tests/simulation/unitAttackAnimationFeedPersistence.test.ts
+@@ -33,6 +33,36 @@ interface RawAttackRecord {
+ }
+ 
+ describe("unit attack animation feed persistence and projection", () => {
++  it("preserves the known participant fields without retaining foreign payloads", () => {
++    // Bound: optional checkpoint metadata is canonical and detached. Real
++    // snapshot re-simulation is checked by attackDamageTypes.test.ts.
++    for (const targetIsEconomy of [true, false]) {
++      const participants = { attackerOwner: 1, targetOwner: 2, targetIsEconomy, extra: "strip" };
++      const raw = {
++        attackerId: 7, attackerGeneration: 2, tick: 100,
++        sourceX: 12, sourceY: 8, targetX: 13, targetY: 8, witnessedBy: [1], participants,
++      };
++      const [attack] = hydrateUnitAttacks([raw], 100, new Set([1, 2]), MAP);
++      expect(attack?.participants).toEqual({ attackerOwner: 1, targetOwner: 2, targetIsEconomy });
++      expect(attack?.participants).not.toBe(participants);
++    }
++  });
++
++  it("keeps legacy absence and strips malformed optional participant metadata", () => {
++    const legacy = {
++      attackerId: 7, attackerGeneration: 2, tick: 100,
++      sourceX: 12, sourceY: 8, targetX: 13, targetY: 8, witnessedBy: [1],
++    };
++    const valid = { attackerOwner: 1, targetOwner: 2, targetIsEconomy: false };
++    for (const participants of [undefined, null, [], {},
++      { ...valid, attackerOwner: 0 }, { ...valid, attackerOwner: 1.5 },
++      { ...valid, targetOwner: 9 }, { ...valid, targetOwner: null },
++      { ...valid, targetIsEconomy: "false" },
++    ]) {
++      expect(hydrateUnitAttacks([{ ...legacy, participants }], 100, new Set([1, 2]), MAP)).toEqual([legacy]);
++    }
++  });
++
+   it("tail-bounds imported records and canonicalizes witness suppression", () => {
+     const raw = new Array<unknown>(1_025);
+     Object.defineProperty(raw, 0, {

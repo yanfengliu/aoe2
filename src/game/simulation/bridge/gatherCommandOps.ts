@@ -12,6 +12,7 @@ import type {
   UnitComponent,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
+import { setResourceOccupation } from '../resourceWorkerCounts';
 
 export interface GatherCommandOpsDeps {
   world: GameWorld;
@@ -63,6 +64,7 @@ export function createGatherCommandOps(deps: GatherCommandOpsDeps) {
     gatherer.hasExplicitGatherOrder = true;
     clearUnitCommand(unitId);
     gatherer.desiredResource = economyResource;
+    setResourceOccupation(world, unitId, economyResource);
     gatherer.task = 'to-resource';
     gatherer.targetResourceId = resourceId;
     gatherer.dropOffBuildingId = findNearestDropOffBuilding(

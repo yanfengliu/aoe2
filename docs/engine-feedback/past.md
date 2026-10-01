@@ -3,6 +3,20 @@
 This file archives the historical observations that used to live in
 `docs/engine-feedback.md`. The live summary now lives in [current.md](./current.md).
 
+## 2026-10-01 — E16 live-export horizon already supported (fresh verification)
+
+The September 6 current ask was stale. Its exact original paragraph is retained below. The June 13 engine 1.1.4 resolution and original report remain unchanged in the previous freshness archive; they are historical evidence, not proof of a new fix.
+
+Fresh source at civ-engine baseline `a2bfe02a6c722274a16e718692bd56902372a092` / 2.4.1: `src/session-sink.ts:128-140` and `src/session-file-sink.ts:181-193` advance live endTick/duration before close; FileSink disk manifest writes remain snapshot/close-bound. `src/session-bundle.ts:163-166` defines complete replay horizon as max(endTick,persistedEndTick), with incomplete bundles capped at persistedEndTick; SessionReplayer consumes that rule. `docs/changelog.md` documents this as shipped engine 1.1.4 on 2026-06-13.
+
+The assigned engine worker freshly ran Vitest with filter `live-exported|legacy bundle|writeTick advances` across `tests/memory-sink.test.ts`, `tests/file-sink.test.ts` and `tests/session-replayer.test.ts`: exit 0, three files/four passed/62 filtered. Test locations 153,61,118,140 prove in-memory live stamping, disk flush after a snapshot, live-export openAt, and complete legacy endTick0/persistedEndTick4 opening at4 with four tick entries in1..4. This filtered run does not freshly exercise incomplete bundles, failed ticks, viewer/corpus or arbitrary historical/custom writers; their stated bounds come from inspected source/historical release, not these four tests.
+
+Disposition: verified already supported; no new engine fix. The cause of any other historical/custom writer exporting zero metadata is still untraced. AoE2 owns `scripts/replay-inspect.mjs`; its retained normalization can infer highest recorded tick as well as persisted horizon. Only comments and an unsupported blame phrase are corrected, preserving normalization/control/output behavior apart from accurate attribution. Other 22 inventory rows, including adoption, remain pending in engine work 71/game work 106.
+
+**Original September 6 report, retained verbatim as historical input:**
+
+- **Recorded bundles arrive with `metadata.endTick = 0` and are refused by the replayer; the attribution for it is not established (surfaced 2026-09-06, engine 2.4.1).** `scripts/replay-inspect.mjs:36-50` carries a standing repair: campaign bundles export `metadata.endTick = 0` and `durationTicks 0` while `ticks`, `executions` and `snapshots` all reach `persistedEndTick`, and `SessionReplayer.openAt` clamps to `endTick`, so without the repair the replayer refuses any tick above 0. The comment credits "an LLM-harness recording bug" — **that attribution has not been traced to a writer by anyone here**, and the stamping boundary is engine-side (`SessionRecorder`/sink), so it is as likely engine as harness. Reporting it rather than asserting a cause. **Ask:** the engine team's eyes on where `endTick` is stamped and under what termination path it can be left at 0 with a fully-recorded bundle — either a fix, or a statement that a writer must set it and the replayer should say so in its error. Recorded per the report-don't-modify-engine policy.
+
 ## Historical verdict
 
 `civ-engine` is viable as the authoritative simulation core for this project's first RTS slice.
