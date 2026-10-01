@@ -1,0 +1,21 @@
+# Five-route ledger for the recurrent replay comparison timeout
+
+Bound: this ledger concerns the original default-map 600-tick full non-cosmetic comparison and its test measurement cost. It does not grant a new route, reset the M7 budget, change the unchanged30s test limit or establish hosted performance.
+
+The outcome and disqualifiers were fixed before fanout in primary tmp/replay-measurement-recurrence-1001/fixed-contract.md, SHA6b853dd0cdead24466d7aa60ed76daf15be876098f6a5868e024a5a88269ad8d. Root accepted four already-spent substantive approaches before authorizing one fifth route. Native error/normalization repairs and literal verification mutants belong to that fifth route, not separate optimization attempts. Both honest failures and bounded historical successes remain.
+
+| Route | Mechanism and evidence | Disposition |
+| --- | --- | --- |
+| 1 | Descriptor comparison; retained Node20 measurement5,552.684ms versus native1,512.750ms. | Rejected. Source variant is not recoverable; this is a negative measurement, not a reconstructible source proof. |
+| 2 | Narrowed shallow comparison; retained Node20 measurement2,281.927ms versus native1,400.097ms. | Rejected. Source variant is not recoverable; no claim that it retained the final whole-state contract. |
+| 3 | Exact-guard global interning; retained Node20 total1,986.310→1,930.717ms (flat2.8%) and Node24 total1,200.826→1,366.164ms (13.8% higher). | Rejected. Historical helper and source review are recoverable in work106; no hosted saving. |
+| 4 | Imported native comparator binding, preserving exact per-source WeakMap guard. Same-run serialization/final-comparison phases improved11,585.213→10,074.559ms onNode20 and7,462.977→6,083.542ms onNode24. | Shipped with bounded local evidence; hosted timeout recurred. Those phases exclude setup, simulation steps, extra cross comparisons and digesting. The doubled Node20 diagnostic timed out despite completed assertions; do not call it GREEN. |
+| 5 | Private boolean paired comparator, pure modern-only normalization, complete legacy snapshot and freshly qualified guarded clone reuse. Fixed whole-case Node20ABBA and Node24AB executed with the exact existing600 input. | Rejected on complete case cost: Node20 mean10.3255→19.568s (89.5% higher); Node24 single pair6.353→13.019s (104.9% higher). All six cases passed assertions, but cost acceptance failed. |
+
+Historical routes1–4 come from engine-coverage-adoption-1001/tmp/work106-snapshot-profile/ci-cost-final-handoff.md and its named measurement files, not a newly rerun baseline. [Work106 source review6](../../106_de-parity-orchestration/reviews/6_implementation.md) and [contract review7](../../106_de-parity-orchestration/reviews/7_plan.md) preserve their provenance. The first two variants were not retained; that source gap remains explicit. Route4 phase savings are not directly comparable to route5 complete case timings.
+
+Route5 source review caught SP1 two-sided normalization and SP2 clone-ineligible equal inputs before final execution. The final candidate retains two complete validated serializations and native full equality, strips only modern occupation metadata using copied values, leaves non-unit/legacy fields intact and never exposes cached snapshots. Conservative reuse qualification rejects root/nested proxies, accessors without reading them, opaque/noncanonical values and cycles. Actual controls pass on both pinned runtimes; the complete cost of that qualified route still regresses. No profiler or counter-only benefit can supersede that verdict.
+
+The sole finite packet used the reviewed hidden Job and exact outer recovery. Thirteen commands include four literal mutants, two full correctness suites, restored contracts and six score arms. There was no slow-arm retry, no timeout change and no sixth approach. All 29 source/install guard receipts matched 3115 rows; Job/outer cleanup passed and no owned resource remains.
+
+The fleet/user rule caps automatic repair at five substantive attempts unless the user grants an extension. Budget5/5 is now exhausted. The recurrent hosted Windows comparison failure and intended outcome remain open. Root must report the failed route and obtain an explicit human extension before another repair approach; no further optimization or runtime is dispatched by this ledger.

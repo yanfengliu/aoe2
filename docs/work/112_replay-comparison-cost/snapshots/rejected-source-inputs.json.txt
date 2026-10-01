@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "kind": "Authored recovery input for the reviewed rejected candidate; no captured runtime output.",
+  "base": "aaf59f33e74da2b5113697c71b48d57f2bffecf4",
+  "targetSourceManifestSHA256": "9ab676a9a066b9075818e0777c35b1f4d711f56ac43d79a4e7367a821b97734b",
+  "sourceVerdict": "Source review passed within the synchronous World/DTO boundary; the candidate is rejected on complete test cost and remains unshipped.",
+  "rows": [
+    {
+      "sourcePath": "tests/replay/exactSnapshotPairComparator.ts",
+      "sourceSHA256": "7337c352f36f0876c7365e51f24f676c18ee6d809fb47bdd2514a7bb28e3a969",
+      "sourceBytes": 4633,
+      "snapshotPath": "snapshots/rejected-source/exactSnapshotPairComparator.ts.txt",
+      "snapshotSHA256": "7337c352f36f0876c7365e51f24f676c18ee6d809fb47bdd2514a7bb28e3a969",
+      "lineEnding": "LF; actual source and retained bytes are identical."
+    },
+    {
+      "sourcePath": "tests/replay/exactSnapshotPairComparator.test.ts",
+      "sourceSHA256": "ffc17921ceba08b181b3c4708f9cc307cd18144458dd54e5b8bc0ca9cef423b5",
+      "sourceBytes": 15915,
+      "snapshotPath": "snapshots/rejected-source/exactSnapshotPairComparator.test.ts.txt",
+      "snapshotSHA256": "ffc17921ceba08b181b3c4708f9cc307cd18144458dd54e5b8bc0ca9cef423b5",
+      "lineEnding": "LF; actual source and retained bytes are identical."
+    },
+    {
+      "sourcePath": "tests/replay/resourceWorkerOccupation.test.ts",
+      "sourceSHA256": "23fa3e8b3ece9b1e10a5bdcd7596d5e6c87102d866eed671b467e7cae06053b8",
+      "sourceBytes": 15003,
+      "snapshotPath": "snapshots/rejected-source/resourceWorkerOccupation.test.ts.txt",
+      "snapshotSHA256": "23fa3e8b3ece9b1e10a5bdcd7596d5e6c87102d866eed671b467e7cae06053b8",
+      "lineEnding": "LF; actual source and retained bytes are identical."
+    },
+    {
+      "sourcePath": "tests/replay/exactSnapshotSerializer.test.ts",
+      "sourceSHA256": "ed2652947f7e1442d160b672782f21625814575169f6f7c7b338831c089e7ca6",
+      "sourceBytes": 3385,
+      "snapshotPath": "snapshots/rejected-source/exactSnapshotSerializer.test.ts.txt",
+      "snapshotSHA256": "ed2652947f7e1442d160b672782f21625814575169f6f7c7b338831c089e7ca6",
+      "lineEnding": "LF; actual source and retained bytes are identical."
+    }
+  ],
+  "protected": [
+    {
+      "recoverableBase": "aaf59f33e74da2b5113697c71b48d57f2bffecf4",
+      "path": "tests/replay/exactSnapshotSerializer.ts",
+      "sha256": "e3a0d85a749c8afb19053a360539d41e9dfa2eef92330f53e0a1eeeafdbd1e80"
+    },
+    {
+      "recoverableBase": "aaf59f33e74da2b5113697c71b48d57f2bffecf4",
+      "path": "tests/replay/resourceWorkerOccupationLifecycle.test.ts",
+      "sha256": "0490585ce189b9b29afebb6b424526c7846cb05d9404e5d230fce1da11df2107"
+    }
+  ]
+}

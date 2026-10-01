@@ -1,0 +1,287 @@
+// Bound: private paired snapshot measurement preserves native VALUE equality,
+// all non-unit fields, source detachment and clone/error semantics. These fake
+// serializers exercise the hook; native120 separately exercises real Worlds.
+import type { WorldSnapshot } from 'civ-engine';
+import { isDeepStrictEqual } from 'node:util';
+import { describe, expect, it } from 'vitest';
+import { createPrivateSnapshotPairComparator } from './exactSnapshotPairComparator';
+
+const SLOT = 'aoe2.resourceOccupationVersion';
+type Parts = { state: Record<string, unknown>; components: Record<string, Array<[number, Record<string, unknown>]>> };
+type World = { serialize(): WorldSnapshot };
+const snapshot = (parts: Parts) => parts as unknown as WorldSnapshot;
+function normalizeNative(world: World): WorldSnapshot {
+  const value = world.serialize() as unknown as Parts;
+  delete value.state[SLOT];
+  for (const [, unit] of value.components.unit ?? []) delete unit.resourceOccupation;
+  return snapshot(value);
+}
+function leafWorld(source: Record<string, unknown>): World {
+  return { serialize: () => snapshot({ state: {}, components: { other: [[1, globalThis.structuredClone(source)]] } }) };
+}
+function expectedPair(first: World, second: World): boolean {
+  return isDeepStrictEqual(normalizeNative(first), second.serialize());
+}
+function caughtError(run: () => unknown): Error | undefined {
+  try { run(); } catch (error) { return error as Error; }
+  return undefined;
+}
+function roleWorld(values: { unit: Record<string, unknown>; other: Record<string, unknown>; dto: Record<string, unknown> }, order: string[], modern = false): World {
+  return { serialize: () => {
+    const copies: Record<string, Record<string, unknown>> = {};
+    for (const role of order) {
+      if (role === 'primitive') { globalThis.structuredClone(1); continue; }
+      copies[role] = globalThis.structuredClone(values[role as keyof typeof values]);
+    }
+    return snapshot({ state: { ...(modern ? { [SLOT]: 1 } : {}), dto: copies.dto }, components: { unit: [[1, copies.unit]], other: [[2, copies.other]] } });
+  } };
+}
+
+describe('private full snapshot pair comparison', () => {
+  it('avoids a redundant native clone for independently equal detached leaves', () => {
+    const nativeClone = globalThis.structuredClone;
+    let objectClones = 0;
+    globalThis.structuredClone = (value, options) => {
+      if (value !== null && typeof value === 'object') objectClones++;
+      return nativeClone(value, options);
+    };
+    try {
+      const compare = createPrivateSnapshotPairComparator();
+      const left = { nested: { value: 1 } };
+      const right = { nested: { value: 1 } };
+      expect(compare(leafWorld(left), leafWorld(right))).toBe(true);
+      expect(objectClones, 'one detached clone serves two internally owned equal values').toBe(1);
+      expect(left).not.toBe(right);
+      expect(left.nested).not.toBe(right.nested);
+    } finally { globalThis.structuredClone = nativeClone; }
+  });
+
+  it('detects independently changed nested values on either side after warm reuse', () => {
+    const compare = createPrivateSnapshotPairComparator();
+    const left = { nested: { value: 1 }, array: [1] };
+    const right = { nested: { value: 1 }, array: [1] };
+    const a = leafWorld(left); const b = leafWorld(right);
+    expect(compare(a, b)).toBe(expectedPair(a, b));
+    left.nested.value = 2;
+    expect(expectedPair(a, b)).toBe(false);
+    expect(compare(a, b)).toBe(false);
+    right.nested.value = 2;
+    expect(compare(a, b)).toBe(true);
+    right.array.push(2);
+    expect(compare(a, b)).toBe(expectedPair(a, b));
+    expect(compare(a, b)).toBe(false);
+  });
+
+  it('preserves own optional presence, deletion, null and signed zero', () => {
+    const compare = createPrivateSnapshotPairComparator();
+    const left: { value: number; optional?: null } = { value: 0, optional: null };
+    const right: { value: number; optional?: null } = { value: 0, optional: null };
+    const a = leafWorld(left); const b = leafWorld(right);
+    expect(compare(a, b)).toBe(true);
+    delete right.optional;
+    expect(compare(a, b)).toBe(expectedPair(a, b));
+    expect(compare(a, b)).toBe(false);
+    delete left.optional;
+    expect(compare(a, b)).toBe(true);
+    left.value = -0;
+    expect(compare(a, b)).toBe(false);
+    right.value = -0;
+    expect(compare(a, b)).toBe(true);
+    left.optional = null;
+    expect(compare(a, b)).toBe(false);
+  });
+
+  it('cannot erase non-unit occupation-shaped values at shifted clone ordinals', () => {
+    const compare = createPrivateSnapshotPairComparator();
+    const full = () => ({ resourceOccupation: 'wood', nested: { value: 1 } });
+    const absent = () => ({ nested: { value: 1 } });
+    const modern = { unit: full(), other: full(), dto: full() };
+    const legacy = { unit: absent(), other: absent(), dto: absent() };
+    const a = roleWorld(modern, ['unit', 'other', 'dto'], true);
+    const b = roleWorld(legacy, ['dto', 'unit', 'other']);
+    expect(expectedPair(a, b), 'non-unit component and state fields differ').toBe(false);
+    for (let repeat = 0; repeat < 3; repeat++) expect(compare(a, b)).toBe(false);
+    expect(modern.other.resourceOccupation).toBe('wood');
+    expect(modern.dto.resourceOccupation).toBe('wood');
+    const matchingLegacy = { unit: absent(), other: full(), dto: full() };
+    const matching = roleWorld(matchingLegacy, ['dto', 'primitive', 'other', 'unit']);
+    expect(expectedPair(a, matching)).toBe(true);
+    for (let repeat = 0; repeat < 3; repeat++) expect(compare(a, matching)).toBe(true);
+    expect(modern.unit.resourceOccupation).toBe('wood');
+
+    // Valid JSON DTOs can occur in several roles. A cache may introduce
+    // cross-call aliases even though native cloning detaches each request.
+    const sharedDto = full();
+    const aliasedRoles = roleWorld({ unit: sharedDto, other: sharedDto, dto: sharedDto }, ['unit', 'other', 'dto'], true);
+    const missingNonUnit = roleWorld({ unit: absent(), other: absent(), dto: absent() }, ['dto', 'unit', 'other']);
+    expect(expectedPair(aliasedRoles, missingNonUnit)).toBe(false);
+    for (let repeat = 0; repeat < 3; repeat++) expect(compare(aliasedRoles, missingNonUnit)).toBe(false);
+    expect(sharedDto.resourceOccupation).toBe('wood');
+  });
+
+  it('retains unexpected legacy occupation markers and unit fields in the oracle', () => {
+    const compare = createPrivateSnapshotPairComparator();
+    const modern: World = { serialize: () => snapshot({ state: { [SLOT]: 1 }, components: { unit: [[1, { value: 1, resourceOccupation: 'wood' }]] } }) };
+    const legacy: World = { serialize: () => snapshot({ state: {}, components: { unit: [[1, { value: 1 }]] } }) };
+    expect(compare(modern, legacy)).toBe(true);
+    const legacyMarker: World = { serialize: () => snapshot({ state: { [SLOT]: 1 }, components: { unit: [[1, { value: 1 }]] } }) };
+    const legacyField: World = { serialize: () => snapshot({ state: {}, components: { unit: [[1, { value: 1, resourceOccupation: null }]] } }) };
+    expect(expectedPair(modern, legacyMarker)).toBe(false);
+    expect(expectedPair(modern, legacyField)).toBe(false);
+    expect(compare(modern, legacyMarker)).toBe(false);
+    expect(compare(modern, legacyField)).toBe(false);
+  });
+
+  it('handles shortened, lengthened and reordered clone populations without trusting position', () => {
+    const compare = createPrivateSnapshotPairComparator();
+    const values = { unit: { value: 1 }, other: { value: 2 }, dto: { value: 3 } };
+    let order = ['unit', 'other', 'dto', 'primitive'];
+    const a = roleWorld(values, ['unit', 'other', 'dto']);
+    const b: World = { serialize: () => roleWorld(values, order).serialize() };
+    for (const next of [['dto', 'unit', 'other'], ['primitive', 'other', 'dto', 'unit', 'primitive'], ['unit', 'dto', 'other']]) {
+      order = next;
+      expect(compare(a, b)).toBe(expectedPair(a, b));
+      expect(compare(a, b)).toBe(true);
+    }
+    const changed = roleWorld({ ...values, other: { value: 99 } }, ['other', 'unit', 'dto']);
+    expect(compare(a, changed)).toBe(false);
+  });
+
+  it('does not expose cached snapshots or let detached external edits conceal a source change', () => {
+    const compare = createPrivateSnapshotPairComparator();
+    const left = { nested: { value: 1 } }; const right = { nested: { value: 1 } };
+    const a = leafWorld(left); const b = leafWorld(right);
+    expect(typeof compare(a, b)).toBe('boolean');
+    const external = a.serialize() as unknown as Parts;
+    (external.components.other[0][1].nested as { value: number }).value = 99;
+    expect(left.nested.value).toBe(1);
+    expect(right.nested.value).toBe(1);
+    expect(compare(a, b)).toBe(true);
+    left.nested.value = 3;
+    expect(compare(a, b)).toBe(false);
+  });
+
+  it('keeps native clone topology while comparison stays bounded to native value equality', () => {
+    const compare = createPrivateSnapshotPairComparator();
+    const shared = { value: 1 };
+    const a = leafWorld({ a: shared, b: shared });
+    const b = leafWorld({ a: { value: 1 }, b: { value: 1 } });
+    const nativeA = a.serialize() as unknown as Parts;
+    const nativeB = b.serialize() as unknown as Parts;
+    expect(nativeA.components.other[0][1].a).toBe(nativeA.components.other[0][1].b);
+    expect(nativeB.components.other[0][1].a).not.toBe(nativeB.components.other[0][1].b);
+    expect(compare(a, b)).toBe(expectedPair(a, b));
+  });
+
+  it('forwards native transfers and restores the pre-call clone function', () => {
+    const nativeClone = globalThis.structuredClone;
+    const first = new ArrayBuffer(8); const second = new ArrayBuffer(8);
+    const transferred = (buffer: ArrayBuffer): World => ({ serialize: () => snapshot({ state: { buffer: globalThis.structuredClone(buffer, { transfer: [buffer] }) }, components: {} }) });
+    expect(createPrivateSnapshotPairComparator()(transferred(first), transferred(second))).toBe(true);
+    expect(first.byteLength).toBe(0); expect(second.byteLength).toBe(0);
+    expect(globalThis.structuredClone).toBe(nativeClone);
+  });
+
+  it.each([0, 1])('restores native cloning after serialization %s fails and recovers on next call', (side) => {
+    const compare = createPrivateSnapshotPairComparator();
+    const nativeClone = globalThis.structuredClone;
+    const ordinary = leafWorld({ value: 1 });
+    const failed: World = { serialize: () => { globalThis.structuredClone({ value: 2 }); throw new Error('snapshot failed'); } };
+    expect(() => compare(side === 0 ? failed : ordinary, side === 1 ? failed : ordinary)).toThrow('snapshot failed');
+    expect(globalThis.structuredClone).toBe(nativeClone);
+    expect(compare(leafWorld({ value: 3 }), leafWorld({ value: 4 }))).toBe(false);
+    expect(compare(leafWorld({ value: 5 }), leafWorld({ value: 5 }))).toBe(true);
+  });
+
+  it('propagates native unsupported-value errors without leaving an installed wrapper', () => {
+    const compare = createPrivateSnapshotPairComparator();
+    const nativeClone = globalThis.structuredClone;
+    expect(() => compare(leafWorld({ bad: () => 1 }), leafWorld({ value: 1 }))).toThrow();
+    expect(globalThis.structuredClone).toBe(nativeClone);
+    expect(compare(leafWorld({ value: 1 }), leafWorld({ value: 1 }))).toBe(true);
+  });
+
+  it('propagates native invalid transfer errors and restores cloning', () => {
+    const nativeClone = globalThis.structuredClone;
+    const invalid: World = { serialize: () => globalThis.structuredClone({ value: 1 }, { transfer: [{} as Transferable] }) as unknown as WorldSnapshot };
+    expect(() => createPrivateSnapshotPairComparator()(invalid, leafWorld({ value: 1 }))).toThrow();
+    expect(globalThis.structuredClone).toBe(nativeClone);
+  });
+
+  it('preserves native clone rejection for deeply equal root and nested Proxies on first use', () => {
+    const nativeClone = globalThis.structuredClone;
+    for (const [plain, proxied] of [
+      [{ value: 1 }, new Proxy({ value: 1 }, {})],
+      [{ nested: { value: 1 } }, { nested: new Proxy({ value: 1 }, {}) }],
+    ] as const) {
+      expect(isDeepStrictEqual(plain, proxied), 'native value equality alone does not prove clone eligibility').toBe(true);
+      const nativeError = caughtError(() => nativeClone(proxied));
+      const actualError = caughtError(() => createPrivateSnapshotPairComparator()(leafWorld(plain), leafWorld(proxied)));
+      expect(nativeError, 'native rejects the Proxy').toBeDefined();
+      expect(actualError, 'instrument retains native rejection').toBeDefined();
+      expect({ name: actualError!.name, message: actualError!.message }).toEqual({ name: nativeError!.name, message: nativeError!.message });
+      expect(globalThis.structuredClone).toBe(nativeClone);
+    }
+  });
+
+  it('rechecks root and nested Proxy eligibility after an independently native-cloneable source warms its cache', () => {
+    const nativeClone = globalThis.structuredClone;
+    for (const kind of ['root', 'nested']) {
+      const left = { nested: { value: 1 } }; let right = { nested: { value: 1 } };
+      const compare = createPrivateSnapshotPairComparator();
+      const a = leafWorld(left); const b: World = { serialize: () => leafWorld(right).serialize() };
+      expect(compare(a, b)).toBe(true);
+      if (kind === 'root') right = new Proxy(right, {});
+      else right.nested = new Proxy({ value: 1 }, {});
+      expect(isDeepStrictEqual(left, right)).toBe(true);
+      const nativeError = caughtError(() => nativeClone(right));
+      const actualError = caughtError(() => compare(a, b));
+      expect(nativeError, 'native rejects the warm-substituted Proxy').toBeDefined();
+      expect(actualError, 'instrument retains native rejection').toBeDefined();
+      expect({ name: actualError!.name, message: actualError!.message }).toEqual({ name: nativeError!.name, message: nativeError!.message });
+      expect(globalThis.structuredClone).toBe(nativeClone);
+      right = { nested: { value: 1 } };
+      expect(compare(a, b)).toBe(true);
+    }
+  });
+
+  it('does not reuse a zero-byte buffer after native transfer detaches it', () => {
+    const nativeClone = globalThis.structuredClone;
+    const zero = new ArrayBuffer(0);
+    const a = leafWorld({ buffer: zero }); const b = leafWorld({ buffer: new ArrayBuffer(0) });
+    const compare = createPrivateSnapshotPairComparator();
+    expect(compare(a, b)).toBe(true);
+    nativeClone(zero, { transfer: [zero] });
+    expect(zero.byteLength).toBe(0);
+    const nativeError = caughtError(() => a.serialize());
+    const actualError = caughtError(() => compare(a, b));
+    expect(nativeError, 'native rejects a detached zero-byte buffer').toBeDefined();
+    expect(actualError, 'instrument retains native rejection').toBeDefined();
+    expect({ name: actualError!.name, message: actualError!.message }).toEqual({ name: nativeError!.name, message: nativeError!.message });
+    expect(globalThis.structuredClone).toBe(nativeClone);
+  });
+
+  it('forwards accessor objects to native cloning without invoking their getters during qualification', () => {
+    const nativeClone = globalThis.structuredClone;
+    let reads = 0;
+    let nativeGetterClones = 0;
+    const getter = { get value() { reads++; return 1; } };
+    const spy: typeof globalThis.structuredClone = (value, options) => {
+      if (value === getter) nativeGetterClones++;
+      return nativeClone(value, options);
+    };
+    globalThis.structuredClone = spy;
+    try {
+      const compare = createPrivateSnapshotPairComparator();
+      const a = leafWorld(getter); const b = leafWorld({ value: 1 });
+      expect(compare(a, b)).toBe(true);
+      expect(reads).toBe(1);
+      expect(nativeGetterClones).toBe(1);
+      expect(compare(a, b)).toBe(true);
+      expect(reads).toBe(2);
+      expect(nativeGetterClones).toBe(2);
+      expect(globalThis.structuredClone).toBe(spy);
+    } finally { globalThis.structuredClone = nativeClone; }
+    expect(globalThis.structuredClone).toBe(nativeClone);
+  });
+});

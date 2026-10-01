@@ -2801,6 +2801,10 @@
     {
       "id": 111,
       "theme": "resource-chip-capture"
+    },
+    {
+      "id": 112,
+      "theme": "replay-comparison-cost"
     }
   ]
 }

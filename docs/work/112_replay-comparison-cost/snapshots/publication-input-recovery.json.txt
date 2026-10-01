@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "kind": "Authored reversible input contract, not raw run material",
+  "reason": "Recover exact uncommitted fourteen-file review inputs after two clarity corrections and transparent late report append, without duplicating whole reviewed documents.",
+  "base": "aaf59f33e74da2b5113697c71b48d57f2bffecf4",
+  "reviewedManifestSHA256": "f5589c0a98eb43a5b51901c7757aede6a68e0009889636238978be96b876260e",
+  "reviewedReportSHA256": "9029ab4c33d87ffb75044e49485f6a492da773a4f3f1169a946cd45f98a52cd4",
+  "procedure": "Read current committed bytes, perform the named inverse only in scratch memory, and compare SHA256/length with the reviewed values. Never apply reversal to the live document. All three proofs compared scratch bytes with actual saved preimages.",
+  "rows": [
+    {
+      "path": "docs/work/112_replay-comparison-cost/snapshots/review-originals.json.txt",
+      "reviewedSHA256": "29c0e8611a16fbcc312f94f715ce1cf9a2ff9d046dc4f3e3c2cbf6c411362ec8",
+      "reviewedBytes": 72523,
+      "currentSHA256": "8442172dc9a4dd1d34fd92e8996419fd5df5525de8074e7604efdd3e3593e052",
+      "currentBytes": 94419,
+      "recovery": {
+        "kind": "Remove appended byte range from current input in scratch memory",
+        "offset": 72516,
+        "bytes": 21896
+      },
+      "scratchReconstructionEqualsActualPreimage": true
+    },
+    {
+      "path": "docs/work/112_replay-comparison-cost/snapshots/finite-result.md",
+      "reviewedSHA256": "afe7622c94a847f0d064ccc10381d1e131acc5f81539fa6d73dbcfe744354958",
+      "reviewedBytes": 5438,
+      "currentSHA256": "6871253430400546702620027570907487a5475f6103da97f38566225d8e51b5",
+      "currentBytes": 5445,
+      "recovery": {
+        "kind": "Replace the one exact after phrase with the before phrase in scratch memory",
+        "before": "both restored full correctness suites",
+        "after": "both unfiltered candidate correctness suites",
+        "occurrences": 1
+      },
+      "scratchReconstructionEqualsActualPreimage": true
+    },
+    {
+      "path": "docs/learning/defect-register.md",
+      "reviewedSHA256": "c7fa8bb4d4d36ba3338ca092e08b9cbe37d94a5124adcc8d82b1a25e332ae280",
+      "reviewedBytes": 142561,
+      "currentSHA256": "eb0cea2ab3b4e7e29a36496f8d1ed28b7228d73ee6a9aa8e8b67140da613c40a",
+      "currentBytes": 142561,
+      "recovery": {
+        "kind": "Replace the one exact after phrase with the before phrase in scratch memory",
+        "before": "hosted closure recurred",
+        "after": "hosted timeout recurred",
+        "occurrences": 1
+      },
+      "scratchReconstructionEqualsActualPreimage": true
+    }
+  ]
+}

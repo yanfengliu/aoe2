@@ -1,0 +1,100 @@
+import type { WorldSnapshot } from 'civ-engine';
+import { isDeepStrictEqual, types } from 'node:util';
+
+type World = { serialize(): WorldSnapshot };
+type Parts = { state: Record<string, unknown>; components: Record<string, Array<[number, Record<string, unknown>]>> };
+const isProxy = types.isProxy;
+function canReuseJson(value: unknown): boolean {
+  const active = new Set<object>();
+  const complete = new Set<object>();
+  const visit = (item: unknown): boolean => {
+    if (item === null || typeof item === 'string' || typeof item === 'boolean') return true;
+    if (typeof item === 'number') return Number.isFinite(item);
+    if (typeof item !== 'object' || isProxy(item)) return false;
+    if (active.has(item)) return false;
+    if (complete.has(item)) return true;
+    const array = Array.isArray(item);
+    const prototype = Object.getPrototypeOf(item);
+    if (array ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null) return false;
+    if (Object.getOwnPropertySymbols(item).length !== 0) return false;
+    active.add(item);
+    const descriptors = Object.getOwnPropertyDescriptors(item);
+    if (array && Object.keys(descriptors).length !== item.length + 1) return false;
+    for (const [key, descriptor] of Object.entries(descriptors)) {
+      if (array && key === 'length') continue;
+      if (!descriptor.enumerable || !Object.hasOwn(descriptor, 'value')) return false;
+      if (array && (String(Number(key)) !== key || !Number.isInteger(Number(key)) || Number(key) < 0 || Number(key) >= item.length)) return false;
+      if (!visit(descriptor.value)) return false;
+    }
+    active.delete(item);
+    complete.add(item);
+    return true;
+  };
+  // Reflection never executes a getter. Unsupported/opaque input retains the
+  // native clone's errors and behavior rather than entering either cache.
+  try { return visit(value); } catch { return false; }
+}
+function normalized(snapshot: WorldSnapshot): WorldSnapshot {
+  const parts = snapshot as unknown as Parts;
+  const state = { ...parts.state };
+  delete state['aoe2.resourceOccupationVersion'];
+  const unit = (parts.components.unit ?? []).map(([id, value]) => {
+    const copy = { ...value };
+    delete copy.resourceOccupation;
+    return [id, copy] as [number, Record<string, unknown>];
+  });
+  return { ...snapshot, state, components: { ...parts.components, ...(parts.components.unit ? { unit } : {}) } } as WorldSnapshot;
+}
+
+// Bound: both validated full serializations and native VALUE equality remain.
+// Supported callers are synchronous game Worlds and deterministic DTO fixtures.
+// Detached candidates never escape; qualifying each graph and native whole-value
+// equality guard reuse. Pure modern normalization edits no cache.
+export function createPrivateSnapshotPairComparator() {
+  const exactEqual = isDeepStrictEqual;
+  const clones = new WeakMap<object, unknown>();
+  let candidates: unknown[] = [];
+  return (modern: World, legacy: World): boolean => {
+    const nativeClone = globalThis.structuredClone;
+    let previous = candidates;
+    let current: unknown[] = [];
+    let ordinal = 0;
+    globalThis.structuredClone = (value, options) => {
+      const index = ordinal++;
+      let detached: unknown;
+      if (options !== undefined || typeof value !== 'object' || value === null) {
+        detached = nativeClone(value, options);
+      } else {
+        const candidate = previous[index];
+        const cached = clones.get(value);
+        // A first native miss needs no duplicate graph qualification. Every
+        // actual positional OR per-source reuse qualifies the current graph.
+        if ((candidate !== undefined || cached !== undefined) && canReuseJson(value)) {
+          if (candidate !== undefined && exactEqual(value, candidate)) detached = candidate;
+          else if (cached !== undefined && exactEqual(value, cached)) detached = cached;
+          else detached = nativeClone(value);
+        } else detached = nativeClone(value);
+        clones.set(value, detached);
+      }
+      current[index] = detached;
+      return detached;
+    };
+    const serialize = (world: World): WorldSnapshot => {
+      const result = world.serialize();
+      previous = current;
+      current = [];
+      ordinal = 0;
+      return result;
+    };
+    try {
+      const modernSnapshot = serialize(modern);
+      const legacySnapshot = serialize(legacy);
+      const equal = exactEqual(normalized(modernSnapshot), legacySnapshot);
+      candidates = previous;
+      return equal;
+    } catch (error) {
+      candidates = [];
+      throw error;
+    } finally { globalThis.structuredClone = nativeClone; }
+  };
+}
