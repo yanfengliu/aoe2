@@ -10,7 +10,7 @@ One independent internal reviewer, `/root/siege_internal_acceptance`, Astra/xhig
 
 ## Reports
 
-The complete [focused report](../snapshots/integration-review2/report.md) is preserved unchanged:5,174 bytes, SHA256 `14f10809028a1742a1a58819dddb7ac4516561b7e1ca8bd5a0d909fd4ee60c15`. Exact [inputs](../snapshots/integration-review2/inputs.json.txt) retain12,168 bytes, SHA256 `29b116ea463e7a04582045413b617660c26ee4c5a94bbd0de07a9654919e53bf`; the [closing record](../snapshots/integration-review2/closing.json.txt) preserves unchanged-input and I1 disposition evidence. No raw logs, full freeze manifest or control trace is promoted.
+The complete [focused report](../snapshots/integration-review2/report.md) is preserved unchanged:5,174 bytes, SHA256 `14f10809028a1742a1a58819dddb7ac4516561b7e1ca8bd5a0d909fd4ee60c15`. Normalized [inputs](../snapshots/integration-review2/inputs.json.txt) retain the same parsed provenance; the original was12,168 bytes/SHA256 `29b116ea463e7a04582045413b617660c26ee4c5a94bbd0de07a9654919e53bf`. The [closing record](../snapshots/integration-review2/closing.json.txt) is also normalized CRLF→LF. The [line-ending delta](../snapshots/review-json-line-ending-delta.json.txt) pins both byte representations and exact inverse recovery after hosted checkout-line-ending failure. No raw logs, full freeze manifest or control trace is promoted.
 
 ## Findings and disposition
 
@@ -18,7 +18,7 @@ I1/P3 is resolved. Current work106 status now distinguishes accepted main10c26 C
 
 ## Verification
 
-The reviewer recovered all24 original target inputs at their recorded digests:22 identical live files plus two preserved plan preimages. All nine source/test inputs remain unchanged; all40 retained evidence rows match. The complete review1 wrapper has seven actual Markdown references, all resolved; a prior assignment's eight-link count was corrected. Exact report/input/evidence/closing publication bytes match their originals.
+The reviewer recovered all24 original target inputs at their recorded digests:22 identical live files plus two preserved plan preimages. All nine source/test inputs remain unchanged; all40 retained evidence rows match. The complete review1 wrapper has seven actual Markdown references, all resolved; a prior assignment's eight-link count was corrected. Authored report bytes remain exact; JSON publication data remains identical after line-ending normalization, with original physical bytes recoverable through the delta.
 
 The unchanged executable inputs preserve the original native0 full-gate evidence:4,377 unit and236 browser passes with three/two existing skips, plus accepted maintained visuals and representative controls. This focused documentation review ran no new runtime checks. Reconstructed schema2 compatibility and affected same-version replay endpoints establish no authentic old-save corpus, historical whole-game determinism or full DE parity.
 

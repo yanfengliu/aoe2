@@ -10,7 +10,7 @@ One independent internal reviewer, `/root/siege_internal_acceptance`, assigned A
 
 ## Reports
 
-The complete original [report](../snapshots/integration-review1/report.md), 14,181 bytes, SHA256 `2c0db6bac1660aa0cdb97e59b51970be27e6da2f581a90ae0a4b9af48143fd65`, is preserved unchanged. Compact [inputs](../snapshots/integration-review1/inputs.json.txt), [40-file evidence hashes](../snapshots/integration-review1/evidence-hashes.json.txt) and [closing record](../snapshots/integration-review1/closing.json.txt) retain its exact target and provenance. Original report LF and three JSON artifacts' CRLF bytes are preserved under existing work-file attributes. No raw logs, full freeze manifest or control trace are promoted.
+The complete original [report](../snapshots/integration-review1/report.md), 14,181 bytes, SHA256 `2c0db6bac1660aa0cdb97e59b51970be27e6da2f581a90ae0a4b9af48143fd65`, is preserved unchanged. Normalized compact [inputs](../snapshots/integration-review1/inputs.json.txt), [40-file evidence hashes](../snapshots/integration-review1/evidence-hashes.json.txt) and [closing record](../snapshots/integration-review1/closing.json.txt) retain the same target/provenance data; original physical JSON bytes are recoverable through the delta. The original authored report remains exact LF. The three JSON copies are now normalized CRLF→LF after hosted checkout-line-ending failure; parsed content is unchanged. The [line-ending delta](../snapshots/review-json-line-ending-delta.json.txt) pins original and normalized bytes/hashes and an exact inverse recipe recovering each original. No raw logs, full freeze manifest or control trace are promoted.
 
 ## Findings and disposition
 
