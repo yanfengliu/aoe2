@@ -1,0 +1,244 @@
+{
+  "reviewer": "/root/occupation_coverage_contract_review",
+  "capturedUtc": "2026-10-01T06:29:52.2219729Z",
+  "base": "c4024020a09c99f74728f2a880a86fbcbaef8e48",
+  "workspace": "C:/Users/38909/Documents/github/aoe2-worktrees/engine-coverage-adoption-1001",
+  "method": "Read-only source and retained-evidence review; no lifecycle test, benchmark, profile, build, browser or gate execution. Session ci:status unavailable because sandbox worktree ownership blocked commit resolution. Worker supplied two small test-source corrections during review; final source excerpts were re-read and are bound below. Manifest records whole-file bytes for inspected files; some were read only at cited ranges.",
+  "report": {
+    "path": "report.md",
+    "sha256": "7d30c81e568ca18e477554c4bddafa91ca18c6dc318f8386caa4263106e91d97",
+    "bytes": 15231
+  },
+  "inputs": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "60ed5a0f2b5c29b6ba1d47cdf84e646d1745738bc0846652e897abf97a8db7e1",
+      "bytes": 26294
+    },
+    {
+      "path": "docs/policies/local-rules.md",
+      "sha256": "9c96f5467964ab22c3d26256693c8e3711703711df9a27594fc73eae3a5f15a6",
+      "bytes": 73565
+    },
+    {
+      "path": "docs/learning/lessons.md",
+      "sha256": "72e4bfb022b5e0ed82c181f3ffe7ca0022123acc12b4a3be09c4397c2f1fe4d0",
+      "bytes": 2969
+    },
+    {
+      "path": "docs/devlog/summary.md",
+      "sha256": "d9a17ac04915aa077b21954ba3b743d0110aa7a81639cd625c6bb03da7b191a6",
+      "bytes": 16891
+    },
+    {
+      "path": "docs/architecture/ARCHITECTURE.md",
+      "sha256": "cc406c18305f31bc76ef4d97ea2807dab77e71203ff599c33d99b8e9ad7b3018",
+      "bytes": 55973
+    },
+    {
+      "path": "design/spec-final.md",
+      "sha256": "409d955d53023988cd584c883aa9babce03945ba3b64454b97b6d792774e11ab",
+      "bytes": 458024
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "c680ed93b98bd1328f9210c0ead71a2d84bb2e3d5e3f2cf276dc1b45d6ec660d",
+      "bytes": 2154
+    },
+    {
+      "path": "tests/replay/resourceWorkerOccupation.test.ts",
+      "sha256": "a83afa3852959acd32ab0e1f7c38bb7eda71d2917c8e301dcb52d379443c4207",
+      "bytes": 16431
+    },
+    {
+      "path": "tests/replay/exactSnapshotSerializer.ts",
+      "sha256": "e3a0d85a749c8afb19053a360539d41e9dfa2eef92330f53e0a1eeeafdbd1e80",
+      "bytes": 1476
+    },
+    {
+      "path": "tests/replay/exactSnapshotSerializer.test.ts",
+      "sha256": "71536b1d60a64f5a4b5dfdb6a3f16403f148d9db1dcea221ef57fa6a66bc1380",
+      "bytes": 2368
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/original-resourceWorkerOccupation.test.ts",
+      "sha256": "5112a96970e9f43a3f9516913d0bb65d0b588dcedde45d8fb9c76f7576219f2f",
+      "bytes": 14754
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/original-helper-lifecycle-baseline.test.ts",
+      "sha256": "cacbab36026a5979b33a0f2cd6e59b41da2f9028bfcb609a004bd0a8a79eab75",
+      "bytes": 17382
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/original-helper-lifecycle-v20.log",
+      "sha256": "c28ed4e08025246897110d473f311d539be63d85e887e63747131e7aca85343d",
+      "bytes": 2926
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/original-contract-comparison.json",
+      "sha256": "5cbdd1ea1510538ed4f062d5a841b81fc4806b6eeb492d0d4696a8fa802de981",
+      "bytes": 1671
+    },
+    {
+      "path": "tests/simulation/resourceWorkerCounts.test.ts",
+      "sha256": "74a94567a709dae0b91c397f335b70d04e457412965187047ab56023d3830dfa",
+      "bytes": 7232
+    },
+    {
+      "path": "tests/simulation/createSimulationBridge.gatheringAndDropoff.test.ts",
+      "sha256": "45ee22c8187d1acacdc38a600208889245c8128e22adfa0d3ff469e40130aa38",
+      "bytes": 6098
+    },
+    {
+      "path": "tests/simulation/loadedVillagerDeposits.test.ts",
+      "sha256": "7f2abac888c12cb9377002d07558541b1b0672023661360f8be84d2a978695dd",
+      "bytes": 2868
+    },
+    {
+      "path": "tests/simulation/villagerDropOffReroute.test.ts",
+      "sha256": "0fdef81cb018332b605d19dc6a0633cade43213c76e56e29dd2c666c63ef427e",
+      "bytes": 2458
+    },
+    {
+      "path": "tests/simulation/villagerGatherSpread.test.ts",
+      "sha256": "b831936ff910e228ced8a4344f392ecf1154c45af63212b5d194912520680186",
+      "bytes": 4156
+    },
+    {
+      "path": "tests/simulation/dropOffStepWalkField.test.ts",
+      "sha256": "b26c73cbc2fe2e21f4103a9f33937eb108b9e0ea3947ae6343dd4228966ade83",
+      "bytes": 4832
+    },
+    {
+      "path": "tests/simulation/dropOffConvoy.test.ts",
+      "sha256": "8d7992f9c0ffa8ba7ee84e77c11530bc03470608cc9b7196b6e56c5aa65c9a9c",
+      "bytes": 1595
+    },
+    {
+      "path": "tests/simulation/woodlineClearing.test.ts",
+      "sha256": "65722c4973efe9cc352841017f6c509c123e11b0535fec929db0def71723a9be",
+      "bytes": 3852
+    },
+    {
+      "path": "tests/simulation/civBonusEffects.test.ts",
+      "sha256": "14aca8ddcea5877680005868df8f84980ed234299dbdd239199e220cbbe0d2fd",
+      "bytes": 19824
+    },
+    {
+      "path": "tests/simulation/gatherWalkRanking.test.ts",
+      "sha256": "e2a0d2ea6567249af835de3e4f441e14165d2b9ed27f10c66372a84e7ecb0b24",
+      "bytes": 5647
+    },
+    {
+      "path": "src/game/simulation/fixtures/economyBasics/woodlineClearing.ts",
+      "sha256": "ca283893facb1a984609cf7bd3ffab2e1ffc5ffdb23184b46d4bc35a78982b71",
+      "bytes": 2111
+    },
+    {
+      "path": "src/game/simulation/fixtures/economyBasics/gathering.ts",
+      "sha256": "22403b5c5f74ff9ba0c77e06b852c5f9464d48867bf6384ca27ec678223ee3ea",
+      "bytes": 3929
+    },
+    {
+      "path": "src/game/simulation/fixtures/economyBasics/fogAndMovement.ts",
+      "sha256": "fe53ff13f8104751b901cccdbe60eff2e7caff40fb069de16bd398fe329c9911",
+      "bytes": 6200
+    },
+    {
+      "path": "src/game/simulation/fixtures/ai/scoutingAndRush.ts",
+      "sha256": "f4158895318624625c3ea6a644beca2dbd7d70e9a270b1c144cf3c9b01bf6fec",
+      "bytes": 16278
+    },
+    {
+      "path": "src/game/simulation/fixtures/civShepherd.ts",
+      "sha256": "b2e32ae348ade0d8cb05989d9530b9106f01d5f2261904633a3d01b2531589d5",
+      "bytes": 2345
+    },
+    {
+      "path": "src/game/simulation/fixtures/common.ts",
+      "sha256": "c73373ada8bcfc4e937f4c3d11be83c399254311a646ade1d2e4d1ed6d1b229d",
+      "bytes": 3586
+    },
+    {
+      "path": "src/game/simulation/bridge/systems/dropOffStep.ts",
+      "sha256": "db685f590f0ba1dc5edfdf22503f36f6977068479ff406d3b088c2e28f1bc260",
+      "bytes": 7763
+    },
+    {
+      "path": "src/game/simulation/bridge/systems/villagerEconomySystem.ts",
+      "sha256": "266ddf790d005dab659a08519f8728e1671160c495eb03f2f69c30a671f80e75",
+      "bytes": 20085
+    },
+    {
+      "path": "src/game/simulation/bridge/entityCreateOps.ts",
+      "sha256": "ce9697c2baffbbb031a6cd0634e29210a36fb60da06ed7a6a667243a9f8d4a93",
+      "bytes": 17516
+    },
+    {
+      "path": "src/game/simulation/bridge/bridgeStateSerialize.ts",
+      "sha256": "5cc34b58d745cbea014230e728ab6d0bfbec82ddbe3a85d874d278c53e0675e7",
+      "bytes": 16991
+    },
+    {
+      "path": "src/game/simulation/bridge/pureHelpers.ts",
+      "sha256": "27b03ffd4a96b5c1b5017921eddddb8d18dd249e362f802f569c7fc6ec7f9b4a",
+      "bytes": 16279
+    },
+    {
+      "path": "src/game/simulation/prototypeEconomyRules.ts",
+      "sha256": "64356088b908c39f997b3a559d403becd88cf84b3cef4c08a6b212a55440827c",
+      "bytes": 11900
+    },
+    {
+      "path": "src/game/simulation/mapGeneration/constants.ts",
+      "sha256": "811e21825819c73f2f33ae044bfc0a106c3d22ebdde6c42a4b012e1fd706b1e3",
+      "bytes": 2505
+    },
+    {
+      "path": "src/game/simulation/mapGeneration/applyStandardPlayerOpening/patches.ts",
+      "sha256": "49d41e9b88a4d833ed5c5fbb5b0bf6a0e978727e7413dc0ed713c00be7bc3945",
+      "bytes": 7824
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/plan.md",
+      "sha256": "7ec46ec559bbac6b611f0578e9dca87516477d628de8f72dfd00f3976fbc2cb6",
+      "bytes": 35927
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/snapshots/hud-handoff.md",
+      "sha256": "714bdf0f3ba563fe02b1d85c8f77ab4fd2f0b7a02208850add4c53931bf47d91",
+      "bytes": 16441
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/reviews/6_ci-cost-investigation.md",
+      "sha256": "fdd80522a4669f2afcbaf08cec9fffbd694cc5c5e1a94422a601c9fc57f0fcc2",
+      "bytes": 3893
+    },
+    {
+      "path": "docs/work/108_engine-coverage-adoption/plan.md",
+      "sha256": "6e002c2c58497e8475fb7d411090e1be70fe06cb04dccd797e570a0fad8a9101",
+      "bytes": 7280
+    },
+    {
+      "path": "docs/devlog/detailed/2026-09-29_2026-09-30.md",
+      "sha256": "bfc32df675a6decc3e882fc26ad11dcd1b90af0983ebefaec19046d9446f9757",
+      "bytes": 114888
+    },
+    {
+      "path": "docs/debugging/2026-09-30-de-parity-orchestration.md",
+      "sha256": "773dab6ec4de608008d2608062768f451250c642cf795bc6826f7b3c988ec664",
+      "bytes": 14914
+    },
+    {
+      "path": "node_modules/civ-engine/package.json",
+      "sha256": "44b04b51aa19397bc94c52f44db97cc35c836237e0bd00cd7e61b766f5cbe973",
+      "bytes": 2524
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2/tmp/review-runs/cost-first-principles-1001/report.md",
+      "sha256": "abbc3e0431386169de34b4b99e0b980e16e44a821c4b9468b8c6f1aba4d3e3da",
+      "bytes": 14591
+    }
+  ]
+}

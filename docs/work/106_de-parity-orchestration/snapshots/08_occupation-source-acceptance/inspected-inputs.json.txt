@@ -1,0 +1,379 @@
+{
+  "capturedAt": "2026-10-01T07:25:11.5715536Z",
+  "workspace": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\engine-coverage-adoption-1001",
+  "base": "c4024020a09c99f74728f2a880a86fbcbaef8e48",
+  "frozenPathsMatchedAtStart": true,
+  "frozenPathsMatchedAtEnd": true,
+  "frozenFiles": [
+    {
+      "path": "tests/replay/exactSnapshotSerializer.ts",
+      "expected": "e3a0d85a749c8afb19053a360539d41e9dfa2eef92330f53e0a1eeeafdbd1e80",
+      "actual": "e3a0d85a749c8afb19053a360539d41e9dfa2eef92330f53e0a1eeeafdbd1e80",
+      "bytes": 1476,
+      "matches": true
+    },
+    {
+      "path": "tests/replay/exactSnapshotSerializer.test.ts",
+      "expected": "71536b1d60a64f5a4b5dfdb6a3f16403f148d9db1dcea221ef57fa6a66bc1380",
+      "actual": "71536b1d60a64f5a4b5dfdb6a3f16403f148d9db1dcea221ef57fa6a66bc1380",
+      "bytes": 2368,
+      "matches": true
+    },
+    {
+      "path": "tests/replay/resourceWorkerOccupation.test.ts",
+      "expected": "ab932d333afd5031009d51ea115ad7a9fea79342482eadbb734eb0af8cd3eea1",
+      "actual": "ab932d333afd5031009d51ea115ad7a9fea79342482eadbb734eb0af8cd3eea1",
+      "bytes": 15003,
+      "matches": true
+    },
+    {
+      "path": "tests/replay/resourceWorkerOccupationLifecycle.test.ts",
+      "expected": "0490585ce189b9b29afebb6b424526c7846cb05d9404e5d230fce1da11df2107",
+      "actual": "0490585ce189b9b29afebb6b424526c7846cb05d9404e5d230fce1da11df2107",
+      "bytes": 6439,
+      "matches": true
+    },
+    {
+      "path": "docs/work/108_engine-coverage-adoption/plan.md",
+      "expected": "b2872a10629fe4881a7db00302eab1bd58adecc417d6fd29ffa7007772dcc2bd",
+      "actual": "b2872a10629fe4881a7db00302eab1bd58adecc417d6fd29ffa7007772dcc2bd",
+      "bytes": 8367,
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/snapshots/hud-handoff.md",
+      "expected": "9bebc4aaca2396b03f65a2d4fd16336e63cdfa9a1c5a85f495f29c4e1c6b5478",
+      "actual": "9bebc4aaca2396b03f65a2d4fd16336e63cdfa9a1c5a85f495f29c4e1c6b5478",
+      "bytes": 18103,
+      "matches": true
+    },
+    {
+      "path": "docs/devlog/summary.md",
+      "expected": "918fd196ce739c4131603f092a224281265c769d844913f8e77acb07e04752ce",
+      "actual": "918fd196ce739c4131603f092a224281265c769d844913f8e77acb07e04752ce",
+      "bytes": 16936,
+      "matches": true
+    },
+    {
+      "path": "docs/devlog/detailed/2026-09-29_2026-09-30.md",
+      "expected": "66955e1246cd76df00369ce92c37cc4a11babef665f125604123c98bd963c8f9",
+      "actual": "66955e1246cd76df00369ce92c37cc4a11babef665f125604123c98bd963c8f9",
+      "bytes": 117697,
+      "matches": true
+    },
+    {
+      "path": "docs/debugging/2026-09-30-de-parity-orchestration.md",
+      "expected": "77d62156e1a1c29c5167297227c799d1e0d202ed1b942356f9aa47d561df70a2",
+      "actual": "77d62156e1a1c29c5167297227c799d1e0d202ed1b942356f9aa47d561df70a2",
+      "bytes": 17285,
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/reviews/6_ci-cost-investigation.md",
+      "expected": "fdd80522a4669f2afcbaf08cec9fffbd694cc5c5e1a94422a601c9fc57f0fcc2",
+      "actual": "fdd80522a4669f2afcbaf08cec9fffbd694cc5c5e1a94422a601c9fc57f0fcc2",
+      "bytes": 3893,
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/reviews/7_occupation-contract.md",
+      "expected": "a3a798ae10f7e40ed27c685dab10a4a6b10d1c8e405a0479c29db532a0bf5688",
+      "actual": "a3a798ae10f7e40ed27c685dab10a4a6b10d1c8e405a0479c29db532a0bf5688",
+      "bytes": 3831,
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/snapshots/06_ci-cost-search/independent-investigation-original.md",
+      "expected": "abbc3e0431386169de34b4b99e0b980e16e44a821c4b9468b8c6f1aba4d3e3da",
+      "actual": "abbc3e0431386169de34b4b99e0b980e16e44a821c4b9468b8c6f1aba4d3e3da",
+      "bytes": 14591,
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/snapshots/06_ci-cost-search/rejected-intern-helper.ts.txt",
+      "expected": "7efae125ec0b8e69bd854e1601a53a4ccfe76f446430ff28c3bf67040115157f",
+      "actual": "7efae125ec0b8e69bd854e1601a53a4ccfe76f446430ff28c3bf67040115157f",
+      "bytes": 3593,
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/independent-contract-original.md",
+      "expected": "7d30c81e568ca18e477554c4bddafa91ca18c6dc318f8386caa4263106e91d97",
+      "actual": "7d30c81e568ca18e477554c4bddafa91ca18c6dc318f8386caa4263106e91d97",
+      "bytes": 15231,
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/inspected-inputs.json",
+      "expected": "7286daa9ed6b49c78bc1a60bc16a7d165be159d07d30c256914122211f453ffc",
+      "actual": "7286daa9ed6b49c78bc1a60bc16a7d165be159d07d30c256914122211f453ffc",
+      "bytes": 9501,
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/reviewed-exactSnapshotSerializer.test.ts.txt",
+      "expected": "71536b1d60a64f5a4b5dfdb6a3f16403f148d9db1dcea221ef57fa6a66bc1380",
+      "actual": "71536b1d60a64f5a4b5dfdb6a3f16403f148d9db1dcea221ef57fa6a66bc1380",
+      "bytes": 2368,
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/reviewed-exactSnapshotSerializer.ts.txt",
+      "expected": "e3a0d85a749c8afb19053a360539d41e9dfa2eef92330f53e0a1eeeafdbd1e80",
+      "actual": "e3a0d85a749c8afb19053a360539d41e9dfa2eef92330f53e0a1eeeafdbd1e80",
+      "bytes": 1476,
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/reviewed-original-helper-lifecycle-baseline.test.ts.txt",
+      "expected": "cacbab36026a5979b33a0f2cd6e59b41da2f9028bfcb609a004bd0a8a79eab75",
+      "actual": "cacbab36026a5979b33a0f2cd6e59b41da2f9028bfcb609a004bd0a8a79eab75",
+      "bytes": 17382,
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/reviewed-resourceWorkerOccupation.test.ts.txt",
+      "expected": "a83afa3852959acd32ab0e1f7c38bb7eda71d2917c8e301dcb52d379443c4207",
+      "actual": "a83afa3852959acd32ab0e1f7c38bb7eda71d2917c8e301dcb52d379443c4207",
+      "bytes": 16431,
+      "matches": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/reviewed-work108-plan.md.txt",
+      "expected": "6e002c2c58497e8475fb7d411090e1be70fe06cb04dccd797e570a0fad8a9101",
+      "actual": "6e002c2c58497e8475fb7d411090e1be70fe06cb04dccd797e570a0fad8a9101",
+      "bytes": 7280,
+      "matches": true
+    }
+  ],
+  "additionalInspectedInputs": [
+    {
+      "path": "tmp/work106-snapshot-profile/ci-cost-final-handoff.md",
+      "sha256": "2929d33a6a3368be2a7e19ec65f0115d8500384a0e169fc46c11e755812d4e03",
+      "bytes": 11212
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/final-freeze-manifest.json",
+      "sha256": "ba5b9c6b059479d1e948c51cc06e4c980fd68e45eb162a1d8553b1238ba76b5a",
+      "bytes": 6340
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/original-resourceWorkerOccupation.test.ts",
+      "sha256": "5112a96970e9f43a3f9516913d0bb65d0b588dcedde45d8fb9c76f7576219f2f",
+      "bytes": 14754
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/original-contract-comparison.json",
+      "sha256": "2c106e9bc41af0cc5b75ae807c52cdb8661d0a0f16421b5bce06494b8db01dac",
+      "bytes": 2585
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/runtime-manifest.mjs",
+      "sha256": "2e8cf7309d5a010cb7a3e4587c8911c53bfe88f38111c38752bdb68a0b64c6d7",
+      "bytes": 2617
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/recovered-accept-v20-before.json",
+      "sha256": "89b099089c2dce6cc9fd1a0045d58c3858e302ce0977014e78302e2c6b710544",
+      "bytes": 119075
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/recovered-accept-v20-after.json",
+      "sha256": "2704c1a6194bdb962c2ecdea3c576f838eb21b14684e221f13cd0046f52a2036",
+      "bytes": 119075
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/recovered-accept-v24-before.json",
+      "sha256": "6e804585d0562569d965587ef0088c1d87bdb932ee8bd10baf3e8bd71f77699e",
+      "bytes": 118964
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/recovered-accept-v24-after.json",
+      "sha256": "ce20af0d1ac9ae3c4c06076bcfd21a7af7199a81d5c0d3559c7564f95c958d35",
+      "bytes": 118964
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/recovered-focused-v20.log",
+      "sha256": "9ddf7dd100fee9da715190e7e326ea886fe24123112c8b236bb333ec83f0496b",
+      "bytes": 2527
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/recovered-focused-v24.log",
+      "sha256": "7cd09ad73fec7b671c7b6bc7ae2bbfc206a7ee70a445e69f11d3e217981a55dd",
+      "bytes": 2525
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/run-lifecycle-mutant.mjs",
+      "sha256": "4ad003c2f0d9daff412bf14cd413fa6eea150a57abbf42b35093e4d57b72d637",
+      "bytes": 3679
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/lifecycle-stopped-mutant-result.json",
+      "sha256": "346257abbf12bb79d071b6f68b1e7058069f68b64523ebbd7b2ade3bdfa68d59",
+      "bytes": 436
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/lifecycle-credit-mutant-result.json",
+      "sha256": "da488fc218a3d873091bd84acb1f45b248a5b5dc1c246f3002bf998cde0d4704",
+      "bytes": 433
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/lifecycle-score-mutant-result.json",
+      "sha256": "fee12b45c6c32dc9af4a1c28e8c43e320053e1811347fb216709a1aa7a07657b",
+      "bytes": 430
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/lifecycle-stopped-mutant.test.ts.txt",
+      "sha256": "f4b1c2e1fc398fe739fc2da02cd28fcdc709298d517cd7a91e94eaa1413f6fb6",
+      "bytes": 6848
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/lifecycle-credit-mutant.test.ts.txt",
+      "sha256": "078182e3f572e545bc835307eecf3e5a767bd84c5739298d51c2d1e97921a4a2",
+      "bytes": 7129
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/lifecycle-score-mutant.test.ts.txt",
+      "sha256": "0933ccd62ca7c0837c1136de1f076f04f077fe61c0cdad610cef1ea3119e0c29",
+      "bytes": 7284
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/lifecycle-stopped-mutant-v20.log",
+      "sha256": "3fb0a45ac2493e8d349db59f4fda7af5e8397a7ad8ada21610068752a1847b69",
+      "bytes": 1459
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/lifecycle-credit-mutant-v20.log",
+      "sha256": "95d102c777582026663498d175b30cd615989b0ec4d0cf9e0e4910dad52fc92b",
+      "bytes": 1542
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/lifecycle-score-mutant-v20.log",
+      "sha256": "b88fee48df804ccb36d78a1d011ed4381d47ea60587a3e10972e148d7ef6b3ea",
+      "bytes": 1524
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/transport-guard-mutant-v20.log",
+      "sha256": "7d23085de072ce23e27983e36da19b2007f1cbdae43bf903e621c47f4dc3921e",
+      "bytes": 2077
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/original-helper-lifecycle-v20.log",
+      "sha256": "c28ed4e08025246897110d473f311d539be63d85e887e63747131e7aca85343d",
+      "bytes": 2926
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/serializerTransportMeasure.test.ts",
+      "sha256": "7330eb61b93279c67603ef1d08c04389b62070e323a4d586eb40ccdb7de3839f",
+      "bytes": 5507
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/transport-v20.20.2.json",
+      "sha256": "fa53f1dd03ef319299f4922354b11594c5fada1c2f3f334385f3dec68812dbfe",
+      "bytes": 1241
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/transport-v24.12.0.json",
+      "sha256": "3b95628806c5b05c979a52b6d013d778f891e94364029b35f85ddb946ddfdd95",
+      "bytes": 1232
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/accept-focused-v20.log",
+      "sha256": "e6547dd69f4dbea221e0cde188b255fe9aa74eb3dd3357744e43bbebcfaea573",
+      "bytes": 1403
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/accept-v20-before.json",
+      "sha256": "51638b49b76e1c7ab4cd8f0ae2f1c486fe7a6fa40978cab60ee9daef5b455098",
+      "bytes": 119075
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/recover-final-source.mjs",
+      "sha256": "3665c6118f9fe7060b076cb4583e55067071e117df382962766bf97d2e211ee4",
+      "bytes": 4315
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/owned-source-write.mjs",
+      "sha256": "cadf3af43cba32b8d66631064d7f302c84c51063e40c727c58e8efd8c0c58b9c",
+      "bytes": 1501
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/owned-write-guard-red.log",
+      "sha256": "0453958d0bb7205cb3b2d1a9aea27bc71043aec36e5cda9240c9aacbe5c539fa",
+      "bytes": 708
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/owned-write-guard-green.log",
+      "sha256": "e1cbae4af3a6800492cd99b4bdf21bcc5229b58af42451dda20bcb50f58d3a47",
+      "bytes": 73
+    },
+    {
+      "path": "tmp/work106-snapshot-profile/final-owned-process-check.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytes": 2
+    },
+    {
+      "path": "src/game/simulation/fixtures/economyBasics/woodlineClearing.ts",
+      "sha256": "ca283893facb1a984609cf7bd3ffab2e1ffc5ffdb23184b46d4bc35a78982b71",
+      "bytes": 2111
+    },
+    {
+      "path": "src/game/simulation/replay/createReplayWorldOnly.ts",
+      "sha256": "196a63b97ef9b64dac603158848ec7db54d602587820e70bd6764616aaa586f4",
+      "bytes": 1320
+    },
+    {
+      "path": "src/game/simulation/bridge/bridgeStateSerialize.ts",
+      "sha256": "5cc34b58d745cbea014230e728ab6d0bfbec82ddbe3a85d874d278c53e0675e7",
+      "bytes": 16991
+    },
+    {
+      "path": "src/game/simulation/bridge/dropOffBuildings.ts",
+      "sha256": "d0a5df9a68819f17daeb6c61033e89185c04afd4f42310618a76aba1e1eb5f9b",
+      "bytes": 2422
+    },
+    {
+      "path": "src/game/simulation/bridge/systems/dropOffStep.ts",
+      "sha256": "db685f590f0ba1dc5edfdf22503f36f6977068479ff406d3b088c2e28f1bc260",
+      "bytes": 7763
+    },
+    {
+      "path": "src/game/simulation/bridge/systems/villagerEconomySystem.ts",
+      "sha256": "266ddf790d005dab659a08519f8728e1671160c495eb03f2f69c30a671f80e75",
+      "bytes": 20085
+    },
+    {
+      "path": "node_modules/civ-engine/dist/world.js",
+      "sha256": "0d0d9decd305bdecbfb0b66c881afa973d29340dcfa84ca1a03ca6ee8d05d086",
+      "bytes": 18578
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "c680ed93b98bd1328f9210c0ead71a2d84bb2e3d5e3f2cf276dc1b45d6ec660d",
+      "bytes": 2154
+    }
+  ],
+  "primaryContract": {
+    "path": "C:/Users/38909/Documents/github/aoe2/tmp/review-runs/occupation-contract-1001/report.md",
+    "sha256": "7d30c81e568ca18e477554c4bddafa91ca18c6dc318f8386caa4263106e91d97"
+  },
+  "checksPerformed": [
+    "read-only source and retained evidence inspection",
+    "independent AST original adjacent-body comparison",
+    "deep-equal runtime manifest pairs excluding capturedAt",
+    "retained mutant hashes and reversal to clean preimages"
+  ],
+  "checksNotRun": [
+    "tests",
+    "profiles",
+    "build",
+    "typecheck",
+    "lint",
+    "audit",
+    "browser",
+    "full gate",
+    "remote acceptance"
+  ],
+  "note": "Additional inputs were read, sometimes at cited ranges; 20 frozen files were hash verified before and after review. Historical immutable artifacts are hash bound, not re-executed.",
+  "processCensus": "Closing scoped Get-CimInstance Win32_Process unavailable: Access denied. No browser, GUI, server or persistent process was launched by this reviewer."
+}

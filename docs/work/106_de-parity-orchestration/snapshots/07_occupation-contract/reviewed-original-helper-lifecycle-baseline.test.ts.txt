@@ -1,7 +1,6 @@
-// Bounds: all 600 default-map prefix comparisons with real selected-target
-// gathering, plus modern recording seek and legacy command resimulation.
-// Strip only this cosmetic format. The separate woodline test owns lifecycle
-// coverage; these legacy absent-field checks do not cover every engine version.
+// Bound: modern recording seek and command resimulation; legacy snapshots
+// stripped of ONLY this new cosmetic format, including training after boot.
+// This checks absent fields/slots, not every historical engine version.
 import { SessionRecorder, SessionReplayer, snapshotAtTick, type SessionBundle, type WorldSnapshot } from 'civ-engine';
 import { isDeepStrictEqual } from 'node:util';
 import { describe, expect, it } from 'vitest';
@@ -10,8 +9,8 @@ import { createReplayWorldOnly } from '../../src/game/simulation/replay/createRe
 import { makeReplayBridge } from '../../src/game/simulation/replay/makeReplayBridge';
 import { RESOURCE_OCCUPATION_SLOT } from '../../src/game/simulation/resourceWorkerCounts';
 import type { GameCommands, GameEvents } from '../../src/game/simulation/bridge/pureHelpers';
-import type { GathererComponent, ResourceComponent, UnitComponent } from '../../src/game/simulation/types';
-import { createExactSnapshotSerializer } from './exactSnapshotSerializer';
+import type { GathererComponent, PlayerResources, ResourceComponent, UnitComponent } from '../../src/game/simulation/types';
+
 
 const NO_AI = { disableAiForOwners: new Set([1, 2]) };
 const EMPTY = { food: 0, wood: 0, gold: 0, stone: 0 };
@@ -27,6 +26,25 @@ function boot() {
   const tree = bridge.getEconomyState().resources.find((resource) => resource.baseOwner === 1 && resource.resourceType === 'tree')!;
   bridge.selectUnitsByIds([unit.id]);
   return { bridge, unit, tree };
+}
+
+// World.serialize validates every value. Reuse only a detached clone whose
+// entire source still equals it; every value is checked on every serialize.
+// Scope the wrapper to synchronous serialization, never simulation stepping.
+function createExactSnapshotSerializer() {
+  const clones = new WeakMap<object, unknown>();
+  return (world: { serialize(): WorldSnapshot }): WorldSnapshot => {
+    const nativeClone = globalThis.structuredClone;
+    globalThis.structuredClone = (value, options) => {
+      if (options || value === null || typeof value !== 'object') return nativeClone(value, options);
+      const previous = clones.get(value);
+      if (previous !== undefined && isDeepStrictEqual(value, previous)) return previous as typeof value;
+      const detached = nativeClone(value);
+      clones.set(value, detached);
+      return detached;
+    };
+    try { return world.serialize(); } finally { globalThis.structuredClone = nativeClone; }
+  };
 }
 
 describe('resource worker occupation in saves and replay', () => {
@@ -61,7 +79,7 @@ describe('resource worker occupation in saves and replay', () => {
     expect(globalThis.structuredClone).toBe(nativeClone);
   });
 
-  it('keeps full non-cosmetic default-map state identical through a 600-tick commanded-worker prefix and real gather', () => {
+  it('keeps non-cosmetic world state identical across a gather, full carry and deposit', () => {
     const { bridge, unit, tree } = boot();
     const modern = createReplayWorldOnly(bridge.saveGame().worldSnapshot);
     const oldSnapshot = bridge.saveGame().worldSnapshot;
@@ -71,24 +89,39 @@ describe('resource worker occupation in saves and replay', () => {
       expect(world.submitWithResult('unit.gather', { unitId: unit.id, resourceId: tree.id }).accepted).toBe(true);
     }
     const serialize = createExactSnapshotSerializer();
-    // Observe the live commanded worker independently of snapshot caching.
+    // Observe the live worker independently of snapshot caching. Other workers
+    // may deposit on the same tick; account for all owner-1 wood cargo cleared.
     const progress = () => ({
       worker: { ...modern.getComponent<GathererComponent>(unit.id, 'gatherer')! },
       treeAmount: modern.getComponent<ResourceComponent>(tree.id, 'resource')!.amount,
+      wood: modern.getState<Array<[number, PlayerResources]>>('aoe2.playerResources')!.find(([owner]) => owner === 1)![1].wood,
+      woodLoads: [...modern.query('gatherer')].flatMap((id) => {
+        const gatherer = modern.getComponent<GathererComponent>(id, 'gatherer')!;
+        return modern.getComponent<UnitComponent>(id, 'unit')?.owner === 1 && gatherer.carriedResource === 'wood'
+          ? [[id, gatherer.carriedAmount] as const] : [];
+      }),
     });
     let before = progress();
     const initialTick = modern.tick;
     const legacyInitialTick = legacy.tick;
-    let gatheredAt = 0;
+    let gatheredAt = 0; let fullAt = 0; let depositedAt = 0;
     let comparedTicks = 0;
     for (let tick = 0; tick < 600; tick++) {
       legacy.step(); modern.step();
       expect(modern.tick).toBe(initialTick + tick + 1);
       expect(legacy.tick).toBe(legacyInitialTick + tick + 1);
       const after = progress();
-      if (!gatheredAt && before.worker.targetResourceId === tree.id && before.worker.task === 'gathering'
-        && after.worker.carriedResource === 'wood'
+      if (!gatheredAt && after.worker.carriedResource === 'wood'
         && after.worker.carriedAmount > before.worker.carriedAmount && after.treeAmount < before.treeAmount) gatheredAt = tick + 1;
+      if (!fullAt && after.worker.carriedResource === 'wood' && after.worker.carriedAmount === 10) fullAt = tick + 1;
+      if (!depositedAt && before.worker.carriedResource === 'wood' && before.worker.carriedAmount === 10
+        && before.worker.task === 'to-dropoff' && after.worker.carriedAmount === 0) {
+        const clearedWood = before.woodLoads.reduce((total, [id, amount]) =>
+          total + (modern.getComponent<GathererComponent>(id, 'gatherer')!.carriedAmount === 0 ? amount : 0), 0);
+        expect(after.wood - before.wood, 'wood credit accounts for the selected load and same-tick deposits').toBe(clearedWood);
+        expect(clearedWood).toBeGreaterThanOrEqual(10);
+        depositedAt = tick + 1;
+      }
       before = after;
       const state = serialize(modern);
       stripOccupation(state);
@@ -97,6 +130,9 @@ describe('resource worker occupation in saves and replay', () => {
     }
     expect(comparedTicks).toBe(600);
     expect(gatheredAt, 'selected worker gathered wood from the commanded tree').toBeGreaterThan(0);
+    expect(fullAt, 'selected worker reached its original 10-wood full carry').toBeGreaterThan(gatheredAt);
+    expect(depositedAt, 'selected full carry cleared with corresponding wood credit').toBeGreaterThan(fullAt);
+    console.log(JSON.stringify({ bound: 'original-helper600', gatheredAt, fullAt, depositedAt, comparedTicks, modernTick: modern.tick, legacyTick: legacy.tick }));
   });
 
   it('records assignment, preserved walking occupation and a non-gather clear in tick diffs', () => {

@@ -3,6 +3,14 @@
 This file archives the historical observations that used to live in
 `docs/engine-feedback.md`. The live summary now lives in [current.md](./current.md).
 
+## 2026-10-01 — E22 self-check coverage shipped in engine 2.5.0
+
+Engine main/release `eb61e448789a95ef907ae6f6e28e2dd33ae4c8a8` ships core 2.5.0. Root accepted the exact independent source review and all eleven local gates; hosted CI `36816404419` passed Node 20/22/24 and publish-dist. All 376 adopted distribution files match the published tarball SHA-256 `478d0aa36b49bd02a9a75df87ad08f6e672801011bee570887f84e5217c17fff`. The public types and `session-self-check-coverage` implementation now report replay horizon, enabled checks, checked and uncovered intervals with reasons, and actual state-comparison endpoints. `ok` retains its divergence-only meaning, and `coverage.complete` is relative to enabled checks; no comparison means incomplete. This fixes the engine ask, not whole-game determinism. Game reporting adoption remains pending in work 108, behind the required Windows test repair.
+
+**Original September 30 report, retained verbatim as historical input:**
+
+- **Replay self-check reports success without identifying the unchecked recorded tail (observed 2026-09-30, work 106, engine 2.4.1).** The installed `dist/session-replayer.js:177-225` checks adjacent snapshots and returns aggregate `checkedSegments`; it does not report the range after the last snapshot up to the recorded end. A real Throwing Axeman hit landed at tick 59 with a five-tick recording cadence and terminal snapshots disabled: earlier segments checked successfully, but the last checked snapshot was 55. Work 106 made this omission fail a test, retained the terminal snapshot and compared replayed target health after independently replaying 55→59. This is a coverage-reporting weakness, not evidence of an engine combat defect. **Ask:** return checked ranges, uncovered ranges and a completeness result separately from divergence success, including no-payload/no-segment cases. A caller must be able to distinguish a deterministic checked prefix from a recording checked through its end. The game-side repair and proof are recorded in `docs/work/106_de-parity-orchestration/plan.md` and `tests/simulation/attackDamageTypes.test.ts`.
+
 ## 2026-10-01 — E16 live-export horizon already supported (fresh verification)
 
 The September 6 current ask was stale. Its exact original paragraph is retained below. The June 13 engine 1.1.4 resolution and original report remain unchanged in the previous freshness archive; they are historical evidence, not proof of a new fix.

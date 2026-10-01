@@ -1,0 +1,73 @@
+import type { WorldSnapshot } from 'civ-engine';
+import { isDeepStrictEqual } from 'node:util';
+
+// Test instrument only: World.serialize still validates every component and
+// state value on every call. Interning is restricted to shallow plain data
+// records; nested/unsupported shapes use native cloning. Equal records from
+// separate clone calls may share one detached result in this test instrument.
+// Their source graphs never share output with inputs. The independent final
+// isDeepStrictEqual still compares full snapshots at every occupation-test tick.
+const lookupGetter = (Object.prototype as { __lookupGetter__(key: PropertyKey): unknown }).__lookupGetter__;
+
+function shallowRecordKeys(source: object): string[] | undefined {
+  if (Object.getPrototypeOf(source) !== Object.prototype) return undefined;
+  const fields = Object.getOwnPropertyDescriptors(source);
+  const keys = Reflect.ownKeys(fields);
+  for (const key of keys) {
+    if (typeof key !== 'string') return undefined;
+    const field = fields[key]!;
+    if (!field.enumerable || !('value' in field)) return undefined;
+    const value = field.value;
+    if (!(value === null || typeof value === 'string' || typeof value === 'boolean'
+      || (typeof value === 'number' && Number.isFinite(value)))) return undefined;
+  }
+  return keys as string[];
+}
+
+function hasGetter(value: object, keys: string[]): boolean {
+  return keys.some((key) => lookupGetter.call(value, key) !== undefined);
+}
+
+export interface SnapshotCloneCounts { requests: number; cloned: number; reused: number; interned?: number }
+
+export function createExactSnapshotSerializer(counts?: SnapshotCloneCounts) {
+  type Candidate = { copy: object; keys: string[] };
+  const clones = new WeakMap<object, Candidate>();
+  const candidates = new Map<string, Candidate[]>();
+  return (world: { serialize(): WorldSnapshot }): WorldSnapshot => {
+    const nativeClone = globalThis.structuredClone;
+    globalThis.structuredClone = (value, options) => {
+      if (counts) counts.requests++;
+      if (options || value === null || typeof value !== 'object') {
+        if (counts) counts.cloned++;
+        return nativeClone(value, options);
+      }
+      const previous = clones.get(value);
+      // Keep the original per-source exact guard. An accessor introduced on
+      // either exposed record must use native clone, without reading it here.
+      if (previous && !hasGetter(value, previous.keys) && !hasGetter(previous.copy, previous.keys)
+        && isDeepStrictEqual(value, previous.copy)) {
+        if (counts) counts.reused++;
+        return previous.copy as typeof value;
+      }
+      if (counts) counts.cloned++;
+      const detached = nativeClone(value);
+      const keys = shallowRecordKeys(value);
+      if (!keys) return detached;
+      // This string only chooses candidates. Exact comparison decides reuse,
+      // including collisions such as 0/-0 and externally edited candidates.
+      const fingerprint = JSON.stringify(detached);
+      const pool = candidates.get(fingerprint) ?? [];
+      const match = pool.find((candidate) => !hasGetter(candidate.copy, candidate.keys)
+        && isDeepStrictEqual(value, candidate.copy));
+      const candidate = match ?? { copy: detached, keys };
+      if (!match) {
+        pool.push(candidate);
+        candidates.set(fingerprint, pool);
+      } else if (counts) counts.interned = (counts.interned ?? 0) + 1;
+      clones.set(value, candidate);
+      return candidate.copy as typeof value;
+    };
+    try { return world.serialize(); } finally { globalThis.structuredClone = nativeClone; }
+  };
+}
