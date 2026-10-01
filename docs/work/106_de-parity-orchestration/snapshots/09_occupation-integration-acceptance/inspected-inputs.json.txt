@@ -1,0 +1,360 @@
+{
+  "reviewer": "/root/occupation_source_acceptance",
+  "createdAt": "2026-10-01T07:56:55.796Z",
+  "workspace": "C:/Users/38909/Documents/github/aoe2-worktrees/parity-integration-0930",
+  "base": "c4024020a09c99f74728f2a880a86fbcbaef8e48",
+  "rounds": [
+    {
+      "stage": "initial frozen integration source/document review",
+      "tree": "407af4aa36b5a86f2bb853ab051f098e6a0ff2a5",
+      "files": [
+        {
+          "path": "docs/debugging/2026-09-30-de-parity-orchestration.md",
+          "blob": "35617aefeb1aedddbff25b52db6fecdf383c4830",
+          "sha256": "af803d46751977d13307ab06a791f93e927b39e0b3f25b63cc8a035575bbd69f",
+          "bytes": 17665,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/devlog/detailed/2026-09-29_2026-09-30.md",
+          "blob": "c937e374d592b7a1103d294cd3399fb691f15069",
+          "sha256": "2013d925b35dfa76a771227dc864b103099ae072f8c496aa3a94562519f39f54",
+          "bytes": 121667,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/devlog/summary.md",
+          "blob": "fd99227149546073d7af3585b9ff9d3df9cb46d8",
+          "sha256": "05acb13bf143167ca3c9093d4f4e08430d2222e7242297c1ef0de3c76686a476",
+          "bytes": 17042,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/engine-feedback/current.md",
+          "blob": "586ead6a637aa16770e6a333faf629a78df4e05e",
+          "sha256": "511e65b7f95a87c441403154638b14bbac2fb711cf4e17c47710ea3457294ae4",
+          "bytes": 30154,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/engine-feedback/past.md",
+          "blob": "a2f355bfd32962648f2c10688656ffd4984f2ec6",
+          "sha256": "bf758555551740eca61dae29ff606860b745eba71c241b79ed87bad873b880e5",
+          "bytes": 47993,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/threads/current/de-look/PLAN.md",
+          "blob": "fdf7a66f14e4a78f8927635559abf5000c08bf52",
+          "sha256": "98a06544622f583e3a3ae321f64ec7a81878b6f841ae7e7c2d7cd02d8b40152b",
+          "bytes": 57154,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/plan.md",
+          "blob": "4a6902eb5d437cc8a4f87bff37d5d95594d53ae5",
+          "sha256": "37d62ec24195d57f3deb094e0985dcf0cbd74815ff0ae3001cecda071960def1",
+          "bytes": 45955,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/reviews/6_implementation.md",
+          "blob": "f37aaf5ebce2fb2ff67cd057fc35499cef8dcf43",
+          "sha256": "d91808257384a0fb78b2def268cb26d7fae5d256c32028a780693229b9363342",
+          "bytes": 5626,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/reviews/7_plan.md",
+          "blob": "9f64b8b10b13b6a54e83746d92fb019ef70c2792",
+          "sha256": "a57b07bab48e7b3a76403fc700df63a3f3003924eb8b663f5195d8d8fc641c69",
+          "bytes": 5871,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/reviews/8_implementation.md",
+          "blob": "7585ae6866d422e4bb8dff71d47708aeeac089e6",
+          "sha256": "a9a59d979094d7274d836940125428f74b41fb0b105c5e872bc4728970157d65",
+          "bytes": 6082,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/06_ci-cost-search/independent-investigation-original.md",
+          "blob": "5c6e510d2d256e9bf84be2569b89dd8f68e9e797",
+          "sha256": "abbc3e0431386169de34b4b99e0b980e16e44a821c4b9468b8c6f1aba4d3e3da",
+          "bytes": 14591,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/06_ci-cost-search/rejected-intern-helper.ts.txt",
+          "blob": "d4b6d3ad51a61d0a5fb1ffd3efffde44a4428691",
+          "sha256": "7efae125ec0b8e69bd854e1601a53a4ccfe76f446430ff28c3bf67040115157f",
+          "bytes": 3593,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/06_ci-cost-search/review6-wrapper-before-structure.md",
+          "blob": "a547218cda41e67d0fb34ae35f6762b265e0a5bc",
+          "sha256": "fdd80522a4669f2afcbaf08cec9fffbd694cc5c5e1a94422a601c9fc57f0fcc2",
+          "bytes": 3893,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/06_final-docs-acceptance-report.md",
+          "blob": "aa8c5c7bcfb218be15860c4a6baab5b02ca6e0da",
+          "sha256": "753fad35aecf25f10b83efa86b3e4e223307819d242638018045038766b4076e",
+          "bytes": 3846,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/independent-contract-original.md",
+          "blob": "abc7d109a7f433cb69423d1e306682f670ca88cc",
+          "sha256": "7d30c81e568ca18e477554c4bddafa91ca18c6dc318f8386caa4263106e91d97",
+          "bytes": 15231,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/inspected-inputs.json.txt",
+          "blob": "245cdbc706a90b7546a5239bfed17d733ef47815",
+          "sha256": "47751d70eaed03d27ba56f87507cfeefed7339ee45c45667d982e2533db97d86",
+          "bytes": 9257,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/review7-wrapper-before-structure.md",
+          "blob": "58472e013f8146735e1f4a02ce86d540addfddbf",
+          "sha256": "a3a798ae10f7e40ed27c685dab10a4a6b10d1c8e405a0479c29db532a0bf5688",
+          "bytes": 3831,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/reviewed-exactSnapshotSerializer.test.ts.txt",
+          "blob": "6b0d9d3686dbc763b2faf04ad09648ec7b347f9f",
+          "sha256": "71536b1d60a64f5a4b5dfdb6a3f16403f148d9db1dcea221ef57fa6a66bc1380",
+          "bytes": 2368,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/reviewed-exactSnapshotSerializer.ts.txt",
+          "blob": "e9e4e2e00ee90ee62bc4ff3a751dbcbe244d794c",
+          "sha256": "e3a0d85a749c8afb19053a360539d41e9dfa2eef92330f53e0a1eeeafdbd1e80",
+          "bytes": 1476,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/reviewed-original-helper-lifecycle-baseline.test.ts.txt",
+          "blob": "68201139b1a4b5ae17f7f25d114347777ce52937",
+          "sha256": "cacbab36026a5979b33a0f2cd6e59b41da2f9028bfcb609a004bd0a8a79eab75",
+          "bytes": 17382,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/reviewed-resourceWorkerOccupation.test.ts.txt",
+          "blob": "8a3bd6e6f04231236e1007ca67a9c564f4481287",
+          "sha256": "a83afa3852959acd32ab0e1f7c38bb7eda71d2917c8e301dcb52d379443c4207",
+          "bytes": 16431,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/07_occupation-contract/reviewed-work108-plan.md.txt",
+          "blob": "ed57485e63bd264f4749db7a92ccca0c869cd6a5",
+          "sha256": "6e002c2c58497e8475fb7d411090e1be70fe06cb04dccd797e570a0fad8a9101",
+          "bytes": 7280,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/08_occupation-source-acceptance/independent-source-acceptance-original.md",
+          "blob": "a6a4a5793a40e5e7d77926c50085bff07e3d93be",
+          "sha256": "57f580dab4b83b28f31315600cd5515aa205e0d85c07eff5dd7b1da02e3afaa7",
+          "bytes": 13483,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/08_occupation-source-acceptance/inspected-inputs.json.txt",
+          "blob": "e0ce5b72985eae9f743cecbf3b019e82e99c2d48",
+          "sha256": "c2144d028e26c8102c5d47cd93e6a7a4f9c6656c9d63dcd103f105ba303ff6c2",
+          "bytes": 15574,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/106_de-parity-orchestration/snapshots/hud-handoff.md",
+          "blob": "466441b2428af46b483c372e5cfb4aa90e521545",
+          "sha256": "b2ca877a2a0662b670df10c521279f7501eeb50775a330be1d9be2f3c4b5ace0",
+          "bytes": 18148,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/107_replay-movement-parity/plan.md",
+          "blob": "396eed6ec10f96c472ca685e99e350789d8ffb07",
+          "sha256": "50e169a67e783c1e9353ec9f7f5291a3b47e281e3a92fabcb26811e86c9c362b",
+          "bytes": 4945,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/108_engine-coverage-adoption/plan.md",
+          "blob": "cacef63bf9d7a590d9793f0dfcbdf8471c3972fc",
+          "sha256": "5ca38a890e30b2dfed7e1e1b887aeb05354d3c75c0d817c001e8b8f116c05574",
+          "bytes": 8480,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "docs/work/registry.json",
+          "blob": "192f2149215a47045f9109dc2a74f872e569e2c3",
+          "sha256": "41dd8abbd175f91ae85a6ecff71c235eaf1719763e3b55f8cfe4b855edb44961",
+          "bytes": 134761,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "package-lock.json",
+          "blob": "13337d106c113c746f58f30518de9b07e35586fa",
+          "sha256": "67c1cbe3a998c1215a4aa0357e0f23614b02b7bd699c1b716bf3eb275d289002",
+          "bytes": 146755,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "tests/replay/exactSnapshotSerializer.test.ts",
+          "blob": "6b0d9d3686dbc763b2faf04ad09648ec7b347f9f",
+          "sha256": "71536b1d60a64f5a4b5dfdb6a3f16403f148d9db1dcea221ef57fa6a66bc1380",
+          "bytes": 2368,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "tests/replay/exactSnapshotSerializer.ts",
+          "blob": "e9e4e2e00ee90ee62bc4ff3a751dbcbe244d794c",
+          "sha256": "e3a0d85a749c8afb19053a360539d41e9dfa2eef92330f53e0a1eeeafdbd1e80",
+          "bytes": 1476,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "tests/replay/resourceWorkerOccupation.test.ts",
+          "blob": "44a275d58edb8efc1dda10c682d961b90a628f9c",
+          "sha256": "ab932d333afd5031009d51ea115ad7a9fea79342482eadbb734eb0af8cd3eea1",
+          "bytes": 15003,
+          "indexMatches": true,
+          "worktreeMatches": true
+        },
+        {
+          "path": "tests/replay/resourceWorkerOccupationLifecycle.test.ts",
+          "blob": "2cb199d62ab93d2054d0cdd622db1296f0025a2c",
+          "sha256": "0490585ce189b9b29afebb6b424526c7846cb05d9404e5d230fce1da11df2107",
+          "bytes": 6439,
+          "indexMatches": true,
+          "worktreeMatches": true
+        }
+      ],
+      "initialAndClosingIndexMatched": true,
+      "extraInputs": [
+        {
+          "path": "tmp/parity-106/occupation-doc-final-freeze.json",
+          "sha256": "b2d13c85b29a88dfbe658647c895f94c2b79231653de3ffb64b108c969dc869b",
+          "bytes": 7262
+        },
+        {
+          "path": "tmp/parity-106/occupation-doc-repair/manifest-eol-proof.json",
+          "sha256": "aed83c162449cef354efe5c7593af7d928043e03d8ceb7e14d5bef1729fd665a",
+          "bytes": 1068
+        },
+        {
+          "path": "tmp/parity-106/occupation-doc-repair/original-07-inspected-inputs.json",
+          "sha256": "7286daa9ed6b49c78bc1a60bc16a7d165be159d07d30c256914122211f453ffc",
+          "bytes": 9501
+        },
+        {
+          "path": "tmp/parity-106/occupation-doc-repair/original-08-inspected-inputs.json",
+          "sha256": "6ad0d62009ac2ea7c45d76a40103bc76d231a865d1cc04df595c3d478a172c97",
+          "bytes": 15952
+        },
+        {
+          "path": "tmp/parity-106/plan107-sync/status-fix.json",
+          "sha256": "fb855c8a8f999a84dabdc1c90e18c3a6cac43e7b3f851a443a760a423d87a55c",
+          "bytes": 452
+        },
+        {
+          "path": "tmp/parity-106/plan107-sync/guard-and-copy.json",
+          "sha256": "789d2c893cb276d91dc652b21b888bc52f386a75186dcb062976a1c22cf69b93",
+          "bytes": 614
+        },
+        {
+          "path": "tmp/parity-106/e22-retirement.json",
+          "sha256": "708226b6105461e940f53d2d1775706bb82a65637c8aab46ed9a98b30d56ef13",
+          "bytes": 342
+        },
+        {
+          "path": "tmp/parity-106/engine-lock-2.5-check.json",
+          "sha256": "ae03c70149b169e9f322610378856f1dca85e3446054d81575e675ff90767d83",
+          "bytes": 511
+        },
+        {
+          "path": "tmp/parity-106/integration-engine-2.5-adoption.json",
+          "sha256": "97b96a30baf246c1d91f4d10890acc96504d4fbbcfb0d1339c3167869f3a3f37",
+          "bytes": 679
+        },
+        {
+          "path": "tmp/parity-106/check-authored-docs.mjs",
+          "sha256": "1f21617af350303e00402e84ff38c15bdb85f4c956451d9977608ddf4e6be58f",
+          "bytes": 3973
+        },
+        {
+          "path": "tests/architecture/helpers/workDocsStructure.ts",
+          "sha256": "14a12afafa90d3e35098c92f311e4fdabb1e8c8da7ab7c30549df75ace6cc8f0",
+          "bytes": 12267
+        },
+        {
+          "path": "tests/architecture/helpers/workDocsStatus.ts",
+          "sha256": "32e7473a743312740d06c944eb2097ac5bb7c94cc3fba753d8db249bb0f27e7f",
+          "bytes": 2391
+        },
+        {
+          "path": "tmp/parity-106/ci-repair-1001-verify1/index-tree.txt",
+          "sha256": "b362aa9cada96c723dc1883f500d9daaefb05e786cda4114d12e980a162e3d48",
+          "bytes": 42
+        }
+      ],
+      "reportSha256": "4253d28ca9b026ffb4c858e579cdc3a33fe9b624cfecf05c9c42c251e95671c8",
+      "status": "two P3 document corrections and actual full-gate evidence pending"
+    }
+  ],
+  "notExecuted": [
+    "tests",
+    "validators",
+    "gates",
+    "profiles",
+    "build",
+    "install",
+    "browser",
+    "server",
+    "child agents"
+  ],
+  "processes": "No persistent process launched; no broad shared census or termination."
+}
