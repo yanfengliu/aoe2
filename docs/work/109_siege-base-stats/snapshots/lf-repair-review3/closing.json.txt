@@ -1,0 +1,196 @@
+{
+  "observedUtc": "2026-10-01T15:54:18.4748579Z",
+  "base": "0d290ab5f3f74ab080537158c5de86a613fed800",
+  "target": "d0e9a29c02bad28fb7db7ecd5e69b5d85ef8ed28",
+  "cachedTargetDiffExit": 0,
+  "unstagedDiffExit": 0,
+  "excludedSourceAndGatesDiffExit": 0,
+  "checkedRows": 27,
+  "allUnchanged": true,
+  "rows": [
+    {
+      "path": "docs/devlog/detailed/2026-09-29_2026-09-30.md",
+      "bytes": 129406,
+      "sha256": "4dc29b92714f9c26c9c4e19e40901c9bebeddc2097453fb3a34c5f9463e70cad",
+      "unchanged": true
+    },
+    {
+      "path": "docs/devlog/summary.md",
+      "bytes": 16984,
+      "sha256": "ab81a5b3e8af4171a65309cbd9d718b4d3a28d6216217280e875a547900f5a9b",
+      "unchanged": true
+    },
+    {
+      "path": "docs/learning/defect-register.md",
+      "bytes": 143987,
+      "sha256": "0086051500efefcbb5100a3f43cb7911456061d0a2743a02160869ad7ad182af",
+      "unchanged": true
+    },
+    {
+      "path": "docs/threads/current/de-look/PLAN.md",
+      "bytes": 57767,
+      "sha256": "9ecf84e4c9b2d37417bfca1eaf5301b9c5af12697d026d067cc7aff750590699",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/106_de-parity-orchestration/plan.md",
+      "bytes": 47934,
+      "sha256": "1f7f64ce4c6f55dccf84d0bf7dda6fcc8b07b000c738c6b17f672b876a2ab0d8",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/plan.md",
+      "bytes": 13790,
+      "sha256": "f34d820aa6c2af8f487d0f5f87472887497e4b8215d6d17262406160c9e72183",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/reviews/1_integration.md",
+      "bytes": 4495,
+      "sha256": "f2f6594b4b70aa1b08c2dc032384216f7ad3c1838aeadaf1233bc9f13ad86323",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/reviews/2_integration.md",
+      "bytes": 3189,
+      "sha256": "de75d4ec0cb5f079eb5153291e215fb5f3b7aa443b8bfcddd8d354acf3745bbf",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review1/closing.json.txt",
+      "bytes": 551,
+      "sha256": "231b0d03880cb7cb1a54e4218a69adf98dd70a8e3a43cf10bbcd9e76f94a9695",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review1/evidence-hashes.json.txt",
+      "bytes": 8241,
+      "sha256": "c1c2400100a66f9a24704cd69ac1e906c8f5069a5468c0f6f05152616ee56911",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review1/inputs.json.txt",
+      "bytes": 8334,
+      "sha256": "2298db3814e9e0f080591568f9e7063da4b9e88cda67e09c184a40673579c14b",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review2/closing.json.txt",
+      "bytes": 434,
+      "sha256": "4faa6485366c5627f3abc1512cbed1004c2de26304d619dbdadb615947c7efd5",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review2/inputs.json.txt",
+      "bytes": 11911,
+      "sha256": "332e70dfeff38af4d93a461a14eed77d1a6aa14627f5a448a608bb4b883539cb",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/review-json-line-ending-delta.json.txt",
+      "bytes": 3879,
+      "sha256": "fe95548536a9d18f15fcf1ef629d08f842c43f17adaaf79e1471c426d9c94d96",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/110_corpus-evidence-retention/plan.md",
+      "bytes": 2722,
+      "sha256": "266bfcbc16180ec7065d1017d378221cab83f4e52e183f94cf002939269236e3",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/registry.json",
+      "bytes": 134898,
+      "sha256": "88b2d71bc8c7f2d738c9336afafb0633e8f29456b7dabbff58ca54c1ca32d3a4",
+      "unchanged": true
+    },
+    {
+      "path": "design/stats/units.csv",
+      "bytes": 23366,
+      "sha256": "9b71ec6a2429a264800deac911ef673d0fdfe3182ec5548798752c16c61cd31f",
+      "unchanged": true
+    },
+    {
+      "path": "src/game/simulation/fixtures/siegeBaseStats.ts",
+      "bytes": 1576,
+      "sha256": "8cd1eeb80f2252b00e558f2d7b86b3e5c00cf617ffbf106666e460698e43defa",
+      "unchanged": true
+    },
+    {
+      "path": "src/game/simulation/prototypeScenario/scenarioRegistry.ts",
+      "bytes": 27365,
+      "sha256": "2d371c527f1da150bdec43122e1b0d028c234e1cc7ad72c7e714e53998ea89d5",
+      "unchanged": true
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/presentationTables.ts",
+      "bytes": 10724,
+      "sha256": "275172f001b29c31fe6f1dd6f67239ad6b1e5d6ab9cc6070bc6048ef862e2aec",
+      "unchanged": true
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/statTables.ts",
+      "bytes": 11310,
+      "sha256": "8b937b15ab8c545165d1d273804e96e9d1c706a118e45d09289eed4d7ba31543",
+      "unchanged": true
+    },
+    {
+      "path": "src/game/simulation/prototypeUnitRules/unitArmorTables.ts",
+      "bytes": 5583,
+      "sha256": "23b1f980125336947994322bb00170810164353883de6edaa2b0c19f2cffa8af",
+      "unchanged": true
+    },
+    {
+      "path": "tests/content/fixtures/deSiegeBaseStats.json",
+      "bytes": 3150,
+      "sha256": "c8b360f120def7b88b5c096002aadc1a3d91c73eb9cc471b8d5aeac2d04f82fd",
+      "unchanged": true
+    },
+    {
+      "path": "tests/content/siegeBaseStats.test.ts",
+      "bytes": 6725,
+      "sha256": "aac3b273e7e5f8e3f82353cfad68aff8ec5c170a552d31ea07a2bfcfd7f80f98",
+      "unchanged": true
+    },
+    {
+      "path": "tests/simulation/siegeBaseStats.test.ts",
+      "bytes": 19823,
+      "sha256": "3cd76267189dd9a8c810cf6cbd6b0dd6538d322c239b9bde2260633d21371af8",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review1/report.md",
+      "bytes": 14181,
+      "sha256": "2c0db6bac1660aa0cdb97e59b51970be27e6da2f581a90ae0a4b9af48143fd65",
+      "unchanged": true
+    },
+    {
+      "path": "docs/work/109_siege-base-stats/snapshots/integration-review2/report.md",
+      "bytes": 5174,
+      "sha256": "14f10809028a1742a1a58819dddb7ac4516561b7e1ca8bd5a0d909fd4ee60c15",
+      "unchanged": true
+    }
+  ],
+  "evidence": [
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2/tmp/siege-main-integration-1001/linux-failure.log",
+      "bytes": 180492,
+      "sha256": "7b7c77fa9001dda45127532e52aac17782b16d0beb933b9704a9e638f4b6776a"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2/tmp/siege-main-integration-1001/windows-job-api.log",
+      "bytes": 144884,
+      "sha256": "aa39bef27dac8711c18a23a56984bcfe817ec8ce39303e80d292da22b5746a38"
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/siege-content-1001/tmp/siege-content-1001/review-json-lf-repair/checks/results.json",
+      "bytes": 6410,
+      "sha256": "d1e21d156f4ed3174329da59475f036f8d9355dae454df67163aac8ae33e7e7b"
+    }
+  ],
+  "openingSHA256": "7397fade8923c1ba7b1929c870e46874df3a892468ae1eb4bd26162523fec95a",
+  "reportSHA256": "669bf8c2f429229fac14be3a5251a2f1f9651261f7db4f6df672be7c6dedd03b",
+  "reportBytes": 7519,
+  "reviewerRuntimeExecuted": false,
+  "verdict": "Accepted docs-only repair; repair integration/hosted acceptance remain root-owned"
+}
