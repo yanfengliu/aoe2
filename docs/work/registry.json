@@ -2805,6 +2805,10 @@
     {
       "id": 112,
       "theme": "replay-comparison-cost"
+    },
+    {
+      "id": 113,
+      "theme": "worktree-removal-scope"
     }
   ]
 }
