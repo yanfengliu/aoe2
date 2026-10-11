@@ -1,6 +1,6 @@
 # Byzantine gates get no age-scaled hit-point bonus, as in Definitive Edition
 
-Status: active
+Status: complete
 Owner: Coordinator worker w119-byzantine-gates (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
 Updated: 2026-10-11
@@ -43,8 +43,12 @@ A gate already standing in a game saved before this change keeps the raised hit 
 ## Implementation steps
 
 - [x] Reproduce, fix and gate, on branch `byzantine-gate-hp` (phase 1). The teuton-spec-list worker landed first (`fd9d2c8d`), so this work removed the gate clause from the spec's open list and from the §11.11 breadth paragraph, as the coordinator's notes asked.
-- [ ] Land: rebase under the gate lock, take the version, run `npm run verify`, push (phase 2).
+- [x] Land: rebased under the gate lock onto `b92b03fa`, took 0.3.245, ran `npm run verify` (exit 0), pushed (phase 2).
 
 ## Outcome
 
-Pending.
+Shipped in v0.3.245 on 2026-10-11: main `10991b74`, with the code change in `d1d3ccb1`. A Byzantine Stone Gate and Palisade Gate now stand at the same hit points as any other civilization's in every age, and every other Byzantine building keeps the ladder. `tests/simulation/byzantineGateHp.test.ts` and the census case in `tests/simulation/ageScaledHp.test.ts` hold that on both paths, and five mutations turned them red. In the real game the selected gate read 3575 / 3575 before the fix and 2750 / 2750 after.
+
+The landing `npm run verify` exited 0 in 21 m 42 s (08:36–08:58): 4,389 unit tests and 236 browser tests passed. An earlier run under the same lock (01:19–01:42) exited 1 on one browser timeout, `tests/browser/de-ground.spec.ts:139`, under heavy machine load; this change cannot reach it. That case passed alone at 71.7 s and in the landing run at 72.2 s, 80% of its 90 s timeout, so it has little headroom.
+
+Left open, and queued by the coordinator: gates in games saved before v0.3.245 keep their raised hit points until a load-time correction lands after work 114 (see "Decision: saves"). Also queued from this work's findings, as a later card: walls and gates are offered from the Castle Age though `structures.csv` gives the Feudal Age; the Gate gets no Fortified Wall bonus; the header of `tests/simulation/civBuildingBonuses.test.ts` is stale; and ten comments still cite "spec §9.2" for civilization and team bonuses.
