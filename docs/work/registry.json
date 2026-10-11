@@ -2849,6 +2849,10 @@
     {
       "id": 123,
       "theme": "test-time-headroom"
+    },
+    {
+      "id": 124,
+      "theme": "verify-receipt"
     }
   ]
 }
