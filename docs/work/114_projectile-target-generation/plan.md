@@ -32,7 +32,8 @@ Store the target's and the shooter's generation with the shot (the codebase alre
 
 ## Implementation steps
 
-- [ ] Reproduce, fix, gate, review and land. Nothing here waits for the other five cards.
+- [x] Reproduce, fix and gate, with independent review rounds 0 and 1 in `reviews/`. Nothing here waits for the other five cards.
+- [ ] Land: the version, `npm run verify` under the gate lock, the merge to main and the push.
 
 ## Outcome
 

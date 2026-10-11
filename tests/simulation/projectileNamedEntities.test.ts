@@ -13,10 +13,12 @@
 // treated as a stranger, caught by the blast and never turned on.
 //
 // Each case has two controls with nothing replaced, which show the harness
-// sees the effect: one on fresh ids (generation 0) and one with the shooter
-// and the target on recycled ids (generation 1), as most entities stand once a
-// match is under way. The second is what a shot that stored a wrong generation
-// would fail: on fresh ids a stored generation of 0 is right by accident.
+// sees the effect: one on fresh ids (generation 0) and one with the shooter,
+// and in the target cases the target too, on recycled ids (generation 1), as
+// most entities stand once a match is under way. The second is what a shot
+// that stored a wrong generation would fail: on fresh ids a stored generation
+// of 0 is right by accident. A shooter a Monk converts in flight is still the
+// shooter, for its own blast and for an animal's turn.
 //
 // The world is civ-engine's own, so the id reuse is the engine's, not a stub's:
 // every replacement asserts that it took the id. The player-visible case,
@@ -291,6 +293,18 @@ describe('a shot\'s shooter is acted on only while it is the unit that loosed th
       expect(field.animals.get(boar)!.targetEntityRef).toEqual(mode === 'replaced' ? null : field.world.getEntityRef(archer));
     });
   }
+
+  it('the Mangonel a Monk converted in its stone\'s flight, standing in its own blast, is still spared', () => {
+    const field = new Field();
+    const mangonel = field.unit(1, 'mangonel', MANGONEL_AT);
+    const shot = field.shoot({ id: mangonel, owner: 1, unitType: 'mangonel', at: MANGONEL_AT }, { id: -1, kind: 'unit', at: GROUND });
+    // A conversion keeps the entity and changes its owner in place, as
+    // `flipConvertedUnit` does.
+    field.world.getComponent<UnitComponent>(mangonel, 'unit')!.owner = 2;
+    field.world.runMaintenance(() => field.world.setPosition(mangonel, { x: GROUND.x, y: GROUND.y }));
+    field.land(shot);
+    expect(field.hp(mangonel), 'the converted Mangonel\'s own blast caught it').toBe(100);
+  });
 
   for (const saved of ['now', 'before shots carried generations'] as const) {
     const label = saved === 'now'

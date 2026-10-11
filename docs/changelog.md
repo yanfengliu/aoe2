@@ -4,7 +4,7 @@ This changelog lists user-visible behavior changes only. Pure refactors, doc swe
 
 ## Unreleased — work 114
 
-- **A shot no longer hits the wrong thing.** A shot whose target died while it was in the air could land on whatever the game created next, because the newcomer took the dead target's place in the game's records: a House foundation put down where a deleted House had stood took the Mangonel stone aimed at the House, and the newcomer could be another player's. A shot now deals nothing to anything but the target it was aimed at, though a stone still blasts where it lands, and a unit that takes a dead Mangonel's place is no longer spared that Mangonel's blast. A shot already in the air in a save made before this version still lands as it used to. A replay recorded before this version can resolve a shot differently from the original game, where the original shot hit the newcomer.
+- **A shot no longer hits the wrong thing.** A shot whose target died while it was in the air could land on whatever the game created next, because the newcomer took the dead target's place in the game's records: a House foundation put down where a deleted House had stood took the Mangonel stone aimed at the House, and the newcomer could be another player's. A shot now deals nothing to anything but the target it was aimed at, though a stone still blasts where it lands, and a unit that takes a dead Mangonel's place is no longer spared that Mangonel's blast. A shot already in the air in a save made before this version still lands as it used to. A replay recorded before this version can resolve a shot differently from the original game where something the shot named was replaced while it was in the air.
 
 ## 0.3.246
 

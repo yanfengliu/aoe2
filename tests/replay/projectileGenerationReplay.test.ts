@@ -11,9 +11,10 @@
 // generation stripped from the one snapshot it holds, so its replay
 // re-simulates the whole flight; no bundle recorded by an older build is
 // committed (as in buildingSightLegacyReplay.test.ts). Re-simulating a
-// recording an older build made gives each shot loosed during the replay
-// generations its later snapshots lack, as §10.4 allows for any patch that
-// corrects combat, so the old recording is opened, not self-checked.
+// recording an older build made gives each shot loosed during the replay both
+// generations, which that recording's snapshots lack, so its self-check
+// reports a divergence wherever a snapshot holds such a shot, as §10.4 says;
+// the old recording here is opened and played, not self-checked.
 
 import { SessionRecorder, SessionReplayer, type SessionBundle } from 'civ-engine';
 import { describe, expect, it } from 'vitest';
