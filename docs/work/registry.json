@@ -2837,6 +2837,14 @@
     {
       "id": 120,
       "theme": "civ-bonus-corrections"
+    },
+    {
+      "id": 121,
+      "theme": "hidden-unstarted-foundations"
+    },
+    {
+      "id": 122,
+      "theme": "unexplored-placement"
     }
   ]
 }
