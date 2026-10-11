@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## Unreleased — work 119
+## 0.3.245
 
 - **Byzantine gates no longer get the Byzantine building hit-point bonus.** The bonus gives Byzantine buildings, except gates, +10/20/30/40% hit points in the Dark, Feudal, Castle and Imperial Age, but gates were getting it too. A Byzantine Stone Gate now has 2,750 hit points in every age, as every other civilization's does; in the Castle Age it had 3,575. A Palisade Gate has 250. Every other Byzantine building, walls included, keeps the bonus. A gate already standing in a game saved before this version keeps the hit points it was saved with.
 
