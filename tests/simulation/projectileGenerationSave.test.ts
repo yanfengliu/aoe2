@@ -20,7 +20,15 @@ import { describe, expect, it } from 'vitest';
 import { projectilesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import type { SaveBlob } from '../../src/game/simulation/saveSchema';
-import { buildingHp, landShot, replaceHouse, STONE_SEED, stoneAtHouse } from './stoneAtDeletedHouse.helpers';
+import {
+  buildingAtHouseSpot,
+  buildingHp,
+  holdFire,
+  landShot,
+  replaceHouse,
+  STONE_SEED,
+  stoneAtHouse,
+} from './stoneAtDeletedHouse.helpers';
 
 type WrittenShot = Record<string, unknown> & { id: number };
 
@@ -39,9 +47,20 @@ function withoutGenerations(save: SaveBlob): SaveBlob {
   return old;
 }
 
-function saveMidFlight() {
+/** Saves with the Mangonel's stone in the air at the House. With
+ *  `recycledTarget`, the House is first replaced by a foundation on its id,
+ *  so the stone's target stands at generation 1: a shot that stored a wrong
+ *  generation would be right by accident on the fixture's own generation 0. */
+function saveMidFlight(options: { recycledTarget?: boolean } = {}) {
   const bridge = createSimulationBridge(STONE_SEED);
+  if (options.recycledTarget) {
+    holdFire(bridge);
+    replaceHouse(bridge.world, () => bridge.step(100), buildingAtHouseSpot(bridge.world)!);
+  }
   const scene = stoneAtHouse(bridge);
+  if (options.recycledTarget) {
+    expect(bridge.world.getEntityRef(scene.house)!.generation, 'the premise: the target stands on a recycled id').toBeGreaterThan(0);
+  }
   const save = structuredClone(bridge.saveGame());
   expect(save.schema, 'the premise: a save written now is schema 2').toBe(2);
   return { bridge, ...scene, save };
@@ -49,7 +68,7 @@ function saveMidFlight() {
 
 describe('a shot in the air across a save', () => {
   it('is written with its shooter\'s and its target\'s generation, and loads with them', () => {
-    const { bridge, house, mangonel, shot, save } = saveMidFlight();
+    const { bridge, house, mangonel, shot, save } = saveMidFlight({ recycledTarget: true });
     const written = writtenShots(save).find((s) => s.id === shot.id)!;
     expect(written.attackerGeneration).toBe(bridge.world.getEntityRef(mangonel)!.generation);
     expect(written.targetGeneration).toBe(bridge.world.getEntityRef(house)!.generation);
@@ -57,11 +76,20 @@ describe('a shot in the air across a save', () => {
     expect(loaded.getInFlightProjectiles()).toEqual(bridge.getInFlightProjectiles());
   });
 
+  it('still lands on the target it was aimed at after the load, here a foundation on a recycled id', () => {
+    const { house, shot, save } = saveMidFlight({ recycledTarget: true });
+    const loaded = createSimulationBridge(STONE_SEED, { savedGame: save });
+    const hpBefore = buildingHp(loaded.world, house)!;
+    landShot(loaded.world, () => loaded.step(100), shot);
+    expect(buildingHp(loaded.world, house)!, 'the loaded stone missed the foundation it was aimed at').toBeLessThan(hpBefore);
+    expect(loaded.getRecentPlayerHits().some((blow) => blow.targetId === house), 'no blow was recorded on the foundation').toBe(true);
+  });
+
   it('still tells its target from a foundation that takes the target\'s id after the load', () => {
     const { house, shot, save } = saveMidFlight();
     const loaded = createSimulationBridge(STONE_SEED, { savedGame: save });
     const step = () => loaded.step(100);
-    const foundation = replaceHouse(loaded.world, step, house);
+    const foundation = replaceHouse(loaded.world, step, house, shot);
     const hpBefore = buildingHp(loaded.world, foundation)!;
     landShot(loaded.world, step, shot);
     expect(buildingHp(loaded.world, foundation), 'the loaded stone hit the foundation that took its target\'s id')
@@ -85,7 +113,7 @@ describe('a save written before shots carried generations', () => {
     const { house, shot, save } = saveMidFlight();
     const loaded = createSimulationBridge(STONE_SEED, { savedGame: withoutGenerations(save) });
     const step = () => loaded.step(100);
-    const foundation = replaceHouse(loaded.world, step, house);
+    const foundation = replaceHouse(loaded.world, step, house, shot);
     const hpBefore = buildingHp(loaded.world, foundation)!;
     landShot(loaded.world, step, shot);
     expect(buildingHp(loaded.world, foundation)!, 'the old stone no longer resolves by bare id: update the bound in spec §10.4')

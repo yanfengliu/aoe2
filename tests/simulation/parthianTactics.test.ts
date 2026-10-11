@@ -162,8 +162,8 @@ describe('Parthian Tactics — landed damage at the projectile impact site', () 
     const slot = createEmptyProjectileSlot();
     const targetCombat = combat();
     slot.inFlight.push({
-      id: 1, attackerId: 1, attackerOwner: 1, attackerUnitType: attackerType,
-      targetId: 2, targetKind: 'unit',
+      id: 1, attackerId: 1, attackerGeneration: 0, attackerOwner: 1, attackerUnitType: attackerType,
+      targetId: 2, targetGeneration: 0, targetKind: 'unit',
       originX: 0, originY: 10, aimX: 10, aimY: 10,
       launchTick: 0, impactTick: 5,
       baseDamage: 6, buildingDamage: null, attackType: 'pierce',
@@ -172,6 +172,7 @@ describe('Parthian Tactics — landed damage at the projectile impact site', () 
     const world = {
       getComponent: (_id: number, component: string) =>
         component === 'unit' ? { unitType: targetType, owner: 2 } : { x: 10, y: 10 },
+      isCurrent: (ref: { generation: number }) => ref.generation === 0,
       query: () => [],
     } as unknown as GameWorld;
     resolveDueProjectiles({

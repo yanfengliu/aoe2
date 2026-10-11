@@ -32,8 +32,8 @@ export interface ProjectileState {
   readonly attackerOwner: number;
   /** `null` for a building's arrow (towers, Town Centers, Castles). */
   readonly attackerUnitType: UnitType | null;
-  /** Never acted on alone: `projectileOps.ts` resolves it with
-   *  `targetGeneration` first. */
+  /** Acted on only together with `targetGeneration`, except on a shot saved
+   *  or recorded before shots carried generations (`projectileOps.ts`). */
   readonly targetId: number;
   /** The target's generation at launch, or `NO_ENTITY_GENERATION` when the
    *  shot names no live entity. Absent on a shot saved or recorded before

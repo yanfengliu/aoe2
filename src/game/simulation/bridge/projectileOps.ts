@@ -224,7 +224,7 @@ function namedEntity(world: GameWorld, id: number, generation: number | undefine
  * now, and null once it is gone, even when another unit has taken its id
  * since. A building's arrow has no unit to turn on. A shot saved or recorded
  * before shots carried generations is told apart by its owner instead, which
- * rules out another player's unit only: one of the shooter's own side that
+ * rules out another player's unit only: a unit of the shooter's owner that
  * took a dead shooter's id is turned on in its place.
  */
 function shooterRef(world: GameWorld, shot: ProjectileState): EntityRef | null {

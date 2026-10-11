@@ -55,9 +55,8 @@ describe('a shot hits only the entity it was aimed at', () => {
     const bridge = createSimulationBridge(STONE_SEED);
     const step = () => bridge.step(100);
     const { house, shot } = stoneAtHouse(bridge);
-    const foundation = replaceHouse(bridge.world, step, house);
+    const foundation = replaceHouse(bridge.world, step, house, shot);
     const foundationRef = bridge.world.getEntityRef(foundation)!;
-    expect(bridge.getInFlightProjectiles().some((s) => s.id === shot.id), 'the premise: the stone is still in the air').toBe(true);
     const hpBefore = buildingHp(bridge.world, foundation)!;
 
     landShot(bridge.world, step, shot);

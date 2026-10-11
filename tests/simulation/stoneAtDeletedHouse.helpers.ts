@@ -42,14 +42,21 @@ export function buildingHp(world: GameWorld, id: number): number | undefined {
 }
 
 /** Owner 1's units to No Attack, as a player would set them, so nothing starts
- *  a fight of its own; then the Mangonel's one order, at the House. Steps until
- *  its stone is in the air with room left to replace the House under it. */
-export function stoneAtHouse(bridge: Bridge): { house: number; mangonel: number; shot: ProjectileState } {
-  const house = buildingAtHouseSpot(bridge.world);
-  if (house === undefined) throw new Error(`${STONE_SEED} has no building of owner 2 at (${HOUSE_AT.x}, ${HOUSE_AT.y})`);
+ *  a fight of its own. Call it before the first step: a unit left on its
+ *  default stance takes on owner 2's Villagers by itself. */
+export function holdFire(bridge: Bridge): void {
   const own = bridge.getEconomyState().units.filter((u) => u.owner === 1).map((u) => u.id);
   expect(bridge.selectUnitsByIds(own)).toBe(true);
   expect(bridge.setSelectionStance('no-attack'), 'the stance could not be set').toBe(true);
+}
+
+/** Holds owner 1's fire, then gives the Mangonel its one order, at the House.
+ *  Steps until its stone is in the air with room left to replace the House
+ *  under it. */
+export function stoneAtHouse(bridge: Bridge): { house: number; mangonel: number; shot: ProjectileState } {
+  const house = buildingAtHouseSpot(bridge.world);
+  if (house === undefined) throw new Error(`${STONE_SEED} has no building of owner 2 at (${HOUSE_AT.x}, ${HOUSE_AT.y})`);
+  holdFire(bridge);
   const mangonel = bridge.getEconomyState().units.find((u) => u.owner === 1 && u.unitType === 'mangonel');
   if (!mangonel) throw new Error(`${STONE_SEED} has no Mangonel of owner 1`);
   expect(bridge.selectUnitsByIds([mangonel.id])).toBe(true);
@@ -67,8 +74,10 @@ export function stoneAtHouse(bridge: Bridge): { house: number; mangonel: number;
 
 /** Owner 2 deletes the House (the Delete key, a player's or an AI's), and one
  *  of its Villagers puts a new House foundation on the same spot. `step`
- *  advances one tick. Returns the foundation, which took the House's id. */
-export function replaceHouse(world: GameWorld, step: () => void, house: number): number {
+ *  advances one tick. Returns the foundation, which took the House's id. With
+ *  `underShot`, it also holds that the shot is still in the air once the
+ *  foundation stands, so the scene cannot pass by landing first. */
+export function replaceHouse(world: GameWorld, step: () => void, house: number, underShot?: ProjectileState): number {
   expect(world.submitWithResult('entity.delete', { entityId: house, requestedBy: 2 }).accepted, 'owner 2 could not delete its House').toBe(true);
   step();
   expect(world.getEntityRef(house), 'the House was not deleted').toBeNull();
@@ -82,6 +91,9 @@ export function replaceHouse(world: GameWorld, step: () => void, house: number):
   step();
   const foundation = buildingAtHouseSpot(world);
   expect(foundation, 'the premise: a foundation took the deleted House\'s id').toBe(house);
+  if (underShot) {
+    expect(shotsInAir(world).some((s) => s.id === underShot.id), 'the premise: the stone is still in the air when the foundation stands').toBe(true);
+  }
   return house;
 }
 

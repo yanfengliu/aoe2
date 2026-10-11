@@ -18,14 +18,18 @@ import type { GameWorld } from '../../src/game/simulation/bridge/pureHelpers';
 function passAgainstABuilding(destroys: boolean): boolean {
   const slot = createEmptyProjectileSlot();
   slot.inFlight.push({
-    id: 1, attackerId: 1, attackerOwner: 2, attackerUnitType: 'archer',
-    targetId: 9, targetKind: 'building',
+    id: 1, attackerId: 1, attackerGeneration: 0, attackerOwner: 2, attackerUnitType: 'archer',
+    targetId: 9, targetGeneration: 0, targetKind: 'building',
     originX: 0, originY: 10, aimX: 10, aimY: 10,
     launchTick: 0, impactTick: 5,
     baseDamage: 4, buildingDamage: 4, attackType: 'pierce',
     willHit: true, isArea: false,
   });
-  const world = { getComponent: () => undefined, query: () => [] } as unknown as GameWorld;
+  const world = {
+    getComponent: () => undefined,
+    isCurrent: (ref: { generation: number }) => ref.generation === 0,
+    query: () => [],
+  } as unknown as GameWorld;
   return resolveDueProjectiles({
     world, slot, tick: 5,
     combatStates: new Map(),

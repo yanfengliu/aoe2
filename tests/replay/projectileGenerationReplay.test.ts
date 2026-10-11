@@ -48,7 +48,7 @@ function recordScene(snapshotInterval: number | null) {
     sourceLabel: 'projectile-generation-replay-test',
   });
   recorder.connect();
-  const foundation = replaceHouse(bridge.world, step, house);
+  const foundation = replaceHouse(bridge.world, step, house, shot);
   landShot(bridge.world, step, shot);
   step();
   recorder.disconnect();
