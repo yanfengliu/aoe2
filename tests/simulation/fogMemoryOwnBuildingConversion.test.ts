@@ -258,9 +258,11 @@ describe('conversion and the player\'s fog memory', () => {
 
   it('plays saves made mid-conversion and during a pause to the same fog memory as the match they came from', () => {
     // Orders and conversion progress come back with a save, so a loaded match
-    // keeps the same slot, in the same order, at every tick (review rounds 1
-    // and 2, F14 and F28): one save made while the Monk works, one while it is
-    // called off at progress 49 with only the record standing.
+    // keeps the same slot, in the same order, at every tick (review rounds 1-3,
+    // F14, F28, F35, F36): one save made while the Monk works, one while it is
+    // called off at progress 49 with only the record standing, and every match
+    // stepped in lockstep through the work, the pause, the resumption and the
+    // flip.
     const { staged: live, house, monkId } = stageEnemyConversion();
     orderEnemyConversion(live, monkId, house.id);
     stepUntilRememberedWhileOwn(live, house.id);
@@ -270,24 +272,39 @@ describe('conversion and the player\'s fog memory', () => {
     const matches: Bridge[] = [live, working];
     const compare = (label: string) => {
       for (const other of matches.slice(1)) {
+        expect(other.world.tick, `tick ${label}`).toBe(live.world.tick);
         expect(rawSlot(other), `fog memory ${label}`).toBe(rawSlot(live));
         expect(progressOn(other, house.id), `progress ${label}`).toBe(progressOn(live, house.id));
+        expect(ownerOf(other, house.id), `owner ${label}`).toBe(ownerOf(live, house.id));
       }
     };
     compare('right after the first load');
 
+    // Every match steps once per iteration and is compared after every step
+    // (review round 3, F35).
     const play = (ticks: number, label: string) => {
       for (let tick = 0; tick < ticks; tick += 1) {
         for (const bridge of matches) bridge.step(100);
         compare(`${label}, step ${tick}`);
       }
     };
-    for (const bridge of matches) stepUntilProgress(bridge, house.id, 49);
-    compare('at progress 49');
+    for (let ticks = 0; (progressOn(live, house.id) ?? 0) < 49; ticks += 1) {
+      expect(ticks, 'premise: the conversion reaches progress 49').toBeLessThan(900);
+      play(1, 'working');
+    }
     for (const bridge of matches) recall(bridge, monkId);
     play(3, 'called off');
+    // Premise of the paused save (F36): the House is still the player's, its
+    // progress stands at 49, and no Monk holds an order on it.
+    const convertOrders = (bridge: Bridge) => ((bridge.world.getState('aoe2.monkTasks') ?? []) as Array<[number, { kind: string }]>)
+      .filter(([, task]) => task.kind === 'convert').length;
+    expect(ownerOf(live, house.id), 'premise: paused, not flipped').toBe(HUMAN_PLAYER_ID);
+    expect(progressOn(live, house.id), 'premise: paused at 49').toBe(49);
+    expect(convertOrders(live), 'premise: no convert order stands').toBe(0);
     matches.push(createSimulationBridge('redemption-buildings-fixture', { savedGame: live.saveGame() }));
     compare('right after the paused load');
+    expect(convertOrders(matches[2]!), 'premise: the paused load holds no convert order').toBe(0);
+    play(5, 'paused');
     for (const bridge of matches) orderEnemyConversion(bridge, monkId, house.id);
     play(20, 'resumed and flipped');
     expect(ownerOf(live, house.id), 'premise: the conversion finished').toBe(2);
