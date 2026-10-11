@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 114
+
+- **A shot no longer hits the wrong thing.** A shot whose target died while it was in the air could land on whatever the game created next, because the newcomer took the dead target's place in the game's records: a House foundation put down where a deleted House had stood took the Mangonel stone aimed at the House, and the newcomer could be another player's. A shot now deals nothing to anything but the target it was aimed at, though a stone still blasts where it lands, and a unit that takes a dead Mangonel's place is no longer spared that Mangonel's blast. A shot already in the air in a save made before this version still lands as it used to.
+
 ## 0.3.246
 
 - Playing the Vietnamese, each enemy Town Center revealed at the start of a match now shows the same ground on every side: everything within 5 tiles of the middle of the building, where it used to reach farther west and north than east and south. The reveal happens once, at the start. Loading a save no longer reveals Town Centers the enemy built later, and a replay starts from exactly the explored ground its recording holds. Saves and recordings made before this keep the ground the old reveal showed, and those from before 0.3.88, when the reveal arrived, still have none.

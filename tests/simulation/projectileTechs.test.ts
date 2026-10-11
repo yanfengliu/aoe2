@@ -132,6 +132,7 @@ describe('Ballistics wiring at the launch site', () => {
     const world = {
       getComponent: (id: number, component: string) =>
         (id === 1 && component === 'position' ? attackerPosition : undefined),
+      getEntityRef: (id: number) => ({ id, generation: 0 }),
       query: () => [],
       grid: { width: MAP_WIDTH, height: MAP_HEIGHT },
     } as unknown as GameWorld;
@@ -188,6 +189,7 @@ describe('Ballistics wiring at the launch site', () => {
       const projectiles = createEmptyProjectileSlot();
       const world = {
         getComponent: () => ({ x: 0, y: 10 }),
+        getEntityRef: (id: number) => ({ id, generation: 0 }),
         query: () => [],
         grid: { width: MAP_WIDTH, height: MAP_HEIGHT },
       } as unknown as GameWorld;

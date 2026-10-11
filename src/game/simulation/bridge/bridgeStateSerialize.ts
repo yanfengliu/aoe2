@@ -307,6 +307,9 @@ export const lastSeenStaticCodec = mapOfMapCodec<number, number, MemoryEntry>(
 // In-flight projectiles (spec §10.4). Already a plain object of plain arrays,
 // so the codec only has to defend the empty/missing case: a save written
 // before projectiles existed hydrates to an empty sky rather than throwing.
+// Each shot carries its shooter's and its target's generation; a shot saved
+// or recorded before shots carried them passes through without, and is
+// resolved by bare id (`projectileOps.ts`), so nothing here invents one.
 export const projectilesCodec: SlotCodec<ProjectileSlotState, ProjectileSlotState> = {
   slot: 'aoe2.projectiles',
   serialize: (native) => ({ nextId: native.nextId, inFlight: [...native.inFlight] }),

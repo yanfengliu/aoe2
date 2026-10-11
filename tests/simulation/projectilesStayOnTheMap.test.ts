@@ -24,6 +24,7 @@ describe('a miss never scatters off the map', () => {
   function aimFor(target: { x: number; y: number }, ordinal: number) {
     const slot = createEmptyProjectileSlot();
     return launchProjectile({
+      world: { getEntityRef: (id: number) => ({ id, generation: 0 }) },
       slot,
       tick: 0,
       attacker: {

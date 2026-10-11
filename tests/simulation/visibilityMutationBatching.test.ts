@@ -98,6 +98,8 @@ describe("visibility mutation batching", () => {
       tick: 40,
       getComponent: (id: number, component: string) =>
         components.get(`${id}:${component}`),
+      getEntityRef: (id: number) =>
+        (components.has(`${id}:position`) ? { id, generation: 0 } : null),
       grid: { width: MAP_WIDTH, height: MAP_HEIGHT },
     } as unknown as GameWorld;
     // If the pass ever mutated visibility mid-flight, this would flip and
@@ -157,6 +159,8 @@ describe("visibility mutation batching", () => {
     const projectiles = createEmptyProjectileSlot();
     for (const targetId of [101, 102]) {
       launchProjectile({
+        // Both targets live at generation 0, at launch and when the shots land.
+        world: { getEntityRef: (id: number) => ({ id, generation: 0 }) },
         slot: projectiles,
         tick: 0,
         attacker: {
@@ -187,6 +191,8 @@ describe("visibility mutation batching", () => {
       tick: 99,
       getComponent: (id: number, component: string) =>
         components.get(`${id}:${component}`),
+      isCurrent: (ref: { id: number; generation: number }) =>
+        ref.generation === 0 && components.has(`${ref.id}:unit`),
       grid: { width: MAP_WIDTH, height: MAP_HEIGHT },
     } as unknown as GameWorld;
     const destroyed: number[] = [];

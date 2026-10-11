@@ -1,6 +1,6 @@
 # A shot hits only the entity it was aimed at
 
-Status: planned
+Status: active
 Owner: Claude session from the task card 'Check a projectile's building target by generation' (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
 Updated: 2026-10-11

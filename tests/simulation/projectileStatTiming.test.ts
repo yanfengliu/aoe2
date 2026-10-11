@@ -22,6 +22,7 @@ const source = (JSON.parse(readFileSync('tests/content/fixtures/deProjectileStat
 
 function shoot(unitType: UnitType, tick: number) {
   return launchProjectile({
+    world: { getEntityRef: (id: number) => ({ id, generation: 0 }) },
     slot: createEmptyProjectileSlot(), tick,
     attacker: { id: 1, owner: 1, unitType, position: { x: 10, y: 10 }, baseDamage: 10 },
     target: { id: 2, kind: 'unit', position: { x: 14, y: 10 }, destination: null },

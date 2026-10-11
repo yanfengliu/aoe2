@@ -5,18 +5,40 @@
 // This is simulation state — it serializes into saves and replays through
 // `projectilesCodec`, so a match saved with arrows in the air reloads with
 // those same arrows still flying.
+//
+// A shot names its shooter and its target by entity id AND generation.
+// civ-engine hands a freed id to the next entity it creates, so by the time a
+// shot lands its target's id can belong to a new entity, possibly another
+// player's; the generation tells the two apart, and a shot acts on neither of
+// its entities once that entity is gone (spec §10.4, `projectileOps.ts`). A
+// shot saved or recorded before shots carried generations has none, and is
+// resolved by bare id as every shot was then (the bound, also in §10.4).
 
 import type { AttackType } from '../prototypeUnitRules';
 import type { UnitType } from '../types';
+
+/** The generation stored for an id that names no live entity at launch (a
+ *  bombardment of the ground names target -1). civ-engine's generations start
+ *  at 0, so it matches no entity, ever. */
+export const NO_ENTITY_GENERATION = -1;
 
 export interface ProjectileState {
   /** Monotonic per-match id; also the shot ordinal feeding the accuracy roll. */
   readonly id: number;
   readonly attackerId: number;
+  /** The shooter's generation at launch. Absent on a shot saved or recorded
+   *  before shots carried generations. */
+  readonly attackerGeneration?: number;
   readonly attackerOwner: number;
   /** `null` for a building's arrow (towers, Town Centers, Castles). */
   readonly attackerUnitType: UnitType | null;
+  /** Never acted on alone: `projectileOps.ts` resolves it with
+   *  `targetGeneration` first. */
   readonly targetId: number;
+  /** The target's generation at launch, or `NO_ENTITY_GENERATION` when the
+   *  shot names no live entity. Absent on a shot saved or recorded before
+   *  shots carried generations. */
+  readonly targetGeneration?: number;
   /** `wildlife` is a wolf or a boar: a resource with a wildlife state (v0.3.238). */
   readonly targetKind: 'unit' | 'building' | 'wildlife';
   readonly originX: number;

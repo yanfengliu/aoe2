@@ -82,6 +82,7 @@ export function runAttackGroundStep(deps: {
   // A dead target id makes the direct-hit branch a no-op; the area blast at
   // the aim point is the entire attack. Friendly fire included, as always.
   launchProjectile({
+    world,
     slot: accessor.get(projectilesCodec),
     tick: world.tick,
     attacker: {

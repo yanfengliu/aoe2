@@ -122,6 +122,7 @@ describe('an attack on an animal is the attacker\'s own attack', () => {
     const rolls: boolean[] = [];
     for (let tick = 0; tick < 50; tick += 1) {
       rolls.push(launchProjectile({
+        world: { getEntityRef: (id: number) => ({ id, generation: 0 }) },
         slot,
         tick,
         attacker: { id: 1, owner: 1, unitType: 'archer', position: { x: 10, y: 10 }, baseDamage: 4 },

@@ -95,6 +95,7 @@ export function deliverUnitAttackOnUnit(params: DeliverUnitAttackParams): boolea
   const techs = params.attackerTechs ?? EMPTY_TECH_SET;
   const accuracy = thumbRingAccuracy(techs, attacker.unitType);
   launchProjectile({
+    world: params.world,
     slot: params.projectiles,
     tick: params.tick,
     attacker: {
@@ -165,6 +166,7 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
   if (firesProjectile(attacker.unitType)) {
     const attackerPosition = params.world.getComponent<Position>(attacker.id, 'position');
     launchProjectile({
+      world: params.world,
       slot: params.projectiles,
       tick: params.tick,
       attacker: {
@@ -268,6 +270,7 @@ export function deliverUnitAttackOnAnimal(params: DeliverAnimalAttackParams): bo
   const attackerPosition = params.world.getComponent<Position>(attacker.id, 'position');
   const accuracy = thumbRingAccuracy(params.attackerTechs ?? EMPTY_TECH_SET, attacker.unitType);
   launchProjectile({
+    world: params.world,
     slot: params.projectiles,
     tick: params.tick,
     attacker: {

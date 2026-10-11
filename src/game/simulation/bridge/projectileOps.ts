@@ -8,6 +8,12 @@
 // the moment it leaves the bow. That is what makes a save mid-flight reload
 // identically: nothing about the outcome depends on state that changes while
 // the arrow is in the air.
+//
+// A shot acts on its target and its shooter only while each is still the
+// entity it named at launch, by generation (spec §10.4). civ-engine hands a
+// freed id to the next entity it creates, so a stone aimed at a House that was
+// deleted in its flight came down on the foundation that took the House's id
+// (defect register, 2026-10-11).
 
 import type { EntityRef, Position } from 'civ-engine';
 
@@ -42,7 +48,7 @@ import {
   UNIT_SUBGRID_STEP_PER_TICK,
   type GameWorld,
 } from './pureHelpers';
-import type { ProjectileSlotState, ProjectileState } from './projectileTypes';
+import { NO_ENTITY_GENERATION, type ProjectileSlotState, type ProjectileState } from './projectileTypes';
 import type { CombatState } from './systems/systemTypes';
 import type { RecordPlayerHit } from './playerHitFeed';
 
@@ -63,6 +69,10 @@ function clampToMap(point: Position, size: MapSize): Position {
 }
 
 export interface LaunchProjectileParams {
+  /** The world the shot is loosed in. The shot takes its shooter's and its
+   *  target's generation from it, to tell each from any entity that takes
+   *  its id before the shot lands. */
+  world: Pick<GameWorld, 'getEntityRef'>;
   slot: ProjectileSlotState;
   tick: number;
   attacker: {
@@ -91,6 +101,12 @@ export interface LaunchProjectileParams {
   /** The map this shot is fired on — a miss is clamped to it (§4's ladder
    *  means the edges are not the same in every match). */
   mapSize: MapSize;
+}
+
+/** The generation of the entity living at `id` now, or `NO_ENTITY_GENERATION`
+ *  when none does (a bombardment of the ground names target -1). */
+function generationAtLaunch(world: Pick<GameWorld, 'getEntityRef'>, id: number): number {
+  return world.getEntityRef(id)?.generation ?? NO_ENTITY_GENERATION;
 }
 
 /**
@@ -141,9 +157,11 @@ export function launchProjectile(params: LaunchProjectileParams): ProjectileStat
   const projectile: ProjectileState = {
     id,
     attackerId: attacker.id,
+    attackerGeneration: generationAtLaunch(params.world, attacker.id),
     attackerOwner: attacker.owner,
     attackerUnitType: unitType,
     targetId: target.id,
+    targetGeneration: generationAtLaunch(params.world, target.id),
     targetKind: target.kind,
     originX: attacker.position.x,
     originY: attacker.position.y,
@@ -190,17 +208,33 @@ export interface ResolveProjectilesDeps {
 }
 
 /**
- * The unit that loosed this shot, for an animal it hurts to turn on. A shot
- * outlives its shooter, and civ-engine hands a freed id to the next entity it
- * creates, so this is the entity at the shooter's id while that is a unit of
- * the shooter's owner, and null otherwise. The owner check rules out another
- * player's unit only: a new unit of the same owner that took a dead shooter's
- * id is turned on in its place, which a shot would need the shooter's
- * generation, a new save field, to tell apart.
+ * The id of an entity the shot names, while it is still the entity the shot
+ * named at launch; null once that entity is gone, even when another has taken
+ * its id since. A shot saved or recorded before shots carried generations
+ * names whatever holds the id, as every shot did then (spec §10.4's bound).
+ */
+function namedEntity(world: GameWorld, id: number, generation: number | undefined): number | null {
+  if (generation === undefined) return id;
+  return world.isCurrent({ id, generation }) ? id : null;
+}
+
+/**
+ * The unit that loosed this shot, for an animal it hurts to turn on: the
+ * shooter while it is still the unit that loosed the shot, whoever owns it
+ * now, and null once it is gone, even when another unit has taken its id
+ * since. A building's arrow has no unit to turn on. A shot saved or recorded
+ * before shots carried generations is told apart by its owner instead, which
+ * rules out another player's unit only: one of the shooter's own side that
+ * took a dead shooter's id is turned on in its place.
  */
 function shooterRef(world: GameWorld, shot: ProjectileState): EntityRef | null {
   const unit = world.getComponent<UnitComponent>(shot.attackerId, 'unit');
-  return unit && unit.owner === shot.attackerOwner ? world.getEntityRef(shot.attackerId) : null;
+  if (!unit) return null;
+  if (shot.attackerGeneration === undefined) {
+    return unit.owner === shot.attackerOwner ? world.getEntityRef(shot.attackerId) : null;
+  }
+  const ref: EntityRef = { id: shot.attackerId, generation: shot.attackerGeneration };
+  return world.isCurrent(ref) ? ref : null;
 }
 
 /**
@@ -236,71 +270,11 @@ export function resolveDueProjectiles(deps: ResolveProjectilesDeps): boolean {
 function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): boolean {
   const { world, combatStates } = deps;
   const impact: Position = { x: shot.aimX, y: shot.aimY };
-  let killed = false;
-
-  if (shot.targetKind === 'building') {
-    if (shot.willHit) {
-      // Recorded first, because a building the shot razes is gone after the
-      // damage. And only while the target is still a building: its id can pass
-      // to a new unit while the shot is in the air, and a shot at a building
-      // deals a unit nothing (independent review of v0.3.235).
-      if (world.getComponent<BuildingComponent>(shot.targetId, 'building')) {
-        deps.recordPlayerHit(shot.attackerId, shot.attackerOwner, shot.targetId);
-      }
-      killed = deps.damageBuilding(
-        shot.targetId,
-        shot.buildingDamage ?? shot.baseDamage,
-        shot.attackerUnitType,
-        shot.attackerOwner,
-      );
-    }
-  } else if (shot.targetKind === 'wildlife') {
-    // A shot at an animal connects as one at a unit does: on an animal still
-    // alive and still standing where the shot was aimed. It deals the
-    // attacker's attack whole, as any blow on an animal does.
-    const animal = deps.animals.states.get(shot.targetId);
-    const at = world.getComponent<Position>(shot.targetId, 'position');
-    if (shot.willHit && !shot.isArea && animal?.isAlive === true && at !== undefined && projectileHitsTarget(impact, at)) {
-      damageAnimal(deps.animals, shot.targetId, shot.baseDamage, shooterRef(world, shot));
-    }
-  } else {
-    const targetUnit = world.getComponent<UnitComponent>(shot.targetId, 'unit');
-    const targetPosition = world.getComponent<Position>(shot.targetId, 'position');
-    const targetCombat = combatStates.get(shot.targetId);
-    // A direct hit needs a live target still standing where the shot was
-    // aimed. An un-led shot at a moving unit fails right here — that is the
-    // whole point of Ballistics.
-    const connects = shot.willHit
-      && !shot.isArea
-      && targetUnit !== undefined
-      && targetPosition !== undefined
-      && targetCombat !== undefined
-      && projectileHitsTarget(impact, targetPosition);
-    if (connects) {
-      const raw = shot.attackerUnitType === null
-        ? shot.baseDamage
-        : shot.baseDamage
-          + attackBonusAgainstUnit(shot.attackerUnitType, targetUnit.unitType)
-          + parthianSpearmanAttackBonus(
-            deps.technologiesFor(shot.attackerOwner),
-            shot.attackerUnitType,
-            targetUnit.unitType,
-          );
-      targetCombat.currentHp -= combatDamageAfterArmor(
-        raw,
-        shot.attackType,
-        effectiveMeleeArmor(targetUnit.unitType, targetCombat.armor),
-        effectivePierceArmor(targetUnit.unitType, pierceArmorTechBonus(targetCombat)),
-      );
-      deps.recordPlayerHit(shot.attackerId, shot.attackerOwner, shot.targetId);
-      deps.markCombatDirty();
-      if (targetCombat.currentHp <= 0) {
-        if (targetUnit.owner !== shot.attackerOwner) deps.addKill(shot.attackerOwner);
-        deps.destroyUnit(shot.targetId);
-        killed = true;
-      }
-    }
-  }
+  // What the shot was aimed at, while it is still that entity. Once it is gone
+  // the shot deals nothing to whatever has taken its id, and only a blast
+  // still lands.
+  const targetId = namedEntity(world, shot.targetId, shot.targetGeneration);
+  let killed = targetId !== null && landOnTarget(deps, shot, targetId, impact);
 
   // The mangonel line damages by blast at wherever the stone came down — a
   // "missed" siege shot is still dangerous, including to its own side.
@@ -309,7 +283,9 @@ function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): boolea
       world,
       combatStates,
       attacker: {
-        id: shot.attackerId,
+        // The blast spares its shooter only while the shooter is still the
+        // unit that loosed it; a unit that took a dead shooter's id is caught.
+        id: namedEntity(world, shot.attackerId, shot.attackerGeneration) ?? -1,
         unitType: shot.attackerUnitType,
         owner: shot.attackerOwner,
         baseDamage: shot.baseDamage,
@@ -325,8 +301,77 @@ function resolveOne(deps: ResolveProjectilesDeps, shot: ProjectileState): boolea
       },
       addKill: deps.addKill,
       markDirty: deps.markCombatDirty,
-      recordPlayerHit: deps.recordPlayerHit,
+      // Every splash is recorded in the shot's name, its shooter's id at
+      // launch, as its direct hit is.
+      recordPlayerHit: (_shooterId, owner, splashedId) => deps.recordPlayerHit(shot.attackerId, owner, splashedId),
     });
   }
   return killed;
+}
+
+/** The shot's direct effect on its target, the entity it was aimed at.
+ *  Returns true if it killed a unit or destroyed a building. */
+function landOnTarget(deps: ResolveProjectilesDeps, shot: ProjectileState, targetId: number, impact: Position): boolean {
+  const { world, combatStates } = deps;
+  if (shot.targetKind === 'building') {
+    if (!shot.willHit) return false;
+    // Recorded first, because a building the shot razes is gone after the
+    // damage. And only while the target is a building: a shot saved before
+    // shots carried generations can find a new unit at its target's id, and a
+    // shot at a building deals a unit nothing (independent review of v0.3.235).
+    if (world.getComponent<BuildingComponent>(targetId, 'building')) {
+      deps.recordPlayerHit(shot.attackerId, shot.attackerOwner, targetId);
+    }
+    return deps.damageBuilding(
+      targetId,
+      shot.buildingDamage ?? shot.baseDamage,
+      shot.attackerUnitType,
+      shot.attackerOwner,
+    );
+  }
+  if (shot.targetKind === 'wildlife') {
+    // A shot at an animal connects as one at a unit does: on an animal still
+    // alive and still standing where the shot was aimed. It deals the
+    // attacker's attack whole, as any blow on an animal does.
+    const animal = deps.animals.states.get(targetId);
+    const at = world.getComponent<Position>(targetId, 'position');
+    if (shot.willHit && !shot.isArea && animal?.isAlive === true && at !== undefined && projectileHitsTarget(impact, at)) {
+      damageAnimal(deps.animals, targetId, shot.baseDamage, shooterRef(world, shot));
+    }
+    return false;
+  }
+  const targetUnit = world.getComponent<UnitComponent>(targetId, 'unit');
+  const targetPosition = world.getComponent<Position>(targetId, 'position');
+  const targetCombat = combatStates.get(targetId);
+  // A direct hit needs a live target still standing where the shot was
+  // aimed. An un-led shot at a moving unit fails right here — that is the
+  // whole point of Ballistics.
+  const connects = shot.willHit
+    && !shot.isArea
+    && targetUnit !== undefined
+    && targetPosition !== undefined
+    && targetCombat !== undefined
+    && projectileHitsTarget(impact, targetPosition);
+  if (!connects) return false;
+  const raw = shot.attackerUnitType === null
+    ? shot.baseDamage
+    : shot.baseDamage
+      + attackBonusAgainstUnit(shot.attackerUnitType, targetUnit.unitType)
+      + parthianSpearmanAttackBonus(
+        deps.technologiesFor(shot.attackerOwner),
+        shot.attackerUnitType,
+        targetUnit.unitType,
+      );
+  targetCombat.currentHp -= combatDamageAfterArmor(
+    raw,
+    shot.attackType,
+    effectiveMeleeArmor(targetUnit.unitType, targetCombat.armor),
+    effectivePierceArmor(targetUnit.unitType, pierceArmorTechBonus(targetCombat)),
+  );
+  deps.recordPlayerHit(shot.attackerId, shot.attackerOwner, targetId);
+  deps.markCombatDirty();
+  if (targetCombat.currentHp > 0) return false;
+  if (targetUnit.owner !== shot.attackerOwner) deps.addKill(shot.attackerOwner);
+  deps.destroyUnit(targetId);
+  return true;
 }

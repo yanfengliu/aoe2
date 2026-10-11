@@ -191,6 +191,7 @@ export function registerTowerCombatSystem(deps: TowerCombatSystemDeps): void {
           : effectiveAttackDamage;
         for (let shotIndex = 0; shotIndex < arrowCount; shotIndex += 1) {
           launchProjectile({
+            world: activeWorld,
             slot: projectiles,
             tick: activeWorld.tick,
             attacker: {
