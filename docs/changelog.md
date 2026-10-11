@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 120
+
+Six civilization bonuses now work as they do in Definitive Edition.
+
+- **An Indian player's Scouts no longer get their bonus against buildings twice.** The Scout line's +2 attack against buildings is the Indians' team bonus. An Indian player's own Scout Cavalry, Light Cavalry and Hussars got it twice, +4. They now get +2, the same as an ally's.
+- **Only Aztec military units train faster, and by Definitive Edition's amount.** Fishing Ships, Transport Ships, Trade Cogs and Trade Carts now train in the normal time. Military units train 15% faster in Definitive Edition's sense: the time is divided by 1.15. Before, it was cut by 15%, which is slightly faster.
+- **Mongol and Goth hunting bonuses work on deer as well as boar.** Mongol hunters work 40% faster and Goth hunters carry 15 more from either. Generated maps do not place deer yet.
+- **Goth hunted animals last 20% longer**, as in Definitive Edition: Goth hunters get 20% more food from a boar or a deer. Goth villagers do not get +5 attack against wild boar, because Definitive Edition no longer has that bonus.
+- **Inca villagers standing when you reach the Castle Age now get the infantry armor you researched in the Feudal Age.** Before, only villagers trained afterwards had it. In a game saved after its Castle Age advance and before this change, the villagers that missed it keep their old armor.
+- **A Mayan villager no longer stands at an emptied resource.** When a berry bush, tree or mine a Mayan villager was gathering got down to its last unit, the villager stayed on it for about twenty minutes of game time, collecting crumbs. It now runs out right after the 15% extra the Mayan bonus gives.
+
 ## 0.3.247
 
 - **A shot no longer hits the wrong thing.** A shot whose target died while it was in the air could land on whatever the game created next, because the newcomer took the dead target's place in the game's records: a House foundation put down where a deleted House had stood took the Mangonel stone aimed at the House, and the newcomer could be another player's. A shot now deals nothing to anything but the target it was aimed at, though a stone still blasts where it lands, and a unit that takes a dead Mangonel's place is no longer spared that Mangonel's blast. A shot already in the air in a save made before this version still lands as it used to. A replay recorded before this version can resolve a shot differently from the original game where something the shot named was replaced while it was in the air.

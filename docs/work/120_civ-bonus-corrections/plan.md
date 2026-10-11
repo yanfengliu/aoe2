@@ -1,6 +1,6 @@
 # Civilization bonuses do what Definitive Edition's do, and the in-game civilization text says so
 
-Status: planned
+Status: active
 Owner: Coordinator worker w120-civ-bonuses (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
 Updated: 2026-10-11
@@ -72,6 +72,9 @@ Each fix is sourced, reproduced by a test first, and gated by a mutation. The ba
 ## Implementation steps
 
 - [ ] M1: sourced code defects, tests, comments, spec items; land after work 119 if the spec lines are still 119's.
+  - 2026-10-11: implemented, tested and committed on branch `civ-bonus-corrections`, phase-1 handoff sent; not yet on main. The spec edits wait for work 119 to land (and then also point §11.11's v0.3.88 Vietnamese reveal sentence at work 117's §12.2 paragraph).
+  - Sourcing changed three items. DE's Goth line is "Hunters carry +15; hunted animals last +20% longer": DE has no "+5 attack vs. wild boar", so that was not implemented and the 20% was. DE's "+N% faster" is a work rate (its Conscription text, "+33% faster", is the Conquerors' x0.75), so the Aztec time is divided by 1.15. And a Mayan node outlasted its food by about twenty minutes of game time, found while giving the Goths the same rule, and fixed with it.
+  - Found and not fixed, for the coordinator: Teuton "+1/+2 melee armor" also adds pierce armor; DE's Inca llama is a team bonus and the code gives it to the owner only; DE's Magyar "Villagers defeat wolves with one strike" has no implementation; a hunt order leaves villagers idle after the kill; the factory and the age-up sweep give a Mongol Scout with Bloodlines different hit points (74 against 78).
 - [ ] M2: the Chinese sight bonus (after work 118 if it needs `buildingVisionSources.ts`), and the CSV, embedded-copy and in-game-text sync.
 
 ## Outcome
