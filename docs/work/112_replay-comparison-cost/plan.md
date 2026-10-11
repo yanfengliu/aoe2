@@ -1,9 +1,9 @@
 # Keep exact replay comparisons within their existing test budget
 
-Status: blocked
-Owner: /root
+Status: cancelled
+Owner: Claude coordinator (AOE2 repo coordinator setup), from Codex /root on 2026-10-11
 Created: 2026-10-01
-Updated: 2026-10-10
+Updated: 2026-10-11
 
 ## Problem and outcome
 
@@ -115,3 +115,5 @@ Exact source/protocol inputs bind through [the reviewed-input recovery contract]
 2026-10-02 latest hosted checkpoint: CI36985134043 on docs-only mainfad2b74e repeats the700 lifecycle timeout32505ms/30000ms and adds browser1920 resource-chip timeout; corpus36985134102 remainsGREEN. [Complete round15](reviews/15_integration.md) preserves exact REST evidence and unknown historical engine identity. Route7/default-entrypoint fullpair budget and M7 hold remain unchanged. The cleanup self-target false alarm has a separate pending class-fix home in [work113](../113_worktree-removal-scope/plan.md). No runtime or executable change ran.
 
 2026-10-10 documentation correction: latest inspected completed CI37090436154 repeats the Windows700 timeout, while all four browser shards and corpus37090436149 pass. Both OSes also expose root's two documentation publication errors. This correction removes only work112's two appended CR bytes, supplies work113's required design, preserves complete authored reports and refreshes the paired work97/98 owner records after source-backed audits. Independent [round16](reviews/16_integration.md) accepts the bounded12-path candidate; final shipping additions receive the affected9 assertions. The document incident remains open pending hosted acceptance. Route7/M7 holds, engine consumer adoption and full parity remain open; no product/runtime change ran.
+
+**Superseded, 2026-10-11.** Codex is not working on aoe2. By the owner's direction of that date, the Claude coordinator owns this work. The hosted Windows timeout this work tracked is now part of work 123, `docs/work/123_test-time-headroom/plan.md`. That work covers every gated test that runs near its time limit, and may reconsider the limits this work set itself, provided no check is weakened. This plan and its review history stay as the record of the six routes already spent.
