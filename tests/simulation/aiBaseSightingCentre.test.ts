@@ -12,8 +12,8 @@
 // sighting is a raid the AI does not answer.
 //
 // BOUND: one map (`ai-under-raid-fixture`: the AI's 4x4 Town Center at (20,12)
-// with open grass all round), sixteen probe cells — the last cell inside 12 and
-// the first outside along each of eight directions from the footprint's centre
+// with open grass all round), sixteen probe cells — a cell just inside 12 and
+// one just outside along each of eight directions from the footprint's centre
 // — and one decision of the real AI system per probe. The AI's own sight is not
 // what is under test, so the Town Center's line of sight is set to 16 (Town
 // Watch and Town Patrol on DE's 8), which lights every probe; the enemy is a
@@ -40,8 +40,10 @@ function insideScan(cell: { x: number; y: number }): boolean {
   return dx * dx + dy * dy <= SCAN_RADIUS * SCAN_RADIUS;
 }
 
-// The last cell inside the circle and the first outside it, along each of
-// eight directions from the footprint's centre (22, 14).
+// A cell just inside the circle and one just outside it, along each of eight
+// directions from the footprint's centre (22, 14): on the axis rows and the
+// diagonals, or one cell beside a diagonal. South-east (29,22), nine and ten
+// cells from the corner, is the case work 117 was opened for.
 const PROBES: ReadonlyArray<{ name: string; x: number; y: number }> = [
   { name: 'east, inside', x: 33, y: 13 },
   { name: 'east, outside', x: 34, y: 13 },
@@ -98,8 +100,9 @@ function sightingWithEnemyAt(probe: { x: number; y: number }): SightingState {
   expect(stepBridgeUntil(bridge, () => aiState(bridge).lastDecisionTick >= 2, { maxSteps: 120 })).toBe(true);
   const state = aiState(bridge);
   // The premise of a fair probe: the enemy has not moved off it, and the AI's
-  // Town Center sees it.
+  // Town Center sees it, so only the scan can decide the answer.
   expect(bridge.getEconomyState().units.find((unit) => unit.id === militia[0]!.id)).toMatchObject({ x: probe.x, y: probe.y });
+  expect(bridge.isCellVisibleForOwner(AI, probe.x, probe.y), 'the premise: the AI can see the probe cell').toBe(true);
   return state;
 }
 

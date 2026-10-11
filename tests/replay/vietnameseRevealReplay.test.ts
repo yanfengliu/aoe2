@@ -99,6 +99,8 @@ describe('a replay world keeps the Vietnamese reveal its recording holds', () =>
     expect(checked.ok, JSON.stringify(checked.stateDivergences.map((divergence) => ({
       from: divergence.fromTick, to: divergence.toTick, path: divergence.firstDifferingPath,
     })))).toBe(true);
+    expect(checked.skippedSegments).toEqual([]);
+    expect(checked.checkedSegments).toBe(replayer.snapshotTicks().length - 1);
     expect(checked.checkedSegments).toBeGreaterThan(2);
   }, 60_000);
 
