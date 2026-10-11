@@ -1,25 +1,25 @@
 // Conversion and the player's fog memory (spec §12.1, vNEXT; defect register
 // 2026-10-11). A building the player owns is not remembered, with one
-// exception: while an enemy Monk is sent to convert it, it is remembered
-// whatever the fog, so the flip — which takes the building's own sight away
-// from the player — leaves it on the map in its new owner's look (a rule
-// chosen here; Definitive Edition is not verified). The exception follows the
-// enemy's convert order by identity; while an enemy's conversion progress
-// stands on the building after its order is called off, the entry is kept,
-// because a Monk sent back can flip it in one tick. An entry recorded as the
-// player's is forgotten on the first pass after its building goes, so
-// deleting the building mid-conversion leaves no ghost, while a building
-// converted away is no longer recorded as the player's and keeps its ghost.
-// Converting an enemy's building drops the entry the player held for it.
+// exception: while an enemy's conversion record (aoe2.conversionState) stands
+// on it, it is remembered whatever the fog. The record is made on a Monk's
+// first tick of progress and outlives the Monk's order, and a Monk of that
+// owner sent back resumes it, so it is what says the building can flip; the
+// flip — which takes the building's own sight away from the player — leaves
+// it on the map in its new owner's look (a rule chosen here; Definitive
+// Edition is not verified). An entry recorded as the player's is forgotten on
+// the first pass after its building goes, so deleting the building
+// mid-conversion leaves no ghost, while a building converted away is no
+// longer recorded as the player's and keeps its ghost. Converting an enemy's
+// building drops the entry the player held for it.
 //
 // BOUND: the enemy's conversions are staged by editing a save
 // (`stageEnemyConversion`): no fixture has an enemy Monk with Redemption
 // beside a building of the player's, and the AI never converts. The
-// conversions, the recalls, the deletes and the save and load run through the
-// command pipeline and the save path. The target destroyed mid-conversion and
-// its recycled id are staged by direct world edits ("destroyed raw"). The kill
-// paths that land after the fog pass (projectiles, towers) are not driven:
-// such a building is forgotten a tick later.
+// conversions, the recalls, the deletes and the saves and loads run through
+// the command pipeline and the save path. A target destroyed mid-conversion
+// and its recycled id are staged by direct world edits ("destroyed raw"). A
+// kill that lands after the fog pass (a projectile) is not driven: such a
+// building is forgotten a tick later. No recorded replay is self-checked.
 
 import { describe, expect, it } from 'vitest';
 
@@ -36,7 +36,7 @@ import {
 function stepUntilRememberedWhileOwn(staged: Bridge, houseId: number): number {
   for (let ticks = 0; ; ticks += 1) {
     if (ownerOf(staged, houseId) === HUMAN_PLAYER_ID && memoryOf(staged).has(houseId)) return ticks;
-    expect(ticks, 'the House is remembered while an enemy Monk is sent at it').toBeLessThan(40);
+    expect(ticks, 'the House is remembered once an enemy Monk works on it').toBeLessThan(40);
     staged.step(100);
   }
 }
@@ -44,6 +44,13 @@ function stepUntilRememberedWhileOwn(staged: Bridge, houseId: number): number {
 function progressOn(bridge: Bridge, id: number): number | undefined {
   const conversions = (bridge.world.getState('aoe2.conversionState') ?? []) as Array<[number, { progress: number }]>;
   return conversions.find(([target]) => target === id)?.[1].progress;
+}
+
+function stepUntilProgress(bridge: Bridge, id: number, progress: number): void {
+  for (let ticks = 0; (progressOn(bridge, id) ?? 0) < progress; ticks += 1) {
+    expect(ticks, `premise: the conversion reaches progress ${progress}`).toBeLessThan(900);
+    bridge.step(100);
+  }
 }
 
 function stepUntilFlipped(bridge: Bridge, houseId: number, label: string): void {
@@ -59,6 +66,11 @@ function recall(bridge: Bridge, monkId: number): void {
 
 function drawnAs(bridge: Bridge, id: number): Array<{ isMemory: boolean; owner: number | null }> {
   return drawnWithIds(bridge, new Set([id])).map((entity) => ({ isMemory: entity.isMemory, owner: entity.owner }));
+}
+
+/** The slot exactly as a save or a replay carries it, order included. */
+function rawSlot(bridge: Bridge): string {
+  return JSON.stringify(bridge.world.getState('aoe2.lastSeenStatic') ?? []);
 }
 
 describe('conversion and the player\'s fog memory', () => {
@@ -79,10 +91,10 @@ describe('conversion and the player\'s fog memory', () => {
     expect(memoryOf(bridge).has(house.id), 'remembered after it became the player\'s').toBe(false);
   });
 
-  it('keeps a building an enemy Monk converts on the map, in its new owner\'s look, until the player sees it gone', () => {
+  it('keeps a building an enemy Monk converts on the map in its new owner\'s look, and keeps its ghost when it is lost out of the player\'s sight', () => {
     const { staged, house, monkId } = stageEnemyConversion();
     expect(ownerOf(staged, house.id), 'premise: the House is the player\'s').toBe(HUMAN_PLAYER_ID);
-    expect(memoryOf(staged).has(house.id), 'not remembered before anyone is sent at it').toBe(false);
+    expect(memoryOf(staged).has(house.id), 'not remembered before anyone works on it').toBe(false);
 
     orderEnemyConversion(staged, monkId, house.id);
     let rememberedWhileOwn = false;
@@ -123,14 +135,37 @@ describe('conversion and the player\'s fog memory', () => {
     expect(drawnAs(staged, house.id), 'drawn after the flip').toEqual([{ isMemory: true, owner: 2 }]);
   });
 
-  it('keeps the building on the map when a Monk called off one tick short is sent back and flips it at once', () => {
-    // The progress outlives the order (review round 1, finding 1).
+  it('remembers the building from the enemy Monk\'s first tick of progress, not while it walks there, and still after a recall', () => {
     const { staged, house, monkId } = stageEnemyConversion();
-    orderEnemyConversion(staged, monkId, house.id);
-    for (let ticks = 0; (progressOn(staged, house.id) ?? 0) < 49; ticks += 1) {
-      expect(ticks, 'premise: the conversion nears its end').toBeLessThan(900);
+    // Walk the Monk out of conversion range, so the order sends it on a walk.
+    recall(staged, monkId);
+    for (let ticks = 0; ; ticks += 1) {
+      const monk = staged.getEconomyState().units.find((unit) => unit.id === monkId)!;
+      if (Math.abs(monk.x - 12) + Math.abs(monk.y - 24) <= 1) break;
+      expect(ticks, 'premise: the Monk walks away').toBeLessThan(600);
       staged.step(100);
     }
+    orderEnemyConversion(staged, monkId, house.id);
+    let rememberedWhileWalking = false;
+    for (let ticks = 0; progressOn(staged, house.id) === undefined; ticks += 1) {
+      expect(ticks, 'premise: the Monk arrives and starts').toBeLessThan(600);
+      if (memoryOf(staged).has(house.id)) rememberedWhileWalking = true;
+      staged.step(100);
+    }
+    expect(rememberedWhileWalking, 'remembered while the Monk only walked there').toBe(false);
+    expect(memoryOf(staged).has(house.id), 'remembered from the first tick of progress').toBe(true);
+
+    recall(staged, monkId);
+    step(staged, 3);
+    expect(progressOn(staged, house.id), 'premise: the progress outlives the order').toBeGreaterThan(0);
+    expect(memoryOf(staged).has(house.id), 'remembered while the progress stands').toBe(true);
+  });
+
+  it('keeps the building on the map when a Monk called off one tick short is sent back and flips it at once', () => {
+    // The progress outlives the order (review round 1, F11).
+    const { staged, house, monkId } = stageEnemyConversion();
+    orderEnemyConversion(staged, monkId, house.id);
+    stepUntilProgress(staged, house.id, 49);
     expect(ownerOf(staged, house.id)).toBe(HUMAN_PLAYER_ID);
     recall(staged, monkId);
     step(staged, 2);
@@ -143,6 +178,37 @@ describe('conversion and the player\'s fog memory', () => {
     staged.step(100);
     expect(drawnAs(staged, house.id), 'drawn after the flip').toEqual([{ isMemory: true, owner: 2 }]);
     expect(keptWhilePaused, 'kept while the progress stood').toBe(true);
+  });
+
+  it('keeps on the map a building of the player\'s that takes the id of one destroyed one tick short, when the enemy\'s Monk resumes on it', () => {
+    // The engine leaves a destroyed building's record under its id, and a
+    // Monk of that owner resumes it on whatever takes the id (review round 2,
+    // F27; defect register F10): this building can flip at once too.
+    const { staged, house, monkId } = stageEnemyConversion();
+    orderEnemyConversion(staged, monkId, house.id);
+    stepUntilProgress(staged, house.id, 49);
+    recall(staged, monkId);
+    staged.step(100);
+    const recycled = staged.world.runMaintenance(() => {
+      staged.world.destroyEntity(house.id);
+      const id = staged.world.createEntity();
+      staged.world.addComponent(id, 'position', { x: house.x, y: house.y });
+      staged.world.addComponent(id, 'building', { owner: HUMAN_PLAYER_ID, buildingType: 'house' });
+      staged.world.addComponent(id, 'renderable', {
+        kind: 'building', layer: 'building', tint: buildingTint('house', HUMAN_PLAYER_ID, true), size: 1.1,
+        footprintWidth: 2, footprintHeight: 2, visualVariant: 'complete',
+      });
+      return id;
+    });
+    expect(recycled, 'premise: the id came back').toBe(house.id);
+    staged.step(100);
+    expect(progressOn(staged, house.id), 'premise: the record outlived its building').toBe(49);
+
+    orderEnemyConversion(staged, monkId, house.id);
+    staged.step(100);
+    expect(ownerOf(staged, house.id), 'premise: the new building flipped on the first tick').toBe(2);
+    staged.step(100);
+    expect(drawnAs(staged, house.id), 'drawn after the flip').toEqual([{ isMemory: true, owner: 2 }]);
   });
 
   it('leaves no ghost of a building the player deletes while an enemy Monk converts it', () => {
@@ -160,33 +226,11 @@ describe('conversion and the player\'s fog memory', () => {
     expect(memoryOf(staged).has(house.id)).toBe(false);
   });
 
-  it('forgets the building once the enemy Monk is called away before it makes progress', () => {
-    const { staged, house, monkId } = stageEnemyConversion();
-    // Walk the Monk out of conversion range first, so the order sends it on a
-    // walk that the recall cuts short before any progress.
-    recall(staged, monkId);
-    for (let ticks = 0; ; ticks += 1) {
-      const monk = staged.getEconomyState().units.find((unit) => unit.id === monkId)!;
-      if (Math.abs(monk.x - 12) + Math.abs(monk.y - 24) <= 1) break;
-      expect(ticks, 'premise: the Monk walks away').toBeLessThan(600);
-      staged.step(100);
-    }
-    orderEnemyConversion(staged, monkId, house.id);
-    stepUntilRememberedWhileOwn(staged, house.id);
-    expect(progressOn(staged, house.id), 'premise: no progress yet').toBeUndefined();
-
-    recall(staged, monkId);
-    step(staged, 3);
-
-    expect(ownerOf(staged, house.id), 'premise: still the player\'s').toBe(HUMAN_PLAYER_ID);
-    expect(memoryOf(staged).has(house.id), 'remembered after the Monk was called away').toBe(false);
-  });
-
-  it('remembers no building of the player\'s that takes the id of a building destroyed mid-conversion', () => {
+  it('remembers no building of the player\'s that takes the id of an enemy building its own Monk was converting', () => {
     // The player's own Monk starts on the enemy House; the House is destroyed
-    // raw before the flip, and its id comes back as a House of the player's. A
-    // conversion record left under the id (aoe2.conversionState keeps one)
-    // must not make the new building remembered (review round 0, F2).
+    // raw before the flip, and its id comes back as a House of the player's.
+    // The player's own conversion record left under the id is not an enemy's,
+    // so the new building is not remembered (review round 0, F2).
     const bridge = createSimulationBridge('redemption-buildings-fixture');
     const house = bridge.getEconomyState().buildings.find((building) => building.buildingType === 'house')!;
     expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'monk')).toBe(true);
@@ -212,30 +256,43 @@ describe('conversion and the player\'s fog memory', () => {
     expect(memoryOf(bridge).has(house.id), 'the player\'s new House is remembered').toBe(false);
   });
 
-  it('plays a save made mid-conversion to the same fog memory as the match it came from', () => {
-    // Orders and conversion progress come back with the save, so the loaded
-    // match remembers what the live one does at every tick, through a recall,
-    // a resumed conversion and the flip (review round 1, finding 4).
+  it('plays saves made mid-conversion and during a pause to the same fog memory as the match they came from', () => {
+    // Orders and conversion progress come back with a save, so a loaded match
+    // keeps the same slot, in the same order, at every tick (review rounds 1
+    // and 2, F14 and F28): one save made while the Monk works, one while it is
+    // called off at progress 49 with only the record standing.
     const { staged: live, house, monkId } = stageEnemyConversion();
     orderEnemyConversion(live, monkId, house.id);
     stepUntilRememberedWhileOwn(live, house.id);
     step(live, 5);
     expect(progressOn(live, house.id), 'premise: saved with progress made').toBeGreaterThan(0);
-    const loaded = createSimulationBridge('redemption-buildings-fixture', { savedGame: live.saveGame() });
-
-    const script: Record<number, (bridge: Bridge) => void> = {
-      3: (bridge) => recall(bridge, monkId),
-      8: (bridge) => orderEnemyConversion(bridge, monkId, house.id),
-    };
-    for (let tick = 0; tick < 120; tick += 1) {
-      for (const bridge of [live, loaded]) {
-        script[tick]?.(bridge);
-        bridge.step(100);
+    const working = createSimulationBridge('redemption-buildings-fixture', { savedGame: live.saveGame() });
+    const matches: Bridge[] = [live, working];
+    const compare = (label: string) => {
+      for (const other of matches.slice(1)) {
+        expect(rawSlot(other), `fog memory ${label}`).toBe(rawSlot(live));
+        expect(progressOn(other, house.id), `progress ${label}`).toBe(progressOn(live, house.id));
       }
-      const sorted = (bridge: Bridge) => JSON.stringify([...memoryOf(bridge)].sort(([a], [b]) => a - b));
-      expect(sorted(loaded), `fog memory at step ${tick}`).toBe(sorted(live));
-    }
+    };
+    compare('right after the first load');
+
+    const play = (ticks: number, label: string) => {
+      for (let tick = 0; tick < ticks; tick += 1) {
+        for (const bridge of matches) bridge.step(100);
+        compare(`${label}, step ${tick}`);
+      }
+    };
+    for (const bridge of matches) stepUntilProgress(bridge, house.id, 49);
+    compare('at progress 49');
+    for (const bridge of matches) recall(bridge, monkId);
+    play(3, 'called off');
+    matches.push(createSimulationBridge('redemption-buildings-fixture', { savedGame: live.saveGame() }));
+    compare('right after the paused load');
+    for (const bridge of matches) orderEnemyConversion(bridge, monkId, house.id);
+    play(20, 'resumed and flipped');
     expect(ownerOf(live, house.id), 'premise: the conversion finished').toBe(2);
-    expect(drawnAs(loaded, house.id), 'drawn after the flip in the loaded match').toEqual([{ isMemory: true, owner: 2 }]);
+    for (const bridge of matches) {
+      expect(drawnAs(bridge, house.id), 'drawn after the flip').toEqual([{ isMemory: true, owner: 2 }]);
+    }
   });
 });

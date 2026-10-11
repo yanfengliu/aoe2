@@ -13,19 +13,19 @@
 // cost every tick, since the engine fingerprints the whole slot twice a tick.
 // So: no entry for a building the human owns; an entry recorded as the
 // human's is forgotten on the first pass after its building goes; and the one
-// exception, a building an enemy Monk is sent to convert, is remembered until
-// the flip and then drawn in its new owner's look.
+// exception, a building an enemy has started to convert, is remembered until
+// it changes hands and is then drawn in its new owner's look.
 
 import { VisibilityMap, type Position } from 'civ-engine';
 import type {
   BuildingComponent,
   RenderableComponent,
   ResourceComponent,
-  UnitComponent,
 } from '../../types';
+import { isEnemyOwner } from '../../alliances';
 import type { GameWorld } from '../pureHelpers';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { conversionStateCodec, monkTasksCodec } from '../bridgeStateSerialize';
+import { conversionStateCodec, playerTeamsCodec } from '../bridgeStateSerialize';
 import { isCellSeen, isFootprintSeen, readSightOwners } from '../humanSight';
 import { isStaticMemorableResourceType } from '../../prototypeUnitRules';
 import type { MemoryEntry } from '../memoryTypes';
@@ -90,26 +90,21 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
         changed = true;
       };
 
-      // The human's buildings an enemy Monk has been sent to convert: the
-      // targets of other players' convert tasks, by identity. A task ends when
-      // its Monk dies, takes another order, abandons it or makes the flip, so
-      // this follows the conversion and nothing older; nothing writes an entry
-      // from `aoe2.conversionState`, whose entries outlive a razed target and
-      // are pruned on load. (The identity check and the owner check are belt
-      // and braces: the Monk system drops a task whose target is gone earlier
-      // in the tick, and the human's own Monk cannot be sent at its building.)
-      const beingConverted = new Set<number>();
-      for (const [monkId, task] of accessor.get(monkTasksCodec)) {
-        if (task.kind !== 'convert' || !activeWorld.isCurrent(task.targetEntityRef)) continue;
-        const monk = activeWorld.getComponent<UnitComponent>(monkId, 'unit');
-        if (monk !== undefined && monk.owner !== humanPlayerId) beingConverted.add(task.targetEntityRef.id);
-      }
-      // A conversion called off keeps its progress (a Monk sent back resumes
-      // it), and one tick of progress can then flip the building before this
-      // pass sees the new order. So while an enemy's progress stands on a
-      // building of the human's, the entry the order wrote is kept, not
-      // dropped; it is never written from here.
+      // A building of the human's an enemy has started to convert is the
+      // exception: one whose id carries an enemy's progress record in
+      // `aoe2.conversionState`. The record is made on the first tick a Monk
+      // works on the building and a fresh flip takes at least 50, so the
+      // entry exists before any flip. The record also outlives a Monk called
+      // off or killed, and a Monk of that owner sent back resumes it and can
+      // flip the building in one tick, before this pass would see a new order;
+      // so a convert ORDER would not do. A record the engine leaves on a
+      // destroyed building's id (it never deletes one there) makes a building
+      // of the human's that takes the id remembered too, and can flip it at
+      // once, so that is right in live play; but a load prunes such a record
+      // while the id is free, so a replay opened then can remember less than
+      // the live match (work 116's plan, F10).
       const conversions = accessor.get(conversionStateCodec);
+      const teams = accessor.get(playerTeamsCodec);
 
       // Refresh every building the human player currently sees. Visibility is
       // tested over the full footprint to match the projector and the iter-2
@@ -125,17 +120,16 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
         const held = humanMemory.get(id);
         const heldForThis = held !== undefined && held.generation === generation;
         if (building.owner === humanPlayerId) {
-          // The human's own building, foundation or finished (header). While
-          // an enemy Monk is sent to convert it, it is remembered whatever the
-          // fog — the human knows its own building — so the flip finds an
-          // entry. Otherwise an entry held for this very building (the one it
-          // had as an enemy's, a finished attempt's, an older save's) is
-          // dropped, unless an enemy's conversion progress stands on it
-          // (above); one under the same id with another generation is a
+          // The human's own building, foundation or finished (header). With an
+          // enemy's conversion record on it (above) it is remembered whatever
+          // the fog — the human knows its own building, and a foundation sees
+          // nothing — so a flip finds an entry. Otherwise an entry held for
+          // this very building (the one it had as an enemy's, an older save's)
+          // is dropped; one under the same id with another generation is a
           // destroyed building's ghost, not this one's, and stays.
-          if (!beingConverted.has(id)) {
-            const progress = conversions.get(id);
-            if (heldForThis && (progress === undefined || progress.byOwner === humanPlayerId)) {
+          const record = conversions.get(id);
+          if (record === undefined || !isEnemyOwner(teams, humanPlayerId, record.byOwner)) {
+            if (heldForThis) {
               humanMemory.delete(id);
               changed = true;
             }
@@ -151,9 +145,11 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
             renderable.footprintHeight,
           )
           // Unseen, a building is still refreshed once if its entry says the
-          // human owned it: it has just changed hands. Showing it in its new
-          // owner's look is a rule chosen here (DE is not verified), and it
-          // also keeps the pass below from forgetting it as the human's.
+          // human owned it: it has just changed hands (or an older save holds
+          // such an entry). Showing it in its new owner's look is a rule
+          // chosen here (DE is not verified, and it tells the human which
+          // enemy took it), and it keeps the pass below from forgetting it as
+          // the human's.
           && !(heldForThis && held.owner === humanPlayerId)
         ) {
           continue;
@@ -223,10 +219,10 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
         }
         // A building that was the human's when last remembered is forgotten
         // on the first pass after it goes, seen or not: the human knows what
-        // it has lost. This is the entry an enemy's conversion attempt kept
-        // when the building is deleted or razed before the flip, and an older
+        // it has lost. This is the entry an enemy's conversion record kept
+        // when the building is deleted or razed before any flip, and an older
         // save's. (This pass runs before projectiles land, so a building one
-        // destroys is forgotten a tick later.)
+        // destroys is forgotten a tick later — never, if that ends the match.)
         if (entry.kind === 'building' && entry.owner === humanPlayerId) {
           humanMemory.delete(entityId);
           changed = true;
