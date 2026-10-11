@@ -221,8 +221,9 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     }
 
     if (building) {
-      // Same Teuton 2x-tower multiplier the entry check applies, so the HUD
-      // number is the number the garrison command actually enforces.
+      // The entry check's own sum (garrisonOps): table capacity plus the flat
+      // civ adds — Khmer houses 5, Teuton Town Centers +10 and towers +5
+      // (v0.3.144) — so the HUD shows the number the garrison command enforces.
       const capacity = buildingGarrisonCapacity(building.buildingType)
         + civHouseGarrisonCapacity(
           accessor.get(playerCivilizationsCodec).get(building.owner),

@@ -4,13 +4,15 @@
 //  - Franks: MOUNTED units +20% HP from the Feudal Age
 //  - Mongols: scout line +20/30% HP in Castle/Imperial
 //  - Portuguese: ships +10/15/20% HP in Feudal/Castle/Imperial
-//  - Byzantines: buildings +10% / +20% / +30% / +40% from the DARK Age up
+//  - Byzantines: buildings EXCEPT GATES +10% / +20% / +30% / +40% from the
+//    DARK Age up
 // Pure factors over (civilization, type, age). Creation sites multiply by the
 // current age's factor; the age-up sweep multiplies stored HP by the factor
 // RATIO — replacing the old step rather than compounding on it, which is
 // exactly what the CSV's "does not stack" note means.
 
 import type { AgeType, BuildingType, UnitType } from './types';
+import { isGateBuilding } from './gates';
 import { isInfantryUnit, isMountedUnit } from './prototypeUnitRules';
 
 const AGE_INDEX: Record<AgeType, number> = {
@@ -73,9 +75,11 @@ export function ageScaledBuildingHpFactor(
   buildingType: BuildingType,
   age: AgeType,
 ): number {
-  // "except gates" needs no carve-out: gates are not a BuildingType here.
-  void buildingType;
-  if (civilization === 'Byzantines') {
+  // civilizations.csv: "Buildings (except gates)". Both gates are building
+  // types (stone-gate and palisade-gate), and creation and the age-up sweep
+  // both read this factor, so the carve-out here covers each path in every
+  // age.
+  if (civilization === 'Byzantines' && !isGateBuilding(buildingType)) {
     return 1 + 0.1 * (AGE_INDEX[age] + 1);
   }
   return 1;

@@ -1,10 +1,12 @@
-// The civilization-bonus TABLE (spec §9.2): every `civilizations.csv` bonus
-// line the derived seams can express, declared as data the way the unique
+// The civilization-bonus TABLE (spec §11.11): the `civilizations.csv` bonus
+// lines that fit a shared seam, declared as data the way the unique
 // technologies are — one entry per civilization, each effect naming what it
-// touches and by how much, and one loop per seam applying them all. Lines the
-// seams cannot express yet (free technologies, starting-resource deltas,
-// age-scaled HP, carry capacity, and the rest) are NOT silently dropped: the
-// spec's §9.2 breadth note lists them per civilization as the open remainder.
+// touches and by how much, and one loop per seam applying them all. Carry
+// capacity and starting-resource deltas are entries here; free technologies
+// are `CIV_FREE_TECHNOLOGIES` below, granted by freeTechnologySystem. A bonus
+// that needs a seam of its own lives beside that seam instead: age-scaled HP
+// in ageScaledHp.ts, building sight and garrison in civBuildingBonuses.ts. A
+// line no seam expresses yet is listed in spec §11.11, not silently dropped.
 
 import type { AgeType, ResourceKind, UnitType } from './types';
 import { isInfantryUnit } from './prototypeUnitRules';

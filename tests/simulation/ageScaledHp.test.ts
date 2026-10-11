@@ -1,13 +1,17 @@
-// The age-scaled HP family (civilizations.csv):
-//  - Vikings: "Infantry have +10% HP in Feudal Age / +15% in Castle Age /
-//    +20% in Imperial Age"
-//  - Vietnamese: "Archery Range units have +10% HP in Feudal Age, +15% in
-//    Castle Age, and +20% in Imperial Age. Does not stack."
-//  - Byzantines: "Buildings (except gates) have +10% HP in Dark Age / +20% in
-//    Feudal Age / +30% in Castle Age / +40% in Imperial Age"
+// The age-scaled HP family (civilizations.csv, matched to current DE in
+// v0.3.148):
+//  - Vikings: "Infantry +20% HP starting in Feudal Age" — flat, not a ladder
+//  - Vietnamese: "Archery Range units +20% HP" — in every age, Dark included
+//  - Franks: "Mounted units +20% HP starting in Feudal Age"
+//  - Mongols: "Scout line +20/30% HP in Castle/Imperial Age"
+//  - Portuguese: "Ships +10/15/20% HP by age" (Feudal/Castle/Imperial)
+//  - Byzantines: "Buildings (except gates) have +10% HP in Dark Age / +20% HP
+//    in Feudal Age / +30% in Castle Age / +40% in Imperial Age"
 // Two halves, the Hoardings shape: creation derives the current age's factor;
-// advancing an age sweeps what is already standing by the factor RATIO (which
-// is what "does not stack" means — the ladder replaces, never compounds).
+// advancing an age sweeps what is already standing by the factor RATIO, so a
+// ladder replaces its step and never compounds on it. The gate clause is
+// walked in the world, through both halves and all four ages, in
+// byzantineGateHp.test.ts.
 
 import { describe, it, expect } from 'vitest';
 
@@ -21,8 +25,20 @@ import {
   ageScaledUnitHpFactor,
 } from '../../src/game/simulation/ageScaledHp';
 import { buildingMaxHpForAge } from '../../src/game/simulation/prototypeBuildingRules';
+import { AUTHORITATIVE_BUILDING_FOOTPRINTS } from '../../src/game/content/buildingFootprints';
+import type { AgeType, BuildingType } from '../../src/game/simulation/types';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
+
+const AGES: readonly AgeType[] = ['dark-age', 'feudal-age', 'castle-age', 'imperial-age'];
+// civilizations.csv, Byzantines: +10/20/30/40% by age, from the Dark Age up.
+const BYZANTINE_LADDER: Readonly<Record<AgeType, number>> = {
+  'dark-age': 1.1, 'feudal-age': 1.2, 'castle-age': 1.3, 'imperial-age': 1.4,
+};
+// "(except gates)": the two gate types this game has, written out here rather
+// than read from gates.ts, so the check does not agree with the code by
+// construction.
+const GATES: ReadonlySet<BuildingType> = new Set<BuildingType>(['stone-gate', 'palisade-gate']);
 
 function boot(civ?: string): Bridge {
   return createSimulationBridge('outpost-vision-fixture', {
@@ -78,6 +94,30 @@ describe('age-scaled HP factors (pure)', () => {
     expect(ageScaledBuildingHpFactor('Byzantines', 'wonder', 'imperial-age')).toBeCloseTo(1.4, 5);
     expect(ageScaledBuildingHpFactor('Britons', 'town-center', 'imperial-age')).toBe(1);
     expect(ageScaledBuildingHpFactor(undefined, 'town-center', 'imperial-age')).toBe(1);
+  });
+
+  it('gives neither gate the ladder in any age, and every other building type keeps it', () => {
+    // Every building type there is: the footprint table is a
+    // Record<BuildingType, ...>, so the compiler holds it complete.
+    const census = Object.keys(AUTHORITATIVE_BUILDING_FOOTPRINTS) as BuildingType[];
+    // Not vacuous: both gates are in the census, and so is much else.
+    for (const gate of GATES) expect(census).toContain(gate);
+    expect(census.length).toBeGreaterThan(GATES.size + 20);
+
+    const wrong: string[] = [];
+    for (const buildingType of census) {
+      for (const age of AGES) {
+        const expected = GATES.has(buildingType) ? 1 : BYZANTINE_LADDER[age];
+        const actual = ageScaledBuildingHpFactor('Byzantines', buildingType, age);
+        if (Math.abs(actual - expected) > 1e-9) {
+          wrong.push(`Byzantine ${buildingType} in the ${age}: ${actual}, expected ${expected}`);
+        }
+        // Nobody else has a building ladder at all.
+        const britons = ageScaledBuildingHpFactor('Britons', buildingType, age);
+        if (britons !== 1) wrong.push(`Britons ${buildingType} in the ${age}: ${britons}, expected 1`);
+      }
+    }
+    expect(wrong).toEqual([]);
   });
 });
 
