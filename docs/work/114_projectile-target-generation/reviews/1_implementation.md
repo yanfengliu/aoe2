@@ -75,3 +75,7 @@ On the round 1 repair: `projectileNamedEntities.test.ts` (19 tests) and `tests/r
 ## Round outcome
 
 No blocker and no should-fix. F0 to F7 are resolved; the rest of F8 and the five new nits, F9 to F13, are accepted and repaired. The repair adds one test and corrects documents and changes no product code, so neither round's review of the code's behaviour is invalidated and no further round was run.
+
+## Addendum: landed revisions
+
+Added on 2026-10-11 after this round closed, to name where the reviewed code landed; nothing above is changed. For landing, the branch was rebased under the gate lock onto main `04bdd87b` (v0.3.246) and, after one refused push, onto `20f1f4ab`, a docs-only commit. The commits this record names landed as follows: `3dfac0a8` (round 0's target, first `2d78480e`) as `c4775faa`; `0614439d` (this round's target) as `9649746f`; `9bb08b8c` (this round's repair) as `3c060331`; then the release `47cdcf1b`, v0.3.247. Each landed commit's diff under `src/` and `tests/` is byte-identical to the reviewed one: SHA-256 `7e5999d487ebad9f8544cce60cc38e300e93a8dcd5d320123f62b8dc6c552f40`, `5c3c1053a59b5e10439afb597df19f69e3fbbd6cf04b0e7e514cc90fe94a05d8` and `e3609008c97bed0072d933d527f178068890b2e03c2ad108e97597845863166c`. The rebases changed only documents, where works 115, 117 and 119 had written beside this one.
