@@ -2,6 +2,18 @@
 // or static memorable resource (trees, berries, gold mines, stone mines)
 // the human player currently sees. Snapshots persist after vision loss so
 // the renderer can render last-known state under fog.
+//
+// The human's OWN buildings are not remembered (vNEXT; defect register
+// 2026-10-11). The render state draws every entity the human owns whatever
+// the fog (renderStateOps' owner pass), so an entry for one is never read
+// while it stands. It was read once the building was gone: a House the
+// player deleted, or lost where nothing else of theirs could see, stayed on
+// the map as a ghost, because its own sight went with it and an entry is
+// forgotten only when its ground is seen empty. The entries also cost every
+// tick, since the engine fingerprints the whole slot twice a tick. The one
+// exception is a building an enemy Monk is converting: its entry is what
+// keeps it on the map, as last seen, if the flip takes it out of the
+// player's sight.
 
 import { VisibilityMap, type Position } from 'civ-engine';
 import type {
@@ -11,6 +23,7 @@ import type {
 } from '../../types';
 import type { GameWorld } from '../pureHelpers';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { conversionStateCodec } from '../bridgeStateSerialize';
 import { isCellSeen, isFootprintSeen, readSightOwners } from '../humanSight';
 import { isStaticMemorableResourceType } from '../../prototypeUnitRules';
 import type { MemoryEntry } from '../memoryTypes';
@@ -78,11 +91,26 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
       // Refresh every building the human player currently sees. Visibility is
       // tested over the full footprint to match the projector and the iter-2
       // M2-1 target-finding fix.
+      const conversions = accessor.get(conversionStateCodec);
       for (const id of activeWorld.query('position', 'building', 'renderable')) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
         const renderable = activeWorld.getComponent<RenderableComponent>(id, 'renderable');
         if (!position || !building || !renderable) {
+          continue;
+        }
+        // The human's own building, foundation or finished, is never
+        // remembered unless an enemy Monk is converting it (header). An entry
+        // already held for this very building — one it had before it became
+        // the human's, a finished conversion attempt's, or an older save's —
+        // is dropped. An entry under the same id with another generation is a
+        // destroyed building's ghost, not this one's, and stays.
+        if (building.owner === humanPlayerId && !conversions.has(id)) {
+          const held = humanMemory.get(id);
+          if (held !== undefined && held.generation === activeWorld.getEntityGeneration(id)) {
+            humanMemory.delete(id);
+            changed = true;
+          }
           continue;
         }
         if (

@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 116
+
+- A building of yours that you delete, or that is destroyed where nothing else of yours can see it, no longer stays on the map and the minimap as a fog ghost. Fog memory no longer keeps your own buildings at all, since they are always drawn; a building an enemy Monk is converting is still remembered, so it stays on the map as last seen if the conversion takes it out of your sight. Saves load as before and drop those entries on their first tick, and a recording made before this change replays its fog memory without them. An ally's building can still leave a ghost the same way.
+
 ## 0.3.249
 
 - **Sheep boxed in on their way somewhere no longer slow the game down.** When you sent sheep across the map and some of them were boxed in, for instance beside the Town Center by the building and each other, the game looked for a path for each of them once for every cell of the map, every tick. On the starting map that took 300 to 600 ms of each 100 ms tick, so the whole game ran at a fraction of its speed until the sheep got free. It now looks once. The sheep go exactly where they went before.
