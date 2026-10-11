@@ -1,6 +1,6 @@
 # REVIEW 1 — every building gives its owner sight, from the middle of its footprint
 
-Historical review completed 2026-09-24/25. The archived draft's v0.3.237 shipping claim was premature; this work is recovered for v0.3.240, with final gates, integrated review and main integration pending.
+Historical review completed 2026-09-24/25. The archived draft's v0.3.237 shipping claim was premature: it shipped in v0.3.240, recovered onto main by the consolidation in `docs/work/104_main-consolidation` (product revision `2db3dbe5`) after that work's full `npm run verify` and independent integrated review, and hosted CI went green after its Windows repair (`71a7b393`).
 
 **Reviewed:** the uncommitted diff of worktree `building-vision` against `8629c785`, as it stood at 22:06 on 2026-09-24 (40 files: the CSV re-sourced from DE, the total sight table, footprint-centred sources, the load-time repair, fixtures, tests and docs). The layered map, the building slot and the fixes below came after it; review 2 covers them.
 

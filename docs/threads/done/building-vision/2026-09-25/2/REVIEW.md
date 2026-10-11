@@ -1,6 +1,6 @@
 # REVIEW 2 — building sight's layers, its world-state slot, and the round-1 fixes
 
-Historical review completed 2026-09-25. Recovered 2026-09-29 for v0.3.240; the archived draft's v0.3.237 closure was premature. Final combined gates, integrated review and main integration are pending.
+Historical review completed 2026-09-25. The archived draft's v0.3.237 closure was premature: it shipped in v0.3.240, recovered onto main by the consolidation in `docs/work/104_main-consolidation` (product revision `2db3dbe5`) after that work's full `npm run verify` and independent integrated review, and hosted CI went green after its Windows repair (`71a7b393`).
 
 **Reviewed:** commit `2780b99d` on branch `building-vision` against `origin/main` at `bc0a0bf1` (`git diff origin/main...HEAD`, 52 files): round 1's change plus the layered map, the `aoe2.buildingVisibility` slot and the round-1 fixes.
 
@@ -21,3 +21,7 @@ Historical review completed 2026-09-25. Recovered 2026-09-29 for v0.3.240; the a
 **Nothing found:** no leaked source on any path traced (conversion of units and buildings, every kind of destruction, garrison, Transport Ship, sheep, gates, farm reseed, technology bumps, recycled ids, older saves); no production caller asks with a string player id; no public method reads the subclass's empty base state; nothing reads visibility between a load and its first sync.
 
 **Seen on the way, older than this change:** a projectile's building damage resolves a bare entity id, and a garrisoned unit's stored vision skips upgrades researched while it is inside; offered as separate tasks, as the Vietnamese reveal's re-run on every load was in round 1.
+
+**Round 3, which did not finish.** A focused re-review of the fixes above (Claude, the same pins and read-only brief, on the uncommitted fix delta over `2780b99d`: 14 files of `src/`, `tests/` and `scripts/`) ran on 2026-09-25 and stopped at the account's weekly usage limit after 81 turns, before writing its report. Its last notes said the building slot's incremental computation holds and the new tests can fail, with one question open: whether gameplay reads explored cells, which decides what a replay world without the building slot loses. It is not counted as a review.
+
+**Leftover: round 3's review, dropped with its reason.** The review it owed was supplied by the consolidation's independent integrated review (`docs/work/104_main-consolidation/reviews/0_implementation.md`, GPT-6 Astra at xhigh, read-only), which read the integrated product patch, these fixes included, and covered the layered map's methods and persistence and the construction, load and destruction sight lifecycle. Its one sight finding, unbounded work on an imported radius (IR-3), was fixed before v0.3.240. Round 3's open question is answered by the code: a replay world goes without the building slot only for a recording made before the slot existed, and that recording's one visibility slot holds each owner's explored cells from units and buildings together, which the replay world loads into the units' layer, so nothing gameplay reads is lost.
