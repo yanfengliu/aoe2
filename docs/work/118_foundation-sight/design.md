@@ -39,7 +39,7 @@ Nothing found says either way. Searched:
 - The Age of Empires forum's search API, over queries on foundations, construction, partly built buildings, fog, vision and line of sight.
 - Web searches over the same ground, the openage reverse-engineering notes and the AoE2 DE UGC guide's attribute list.
 
-Update [50292](https://www.ageofempires.com/news/aoe2de-update-50292/) fixed issues with partly built foundations in the fog of war and the black map. It does not say whose view that was, so it supports neither answer.
+Update [50292](https://www.ageofempires.com/news/aoe2de-update-50292/) (2021-07-06) fixed issues with partly built foundations in the fog of war and the black map. It does not say whose view that was, so it supports neither answer.
 
 Not reachable: the AoEZone threads sit behind a bot check, which was not bypassed. Liquipedia's and the Fandom wiki's line-of-sight pages refused the fetch. Recorded DE play was not examined: no DE install or replay viewer was available.
 
@@ -49,13 +49,13 @@ Not reachable: the AoEZone threads sit behind a bot check, which was not bypasse
 2. **Settle it in DE, then follow the answer.** It takes about three minutes in a DE skirmish with fog on. Place a House far from your units and start it with one villager. Pull the villager out of sight before the House is done. Then see whether the ground around the partly built House, and under it, stays fogged. If DE gives it sight, a code change follows: a vision source when construction starts, gone on cancel or destruction, plus save and replay compatibility for the building visibility slot. Work 116's fog-memory skip would then need extending, because the owner's own foundations would no longer sit under fog.
 3. **An owner product call without a reference.**
 
-The owner's reproduction (two Militia at a Barracks foundation, drawn for nobody) does not record whether construction had started. If it had not, DE would show its owner nothing either. DE would also hide the foundation from the raiders, which is the separate divergence above.
+The owner's reproduction (two Militia at a Barracks foundation, drawn for nobody) does not record whether construction had started. If it had not, DE would show its owner nothing either. By the reports above, DE would also hide that foundation from the raiders, which is the separate divergence above.
 
 ## Side findings for other open work (not changed here)
 
 Spec §12.1 and the defect register entry of 2026-09-23 say DE's rule for placing a building on unexplored ground is unverified. DE's official notes settle it:
 - [Update 44725](https://www.ageofempires.com/news/aoeiide-update-44725/) (2021-01-25): hovering a building's blueprint over unexplored terrain no longer reveals whether a building or unit occupies it. The blueprint can still be placed, but it cannot be built if the ground is obstructed. This fixed the "palisade scan" exploit.
-- [Hotfix 45185](https://www.ageofempires.com/news/aoe2de-hotfix-45185/) (2021-02): a foundation may be placed over unexplored ground if part of it is explored, never on ground that is wholly unexplored. Construction cannot start while it overlaps a structure or foundation outside the player's sight.
-- [Update 46295](https://www.ageofempires.com/news/aoe2de-update-46295/) (2021-03): a foundation placed over an obstacle that fog hid is cancelled when villagers try to start it.
+- [Hotfix 45185](https://www.ageofempires.com/news/aoe2de-hotfix-45185/) (2021-02-11): a foundation may be placed over unexplored ground if part of it is explored, never on ground that is wholly unexplored. Construction cannot start while it overlaps a structure or foundation outside the player's sight.
+- [Update 46295](https://www.ageofempires.com/news/aoe2de-update-46295/) (2021-03-24): a foundation placed over an obstacle that fog hid is cancelled when villagers try to start it.
 
 The §12.1 sentence and that register entry belong to other lines and other owners, so they are not edited here.
