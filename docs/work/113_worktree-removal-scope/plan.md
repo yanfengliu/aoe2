@@ -3,7 +3,7 @@
 Status: planned
 Owner: /root
 Created: 2026-10-03
-Updated: 2026-10-03
+Updated: 2026-10-10
 
 ## Problem and outcome
 
@@ -33,3 +33,5 @@ Capture canonical validated deletion roots and link targets before unlinking. Ex
 ## Outcome
 
 Investigation complete; source/test unchanged and no new runtime gate ran. The incident explains native1 after successful tree deletion, with no observed external damage. Controller source SHA256dfd9f07e7742ae45b3e9c94f79c6c86463270201b79995274e9726728ae52615 and test SHA256c243c718fa4637752eccd6957b161597d596029f4a0c31001f5f8ab3f4a07c07 bind the reviewed baseline. This plan remains open until the class fix is verified and shipped. M8 producer acceptance and game CI are separate outcomes; all21 consumer dispositions and the route7/M7 runtime holds remain open.
+
+2026-10-10: added the design document required by this repository for review0_design. Controller implementation and runtime acceptance remain pending; no deletion behavior changed.

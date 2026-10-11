@@ -3,7 +3,7 @@
 Status: blocked
 Owner: /root
 Created: 2026-10-01
-Updated: 2026-10-02
+Updated: 2026-10-10
 
 ## Problem and outcome
 
@@ -113,3 +113,5 @@ Exact source/protocol inputs bind through [the reviewed-input recovery contract]
 **Current publication checkpoint (2026-10-02 local).** The complete original continuation review and source-only CP1/CP2 addendum are retained in [round12](reviews/12_plan.md) and [round13](reviews/13_plan.md). Both conditions close in proposal source only; final executor/environment/input guard/predicate are not frozen, implemented or accepted. The new runtime-budget question and provider-export questions remain unanswered. No proposed shim, pretest control or fullA20/B24 pair ran. This docs-only publication preserves the root approval/engine overlays while leaving the route6 runtime tree intact. Engine M2 producer2.6.0 is genuinely shipped/hosted/artifact-verified; all21 game consumer dispositions remain OPEN, and assigned M8 tests/large-reader proof are not yet verified. Main4c6c WindowsCI36936991772 remains RED/corpus36936991809 GREEN. M7 and fullDE parity remain OPEN.
 
 2026-10-02 latest hosted checkpoint: CI36985134043 on docs-only mainfad2b74e repeats the700 lifecycle timeout32505ms/30000ms and adds browser1920 resource-chip timeout; corpus36985134102 remainsGREEN. [Complete round15](reviews/15_integration.md) preserves exact REST evidence and unknown historical engine identity. Route7/default-entrypoint fullpair budget and M7 hold remain unchanged. The cleanup self-target false alarm has a separate pending class-fix home in [work113](../113_worktree-removal-scope/plan.md). No runtime or executable change ran.
+
+2026-10-10 documentation correction: latest inspected completed CI37090436154 repeats the Windows700 timeout, while all four browser shards and corpus37090436149 pass. Both OSes also expose root's two documentation publication errors. This correction removes only work112's two appended CR bytes, supplies work113's required design, preserves complete authored reports and refreshes the paired work97/98 owner records after source-backed audits. Independent [round16](reviews/16_integration.md) accepts the bounded12-path candidate; final shipping additions receive the affected9 assertions. The document incident remains open pending hosted acceptance. Route7/M7 holds, engine consumer adoption and full parity remain open; no product/runtime change ran.

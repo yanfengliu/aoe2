@@ -3,7 +3,7 @@
 Status: active
 Owner: Unknown (historical record; original ownership remains in the imported records)
 Created: Unknown (historical record; the allocated ID records migration order)
-Updated: 2026-09-05
+Updated: 2026-10-10
 
 ## Problem and outcome
 
@@ -35,3 +35,7 @@ The September 5 status in the retained review leaves the owner-1 boot-map readin
 The September 8 documentation migration preserves this open disposition and its source-backed maintenance date. It did not perform the outstanding product work or renew freshness. Original ownership remains as recorded in the retained source.
 
 The current legacy thread remains the live owner record during consolidation; the active status and dated disposition above agree with that unchanged source. This import does not restart or complete its product task. Future work on this objective updates this permanent plan and the retained active thread together until its owner closes the transition.
+
+## Status audit 2026-10-10
+
+Read-only audit at `861d7a1a`: the retained owner review (last changed in `bc0a0bf1`) records no retry through September 22; its September 10 addenda require a new baseline after placement and economy changes. The register still retains the September 5 owner-1 observation (freeze 0.4 -> 0.7; longest 1,430 -> 4,201 ticks). Shipped walk-field work is recorded, but this audit ran no simulation and establishes neither current regression nor resolution. Keep active; next acceptance step is to re-baseline the protected map and characterise the owner-1 carriers with the maintained live/replay instruments before deciding retry or closure.
