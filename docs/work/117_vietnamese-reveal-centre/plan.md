@@ -1,6 +1,6 @@
 # The Vietnamese reveal and the AI's base scan measure from a footprint's centre
 
-Status: planned
+Status: active
 Owner: Claude session from the task card 'Centre the Vietnamese reveal and the AI's base scan' (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
 Updated: 2026-10-11
@@ -39,7 +39,9 @@ Reproduce each defect first, with a unit test or a debug snapshot. Then measure 
 
 ## Implementation steps
 
-- [ ] Reproduce, fix, gate and land. Nothing here waits for the other cards unless the reveal needs a save-format change.
+- [x] Reproduce, fix and gate, on branch `vietnamese-reveal-centre`. The reveal needed no save-format change: its explored cells and fog-memory entries were already saved and recorded. The coordinator assigned this work the `wirePostSeedOps({...})` call in `wireBridgeOps.ts` for the fresh-match flag.
+- [ ] Independent review, recorded as `reviews/0_implementation.md`.
+- [ ] Land under the gate lock: rebase, version, `npm run verify`, push.
 
 ## Outcome
 

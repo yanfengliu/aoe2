@@ -2,6 +2,11 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 117
+
+- Playing the Vietnamese, each enemy Town Center revealed at the start of a match now shows the same ground on every side: everything within 5 tiles of the middle of the building, where it used to reach farther west and north than east and south. The reveal happens once, at the start. Loading a save no longer reveals Town Centers the enemy built later, and a replay shows exactly the ground its recording holds. Saves and recordings made before this keep the ground the old reveal showed.
+- The AI notices an enemy it can see near its Town Center at the same distance on every side: within 12 tiles of the middle of the building, as far as the Town Center sees with Town Watch. It used to miss some enemies past the south-east corner and notice some farther away past the north-west corner.
+
 ## 0.3.245
 
 - **Byzantine gates no longer get the Byzantine building hit-point bonus.** The bonus gives Byzantine buildings, except gates, +10/20/30/40% hit points in the Dark, Feudal, Castle and Imperial Age, but gates were getting it too. A Byzantine Stone Gate now has 2,750 hit points in every age, as every other civilization's does; in the Castle Age it had 3,575. A Palisade Gate has 250. Every other Byzantine building, walls included, keeps the bonus. A gate already standing in a game saved before this version keeps the hit points it was saved with.

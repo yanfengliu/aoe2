@@ -1,8 +1,10 @@
 // AI planner driver. Runs once per decision interval for each AI owner:
 // macro plan, production/research intentions, monk tasks, and attack pushes.
 
-import { type Position } from 'civ-engine';
+import { type Position, type VisibilityMap } from 'civ-engine';
 import type { BuildingComponent, UnitComponent } from '../../types';
+import { footprintVisionSources } from '../../buildingVisionSources';
+import { buildingFootprint, type GameWorld } from '../pureHelpers';
 import {
   AI_BASE_VISION_RADIUS,
   decisionIntervalTicks,
@@ -126,27 +128,11 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         // / pendingResearchKeys / pendingBuildsByOwner gates prevent duplicate spam.
         const stockpile = accessor.get(playerResourcesCodec).get(owner);
 
-        if (ownerTownCenterPosition) {
-          for (const enemyId of activeWorld.queryInRadius(
-            ownerTownCenterPosition.x,
-            ownerTownCenterPosition.y,
-            AI_BASE_VISION_RADIUS,
-            'position',
-            'unit',
-          )) {
-            const enemyUnit = activeWorld.getComponent<UnitComponent>(enemyId, 'unit');
-            const enemyPos = activeWorld.getComponent<Position>(enemyId, 'position');
-            if (
-              !enemyUnit
-              || !enemyPos
-              || enemyUnit.owner === owner
-              || !visibility.isVisible(owner, enemyPos.x, enemyPos.y)
-            ) {
-              continue;
-            }
+        if (ownerTownCenterId !== null && ownerTownCenterPosition) {
+          const sighting = findBaseSighting(activeWorld, visibility, owner, ownerTownCenterId, ownerTownCenterPosition);
+          if (sighting) {
             state.lastEnemySightingTick = currentTick;
-            state.lastEnemySightingPosition = { x: enemyPos.x, y: enemyPos.y };
-            break;
+            state.lastEnemySightingPosition = sighting;
           }
         }
 
@@ -229,6 +215,44 @@ export function registerAiSystem(deps: AiSystemDeps): void {
   });
 }
 
+
+/**
+ * The enemy unit the AI sights near its base: the lowest-id unit of another
+ * owner that the AI can see within AI_BASE_VISION_RADIUS of the MIDDLE of its
+ * Town Center's footprint, or null. Measured as the Town Center's own sight is
+ * (buildingVisionSources.ts): the union of the circles on the footprint's
+ * central cells is exactly the cells whose centres lie within the radius of the
+ * footprint's centre. Until work 117 (2026-10-11) it was one circle around the
+ * top-left cell, which missed what the Town Center saw past its south-east
+ * corner and took in ground past its north-west corner that it did not.
+ */
+export function findBaseSighting(
+  world: GameWorld,
+  visibility: Pick<VisibilityMap, 'isVisible'>,
+  owner: number,
+  townCenterId: number,
+  townCenterPosition: Position,
+): Position | null {
+  const building = world.getComponent<BuildingComponent>(townCenterId, 'building');
+  if (!building) return null;
+  const scan = footprintVisionSources(
+    townCenterPosition,
+    buildingFootprint(building.buildingType),
+    AI_BASE_VISION_RADIUS,
+    world.grid,
+  );
+  const candidates = new Set<number>();
+  for (const cell of scan.cells) {
+    for (const id of world.queryInRadius(cell.x, cell.y, scan.radius, 'position', 'unit')) candidates.add(id);
+  }
+  for (const id of [...candidates].sort((a, b) => a - b)) {
+    const unit = world.getComponent<UnitComponent>(id, 'unit');
+    const position = world.getComponent<Position>(id, 'position');
+    if (!unit || !position || unit.owner === owner || !visibility.isVisible(owner, position.x, position.y)) continue;
+    return { x: position.x, y: position.y };
+  }
+  return null;
+}
 
 /**
  * The enemy an AI attacks: the one whose Town Center is NEAREST its own, or —

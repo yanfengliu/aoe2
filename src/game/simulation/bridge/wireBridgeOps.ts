@@ -184,6 +184,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getVisibleResearchOptions,
     researchUnavailableReason, researchUnavailableSummary,
     findOpenPlacementAnchors, isCellPassableForUnit, setAiSitePlacementStats,
+    // A save or a replay snapshot already holds the Vietnamese reveal.
+    revealEnemyTownCenters: !savedGame,
   });
   const {
     agentOptionsOps,

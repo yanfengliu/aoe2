@@ -1,8 +1,7 @@
-// Post-seed factory wireup. Runs after the scenario has been seeded /
-// hydrated; creates the input/output ops (visibility queries, selection
-// input, entity destroy, training/market, selection state, target finding,
-// technology, AI decision, monk task, unit command). Keeps wireBridgeOps
-// thin by isolating the second-half wiring.
+// Post-seed factory wireup, run after the scenario is seeded or hydrated: the
+// visibility queries, selection input, entity destroy, training/market,
+// selection state, target finding, technology, AI decision, monk task and unit
+// command ops. Keeps wireBridgeOps thin by isolating the second-half wiring.
 
 import type { EntityRef, Position, VisibilityMap } from 'civ-engine';
 
@@ -123,6 +122,8 @@ export interface WirePostSeedDeps {
     typeof createCommandAvailability
   >[0]['researchUnavailableSummary'];
   findOpenPlacementAnchors: PlacementReachabilityOps['findOpenPlacementAnchors'];
+  /** A fresh match only: a save or a replay snapshot already holds the reveal. */
+  revealEnemyTownCenters: boolean;
 }
 
 export interface WirePostSeedResult {
@@ -480,9 +481,8 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     }),
   };
 
-  // Vietnamese "Reveals enemy positions at game start": stamped once, here,
-  // where the seeded world and the visibility map are both in hand.
-  applyVietnameseReveal(world, accessor, visibility);
+  // The Vietnamese reveal: at the start of a fresh match (vietnameseReveal.ts).
+  if (deps.revealEnemyTownCenters) applyVietnameseReveal(world, accessor, visibility);
 
   return {
     agentOptionsOps,

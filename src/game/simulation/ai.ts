@@ -396,9 +396,10 @@ export {
 } from './aiResourceReserve';
 
 // Vision radius the AI considers as "near base" for scouting-response
-// logic. If an enemy unit is visible within this radius of the AI's
-// Town Center the AI is in sighting range and can commit to a Watch
-// Tower build toward the threat.
+// logic. If an enemy unit is visible within this radius of the middle of
+// the AI's Town Center (findBaseSighting, aiSystem.ts) the AI is in
+// sighting range and can commit to a Watch Tower build toward the threat.
+// With Town Watch, DE's Town Center sees exactly this far from its middle.
 export const AI_BASE_VISION_RADIUS = 12;
 
 // Minimum separation (in Manhattan distance) between the freshly-placed
