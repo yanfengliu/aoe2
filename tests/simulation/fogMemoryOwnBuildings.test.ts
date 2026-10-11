@@ -236,8 +236,9 @@ describe('the player\'s own buildings are not remembered under fog', () => {
     expect(bridge.world.getEntityGeneration(houseId)).not.toBe(ghostGeneration);
     expect(memoryOf(bridge).get(houseId)?.generation, 'the destroyed House is still remembered').toBe(ghostGeneration);
 
-    // Once the player's House is gone too, the enemy House is still drawn
-    // where the player last saw it.
+    // And once the player's House on that id is gone too, the forgetting of
+    // entries recorded as the player's spares this one, which records the
+    // enemy: it is still drawn where the player last saw the enemy House.
     bridge.world.runMaintenance(() => bridge.world.destroyEntity(houseId));
     step(bridge, 2);
     expect(drawnWithIds(bridge, new Set([houseId])).map((entity) => ({ isMemory: entity.isMemory, owner: entity.owner, x: entity.x })),
