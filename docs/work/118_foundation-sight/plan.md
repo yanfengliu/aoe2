@@ -1,6 +1,6 @@
 # Foundations give the line of sight Definitive Edition gives
 
-Status: planned
+Status: active
 Owner: Claude session from the task card 'Settle whether DE foundations give line of sight' (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
 Updated: 2026-10-11
@@ -35,6 +35,8 @@ Cite the answer, then take one of two paths:
 
 The batch protocol is in `docs/policies/local-rules.md`.
 
+Research result (2026-10-11, [design.md](design.md)): in current DE a foundation nobody has started building gives its owner no sight, not even of its own footprint. That matches this game, so §12.2 now cites it. No reference says whether DE gives sight to a building whose construction has started, so §12.2 keeps that case recorded as unverified. The design lists three ways to settle it. The Aoe2Sheet line predates DE.
+
 ## Acceptance criteria
 
 - The answer and its sources are recorded here, or in a `design.md` beside this plan.
@@ -43,7 +45,9 @@ The batch protocol is in `docs/policies/local-rules.md`.
 
 ## Implementation steps
 
-- [ ] Research and cite, then make the docs-only or code change, then land. The research waits for nothing. A code change that would touch `fogMemorySystem.ts` waits for work 116.
+- [x] Research and cite: [design.md](design.md).
+- [x] Docs-only change on branch `foundation-sight`: §12.2 cites DE for the unstarted case and keeps the started case unverified. No code changes, so `fogMemorySystem.ts` (work 116) is untouched.
+- [ ] Coordinator acceptance, and an owner decision on the started case if the coordinator takes it to the owner. Then land as a docs-only push.
 
 ## Outcome
 
