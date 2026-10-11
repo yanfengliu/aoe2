@@ -87,6 +87,8 @@ Your usage limit was reached as I finished, but the review covers all six areas 
 
 After the repairs, the three new test files pass 24 of 24, and mutation P is red as described under F2. The devlog entry for work 117 records the architecture suite, `tsc --noEmit` and eslint runs made before the repair commit. The product code reviewed at `d965bcfc` is unchanged by the repairs, which touch tests and documents only.
 
+**Rebase addendum, added after the round closed (2026-10-11).** Under the gate lock the two reviewed commits were rebased onto main `648b50cd` (v0.3.245 and work 119's docs-only close-out). The implementation is now `96ff5986` and this record's commit `1d54e805`, with the 0.3.246 version commit on top. `git range-diff f906a255..06c9c3ad 648b50cd..1d54e805` shows the code and test patches unchanged from the reviewed `d965bcfc` and `06c9c3ad`, and a per-file comparison of the changed lines in the five code files and the two load-path test files agrees. What differs is the first commit's message and the documents: the changelog and devlog context, and the register rollover. Works 115 and 119 had already moved the 2026-09-24 and 2026-09-25 entries, so this work's rollover now moves the 2026-09-26 blast entry instead.
+
 ## Round outcome
 
 Neither reviewer found a blocker or a major issue. Both confirmed by reading that the reveal's explored cells and fog-memory entries persist through schema-1 and schema-2 saves, loads and replay snapshots, and that `!savedGame` is the right fresh-match signal. F0 to F3 and F5 are repaired. F4 and F6 are follow-ups outside this work's files and go to the coordinator. The repairs were not re-reviewed: they change no product code, and they only strengthen test assertions and correct documents.

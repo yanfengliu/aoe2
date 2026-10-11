@@ -41,7 +41,7 @@ Reproduce each defect first, with a unit test or a debug snapshot. Then measure 
 
 - [x] Reproduce, fix and gate, on branch `vietnamese-reveal-centre`. The reveal needed no save-format change: its explored cells and fog-memory entries were already saved and recorded. The coordinator assigned this work the `wirePostSeedOps({...})` call in `wireBridgeOps.ts` for the fresh-match flag.
 - [x] Independent review, recorded as `reviews/0_implementation.md`: Codex and Claude, no blocker or major finding; F0 to F3 and F5 repaired, F4 and F6 handed to the coordinator.
-- [ ] Land under the gate lock: rebase, version, `npm run verify`, push.
+- [ ] Land under the gate lock: rebased onto `648b50cd` (v0.3.245 and work 119's docs-only close-out) as implementation `96ff5986` and review record `1d54e805`, the code unchanged from the reviewed `d965bcfc` by `git range-diff`; version 0.3.246; then `npm run verify` and the push.
 
 ## Outcome
 

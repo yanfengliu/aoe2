@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## Unreleased — work 117
+## 0.3.246
 
 - Playing the Vietnamese, each enemy Town Center revealed at the start of a match now shows the same ground on every side: everything within 5 tiles of the middle of the building, where it used to reach farther west and north than east and south. The reveal happens once, at the start. Loading a save no longer reveals Town Centers the enemy built later, and a replay starts from exactly the explored ground its recording holds. Saves and recordings made before this keep the ground the old reveal showed, and those from before 0.3.88, when the reveal arrived, still have none.
 - The AI notices an enemy it can see near its Town Center at the same distance on every side: within 12 tiles of the middle of the building, as far as the Town Center sees with Town Watch. It used to miss some enemies past the south-east corner and notice some farther away past the north-west corner. A replay recorded before this version runs the AI again with the new rule, so it can play out differently from what was recorded.
