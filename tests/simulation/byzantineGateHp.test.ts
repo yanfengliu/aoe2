@@ -1,11 +1,11 @@
 // Byzantine gates take no age-scaled hit-point bonus (work 119).
 //
 // civilizations.csv gives Byzantine buildings "(except gates)" +10/20/30/40%
-// hit points in the Dark/Feudal/Castle/Imperial Age. Until vNEXT the factor
-// never read the building type, on the belief that gates were not a building
-// type here; `stone-gate` and `palisade-gate` have been since v0.3.31, so a
-// Byzantine Stone Gate stood at 3,575 hit points in the Castle Age, where a
-// Britons one stands at 2,750 (2,750 x 1.3).
+// hit points in the Dark/Feudal/Castle/Imperial Age. Before work 119 the
+// factor never read the building type, on the belief that gates were not a
+// building type here; `stone-gate` and `palisade-gate` have been since
+// v0.3.31, so a Byzantine Stone Gate stood at 3,575 hit points in the Castle
+// Age, where a Britons one stands at 2,750 (2,750 x 1.3).
 //
 // Two paths read the factor, and both are walked here through the real game,
 // in every age:
@@ -19,9 +19,10 @@
 // have no building hit-point bonus of any kind; every other Byzantine
 // building must keep the ladder over its Britons twin.
 //
-// Bounds: a green run does not prove that a gate loaded from a save made
-// before the fix is corrected. Loading copies stored hit points as they are
-// (hydrateFromSavedGame.ts), and nothing here loads such a save. It proves
+// Bounds: a gate already in a save made before the fix keeps its raised hit
+// points. Loading copies stored hit points as they are (hydrateFromSavedGame.ts;
+// measured 2026-10-11, a gate stored at 3,575 loads at 3,575), the sweep now
+// leaves gates alone, and nothing here loads such a save. This file proves
 // nothing about technologies that raise building hit points (Masonry,
 // Architecture, Fortified Wall): none is researched here. And the placement
 // case reaches its age by writing it into a save blob, not by an advance; the

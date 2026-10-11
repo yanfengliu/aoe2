@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 119
+
+- **Byzantine gates no longer get the Byzantine building hit-point bonus.** The bonus gives Byzantine buildings, except gates, +10/20/30/40% hit points in the Dark, Feudal, Castle and Imperial Age, but gates were getting it too. A Byzantine Stone Gate now has 2,750 hit points in every age, as every other civilization's does; in the Castle Age it had 3,575. A Palisade Gate has 250. Every other Byzantine building, walls included, keeps the bonus. A gate already standing in a game saved before this version keeps the hit points it was saved with.
+
 ## 0.3.244
 
 - **A unit that sat out its upgrade inside a building or aboard a Transport Ship now comes out with the upgraded line of sight.** An Archer sheltering in a Town Center while you researched the Crossbowman upgrade used to come out a Crossbowman that saw only as far as an Archer (6 tiles instead of 7) for the rest of the match. The same happened with every upgrade that raises sight, such as Scout Cavalry to Light Cavalry (4 to 6) and Light Cavalry to Hussar. A unit inside now takes the new sight with the rest of the upgrade. In a game saved before this change, a unit that was inside during an upgrade keeps the old sight.

@@ -36,9 +36,14 @@ Make the building factor return 1 for both gate types, at the one place every cr
 - The comments listed above say what the code does.
 - The change carries a defect-register entry, the spec text (the open-list line names this clause and is updated when it lands), a changelog line and a version bump. `npm run verify` exits 0 under the gate lock, and the change is merged to main and pushed.
 
+## Decision: saves
+
+A gate already standing in a game saved before this change keeps the raised hit points it was saved with. Measured on 2026-10-11 with the bridge's own save and load: a gate stored at 3,575 loads at 3,575 and stays there, because `hydrateFromSavedGame.ts` restores building hit points as stored and the age-up sweep now leaves gates alone. The standing tiebreak points the other way, since a Definitive Edition game never holds such a gate. Matching it means recomputing gate hit points on load, which is a change to `hydrateFromSavedGame.ts`, work 114's file in this batch. So the bound stands and is stated in the register entry, the changelog and the spec. It is the reversible default: loading is unchanged, and a save holds the civilization, age, technologies and building type that a later load-time correction would need.
+
 ## Implementation steps
 
-- [ ] Reproduce, fix, gate and land. Nothing here waits for the other workers. The spec line that starts "Still open, listed rather than dropped" belongs to the teuton-spec-list worker until it lands; after that, this work removes the gate clause from it.
+- [x] Reproduce, fix and gate, on branch `byzantine-gate-hp` (phase 1). The teuton-spec-list worker landed first (`fd9d2c8d`), so this work removed the gate clause from the spec's open list and from the §11.11 breadth paragraph, as the coordinator's notes asked.
+- [ ] Land: rebase under the gate lock, take the version, run `npm run verify`, push (phase 2).
 
 ## Outcome
 
