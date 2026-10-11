@@ -1,6 +1,6 @@
 # A garrisoned unit keeps the sight upgrades researched while it is inside
 
-Status: active
+Status: complete
 Owner: Claude session from the task card 'Keep sight upgrades for garrisoned units' (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
 Updated: 2026-10-11
@@ -41,8 +41,14 @@ Correction to the card: Tracking was retired with DE in v0.3.140 (spec §12.2) a
 - [x] Reproduce: `tests/simulation/garrisonedSightUpgrades.test.ts`, the player's controls on `castle-upgrades-fixture`, 3 of 3 red before the fix (6 against 7).
 - [x] Find the class: `tests/simulation/garrisonedSightCensus.test.ts`, 158 twin pairs apart before the fix, all on the 39 land rows of the upgrade table.
 - [x] Fix, gate and prove the gate by mutation; affected tests, typecheck and lint green in the worktree (phase 1, branch `garrison-sight-upgrades`).
-- [ ] Land: gate lock, rebase, version, `npm run verify`, push (phase 2, after the coordinator accepts).
+- [x] Land: gate lock, rebase onto `8d7265ba`, version 0.3.244, `npm run verify`, push (phase 2, after the coordinator accepted).
 
 ## Outcome
 
-Pending.
+Shipped in v0.3.244 as main `fdb4f1c0` on 2026-10-11. A unit inside a building or aboard a Transport Ship during its line upgrade now comes out with the sight of its twin that stayed outside, live and across saves made by this version.
+
+Checks: `npm run verify` exit 0 under the gate lock in 1,217 s on the pushed tree (unit 569 files and 4,383 tests passed, 1 file and 3 tests skipped; browser 236 passed, 2 skipped; content validation, typecheck, lint and build clean). Both new gates were red before the fix and again with the defect put back; the other mutations are in the 2026-10-11 defect-register entry.
+
+Review: the coordinator read the diff and accepted it. No independent model review ran, because the change has no save-format change and no migration.
+
+Limits: a game saved before v0.3.244 keeps the stale sight it recorded for a unit that was inside during an upgrade. The gates compare the sight component the visibility system reads every tick, not the rendered fog, and no match was played in the browser. The Tracking half of the first criterion is met by the census over all 143 technologies, because Tracking no longer exists.
