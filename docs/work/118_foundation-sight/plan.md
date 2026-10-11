@@ -57,6 +57,8 @@ Answer and sources: in current DE a foundation nobody has started building gives
 
 Decision: the coordinator chose option 1 of the design. §12.2 records what was found, and the started case stays recorded as unverified: no reference says whether DE gives sight to a building whose construction has started. A three-minute test in DE would settle it: place a House far away, start it with one villager, pull the villager away, and see whether the ground around and under it stays fogged. The coordinator is taking that test to the owner. If DE gives such a building sight, the change needs a vision source at construction start, save and replay compatibility for the building visibility slot, and work 116's fog-memory skip extended to the owner's foundations.
 
+Owner decision, 2026-10-11: a building whose construction has started gives no sight either until it is complete. The owner settled the started case rather than having it tested in DE, and spec §12.2 now records the decision in place of "not verified".
+
 Checks: `npx vitest run tests/architecture` passed 15 files and 150 tests (exit 0) on the rebased tree, including `workDocsIntegration.test.ts` and `checkoutLineEndings.test.ts`. No runtime gate ran, because no executable file changed. No gate was added: the rule had no test before this work and still has none.
 
 Review: the coordinator reviewed the phase-1 diff and accepted it. No independent model review ran, because the change is docs-only.

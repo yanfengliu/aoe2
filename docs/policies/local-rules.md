@@ -146,6 +146,8 @@ When a change is measured for cost, the number that counts is the change's OWN s
 
 ## Permanent work records and the retained-owner transition (2026-09-29)
 
+**Owner direction, 2026-10-11:** Codex is not working on aoe2. The Claude coordinator owns all aoe2 work, including Codex's open work items 106–113, until the owner says otherwise. A Codex plan it takes up gets its owner and status updated in the commit that takes it up.
+
 **Owner direction, 2026-09-29:** useful progress finishes on main. Once integration and recoverability are verified, retire the completed task's branches and temporary checkouts in that session. Remove the temporary parent folder only after every checkout is accounted for and it is empty; preserve unfinished work before retiring anything. This applies to the aoe2-worktrees cleanup and future completed task resources.
 
 Docs-only publication under `docs/work` runs this repository's `checkoutLineEndings.test.ts` and `workDocsIntegration.test.ts` content checks against the staged files before committing. The common fleet checker alone does not establish the game-specific schema or indexed line endings (CI37090436154, 2026-10-10).
