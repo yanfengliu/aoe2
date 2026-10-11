@@ -71,8 +71,8 @@ Each fix is sourced, reproduced by a test first, and gated by a mutation. The ba
 
 ## Implementation steps
 
-- [ ] M1: sourced code defects, tests, comments, spec items; land after work 119 if the spec lines are still 119's.
-  - 2026-10-11: implemented, tested and committed on branch `civ-bonus-corrections`; the coordinator accepted the phase-1 handoff. The spec edits went in at the landing rebase, on top of work 119's text, with §11.11's v0.3.88 Vietnamese reveal sentence pointing at work 117's §12.2 paragraph.
+- [x] M1: sourced code defects, tests, comments, spec items; land after work 119 if the spec lines are still 119's.
+  - 2026-10-11: implemented, tested and committed on branch `civ-bonus-corrections`; the coordinator accepted the phase-1 handoff, and M1 shipped in v0.3.248 (see Outcome). The spec edits went in at the landing rebase, on top of work 119's text, with §11.11's v0.3.88 Vietnamese reveal sentence pointing at work 117's §12.2 paragraph.
   - Sourcing changed three items. DE's Goth line is "Hunters carry +15; hunted animals last +20% longer": DE has no "+5 attack vs. wild boar", so that was not implemented and the 20% was. The Aztec time is divided by 1.15, a judgement from DE's wording the coordinator accepted: DE's data holds no effect values, and its Conscription text calls the Conquerors' x0.75 "+33% faster". And a Mayan node outlasted its food by about twenty minutes of game time, found while giving the Goths the same rule, and fixed with it.
   - Unverified against DE and kept, by the coordinator's decision: Monks count as "Military Units" (Aztec time, Inca food), and the Mayan duration bonus skips farms, as since v0.3.151.
   - Found and not fixed; the spec's open list now names the first four (coordinator's decision): Teuton "+1/+2 melee armor" also adds pierce armor; DE's Inca llama is a team bonus and the code gives it to the owner only, and DE has no Inca "Farms built 50% faster", which the code still gives the side; DE's Magyar "Villagers defeat wolves with one strike" has no implementation; the factory and the age-up sweep give a Mongol Scout with Bloodlines different hit points (74 against 78). A hunt order leaving villagers idle after the kill is not a civilization bonus; the coordinator queued it for its own card.
@@ -81,4 +81,8 @@ Each fix is sourced, reproduced by a test first, and gated by a mutation. The ba
 
 ## Outcome
 
-Pending.
+**M1 shipped in v0.3.248 as `843eea5f` on 2026-10-11.** It landed on top of main at `5329e4dc` under the gate lock. Works 119, 117 and 114 each landed first and each moved the register entry this branch had named at the time, so the landing moved the next one the gate named, the 2026-09-29 worktree-copies entry, verbatim. `npm run verify` exited 0 in 20 min 33 s (10:22:51 to 10:43:24 local). Its log shows the whole chain: 580 unit-test files and 4,457 tests passed (3 skipped), the typecheck, 236 browser specs passed and 2 skipped in 14.0 minutes, lint, and the build.
+
+That was the second run. The first exit file also held 0, but its log stops at browser spec 139 of 238, with no Playwright summary and no lint or build, so it was not taken as a pass. Re-running the wrapper's shape on a small three-step npm chain shows how a cut chain can read 0. `taskkill /F` exits with code 1 and was reported as a failure wherever it struck (the leaf, the chain's `cmd`, the outer npm). A console Ctrl+C killed the wrapper too, so no exit file was written. But WMI's `Win32_Process.Terminate`, which exits with code 0 (`Invoke-CimMethod -MethodName Terminate`, `wmic ... call terminate`), on the outer npm or on the chain's `cmd` wrote 0 while the last step never ran. What terminated run 1 at 10:19:42 is not known; no script in this repo or the fleet docs uses WMI to terminate. The coordinator took the gate-reading question for its own card.
+
+M2 has not started.
