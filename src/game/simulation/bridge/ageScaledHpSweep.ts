@@ -12,13 +12,22 @@ import {
   ageScaledUnitAttack,
   ageScaledUnitHpFactor,
 } from '../ageScaledHp';
-import { civAttackRangeBonus, civMeleeArmorBonus, civPierceArmorBonus, civReloadMultiplier } from '../civBonusEffects';
+import { applyArmorTech } from '../armorTechBonuses';
+import {
+  INFANTRY_ARMOR_TECHNOLOGIES,
+  civAttackRangeBonus,
+  civMeleeArmorBonus,
+  civPierceArmorBonus,
+  civReloadMultiplier,
+  civVillagersTakeInfantryArmor,
+} from '../civBonusEffects';
 import { buildingMaxHpForAge } from '../prototypeBuildingRules';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import {
   buildingHealthStatesCodec,
   combatStatesCodec,
   playerCivilizationsCodec,
+  researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
 import type { GameWorld } from './pureHelpers';
 
@@ -78,6 +87,22 @@ export function applyAgeScaledHpSweep(
         if (pierceFrom !== pierceTo) {
           combat.pierceArmorBonus += pierceTo - pierceFrom;
           unitsTouched = true;
+        }
+        // Incas, DE: "Villagers affected by Infantry Blacksmith upgrades
+        // starting in Castle Age". A villager standing when the clause turns
+        // on takes the infantry armor researched before it, as one created
+        // now does; research after it reaches villagers in technologyOps.
+        if (
+          unit.unitType === 'villager'
+          && !civVillagersTakeInfantryArmor(civilization, fromAge)
+          && civVillagersTakeInfantryArmor(civilization, toAge)
+        ) {
+          const researched = accessor.get(researchedTechnologiesCodec).get(owner);
+          for (const technology of INFANTRY_ARMOR_TECHNOLOGIES) {
+            if (!researched?.has(technology)) continue;
+            applyArmorTech(combat, technology);
+            unitsTouched = true;
+          }
         }
       }
     }

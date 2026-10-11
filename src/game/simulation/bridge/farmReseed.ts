@@ -25,7 +25,7 @@ import { farmFoodCapacity, EMPTY_TECH_SET } from '../economyTechEffects';
 // converter you re-pay to maintain). Read from the same source the build
 // charges so the two never drift.
 // The reseed bill is the farm's construction cost, at the OWNER's civ price
-// (a Teuton farm reseeds at the same third-off it was built for).
+// (a Teuton farm reseeds at the same -40% it was built for).
 
 // Attempt to auto-reseed a depleted resource if it is a farm and its owner can
 // afford the wood. Returns true when the farm was reseeded (caller must NOT

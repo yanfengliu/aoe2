@@ -78,6 +78,13 @@ export interface CivBonusEntry {
     readonly applies: (buildingType: string) => boolean;
     readonly multiplier: number;
   }>;
+  /** "Resources last N% longer": a gatherer of this owner takes the same
+   *  load from a node of this kind while the node loses less (Mayans, Goth
+   *  hunted animals). */
+  readonly resourceDuration?: ReadonlyArray<{
+    readonly applies: (kind: ResourceKind) => boolean;
+    readonly multiplier: number;
+  }>;
   /** True: population is never limited by housing (Huns). */
   readonly houselessPopulation?: boolean;
 }
@@ -106,11 +113,28 @@ const STABLE_UNITS = new Set<UnitType>([
 const SPEAR_SKIRM_CAMEL = new Set<UnitType>([
   'spearman', 'pikeman', 'halberdier', 'skirmisher', 'elite-skirmisher', 'camel', 'heavy-camel',
 ]);
+// DE's civilian units. Its "Military Units" (the Aztec training speed, the
+// Inca food cost) are every other unit a building trains, Monks included.
+const CIVILIAN_UNITS = new Set<UnitType>([
+  'villager', 'fishing-ship', 'transport-ship', 'trade-cog', 'trade-cart',
+]);
+const isMilitaryUnit = (unit: UnitType): boolean => !CIVILIAN_UNITS.has(unit);
+// The animals DE's hunters gather: every huntable in this build. The Mongol
+// rate and the Goth carry and duration all read this one set.
+const HUNTED_KINDS: ReadonlySet<ResourceKind> = new Set<ResourceKind>(['boar', 'deer']);
+function onHuntedKinds(value: number): Partial<Record<ResourceKind, number>> {
+  const byKind: Partial<Record<ResourceKind, number>> = {};
+  for (const kind of HUNTED_KINDS) byKind[kind] = value;
+  return byKind;
+}
 
 export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Aztecs',
-    trainTime: [{ applies: (unit) => unit !== 'villager', multiplier: 0.85 }],
+    // DE: "Military Units train +15% faster" (sourced vNEXT), a work rate:
+    // the time divided by 1.15. DE writes Conscription, the Conquerors' x0.75
+    // time, as "+33% faster". Civilian units train at the base time.
+    trainTime: [{ applies: isMilitaryUnit, multiplier: 1 / 1.15 }],
     carryBonus: [{ bonus: 3 }], // DE: "Villagers carry +3" (sourced v0.3.144).
     startingResourcesDelta: { gold: 50 }, // DE: "Start with +50 gold".
   },
@@ -177,7 +201,11 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Goths',
-    carryBonus: [{ kind: 'boar', bonus: 15 }], // "Hunters carry +15 meat".
+    // DE (sourced vNEXT): "Hunters carry +15; hunted animals last +20%
+    // longer", on every hunted animal. DE no longer has the old "Villagers
+    // +5 attack vs. wild boar", so a blow on an animal reads no civilization.
+    carryBonus: [...HUNTED_KINDS].map((kind) => ({ kind, bonus: 15 })),
+    resourceDuration: [{ applies: (kind) => HUNTED_KINDS.has(kind), multiplier: 1.2 }],
     imperialPopulationBonus: 10, // "+10 to population limit in Imperial Age".
     // The +1 vs buildings became a +1/2/3 age ladder at the delivery site
     // (civBuildingAttackLadder, sourced v0.3.152).
@@ -198,19 +226,11 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Indians',
-    // civilizations.csv team bonus: "Scout line and Camels have +2 attack vs.
-    // buildings". The Camel line does not exist in this roster, so the rule
-    // covers the Scout line that does — narrower than AoE2 on purpose rather
-    // than by omission, and it widens for free the day camels arrive.
+    // The Scout line and Camel Units +2 attack vs. buildings is DE's TEAM
+    // bonus (Hindustanis), so `teamBuildingAttackBonus` in
+    // teamCombatBonuses.ts applies it to the whole side, the owner included.
+    // A second copy here counted it twice for the owner, +4, until vNEXT.
     //
-    // It is also a TEAM bonus in AoE2 and applies here only to the owner:
-    // `civBuildingAttackBonus` reads the attacker's own civilization, so this
-    // is identical in a 1v1 and narrower in a team game. Same shape and same
-    // stated limitation as Kasbah.
-    buildingAttack: [{
-      applies: (unit) => unit === 'scout' || unit === 'light-cavalry' || unit === 'hussar',
-      bonus: 2,
-    }],
     // DE (Hindustanis): villagers -8/13/18/23% by age; the old fisherman
     // bonus is DE-dead.
     cost: [{
@@ -264,6 +284,9 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     // "Start game with 1 extra villager but -50 food".
     startingResourcesDelta: { food: -50 },
     extraStartingUnits: [{ kind: 'villager', count: 1 }],
+    // DE (sourced v0.3.151): "Resources last +15% longer". Farms are
+    // excluded, as since v0.3.151 (their food is a build).
+    resourceDuration: [{ applies: (kind) => kind !== 'farm', multiplier: 1.15 }],
     cost: [{
       applies: (unit) => FOOT_ARCHER_LINE.has(unit),
       multiplierByAge: { 'feudal-age': 0.9, 'castle-age': 0.8, 'imperial-age': 0.7 },
@@ -271,7 +294,9 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Mongols',
-    gatherRate: { boar: 1.4 }, // DE: hunters +40%.
+    // DE: "Hunters work +40% faster", on every hunted animal (sourced vNEXT;
+    // boar alone until then).
+    gatherRate: onHuntedKinds(1.4),
     // The scout-line +20/30% HP rides the Castle/Imperial age ladder
     // (ageScaledHp, v0.3.148).
   },
@@ -296,7 +321,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     populationProvided: { house: 5 },
     buildingCost: [{ applies: () => true, stoneMultiplier: 0.85 }],
     cost: [{
-      applies: (unit) => unit !== 'villager' && unit !== 'trade-cart' && unit !== 'fishing-ship' && unit !== 'trade-cog' && unit !== 'transport-ship',
+      applies: isMilitaryUnit,
       foodMultiplierByAge: { 'dark-age': 0.85, 'feudal-age': 0.8, 'castle-age': 0.75, 'imperial-age': 0.7 },
     }],
   },

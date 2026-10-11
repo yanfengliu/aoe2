@@ -27,27 +27,16 @@ import { civBonusesFor } from './civBonusTable';
 import { isInfantryUnit } from './prototypeUnitRules';
 import { shipwrightWoodCost } from './dockTechEffects';
 
-// Britons shepherds gather sheep 25% faster.
+// The table's values for three lines, named for the tests that pin them.
+// Britons: "Shepherds work +25% faster".
 export const BRITONS_SHEEP_GATHER_MULTIPLIER = 1.25;
-
-// Franks Knight line (Knight → Cavalier → Paladin) has +20% HP.
-// v0.3.148: the Frank mounted +20% rides the Feudal-gated age ladder now.
-
-// Goths infantry deal +1 attack against buildings (from game start).
-// v0.3.152: the Goth anti-building bonus is the per-age ladder below.
-
-// Aztecs military units train 15% faster (×0.85 train time).
-export const AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER = 0.85;
-
-// Goths infantry cost 35% less (×0.65) from the Feudal Age.
-// v0.3.146: the Goth infantry discount is the per-age ladder in the bonus
-// table (-15/20/25/30% incl. Dark) — the old flat 0.65 constant retired.
-
-// Mongols hunters gather boar 50% faster ("Hunters work 50% faster").
-export const MONGOLS_BOAR_GATHER_MULTIPLIER = 1.4; // DE: hunters +40%.
-
-// Mongols Light Cavalry and Hussars have +30% HP.
-// v0.3.148: the Mongol scout-line HP rides the Castle/Imperial ladder now.
+// Aztecs: "Military Units train +15% faster", the time divided by 1.15.
+export const AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER = 1 / 1.15;
+// Mongols: "Hunters work +40% faster", on every hunted animal.
+export const MONGOLS_HUNTER_GATHER_MULTIPLIER = 1.4;
+// The Franks and Mongol HP lines and the Goth infantry cost and anti-building
+// lines no longer have constants: they are age ladders, in ageScaledHp.ts, the
+// table and civBuildingAttackLadder below.
 
 // Every seam below reads the declared table (civBonusTable.ts) — the if-chain
 // era ended at five civilizations, and the table now carries every CSV line
@@ -104,6 +93,21 @@ export function civSpeedMultiplier(
 ): number {
   for (const rule of civBonusesFor(civilization)?.speed ?? []) {
     if (rule.applies(unitType)) return rule.multiplier;
+  }
+  return 1;
+}
+
+// How much longer a node of this kind lasts for this owner's gatherers
+// (Mayans 1.15, Goth hunted animals 1.2; 1 for everyone else). The gather
+// swing takes a full load and removes the load divided by this, and the
+// node's remaining yield is its amount times this, so its last swing empties
+// it.
+export function civResourceDurationMultiplier(
+  civilization: string | undefined,
+  kind: ResourceKind,
+): number {
+  for (const rule of civBonusesFor(civilization)?.resourceDuration ?? []) {
+    if (rule.applies(kind)) return rule.multiplier;
   }
   return 1;
 }
@@ -186,14 +190,16 @@ export function civIgnoresHousing(civilization: string | undefined): boolean {
   return civBonusesFor(civilization)?.houselessPopulation === true;
 }
 
-/**
- * Ethiopians: "+100 gold and +100 food when advancing to the next age" —
- * paid into the stockpile when an age advance completes. Null for everyone
- * else so the age cases skip the mutation entirely.
- */
+/** The Blacksmith's infantry armor line, which the Inca clause below extends
+ *  to villagers. The age-up sweep reads it when the clause turns on. */
+export const INFANTRY_ARMOR_TECHNOLOGIES: readonly ResearchableTechnologyType[] = [
+  'scale-mail-armor', 'chain-mail-armor', 'plate-mail-armor',
+];
+
 /** Incas: "Villagers affected by Blacksmith upgrades" — the infantry ARMOR
  *  line reaches villagers (the melee ATTACK line already reaches every civ's
- *  villagers, matching AoE2, because villagers are melee units). */
+ *  villagers, matching AoE2, because villagers are melee units). It is read
+ *  at research, at creation and at the Castle advance, where it turns on. */
 export function civVillagersTakeInfantryArmor(
   civilization: string | undefined,
   /** DE (sourced v0.3.149): the Inca clause starts in the CASTLE Age. */
@@ -245,6 +251,11 @@ export function civFishingShipRateMultiplier(
   return { 'dark-age': 1.05, 'feudal-age': 1.1, 'castle-age': 1.15, 'imperial-age': 1.2 }[age];
 }
 
+/**
+ * Ethiopians: "+100 gold and +100 food when advancing to the next age" —
+ * paid into the stockpile when an age advance completes. Null for everyone
+ * else so the age cases skip the mutation entirely.
+ */
 export function civAgeAdvanceGrant(
   civilization: string | undefined,
 ): Readonly<Partial<Record<'food' | 'wood' | 'gold' | 'stone', number>>> | null {

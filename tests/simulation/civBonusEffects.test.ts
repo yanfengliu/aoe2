@@ -11,7 +11,7 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import {
   AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER,
   BRITONS_SHEEP_GATHER_MULTIPLIER,
-  MONGOLS_BOAR_GATHER_MULTIPLIER,
+  MONGOLS_HUNTER_GATHER_MULTIPLIER,
   civBuildingAttackBonus,
   civGatherRateMultiplier,
   civTrainTimeMultiplier,
@@ -62,18 +62,19 @@ describe('civGatherRateMultiplier — Britons shepherd bonus', () => {
 
 // v0.1.98: Mongols "Hunters work 50% faster" (civilizations.csv). Mirrors the
 // Britons shepherd bonus on the SAME gather-tick site — a gather-rate multiplier
-// keyed on (civ, kind), here Mongols + boar (the sim's huntable food; sheep is
-// a herdable owned by Britons, fish is fished). The site is kind-agnostic, so
+// keyed on (civ, kind), here Mongols + the hunted animals (boar and deer; sheep
+// is a herdable owned by Britons, fish is fished). The site is kind-agnostic, so
 // the integration path is the one the Britons sheep live-race already validates.
 describe('civGatherRateMultiplier — Mongols hunter bonus', () => {
-  it('gives Mongols +40% ONLY on boar (sourced v0.3.144)', () => {
-    expect(civGatherRateMultiplier('Mongols', 'boar')).toBe(MONGOLS_BOAR_GATHER_MULTIPLIER);
-    expect(MONGOLS_BOAR_GATHER_MULTIPLIER).toBe(1.4);
+  it('gives Mongols +40% on every hunted animal, boar and deer (sourced v0.3.144; deer vNEXT)', () => {
+    expect(civGatherRateMultiplier('Mongols', 'boar')).toBe(MONGOLS_HUNTER_GATHER_MULTIPLIER);
+    expect(civGatherRateMultiplier('Mongols', 'deer')).toBe(MONGOLS_HUNTER_GATHER_MULTIPLIER);
+    expect(MONGOLS_HUNTER_GATHER_MULTIPLIER).toBe(1.4);
   });
 
   it('does not touch Mongols gathering herded sheep, berries, farms, or non-food kinds', () => {
-    // "Hunters" is boar-specific — sheep (herded, Britons' bonus), berries,
-    // farms, wood, and gold are unaffected.
+    // "Hunters" gather hunted animals only — sheep (herded, Britons' bonus),
+    // berries, farms, wood, and gold are unaffected.
     expect(civGatherRateMultiplier('Mongols', 'sheep')).toBe(1);
     expect(civGatherRateMultiplier('Mongols', 'berry-bush')).toBe(1);
     expect(civGatherRateMultiplier('Mongols', 'farm')).toBe(1);
@@ -232,16 +233,18 @@ describe('effectiveTrainingCost — Goths infantry ladder (sourced v0.3.146)', (
 });
 
 describe('civTrainTimeMultiplier — Aztecs military creation speed', () => {
-  it('trains Aztecs military units 15% faster (×0.85)', () => {
+  it('trains Aztecs military units +15% faster (time / 1.15, DE; x0.85 until vNEXT)', () => {
     expect(civTrainTimeMultiplier('Aztecs', 'militia')).toBe(AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER);
-    expect(civTrainTimeMultiplier('Aztecs', 'archer')).toBe(0.85);
-    expect(civTrainTimeMultiplier('Aztecs', 'knight')).toBe(0.85);
-    expect(civTrainTimeMultiplier('Aztecs', 'monk')).toBe(0.85);
-    expect(AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER).toBe(0.85);
+    expect(civTrainTimeMultiplier('Aztecs', 'archer')).toBeCloseTo(1 / 1.15, 12);
+    expect(civTrainTimeMultiplier('Aztecs', 'knight')).toBeCloseTo(1 / 1.15, 12);
+    expect(civTrainTimeMultiplier('Aztecs', 'monk')).toBeCloseTo(1 / 1.15, 12);
+    expect(AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER).toBeCloseTo(1 / 1.15, 12);
   });
 
-  it('does NOT speed up Aztecs villager training (military only)', () => {
-    expect(civTrainTimeMultiplier('Aztecs', 'villager')).toBe(1);
+  it('does NOT speed up Aztecs civilian units (military only)', () => {
+    for (const unit of ['villager', 'fishing-ship', 'transport-ship', 'trade-cog', 'trade-cart'] as const) {
+      expect(civTrainTimeMultiplier('Aztecs', unit), unit).toBe(1);
+    }
   });
 
   it('gives no bonus to any other civilization or an unknown civ', () => {

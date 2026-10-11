@@ -366,8 +366,9 @@ export function buildingArrowCount(
       return Math.min(10, 1 + garrisonedUnitsTotal);
     case 'watch-tower':
       // structures.csv "Max 5 arrows" (v0.3.96): archers and villagers each
-      // add an arrow to the base one; sheltering infantry add none — which is
-      // what makes the Teuton doubled garrison "(more arrows)" real.
+      // add an arrow to the base one; sheltering infantry add none. The
+      // Teuton tower bonus, DE's flat +5 garrison, adds room, not arrows: a
+      // tower of five already reaches the ceiling.
       return Math.min(5, 1 + garrisonedArchers + garrisonedVillagers);
     case 'bombard-tower':
       // One cannon, whoever shelters inside.

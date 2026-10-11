@@ -127,7 +127,8 @@ export interface DeliverBuildingAttackParams extends DeliverAttackShared {
   attackerCivilization: string | undefined;
   /** v0.3.152: the Goth per-age building-attack ladder reads the OWNER's age. */
   attackerAge?: import('../types').AgeType;
-  /** Team-bonus extra vs buildings (Saracen archers, Indian camels). */
+  /** Team-bonus extra vs buildings (Saracen foot archers, the Hindustani
+   *  Scout line and Camel Units), the owner's own side included. */
   teamBuildingBonus?: number;
   target: { id: number; position: Position };
   applyBuildingDamage: (buildingId: number, damage: number) => void;
@@ -232,7 +233,8 @@ export interface DeliverAnimalAttackParams extends DeliverAttackShared {
  * line's stone blasts where it lands (`projectileOps.ts`); a melee blow lands
  * at once, and a demolition charge goes off as it does against anything else.
  * Returns true when the animal died on the spot, which only a blow delivered in
- * person can do.
+ * person can do. No civilization changes the blow: DE dropped the Goths'
+ * "Villagers +5 attack vs. wild boar" (aoe2techtree 3bb43b14, DE update 185872).
  */
 export function deliverUnitAttackOnAnimal(params: DeliverAnimalAttackParams): boolean {
   const { attacker, target } = params;

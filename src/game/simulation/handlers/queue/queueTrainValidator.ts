@@ -88,9 +88,9 @@ export function makeQueueTrainValidator(deps: QueueTrainValidatorDeps): QueueTra
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }
-    // Effective cost (Goths infantry −35% from Feudal, Shipwright −20% ship
-    // wood) MUST match the charge
-    // in trainingMarketOps, so this gate and that charge stay consistent.
+    // Effective cost (every civilization cost rule, such as the Goth infantry
+    // -15/20/25/30% by age, and Shipwright's -20% ship wood) MUST match the
+    // charge in trainingMarketOps, so this gate and that charge stay consistent.
     const civ = deps.accessor.get(playerCivilizationsCodec).get(building.owner);
     const age = deps.accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age';
     const techs = deps.accessor.get(researchedTechnologiesCodec).get(building.owner)

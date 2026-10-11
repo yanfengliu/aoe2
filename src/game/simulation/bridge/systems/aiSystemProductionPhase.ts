@@ -253,8 +253,9 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
       }
       const offered = trainableInSameLine(unitType, offers);
       if (offered === undefined) continue;
-      // Advisory base cost (gates intention only; validator+charge apply
-      // the Goths discount, and the AI is never Goths yet). Priced on what will
+      // Advisory base cost (gates intention only; the validator and the charge
+      // apply the owner's civilization cost rules, such as the Byzantine and
+      // Viking seats' discounts, and no rule raises a price). Priced on what will
       // actually be trained, which is a NO-OP TODAY and deliberately kept: every
       // line costs the same at every tier (all 20 adjacent pairs checked; a
       // Spearman and a Halberdier are both 35 food / 25 wood). The one pair that

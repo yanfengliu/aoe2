@@ -39,7 +39,7 @@ import {
   gatherRateMultiplierForKind,
 } from '../../economyTechEffects';
 import { civCarryBonus, civFishingShipRateMultiplier,
-  civGatherRateMultiplier } from '../../civBonusEffects';
+  civGatherRateMultiplier, civResourceDurationMultiplier } from '../../civBonusEffects';
 import { tryReseedFarm } from '../farmReseed';
 import {
   aiStatesCodec,
@@ -361,7 +361,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                   continue;
                 }
                 // Carry techs (Wheelbarrow / Hand Cart) multiply; civilization
-                // carry bonuses (Aztecs +5, Goth hunters +15) add to the BASE
+                // carry bonuses (Aztecs +3, Goth hunters +15) add to the BASE
                 // first, AoE2's own order.
                 const carryCapacity = effectiveCarryCapacity(
                   ownerTechs,
@@ -370,18 +370,26 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                     // Heavy Plow's "+1 food" carry clause, farms only.
                     + heavyPlowFarmCarryBonus(ownerTechs, targetResource.resourceType),
                 );
+                // "Resources last longer" (Mayans, Goth hunted animals): the
+                // swing yields a full load and the node loses the load divided
+                // by the bonus, so a node yields its amount times the bonus.
+                // The swing that takes the last of that yield empties the node;
+                // capping it at the bare amount instead left a node below one
+                // swing losing a fixed fraction per swing, and a Mayan villager
+                // stood at an empty bush for twenty minutes (until vNEXT).
+                const duration = civResourceDurationMultiplier(
+                  playerCivilizations.get(unit.owner),
+                  targetResource.resourceType,
+                );
+                const yieldLeft = targetResource.amount * duration;
                 const gatherAmount = Math.min(
                   gatherAmountFor(targetResource.resourceType),
-                  targetResource.amount,
+                  yieldLeft,
                   carryCapacity - gatherer.carriedAmount,
                 );
-                // Mayans (sourced v0.3.151): "Resources last +15% longer" —
-                // each swing removes less from the node while yielding the
-                // same carry. Farms are excluded (their food is a build).
-                targetResource.amount -= (
-                  playerCivilizations.get(unit.owner) === 'Mayans'
-                  && targetResource.resourceType !== 'farm'
-                ) ? gatherAmount / 1.15 : gatherAmount;
+                targetResource.amount = gatherAmount >= yieldLeft
+                  ? 0
+                  : targetResource.amount - gatherAmount / duration;
                 gatherer.carriedResource = carriedResource;
                 gatherer.carriedAmount += gatherAmount;
 

@@ -63,7 +63,9 @@ export function bonusAttackRange(
   return bonus;
 }
 
-/** Extra attack against BUILDINGS (Saracen foot archers, Indian camels). */
+/** Extra attack against BUILDINGS from TEAM lines (Saracen foot archers, the
+ *  Hindustani Scout line and Camel Units). A side includes its own owner, so
+ *  these lines have no copy in CIV_BONUSES: a copy there counts twice. */
 export function teamBuildingAttackBonus(
   teams: Teams,
   civilizations: Civs,

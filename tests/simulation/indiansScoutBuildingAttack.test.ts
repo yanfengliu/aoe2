@@ -1,33 +1,51 @@
-// civilizations.csv, Indians team bonus: "Scout line and Camels have +2 attack
-// vs. buildings."
+// Hindustanis (this roster's Indians) team bonus, DE: "Scout Cavalry-line and
+// Camel Units +2 attack vs. buildings" (the help text in aoe2techtree
+// 3bb43b14, DE update 185872).
 //
-// Sourced from the repo's OWN stats table rather than from memory or an
-// unconsulted wiki — which is the distinction the 2026-09-01 retraction was
-// about. The Camel line does not exist in this roster, so the rule covers the
-// Scout line that does, and widens for free the day camels arrive.
+// A TEAM line: `teamBuildingAttackBonus` gives it to the whole side, the Indian
+// owner included. Until vNEXT the Indians entry in CIV_BONUSES added the same
+// +2 again through `civBuildingAttackBonus`, so an Indian owner's Scout hit a
+// building for +4 (defect register, 2026-10-11). The census over every
+// civilization, unit and age is civBonusDeParity.test.ts.
 
 import { describe, expect, it } from 'vitest';
 
 import { civBuildingAttackBonus } from '../../src/game/simulation/civBonusEffects';
+import { teamBuildingAttackBonus } from '../../src/game/simulation/teamCombatBonuses';
+import type { UnitType } from '../../src/game/simulation/types';
 
-describe('the Indians scout line hits buildings harder', () => {
-  it('adds 2 for every unit in the scout line', () => {
-    for (const unit of ['scout', 'light-cavalry', 'hussar'] as const) {
-      expect(civBuildingAttackBonus('Indians', unit), unit).toBe(2);
+const SOLO = new Map<number, number>();
+const ALLIED = new Map([[1, 1], [2, 1]]);
+
+/** What the attack delivery adds for owner 1 from these two seams. */
+function total(civilizations: Map<number, string>, teams: Map<number, number>, unit: UnitType): number {
+  return civBuildingAttackBonus(civilizations.get(1), unit) + teamBuildingAttackBonus(teams, civilizations, 1, unit);
+}
+
+describe('the Indian Scout line hits buildings harder, once', () => {
+  it('adds 2 for every unit in the Scout line and the camels, for the Indian owner', () => {
+    for (const unit of ['scout', 'light-cavalry', 'hussar', 'camel', 'heavy-camel'] as const) {
+      expect(total(new Map([[1, 'Indians']]), SOLO, unit), unit).toBe(2);
     }
   });
 
-  it('adds nothing for units outside that line', () => {
-    // The bonus is the scout LINE, not cavalry at large: a Knight gaining it
-    // would be a much larger civilization bonus than the table describes.
+  it('adds the same 2 for an ally of the Indians', () => {
+    for (const unit of ['scout', 'light-cavalry', 'hussar'] as const) {
+      expect(total(new Map([[1, 'Britons'], [2, 'Indians']]), ALLIED, unit), unit).toBe(2);
+    }
+  });
+
+  it('adds nothing for units outside those lines', () => {
+    // The bonus is the Scout LINE, not cavalry at large: a Knight gaining it
+    // would be a much larger bonus than DE describes.
     for (const unit of ['knight', 'cavalier', 'paladin', 'villager', 'archer'] as const) {
-      expect(civBuildingAttackBonus('Indians', unit), unit).toBe(0);
+      expect(total(new Map([[1, 'Indians']]), SOLO, unit), unit).toBe(0);
     }
   });
 
   it('adds nothing for other civilizations', () => {
-    for (const civ of ['Britons', 'Franks', 'Portuguese', undefined]) {
-      expect(civBuildingAttackBonus(civ, 'scout'), String(civ)).toBe(0);
+    for (const civilization of ['Britons', 'Franks', 'Portuguese']) {
+      expect(total(new Map([[1, civilization]]), SOLO, 'scout'), civilization).toBe(0);
     }
   });
 });
