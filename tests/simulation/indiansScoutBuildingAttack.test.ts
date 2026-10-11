@@ -3,7 +3,7 @@
 // 3bb43b14, DE update 185872).
 //
 // A TEAM line: `teamBuildingAttackBonus` gives it to the whole side, the Indian
-// owner included. Until vNEXT the Indians entry in CIV_BONUSES added the same
+// owner included. Until v0.3.248 the Indians entry in CIV_BONUSES added the same
 // +2 again through `civBuildingAttackBonus`, so an Indian owner's Scout hit a
 // building for +4 (defect register, 2026-10-11). The census over every
 // civilization, unit and age is civBonusDeParity.test.ts.

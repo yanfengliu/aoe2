@@ -161,7 +161,7 @@ describe('cost bonuses', () => {
 
 describe('train-time bonuses', () => {
   it('keeps the Aztec military speed-up and nobody else', () => {
-    // DE: "Military Units train +15% faster", time / 1.15 (x0.85 until vNEXT).
+    // DE: "Military Units train +15% faster", time / 1.15 (x0.85 until v0.3.248).
     expect(civTrainTimeMultiplier('Aztecs', 'militia')).toBeCloseTo(1 / 1.15, 5);
     expect(civTrainTimeMultiplier('Aztecs', 'villager')).toBe(1);
     expect(civTrainTimeMultiplier('Celts', 'militia')).toBe(1);

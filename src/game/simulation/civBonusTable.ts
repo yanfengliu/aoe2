@@ -131,7 +131,7 @@ function onHuntedKinds(value: number): Partial<Record<ResourceKind, number>> {
 export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Aztecs',
-    // DE: "Military Units train +15% faster" (sourced vNEXT), a work rate:
+    // DE: "Military Units train +15% faster" (sourced v0.3.248), a work rate:
     // the time divided by 1.15. DE writes Conscription, the Conquerors' x0.75
     // time, as "+33% faster". Civilian units train at the base time.
     trainTime: [{ applies: isMilitaryUnit, multiplier: 1 / 1.15 }],
@@ -201,7 +201,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Goths',
-    // DE (sourced vNEXT): "Hunters carry +15; hunted animals last +20%
+    // DE (sourced v0.3.248): "Hunters carry +15; hunted animals last +20%
     // longer", on every hunted animal. DE no longer has the old "Villagers
     // +5 attack vs. wild boar", so a blow on an animal reads no civilization.
     carryBonus: [...HUNTED_KINDS].map((kind) => ({ kind, bonus: 15 })),
@@ -229,7 +229,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     // The Scout line and Camel Units +2 attack vs. buildings is DE's TEAM
     // bonus (Hindustanis), so `teamBuildingAttackBonus` in
     // teamCombatBonuses.ts applies it to the whole side, the owner included.
-    // A second copy here counted it twice for the owner, +4, until vNEXT.
+    // A second copy here counted it twice for the owner, +4, until v0.3.248.
     //
     // DE (Hindustanis): villagers -8/13/18/23% by age; the old fisherman
     // bonus is DE-dead.
@@ -294,7 +294,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Mongols',
-    // DE: "Hunters work +40% faster", on every hunted animal (sourced vNEXT;
+    // DE: "Hunters work +40% faster", on every hunted animal (sourced v0.3.248;
     // boar alone until then).
     gatherRate: onHuntedKinds(1.4),
     // The scout-line +20/30% HP rides the Castle/Imperial age ladder

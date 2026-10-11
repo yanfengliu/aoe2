@@ -376,7 +376,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                 // The swing that takes the last of that yield empties the node;
                 // capping it at the bare amount instead left a node below one
                 // swing losing a fixed fraction per swing, and a Mayan villager
-                // stood at an empty bush for twenty minutes (until vNEXT).
+                // stood at an empty bush for twenty minutes (until v0.3.248).
                 const duration = civResourceDurationMultiplier(
                   playerCivilizations.get(unit.owner),
                   targetResource.resourceType,

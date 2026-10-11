@@ -66,7 +66,7 @@ describe('civGatherRateMultiplier — Britons shepherd bonus', () => {
 // is a herdable owned by Britons, fish is fished). The site is kind-agnostic, so
 // the integration path is the one the Britons sheep live-race already validates.
 describe('civGatherRateMultiplier — Mongols hunter bonus', () => {
-  it('gives Mongols +40% on every hunted animal, boar and deer (sourced v0.3.144; deer vNEXT)', () => {
+  it('gives Mongols +40% on every hunted animal, boar and deer (sourced v0.3.144; deer v0.3.248)', () => {
     expect(civGatherRateMultiplier('Mongols', 'boar')).toBe(MONGOLS_HUNTER_GATHER_MULTIPLIER);
     expect(civGatherRateMultiplier('Mongols', 'deer')).toBe(MONGOLS_HUNTER_GATHER_MULTIPLIER);
     expect(MONGOLS_HUNTER_GATHER_MULTIPLIER).toBe(1.4);
@@ -233,7 +233,7 @@ describe('effectiveTrainingCost — Goths infantry ladder (sourced v0.3.146)', (
 });
 
 describe('civTrainTimeMultiplier — Aztecs military creation speed', () => {
-  it('trains Aztecs military units +15% faster (time / 1.15, DE; x0.85 until vNEXT)', () => {
+  it('trains Aztecs military units +15% faster (time / 1.15, DE; x0.85 until v0.3.248)', () => {
     expect(civTrainTimeMultiplier('Aztecs', 'militia')).toBe(AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER);
     expect(civTrainTimeMultiplier('Aztecs', 'archer')).toBeCloseTo(1 / 1.15, 12);
     expect(civTrainTimeMultiplier('Aztecs', 'knight')).toBeCloseTo(1 / 1.15, 12);
