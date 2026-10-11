@@ -1,6 +1,6 @@
 # A garrisoned unit keeps the sight upgrades researched while it is inside
 
-Status: planned
+Status: active
 Owner: Claude session from the task card 'Keep sight upgrades for garrisoned units' (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
 Updated: 2026-10-11
@@ -26,6 +26,10 @@ Excluded: the garrison eligibility gap CL-4 in Codex work 106, milestone M2, whi
 
 Either apply the sweeps to the stored copies as well, or derive the radius when the unit leaves. Then check save and load of a garrisoned unit through the existing paths. The batch protocol is in `docs/policies/local-rules.md`.
 
+Chosen (2026-10-11): apply the change to the stored copy. `changeUnitSight` in `garrisonOps.ts` changes the component on a unit in the field, or replaces the kept copy through `accessor.mutate`, and the upgrade sweep goes through it. Deriving on the way out was rejected because units carry sight their type's table does not give: a real map's starting Scout sees 6 against the Scout's 4, and fixtures name their own, so a derived exit would change the sight of units that were never upgraded.
+
+Correction to the card: Tracking was retired with DE in v0.3.140 (spec §12.2) and `visionTechEffects.ts` holds no unit effect, so the class today is the line-upgrade sweep alone. A census over all 143 technologies stands in for the Tracking half of the first criterion, and fails if any technology other than a line upgrade starts moving unit sight.
+
 ## Acceptance criteria
 
 - A test garrisons a unit, researches the upgrade, ungarrisons the unit and compares it with an identical unit that stayed outside. It is red before the fix and green after, a mutation turns it red again, and it covers both the unit-line upgrade and Tracking.
@@ -34,7 +38,10 @@ Either apply the sweeps to the stored copies as well, or derive the radius when 
 
 ## Implementation steps
 
-- [ ] Reproduce, fix, gate and land. Nothing here waits for the other five cards.
+- [x] Reproduce: `tests/simulation/garrisonedSightUpgrades.test.ts`, the player's controls on `castle-upgrades-fixture`, 3 of 3 red before the fix (6 against 7).
+- [x] Find the class: `tests/simulation/garrisonedSightCensus.test.ts`, 158 twin pairs apart before the fix, all on the 39 land rows of the upgrade table.
+- [x] Fix, gate and prove the gate by mutation; affected tests, typecheck and lint green in the worktree (phase 1, branch `garrison-sight-upgrades`).
+- [ ] Land: gate lock, rebase, version, `npm run verify`, push (phase 2, after the coordinator accepts).
 
 ## Outcome
 

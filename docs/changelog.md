@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.244
+
+- **A unit that sat out its upgrade inside a building or aboard a Transport Ship now comes out with the upgraded line of sight.** An Archer sheltering in a Town Center while you researched the Crossbowman upgrade used to come out a Crossbowman that saw only as far as an Archer (6 tiles instead of 7) for the rest of the match. The same happened with every upgrade that raises sight, such as Scout Cavalry to Light Cavalry (4 to 6) and Light Cavalry to Hussar. A unit inside now takes the new sight with the rest of the upgrade. In a game saved before this change, a unit that was inside during an upgrade keeps the old sight.
+
 ## 0.3.243
 
 - The Onager now has 55 attack and 8 pierce armor; Battering, Capped and Siege Rams see 5 tiles; and the Heavy Scorpion has 14 attack, 60 hit points, 1 melee armor, 8 pierce armor and a 36-tick reload. Existing saved unit stats last until their usual rebuild; current target armor comes from the corrected tables, so old replays can resolve combat differently.

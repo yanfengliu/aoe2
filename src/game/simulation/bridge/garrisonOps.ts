@@ -28,6 +28,35 @@ const EMPTY_GARRISON_TECH_SET: ReadonlySet<
   import('../types').ResearchableTechnologyType
 > = new Set();
 
+/**
+ * Change a unit's sight wherever the game keeps it. A unit in the field carries
+ * its `visionSource`. A unit inside a building or aboard a transport has none:
+ * the entry paths below keep its copy in `garrisonedUnitVisionSourcesCodec`,
+ * and the exit paths put that copy back. So every effect that changes a
+ * unit's sight in place goes through here, or a unit that sat the change out
+ * inside comes back out with its old sight for the rest of the match (defect
+ * register, 2026-10-11). The kept copy is replaced rather than edited, through
+ * `mutate`, so the save sees the change. Returns false for a unit with neither.
+ */
+export function changeUnitSight(
+  world: GameWorld,
+  accessor: BridgeStateAccessor,
+  unitId: number,
+  change: (sight: VisionSourceComponent) => void,
+): boolean {
+  const onField = world.getComponent<VisionSourceComponent>(unitId, 'visionSource');
+  if (onField) {
+    change(onField);
+    return true;
+  }
+  const kept = accessor.get(garrisonedUnitVisionSourcesCodec).get(unitId);
+  if (!kept) return false;
+  const next = { ...kept };
+  change(next);
+  accessor.mutate(garrisonedUnitVisionSourcesCodec, (m) => m.set(unitId, next));
+  return true;
+}
+
 export interface GarrisonOpsDeps {
   world: GameWorld;
   accessor: BridgeStateAccessor;
@@ -160,8 +189,10 @@ export function createGarrisonOps(deps: GarrisonOpsDeps): GarrisonOps {
   function garrisonUnit(unitId: number, buildingId: number): boolean {
     const unit = world.getComponent<UnitComponent>(unitId, 'unit');
     const building = world.getComponent<BuildingComponent>(buildingId, 'building');
-    // Teuton towers shelter twice the table ("Towers can garrison 2x units"),
-    // and Khmer houses hold five villagers on a base of zero.
+    // Teutons shelter ten more in a Town Center and five more in a Watch or
+    // Bombard Tower (civGarrisonCapacityBonus: flat adds since v0.3.144, which
+    // replaced the old twice-the-table tower rule), and Khmer houses hold five
+    // villagers on a base of zero.
     const buildingCivilization = building
       ? accessor.get(playerCivilizationsCodec).get(building.owner)
       : undefined;

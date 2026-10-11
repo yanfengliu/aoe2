@@ -16,10 +16,10 @@ import type {
   TrainableUnitType,
   UnitComponent,
   UnitType,
-  VisionSourceComponent,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { changeUnitSight } from './garrisonOps';
 import type { CombatState } from './systems/systemTypes';
 import { applyArmorTech } from '../armorTechBonuses';
 import { CAREENING_SHIP_PIERCE_ARMOR } from '../dockTechEffects';
@@ -58,17 +58,20 @@ export function createTechnologyUnitSweeps(deps: TechnologyUnitSweepDeps) {
         renderable.size = unitSize(to);
       }
 
-      const vision = world.getComponent<VisionSourceComponent>(id, 'visionSource');
-      if (vision) {
-        vision.radius = unitVisionRadius(to)
-          + bonusVisionRadius(
-            accessor.get(playerTeamsCodec),
-            accessor.get(playerCivilizationsCodec),
-            owner,
-            to,
-            unitVisionRadius(to),
-          );
-      }
+      // Through changeUnitSight, not the component: a unit inside a building
+      // or aboard a transport has no visionSource, only the copy garrisonOps
+      // keeps, and it has to come out with the new tier's sight.
+      const radius = unitVisionRadius(to)
+        + bonusVisionRadius(
+          accessor.get(playerTeamsCodec),
+          accessor.get(playerCivilizationsCodec),
+          owner,
+          to,
+          unitVisionRadius(to),
+        );
+      changeUnitSight(world, accessor, id, (sight) => {
+        sight.radius = radius;
+      });
 
       const nextCombat = createCombatState(owner, to);
       if (combat) {

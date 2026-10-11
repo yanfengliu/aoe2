@@ -9,6 +9,13 @@
 // No per-entity tech state and no save-format change: the bumped radius lives
 // in the already-persisted visionSource component, and replay re-applies the
 // research commands deterministically from tick 0.
+//
+// A technology that changes UNITS' sight bumps them through `changeUnitSight`
+// (garrisonOps), never through the component alone: a unit inside a building
+// or aboard a transport has no visionSource, only the copy garrisonOps keeps
+// until it comes out (defect register, 2026-10-11). Today only the unit-line
+// upgrades do; tests/simulation/garrisonedSightCensus.test.ts runs every
+// technology against a unit inside and its twin outside.
 
 import type { AgeType, ResearchableTechnologyType } from './types';
 
