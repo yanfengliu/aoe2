@@ -2809,6 +2809,26 @@
     {
       "id": 113,
       "theme": "worktree-removal-scope"
+    },
+    {
+      "id": 114,
+      "theme": "projectile-target-generation"
+    },
+    {
+      "id": 115,
+      "theme": "garrison-sight-upgrades"
+    },
+    {
+      "id": 116,
+      "theme": "fog-memory-own-buildings"
+    },
+    {
+      "id": 117,
+      "theme": "vietnamese-reveal-centre"
+    },
+    {
+      "id": 118,
+      "theme": "foundation-sight"
     }
   ]
 }
