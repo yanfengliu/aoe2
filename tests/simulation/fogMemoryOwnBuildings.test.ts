@@ -1,30 +1,28 @@
 // The player's fog memory holds no entry for a building the player owns,
-// finished or a foundation, unless an enemy Monk is converting it (spec
-// §12.1, vNEXT; defect register 2026-10-11). The render state draws every
-// entity the player owns whatever the fog, so such an entry was never read
-// while its building stood. It was read once the building was gone: a House
-// the player deleted, or lost where nothing else of theirs saw it, stayed on
-// the map as a ghost, because its own sight went with it and an entry is
-// forgotten only when its ground is seen empty. The entries also cost every
-// tick: the engine fingerprints the whole `aoe2.lastSeenStatic` slot twice a
-// tick (docs/engine-feedback/current.md).
+// finished or a foundation, and forgets one recorded as the player's the
+// moment its building goes (spec §12.1, vNEXT; defect register 2026-10-11).
+// The render state draws every entity the player owns whatever the fog, so
+// such an entry was never read while its building stood. It was read once
+// the building was gone: a House the player deleted, or lost where nothing
+// else of theirs saw it, stayed on the map as a ghost, because its own sight
+// went with it and an entry was forgotten only when its ground was seen
+// empty. The entries also cost every tick: the engine fingerprints the whole
+// `aoe2.lastSeenStatic` slot twice a tick (docs/engine-feedback/current.md).
+// The one exception, a building an enemy Monk is sent to convert, has its
+// own file: fogMemoryOwnBuildingConversion.test.ts.
 //
 // BOUND: buildings leave the world here by the Delete key's command and by
 // enemy Militia, each through the command pipeline; a projectile's kill and a
 // foundation's deletion are not driven, and the rule does not ask how a
 // building went. The played opening is the boot map, one seat, 3,000 ticks
-// with the player's seat on the AI. The older save is EMULATED: a save from
-// this build with entries written the way the writer before vNEXT wrote them,
-// because no save from an older build is committed. The enemy conversion is
-// staged by editing a save — the Monk and Redemption handed to owner 2, the
-// House to the player — because no fixture has an enemy Monk with Redemption
-// beside a building of the player's and the AI never converts; the conversion
-// itself is ordered through the command pipeline. The recycled id is staged by
-// direct world edits (a blinded scout, the House destroyed, a bare House of the
-// player's on its id), as fogMemory.test.ts stages its M5 case. An ally's
-// building is not the player's and is remembered as before
-// (sharedVisionEntities.test.ts); that its loss leaves the same ghost is OPEN
-// in the register entry.
+// with the player's seat on the AI, checked every 100 ticks. The older save
+// is EMULATED: a save from this build with entries written the way builds
+// before vNEXT wrote them, because no save from an older build is committed.
+// The recycled id is staged by direct world edits (a blinded scout, the
+// House destroyed, a bare House of the player's on its id), as
+// fogMemory.test.ts stages its M5 case. An ally's building is not the
+// player's and is remembered as before (sharedVisionEntities.test.ts); that
+// its loss leaves the same ghost is OPEN in the register entry.
 
 import { describe, expect, it } from 'vitest';
 
@@ -33,53 +31,10 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import { buildingTint } from '../../src/game/simulation/prototypeBuildingRules';
 import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 import { RAID_WARNING_HOUSE, RAID_WARNING_MILITIA } from '../../src/game/simulation/fixtures/raidWarning';
-import type { BuildingComponent, ProjectedEntityView } from '../../src/game/simulation/types';
 import { asSchema2Blob, legacySchema1FromBridge, worldStateOf } from './saveBlobTestUtils';
-import { selectOwnedUnitDirect } from './createSimulationBridge.helpers';
-
-type Bridge = ReturnType<typeof createSimulationBridge>;
-type SerializedMemory = Array<[number, Array<[number, Record<string, unknown>]>]>;
-type Building = ReturnType<Bridge['getEconomyState']>['buildings'][number];
-
-/** The player's fog memory as the save and the replay carry it. */
-function memoryOf(bridge: Bridge): Map<number, Record<string, unknown>> {
-  const serialized = (bridge.world.getState(lastSeenStaticCodec.slot) ?? []) as SerializedMemory;
-  return new Map(serialized.find(([playerId]) => playerId === HUMAN_PLAYER_ID)?.[1] ?? []);
-}
-
-function step(bridge: Bridge, ticks: number): void {
-  for (let tick = 0; tick < ticks; tick += 1) bridge.step(100);
-}
-
-function footprintCells(building: Building, mapWidth: number): number[] {
-  const cells: number[] = [];
-  for (let dy = 0; dy < building.footprintHeight; dy += 1) {
-    for (let dx = 0; dx < building.footprintWidth; dx += 1) {
-      cells.push((building.y + dy) * mapWidth + building.x + dx);
-    }
-  }
-  return cells;
-}
-
-/** Buildings whose ground the player has explored but sees none of now:
- *  where a ghost of them would be drawn, if one were remembered. */
-function unseenNow(bridge: Bridge, buildings: readonly Building[]): Building[] {
-  const frame = bridge.getRenderState().frame!;
-  const visible = new Set(frame.visibleCells);
-  const explored = new Set(frame.exploredCells);
-  return buildings.filter((building) => {
-    const cells = footprintCells(building, frame.mapWidth);
-    return cells.some((cell) => explored.has(cell)) && !cells.some((cell) => visible.has(cell));
-  });
-}
-
-function drawnWithIds(bridge: Bridge, ids: ReadonlySet<number>): ProjectedEntityView[] {
-  return bridge.getRenderState().entities.filter((entity) => ids.has(entity.id));
-}
-
-function ownBuildings(bridge: Bridge): Building[] {
-  return bridge.getEconomyState().buildings.filter((building) => building.owner === HUMAN_PLAYER_ID);
-}
+import {
+  drawnWithIds, memoryOf, ownBuildings, step, unseenNow, type SerializedMemory,
+} from './fogMemoryOwnBuildings.helpers';
 
 describe('the player\'s own buildings are not remembered under fog', () => {
   it('leaves no ghost of any building the player deletes, whatever its type', () => {
@@ -183,7 +138,10 @@ describe('the player\'s own buildings are not remembered under fog', () => {
     const before = memoryOf(bridge);
 
     // The save an older build made: the same world, with the Town Center
-    // remembered the way that build's writer remembered every building seen.
+    // remembered the way that build's writer remembered every building seen;
+    // a House of the player's destroyed before the save, far from anything
+    // the player sees, left as a ghost; and, as saves of 2026-05 to 2026-07
+    // hold them, the Town Center's entry once more without a generation.
     const blob = asSchema2Blob(bridge.saveGame());
     const view = bridge.getRenderState().entities.find((entity) => entity.id === townCenter.id)!;
     const olderEntry = {
@@ -199,29 +157,58 @@ describe('the player\'s own buildings are not remembered under fog', () => {
       size: view.size,
       visualVariant: view.visualVariant,
     };
+    const lostHouseId = 999_999;
+    const lostHouse = {
+      ...olderEntry,
+      entityType: 'house',
+      generation: 3,
+      position: { x: 40, y: 30 },
+      footprintWidth: 2,
+      footprintHeight: 2,
+      tint: buildingTint('house', HUMAN_PLAYER_ID, true),
+      visualVariant: 'complete',
+    };
     const slot = worldStateOf(blob)[lastSeenStaticCodec.slot] as SerializedMemory;
-    slot.find(([playerId]) => playerId === HUMAN_PLAYER_ID)![1].push([townCenter.id, olderEntry]);
+    const playerEntries = slot.find(([playerId]) => playerId === HUMAN_PLAYER_ID)![1];
+    playerEntries.push([townCenter.id, olderEntry], [lostHouseId, lostHouse]);
 
     const loaded = createSimulationBridge('fog-memory-fixture', { savedGame: blob });
     expect(memoryOf(loaded).has(townCenter.id), 'premise: the load restored the older entry').toBe(true);
+    expect(memoryOf(loaded).has(lostHouseId), 'premise: the load restored the ghost').toBe(true);
     // The same save in the older schema, taken before a tick has run.
     const legacy = createSimulationBridge('fog-memory-fixture', { savedGame: legacySchema1FromBridge(loaded) });
     expect(memoryOf(legacy).has(townCenter.id), 'premise: schema 1 carries the older entry').toBe(true);
+    // And one without the generation field.
+    const generationless = asSchema2Blob(blob);
+    const generationlessSlot = worldStateOf(generationless)[lastSeenStaticCodec.slot] as SerializedMemory;
+    const townCenterEntry = generationlessSlot.find(([playerId]) => playerId === HUMAN_PLAYER_ID)![1]
+      .find(([id]) => id === townCenter.id)![1];
+    delete townCenterEntry.generation;
+    const undated = createSimulationBridge('fog-memory-fixture', { savedGame: generationless });
 
-    for (const reloaded of [loaded, legacy]) {
+    for (const reloaded of [loaded, legacy, undated]) {
       reloaded.step(100);
       const after = memoryOf(reloaded);
       expect(after.has(townCenter.id), 'the older entry is dropped on the first tick').toBe(false);
+      expect(after.has(lostHouseId), 'the ghost of a lost building of the player\'s is dropped').toBe(false);
       expect(after.get(enemyHouse.id), 'what the player saw of the enemy is kept').toEqual(before.get(enemyHouse.id));
       expect(reloaded.getMatchState().outcome).toBe('running');
+      // Premise: nothing sees the lost House's ground, so forgetting it on
+      // sight of its empty ground (the older rule) could not have dropped it.
+      const frame = reloaded.getRenderState().frame!;
+      const lostCells = [0, 1].flatMap((dy) => [0, 1].map((dx) => (30 + dy) * frame.mapWidth + 40 + dx));
+      expect(lostCells.filter((cell) => frame.visibleCells.includes(cell))).toEqual([]);
     }
   });
 
-  it('keeps a destroyed building\'s ghost when its id comes back as a building of the player\'s', () => {
+  it('keeps a destroyed building\'s entry when its id comes back as a building of the player\'s', () => {
     // The engine recycles ids: an entry under a recycled id with another
     // generation is a different building's last-known state (fogMemory.test.ts,
     // full-review M5), and a building of the player's taking the id must not
-    // erase it.
+    // erase it. In play the ghost is hidden while the player's building holds
+    // the id, because the render state matches memory to live entities by id
+    // alone (fogMemoryOps); this staging cannot show that, since the render
+    // store never hears of a House made inside runMaintenance.
     const bridge = createSimulationBridge('fog-memory-fixture');
     const houseId = bridge.getEconomyState().buildings.find((building) => building.owner === 2 && building.buildingType === 'house')!.id;
     for (let ticks = 0; !memoryOf(bridge).has(houseId); ticks += 1) {
@@ -248,74 +235,12 @@ describe('the player\'s own buildings are not remembered under fog', () => {
     step(bridge, 3);
     expect(bridge.world.getEntityGeneration(houseId)).not.toBe(ghostGeneration);
     expect(memoryOf(bridge).get(houseId)?.generation, 'the destroyed House is still remembered').toBe(ghostGeneration);
-  });
 
-  it('drops the entry of an enemy building the player converts', () => {
-    const bridge = createSimulationBridge('redemption-buildings-fixture');
-    const house = bridge.getEconomyState().buildings.find((building) => building.buildingType === 'house')!;
-    expect(house.owner).toBe(2);
-    expect(selectOwnedUnitDirect(bridge, HUMAN_PLAYER_ID, 'monk')).toBe(true);
-    expect(bridge.issueContextCommandAtEntity(house.id)).toBe(true);
-    let heldWhileEnemy = false;
-    for (let ticks = 0; ownerOf(bridge, house.id) !== HUMAN_PLAYER_ID; ticks += 1) {
-      expect(ticks, 'the Monk converts the House').toBeLessThan(900);
-      bridge.step(100);
-      if (ownerOf(bridge, house.id) === 2 && memoryOf(bridge).has(house.id)) heldWhileEnemy = true;
-    }
-    expect(heldWhileEnemy, 'premise: the player remembered the House while it was the enemy\'s').toBe(true);
-    bridge.step(100);
-    expect(memoryOf(bridge).has(house.id), 'remembered after it became the player\'s').toBe(false);
-  });
-
-  it('keeps a building an enemy Monk converts on the map, as last seen', () => {
-    const bridge = createSimulationBridge('redemption-buildings-fixture');
-    bridge.step(100);
-    const economy = bridge.getEconomyState();
-    const house = economy.buildings.find((building) => building.buildingType === 'house')!;
-    const monk = economy.units.find((unit) => unit.unitType === 'monk')!;
-
-    // Stage the reverse of the fixture: owner 2 holds the Monk and Redemption,
-    // the player holds the House, alone, out of the Town Center's sight.
-    const blob = asSchema2Blob(bridge.saveGame());
-    const snapshot = blob.worldSnapshot as unknown as {
-      components: Record<string, Array<[number, Record<string, unknown>]>>;
-    };
-    const component = (name: string, id: number) => snapshot.components[name]!.find(([entity]) => entity === id)![1];
-    component('unit', monk.id).owner = 2;
-    component('visionSource', monk.id).playerId = 2;
-    component('building', house.id).owner = HUMAN_PLAYER_ID;
-    component('visionSource', house.id).playerId = HUMAN_PLAYER_ID;
-    component('renderable', house.id).tint = buildingTint('house', HUMAN_PLAYER_ID, true);
-    const state = worldStateOf(blob);
-    const researched = new Map((state['aoe2.researchedTechnologies'] ?? []) as Array<[number, string[]]>);
-    researched.set(HUMAN_PLAYER_ID, (researched.get(HUMAN_PLAYER_ID) ?? []).filter((tech) => tech !== 'redemption'));
-    researched.set(2, [...(researched.get(2) ?? []), 'redemption']);
-    state['aoe2.researchedTechnologies'] = [...researched];
-    const staged = createSimulationBridge('redemption-buildings-fixture', { savedGame: blob });
-    staged.step(100);
-    expect(ownerOf(staged, house.id), 'premise: the House is the player\'s').toBe(HUMAN_PLAYER_ID);
-    expect(memoryOf(staged).has(house.id), 'not remembered before anyone converts it').toBe(false);
-
-    staged.pendingCommands.push({
-      type: 'monk.contextAtEntity',
-      data: { unitId: monk.id, targetEntityId: house.id, expectedOwner: 2, intendedTaskKind: 'convert' },
-    });
-    let rememberedWhileOwn = false;
-    for (let ticks = 0; ownerOf(staged, house.id) !== 2; ticks += 1) {
-      expect(ticks, 'the enemy Monk converts the House').toBeLessThan(900);
-      staged.step(100);
-      if (ownerOf(staged, house.id) === HUMAN_PLAYER_ID && memoryOf(staged).has(house.id)) rememberedWhileOwn = true;
-    }
-    staged.step(100);
-
-    expect(unseenNow(staged, [{ ...house, owner: 2 }]), 'premise: the player no longer sees its ground').toHaveLength(1);
-    const drawn = drawnWithIds(staged, new Set([house.id]));
-    expect(drawn.map((entity) => ({ isMemory: entity.isMemory, x: entity.x, y: entity.y })), 'drawn after the flip')
-      .toEqual([{ isMemory: true, x: house.x, y: house.y }]);
-    expect(rememberedWhileOwn, 'remembered while an enemy Monk converted it').toBe(true);
+    // Once the player's House is gone too, the enemy House is still drawn
+    // where the player last saw it.
+    bridge.world.runMaintenance(() => bridge.world.destroyEntity(houseId));
+    step(bridge, 2);
+    expect(drawnWithIds(bridge, new Set([houseId])).map((entity) => ({ isMemory: entity.isMemory, owner: entity.owner, x: entity.x })),
+      'the destroyed enemy House, drawn from memory').toEqual([{ isMemory: true, owner: 2, x: 14 }]);
   });
 });
-
-function ownerOf(bridge: Bridge, id: number): number | undefined {
-  return bridge.world.getComponent<BuildingComponent>(id, 'building')?.owner;
-}

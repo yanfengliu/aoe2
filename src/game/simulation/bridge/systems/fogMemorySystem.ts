@@ -4,26 +4,28 @@
 // the renderer can render last-known state under fog.
 //
 // The human's OWN buildings are not remembered (vNEXT; defect register
-// 2026-10-11). The render state draws every entity the human owns whatever
-// the fog (renderStateOps' owner pass), so an entry for one is never read
-// while it stands. It was read once the building was gone: a House the
-// player deleted, or lost where nothing else of theirs could see, stayed on
-// the map as a ghost, because its own sight went with it and an entry is
-// forgotten only when its ground is seen empty. The entries also cost every
-// tick, since the engine fingerprints the whole slot twice a tick. The one
-// exception is a building an enemy Monk is converting: its entry is what
-// keeps it on the map, as last seen, if the flip takes it out of the
-// player's sight.
+// 2026-10-11; spec §12.1). The render state draws every entity the human
+// owns whatever the fog (renderStateOps' owner pass), so an entry for one is
+// never read while it stands. It was read once the building was gone: a
+// House the player deleted, or lost where nothing else of theirs could see,
+// stayed on the map as a ghost, because its own sight went with it and an
+// entry is forgotten only when its ground is seen empty. The entries also
+// cost every tick, since the engine fingerprints the whole slot twice a tick.
+// So: no entry for a building the human owns; an entry recorded as the
+// human's is forgotten the moment its building goes; and the one exception,
+// a building an enemy Monk is sent to convert, is remembered until the flip,
+// which the human sees, so it stays on the map in its new owner's look.
 
 import { VisibilityMap, type Position } from 'civ-engine';
 import type {
   BuildingComponent,
   RenderableComponent,
   ResourceComponent,
+  UnitComponent,
 } from '../../types';
 import type { GameWorld } from '../pureHelpers';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { conversionStateCodec } from '../bridgeStateSerialize';
+import { monkTasksCodec } from '../bridgeStateSerialize';
 import { isCellSeen, isFootprintSeen, readSightOwners } from '../humanSight';
 import { isStaticMemorableResourceType } from '../../prototypeUnitRules';
 import type { MemoryEntry } from '../memoryTypes';
@@ -88,10 +90,21 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
         changed = true;
       };
 
+      // The human's buildings an enemy Monk has been sent to convert: the
+      // targets of other players' convert tasks, by identity. A task ends when
+      // its Monk dies, takes another order, abandons it or makes the flip, so
+      // this follows the conversion and nothing older. (`aoe2.conversionState`
+      // does not: its entries outlive an abandoned attempt and a razed target.)
+      const beingConverted = new Set<number>();
+      for (const [monkId, task] of accessor.get(monkTasksCodec)) {
+        if (task.kind !== 'convert' || !activeWorld.isCurrent(task.targetEntityRef)) continue;
+        const monk = activeWorld.getComponent<UnitComponent>(monkId, 'unit');
+        if (monk !== undefined && monk.owner !== humanPlayerId) beingConverted.add(task.targetEntityRef.id);
+      }
+
       // Refresh every building the human player currently sees. Visibility is
       // tested over the full footprint to match the projector and the iter-2
       // M2-1 target-finding fix.
-      const conversions = accessor.get(conversionStateCodec);
       for (const id of activeWorld.query('position', 'building', 'renderable')) {
         const position = activeWorld.getComponent<Position>(id, 'position');
         const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
@@ -99,21 +112,25 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
         if (!position || !building || !renderable) {
           continue;
         }
-        // The human's own building, foundation or finished, is never
-        // remembered unless an enemy Monk is converting it (header). An entry
-        // already held for this very building — one it had before it became
-        // the human's, a finished conversion attempt's, or an older save's —
-        // is dropped. An entry under the same id with another generation is a
-        // destroyed building's ghost, not this one's, and stays.
-        if (building.owner === humanPlayerId && !conversions.has(id)) {
-          const held = humanMemory.get(id);
-          if (held !== undefined && held.generation === activeWorld.getEntityGeneration(id)) {
-            humanMemory.delete(id);
-            changed = true;
+        const generation = activeWorld.getEntityGeneration(id);
+        const held = humanMemory.get(id);
+        const heldForThis = held !== undefined && held.generation === generation;
+        if (building.owner === humanPlayerId) {
+          // The human's own building, foundation or finished (header). While
+          // an enemy Monk is sent to convert it, it is remembered whatever the
+          // fog — the human knows its own building — so the flip finds an
+          // entry. Otherwise an entry held for this very building (the one it
+          // had as an enemy's, a finished attempt's, an older save's) is
+          // dropped; one under the same id with another generation is a
+          // destroyed building's ghost, not this one's, and stays.
+          if (!beingConverted.has(id)) {
+            if (heldForThis) {
+              humanMemory.delete(id);
+              changed = true;
+            }
+            continue;
           }
-          continue;
-        }
-        if (
+        } else if (
           !isFootprintSeen(
             visibility,
             sight,
@@ -122,6 +139,10 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
             renderable.footprintWidth,
             renderable.footprintHeight,
           )
+          // Unseen, a building is still refreshed once if its entry says the
+          // human owned it: it changed hands under the human's own eyes (its
+          // own sight, up to the flip), so the human saw its new owner's look.
+          && !(heldForThis && held.owner === humanPlayerId)
         ) {
           continue;
         }
@@ -129,7 +150,7 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
           kind: 'building',
           entityType: building.buildingType,
           architecture: architectureStyleFor(getCivilizationOf(building.owner)),
-          generation: activeWorld.getEntityGeneration(id),
+          generation,
           position: { x: position.x, y: position.y },
           footprintWidth: renderable.footprintWidth,
           footprintHeight: renderable.footprintHeight,
@@ -186,6 +207,15 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
         // fooled by the recycled entity's position).
         const stillExists = activeWorld.isCurrent({ id: entityId, generation: entry.generation });
         if (stillExists) {
+          continue;
+        }
+        // A building that was the human's when last remembered is forgotten
+        // the moment it goes, seen or not: the human knows what it has lost.
+        // This is the entry an enemy's conversion attempt kept when the
+        // building is deleted or razed before the flip, and an older save's.
+        if (entry.kind === 'building' && entry.owner === humanPlayerId) {
+          humanMemory.delete(entityId);
+          changed = true;
           continue;
         }
         if (
