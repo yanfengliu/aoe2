@@ -39,6 +39,7 @@ import {
 } from '../../src/game/simulation/civBonusEffects';
 import { teamBuildingVisionBonus } from '../../src/game/simulation/civBuildingBonuses';
 import { CIV_PROFILES, civProfileFor } from '../../src/game/simulation/civProfiles';
+import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { constructionCost, researchCost, trainingCost } from '../../src/game/simulation/prototypeEconomyRules';
 import { teamBuildingAttackBonus } from '../../src/game/simulation/teamCombatBonuses';
 import type { AgeType, ResearchableTechnologyType } from '../../src/game/simulation/types';
@@ -169,6 +170,20 @@ const PAIRS: readonly Pair[] = [
       expect(slavsTeamMilitaryPop(stateOf('Slavs'), 1, 'castle')).toBe(0);
     },
   },
+  {
+    civilization: 'Vietnamese', column: 'civilizationBonuses', line: 'Enemy Town Centers are revealed at the start of the game',
+    code: () => {
+      // The enemy Town Center boots as a fog-memory ghost for a Vietnamese
+      // owner and stays unknown to anyone else (vietnameseReveal.ts).
+      const ghostAt = (civilizations?: Map<number, string>) => {
+        const bridge = createSimulationBridge('outpost-vision-fixture', civilizations ? { civilizationsByOwner: civilizations } : {});
+        bridge.step(100);
+        return bridge.getRenderState().entities.some((e) => e.entityType === 'town-center' && e.x === 40 && e.y === 26 && e.isMemory);
+      };
+      expect(ghostAt(new Map([[1, 'Vietnamese']]))).toBe(true);
+      expect(ghostAt()).toBe(false);
+    },
+  },
 ];
 
 // Lines the CSV carried before work 120 brought it in line; each said
@@ -191,6 +206,7 @@ const RETIRED_LINES: readonly string[] = [
   'Town Centers and Docks work +5/10/15/20% faster by age',
   'Foot archers have +2 attack bonus against buildings',
   'Military buildings provide +5% population',
+  'Reveals enemy positions at game start',
 ];
 
 describe('civilizations.csv agrees with the code', () => {

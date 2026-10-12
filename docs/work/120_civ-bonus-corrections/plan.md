@@ -78,8 +78,21 @@ Each fix is sourced, reproduced by a test first, and gated by a mutation. The ba
   - Found and not fixed; the spec's open list now names the first four (coordinator's decision): Teuton "+1/+2 melee armor" also adds pierce armor; DE's Inca llama is a team bonus and the code gives it to the owner only, and DE has no Inca "Farms built 50% faster", which the code still gives the side; DE's Magyar "Villagers defeat wolves with one strike" has no implementation; the factory and the age-up sweep give a Mongol Scout with Bloodlines different hit points (74 against 78). A hunt order leaving villagers idle after the kill is not a civilization bonus; the coordinator queued it for its own card.
   - For M2: the `buildingAttack` table field and `civBuildingAttackBonus` have no entries left; delete them if that is a small, contained change, otherwise leave them.
 - [ ] M2: the Chinese sight bonus (after work 118 if it needs `buildingVisionSources.ts`), and the CSV, embedded-copy and in-game-text sync.
-  - 2026-10-11: implemented, tested and committed on branch `civ-bonus-corrections`; not yet on main. DE has the Chinese line ("Town Centers +7 line of sight and provide +15 population space"), and the sight now rides `teamBuildingVisionBonus`, the owner's alone. Twelve CSV rows changed where the code already followed DE; the embedded copy changed with them, and the in-game panel reads it. The empty `buildingAttack` seam is deleted.
-  - Rows left as they are, because the code itself departs from DE there (for the coordinator to list or assign): Celtic infantry move +15% in every age (DE: +5/10/15/20% by age); the Ethiopian team sight reaches towers too, and its Outposts still cost stone (DE: "Outposts +3 line of sight and cost no stone"); Italian Fishing Ships cost 15 wood less (DE: -15%), and DE's "Foot Archers and Condottieri +1/+1 armor" has no implementation; Vietnamese +20% hit points reach every Archery Range unit (DE: Foot Archers and Skirmishers); the Spanish gunpowder attack speed covers the Hand Cannoneer, Bombard Cannon and Cannon Galleon but not the Conquistador (DE: "Gunpowder Units attack +18% faster"); DE's Turkish "Scout Cavalry-line +1 pierce armor", Chinese Fire Ship speed, Portuguese foragers' wood and Khmer farmers' drop-off have no implementation. Not checked: the Hun trebuchet accuracy and the Saracen Transport Ship capacity, whose wordings differ from DE's.
+  - 2026-10-11: implemented, tested and committed on branch `civ-bonus-corrections`; not yet on main. DE has the Chinese line ("Town Centers +7 line of sight and provide +15 population space"), and the sight now rides `teamBuildingVisionBonus`, the owner's alone. Thirteen CSV rows changed where the code already followed DE (the Vietnamese one after work 117 landed); the embedded copy changed with them, and the in-game panel reads it. The empty `buildingAttack` seam is deleted.
+  - Rows where the code itself departs from DE were left as they are; they are M3.
+- [ ] M3 (the coordinator dispatches it after M2 lands): make the code match DE wherever it departs. Each item is reproduced first, then fixed, then gated. None goes on the spec's open list. The source is DE's civilization help text in aoe2techtree `3bb43b14` (DE update 185872).
+  1. Celts: "Infantry moves +5/10/15/20% faster in Dark/Feudal/Castle/Imperial Age". The code gives +15% in every age.
+  2. Ethiopians, team bonus: "Outposts +3 line of sight and cost no stone". The code gives the +3 to towers too, and Outposts still cost stone.
+  3. Italians: "Fishing Ships cost -15%". The code takes 15 wood off instead.
+  4. Italians: "Foot Archers and Condottieri +1 melee/+1 pierce armor" has no implementation.
+  5. Vietnamese: "Foot Archers and Skirmishers +20% HP". The code gives it to every Archery Range unit.
+  6. Spanish: "Gunpowder Units attack +18% faster". The code's line covers the Hand Cannoneer, Bombard Cannon and Cannon Galleon, not the Conquistador.
+  7. Turks: "Scout Cavalry-line +1 pierce armor" has no implementation.
+  8. Chinese: "Fire Lancers and Fire Ships move +5/10% faster in Castle/Imperial Age" has no implementation for the Fire Ship.
+  9. Portuguese: "Foragers generate wood in addition to food" has no implementation.
+  10. Khmer: "Farmers don't require Mills or Town Centers to drop off food" has no implementation.
+  11. Check first, then fix if the code departs: the Hun trebuchet accuracy (the CSV says "35% more accurate"; DE says "Trebuchets fire more accurately at units and small targets").
+  12. Check first, then fix if the code departs: the Saracen Transport Ship capacity (the CSV says "2x HP and carry capacity"; DE says "+100% HP, +20 carry capacity").
 
 ## Outcome
 

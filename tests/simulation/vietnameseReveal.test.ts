@@ -1,4 +1,4 @@
-// Vietnamese "Reveals enemy positions at game start" (civilizations.csv):
+// Vietnamese "Enemy Town Centers are revealed at the start of the game" (DE's text, and civilizations.csv's):
 // the enemy Town Center area boots EXPLORED and the TC itself renders as a
 // fog-memory ghost, without any live vision over it.
 

@@ -1,7 +1,6 @@
 // Vietnamese: "Enemy Town Centers are revealed at the start of the game" —
 // Definitive Edition's own civilization text (string 120180, the Vietnamese
-// help text in SiegeEngineers/aoe2techtree at 3bb43b14, DE update 185872);
-// civilizations.csv words it "Reveals enemy positions at game start".
+// help text in SiegeEngineers/aoe2techtree at 3bb43b14, DE update 185872).
 //
 // For every Vietnamese owner, the ground around each OTHER player's Town Center
 // is stamped EXPLORED by parking temporary vision sources over it and updating

@@ -51,7 +51,7 @@ Magyars, Forgotten Empires, Cavalry Infantry, Magyar Huszar, Mercenaries;Recurve
 Malians, African Kingdoms, Infantry, Gbeto, Tigui;Farimba, University researches +80% faster, Buildings cost -15% wood;Barracks unit +1 pierce armor per age;Villagers drop off +10% more gold
 Portuguese, African Kingdoms, Naval and Gunpowder, Caravel;Organ Gun, Carrack;Arquebus, Technologies research 25% faster, All units costs -20% gold;Ships +10/15/20% HP by age;Can build Feitoria in Imperial Age
 Slavs, Forgotten Empires, Cavalry, Boyars, Orthodoxy;Druzhina, Military buildings (except Castles) provide +5 population space, Farmers works 15% faster;Siege weapons 15% cheaper;Monks move 20% faster
-Vietnamese, Rise of Rajas, Archer, Rattan Archer, Chatras;Paper Money, Have access to Imperial Skirmisher Upgrade,"Reveals enemy positions at game start;Archery Range units +20% HP";Conscription free;Economic upgrades cost no wood and research 100% faster
+Vietnamese, Rise of Rajas, Archer, Rattan Archer, Chatras;Paper Money, Have access to Imperial Skirmisher Upgrade,"Enemy Town Centers are revealed at the start of the game;Archery Range units +20% HP";Conscription free;Economic upgrades cost no wood and research 100% faster
 `;
 
 /** One civilization's design definition, as `civilizations.csv` states it. */
