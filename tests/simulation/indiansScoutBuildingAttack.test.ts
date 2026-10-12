@@ -6,7 +6,7 @@
 // owner included. Until v0.3.248 the Indians entry in CIV_BONUSES added the same
 // +2 again through `civBuildingAttackBonus`, so an Indian owner's Scout hit a
 // building for +4 (defect register, 2026-10-11). The emptied table seam was
-// deleted in vNEXT, so the team seam is the line's only home. The census over
+// deleted in v0.3.251, so the team seam is the line's only home. The census over
 // every civilization, unit and age is civBonusDeParity.test.ts.
 
 import { describe, expect, it } from 'vitest';

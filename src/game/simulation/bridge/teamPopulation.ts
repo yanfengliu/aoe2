@@ -1,5 +1,5 @@
 // Slav team bonus: "Military buildings (except Castles) provide +5 population
-// space" (DE; civilizations.csv said "+5% population" until vNEXT): +5
+// space" (DE; civilizations.csv said "+5% population" until v0.3.251): +5
 // population per standing military building. Applied at the one
 // populationProvided derivation, so both raw-supply sites and construction
 // records agree by construction.
