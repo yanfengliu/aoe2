@@ -12,6 +12,7 @@ import { RESOURCE_OCCUPATION_SLOT } from '../../src/game/simulation/resourceWork
 import type { GameCommands, GameEvents } from '../../src/game/simulation/bridge/pureHelpers';
 import type { GathererComponent, ResourceComponent, UnitComponent } from '../../src/game/simulation/types';
 import { createExactSnapshotSerializer } from './exactSnapshotSerializer';
+import { describeTickChunks } from './tickChunks';
 
 const NO_AI = { disableAiForOwners: new Set([1, 2]) };
 const EMPTY = { food: 0, wood: 0, gold: 0, stone: 0 };
@@ -61,42 +62,52 @@ describe('resource worker occupation in saves and replay', () => {
     expect(globalThis.structuredClone).toBe(nativeClone);
   });
 
-  it('keeps full non-cosmetic default-map state identical through a 600-tick commanded-worker prefix and real gather', () => {
-    const { bridge, unit, tree } = boot();
-    const modern = createReplayWorldOnly(bridge.saveGame().worldSnapshot);
-    const oldSnapshot = bridge.saveGame().worldSnapshot;
-    stripOccupation(oldSnapshot);
-    const legacy = createReplayWorldOnly(oldSnapshot);
-    for (const world of [legacy, modern]) {
-      expect(world.submitWithResult('unit.gather', { unitId: unit.id, resourceId: tree.id }).accepted).toBe(true);
-    }
-    const serialize = createExactSnapshotSerializer();
-    // Observe the live commanded worker independently of snapshot caching.
-    const progress = () => ({
-      worker: { ...modern.getComponent<GathererComponent>(unit.id, 'gatherer')! },
-      treeAmount: modern.getComponent<ResourceComponent>(tree.id, 'resource')!.amount,
-    });
-    let before = progress();
-    const initialTick = modern.tick;
-    const legacyInitialTick = legacy.tick;
-    let gatheredAt = 0;
-    let comparedTicks = 0;
-    for (let tick = 0; tick < 600; tick++) {
+  // The 600 ticks run as six consecutive 100-tick cases over the same two worlds
+  // (tickChunks.ts): every tick's comparison and the whole-run checks are the
+  // ones this case always made. As one case it ran 32.0-35.1 s of its 30 s
+  // limit on windows-latest and 51 s inside a loaded local suite (work 123).
+  // On the 2026-10-12 tree a 100-tick case ran 2.4-2.6 s alone on the
+  // development machine and 4.2-9.2 s inside its full unit suite.
+  describeTickChunks('keeps full non-cosmetic default-map state identical through a 600-tick commanded-worker prefix and real gather', 600, 100, {
+    setup: () => {
+      const { bridge, unit, tree } = boot();
+      const modern = createReplayWorldOnly(bridge.saveGame().worldSnapshot);
+      const oldSnapshot = bridge.saveGame().worldSnapshot;
+      stripOccupation(oldSnapshot);
+      const legacy = createReplayWorldOnly(oldSnapshot);
+      for (const world of [legacy, modern]) {
+        expect(world.submitWithResult('unit.gather', { unitId: unit.id, resourceId: tree.id }).accepted).toBe(true);
+      }
+      const serialize = createExactSnapshotSerializer();
+      // Observe the live commanded worker independently of snapshot caching.
+      const progress = () => ({
+        worker: { ...modern.getComponent<GathererComponent>(unit.id, 'gatherer')! },
+        treeAmount: modern.getComponent<ResourceComponent>(tree.id, 'resource')!.amount,
+      });
+      return {
+        tree, modern, legacy, serialize, progress, before: progress(),
+        initialTick: modern.tick, legacyInitialTick: legacy.tick, gatheredAt: 0, comparedTicks: 0,
+      };
+    },
+    tick: (run, tick) => {
+      const { tree, modern, legacy, serialize, before } = run;
       legacy.step(); modern.step();
-      expect(modern.tick).toBe(initialTick + tick + 1);
-      expect(legacy.tick).toBe(legacyInitialTick + tick + 1);
-      const after = progress();
-      if (!gatheredAt && before.worker.targetResourceId === tree.id && before.worker.task === 'gathering'
+      expect(modern.tick).toBe(run.initialTick + tick + 1);
+      expect(legacy.tick).toBe(run.legacyInitialTick + tick + 1);
+      const after = run.progress();
+      if (!run.gatheredAt && before.worker.targetResourceId === tree.id && before.worker.task === 'gathering'
         && after.worker.carriedResource === 'wood'
-        && after.worker.carriedAmount > before.worker.carriedAmount && after.treeAmount < before.treeAmount) gatheredAt = tick + 1;
-      before = after;
+        && after.worker.carriedAmount > before.worker.carriedAmount && after.treeAmount < before.treeAmount) run.gatheredAt = tick + 1;
+      run.before = after;
       const state = serialize(modern);
       stripOccupation(state);
       expect(isDeepStrictEqual(state, serialize(legacy)), `non-cosmetic state at tick ${tick + 1}`).toBe(true);
-      comparedTicks++;
-    }
-    expect(comparedTicks).toBe(600);
-    expect(gatheredAt, 'selected worker gathered wood from the commanded tree').toBeGreaterThan(0);
+      run.comparedTicks++;
+    },
+    finish: (run) => {
+      expect(run.comparedTicks).toBe(600);
+      expect(run.gatheredAt, 'selected worker gathered wood from the commanded tree').toBeGreaterThan(0);
+    },
   });
 
   it('records assignment, preserved walking occupation and a non-gather clear in tick diffs', () => {

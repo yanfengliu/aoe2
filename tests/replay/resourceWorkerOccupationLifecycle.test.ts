@@ -4,11 +4,12 @@
 // score the separate 600-tick default-map prefix or native-120 instrument gate.
 import { isDeepStrictEqual } from 'node:util';
 import type { WorldSnapshot } from 'civ-engine';
-import { expect, it } from 'vitest';
+import { expect } from 'vitest';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { createReplayWorldOnly } from '../../src/game/simulation/replay/createReplayWorldOnly';
 import type { GathererComponent, PlayerResources, ResourceComponent, UnitComponent } from '../../src/game/simulation/types';
 import { createExactSnapshotSerializer } from './exactSnapshotSerializer';
+import { describeTickChunks } from './tickChunks';
 
 type SnapshotParts = { state: Record<string, unknown>; components: Record<string, Array<[number, Record<string, unknown>]>> };
 function stripOccupation(snapshot: WorldSnapshot) {
@@ -17,40 +18,47 @@ function stripOccupation(snapshot: WorldSnapshot) {
   for (const [, unit] of parts.components.unit) delete unit.resourceOccupation;
 }
 
-it('keeps full modern and legacy state identical through real wood gathering, full carry and deposit', () => {
-  const bridge = createSimulationBridge('woodline-clearing-fixture');
-  const workers = bridge.getEconomyState().units.filter((unit) => unit.unitType === 'villager');
-  expect(workers).toHaveLength(1);
-  const worker = workers[0]!;
-  expect(worker).toMatchObject({ owner: 2, x: 9, y: 10 });
-  const tree = bridge.getEconomyState().resources.find((resource) => resource.x === 10 && resource.y === 10)!;
-  expect(tree).toMatchObject({ resourceType: 'tree', baseOwner: 2, amount: 12 });
-  const towns = bridge.getEconomyState().buildings.filter((building) => building.owner === 2 && building.buildingType === 'town-center');
-  expect(towns).toHaveLength(1);
-  const town = towns[0]!;
-  expect(town).toMatchObject({ x: 4, y: 8 });
-  const modern = createReplayWorldOnly(bridge.saveGame().worldSnapshot);
-  const oldSnapshot = bridge.saveGame().worldSnapshot; stripOccupation(oldSnapshot);
-  const legacy = createReplayWorldOnly(oldSnapshot);
-  // Untouched construction slots are absent; their codec reads an empty map.
-  expect(modern.getState('aoe2.constructionStates'), 'the fixture has no incomplete Town Center foundation').toBeUndefined();
-  const worlds = [modern, legacy];
-  const progress = (world: typeof modern) => ({
-    worker: { ...world.getComponent<GathererComponent>(worker.id, 'gatherer')! },
-    treeAmount: world.getComponent<ResourceComponent>(tree.id, 'resource')?.amount ?? 0,
-    wood: (world.getState('aoe2.playerResources') as Array<[number, PlayerResources]>).find(([owner]) => owner === 2)![1].wood,
-    score: (world.getState('aoe2.playerScoreCounters') as Array<[number, { resourcesGathered: number }]> | undefined)?.find(([owner]) => owner === 2)?.[1].resourcesGathered ?? 0,
-  });
-  let before = worlds.map(progress);
-  for (const [index, world] of worlds.entries()) {
-    expect(before[index]!.worker).toMatchObject({ carriedAmount: 0, carriedResource: null, carryCapacity: 10 });
-    expect(world.submitWithResult('unit.gather', { unitId: worker.id, resourceId: tree.id }).accepted).toBe(true);
-  }
-  const phases = worlds.map(() => ({ gatheredAt: 0, fullAt: 0, depositedAt: 0 }));
-  const initialTicks = worlds.map((world) => world.tick);
-  const serialize = createExactSnapshotSerializer();
-  let comparedTicks = 0;
-  for (let tick = 0; tick < 700; tick++) {
+// The 700 ticks run as seven consecutive 100-tick cases over the same two worlds
+// (tickChunks.ts): every tick's comparison, the phase checks and the whole-run
+// checks are the ones this case always made. As one case it ran 30.6-35.7 s of
+// its 30 s limit on windows-latest (work 123).
+describeTickChunks('keeps full modern and legacy state identical through real wood gathering, full carry and deposit', 700, 100, {
+  setup: () => {
+    const bridge = createSimulationBridge('woodline-clearing-fixture');
+    const workers = bridge.getEconomyState().units.filter((unit) => unit.unitType === 'villager');
+    expect(workers).toHaveLength(1);
+    const worker = workers[0]!;
+    expect(worker).toMatchObject({ owner: 2, x: 9, y: 10 });
+    const tree = bridge.getEconomyState().resources.find((resource) => resource.x === 10 && resource.y === 10)!;
+    expect(tree).toMatchObject({ resourceType: 'tree', baseOwner: 2, amount: 12 });
+    const towns = bridge.getEconomyState().buildings.filter((building) => building.owner === 2 && building.buildingType === 'town-center');
+    expect(towns).toHaveLength(1);
+    const town = towns[0]!;
+    expect(town).toMatchObject({ x: 4, y: 8 });
+    const modern = createReplayWorldOnly(bridge.saveGame().worldSnapshot);
+    const oldSnapshot = bridge.saveGame().worldSnapshot; stripOccupation(oldSnapshot);
+    const legacy = createReplayWorldOnly(oldSnapshot);
+    // Untouched construction slots are absent; their codec reads an empty map.
+    expect(modern.getState('aoe2.constructionStates'), 'the fixture has no incomplete Town Center foundation').toBeUndefined();
+    const worlds = [modern, legacy];
+    const progress = (world: typeof modern) => ({
+      worker: { ...world.getComponent<GathererComponent>(worker.id, 'gatherer')! },
+      treeAmount: world.getComponent<ResourceComponent>(tree.id, 'resource')?.amount ?? 0,
+      wood: (world.getState('aoe2.playerResources') as Array<[number, PlayerResources]>).find(([owner]) => owner === 2)![1].wood,
+      score: (world.getState('aoe2.playerScoreCounters') as Array<[number, { resourcesGathered: number }]> | undefined)?.find(([owner]) => owner === 2)?.[1].resourcesGathered ?? 0,
+    });
+    const before = worlds.map(progress);
+    for (const [index, world] of worlds.entries()) {
+      expect(before[index]!.worker).toMatchObject({ carriedAmount: 0, carriedResource: null, carryCapacity: 10 });
+      expect(world.submitWithResult('unit.gather', { unitId: worker.id, resourceId: tree.id }).accepted).toBe(true);
+    }
+    const phases = worlds.map(() => ({ gatheredAt: 0, fullAt: 0, depositedAt: 0 }));
+    const initialTicks = worlds.map((world) => world.tick);
+    const serialize = createExactSnapshotSerializer();
+    return { worker, tree, town, modern, legacy, worlds, progress, before, phases, initialTicks, serialize, comparedTicks: 0 };
+  },
+  tick: (run, tick) => {
+    const { worker, tree, town, modern, legacy, worlds, progress, before, phases, initialTicks, serialize } = run;
     legacy.step(); modern.step();
     const after = worlds.map(progress);
     const snapshots = worlds.map(serialize);
@@ -88,13 +96,15 @@ it('keeps full modern and legacy state identical through real wood gathering, fu
     }
     stripOccupation(snapshots[0]!);
     expect(isDeepStrictEqual(snapshots[0], snapshots[1]), `full woodline state at tick ${tick + 1}`).toBe(true);
-    before = after; comparedTicks++;
-  }
-  expect(comparedTicks).toBe(700);
-  for (const phase of phases) {
-    expect(phase.gatheredAt, 'selected worker really gathers from the commanded near tree').toBeGreaterThan(0);
-    expect(phase.fullAt, 'selected worker reaches a 10-wood full carry').toBeGreaterThan(phase.gatheredAt);
-    expect(phase.depositedAt, 'selected full carry deposits with exact stockpile and score credit').toBeGreaterThan(phase.fullAt);
-  }
-  if (process.env.SNAPSHOT_LIFECYCLE_REPORT === '1') console.info(JSON.stringify({ comparedTicks, phases }));
+    run.before = after; run.comparedTicks++;
+  },
+  finish: ({ comparedTicks, phases }) => {
+    expect(comparedTicks).toBe(700);
+    for (const phase of phases) {
+      expect(phase.gatheredAt, 'selected worker really gathers from the commanded near tree').toBeGreaterThan(0);
+      expect(phase.fullAt, 'selected worker reaches a 10-wood full carry').toBeGreaterThan(phase.gatheredAt);
+      expect(phase.depositedAt, 'selected full carry deposits with exact stockpile and score credit').toBeGreaterThan(phase.fullAt);
+    }
+    if (process.env.SNAPSHOT_LIFECYCLE_REPORT === '1') console.info(JSON.stringify({ comparedTicks, phases }));
+  },
 });
