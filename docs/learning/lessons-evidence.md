@@ -12,10 +12,8 @@ v0.3.238 gave the blast census fixture an ally, whose Town Centre spawns before 
 
 Anchor: `attack-ground-hotkey.spec.ts`'s comment above its first click, and the displayed positions of the two builds' Onagers, (30.75, 18) and (30.5, 18), read through `getDisplayedEntities`.
 
-## A verify exit file read 0 for a run that stopped in the browser suite (2026-10-11)
+## A stage ended through WMI let the verify chain go on and earn a receipt (2026-10-12)
 
-Work 120's first landing run of `npm run verify` was started as `PREVIEW_PORT=4648 npm run verify > tmp/civ-bonus-corrections-verify.log 2>&1; echo $? > tmp/civ-bonus-corrections-verify.exit`. It wrote 0 after 15 minutes 31 seconds. Its log stops at the start of browser spec 139 of 238, with no Playwright summary, no lint and no build, and with no "^C" or "Terminate batch job" either. The worker read the log, called the run invalid, and ran the gate again; that run exited 0 with every stage logged.
+The independent review of work 124's first receipt commit, 20e5df14, reasoned that a process at or below a stage, ended through WMI, gives its parent exit 0, so the chain's `&&` runs the later stages and `write`. Work 124 measured it on its scratch chain, `start && npm run a && npm run long && npm run c && write`, run as `npm run verify > log 2>&1; echo $? > exit`. Ending the long step's own `node.exe` through `Get-CimInstance Win32_Process | Invoke-CimMethod -MethodName Terminate` (ReturnValue 0) wrote exit 0. The log has the long step's start line and no `long finished`, then `c ran`; the receipt was written and `check` exited 0. The incident of 2026-10-11 was not this: its log stopped at browser spec 139 with no lint or build after it, so the chain itself had stopped, which the receipt now catches.
 
-It then reproduced the result on a scratch npm project whose chain was `a && long && c`. Killing the long step with `taskkill /F`, aimed at the leaf, the chain's `cmd` or the outer npm, wrote 1. A console Ctrl+C killed the wrapper too, so it wrote nothing. Ending the outer npm or the chain's `cmd` with WMI's `Win32_Process.Terminate`, through `Invoke-CimMethod`, wrote 0, and `c` never ran. That is the first run's signature exactly. Who ended that run is unknown: nothing in aoe2 or the fleet docs terminates processes through WMI, and other sessions were running on the machine at the time.
-
-Anchor: the worktree logs `civ-bonus-corrections-verify.run1.log` (cut) and `civ-bonus-corrections-verify.log` (complete), and the work 120 M1 close-out `aa4f6e57`.
+Anchor: the work 124 entry in [gate-proofs.md](gate-proofs.md) (its bound), and the review of 20e5df14 in the work 124 devlog entry.
