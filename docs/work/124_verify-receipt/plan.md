@@ -1,6 +1,6 @@
 # A landing proves its gate ran to the end on the tree it pushes
 
-Status: planned
+Status: active
 Owner: Coordinator worker w124-verify-receipt (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
 Updated: 2026-10-11
