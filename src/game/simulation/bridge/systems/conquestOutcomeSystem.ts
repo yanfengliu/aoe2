@@ -8,6 +8,7 @@ import type { GameWorld } from '../pureHelpers';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import { playerResourcesCodec, playerTeamsCodec } from '../bridgeStateSerialize';
 import { isEnemyOwner } from '../../alliances';
+import { isUnstartedFoundation } from '../unstartedFoundations';
 
 export interface ConquestOutcomeSystemDeps {
   world: GameWorld;
@@ -57,11 +58,14 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps): 
           remainingOwners.delete(unit.owner);
         }
       }
+      // A foundation nobody has started building keeps nobody in: no enemy can
+      // see it to destroy it (unstartedFoundations.ts), and Definitive Edition
+      // update 46295 stopped a Donjon foundation keeping its owner in.
       if (remainingOwners.size > 0) {
         for (const id of activeWorld.query('building')) {
           if (remainingOwners.size === 0) break;
           const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
-          if (building) {
+          if (building && !isUnstartedFoundation(accessor, id)) {
             remainingOwners.delete(building.owner);
           }
         }

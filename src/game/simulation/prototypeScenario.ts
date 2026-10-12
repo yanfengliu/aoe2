@@ -98,6 +98,9 @@ export interface ScenarioSpawnSpec {
   // (default 175). Lets a fixture seed a nearly-depleted farm to exercise the
   // depletion/removal path quickly. Ignored unless `kind === 'farm'`.
   farmFood?: number;
+  // Building-only. Spawns a foundation nobody has started building: no
+  // progress, the foundation's hit points and no sight (work 121's fixtures).
+  unstartedFoundation?: boolean;
 }
 
 export interface PlayerStartSpec {

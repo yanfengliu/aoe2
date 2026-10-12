@@ -16,6 +16,7 @@ import type {
 import { clamp, type GameWorld } from './pureHelpers';
 import { createSelectionFinders, type SelectionFinders } from './selectionFinders';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { isFoundationHiddenFrom } from './unstartedFoundations';
 
 export interface SelectableEntityCandidate {
   id: number;
@@ -159,6 +160,7 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
         && building
         && renderable
         && buildingOccupiesCell(id, x, y)
+        && !isFoundationHiddenFrom(accessor, id, building.owner, humanPlayerId)
         && isEntityFootprintVisibleToHuman(
           position,
           building.owner,

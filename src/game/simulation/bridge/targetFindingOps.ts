@@ -38,6 +38,7 @@ import {
   combatStatesCodec,
 } from './bridgeStateSerialize';
 import type { TargetScanIndex } from './targetScanIndex';
+import { isUnstartedFoundation } from './unstartedFoundations';
 
 interface VisibilityQuery {
   isVisible: (playerId: number, x: number, y: number) => boolean;
@@ -108,11 +109,9 @@ export interface TargetFindingOps {
     scan?: TargetScanIndex,
   ): number | null;
   // Personal-LOS variant of `findPreferredVisibleEnemyBuilding`. Same
-  // contract as `findPreferredEnemyUnitInRadius` for buildings.
-  // Foundations under construction ARE valid targets (canonical AoE2:
-  // damageable while building); the per-tick HP ramp lives in
-  // playerCommandsSystem and the foundation's currentHp survives
-  // damage taken during construction.
+  // contract as `findPreferredEnemyUnitInRadius` for buildings. A foundation
+  // is a target once building starts (AoE2: damageable while building); one
+  // nobody has started is hidden from enemies (unstartedFoundations.ts).
   findPreferredEnemyBuildingInRadius(
     viewerOwner: number,
     origin: Position,
@@ -267,11 +266,9 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
   }
 
   function findPreferredVisibleEnemyBuilding(viewerOwner: number, origin: Position, minimumRange = 0): number | null {
-    // Iter-2 M2-1: visibility check goes through the building footprint,
-    // not just the anchor cell, so partially-visible large buildings
-    // (Castles, Town Centers, Wonders) are targetable as soon as ANY
-    // cell of the footprint is in fog. Mirrors the contract createProjector
-    // already uses to decide whether to render the building.
+    // Iter-2 M2-1: visibility goes through the footprint, not the anchor, so
+    // a large building is targetable as soon as ANY of its cells is seen —
+    // the renderer's rule. An unstarted foundation is never one (work 121).
     const candidates = [...world.query('position', 'building')]
       .map((id) => ({
         id,
@@ -286,6 +283,7 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
             entry.position === undefined
             || entry.building === undefined
             || !isEnemyOwner(teams(), viewerOwner, entry.building.owner)
+            || isUnstartedFoundation(accessor, entry.id)
           ) {
             return false;
           }
@@ -455,9 +453,10 @@ export function createTargetFindingOps(deps: TargetFindingDeps): TargetFindingOp
       : world.queryInRadius(origin.x, origin.y, radius, 'position', 'building')) {
       const position = world.getComponent<Position>(id, 'position');
       const building = world.getComponent<BuildingComponent>(id, 'building');
-      if (!position || !building || !isEnemyOwner(teams(), viewerOwner, building.owner)) {
-        continue;
-      }
+      if (
+        !position || !building || !isEnemyOwner(teams(), viewerOwner, building.owner)
+        || isUnstartedFoundation(accessor, id)
+      ) continue;
 
       const distance = manhattanDistance(origin, position);
       if (distance > radius) {

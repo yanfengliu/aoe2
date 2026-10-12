@@ -124,6 +124,8 @@ export function makeReplayBridge(
       fogOwner === HUMAN_PLAYER_ID ? api.getFogMemoryEntities : () => [],
     getRecentUnitAttacks: api.getRecentUnitAttacks,
     getRenderStoreVersion: () => renderStoreVersion,
+    // The recorded perspective never saw an enemy's unstarted foundation.
+    isBuildingHidden: (id) => api.isBuildingHiddenFrom(id, fogOwner),
   });
 
   return {

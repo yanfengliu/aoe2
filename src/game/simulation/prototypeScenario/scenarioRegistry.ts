@@ -20,6 +20,16 @@ import { createBuildingShotLandingFixture } from '../fixtures/buildingShotLandin
 import { createBuildingVisionBuildFixture, createBuildingVisionFixture } from '../fixtures/buildingVision';
 import { createCorridorSealFixture } from '../fixtures/corridorSeal';
 import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from '../fixtures/farmsAreWalkable';
+import {
+  createHiddenFoundationAiFixture,
+  createHiddenFoundationAiTowerFixture,
+  createHiddenFoundationConquestFixture,
+  createHiddenFoundationFixture,
+  createHiddenFoundationLastResortFixture,
+  createHiddenFoundationTowerFixture,
+  createHiddenFoundationTownCenterFixture,
+  createHiddenFoundationViewFixture,
+} from '../fixtures/hiddenFoundation';
 import { createMinimumRangeCensusFixture, minimumRangeCensusSeeds } from '../fixtures/minimumRangeCensus';
 import { createProjectileLookShowcaseFixture } from '../fixtures/projectileLookShowcase';
 import { createRaidWarningFixture } from '../fixtures/raidWarning';
@@ -388,4 +398,12 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['building-vision-fixture', createBuildingVisionFixture],
   ['building-vision-build-fixture', createBuildingVisionBuildFixture],
   ['siege-base-stats-fixture', createSiegeBaseStatsFixture],
+  ['hidden-foundation-fixture', createHiddenFoundationFixture],
+  ['hidden-foundation-ai-fixture', createHiddenFoundationAiFixture],
+  ['hidden-foundation-town-center-fixture', createHiddenFoundationTownCenterFixture],
+  ['hidden-foundation-last-resort-fixture', createHiddenFoundationLastResortFixture],
+  ['hidden-foundation-conquest-fixture', createHiddenFoundationConquestFixture],
+  ['hidden-foundation-tower-fixture', createHiddenFoundationTowerFixture],
+  ['hidden-foundation-ai-tower-fixture', createHiddenFoundationAiTowerFixture],
+  ['hidden-foundation-view-fixture', createHiddenFoundationViewFixture],
 ]);

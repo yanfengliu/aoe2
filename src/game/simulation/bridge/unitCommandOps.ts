@@ -32,6 +32,7 @@ import { createGatherCommandOps } from './gatherCommandOps';
 import { createPatrolCommandOps } from './patrolCommandOps';
 import { createSheepCommandOps, type SheepCommandOps } from './sheepCommandOps';
 import { createUnitSelectionOps, type UnitSelectionOps } from './unitSelectionOps';
+import { isFoundationHiddenFrom } from './unstartedFoundations';
 import {
   createMonkContextOps,
   type MonkContextRouteOptions,
@@ -316,6 +317,8 @@ export function createUnitCommandOps(deps: UnitCommandOpsDeps): UnitCommandOps {
     } else if (targetEntityKind === 'building') {
       const targetBuilding = world.getComponent<BuildingComponent>(targetEntityId, 'building');
       if (!targetBuilding || targetBuilding.owner === unit.owner) return false;
+      // No attack order may name an enemy's unstarted foundation (work 121).
+      if (isFoundationHiddenFrom(accessor, targetEntityId, targetBuilding.owner, unit.owner)) return false;
     } else {
       const targetResource = world.getComponent<ResourceComponent>(targetEntityId, 'resource');
       const wildlife = accessor.get(wildlifeStatesCodec).get(targetEntityId);

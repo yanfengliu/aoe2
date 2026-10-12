@@ -13,6 +13,7 @@ import type {
 import { buildingFootprint, type GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { isCellSeen, isFootprintSeen, readSightOwners } from './humanSight';
+import { isFoundationHiddenFrom } from './unstartedFoundations';
 
 export interface VisibilityQueriesDeps {
   world: GameWorld;
@@ -86,9 +87,14 @@ export function createVisibilityQueries(deps: VisibilityQueriesDeps): Visibility
     return { position, owner, footprintWidth, footprintHeight };
   }
 
+  // An enemy's foundation nobody has started building is not visible however
+  // much of it is lit (unstartedFoundations.ts), so it cannot be selected by id
+  // or right-clicked.
   function isEntityVisibleToHuman(entityId: number): boolean {
     const probe = getEntityVisibilityProbe(entityId);
     if (!probe) return false;
+    const building = world.getComponent<BuildingComponent>(entityId, 'building');
+    if (building && isFoundationHiddenFrom(accessor, entityId, building.owner, humanPlayerId)) return false;
     return isEntityFootprintVisibleToHuman(
       probe.position,
       probe.owner,

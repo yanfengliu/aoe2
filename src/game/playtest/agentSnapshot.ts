@@ -15,6 +15,7 @@ import type {
 import type { EconomyState, SelectionState } from '../simulation/types';
 import type { AgentBuildingOptions } from '../simulation/createSimulationBridge';
 import { resourceKindToEconomyResource } from '../simulation/prototypeEconomyRules';
+import { isConstructionStarted } from '../simulation/bridge/unstartedFoundations';
 
 const MAX_ENEMIES = 200;
 const MAX_SELECTION_ENTRIES = 16;
@@ -86,6 +87,9 @@ function enemiesFor(
   for (const b of economy.buildings) {
     if (b.owner === ownerId) continue;
     if (seen.has(b.id)) continue;
+    // Another player's foundation nobody has started building is hidden from
+    // its enemies (work 121); this list counts every other player as one.
+    if (visibility && !isConstructionStarted(b)) continue;
     // Buildings span multiple cells — visible if ANY footprint cell
     // is visible (matches engine renderer + target selection rules).
     if (

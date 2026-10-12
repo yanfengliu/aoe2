@@ -32,6 +32,8 @@ import { runFerryPhase } from './aiFerryPhase';
 import { runAttackPhase } from './aiSystemAttackPhase';
 import { runHuntPhase } from './aiSystemHuntPhase';
 import { isEnemyOwner } from '../../alliances';
+import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import { isUnstartedFoundation } from '../unstartedFoundations';
 
 export type { AiSystemDeps } from './aiSystemTypes';
 
@@ -58,7 +60,14 @@ export function registerAiSystem(deps: AiSystemDeps): void {
       // fight. Without it two AIs build up forever and never meet.
       const townCentersByOwner = new Map<number, { id: number; position: Position | undefined }>();
       for (const [refOwner, ref] of accessor.get(townCenterRefsCodec)) {
-        const id = currentEntityId(activeWorld, ref);
+        let id = currentEntityId(activeWorld, ref);
+        // The reference names an owner's NEWEST Town Center, which may be a
+        // foundation nobody has started building and so hidden from every
+        // enemy (unstartedFoundations.ts): an AI marched on the empty site the
+        // moment a second one went down. Take a started one, or none.
+        if (id !== null && isUnstartedFoundation(accessor, id)) {
+          id = oldestStartedTownCenter(activeWorld, accessor, refOwner);
+        }
         if (id === null) continue;
         townCentersByOwner.set(refOwner, {
           id,
@@ -74,6 +83,8 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         if (!building) continue;
         if (townCentersByOwner.has(building.owner)) continue;
         if (buildingsOfTownCenterlessOwners.has(building.owner)) continue;
+        // Nor is an unstarted foundation anything to march on.
+        if (isUnstartedFoundation(accessor, id)) continue;
         buildingsOfTownCenterlessOwners.set(building.owner, {
           id,
           position: activeWorld.getComponent<Position>(id, 'position'),
@@ -215,6 +226,18 @@ export function registerAiSystem(deps: AiSystemDeps): void {
   });
 }
 
+
+/** The owner's lowest-numbered Town Center somebody has started building, or null. */
+function oldestStartedTownCenter(world: GameWorld, accessor: BridgeStateAccessor, owner: number): number | null {
+  let oldest: number | null = null;
+  for (const id of world.query('building')) {
+    const building = world.getComponent<BuildingComponent>(id, 'building');
+    if (building?.owner !== owner || building.buildingType !== 'town-center') continue;
+    if (isUnstartedFoundation(accessor, id)) continue;
+    if (oldest === null || id < oldest) oldest = id;
+  }
+  return oldest;
+}
 
 /**
  * The enemy unit the AI sights near its base: the lowest-id unit of another

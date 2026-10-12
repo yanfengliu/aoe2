@@ -28,6 +28,7 @@ import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import { conversionStateCodec, playerTeamsCodec } from '../bridgeStateSerialize';
 import { isCellSeen, isFootprintSeen, readSightOwners } from '../humanSight';
 import { isStaticMemorableResourceType } from '../../prototypeUnitRules';
+import { isFoundationHiddenFrom } from '../unstartedFoundations';
 import type { MemoryEntry } from '../memoryTypes';
 import { architectureStyleFor } from '../../architectureStyles';
 
@@ -135,6 +136,15 @@ export function registerFogMemorySystem(deps: FogMemorySystemDeps): void {
             }
             continue;
           }
+        } else if (isFoundationHiddenFrom(accessor, id, building.owner, humanPlayerId)) {
+          // An enemy's foundation nobody has started building is hidden from
+          // the human (work 121, unstartedFoundations.ts): never remembered,
+          // and an entry held for it (an older save's) is dropped.
+          if (heldForThis) {
+            humanMemory.delete(id);
+            changed = true;
+          }
+          continue;
         } else if (
           !isFootprintSeen(
             visibility,

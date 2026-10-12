@@ -290,7 +290,7 @@ export function seedScenarioEntities(deps: ScenarioSeedDeps): void {
         owner,
         spawn.kind as BuildableBuildingType,
         { x: spawn.x, y: spawn.y },
-        true,
+        !spawn.unstartedFoundation,
         spawn.vision,
       );
       if (typeof spawn.startHp === 'number') {

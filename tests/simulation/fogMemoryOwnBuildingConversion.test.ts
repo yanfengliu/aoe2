@@ -53,13 +53,6 @@ function stepUntilProgress(bridge: Bridge, id: number, progress: number): void {
   }
 }
 
-function stepUntilFlipped(bridge: Bridge, houseId: number, label: string): void {
-  for (let ticks = 0; ownerOf(bridge, houseId) !== 2; ticks += 1) {
-    expect(ticks, label).toBeLessThan(900);
-    bridge.step(100);
-  }
-}
-
 function recall(bridge: Bridge, monkId: number): void {
   bridge.pendingCommands.push({ type: 'unit.move', data: { unitId: monkId, target: { x: 12, y: 24 } } });
 }
@@ -120,19 +113,29 @@ describe('conversion and the player\'s fog memory', () => {
     expect(drawnAs(staged, house.id), 'drawn after it was lost out of the player\'s sight').toEqual([{ isMemory: true, owner: 2 }]);
   });
 
-  it('keeps a foundation of the player\'s that nobody sees on the map when an enemy Monk converts it', () => {
-    // A foundation gives no sight, so nothing of the player's sees this one:
-    // the exception has to remember it whatever the fog (review F0).
+  it('refuses an enemy Monk sent at a foundation of the player\'s nobody has started, which stays the player\'s and is drawn live', () => {
+    // An enemy cannot see a foundation nobody has started building (work 121,
+    // spec §12.2), so its Monk cannot be sent to convert one. Before that rule
+    // this case had the Monk convert it within 900 ticks; it now waits the
+    // same 900 and the foundation is still the player's, with no conversion
+    // progress, drawn live as every building of the player's is.
     const { staged, house, monkId } = stageEnemyConversion({ foundation: true });
     expect(staged.getEconomyState().buildings.find((building) => building.id === house.id)?.isComplete,
       'premise: an unfinished foundation').toBe(false);
     expect(unseenNow(staged, [house]), 'premise: nothing of the player\'s sees it').toHaveLength(1);
 
+    const monkAt = (): { x: number; y: number } | undefined => {
+      const monk = staged.getEconomyState().units.find((unit) => unit.id === monkId);
+      return monk && { x: monk.x, y: monk.y };
+    };
+    const before = monkAt();
     orderEnemyConversion(staged, monkId, house.id);
-    stepUntilFlipped(staged, house.id, 'the enemy Monk converts the foundation');
-    staged.step(100);
+    step(staged, 900);
 
-    expect(drawnAs(staged, house.id), 'drawn after the flip').toEqual([{ isMemory: true, owner: 2 }]);
+    expect(monkAt(), 'the Monk was not sent anywhere').toEqual(before);
+    expect(ownerOf(staged, house.id), 'still the player\'s').toBe(HUMAN_PLAYER_ID);
+    expect(progressOn(staged, house.id), 'no conversion progress').toBeUndefined();
+    expect(drawnAs(staged, house.id), 'drawn live').toEqual([{ isMemory: false, owner: HUMAN_PLAYER_ID }]);
   });
 
   it('remembers the building from the enemy Monk\'s first tick of progress, not while it walks there, and still after a recall', () => {

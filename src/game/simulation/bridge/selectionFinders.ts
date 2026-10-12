@@ -18,6 +18,7 @@ import {
 } from './bridgeStateSerialize';
 import { isEnemyOwner } from '../alliances';
 import { isCellSeen, readSightOwners } from './humanSight';
+import { isUnstartedFoundation } from './unstartedFoundations';
 
 export interface SelectionFindersDeps {
   world: GameWorld;
@@ -109,6 +110,8 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
     return null;
   }
 
+  // An enemy's foundation nobody has started building is not there for the
+  // attacker (unstartedFoundations.ts): the click walks onto its ground.
   function findHostileBuildingAtCell(
     x: number,
     y: number,
@@ -121,6 +124,7 @@ export function createSelectionFinders(deps: SelectionFindersDeps): SelectionFin
         position
         && building
         && hostile(attackerOwner, building.owner)
+        && !isUnstartedFoundation(accessor, id)
         && buildingOccupiesCell(id, x, y)
         && seen(x, y)
       ) {
