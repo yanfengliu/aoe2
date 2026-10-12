@@ -100,7 +100,7 @@ export function createSimulationBridge(
     getPlayerAge,
     getPlayerResources,
     getSharedVisionOwners,
-    isBuildingHiddenFrom,
+    isFoundationHiddenFrom,
     getPlayerCivilization,
     getResearchedTechnologies,
     getConstructionCost,
@@ -237,7 +237,7 @@ export function createSimulationBridge(
     getFogMemoryEntities,
     getRecentUnitAttacks,
     getRenderStoreVersion: () => renderStoreVersion,
-    isBuildingHidden: (id) => isBuildingHiddenFrom(id, HUMAN_PLAYER_ID),
+    isFoundationHidden: (id) => isFoundationHiddenFrom(id, HUMAN_PLAYER_ID),
   });
 
   let accumulatorMs = 0;

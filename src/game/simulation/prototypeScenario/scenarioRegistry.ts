@@ -26,6 +26,9 @@ import {
   createHiddenFoundationConquestFixture,
   createHiddenFoundationFixture,
   createHiddenFoundationLastResortFixture,
+  createHiddenFoundationOwnReferenceFixture,
+  createHiddenFoundationSpiesFixture,
+  createHiddenFoundationSplashFixture,
   createHiddenFoundationTowerFixture,
   createHiddenFoundationTownCenterFixture,
   createHiddenFoundationViewFixture,
@@ -406,4 +409,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['hidden-foundation-tower-fixture', createHiddenFoundationTowerFixture],
   ['hidden-foundation-ai-tower-fixture', createHiddenFoundationAiTowerFixture],
   ['hidden-foundation-view-fixture', createHiddenFoundationViewFixture],
+  ['hidden-foundation-spies-fixture', createHiddenFoundationSpiesFixture],
+  ['hidden-foundation-splash-fixture', createHiddenFoundationSplashFixture],
+  ['hidden-foundation-own-reference-fixture', createHiddenFoundationOwnReferenceFixture],
 ]);

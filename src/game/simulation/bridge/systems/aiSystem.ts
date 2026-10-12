@@ -59,20 +59,27 @@ export function registerAiSystem(deps: AiSystemDeps): void {
       // in the human slot, or a skirmish with several AI players, somebody to
       // fight. Without it two AIs build up forever and never meet.
       const townCentersByOwner = new Map<number, { id: number; position: Position | undefined }>();
+      // The Town Centers an ENEMY may know of. The reference names an owner's
+      // NEWEST Town Center, which may be a foundation nobody has started
+      // building and so hidden from every enemy (unstartedFoundations.ts): an
+      // AI marched on the empty site the moment a second one went down. An
+      // enemy takes the owner's lowest-id started Town Center instead, or
+      // none; the owner's own reference point is left as it is.
+      const knownTownCentersByOwner = new Map<number, { id: number; position: Position | undefined }>();
       for (const [refOwner, ref] of accessor.get(townCenterRefsCodec)) {
-        let id = currentEntityId(activeWorld, ref);
-        // The reference names an owner's NEWEST Town Center, which may be a
-        // foundation nobody has started building and so hidden from every
-        // enemy (unstartedFoundations.ts): an AI marched on the empty site the
-        // moment a second one went down. Take a started one, or none.
-        if (id !== null && isUnstartedFoundation(accessor, id)) {
-          id = oldestStartedTownCenter(activeWorld, accessor, refOwner);
-        }
+        const id = currentEntityId(activeWorld, ref);
         if (id === null) continue;
         townCentersByOwner.set(refOwner, {
           id,
           position: activeWorld.getComponent<Position>(id, 'position'),
         });
+        const knownId = isUnstartedFoundation(accessor, id)
+          ? lowestIdStartedTownCenter(activeWorld, accessor, refOwner)
+          : id;
+        if (knownId === null) continue;
+        knownTownCentersByOwner.set(refOwner, knownId === id
+          ? townCentersByOwner.get(refOwner)!
+          : { id: knownId, position: activeWorld.getComponent<Position>(knownId, 'position') });
       }
       // The nearest surviving building of an enemy that has NO Town Center —
       // the only thing left to march on once one is razed. Deterministic:
@@ -81,7 +88,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
       for (const id of [...activeWorld.query('building')].sort((a, b) => a - b)) {
         const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
         if (!building) continue;
-        if (townCentersByOwner.has(building.owner)) continue;
+        if (knownTownCentersByOwner.has(building.owner)) continue;
         if (buildingsOfTownCenterlessOwners.has(building.owner)) continue;
         // Nor is an unstarted foundation anything to march on.
         if (isUnstartedFoundation(accessor, id)) continue;
@@ -113,7 +120,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
         accessor.markDirty(aiStatesCodec);
 
         const { targetOwner, targetTownCenterId, targetTownCenterPosition } =
-          pickAttackTarget(owner, townCentersByOwner, accessor.get(playerTeamsCodec));
+          pickAttackTarget(owner, knownTownCentersByOwner, accessor.get(playerTeamsCodec), townCentersByOwner.get(owner));
         const ownerTownCenterId = currentEntityId(activeWorld, accessor.get(townCenterRefsCodec).get(owner));
         const ownerTownCenterPosition =
           ownerTownCenterId === null
@@ -227,8 +234,8 @@ export function registerAiSystem(deps: AiSystemDeps): void {
 }
 
 
-/** The owner's lowest-numbered Town Center somebody has started building, or null. */
-function oldestStartedTownCenter(world: GameWorld, accessor: BridgeStateAccessor, owner: number): number | null {
+/** The owner's lowest-id Town Center somebody has started building, or null. */
+function lowestIdStartedTownCenter(world: GameWorld, accessor: BridgeStateAccessor, owner: number): number | null {
   let oldest: number | null = null;
   for (const id of world.query('building')) {
     const building = world.getComponent<BuildingComponent>(id, 'building');
@@ -322,12 +329,14 @@ export function pickAttackTarget(
   owner: number,
   townCentersByOwner: ReadonlyMap<number, { id: number; position: Position | undefined }>,
   teams: ReadonlyMap<number, number> = new Map(),
+  // Where the AI measures from: its own Town Center as its reference names
+  // it, which the map of what enemies may know need not hold (work 121).
+  own: { id: number; position: Position | undefined } | undefined = townCentersByOwner.get(owner),
 ): {
   targetOwner: number | null;
   targetTownCenterId: number | null;
   targetTownCenterPosition: Position | null | undefined;
 } {
-  const own = townCentersByOwner.get(owner);
   let best: { owner: number; id: number; position: Position | undefined } | null = null;
   let bestDistance = Number.POSITIVE_INFINITY;
   // Sorted by owner id rather than map order, so the tie-break below is a

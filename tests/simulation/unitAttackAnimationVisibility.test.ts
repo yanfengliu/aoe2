@@ -131,6 +131,7 @@ describe('unit attack animation visibility lifetime', () => {
       getFogMemoryEntities: () => [],
       getRecentUnitAttacks: () => attacks,
       getRenderStoreVersion: () => version,
+      isFoundationHidden: () => false,
     });
 
     visibility.setSource(1, 99, { x: 5, y: 5, radius: 2 });
@@ -174,6 +175,7 @@ describe('unit attack animation visibility lifetime', () => {
       getFogMemoryEntities: () => [],
       getRecentUnitAttacks: () => [],
       getRenderStoreVersion: () => 0,
+      isFoundationHidden: () => false,
     });
 
     store.apply({

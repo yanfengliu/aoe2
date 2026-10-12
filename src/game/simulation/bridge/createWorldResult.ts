@@ -38,7 +38,7 @@ export interface CreateWorldResult {
   getSharedVisionOwners: (playerId: number) => number[];
   /** Whether `viewer` is kept from knowing this building exists: an enemy's
    *  foundation nobody has started building (unstartedFoundations.ts). */
-  isBuildingHiddenFrom: (buildingId: number, viewer: number) => boolean;
+  isFoundationHiddenFrom: (buildingId: number, viewer: number) => boolean;
   getPlayerCivilization: (playerId: number) => string;
   /** Every technology the owner has researched, for the coverage census. */
   getResearchedTechnologies: (playerId: number) => readonly import('../types').ResearchableTechnologyType[];

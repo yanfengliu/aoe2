@@ -7,7 +7,10 @@
 //
 // Pure data — no I/O, no engine coupling. The runner script collects
 // per-owner counts via the host (which reads the engine's
-// EconomyState) and feeds them in.
+// EconomyState, through `entityCountsByOwner` below) and feeds them in.
+
+import { isConstructionStarted } from '../simulation/bridge/unstartedFoundations';
+import type { EconomyState } from '../simulation/types';
 
 export interface PerOwnerEntityCounts {
   [ownerId: number]: { units: number; buildings: number };
@@ -17,6 +20,29 @@ export type WinnerResult =
   | { kind: 'winner'; ownerId: number }
   | { kind: 'in-progress'; aliveOwners: number[] }
   | { kind: 'tie' };
+
+/**
+ * Each owner's units and buildings, counted as conquest counts them: a
+ * foundation nobody has started building keeps nobody in the match (work 121),
+ * so it is not counted, and the oracle agrees with the game about who is out.
+ */
+export function entityCountsByOwner(
+  economy: Pick<EconomyState, 'units' | 'buildings'>,
+): PerOwnerEntityCounts {
+  const counts: PerOwnerEntityCounts = {};
+  for (const unit of economy.units) {
+    const slot = counts[unit.owner] ?? { units: 0, buildings: 0 };
+    slot.units += 1;
+    counts[unit.owner] = slot;
+  }
+  for (const building of economy.buildings) {
+    if (!isConstructionStarted(building)) continue;
+    const slot = counts[building.owner] ?? { units: 0, buildings: 0 };
+    slot.buildings += 1;
+    counts[building.owner] = slot;
+  }
+  return counts;
+}
 
 export function extractWinner(counts: PerOwnerEntityCounts): WinnerResult {
   const aliveOwners: number[] = [];

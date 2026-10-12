@@ -31,7 +31,9 @@ export const HIDDEN_FOUNDATION_AWAY = { x: 40, y: 17 } as const;
  * north-west and two Militia on the default Aggressive stance by the site.
  * Owner 2, with its AI off, has a Town Center in the south-east and a villager
  * east of the site with the wood for a Barracks; a test has that villager put
- * the foundation down. With `teamsByOwner` the same layout is an ally's.
+ * the foundation down. With `teamsByOwner` the same layout is an ally's;
+ * owner 3, AI off, alone in the north-east, keeps the match live then, since
+ * a match where everyone is allied is decided at its first tick.
  */
 export function createHiddenFoundationFixture(seed: string): PrototypeScenario {
   return {
@@ -47,12 +49,14 @@ export function createHiddenFoundationFixture(seed: string): PrototypeScenario {
         disableAi: true,
         startingResources: { food: 0, wood: 500, gold: 0, stone: 0 },
       },
+      { owner: 3, townCenter: { x: 52, y: 4 }, disableAi: true },
     ],
     spawns: [
       ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
       ...HIDDEN_FOUNDATION_SOLDIERS.map((cell) => ownedSpawn('militia', 1, cell.x, cell.y, { vision: 4 })),
       ownedSpawn('town-center', 2, 52, 28, { vision: 7 }),
       ownedSpawn('villager', 2, HIDDEN_FOUNDATION_BUILDER.x, HIDDEN_FOUNDATION_BUILDER.y, { vision: 4 }),
+      ownedSpawn('town-center', 3, 52, 4, { vision: 7 }),
     ],
   };
 }
@@ -170,12 +174,14 @@ export function createHiddenFoundationLastResortFixture(seed: string): Prototype
 }
 
 export const HIDDEN_CONQUEST_FOUNDATION = { x: 40, y: 20 } as const;
+export const HIDDEN_CONQUEST_HUMAN_FOUNDATION = { x: 10, y: 20 } as const;
 
 /**
  * `hidden-foundation-conquest-fixture`: owner 2, AI off, has a House
  * foundation nobody has started and one villager beside it; the human has a
- * Town Center. A test deletes the villager, before or after it starts the
- * House, to leave owner 2 with the foundation alone. Definitive Edition does
+ * Town Center and a House foundation nobody has started. A test deletes the
+ * villager, before or after it starts the House, to leave owner 2 with the
+ * foundation alone, or the human's Town Center, to leave the human so. Definitive Edition does
  * not let a foundation keep a player in the match (update 46295 stopped the
  * Donjon's doing so), and no enemy can see an unstarted one to destroy it.
  */
@@ -191,6 +197,9 @@ export function createHiddenFoundationConquestFixture(seed: string): PrototypeSc
     ],
     spawns: [
       ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('house', 1, HIDDEN_CONQUEST_HUMAN_FOUNDATION.x, HIDDEN_CONQUEST_HUMAN_FOUNDATION.y, {
+        unstartedFoundation: true,
+      }),
       ownedSpawn('house', 2, HIDDEN_CONQUEST_FOUNDATION.x, HIDDEN_CONQUEST_FOUNDATION.y, { unstartedFoundation: true }),
       ownedSpawn('villager', 2, HIDDEN_CONQUEST_FOUNDATION.x - 1, HIDDEN_CONQUEST_FOUNDATION.y, { vision: 4 }),
     ],
@@ -288,6 +297,100 @@ export function createHiddenFoundationViewFixture(seed: string): PrototypeScenar
       ownedSpawn('town-center', 2, 50, 28),
       ownedSpawn('barracks', 2, HIDDEN_VIEW_FOUNDATION.x, HIDDEN_VIEW_FOUNDATION.y, { unstartedFoundation: true }),
       ownedSpawn('house', 2, HIDDEN_VIEW_HOUSE.x, HIDDEN_VIEW_HOUSE.y),
+    ],
+  };
+}
+
+export const HIDDEN_SPIES_FOUNDATION = { x: 30, y: 16 } as const;
+export const HIDDEN_SPIES_HOUSE = { x: 34, y: 17 } as const;
+
+/**
+ * `hidden-foundation-spies-fixture`: the human has researched Spies, which
+ * shows it everything every other player sees, and nothing of its own stands
+ * near owner 2's Barracks foundation nobody has started or the standing House
+ * beside it; owner 2's villager sees both. Spies shows the House and must not
+ * show the foundation.
+ */
+export function createHiddenFoundationSpiesFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 4, y: 4 }, disableAi: true, startingResearchedTechnologies: ['spies'] },
+      { owner: 2, townCenter: { x: 52, y: 28 }, disableAi: true },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('town-center', 2, 52, 28, { vision: 7 }),
+      ownedSpawn('barracks', 2, HIDDEN_SPIES_FOUNDATION.x, HIDDEN_SPIES_FOUNDATION.y, { unstartedFoundation: true }),
+      ownedSpawn('house', 2, HIDDEN_SPIES_HOUSE.x, HIDDEN_SPIES_HOUSE.y),
+      ownedSpawn('villager', 2, 33, 20, { vision: 4 }),
+    ],
+  };
+}
+
+export const HIDDEN_SPLASH_FOUNDATION = { x: 25, y: 16 } as const;
+export const HIDDEN_SPLASH_MANGONEL = { x: 20, y: 17 } as const;
+/** Owner 2's villager, one cell west of the foundation: the blast's target. */
+export const HIDDEN_SPLASH_VILLAGER = { x: 24, y: 17 } as const;
+
+/**
+ * `hidden-foundation-splash-fixture`: a human Mangonel four cells from owner
+ * 2's villager, which stands one cell west of owner 2's Barracks foundation
+ * nobody has started. A stone on the villager's cell blasts a radius of one
+ * cell (units.csv), which takes in the foundation's west edge; a blast hurts
+ * units only (spec §10.7), so the villager is hurt and the foundation is not.
+ */
+export function createHiddenFoundationSplashFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 4, y: 4 }, disableAi: true, startingAge: 'castle-age' },
+      { owner: 2, townCenter: { x: 52, y: 28 }, disableAi: true },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('mangonel', 1, HIDDEN_SPLASH_MANGONEL.x, HIDDEN_SPLASH_MANGONEL.y, { vision: 7 }),
+      ownedSpawn('town-center', 2, 52, 28, { vision: 7 }),
+      ownedSpawn('barracks', 2, HIDDEN_SPLASH_FOUNDATION.x, HIDDEN_SPLASH_FOUNDATION.y, { unstartedFoundation: true }),
+      ownedSpawn('villager', 2, HIDDEN_SPLASH_VILLAGER.x, HIDDEN_SPLASH_VILLAGER.y, { vision: 4 }),
+    ],
+  };
+}
+
+export const HIDDEN_OWN_REFERENCE_NEAR_ENEMY = { x: 4, y: 30 } as const;
+export const HIDDEN_OWN_REFERENCE_FAR_ENEMY = { x: 52, y: 4 } as const;
+
+/**
+ * `hidden-foundation-own-reference-fixture`: owner 2's AI measures from its own
+ * Town Center reference, which names its newest Town Center, here a foundation
+ * nobody has started at (10, 30). Hiding that foundation from enemies is no
+ * reason to move the AI's own origin: from it the nearest enemy is owner 1, at
+ * (4, 30); from owner 2's started Town Center at (52, 20) it would be owner 3,
+ * at (52, 4). Neither enemy has a unit, so the AI marches at once.
+ */
+export function createHiddenFoundationOwnReferenceFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { ...HIDDEN_OWN_REFERENCE_NEAR_ENEMY }, disableAi: true },
+      { ...OWNER_TWO_CASTLE_AI, townCenter: { x: 52, y: 20 } },
+      { owner: 3, townCenter: { ...HIDDEN_OWN_REFERENCE_FAR_ENEMY }, disableAi: true },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, HIDDEN_OWN_REFERENCE_NEAR_ENEMY.x, HIDDEN_OWN_REFERENCE_NEAR_ENEMY.y, { vision: 7 }),
+      ownedSpawn('town-center', 3, HIDDEN_OWN_REFERENCE_FAR_ENEMY.x, HIDDEN_OWN_REFERENCE_FAR_ENEMY.y, { vision: 7 }),
+      ownedSpawn('town-center', 2, 52, 20, { vision: 7 }),
+      ownedSpawn('town-center', 2, 10, 30, { unstartedFoundation: true }),
+      ...ownerTwoArmy(7, { x: 30, y: 12 }),
     ],
   };
 }

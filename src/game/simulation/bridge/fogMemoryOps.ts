@@ -8,7 +8,9 @@
 import type { VisibilityMap } from 'civ-engine';
 
 import type { MemoryEntry } from './memoryTypes';
-import type { ProjectedEntityView } from '../types';
+import type { BuildingComponent, ProjectedEntityView } from '../types';
+import type { GameWorld } from './pureHelpers';
+import { isUnstartedFoundation } from './unstartedFoundations';
 import { isFootprintKnown, isFootprintSeen, readSightOwners } from './humanSight';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { lastSeenStaticCodec } from './bridgeStateSerialize';
@@ -46,6 +48,8 @@ export interface FogMemoryOps {
 }
 
 export interface FogMemoryDeps {
+  /** Read only to keep another player's unstarted foundation off the map. */
+  world: GameWorld;
   // Phase 2D: lastSeenStatic migrated to world.state.aoe2.* via accessor.
   accessor: BridgeStateAccessor;
   humanPlayerId: number;
@@ -53,7 +57,17 @@ export interface FogMemoryDeps {
 }
 
 export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
-  const { accessor, humanPlayerId, visibility } = deps;
+  const { world, accessor, humanPlayerId, visibility } = deps;
+
+  // Another player's foundation nobody has started building, an enemy's or an
+  // ally's, is never drawn from memory (work 121). The fog-memory pass stops
+  // recording one; this keeps an older save's entry off the map between the
+  // load and that pass's first run.
+  const isRememberedUnstartedFoundation = (entityId: number, generation: number): boolean => {
+    if (!world.isCurrent({ id: entityId, generation })) return false;
+    const building = world.getComponent<BuildingComponent>(entityId, 'building');
+    return building !== undefined && building.owner !== humanPlayerId && isUnstartedFoundation(accessor, entityId);
+  };
 
   function getOrCreateMemoryMap(playerId: number): Map<number, MemoryEntry> {
     const existing = accessor.get(lastSeenStaticCodec).get(playerId);
@@ -82,6 +96,9 @@ export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
     const memoryViews: ProjectedEntityView[] = [];
     for (const [entityId, entry] of humanMemory) {
       if (liveEntityIds.has(entityId)) {
+        continue;
+      }
+      if (isRememberedUnstartedFoundation(entityId, entry.generation)) {
         continue;
       }
       // Iter-3 V3-1: surface a memory entry as long as ANY cell of its

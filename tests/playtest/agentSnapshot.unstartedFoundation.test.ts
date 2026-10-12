@@ -56,3 +56,28 @@ describe('agent snapshot: another player\'s unstarted foundation', () => {
       .toEqual([300]);
   });
 });
+
+describe('agent snapshot: per-player building counts', () => {
+  it('leave out another player\'s unstarted foundation, count a started one, and count the viewer\'s own', () => {
+    const counts = (owner: number, progress: { isComplete: boolean; buildProgressTicks: number }) =>
+      snapshotWithEnemyBarracks(progress).perPlayer.find((player) => player.ownerId === owner)?.buildingCountByType ?? {};
+    expect(counts(1, { isComplete: false, buildProgressTicks: 0 })).toEqual({});
+    expect(counts(1, { isComplete: false, buildProgressTicks: 1 })).toEqual({ barracks: 1 });
+
+    const ownFoundation = buildAgentSnapshot({
+      ownerId: 1,
+      tick: 0,
+      tps: 10,
+      economy: makeEconomy({
+        buildings: [{
+          id: 301, owner: 1, buildingType: 'house', x: 2, y: 2, footprintWidth: 2, footprintHeight: 2,
+          isComplete: false, buildProgressTicks: 0, totalBuildTicks: 250, populationProvided: 0, queue: [],
+        }] as unknown as EconomyState['buildings'],
+      }),
+      selection: makeSelection(),
+      screenMapping: SCREEN,
+      visibility: () => true,
+    });
+    expect(ownFoundation.perPlayer.find((player) => player.ownerId === 1)?.buildingCountByType).toEqual({ house: 1 });
+  });
+});

@@ -30,6 +30,7 @@ import { describe, expect, it } from 'vitest';
 import { lastSeenStaticCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
+import type { ProjectedEntityView } from '../../src/game/simulation/types';
 import { asSchema2Blob, worldStateOf } from './saveBlobTestUtils';
 import {
   HIDDEN_FOUNDATION_AWAY,
@@ -135,8 +136,15 @@ describe('an enemy\'s unstarted foundation is hidden from the human', () => {
       bridge.step(100);
     };
 
+    // A standing order first: a refused attack leaves it as it was. One that
+    // was taken and then dropped by the attack step would leave the soldier
+    // idle, so this tells the order's refusal from the step's.
+    expect(bridge.world.submitWithResult('unit.move', { unitId: soldier, target: { x: 8, y: 17 } }).accepted).toBe(true);
+    bridge.step(100);
     order();
     expect(attackCommandOn(bridge, soldier, HIDDEN_FOUNDATION_SITE)).toBe(false);
+    expect(bridge.getDebugSnapshot().unitPaths.find((path) => path.id === soldier)?.commandType, 'its move stands')
+      .toBe('move');
 
     startFoundationAs(bridge, builder, foundationId);
     order();
@@ -190,15 +198,37 @@ describe('an enemy\'s unstarted foundation is hidden from the human', () => {
   }, 30_000);
 });
 
+/** Owner 2 on the human's side, owner 3 the enemy that keeps the match live. */
+const ALLIED = new Map([[1, 1], [2, 1], [3, 2]]);
+
+/** The entry fog memory would hold for a drawn building: what an older build
+ *  recorded for an unstarted foundation it saw. */
+function memoryEntryFrom(view: ProjectedEntityView): Record<string, unknown> {
+  return {
+    kind: 'building',
+    entityType: view.entityType,
+    ...(view.architecture ? { architecture: view.architecture } : {}),
+    generation: view.generation,
+    position: { x: view.x, y: view.y },
+    footprintWidth: view.footprintWidth,
+    footprintHeight: view.footprintHeight,
+    tint: view.tint,
+    owner: view.owner,
+    size: view.size,
+    visualVariant: view.visualVariant,
+  };
+}
+
 describe('an enemy\'s unstarted foundation in an older save\'s fog memory', () => {
-  it('is dropped on the first tick after the load, and not drawn', () => {
-    // An older build remembered an enemy's unstarted foundation once seen. The
-    // entry this build makes for an ALLY's foundation, which it still
-    // remembers, is that entry; it goes into an enemy match's save.
-    const allied = bootWithEnemyFoundation({ teamsByOwner: new Map([[1, 1], [2, 1]]) });
+  it('is not drawn after the load, and is dropped on the first tick', () => {
+    // An older build remembered an enemy's unstarted foundation once seen.
+    // Its entry is built from how the same foundation is drawn while it is an
+    // ally's, which the human sees in plain sight, and put into an enemy
+    // match's save.
+    const allied = bootWithEnemyFoundation({ teamsByOwner: ALLIED });
     stepTicks(allied.bridge, 5);
-    const entry = memoryOf(allied.bridge).get(allied.foundationId);
-    expect(entry, 'premise: an ally\'s unstarted foundation is remembered').toBeDefined();
+    const view = allied.bridge.getRenderState().entities.find((entity) => entity.id === allied.foundationId);
+    expect(view, 'premise: an ally\'s unstarted foundation in sight is drawn').toBeDefined();
 
     const { bridge, foundationId } = bootWithEnemyFoundation();
     stepTicks(bridge, 5);
@@ -206,27 +236,39 @@ describe('an enemy\'s unstarted foundation in an older save\'s fog memory', () =
     const state = worldStateOf(blob);
     const memory = new Map((state[lastSeenStaticCodec.slot] ?? []) as SerializedMemory);
     const human = new Map(memory.get(HUMAN_PLAYER_ID) ?? []);
-    human.set(foundationId, { ...entry, generation: bridge.world.getEntityGeneration(foundationId) });
+    human.set(foundationId, { ...memoryEntryFrom(view!), generation: bridge.world.getEntityGeneration(foundationId) });
     memory.set(HUMAN_PLAYER_ID, [...human]);
     state[lastSeenStaticCodec.slot] = [...memory];
 
     const loaded = createSimulationBridge(FIXTURE, { savedGame: blob });
     expect(memoryOf(loaded).has(foundationId), 'premise: the save carries the entry').toBe(true);
+    expect(isDrawn(loaded, foundationId), 'drawn after the load, before any tick').toBe(false);
     loaded.step(100);
-    expect(memoryOf(loaded).has(foundationId)).toBe(false);
+    expect(memoryOf(loaded).has(foundationId), 'remembered after the first tick').toBe(false);
     expect(isDrawn(loaded, foundationId)).toBe(false);
   }, 30_000);
 });
 
-describe('an ally\'s unstarted foundation is not hidden (DE\'s notes say nothing against it)', () => {
-  it('is drawn where the human can see it', () => {
-    const { bridge, foundationId, soldiers } = bootWithEnemyFoundation({
-      teamsByOwner: new Map([[1, 1], [2, 1]]),
-    });
+describe('an ally\'s unstarted foundation', () => {
+  it('is drawn where the human can see it, and not attacked', () => {
+    const { bridge, foundationId, soldiers } = bootWithEnemyFoundation({ teamsByOwner: ALLIED });
     stepTicks(bridge, 30);
+    expect(bridge.getMatchState().outcome, 'premise: the match is live').toBe('running');
     expect(isDrawn(bridge, foundationId)).toBe(true);
     for (const soldier of soldiers) {
       expect(attackCommandOn(bridge, soldier, HIDDEN_FOUNDATION_SITE)).toBe(false);
     }
+  }, 30_000);
+
+  it('is not remembered once nothing sees it (DE update 46295)', () => {
+    const { bridge, foundationId, soldiers } = bootWithEnemyFoundation({ teamsByOwner: ALLIED });
+    stepTicks(bridge, 20);
+    expect(isDrawn(bridge, foundationId), 'premise: seen').toBe(true);
+    expect(bridge.selectUnitsByIds(soldiers)).toBe(true);
+    expect(bridge.issueMoveCommand(8, 17)).toBe(true);
+    stepTicks(bridge, 200);
+    expect(bridge.getMatchState().outcome, 'premise: the match is live').toBe('running');
+    expect(memoryOf(bridge).has(foundationId), 'remembered').toBe(false);
+    expect(isDrawn(bridge, foundationId), 'drawn').toBe(false);
   }, 30_000);
 });

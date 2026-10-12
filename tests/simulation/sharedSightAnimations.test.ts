@@ -138,6 +138,7 @@ describe('a swing or a death an ally witnessed animates for the human', () => {
         getFogMemoryEntities: () => [],
         getRecentUnitAttacks: () => [SWING],
         getRenderStoreVersion: () => 0,
+        isFoundationHidden: () => false,
       });
       const entities = renderState.getRenderState().entities;
       expect(entities.map((entity) => entity.id)).toEqual([7]);

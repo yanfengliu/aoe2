@@ -6,7 +6,7 @@ import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { CreateWorldResult } from './createWorldResult';
 import type { GameWorld } from './pureHelpers';
 import { readSharedVisionOwners } from './humanSight';
-import { isFoundationHiddenFrom } from './unstartedFoundations';
+import * as unstartedFoundations from './unstartedFoundations';
 import type { ResearchableTechnologyType } from '../types';
 
 const EMPTY_SHARED_VISION_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set();
@@ -34,7 +34,7 @@ export interface AssembleBridgeApiDeps
     | 'getPopulationState'
     | 'getPlayerResources'
     | 'getSharedVisionOwners'
-    | 'isBuildingHiddenFrom'
+    | 'isFoundationHiddenFrom'
     | 'getPlayerCivilization'
     | 'getResearchedTechnologies'
     | 'getConstructionCost'
@@ -101,9 +101,10 @@ export function assembleBridgeApi(deps: AssembleBridgeApiDeps): CreateWorldResul
     getSharedVisionOwners(playerId: number) {
       return readSharedVisionOwners(accessor, playerId);
     },
-    isBuildingHiddenFrom(buildingId: number, viewer: number) {
+    isFoundationHiddenFrom(buildingId: number, viewer: number) {
       const building = rest.world.getComponent<BuildingComponent>(buildingId, 'building');
-      return building !== undefined && isFoundationHiddenFrom(accessor, buildingId, building.owner, viewer);
+      return building !== undefined
+        && unstartedFoundations.isFoundationHiddenFrom(accessor, buildingId, building.owner, viewer);
     },
     getMatchState() {
       return {

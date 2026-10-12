@@ -11,6 +11,7 @@ import { parseCorpusFile } from '../src/game/playtest/corpusSchema.ts';
 import { checkAgeProgression, checkEveryOwnerAgeProgression } from '../src/game/playtest/progressionCheck.ts';
 import { createReplayWorldOnly } from '../src/game/simulation/replay/createReplayWorldOnly.ts';
 import { makeReplayBridge } from '../src/game/simulation/replay/makeReplayBridge.ts';
+import { entityCountsByOwner } from '../src/game/playtest/winnerOracle.ts';
 
 // Replays a recorded bundle to its final tick and returns per-owner ages + the
 // set of living owners, for the economy-progression gate. Opens at the bundle's
@@ -37,13 +38,14 @@ function readEndStateFromBundle(bundlePath) {
   });
   const world = replayer.openAt(bundle.metadata.endTick);
   const eco = makeReplayBridge(world, { fogOwner: 1 }).getEconomyState();
-  // "Living" owner = has any unit or building. Relics are resources (not units
-  // or buildings), so a relic-only owner reads as eliminated — matching the
-  // winnerOracle precedent, and correct here (a relic alone isn't a live economy).
-  const owners = new Set();
-  for (const u of eco.units) if (u.owner != null) owners.add(u.owner);
-  for (const b of eco.buildings) if (b.owner != null) owners.add(b.owner);
-  return { ages: eco.ages ?? {}, aliveOwners: [...owners] };
+  // "Living" owner = has any unit or started building, counted as conquest and
+  // the winnerOracle count it (a foundation nobody has started keeps nobody
+  // in, work 121). Relics are resources (not units or buildings), so a
+  // relic-only owner reads as eliminated (a relic alone isn't a live economy).
+  const owners = Object.entries(entityCountsByOwner(eco))
+    .filter(([owner, count]) => Number.isFinite(Number(owner)) && (count.units > 0 || count.buildings > 0))
+    .map(([owner]) => Number(owner));
+  return { ages: eco.ages ?? {}, aliveOwners: owners };
 }
 
 // Resolve npm shim explicitly per platform. On Windows we MUST set

@@ -37,6 +37,7 @@ import { manhattanDistance, type GameWorld } from '../pureHelpers';
 import { unitMinAttackRange } from '../../prototypeUnitRules';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { RecordPlayerHit } from '../playerHitFeed';
+import { isFoundationHiddenFrom } from '../unstartedFoundations';
 
 export interface AttackStepDeps {
   activeWorld: CivWorld;
@@ -261,6 +262,13 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
           const targetBuilding = activeWorld.getComponent<BuildingComponent>(targetId, 'building');
           const targetHealth = accessor.get(buildingHealthStatesCodec).get(targetId);
           if (!targetPosition || !targetBuilding || !targetHealth || targetBuilding.owner === unit.owner) {
+            clearUnitCommand(id);
+            return true;
+          }
+          // No order can name an enemy's foundation nobody has started building
+          // (work 121); one an older save holds is dropped here, at the step
+          // every attack on a building passes, as the Monk lane drops a task.
+          if (isFoundationHiddenFrom(accessor, targetId, targetBuilding.owner, unit.owner)) {
             clearUnitCommand(id);
             return true;
           }

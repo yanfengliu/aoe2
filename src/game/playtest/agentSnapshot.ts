@@ -214,7 +214,7 @@ function ageOf(economy: EconomyState, ownerId: number): AgentPlayerState['age'] 
   }
 }
 
-function perPlayerStates(economy: EconomyState): AgentPlayerState[] {
+function perPlayerStates(economy: EconomyState, viewerId: number): AgentPlayerState[] {
   const owners = new Set<number>();
   for (const k of Object.keys(economy.playerResources)) owners.add(Number(k));
   for (const k of Object.keys(economy.population)) owners.add(Number(k));
@@ -229,6 +229,9 @@ function perPlayerStates(economy: EconomyState): AgentPlayerState[] {
     const buildingCountByType: Record<string, number> = {};
     for (const b of economy.buildings) {
       if (b.owner !== ownerId) continue;
+      // Another player's foundation nobody has started building is hidden
+      // from the viewer (work 121), so it is not counted either.
+      if (b.owner !== viewerId && !isConstructionStarted(b)) continue;
       const key = String(b.buildingType);
       buildingCountByType[key] = (buildingCountByType[key] ?? 0) + 1;
     }
@@ -369,7 +372,7 @@ export function buildAgentSnapshot(inputs: AgentSnapshotInputs): AgentStateSnaps
   return {
     tick,
     elapsedMmSs: elapsedMmSs(tick, tps),
-    perPlayer: perPlayerStates(economy),
+    perPlayer: perPlayerStates(economy, ownerId),
     selection: summarizeSelection(selection, MAX_SELECTION_ENTRIES),
     ownUnits: ownUnitsFor(ownerId, economy, MAX_OWN_UNITS),
     ownBuildings: ownBuildingsFor(ownerId, economy, MAX_OWN_BUILDINGS),

@@ -90,6 +90,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     getFogMemoryEntities,
     getHumanFogMemorySize,
   } = createFogMemoryOps({
+    world,
     accessor,
     humanPlayerId: HUMAN_PLAYER_ID,
     visibility,

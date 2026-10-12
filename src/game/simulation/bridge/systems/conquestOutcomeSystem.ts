@@ -60,14 +60,20 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps): 
       }
       // A foundation nobody has started building keeps nobody in: no enemy can
       // see it to destroy it (unstartedFoundations.ts), and Definitive Edition
-      // update 46295 stopped a Donjon foundation keeping its owner in.
+      // update 46295 stopped a Donjon foundation keeping its owner in. The scan
+      // never stops early while the human is out, so the flag below is whole
+      // whenever it is read.
+      let humanHoldsUnstartedFoundation = false;
       if (remainingOwners.size > 0) {
         for (const id of activeWorld.query('building')) {
           if (remainingOwners.size === 0) break;
           const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
-          if (building && !isUnstartedFoundation(accessor, id)) {
-            remainingOwners.delete(building.owner);
+          if (!building) continue;
+          if (isUnstartedFoundation(accessor, id)) {
+            if (building.owner === humanPlayerId) humanHoldsUnstartedFoundation = true;
+            continue;
           }
+          remainingOwners.delete(building.owner);
         }
       }
       const humanAlive = !remainingOwners.has(humanPlayerId);
@@ -93,7 +99,14 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps): 
         return;
       }
       if (!humanAlive) {
-        finalizeMatchEnd('defeat', 'conquest', 'All of your units and buildings have been destroyed.');
+        finalizeMatchEnd(
+          'defeat',
+          'conquest',
+          // True words when a foundation nobody started still stands.
+          humanHoldsUnstartedFoundation
+            ? 'You have no units or started buildings left.'
+            : 'All of your units and buildings have been destroyed.',
+        );
         return;
       }
       if (allEnemiesEliminated) {

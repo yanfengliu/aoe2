@@ -29,8 +29,8 @@ export interface RenderStateOpsDeps {
   getRenderStoreVersion: () => number;
   /** Whether this building is hidden from the perspective however much of it
    *  is lit: an enemy's foundation nobody has started building
-   *  (unstartedFoundations.ts). Absent means nothing is (unit tests). */
-  isBuildingHidden?: (buildingId: number) => boolean;
+   *  (unstartedFoundations.ts). Required, so no render path can forget it. */
+  isFoundationHidden: (buildingId: number) => boolean;
 }
 
 export interface RenderStateValue {
@@ -51,7 +51,7 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
     getFogMemoryEntities,
     getRecentUnitAttacks,
     getRenderStoreVersion,
-    isBuildingHidden = () => false,
+    isFoundationHidden,
   } = deps;
 
   let cache: {
@@ -69,7 +69,7 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
   const isCurrentlyVisibleTo = (sight: readonly number[]) => (entity: ProjectedEntityView): boolean => (
     entity.kind === 'tile'
     || entity.owner === humanPlayerId
-    || (!(entity.kind === 'building' && isBuildingHidden(entity.id)) && isFootprintSeen(
+    || (!(entity.kind === 'building' && isFoundationHidden(entity.id)) && isFootprintSeen(
       visibility,
       sight,
       entity.x,

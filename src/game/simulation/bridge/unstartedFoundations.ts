@@ -11,12 +11,14 @@
 // tracked by the developers) expects that a player "should not be able to find
 // out in any way" that an enemy has placed a foundation before construction
 // starts. So an enemy does not draw one (world, minimap, fog memory), cannot
-// select it or right-click it, cannot order an attack on it, and no unit or AI
-// of its picks it as a target; and a foundation does not keep its owner in the
-// match (update 46295 stopped a Donjon foundation doing so), since no enemy
-// could find it to destroy it. Its owner and the owner's allies see it as
-// before: update 46295 fixed allies seeing one in FOG, which this game never
-// did, and no note says what an ally sees of one in plain sight.
+// select it or right-click it, cannot order an attack or a conversion on it,
+// and no unit or AI of its picks it as a target; and a foundation does not
+// keep its owner in the match (update 46295 stopped a Donjon foundation doing
+// so), since no enemy could find it to destroy it. Allies see one where their
+// sight reaches, as no note says otherwise, but fog memory keeps no unstarted
+// foundation of another player's, an ally's included: update 46295 fixed
+// allied foundations yet to begin construction showing in fog, which this game
+// did by remembering one an ally had shown until work 121.
 //
 // This module is the one place that says what "started" means: some build
 // progress stands. Progress only rises, so a started foundation never hides

@@ -26,10 +26,13 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import {
   HIDDEN_AI_TOWER_HOUSE,
   HIDDEN_CONQUEST_FOUNDATION,
+  HIDDEN_CONQUEST_HUMAN_FOUNDATION,
   HIDDEN_FOUNDATION_AWAY,
   HIDDEN_FOUNDATION_SITE,
   HIDDEN_LAST_RESORT_FOUNDATION,
   HIDDEN_LAST_RESORT_HOUSE,
+  HIDDEN_OWN_REFERENCE_FAR_ENEMY,
+  HIDDEN_OWN_REFERENCE_NEAR_ENEMY,
   HIDDEN_TOWN_CENTER,
   HIDDEN_TOWER_FOUNDATION,
   HIDDEN_TOWN_CENTER_FOUNDATION,
@@ -114,6 +117,18 @@ describe('an AI does not see the human\'s unstarted foundation', () => {
   }, 60_000);
 });
 
+describe('an AI\'s own unstarted Town Center', () => {
+  it('is still where it measures from: hiding it from enemies does not move its origin', () => {
+    const bridge = createSimulationBridge('hidden-foundation-own-reference-fixture');
+    const soldiers = idsOf(bridge, 2, 'militia');
+    stepTicks(bridge, 20);
+    // Nearest from its own reference, the unstarted Town Center at (10, 30).
+    expect(anyAttackOn(bridge, soldiers, HIDDEN_OWN_REFERENCE_NEAR_ENEMY)).toBe(true);
+    // Nearest from its started Town Center, which is not its reference.
+    expect(anyAttackOn(bridge, soldiers, HIDDEN_OWN_REFERENCE_FAR_ENEMY)).toBe(false);
+  }, 60_000);
+});
+
 describe('an unstarted foundation does not keep its owner in the match', () => {
   function bootConquest(): { bridge: Bridge; villager: number; foundationId: number } {
     const bridge = createSimulationBridge('hidden-foundation-conquest-fixture');
@@ -135,6 +150,23 @@ describe('an unstarted foundation does not keep its owner in the match', () => {
     deleteVillager(bridge, villager);
     stepTicks(bridge, 5);
     expect(bridge.getMatchState().outcome).toBe('victory');
+  }, 60_000);
+
+  it('tells a player left with only an unstarted foundation why the match is lost', () => {
+    const bridge = createSimulationBridge('hidden-foundation-conquest-fixture');
+    const buildings = bridge.getEconomyState().buildings;
+    const townCenter = buildings.find((building) => building.owner === 1 && building.buildingType === 'town-center')!;
+    const foundation = buildings.find((building) =>
+      building.x === HIDDEN_CONQUEST_HUMAN_FOUNDATION.x && building.y === HIDDEN_CONQUEST_HUMAN_FOUNDATION.y);
+    expect(foundation?.owner, 'premise: the human\'s own foundation').toBe(1);
+    expect(foundation?.buildProgressTicks, 'premise: nobody has started it').toBe(0);
+    stepTicks(bridge, 5);
+    expect(bridge.getMatchState().outcome).toBe('running');
+
+    expect(bridge.world.submitWithResult('entity.delete', { entityId: townCenter.id, requestedBy: 1 }).accepted).toBe(true);
+    stepTicks(bridge, 5);
+    expect(bridge.getMatchState().outcome).toBe('defeat');
+    expect(bridge.getMatchState().summary).toBe('You have no units or started buildings left.');
   }, 60_000);
 
   it('a started foundation keeps its owner in, as before', () => {

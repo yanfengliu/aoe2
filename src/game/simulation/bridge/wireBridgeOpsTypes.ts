@@ -69,7 +69,7 @@ export type WireBridgeOpsResult = Omit<
   | 'getPopulationState'
   | 'getPlayerResources'
   | 'getSharedVisionOwners'
-  | 'isBuildingHiddenFrom'
+  | 'isFoundationHiddenFrom'
   | 'getPlayerCivilization'
   | 'getResearchedTechnologies'
   | 'getConstructionCost'

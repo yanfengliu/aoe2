@@ -64,9 +64,11 @@ export function ownerOf(bridge: Bridge, id: number): number | undefined {
  * Monk with Redemption beside a building of the player's, and the AI never
  * converts, so this is the only way to reach the case; the conversion itself
  * is ordered through the command pipeline (`orderEnemyConversion`). With
- * `foundation`, the House is an unstarted foundation, which gives no sight.
+ * `foundation`, the House is a foundation, which gives no sight: `'started'`
+ * with some build progress standing, `'unstarted'` with none, which no enemy
+ * can see or convert (work 121).
  */
-export function stageEnemyConversion(options: { foundation?: boolean } = {}): {
+export function stageEnemyConversion(options: { foundation?: 'started' | 'unstarted' } = {}): {
   staged: Bridge;
   house: Building;
   monkId: number;
@@ -100,7 +102,7 @@ export function stageEnemyConversion(options: { foundation?: boolean } = {}): {
     constructions.set(house.id, {
       ...(constructions.get(house.id) ?? { totalBuildTicks: 250, populationProvided: 5, width: 2, height: 2 }),
       isComplete: false,
-      buildProgressTicks: 0,
+      buildProgressTicks: options.foundation === 'started' ? 10 : 0,
     });
     state['aoe2.constructionStates'] = [...constructions];
   }

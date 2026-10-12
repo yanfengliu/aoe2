@@ -1,10 +1,12 @@
 // An enemy's Monk cannot convert a foundation nobody has started building
-// (work 121; spec §12.2): its owner cannot see one. The order is refused where
-// it is given (`monkContextOps`, held by the foundation case in
-// `fogMemoryOwnBuildingConversion.test.ts`), and a conversion task that names
-// one anyway — one an older save carries — is dropped by the conversion lane
-// (`monkBuildingConversion`), the step every conversion passes. This file
-// holds the second.
+// (work 121; spec §12.2): its owner cannot see one. Two refusals hold that.
+// The order is refused where it is given (`monkContextOps`); the case that
+// shows it, with the Monk walked away so that the order would have to send it,
+// is "refuses an enemy Monk sent at a foundation of the player's nobody has
+// started" in `fogMemoryOwnBuildingConversion.test.ts`. A conversion task that
+// names one anyway is dropped by the conversion lane (`monkBuildingConversion`),
+// the step every conversion passes. The order path never makes such a task,
+// so only a task an older save holds reaches the lane; this file holds that.
 //
 // BOUND: one staged scene, work 116's `stageEnemyConversion` (the player's
 // unstarted House foundation and owner 2's Monk with Redemption beside it),
@@ -15,7 +17,7 @@ import { describe, expect, it } from 'vitest';
 import { monkTasksCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
-import { orderEnemyConversion, ownerOf, stageEnemyConversion, step } from './fogMemoryOwnBuildings.helpers';
+import { ownerOf, stageEnemyConversion, step } from './fogMemoryOwnBuildings.helpers';
 import { asSchema2Blob, worldStateOf } from './saveBlobTestUtils';
 
 type SerializedTasks = Array<[number, { kind: string; targetEntityRef: { id: number; generation: number } }]>;
@@ -24,43 +26,9 @@ function tasksOf(bridge: ReturnType<typeof createSimulationBridge>): Map<number,
   return new Map((bridge.world.getState(monkTasksCodec.slot) ?? []) as SerializedTasks);
 }
 
-describe('an enemy Monk ordered to convert the player\'s unstarted foundation', () => {
-  it('is not sent toward it from afar', () => {
-    // The staged Monk stands beside the House, where the conversion lane would
-    // drop the task on its first tick anyway; walked away first, the order
-    // would have to send it back, so only a refusal at the order keeps it still.
-    const { staged, house, monkId } = stageEnemyConversion({ foundation: true });
-    staged.pendingCommands.push({ type: 'unit.move', data: { unitId: monkId, target: { x: 12, y: 24 } } });
-    const monkAt = (): { x: number; y: number } => {
-      const monk = staged.getEconomyState().units.find((unit) => unit.id === monkId)!;
-      return { x: monk.x, y: monk.y };
-    };
-    // Walked away, then come to rest: twenty ticks in one place.
-    for (let ticks = 0; Math.abs(monkAt().x - 12) + Math.abs(monkAt().y - 24) > 1; ticks += 1) {
-      expect(ticks, 'premise: the Monk walks away').toBeLessThan(600);
-      staged.step(100);
-    }
-    let still = 0;
-    for (let ticks = 0; still < 20; ticks += 1) {
-      expect(ticks, 'premise: the Monk stops').toBeLessThan(300);
-      const before = monkAt();
-      staged.step(100);
-      const after = monkAt();
-      still = before.x === after.x && before.y === after.y ? still + 1 : 0;
-    }
-    const away = monkAt();
-
-    orderEnemyConversion(staged, monkId, house.id);
-    step(staged, 300);
-
-    expect(monkAt(), 'the Monk stays where it was').toEqual(away);
-    expect(ownerOf(staged, house.id), 'still the player\'s').toBe(HUMAN_PLAYER_ID);
-  }, 60_000);
-});
-
 describe('a conversion task an older save holds on the player\'s unstarted foundation', () => {
   it('is dropped, and the foundation stays the player\'s', () => {
-    const { staged, house, monkId } = stageEnemyConversion({ foundation: true });
+    const { staged, house, monkId } = stageEnemyConversion({ foundation: 'unstarted' });
     const blob = asSchema2Blob(staged.saveGame());
     const state = worldStateOf(blob);
     const tasks = new Map((state[monkTasksCodec.slot] ?? []) as SerializedTasks);

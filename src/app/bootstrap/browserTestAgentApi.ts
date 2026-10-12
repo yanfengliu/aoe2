@@ -15,6 +15,7 @@ import type {
   UnitComponent as OwnedUnitComponent,
 } from '../../game/simulation/types';
 import { buildAgentSnapshot } from '../../game/playtest/agentSnapshot';
+import { entityCountsByOwner } from '../../game/playtest/winnerOracle';
 import {
   checkAgentActorOwnership,
   validateAgentCommandShape,
@@ -254,20 +255,8 @@ export function makeAgentApi(
       // Phase-6.D: aggregate live unit/building counts from the
       // bridge's economy-state surface. Pure read; no engine-internal
       // coupling. The winner oracle in `src/game/playtest/winnerOracle.ts`
-      // consumes this shape.
-      const economy = getBridge().getEconomyState();
-      const counts: Record<number, { units: number; buildings: number }> = {};
-      for (const u of economy.units) {
-        const slot = counts[u.owner] ?? { units: 0, buildings: 0 };
-        slot.units += 1;
-        counts[u.owner] = slot;
-      }
-      for (const b of economy.buildings) {
-        const slot = counts[b.owner] ?? { units: 0, buildings: 0 };
-        slot.buildings += 1;
-        counts[b.owner] = slot;
-      }
-      return counts;
+      // consumes this shape, counted as conquest counts (work 121).
+      return entityCountsByOwner(getBridge().getEconomyState());
     },
 
     // iter-4 review Finding C: the live match outcome. getHudState() reads
