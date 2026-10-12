@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 121
+
+- **An enemy's foundation stays hidden until someone starts building it**, as in Definitive Edition. A foundation an enemy has placed, and no villager has started, is not drawn on the map or the minimap, cannot be selected or right-clicked, and your units do not attack it, even when it stands right beside them. Once a villager starts building it, it shows and can be attacked as before.
+- **The AI no longer knows about your foundations before you start them.** Its soldiers ignore one beside them, and it no longer marches on a second Town Center you have only placed. Your allies still see your foundations.
+- **Foundations nobody has started no longer keep a player in the match.** A player left with only those is defeated, since no enemy could find them to destroy them.
+- A replay recorded before this version plays these rules again, so a recorded attack on an unstarted foundation can play out differently.
+
 ## 0.3.251
 
 - **Chinese Town Centers see 7 tiles farther**, as in Definitive Edition: 15 instead of 8, for the starting Town Center and for every one built later. An ally's Town Centers are unchanged, because this is a Chinese civilization bonus, not a team bonus. A Town Center in a game saved before this change keeps the sight it was saved with.

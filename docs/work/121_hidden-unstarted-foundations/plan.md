@@ -1,9 +1,9 @@
 # An unstarted foundation is hidden from opponents, as in Definitive Edition
 
-Status: planned
+Status: active
 Owner: Coordinator worker w121-hidden-foundations (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
-Updated: 2026-10-11
+Updated: 2026-10-12
 
 ## Problem and outcome
 
