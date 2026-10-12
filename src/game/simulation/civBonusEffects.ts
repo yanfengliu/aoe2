@@ -23,7 +23,7 @@ import type {
 } from './types';
 import { constructionCost, researchCost, trainingCost } from './prototypeEconomyRules';
 import { RESEARCHES_BY_BUILDING } from './buildingProductionTables';
-import { civBonusesFor } from './civBonusTable';
+import { civBonusesFor, GUNPOWDER_UNITS } from './civBonusTable';
 import { isInfantryUnit } from './prototypeUnitRules';
 import { shipwrightWoodCost } from './dockTechEffects';
 
@@ -74,15 +74,34 @@ export function civTrainTimeMultiplier(
 }
 
 // Movement-speed multiplier, applied in the movement tech seam so it composes
-// with Squires/Husbandry/Caravan exactly as a technology would.
+// with Squires/Husbandry/Caravan exactly as a technology would. A rule is flat
+// or steps with the owner's age (Celtic infantry, Berber villagers); the step
+// executor reads the age every tick, so a unit speeds up the tick its owner
+// advances.
 export function civSpeedMultiplier(
   civilization: string | undefined,
   unitType: UnitType,
+  age: AgeType,
 ): number {
   for (const rule of civBonusesFor(civilization)?.speed ?? []) {
-    if (rule.applies(unitType)) return rule.multiplier;
+    if (rule.applies(unitType)) return rule.multiplier ?? rule.multiplierByAge?.[age] ?? 1;
   }
   return 1;
+}
+
+// Flat "+N melee/+N pierce armor" (Italian Foot Archers, sourced vNEXT),
+// added by the combat-state factory to the symmetric accumulator, which melee
+// and pierce armor both read. It does not step with the age, so the age-up
+// sweep has nothing to re-derive.
+export function civArmorBonus(
+  civilization: string | undefined,
+  unitType: UnitType,
+): number {
+  let bonus = 0;
+  for (const rule of civBonusesFor(civilization)?.armor ?? []) {
+    if (rule.applies(unitType)) bonus += rule.bonus;
+  }
+  return bonus;
 }
 
 // How much longer a node of this kind lasts for this owner's gatherers
@@ -299,12 +318,6 @@ export function effectiveTrainingCost(
         target.food = Math.round(target.food * foodMultiplier);
       }
     }
-    if (rule.woodDelta !== undefined) {
-      const target = writable();
-      if (target.wood !== undefined) {
-        target.wood = Math.max(0, target.wood + rule.woodDelta);
-      }
-    }
   }
   return cost ?? base;
 }
@@ -316,7 +329,6 @@ const FOOT_ARCHER_RELOAD_LINE = new Set<UnitType>(['archer', 'crossbowman', 'arb
 const CA_LINE = new Set<UnitType>(['cavalry-archer', 'heavy-cavalry-archer']);
 const SIEGE_RELOAD_LINE = new Set<UnitType>(['battering-ram', 'capped-ram', 'siege-ram', 'mangonel', 'onager', 'siege-onager', 'scorpion', 'heavy-scorpion', 'bombard-cannon', 'trebuchet']);
 const GALLEY_RELOAD_LINE = new Set<UnitType>(['galley', 'war-galley', 'galleon']);
-const GUNPOWDER_RELOAD_LINE = new Set<UnitType>(['hand-cannoneer', 'bombard-cannon', 'cannon-galleon', 'elite-cannon-galleon']);
 
 export function civReloadMultiplier(
   civilization: string | undefined,
@@ -338,7 +350,10 @@ export function civReloadMultiplier(
     case 'Byzantines':
       return unitType === 'fire-ship' || unitType === 'fast-fire-ship' ? 1 / 1.25 : 1;
     case 'Spanish':
-      return GUNPOWDER_RELOAD_LINE.has(unitType) ? 1 / 1.18 : 1;
+      // "Gunpowder Units attack +18% faster": every gunner, the Conquistador
+      // included (sourced vNEXT; the Hand Cannoneer, Bombard Cannon and
+      // Cannon Galleon line alone until then).
+      return GUNPOWDER_UNITS.has(unitType) ? 1 / 1.18 : 1;
     case 'Indians':
       return unitType === 'camel' || unitType === 'heavy-camel' ? 1 / 1.2 : 1;
     default:

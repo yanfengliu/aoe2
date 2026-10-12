@@ -15,7 +15,8 @@ import type {
 import { applyArmorTech } from '../armorTechBonuses';
 import { CAREENING_SHIP_PIERCE_ARMOR } from '../dockTechEffects';
 import { isWaterUnit } from '../unitDomain';
-import { civAttackRangeBonus,
+import { civArmorBonus,
+  civAttackRangeBonus,
   civMeleeArmorBonus,
   civPierceArmorBonus,
   civReloadMultiplier,
@@ -112,8 +113,10 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
       )),
       cooldownTicks: 0,
       // Per-age civ armor ladders (sourced v0.3.152): Teuton melee,
-      // Malian barracks pierce.
-      armor: civMeleeArmorBonus(getCivilization(owner), unitType, getAge(owner)),
+      // Malian barracks pierce. And the flat +1 melee/+1 pierce of Italian
+      // Foot Archers (sourced vNEXT), which both halves read from `armor`.
+      armor: civMeleeArmorBonus(getCivilization(owner), unitType, getAge(owner))
+        + civArmorBonus(getCivilization(owner), unitType),
       pierceArmorBonus: civPierceArmorBonus(getCivilization(owner), unitType, getAge(owner)),
     };
 

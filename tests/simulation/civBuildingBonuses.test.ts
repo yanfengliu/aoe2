@@ -1,5 +1,6 @@
 // Building-scoped civilization/team bonuses (spec §9.2):
-//  - Ethiopians (team_bonus): "Towers and Outposts +3 LOS"
+//  - Ethiopians (team_bonus): DE's "Outposts +3 line of sight and cost no
+//    stone" (aoe2techtree 3bb43b14; towers had the +3 too until vNEXT)
 //  - Teutons (civ): "Town Centers have +1 attack and +5 line of sight",
 //    "Towers can garrison 2x units", "Monks have 2x healing range"
 // The vision bonus must ride BOTH creation branches (explicit fixture vision
@@ -44,11 +45,11 @@ describe('building bonus tables (pure)', () => {
   const noTeams = new Map<number, number>();
   const solo = new Map([[1, 'Ethiopians']]);
 
-  it('Ethiopians grant towers and outposts +3 LOS, to allies too', () => {
+  it('Ethiopians grant Outposts +3 LOS, to allies too, and towers nothing', () => {
     expect(teamBuildingVisionBonus(noTeams, solo, 1, 'outpost')).toBe(3);
-    expect(teamBuildingVisionBonus(noTeams, solo, 1, 'watch-tower')).toBe(3);
-    expect(teamBuildingVisionBonus(noTeams, solo, 1, 'bombard-tower')).toBe(3);
-    // Towers and Outposts only — not the Town Center, not the Castle.
+    expect(teamBuildingVisionBonus(noTeams, solo, 1, 'watch-tower')).toBe(0);
+    expect(teamBuildingVisionBonus(noTeams, solo, 1, 'bombard-tower')).toBe(0);
+    // Outposts only — not the towers, the Town Center or the Castle.
     expect(teamBuildingVisionBonus(noTeams, solo, 1, 'town-center')).toBe(0);
     expect(teamBuildingVisionBonus(noTeams, solo, 1, 'castle')).toBe(0);
     // An ally of the Ethiopians enjoys it; an enemy does not.
@@ -76,7 +77,7 @@ describe('building bonus tables (pure)', () => {
   });
 });
 
-describe('Ethiopian tower/outpost sight in the world', () => {
+describe('Ethiopian Outpost sight in the world', () => {
   it('a seeded default-vision Outpost reads 9, composes with the age sweep, and the TC stays 7', () => {
     const bridge = createSimulationBridge('outpost-vision-fixture', {
       civilizationsByOwner: new Map([[1, 'Ethiopians']]),

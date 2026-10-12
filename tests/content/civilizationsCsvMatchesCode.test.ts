@@ -3,6 +3,8 @@
 // the in-game Civilizations compendium shows its text through the embedded
 // copy in civProfiles.ts. Where the code follows current Definitive Edition,
 // a row that still states an older value tells the player something false.
+// Work 120 M3 (defect register 2026-10-12) brought the code itself to DE on
+// five more lines, and pairs them here the same way.
 //
 // SOURCE for every line below: the civilization help texts in
 // SiegeEngineers/aoe2techtree data/locales/en/strings.json at 3bb43b14 (DE
@@ -13,23 +15,27 @@
 // The retired lines must not come back.
 //
 // BOUNDS: only the lines listed. A line not listed can still lag, and the
-// lines where the code itself departs from DE are spec §11.11's open list,
-// not this file's. The text is compared exactly; the code is compared at the
+// lines where the code itself still departs from DE are spec §11.11's open
+// list, not this file's. The text is compared exactly; the code is compared at the
 // values each line names.
 
 import { describe, expect, it } from 'vitest';
 
+import { ageScaledUnitHpFactor } from '../../src/game/simulation/ageScaledHp';
 import { playerAgesCodec, playerCivilizationsCodec, playerTeamsCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import { createCombatStateFactory } from '../../src/game/simulation/bridge/combatStateFactory';
+import { ownerConstructionCost } from '../../src/game/simulation/bridge/ownerCosts';
 import { teamTrainTimeMultiplier } from '../../src/game/simulation/bridge/teamProductionBonuses';
 import { slavsTeamMilitaryPop } from '../../src/game/simulation/bridge/teamPopulation';
 import {
+  civArmorBonus,
   civBuildingAttackLadder,
   civCarryBonus,
   civImperialPopulationBonus,
   civPopulationProvidedBonus,
   civReloadMultiplier,
   civResourceDurationMultiplier,
+  civSpeedMultiplier,
   civTrainTimeMultiplier,
   civUnitHpMultiplier,
   civVillagersTakeInfantryArmor,
@@ -80,6 +86,13 @@ const PAIRS: readonly Pair[] = [
   {
     civilization: 'Celts', column: 'civilizationBonuses', line: 'Siege Weapons attack +25% faster',
     code: () => expect(civReloadMultiplier('Celts', 'mangonel', 'castle-age')).toBeCloseTo(1 / 1.25, 12),
+  },
+  {
+    civilization: 'Celts', column: 'civilizationBonuses', line: 'Infantry moves +5/10/15/20% faster in Dark/Feudal/Castle/Imperial Age',
+    code: () => {
+      const rates = [1.05, 1.1, 1.15, 1.2];
+      AGES.forEach((age, i) => expect(civSpeedMultiplier('Celts', 'militia', age), age).toBeCloseTo(rates[i]!, 12));
+    },
   },
   {
     civilization: 'Chinese', column: 'civilizationBonuses', line: 'Town Centers +7 line of sight and provide +15 population space',
@@ -135,6 +148,30 @@ const PAIRS: readonly Pair[] = [
     },
   },
   {
+    civilization: 'Ethiopians', column: 'teamBonuses', line: 'Outposts +3 line of sight and cost no stone',
+    code: () => {
+      const ethiopians = new Map([[1, 'Ethiopians']]);
+      expect(teamBuildingVisionBonus(SOLO, ethiopians, 1, 'outpost')).toBe(3);
+      expect(teamBuildingVisionBonus(SOLO, ethiopians, 1, 'watch-tower')).toBe(0);
+      const { stone: _stone, ...withoutStone } = constructionCost('outpost');
+      expect(ownerConstructionCost(stateOf('Ethiopians'), 1, 'outpost')).toEqual(withoutStone);
+    },
+  },
+  {
+    civilization: 'Italians', column: 'civilizationBonuses', line: 'Fishing Ships cost -15%',
+    code: () => {
+      const wood = trainingCost('fishing-ship').wood!;
+      expect(effectiveTrainingCost('Italians', 'dark-age', 'fishing-ship', NO_TECHS).wood).toBe(Math.round(wood * 0.85));
+    },
+  },
+  {
+    civilization: 'Italians', column: 'civilizationBonuses', line: 'Foot Archers and Condottieri +1 melee/+1 pierce armor',
+    code: () => {
+      expect(civArmorBonus('Italians', 'archer')).toBe(1);
+      expect(civArmorBonus('Italians', 'skirmisher')).toBe(0);
+    },
+  },
+  {
     civilization: 'Japanese', column: 'civilizationBonuses', line: 'Fishing Ships have 2x HP',
     code: () => {
       expect(civUnitHpMultiplier('Japanese', 'fishing-ship')).toBe(2);
@@ -153,6 +190,13 @@ const PAIRS: readonly Pair[] = [
     code: () => {
       const rates = [1.05, 1.1, 1.15, 1.2];
       AGES.forEach((age, i) => expect(teamTrainTimeMultiplier(stateOf('Persians', age), 1, 'town-center', 'villager'), age).toBeCloseTo(1 / rates[i]!, 12));
+    },
+  },
+  {
+    civilization: 'Spanish', column: 'civilizationBonuses', line: 'Gunpowder Units attack +18% faster',
+    code: () => {
+      expect(civReloadMultiplier('Spanish', 'hand-cannoneer', 'imperial-age')).toBeCloseTo(1 / 1.18, 12);
+      expect(civReloadMultiplier('Spanish', 'conquistador', 'castle-age')).toBeCloseTo(1 / 1.18, 12);
     },
   },
   {
@@ -184,6 +228,14 @@ const PAIRS: readonly Pair[] = [
       expect(ghostAt()).toBe(false);
     },
   },
+  {
+    civilization: 'Vietnamese', column: 'civilizationBonuses', line: 'Foot Archers and Skirmishers +20% HP',
+    code: () => {
+      expect(ageScaledUnitHpFactor('Vietnamese', 'archer', 'dark-age')).toBe(1.2);
+      expect(ageScaledUnitHpFactor('Vietnamese', 'skirmisher', 'dark-age')).toBe(1.2);
+      expect(ageScaledUnitHpFactor('Vietnamese', 'cavalry-archer', 'castle-age')).toBe(1);
+    },
+  },
 ];
 
 // Lines the CSV carried before work 120 brought it in line; each said
@@ -207,6 +259,12 @@ const RETIRED_LINES: readonly string[] = [
   'Foot archers have +2 attack bonus against buildings',
   'Military buildings provide +5% population',
   'Reveals enemy positions at game start',
+  // Work 120 M3 (vNEXT): the code itself departed from DE on these.
+  'Infantry moves 15% faster',
+  'Towers and Outposts +3 LOS',
+  'Fishing ship cost -15 wood',
+  'Archery Range units +20% HP',
+  'Hand Cannoneers and Bombard Cannons reload 15% faster',
 ];
 
 describe('civilizations.csv agrees with the code', () => {

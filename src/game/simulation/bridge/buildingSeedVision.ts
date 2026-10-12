@@ -2,7 +2,7 @@
 // addBuildingEntity, extracted from entityCreateOps for the 500-LOC budget.
 // Mirrors finalizeBuildingConstruction's completion half: every completed
 // building sees (completedBuildingVision derives the radius both paths use),
-// or a fixture names the radius itself, and the Ethiopian tower/outpost bonus
+// or a fixture names the radius itself, and the Ethiopian Outpost bonus
 // applies to that branch too. Then the building's combat state, with a
 // civilization's attack bonus (none in current DE; civBuildingBonuses.ts).
 

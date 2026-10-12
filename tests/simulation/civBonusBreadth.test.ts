@@ -71,16 +71,21 @@ describe('anti-building bonuses', () => {
 
 describe('speed bonuses', () => {
   it('moves the named lines faster', () => {
-    expect(civSpeedMultiplier('Celts', 'militia')).toBeCloseTo(1.15, 5);
-    expect(civSpeedMultiplier('Celts', 'champion')).toBeCloseTo(1.15, 5);
-    expect(civSpeedMultiplier('Berbers', 'villager')).toBeCloseTo(1.1, 5);
-    expect(civSpeedMultiplier('Berbers', 'galley')).toBeCloseTo(1.1, 5);
+    // DE: Celtic infantry +5/10/15/20% by age (sourced vNEXT; +15% flat
+    // before), Berber villagers +5% in the Dark Age and +10% after.
+    expect(civSpeedMultiplier('Celts', 'militia', 'dark-age')).toBeCloseTo(1.05, 5);
+    expect(civSpeedMultiplier('Celts', 'militia', 'feudal-age')).toBeCloseTo(1.1, 5);
+    expect(civSpeedMultiplier('Celts', 'champion', 'castle-age')).toBeCloseTo(1.15, 5);
+    expect(civSpeedMultiplier('Celts', 'champion', 'imperial-age')).toBeCloseTo(1.2, 5);
+    expect(civSpeedMultiplier('Berbers', 'villager', 'dark-age')).toBeCloseTo(1.05, 5);
+    expect(civSpeedMultiplier('Berbers', 'villager', 'feudal-age')).toBeCloseTo(1.1, 5);
+    expect(civSpeedMultiplier('Berbers', 'galley', 'dark-age')).toBeCloseTo(1.1, 5);
     // The Ethiopian archer bonus is ATTACK speed in DE, not movement — the
     // move-speed reading was a transcription error (sourced v0.3.144).
-    expect(civSpeedMultiplier('Ethiopians', 'archer')).toBe(1);
-    expect(civSpeedMultiplier('Slavs', 'monk')).toBeCloseTo(1.2, 5); // DE: monks +20%.
-    expect(civSpeedMultiplier('Celts', 'archer')).toBe(1);
-    expect(civSpeedMultiplier(undefined, 'militia')).toBe(1);
+    expect(civSpeedMultiplier('Ethiopians', 'archer', 'castle-age')).toBe(1);
+    expect(civSpeedMultiplier('Slavs', 'monk', 'castle-age')).toBeCloseTo(1.2, 5); // DE: monks +20%.
+    expect(civSpeedMultiplier('Celts', 'archer', 'imperial-age')).toBe(1);
+    expect(civSpeedMultiplier(undefined, 'militia', 'imperial-age')).toBe(1);
   });
 });
 
@@ -138,11 +143,12 @@ describe('cost bonuses', () => {
       .toEqual({ wood: 72, gold: 24 });
     expect(effectiveTrainingCost('Vikings', 'feudal-age', 'transport-ship', NONE))
       .toEqual({ wood: 125 });
-    // Italians (sourced v0.3.144): gunpowder -20%, fishing ships -15 wood.
+    // Italians: gunpowder -20% (sourced v0.3.144), fishing ships -15%
+    // (sourced vNEXT; 15 wood off before): 75 x 0.85 = 63.75, rounded to 64.
     expect(effectiveTrainingCost('Italians', 'imperial-age', 'hand-cannoneer', NONE))
       .toEqual({ food: 36, gold: 40 });
     expect(effectiveTrainingCost('Italians', 'dark-age', 'fishing-ship', NONE))
-      .toEqual({ wood: 60 });
+      .toEqual({ wood: 64 });
   });
 
   it('leaves the Goths discount and everyone unmatched exactly as before', () => {

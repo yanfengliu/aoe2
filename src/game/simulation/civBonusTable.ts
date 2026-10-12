@@ -22,8 +22,6 @@ export interface CivCostRule {
   readonly woodMultiplier?: number;
   /** Multiplier for the FOOD component alone, by age (Incas). */
   readonly foodMultiplierByAge?: Partial<Record<AgeType, number>>;
-  /** Flat wood delta (Italians' fishing ships). */
-  readonly woodDelta?: number;
 }
 
 export interface CivBonusEntry {
@@ -54,9 +52,19 @@ export interface CivBonusEntry {
     readonly applies: (unitType: UnitType) => boolean;
     readonly multiplier: number;
   }>;
+  /** Movement-speed multipliers, flat or by the owner's age (Celtic
+   *  infantry, Berber villagers). */
   readonly speed?: ReadonlyArray<{
     readonly applies: (unitType: UnitType) => boolean;
-    readonly multiplier: number;
+    readonly multiplier?: number;
+    readonly multiplierByAge?: Readonly<Record<AgeType, number>>;
+  }>;
+  /** "+N melee/+N pierce armor": both halves at once, so the combat-state
+   *  factory adds it to the symmetric armor accumulator (Italian Foot
+   *  Archers). */
+  readonly armor?: ReadonlyArray<{
+    readonly applies: (unitType: UnitType) => boolean;
+    readonly bonus: number;
   }>;
   readonly cost?: ReadonlyArray<CivCostRule>;
   /** Building-cost rules: whole-cost or single-component multipliers,
@@ -85,9 +93,22 @@ export interface CivBonusEntry {
   readonly houselessPopulation?: boolean;
 }
 
-const GUNPOWDER_UNITS = new Set<UnitType>([
+// DE's "Gunpowder Units": the Hand Cannoneer, the Bombard Cannon, the Cannon
+// Galleon line and the gunners DE labels "Foot Gunner" (Janissary) and
+// "Mounted Gunner" (Conquistador). The Italian and Turkish lines here and the
+// Spanish attack speed (civReloadMultiplier) all read this one set.
+export const GUNPOWDER_UNITS: ReadonlySet<UnitType> = new Set<UnitType>([
   'hand-cannoneer', 'bombard-cannon', 'cannon-galleon', 'elite-cannon-galleon',
   'conquistador', 'elite-conquistador', 'janissary', 'elite-janissary',
+]);
+// DE's "Foot Archers": the Archer line and the unique units DE labels "(Foot
+// Archer)" that this build has; it has no Genoese Crossbowman or Rattan
+// Archer. DE names the Skirmisher line apart ("Foot Archers and
+// Skirmishers"), and the Hand Cannoneer and Janissary are gunners. The
+// Italian armor and the Vietnamese hit points (ageScaledHp.ts) read it.
+export const FOOT_ARCHERS: ReadonlySet<UnitType> = new Set<UnitType>([
+  'archer', 'crossbowman', 'arbalest', 'longbowman', 'elite-longbowman',
+  'chu-ko-nu', 'elite-chu-ko-nu', 'plumed-archer', 'elite-plumed-archer',
 ]);
 const WARSHIPS = new Set<UnitType>([
   'galley', 'war-galley', 'galleon', 'fire-ship', 'fast-fire-ship',
@@ -100,6 +121,8 @@ const SHIPS = new Set<UnitType>([
 ]);
 const CAVALRY_ARCHER_LINE = new Set<UnitType>(['cavalry-archer', 'heavy-cavalry-archer']);
 const RANGED_SOLDIERS = new Set<UnitType>(['archer', 'crossbowman', 'arbalest', 'skirmisher', 'elite-skirmisher', 'cavalry-archer', 'heavy-cavalry-archer', 'hand-cannoneer']);
+// The Archer line alone: the Mayan discount's scope. Whether DE's "Foot
+// Archers cost -10/20/30%" also reaches the Plumed Archer is not checked.
 const FOOT_ARCHER_LINE = new Set<UnitType>(['archer', 'crossbowman', 'arbalest']);
 const SCOUT_LINE = new Set<UnitType>(['scout', 'light-cavalry', 'hussar']);
 const SIEGE_UNITS = new Set<UnitType>(['battering-ram', 'capped-ram', 'siege-ram', 'mangonel', 'onager', 'siege-onager', 'scorpion', 'heavy-scorpion', 'bombard-cannon', 'petard', 'trebuchet']);
@@ -136,10 +159,15 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Berbers',
-    // "Villagers move +10% faster" · "Ships move +10% faster" ·
-    // "Stable units cost -20% (starting in Castle Age)".
+    // DE: "Villagers move +5% faster in Dark Age, +10% faster starting in
+    // Feudal Age" (since v0.3.152; a branch in movementTechEffects.ts until
+    // vNEXT) · "Ships move +10% faster" · "Stable Units cost -15/20% in
+    // Castle/Imperial Age".
     speed: [
-      { applies: (unit) => unit === 'villager', multiplier: 1.1 },
+      {
+        applies: (unit) => unit === 'villager',
+        multiplierByAge: { 'dark-age': 1.05, 'feudal-age': 1.1, 'castle-age': 1.1, 'imperial-age': 1.1 },
+      },
       { applies: (unit) => SHIPS.has(unit), multiplier: 1.1 },
     ],
     cost: [{
@@ -164,9 +192,14 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Celts',
-    // "Infantry moves 15% faster" · "Lumberjacks work 15% faster".
+    // DE: "Lumberjacks work +15% faster" · "Infantry moves +5/10/15/20%
+    // faster in Dark/Feudal/Castle/Imperial Age" (aoe2techtree 3bb43b14, DE
+    // update 185872; sourced vNEXT, +15% in every age until then).
     gatherRate: { tree: 1.15 },
-    speed: [{ applies: (unit) => isInfantryUnit(unit), multiplier: 1.15 }],
+    speed: [{
+      applies: (unit) => isInfantryUnit(unit),
+      multiplierByAge: { 'dark-age': 1.05, 'feudal-age': 1.1, 'castle-age': 1.15, 'imperial-age': 1.2 },
+    }],
   },
   {
     civilization: 'Chinese',
@@ -238,10 +271,15 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   },
   {
     civilization: 'Italians',
+    // DE (aoe2techtree 3bb43b14, DE update 185872): "Gunpowder Units cost
+    // -20%" · "Fishing Ships cost -15%" (sourced vNEXT; 15 wood off until
+    // then) · "Foot Archers and Condottieri +1 melee/+1 pierce armor"
+    // (sourced vNEXT; this build has no Condottiero).
     cost: [
-      { applies: (unit) => GUNPOWDER_UNITS.has(unit), multiplier: 0.8 }, // DE: -20%.
-      { applies: (unit) => unit === 'fishing-ship', woodDelta: -15 },
+      { applies: (unit) => GUNPOWDER_UNITS.has(unit), multiplier: 0.8 },
+      { applies: (unit) => unit === 'fishing-ship', multiplier: 0.85 },
     ],
+    armor: [{ applies: (unit) => FOOT_ARCHERS.has(unit), bonus: 1 }],
   },
   {
     civilization: 'Japanese',

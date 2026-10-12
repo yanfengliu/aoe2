@@ -1,6 +1,6 @@
 // The age-scaled HP family (sourced against current DE, v0.3.148):
 //  - Vikings: infantry +20% HP FLAT from the Feudal Age
-//  - Vietnamese: Archery Range units +20% HP, every age
+//  - Vietnamese: Foot Archers and Skirmishers +20% HP, every age
 //  - Franks: MOUNTED units +20% HP from the Feudal Age
 //  - Mongols: scout line +20/30% HP in Castle/Imperial
 //  - Portuguese: ships +10/15/20% HP in Feudal/Castle/Imperial
@@ -12,6 +12,7 @@
 // exactly what the CSV's "does not stack" note means.
 
 import type { AgeType, BuildingType, UnitType } from './types';
+import { FOOT_ARCHERS } from './civBonusTable';
 import { isGateBuilding } from './gates';
 import { isInfantryUnit, isMountedUnit } from './prototypeUnitRules';
 
@@ -36,13 +37,12 @@ const SHIPS = new Set<UnitType>([
   'longboat', 'elite-longboat', 'fishing-ship', 'transport-ship', 'trade-cog',
 ]);
 
-// Everything trained at the Archery Range (the Vietnamese scope). The
-// Longbowman and other castle units are NOT Archery Range units.
-const ARCHERY_RANGE_UNITS = new Set<UnitType>([
-  'archer', 'crossbowman', 'arbalest',
-  'skirmisher', 'elite-skirmisher',
-  'cavalry-archer', 'heavy-cavalry-archer',
-  'hand-cannoneer',
+// The Vietnamese scope. DE: "Foot Archers and Skirmishers +20% HP"
+// (aoe2techtree 3bb43b14, DE update 185872; sourced vNEXT). Until then it was
+// every Archery Range unit, so the Cavalry Archer line and the Hand Cannoneer
+// had it too, and the foot-archer unique units did not.
+const FOOT_ARCHERS_AND_SKIRMISHERS: ReadonlySet<UnitType> = new Set<UnitType>([
+  ...FOOT_ARCHERS, 'skirmisher', 'elite-skirmisher',
 ]);
 
 export function ageScaledUnitHpFactor(
@@ -58,7 +58,7 @@ export function ageScaledUnitHpFactor(
   if (civilization === 'Franks' && isMountedUnit(unitType)) {
     return FEUDAL_FLAT_20[AGE_INDEX[age]]!;
   }
-  if (civilization === 'Vietnamese' && ARCHERY_RANGE_UNITS.has(unitType)) {
+  if (civilization === 'Vietnamese' && FOOT_ARCHERS_AND_SKIRMISHERS.has(unitType)) {
     return 1.2; // flat, every age (current DE).
   }
   if (civilization === 'Mongols' && SCOUT_LINE.has(unitType)) {

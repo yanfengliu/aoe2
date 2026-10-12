@@ -1,7 +1,8 @@
 // The age-scaled HP family (civilizations.csv, matched to current DE in
 // v0.3.148):
 //  - Vikings: "Infantry +20% HP starting in Feudal Age" — flat, not a ladder
-//  - Vietnamese: "Archery Range units +20% HP" — in every age, Dark included
+//  - Vietnamese: "Foot Archers and Skirmishers +20% HP" — in every age, Dark
+//    included (every Archery Range unit until vNEXT)
 //  - Franks: "Mounted units +20% HP starting in Feudal Age"
 //  - Mongols: "Scout line +20/30% HP in Castle/Imperial Age"
 //  - Portuguese: "Ships +10/15/20% HP by age" (Feudal/Castle/Imperial)
@@ -75,7 +76,9 @@ describe('age-scaled HP factors (pure)', () => {
     expect(ageScaledUnitHpFactor('Vikings', 'militia', 'dark-age')).toBe(1);
     expect(ageScaledUnitHpFactor('Vietnamese', 'archer', 'dark-age')).toBeCloseTo(1.2, 5);
     expect(ageScaledUnitHpFactor('Vietnamese', 'skirmisher', 'castle-age')).toBeCloseTo(1.2, 5);
-    expect(ageScaledUnitHpFactor('Vietnamese', 'hand-cannoneer', 'imperial-age')).toBeCloseTo(1.2, 5);
+    // Not the gunner or the mounted archers (vNEXT; they had it before).
+    expect(ageScaledUnitHpFactor('Vietnamese', 'hand-cannoneer', 'imperial-age')).toBe(1);
+    expect(ageScaledUnitHpFactor('Vietnamese', 'cavalry-archer', 'castle-age')).toBe(1);
     expect(ageScaledUnitHpFactor('Franks', 'knight', 'castle-age')).toBeCloseTo(1.2, 5);
     expect(ageScaledUnitHpFactor('Mongols', 'hussar', 'imperial-age')).toBeCloseTo(1.3, 5);
     expect(ageScaledUnitHpFactor('Portuguese', 'galley', 'imperial-age')).toBeCloseTo(1.2, 5);

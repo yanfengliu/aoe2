@@ -1,8 +1,8 @@
 // The one place an OWNER's building price is computed: civilization discounts
 // (effectiveConstructionCost) composed with team-bonus discounts (Mayan walls
-// at half stone, Viking Docks a quarter off). Every charge, afford, validator,
-// AI, reseed, and HUD site reads this — the effectiveTrainingCost rule, now
-// with the team layer on top.
+// at half price, Viking Docks 15% off, Ethiopian Outposts without their
+// stone). Every charge, afford, validator, AI, reseed, and HUD site reads
+// this — the effectiveTrainingCost rule, now with the team layer on top.
 
 import type { BuildingType, PlayerResources } from '../types';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -47,6 +47,13 @@ export function ownerConstructionCost(
   }
   if (buildingType === 'dock' && teamHasCivilization(teams, civilizations, owner, 'Vikings')) {
     scale(VIKINGS_TEAM_DOCK_COST_MULTIPLIER);
+  }
+  // Ethiopian team bonus, DE: "Outposts +3 line of sight and cost no stone"
+  // (aoe2techtree 3bb43b14, DE update 185872; sourced vNEXT). The sight half
+  // is teamBuildingVisionBonus in civBuildingBonuses.ts.
+  if (buildingType === 'outpost' && teamHasCivilization(teams, civilizations, owner, 'Ethiopians')) {
+    const { stone: _stone, ...withoutStone } = cost;
+    cost = withoutStone;
   }
   return cost;
 }

@@ -11,16 +11,16 @@ type Civs = ReadonlyMap<number, string>;
 
 const EMPTY_TEAMS: Teams = new Map();
 
-const TOWERS_AND_OUTPOSTS = new Set<BuildingType>([
-  'watch-tower', 'bombard-tower', 'outpost',
-]);
 const TOWERS = new Set<BuildingType>(['watch-tower', 'bombard-tower']);
 
 /**
- * Extra line of sight for a building at its creation (or completion) site.
- * Ethiopians team_bonus: "Towers and Outposts +3 LOS" — owner or ally.
- * Chinese civilization bonus: "Town Centers +7 line of sight" — the owner
- * alone (DE help text, aoe2techtree 3bb43b14, DE update 185872).
+ * Extra line of sight for a building at its creation (or completion) site,
+ * from the DE help texts (aoe2techtree 3bb43b14, DE update 185872):
+ * - Ethiopian team bonus: "Outposts +3 line of sight and cost no stone", for
+ *   the owner and its allies. Outposts alone since vNEXT; towers had the +3
+ *   too until then. The stone half is in ownerCosts.ts.
+ * - Chinese civilization bonus: "Town Centers +7 line of sight", the owner
+ *   alone.
  */
 export function teamBuildingVisionBonus(
   teams: Teams | undefined,
@@ -34,7 +34,7 @@ export function teamBuildingVisionBonus(
   const knownTeams = teams ?? EMPTY_TEAMS;
   let bonus = 0;
   if (
-    TOWERS_AND_OUTPOSTS.has(buildingType)
+    buildingType === 'outpost'
     && teamHasCivilization(knownTeams, civilizations, owner, 'Ethiopians')
   ) {
     bonus += 3;

@@ -17,7 +17,7 @@
 
 import { isMonasticUnit } from './monasticUnits';
 import { civSpeedMultiplier } from './civBonusEffects';
-import type { ResearchableTechnologyType, UnitType } from './types';
+import type { AgeType, ResearchableTechnologyType, UnitType } from './types';
 import { DRY_DOCK_SPEED_PERCENT, dryDockSpeedsUp } from './dockTechEffects';
 import { isInfantryUnit, isMountedUnit } from './prototypeUnitRules';
 import { unitBaseSpeedPercent } from './prototypeUnitRules/unitBaseSpeed';
@@ -77,20 +77,19 @@ export function movementSpeedPercent(
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
   unitType: UnitType,
   civilization?: string,
-  /** v0.3.152: the Berber villager bonus is +5% in the Dark Age, +10% after. */
-  age?: import('./types').AgeType,
+  /** The owner's age: the Celtic infantry and Berber villager rates step with
+   *  it (civBonusTable.ts). Absent reads as the Dark Age, as at the step
+   *  executor. */
+  age: AgeType = 'dark-age',
 ): number {
   // The unit's own rate is the STARTING point, not a special case: a Mangonel
   // is slow whether or not anyone researched anything, and Husbandry makes a
   // knight 10% faster than a KNIGHT rather than 10% faster than a villager.
   let percent = unitBaseSpeedPercent(unitType);
-  // Civilization speed bonuses (Celts infantry, Berbers villagers and ships,
-  // Ethiopians archers) multiply first, so the tech ladder stacks on top of a
-  // civ's own rate exactly as it stacks on a unit's own rate.
-  let civMultiplier = civSpeedMultiplier(civilization, unitType);
-  if (civilization === 'Berbers' && unitType === 'villager' && age === 'dark-age') {
-    civMultiplier = 1.05; // DE: +5% Dark, +10% from Feudal.
-  }
+  // Civilization speed bonuses (Celtic infantry and Berber villagers by age,
+  // Berber ships, Slav monks) multiply first, so the tech ladder stacks on top
+  // of a civ's own rate exactly as it stacks on a unit's own rate.
+  const civMultiplier = civSpeedMultiplier(civilization, unitType, age);
   if (civMultiplier !== 1) {
     percent = Math.round(percent * civMultiplier);
   }
