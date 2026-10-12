@@ -2,6 +2,11 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 120 M2
+
+- **Chinese Town Centers see 7 tiles farther**, as in Definitive Edition: 15 instead of 8, for the starting Town Center and for every one built later. An ally's Town Centers are unchanged, because this is a Chinese civilization bonus, not a team bonus. A Town Center in a game saved before this change keeps the sight it was saved with.
+- **The Civilizations panel now describes twelve bonuses as the game applies them**, in Definitive Edition's terms. The game already worked this way; only the text was out of date. For example, Goth infantry costs -15/20/25/30% in the Dark/Feudal/Castle/Imperial Age (it said 35% less from the Feudal Age), Frankish Castles cost -15/25% in the Castle/Imperial Age (it said 25% cheaper), Mayan resources last +15% longer (it said 20%), Celtic siege weapons attack +25% faster (it said they reload 20% faster), and the Britons' team bonus speeds Archery Ranges by +10% (it said 20%). The Goths no longer list "+5 attack versus wild boar", which Definitive Edition dropped, or the old "+1 attack against buildings" beside its age ladder.
+
 ## 0.3.250
 
 - A building of yours that you delete, or that is destroyed where nothing else of yours can see it, no longer stays on the map and the minimap as a fog ghost. Fog memory no longer keeps your own buildings, since they are always drawn. A building an enemy has started to convert is remembered from the converting Monk's first tick of progress, so if the conversion takes it out of your sight it stays on the map in its new owner's colours. Saves load as before; on their first tick they drop the entries for your own buildings that no enemy is converting, including the ghost of any building you had lost before saving. A recording made before this change replays its fog memory without those entries. An ally's building can still leave a ghost the same way.
