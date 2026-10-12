@@ -150,6 +150,15 @@ jobs:
           # Avoid color output in CI logs.
           FORCE_COLOR: '0'
 
+      # Red when any test used more than two thirds of its OWN time limit, so a
+      # test creeping towards its timeout fails here with its numbers before a
+      # slower runner times it out. It reads the report vitest.config.ts's
+      # reporter writes, and runs after a failed suite too, to print the
+      # ranking beside the failure. See scripts/test-time-headroom.mjs.
+      - name: Headroom under each test's time limit
+        if: ${{ !cancelled() }}
+        run: node scripts/test-time-headroom.mjs tmp/test-times/vitest.json
+
       # Red past two thirds of timeout-minutes, so a job creeping towards its
       # limit fails with its numbers before the limit cancels it with none.
       # tests/scripts/ciJobHeadroom.test.ts holds this number equal to the
@@ -307,6 +316,12 @@ jobs:
         run: npm run test:browser -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
         env:
           FORCE_COLOR: '0'
+
+      # See the same step in `gates`: this shard's tests, from the report
+      # tests/browser/helpers/durationBudgetReporter.ts writes.
+      - name: Headroom under each test's time limit
+        if: ${{ !cancelled() }}
+        run: node scripts/test-time-headroom.mjs tmp/test-times/playwright.json
 
       # See the same step in `gates`, and scripts/ci-job-headroom.mjs.
       - name: Headroom under the job's time limit

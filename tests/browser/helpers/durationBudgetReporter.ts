@@ -1,6 +1,14 @@
 // How close each browser spec is running to its OWN timeout, printed at the end
 // of every run from `playwright.config.ts`.
 //
+// ON CI IT IS A GATE, through a file (2026-10-11, work 123). Every finished
+// test's duration, status and own timeout is written to REPORT_PATHS.playwright,
+// and each browser shard's next step, scripts/test-time-headroom.mjs, fails the
+// shard when any test used more than two thirds of its own timeout. The refusal
+// below stands for THIS machine; CI's runners were measured on 2026-10-11 and
+// move each job's tests together, which is the case the script's header makes.
+// Nothing here fails a run: the printout below is the local view.
+//
 // It REPORTS and does not fail, and that is a finding rather than a soft option.
 // It was written to be the gate for the lessons-queue entry "a browser spec
 // whose duration is within a few seconds of the timeout is already red on
@@ -40,7 +48,13 @@
 // run when a passing test exceeds that fraction of its own timeout. Read the
 // paragraph above before wiring that into anything: on the data measured here it
 // would have failed run 1 and passed run 2 on identical bytes.
-import type { FullResult, Reporter, TestCase, TestResult } from '@playwright/test/reporter';
+import { dirname } from 'node:path';
+
+import type { FullConfig, FullResult, Reporter, TestCase, TestResult } from '@playwright/test/reporter';
+
+import { REPORT_PATHS, repoRelative, writeTestTimes } from '../../../scripts/test-time-headroom.mjs';
+
+type TestTime = Parameters<typeof writeTestTimes>[1]['tests'][number];
 
 /** Report-only. See the header: no threshold survived the measurement. */
 const BUDGET_FRACTION: number | 'off' = 'off';
@@ -118,12 +132,51 @@ const keyOf = (test: TestCase): string => {
   return (fileIndex >= 0 ? parts.slice(fileIndex) : parts).join(' › ').replace(/\\/g, '/');
 };
 
+/** The judge's states; an interrupted run's test is judged on the time it had. */
+const STATE: Record<TestResult['status'], TestTime['state']> = {
+  passed: 'passed', failed: 'failed', timedOut: 'timedOut', skipped: 'skipped', interrupted: 'failed',
+};
+
+interface Options {
+  /** Where to write every test's time; defaults to REPORT_PATHS.playwright under the config's root. */
+  readonly outputFile?: string;
+  /** What the written file paths are relative to; defaults to the config file's folder. */
+  readonly rootDir?: string;
+}
+
 export default class DurationBudgetReporter implements Reporter {
+  readonly outputFile: string;
+
+  private rootDir: string | undefined;
+
   private readonly measured: Measured[] = [];
+
+  /** Every finished test, the last result of each, for scripts/test-time-headroom.mjs. */
+  private readonly times = new Map<string, TestTime>();
 
   private readonly budget = configuredFraction();
 
+  constructor(options: Options = {}) {
+    this.outputFile = options.outputFile ?? REPORT_PATHS.playwright;
+    this.rootDir = options.rootDir;
+  }
+
+  // The config file's folder, the repository root: `config.rootDir` is the
+  // test directory (tests/browser), which would drop that prefix from every path.
+  onBegin(config: FullConfig): void {
+    this.rootDir ??= config.configFile ? dirname(config.configFile) : process.cwd();
+  }
+
   onTestEnd(test: TestCase, result: TestResult): void {
+    const file = repoRelative(test.location.file, this.rootDir ?? process.cwd());
+    this.times.set(`${file}:${String(test.location.line)}:${keyOf(test)}`, {
+      file,
+      line: test.location.line,
+      title: test.title,
+      state: STATE[result.status],
+      durationMs: result.status === 'skipped' ? 0 : result.duration,
+      timeoutMs: test.timeout,
+    });
     if (result.status !== 'passed') return;
     const timeoutMs = test.timeout;
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) return;
@@ -139,6 +192,9 @@ export default class DurationBudgetReporter implements Reporter {
   // `async` because Reporter.onEnd is typed to return void or a Promise; a bare
   // object is a type error even though Playwright awaits it happily at runtime.
   async onEnd(result: FullResult): Promise<{ status: FullResult['status'] } | void> {
+    writeTestTimes(this.outputFile, {
+      runner: 'playwright', writtenAt: new Date().toISOString(), tests: [...this.times.values()],
+    });
     if (this.measured.length === 0) return;
     const ranked = [...this.measured].sort((a, b) => b.fraction - a.fraction);
     const show = (entry: Measured): string => `${(entry.fraction * 100).toFixed(0)}% of `
