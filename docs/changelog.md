@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## Unreleased — work 116
+## 0.3.250
 
 - A building of yours that you delete, or that is destroyed where nothing else of yours can see it, no longer stays on the map and the minimap as a fog ghost. Fog memory no longer keeps your own buildings, since they are always drawn. A building an enemy has started to convert is remembered from the converting Monk's first tick of progress, so if the conversion takes it out of your sight it stays on the map in its new owner's colours. Saves load as before; on their first tick they drop the entries for your own buildings that no enemy is converting, including the ghost of any building you had lost before saving. A recording made before this change replays its fog memory without those entries. An ally's building can still leave a ghost the same way.
 

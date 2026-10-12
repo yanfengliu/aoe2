@@ -1,4 +1,4 @@
-// Conversion and the player's fog memory (spec §12.1, vNEXT; defect register
+// Conversion and the player's fog memory (spec §12.1, v0.3.250; defect register
 // 2026-10-11). A building the player owns is not remembered, with one
 // exception: while an enemy's conversion record (aoe2.conversionState) stands
 // on it, it is remembered whatever the fog. The record is made on a Monk's

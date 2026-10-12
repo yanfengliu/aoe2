@@ -3,7 +3,7 @@
 // the human player currently sees. Snapshots persist after vision loss so
 // the renderer can render last-known state under fog.
 //
-// The human's OWN buildings are not remembered (vNEXT; defect register
+// The human's OWN buildings are not remembered (v0.3.250; defect register
 // 2026-10-11; spec §12.1). The render state draws every entity the human
 // owns whatever the fog (renderStateOps' owner pass), so an entry for one is
 // never read while it stands. It was read once the building was gone: a

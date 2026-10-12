@@ -1,6 +1,6 @@
 // The player's fog memory holds no entry for a building the player owns,
 // finished or a foundation, and forgets one recorded as the player's the
-// moment its building goes (spec §12.1, vNEXT; defect register 2026-10-11).
+// moment its building goes (spec §12.1, v0.3.250; defect register 2026-10-11).
 // The render state draws every entity the player owns whatever the fog, so
 // such an entry was never read while its building stood. It was read once
 // the building was gone: a House the player deleted, or lost where nothing
@@ -17,7 +17,7 @@
 // building went. The played opening is the boot map, one seat, 3,000 ticks
 // with the player's seat on the AI, checked every 100 ticks. The older save
 // is EMULATED: a save from this build with entries written the way builds
-// before vNEXT wrote them, because no save from an older build is committed.
+// before v0.3.250 wrote them, because no save from an older build is committed.
 // The recycled id is staged by direct world edits (a blinded scout, the
 // House destroyed, a bare House of the player's on its id), as
 // fogMemory.test.ts stages its M5 case. An ally's building is not the
