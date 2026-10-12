@@ -3,7 +3,7 @@
 Status: active
 Owner: Coordinator worker w120-civ-bonuses (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
-Updated: 2026-10-11
+Updated: 2026-10-12
 
 ## Problem and outcome
 
@@ -56,9 +56,10 @@ Spec text: the §11.11 bonus paragraphs and the line that starts "Still open, li
 
 ## Approach
 
-Two milestones, each landing separately:
+Four milestones, each landing separately:
 - **M1:** the Indian, Aztec, Goth boar, hunting (deer) and Inca armour defects, with the comments.
 - **M2:** the Chinese sight bonus and the CSV, embedded-copy and in-game-text sync.
+- **M3** and **M4:** the code made to match DE where M2 found it departs (M3 and M4 under Implementation steps).
 
 Each fix is sourced, reproduced by a test first, and gated by a mutation. The batch protocol is in `docs/policies/local-rules.md`.
 
@@ -80,19 +81,21 @@ Each fix is sourced, reproduced by a test first, and gated by a mutation. The ba
 - [x] M2: the Chinese sight bonus (after work 118 if it needs `buildingVisionSources.ts`), and the CSV, embedded-copy and in-game-text sync.
   - 2026-10-11: implemented, tested and committed on branch `civ-bonus-corrections`; shipped in v0.3.251 on 2026-10-12 (see Outcome). DE has the Chinese line ("Town Centers +7 line of sight and provide +15 population space"), and the sight now rides `teamBuildingVisionBonus`, the owner's alone. Thirteen CSV rows changed where the code already followed DE (the Vietnamese one after work 117 landed); the embedded copy changed with them, and the in-game panel reads it. The empty `buildingAttack` seam is deleted.
   - Rows where the code itself departs from DE were left as they are; they are M3.
-- [ ] M3 (the coordinator dispatches it after M2 lands): make the code match DE wherever it departs. Each item is reproduced first, then fixed, then gated. None goes on the spec's open list. The source is DE's civilization help text in aoe2techtree `3bb43b14` (DE update 185872).
+- [ ] M3: make the code match DE wherever it departs, for items 1–6, 11 and 12 below. Each item is reproduced first, then fixed, then gated. None goes on the spec's open list. The source is DE's civilization help text in aoe2techtree `3bb43b14` (DE update 185872).
+  - 2026-10-12: the coordinator split the original twelve-item M3. Items 1–6, 11 and 12 stay in M3, dispatched to worker `civ-bonus-m3` on branch `civ-bonus-m3`; items 7–10 move to M4. The numbers are the original list's, so a reference to an item keeps its meaning.
   1. Celts: "Infantry moves +5/10/15/20% faster in Dark/Feudal/Castle/Imperial Age". The code gives +15% in every age.
   2. Ethiopians, team bonus: "Outposts +3 line of sight and cost no stone". The code gives the +3 to towers too, and Outposts still cost stone.
   3. Italians: "Fishing Ships cost -15%". The code takes 15 wood off instead.
   4. Italians: "Foot Archers and Condottieri +1 melee/+1 pierce armor" has no implementation.
   5. Vietnamese: "Foot Archers and Skirmishers +20% HP". The code gives it to every Archery Range unit.
   6. Spanish: "Gunpowder Units attack +18% faster". The code's line covers the Hand Cannoneer, Bombard Cannon and Cannon Galleon, not the Conquistador.
+  11. Check first, then fix if the code departs: the Hun trebuchet accuracy (the CSV says "35% more accurate"; DE says "Trebuchets fire more accurately at units and small targets").
+  12. Check first, then fix if the code departs: the Saracen Transport Ship capacity (the CSV says "2x HP and carry capacity"; DE says "+100% HP, +20 carry capacity").
+- [ ] M4 (the coordinator dispatches it after M3 lands): items 7–10 of the original M3 list, on the same terms.
   7. Turks: "Scout Cavalry-line +1 pierce armor" has no implementation.
   8. Chinese: "Fire Lancers and Fire Ships move +5/10% faster in Castle/Imperial Age" has no implementation for the Fire Ship.
   9. Portuguese: "Foragers generate wood in addition to food" has no implementation.
   10. Khmer: "Farmers don't require Mills or Town Centers to drop off food" has no implementation.
-  11. Check first, then fix if the code departs: the Hun trebuchet accuracy (the CSV says "35% more accurate"; DE says "Trebuchets fire more accurately at units and small targets").
-  12. Check first, then fix if the code departs: the Saracen Transport Ship capacity (the CSV says "2x HP and carry capacity"; DE says "+100% HP, +20 carry capacity").
 
 ## Outcome
 
