@@ -50,10 +50,6 @@ export interface CivBonusEntry {
     readonly applies: (unitType: UnitType) => boolean;
     readonly multiplier: number;
   }>;
-  readonly buildingAttack?: ReadonlyArray<{
-    readonly applies: (unitType: UnitType) => boolean;
-    readonly bonus: number;
-  }>;
   readonly trainTime?: ReadonlyArray<{
     readonly applies: (unitType: UnitType) => boolean;
     readonly multiplier: number;

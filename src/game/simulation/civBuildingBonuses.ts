@@ -19,6 +19,8 @@ const TOWERS = new Set<BuildingType>(['watch-tower', 'bombard-tower']);
 /**
  * Extra line of sight for a building at its creation (or completion) site.
  * Ethiopians team_bonus: "Towers and Outposts +3 LOS" — owner or ally.
+ * Chinese civilization bonus: "Town Centers +7 line of sight" — the owner
+ * alone (DE help text, aoe2techtree 3bb43b14, DE update 185872).
  */
 export function teamBuildingVisionBonus(
   teams: Teams | undefined,
@@ -36,6 +38,9 @@ export function teamBuildingVisionBonus(
     && teamHasCivilization(knownTeams, civilizations, owner, 'Ethiopians')
   ) {
     bonus += 3;
+  }
+  if (buildingType === 'town-center' && civilizations.get(owner) === 'Chinese') {
+    bonus += 7;
   }
   // (The old Teuton TC +5 LoS is DE-dead — sourced v0.3.144.)
   return bonus;

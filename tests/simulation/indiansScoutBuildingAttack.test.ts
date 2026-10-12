@@ -5,21 +5,21 @@
 // A TEAM line: `teamBuildingAttackBonus` gives it to the whole side, the Indian
 // owner included. Until v0.3.248 the Indians entry in CIV_BONUSES added the same
 // +2 again through `civBuildingAttackBonus`, so an Indian owner's Scout hit a
-// building for +4 (defect register, 2026-10-11). The census over every
-// civilization, unit and age is civBonusDeParity.test.ts.
+// building for +4 (defect register, 2026-10-11). The emptied table seam was
+// deleted in vNEXT, so the team seam is the line's only home. The census over
+// every civilization, unit and age is civBonusDeParity.test.ts.
 
 import { describe, expect, it } from 'vitest';
 
-import { civBuildingAttackBonus } from '../../src/game/simulation/civBonusEffects';
 import { teamBuildingAttackBonus } from '../../src/game/simulation/teamCombatBonuses';
 import type { UnitType } from '../../src/game/simulation/types';
 
 const SOLO = new Map<number, number>();
 const ALLIED = new Map([[1, 1], [2, 1]]);
 
-/** What the attack delivery adds for owner 1 from these two seams. */
+/** What the attack delivery adds for owner 1 from the team seam; the Indians have no ladder. */
 function total(civilizations: Map<number, string>, teams: Map<number, number>, unit: UnitType): number {
-  return civBuildingAttackBonus(civilizations.get(1), unit) + teamBuildingAttackBonus(teams, civilizations, 1, unit);
+  return teamBuildingAttackBonus(teams, civilizations, 1, unit);
 }
 
 describe('the Indian Scout line hits buildings harder, once', () => {

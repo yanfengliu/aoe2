@@ -59,7 +59,7 @@ test.describe('civilizations compendium', () => {
     await expect(panel.locator('[data-civ-row="Goths"] .civ-compendium__detail')).toBeVisible();
     await expect(panel.locator('.civ-compendium__detail')).toHaveCount(1);
     await expect(panel.locator('[data-civ-row="Goths"] .civ-compendium__bonuses li').first())
-      .toContainText('Infantry cost 35% less');
+      .toContainText('Infantry cost -15/20/25/30% in Dark/Feudal/Castle/Imperial Age');
     await panel.locator('[data-civ-toggle="Goths"]').click();
     await expect(panel.locator('.civ-compendium__detail')).toHaveCount(0);
 

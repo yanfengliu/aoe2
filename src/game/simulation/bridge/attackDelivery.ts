@@ -21,7 +21,7 @@ import type { BuildingComponent, ResearchableTechnologyType, UnitType } from '..
 import { attackBonusAgainstBuilding, siegeEngineersBuildingMultiplier } from '../prototypeUnitRules';
 import { sappersBuildingAttackBonus } from '../sappersTechEffects';
 import { detonatesOnAttack } from '../prototypeUnitRules';
-import { civBuildingAttackBonus, civBuildingAttackLadder } from '../civBonusEffects';
+import { civBuildingAttackLadder } from '../civBonusEffects';
 import {
   ballisticsLeadsShots,
   thumbRingAccuracy,
@@ -148,7 +148,6 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
     Math.round((attacker.combat.attackDamage
       + attackBonusAgainstBuilding(attacker.unitType)
       + sappersBuildingAttackBonus(params.attackerTechs, attacker.unitType)
-      + civBuildingAttackBonus(params.attackerCivilization, attacker.unitType)
       + civBuildingAttackLadder(params.attackerCivilization, attacker.unitType, params.attackerAge ?? 'dark-age')
       + (params.teamBuildingBonus ?? 0))
       * siegeEngineersBuildingMultiplier(params.attackerTechs, attacker.unitType)),

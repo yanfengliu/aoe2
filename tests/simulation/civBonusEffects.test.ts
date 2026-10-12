@@ -12,7 +12,6 @@ import {
   AZTECS_MILITARY_TRAIN_TIME_MULTIPLIER,
   BRITONS_SHEEP_GATHER_MULTIPLIER,
   MONGOLS_HUNTER_GATHER_MULTIPLIER,
-  civBuildingAttackBonus,
   civGatherRateMultiplier,
   civTrainTimeMultiplier,
   civUnitHpMultiplier,
@@ -119,9 +118,8 @@ describe('civUnitHpMultiplier — Franks knight bonus', () => {
 });
 
 describe('civBuildingAttackLadder — Goths per-age anti-building (sourced v0.3.152)', () => {
-  it('steps +1/+2/+3 for infantry only, and the flat table entry is retired', async () => {
+  it('steps +1/+2/+3 for infantry only', async () => {
     const { civBuildingAttackLadder } = await import('../../src/game/simulation/civBonusEffects');
-    expect(civBuildingAttackBonus('Goths', 'militia')).toBe(0);
     expect(civBuildingAttackLadder('Goths', 'spearman', 'castle-age')).toBe(2);
     expect(civBuildingAttackLadder('Goths', 'archer', 'imperial-age')).toBe(0);
     expect(civBuildingAttackLadder('Britons', 'militia', 'imperial-age')).toBe(0);

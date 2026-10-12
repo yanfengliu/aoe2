@@ -12,7 +12,6 @@ import {
   civImperialPopulationBonus,
   koreanTowerRangeBonus,
   civUnitHpMultiplier,
-  civBuildingAttackBonus,
   civTrainTimeMultiplier,
   civSpeedMultiplier,
   effectiveTrainingCost,
@@ -63,12 +62,10 @@ describe('unit-HP bonuses', () => {
 describe('anti-building bonuses', () => {
   it('the Goth anti-building bonus is the per-age ladder now (sourced v0.3.152)', async () => {
     const { civBuildingAttackLadder } = await import('../../src/game/simulation/civBonusEffects');
-    expect(civBuildingAttackBonus('Goths', 'militia')).toBe(0); // table entry retired
     expect(civBuildingAttackLadder('Goths', 'militia', 'feudal-age')).toBe(1);
     expect(civBuildingAttackLadder('Goths', 'champion', 'imperial-age')).toBe(3);
     expect(civBuildingAttackLadder('Goths', 'militia', 'dark-age')).toBe(0);
     expect(civBuildingAttackLadder('Goths', 'knight', 'imperial-age')).toBe(0);
-    expect(civBuildingAttackBonus('Saracens', 'cavalry-archer')).toBe(0);
   });
 });
 

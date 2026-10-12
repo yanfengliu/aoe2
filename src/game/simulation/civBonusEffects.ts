@@ -61,18 +61,6 @@ export function civUnitHpMultiplier(
   return 1;
 }
 
-// ADDITIVE attack bonus against buildings, read at the unit→building damage
-// site alongside the Sappers tech bonus (which uses the same shape).
-export function civBuildingAttackBonus(
-  civilization: string | undefined,
-  attackerType: UnitType,
-): number {
-  for (const rule of civBonusesFor(civilization)?.buildingAttack ?? []) {
-    if (rule.applies(attackerType)) return rule.bonus;
-  }
-  return 0;
-}
-
 // Train-TIME multiplier, applied to the unit's total train ticks at the single
 // enqueue site (trainingMarketOps).
 export function civTrainTimeMultiplier(

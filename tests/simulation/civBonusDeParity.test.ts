@@ -34,7 +34,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  civBuildingAttackBonus,
   civBuildingAttackLadder,
   civCarryBonus,
   civGatherRateMultiplier,
@@ -55,8 +54,7 @@ const NO_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set();
 /** Every anti-building bonus the attack delivery adds for an owner on `side`. */
 function buildingAttackTotal(civilizations: Map<number, string>, teams: Map<number, number>, unit: UnitType, age: AgeType): number {
   const own = civilizations.get(1);
-  return civBuildingAttackBonus(own, unit)
-    + civBuildingAttackLadder(own, unit, age)
+  return civBuildingAttackLadder(own, unit, age)
     + teamBuildingAttackBonus(teams, civilizations, 1, unit);
 }
 
