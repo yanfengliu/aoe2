@@ -62,6 +62,8 @@ The coordinator split the work into two milestones on 2026-10-12, once the plann
 
 ## Outcome
 
-Pending: M1 is landing as v0.3.249, and M2 is open.
+M1 shipped in v0.3.249 as `e273fb09` (with `23829a60` and `5be2a349`), after `npm run verify` exited 0 with its log through lint and the last build. M2 is open.
+
+M1 on CI, run 38224624680 for `e273fb09`: de-ground.spec.ts:139 took 8.2 s on browser shard 2 (start to start), down from an 83.8 s median, and both unit jobs passed. The replay files took 37.5, 34.4 and 14.7 s on windows-latest (600-tick, lifecycle, native-120), and 26.1, 19.1 and 12.2 s on ubuntu-latest. Those logs print per-file totals only. M2's branch run 38228344282, with the same replay tests and the per-test reporter, put no replay case among the 30 tests closest to their limits on windows-latest, so each ran under 17% of 30 s. The run failed only on browser shard 4, where the 1920px resource readouts timed out, an offender M2 fixes. Work 112's 2026-10-01 register entry is closed on these figures.
 
 Follow-up candidate from M1, its own card: saves carry the 2,160 static terrain tiles of the boot map, 90% of a 566 KB snapshot, and serializing them is 69% of the replay comparisons' cost. Deriving the tiles from the map seed instead would cut that cost from every save, replay and comparison, but it changes the save format.

@@ -156,6 +156,14 @@ The second 2026-09-26 rollover, of "Three parts of the verification plumbing sai
 
 **The 2026-10-12 work 123 rollover moved the closed 2026-09-30 temporary-root alias entry verbatim.** Work 123's new closed entry, on boxed-in sheep and the move planner, took the active register to thirteen closed entries. The maintained classifier kept the two unresolved September 3 AI entries pinned and named "Windows work-document controls rejected valid pointers through a temporary-root alias", the oldest archivable closed entry. It is newer than every entry here, so it sits at the top. It has no "above" or "below" of its own, and no entry in either file points at it by position. Checked rather than assumed.
 
+**The 2026-10-12 work 123 closure rollover moved the closed 2026-09-30 recording-snapshot entry verbatim.** Closing work 112's 2026-10-01 Windows replay-timeout entry, after work 123's split passed the cases on windows-latest, took the active register to thirteen closed entries. The maintained classifier kept the two unresolved September 3 AI entries pinned and named "Disabling periodic recording snapshots still wrote a snapshot at tick 1000", the oldest archivable closed entry. It is newer than every entry here, so it sits at the top. It has no "above" or "below" of its own, and no entry in either file points at it by position. Checked rather than assumed.
+
+## 2026-09-30 — Disabling periodic recording snapshots still wrote a snapshot at tick 1000 (found by the repository review, FIXED and regression-gated; GREEN)
+
+**Symptom and cause.** The recording API accepts `snapshotInterval: null` to disable periodic snapshots, but nullish coalescing replaced both null and undefined with the default 1000-tick interval.
+
+**Repair and check.** Only undefined selects the default; explicit null reaches the recorder unchanged. The option controls in `tests/recording/RecordingService.lifecycle.test.ts` advance real worlds through 1001 ticks. Null records no periodic snapshot, undefined records tick 1000, and 250 records ticks 250, 500, 750 and 1000. The null control failed before the repair while the two comparison controls passed; all three now pass. The initial snapshot and final metadata remain present. Independent integrated review accepted the code repair, and main 71a7b393 passed the complete local gate with 4268 unit passes/three skips and 230 browser passes/two skips; hosted acceptance is GREEN.
+
 ## 2026-09-30 — Windows work-document controls rejected valid pointers through a temporary-root alias (found by main CI 36678434022, FIXED and regression-gated; GREEN)
 
 **Symptom and cause.** Hosted Windows CI rejected valid destinations in two temporary-tree traversal controls. The pointer helper compared a lexical fixture root with canonical destination paths. The hosted log does not reveal the actual alias spelling; attribution to a specific short Windows path remains unconfirmed.
