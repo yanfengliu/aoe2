@@ -25,8 +25,11 @@
 // goal are both passable and lie in the same 4-connected component of passable
 // cells. So one connected-component labelling of the map answers every
 // (builder, site) pair with two array reads, and the answer is A*'s by
-// construction. `tests/simulation/placementReachability.test.ts` cross-checks
-// the two on a real scenario so a divergence goes red.
+// construction. `tests/simulation/placementReachability.test.ts` holds this
+// check's verdicts to an independent flood of the same map on a real scenario,
+// so a divergence goes red — through its AI-seat arm, because every AI seat
+// reads this check while the human seat, since work 122, asks the route over
+// explored ground instead (placementKnowledge.ts).
 //
 // Why a labelling rather than a path per hovered cell: the placement preview
 // runs on every mouse move. A* per hovered cell re-solves a full failing search

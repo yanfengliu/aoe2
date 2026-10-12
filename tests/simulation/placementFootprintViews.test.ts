@@ -14,7 +14,7 @@
 // placementUnexplored.test.ts.
 import { describe, expect, it } from 'vitest';
 
-import { World } from 'civ-engine';
+import { World, type OccupancyCellClaim } from 'civ-engine';
 import { createWorldOccupancy } from '../../src/game/simulation/worldOccupancy';
 import { createCellPassability } from '../../src/game/simulation/bridge/cellPassability';
 import { BridgeStateAccessor } from '../../src/game/simulation/bridge/bridgeStateAccessor';
@@ -86,7 +86,14 @@ function makeWorld() {
     tiles,
     accessor: new BridgeStateAccessor(() => world),
   });
-  return { passability, house, farm, militia };
+  /** What player 1 is shown on any cell, explored or not: its own claims. */
+  const shownToPlayerOne = (claim: OccupancyCellClaim): boolean => {
+    if (claim.entity === null) return false;
+    const owner = world.getComponent<{ owner: number }>(claim.entity, 'building')?.owner
+      ?? world.getComponent<{ owner: number }>(claim.entity, 'unit')?.owner;
+    return owner === 1;
+  };
+  return { passability, house, farm, militia, shownToPlayerOne };
 }
 
 describe('the footprint rule and its views (work 122)', () => {
@@ -139,14 +146,56 @@ describe('the footprint rule and its views (work 122)', () => {
     expect(passability.isPlacementBlocked(6, 3, 3, 3, 'dock', { isCellKnown })).toBe(true);
     // The map edge is known to everyone.
     expect(passability.isPlacementBlocked(SIZE - 1, 0, 2, 2, 'house', { isCellKnown: () => false })).toBe(true);
-    // A refusal names and counts only explored cells: the farm, one of two.
+    // A refusal names only what the player can see, and counts the cells it
+    // cannot apart: the farm blocks one cell, and two are unexplored.
     const report = passability.describePlacementBlockers(6, 8, 2, 2, { isCellKnown: (x) => x <= 6 });
     expect(report).toMatchObject({
       firstBlockedCell: { x: 6, y: 8 },
       cause: 'a farm (building)',
       blockedCellCount: 1,
-      knownCellCount: 2,
+      totalCellCount: 4,
+      unexploredCellCount: 2,
     });
+    // Off the map is no one's unexplored ground: at the edge the two outside
+    // cells are blocked and the two inside unexplored, never a count of more
+    // blocked cells than the cells it was counted against (review, work 122).
+    expect(passability.describePlacementBlockers(SIZE - 1, 0, 2, 2, { isCellKnown: () => false })).toMatchObject({
+      firstBlockedCell: { x: SIZE, y: 0 },
+      cause: 'the map edge',
+      blockedCellCount: 2,
+      totalCellCount: 4,
+      unexploredCellCount: 2,
+    });
+    expect(passability.describePlacementBlockers(SIZE - 1, 0, 2, 2, { isCellKnown: () => true })).toMatchObject({
+      blockedCellCount: 2,
+      totalCellCount: 4,
+      unexploredCellCount: 0,
+    });
+  });
+
+  // Review finding, work 122: reading every claim on an unexplored cell as
+  // absent let the player stack a foundation on its own, and the start check
+  // then cancelled the first one for "something the fog hid".
+  it('on unexplored ground the claims the player is always shown, its own, still count', () => {
+    const { passability, shownToPlayerOne } = makeWorld();
+    const blind = { isCellKnown: () => false };
+    const own = { isCellKnown: () => false, isClaimShown: shownToPlayerOne };
+    // Its own farm at (6,8) refuses a house over it, unexplored or not.
+    expect(passability.isPlacementBlocked(5, 7, 2, 2, 'house', blind)).toBe(false);
+    expect(passability.isPlacementBlocked(5, 7, 2, 2, 'house', own)).toBe(true);
+    // So does its own boat under a Fish Trap.
+    expect(passability.isPlacementBlocked(10, 4, 1, 1, 'fish-trap', own)).toBe(true);
+    // The enemy's house and militia are hidden there, so they still count for nothing.
+    expect(passability.isPlacementBlocked(2, 2, 2, 2, 'house', own)).toBe(false);
+    expect(passability.isPlacementBlocked(3, 8, 2, 2, 'house', own)).toBe(false);
+    // And the refusal names the farm, the one thing there the player is shown.
+    expect(passability.describePlacementBlockers(5, 7, 2, 2, own)).toMatchObject({
+      firstBlockedCell: { x: 6, y: 8 },
+      cause: 'a farm (building)',
+      blockedCellCount: 1,
+      unexploredCellCount: 3,
+    });
+    expect(passability.describePlacementBlockers(2, 2, 2, 2, own)).toBeNull();
   });
 
   it('the start check leaves the foundation\'s own claims out, and only its own', () => {

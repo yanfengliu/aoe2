@@ -33,6 +33,13 @@
 //    8-player map (116x72 = 8,352 cells) it can, and then A* may report
 //    unreachable where this check says reachable. Untested, and the reason the
 //    map size is asserted rather than assumed.
+//  * TWO SEATS since work 122. The human's preview reads only the ground it
+//    has explored and asks the route over that ground (placementKnowledge.ts,
+//    spec §12.1), so the human arm no longer reaches the true-map check in
+//    builderReachability.ts at all. Every AI seat still places by the true map
+//    through that check, so the AI arm — owner 1 driven by the AI
+//    (`forceAiForOwners`), asked at tick 0, before its AI has acted — is the one
+//    that holds it. The refusal at (6,13) and the sweep run on both arms.
 //  * Footprints 1x1 (palisade gate) and 2x2 (house) only, and only the 1x1
 //    sweep actually detects anything: every unreachable pocket on this fixture
 //    is a single cell, so the 2x2 arm is a control against over-refusal.
@@ -54,6 +61,16 @@ function bootedBridge(): Bridge {
   for (let i = 0; i < TICK; i += 1) bridge.step(100);
   return bridge;
 }
+
+/** Owner 1 driven by the AI, at tick 0: its placements read the true map. */
+function aiSeatBridge(): Bridge {
+  return createSimulationBridge('aoe2-prototype', { forceAiForOwners: new Set([HUMAN]) });
+}
+
+const ARMS = [
+  { seat: 'the human seat at tick 600', make: bootedBridge },
+  { seat: 'an AI seat at tick 0', make: aiSeatBridge },
+] as const;
 
 function humanVillagers(bridge: Bridge) {
   return bridge.getEconomyState().units
@@ -151,8 +168,8 @@ describe('placement reachability — a builder has to be able to get there', () 
 
   // The defect itself, at a cell measured on this fixture: the footprint is
   // clear, and no villager can walk to it.
-  it('refuses a site no builder can walk to, and says why', () => {
-    const bridge = bootedBridge();
+  it.each(ARMS)('refuses a site no builder can walk to, and says why: $seat', ({ make }) => {
+    const bridge = make();
     selectFirstVillager(bridge);
     expect(bridge.beginBuildingPlacement('palisade-gate')).toBe(true);
 
@@ -178,15 +195,18 @@ describe('placement reachability — a builder has to be able to get there', () 
     expect(message).not.toBe('Cannot build here.');
   });
 
-  it('every cell the preview calls valid is one a villager can reach', () => {
-    const bridge = bootedBridge();
+  it.each([
+    { ...ARMS[0], floors: { gate: 100, house: 75 } },
+    { ...ARMS[1], floors: { gate: 1_100, house: 540 } },
+  ])('every cell the preview calls valid is one a villager can reach: $seat', ({ make, floors }) => {
+    const bridge = make();
     selectFirstVillager(bridge);
     const seen = reachableCells(bridge);
     const { width, height } = bridge.world.grid;
 
     for (const [type, footprint, floor] of [
-      ['palisade-gate', { width: 1, height: 1 }, 100],
-      ['house', { width: 2, height: 2 }, 75],
+      ['palisade-gate', { width: 1, height: 1 }, floors.gate],
+      ['house', { width: 2, height: 2 }, floors.house],
     ] as const) {
       expect(bridge.beginBuildingPlacement(type)).toBe(true);
       const stranded: Cell[] = [];
@@ -213,7 +233,9 @@ describe('placement reachability — a builder has to be able to get there', () 
       // of which is explored (hotfix 45185, spec §12.1), so the population is
       // the 218 cells the human has explored at tick 600: palisade gate 125
       // valid anchors of 218, house 92 of the 254 footprints that touch
-      // explored ground. The floors keep the old margin, about four fifths.
+      // explored ground. The AI arm reads the whole map again, at tick 0:
+      // palisade gate 1,397 valid anchors, house 674. Every floor keeps the
+      // old margin, about four fifths.
       expect(valid, `${type}: the fix refused nearly everything`).toBeGreaterThan(floor);
     }
   });

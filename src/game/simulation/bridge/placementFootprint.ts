@@ -14,17 +14,21 @@
 //    44725: a blueprint over unexplored terrain no longer reveals what occupies
 //    it, and can still be placed). So whatever the fog hides under a footprint
 //    is found when building starts, and the water a Dock needs beside it has
-//    to be water the player has seen. Cells off the map are never unexplored:
-//    the map edge is known to everyone, so it still refuses.
+//    to be water the player has seen. Two things are known on unexplored
+//    ground all the same: the map edge, known to everyone, and whatever the
+//    view's `isClaimShown` accepts — the player's own buildings and
+//    foundations, which it is always shown, so it can never stack a
+//    foundation on its own (review finding, work 122).
 //  * `ignoredEntityId` — the start check
 //    (update 46295, foundationStart.ts): the true map with the foundation's own
 //    claims left out, so a builder arriving at it can see whether anything
 //    else stands on its ground.
 //
 // `tests/simulation/placementFootprintViews.test.ts` holds the empty view to the
-// unviewed path on every anchor of the boot map, so the two cannot drift.
+// unviewed path on every anchor of a hand-built 16x16 map holding every kind
+// of claim, so the two cannot drift.
 
-import type { OccupancyCellStatus } from 'civ-engine';
+import type { OccupancyCellClaim, OccupancyCellStatus } from 'civ-engine';
 
 import type { BuildingType, TerrainKind } from '../types';
 import {
@@ -39,6 +43,9 @@ export interface PlacementCellView {
   /** Present for a player's view: false for an in-map cell the player has not
    *  explored. Never asked about a cell off the map. */
   isCellKnown?: (x: number, y: number) => boolean;
+  /** With `isCellKnown`: a claim the player is shown even on unexplored
+   *  ground — its own buildings and foundations — and so still counts there. */
+  isClaimShown?: (claim: OccupancyCellClaim) => boolean;
   /** An entity whose own claims do not count: the foundation being started. */
   ignoredEntityId?: number;
 }
@@ -116,10 +123,21 @@ export function createPlacementFootprint(deps: PlacementFootprintDeps): Placemen
     const unitStands = (status: OccupancyCellStatus): boolean => (
       status.crowdedBy.some((claim) => claim.kind === 'unit')
     );
+    // On an unexplored cell only what the player is shown anyway counts.
+    const { isClaimShown } = view;
+    const shownThere = (cellX: number, cellY: number): boolean => {
+      if (isClaimShown === undefined) return false;
+      const status = getCellStatus(cellX, cellY, ignored);
+      return status.blockedBy.some(isClaimShown)
+        || status.crowdedBy.some((claim) => claim.kind === 'unit' && isClaimShown(claim));
+    };
     if (buildingType && requiresWaterPlacement(buildingType)) {
       for (let cellY = y; cellY < y + height; cellY += 1) {
         for (let cellX = x; cellX < x + width; cellX += 1) {
-          if (!reads(cellX, cellY)) continue;
+          if (!reads(cellX, cellY)) {
+            if (shownThere(cellX, cellY)) return true;
+            continue;
+          }
           if (terrainKindAt(cellX, cellY) !== 'water') return true;
           const status = getCellStatus(cellX, cellY, ignored);
           if (status.blockedBy.some((claim) => claim.kind !== 'terrain')) return true;
@@ -130,7 +148,10 @@ export function createPlacementFootprint(deps: PlacementFootprintDeps): Placemen
     }
     for (let cellY = y; cellY < y + height; cellY += 1) {
       for (let cellX = x; cellX < x + width; cellX += 1) {
-        if (!reads(cellX, cellY)) continue;
+        if (!reads(cellX, cellY)) {
+          if (shownThere(cellX, cellY)) return true;
+          continue;
+        }
         const status = getCellStatus(cellX, cellY, ignored);
         if (status.blockedBy.length > 0 || unitStands(status)) return true;
       }

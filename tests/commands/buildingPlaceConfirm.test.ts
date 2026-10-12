@@ -213,6 +213,35 @@ describe('buildingPlaceConfirmValidator', () => {
     expect(message).not.toContain('Nearest open ground');
   });
 
+  // Work 122: a report taken through the player's view counts the unexplored
+  // cells apart, so the counts always add up to the footprint (review: a
+  // house at the map edge read "3 of the 2 explored footprint cells").
+  it('counts blocked and unexplored cells against the whole footprint', () => {
+    const world = freshWorld();
+    const villagerId = makeVillager(world);
+    const messageFor = (blockedCellCount: number, unexploredCellCount: number): string => {
+      const validator = makeValidator(world, {
+        isPlacementBlocked: () => true,
+        describePlacementBlockers: () => ({
+          firstBlockedCell: { x: 32, y: 20 },
+          cause: 'the map edge',
+          blockedCellCount,
+          totalCellCount: 4,
+          unexploredCellCount,
+        }),
+      });
+      const result = validator(
+        { builderId: villagerId, buildingType: 'house', position: { x: 31, y: 20 } },
+        world,
+      );
+      return (result as { message: string }).message;
+    };
+    expect(messageFor(3, 1)).toContain('the map edge at (32,20); 3 of the 4 footprint cells are blocked, and 1 is unexplored.');
+    expect(messageFor(1, 3)).toContain('; 1 of the 4 footprint cells is blocked, and 3 are unexplored.');
+    expect(messageFor(2, 0)).toContain('; 2 of the 4 footprint cells are blocked.');
+    expect(messageFor(3, 1)).not.toContain('explored footprint');
+  });
+
   it('passes the acting owner into the anchor visibility probe (A3)', () => {
     const world = freshWorld();
     const villagerId = makeVillager(world, 3);

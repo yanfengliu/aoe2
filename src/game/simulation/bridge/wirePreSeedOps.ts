@@ -20,8 +20,9 @@ import {
   withBuilderReachability,
   type BuilderReachabilityStats,
 } from './builderReachability';
-import { withPlayerKnowledge } from './placementKnowledge';
+import { withPlayerKnowledge, type PlacementKnowledgeStats } from './placementKnowledge';
 import { createFoundationStart } from './foundationStart';
+import { isCellSeen, readSightOwners } from './humanSight';
 import { createDebugSnapshotOps } from './debugSnapshotOps';
 import type { PlacementSearchStats } from './placementSearch';
 import { createTransformOps } from './transformOps';
@@ -104,6 +105,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
   // snapshot reads its statistics through this cell.
   let walkFieldStats: DropOffWalkFieldStats | null = null;
   let builderReachStats: BuilderReachabilityStats | null = null;
+  let placementKnowledgeStats: PlacementKnowledgeStats | null = null;
   // The AI site search is wired after the scenario is seeded (wirePostSeedOps),
   // so it hands its counters back through this setter.
   let aiSitePlacementStats: PlacementSearchStats | null = null;
@@ -115,6 +117,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     accessor,
     walkFieldStats: () => walkFieldStats,
     builderReachStats: () => builderReachStats,
+    placementKnowledgeStats: () => placementKnowledgeStats,
     aiSitePlacementStats: () => aiSitePlacementStats,
   });
 
@@ -308,11 +311,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
   // The player places by what it has explored (placementKnowledge.ts; work
   // 122): the same three answers, read through the fog for the human seat and
   // from the true map for every AI seat.
-  const {
-    isPlacementBlocked,
-    describePlacementBlockers,
-    findOpenPlacementAnchors,
-  } = withPlayerKnowledge(withBuilderReachability(placementOccupancy, builderReachability, world), {
+  const playerKnowledge = withPlayerKnowledge(withBuilderReachability(placementOccupancy, builderReachability, world), {
     world,
     accessor,
     visibility,
@@ -322,11 +321,11 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     occupancy: placementOccupancy,
     isCellPassableForUnit,
     getApproachCellsForFootprint,
-    reachesOnTheMap: (builderIds, x, y, width, height) => (
-      builderReachability.canAnyBuilderReachFootprint(builderIds, x, y, width, height, world)
-    ),
+    structuralRevision: () => worldOccupancy.structuralRevision(),
   });
+  const { isPlacementBlocked, describePlacementBlockers, findOpenPlacementAnchors } = playerKnowledge;
   builderReachStats = builderReachability.stats;
+  placementKnowledgeStats = playerKnowledge.stats;
   // Update 46295: what the fog hid under the player's foundation is found when
   // a builder comes to start it (foundationStart.ts).
   const foundationStart = createFoundationStart({
@@ -335,6 +334,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     humanPlayerId: HUMAN_PLAYER_ID,
     isPlacementBlocked: placementOccupancy.isPlacementBlocked,
     describePlacementBlockers: placementOccupancy.describePlacementBlockers,
+    isCellSeen: (owner, x, y) => isCellSeen(visibility, readSightOwners(accessor, owner), x, y),
     enqueueRejection,
   });
 

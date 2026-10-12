@@ -25,9 +25,11 @@ export interface PlacementBlockReport {
   blockedCellCount: number;
   totalCellCount: number;
   /** Present when the report was taken through a player's view: how many of
-   *  the footprint's cells that player has explored. Only those are counted
-   *  in `blockedCellCount`, and only they can be named (spec §12.1). */
-  knownCellCount?: number;
+   *  the footprint's cells lie on unexplored ground and hold nothing the player
+   *  is shown there. Those cells are neither counted in `blockedCellCount` nor
+   *  named (spec §12.1); every other cell — explored, off the map, or holding
+   *  the player's own building — is judged. */
+  unexploredCellCount?: number;
 }
 
 export interface PlacementBlockReportDeps {
@@ -94,20 +96,32 @@ export function createPlacementBlockReporter(deps: PlacementBlockReportDeps): {
     height: number,
     view?: PlacementCellView,
   ): PlacementBlockReport | null {
-    // The same view the footprint rule reads (placementFootprint.ts): a cell
-    // the player has not explored is neither named nor counted, and the cell
-    // off the map is always known.
+    // The same view the footprint rule reads (placementFootprint.ts). A cell
+    // off the map is always known. On an unexplored cell only the claims the
+    // player is shown anyway are read — so they are all the cause can name —
+    // and a cell with none is counted as unexplored, never as clear or blocked.
     const isCellKnown = view?.isCellKnown;
+    const isClaimShown = view?.isClaimShown;
     const ignored = view?.ignoredEntityId ?? null;
     let first: PlacementBlockReport | null = null;
     let blockedCellCount = 0;
-    let knownCellCount = 0;
+    let unexploredCellCount = 0;
     for (let cellY = y; cellY < y + height; cellY += 1) {
       for (let cellX = x; cellX < x + width; cellX += 1) {
         const inMap = cellX >= 0 && cellX < mapWidth && cellY >= 0 && cellY < mapHeight;
-        if (isCellKnown && inMap && !isCellKnown(cellX, cellY)) continue;
-        if (inMap) knownCellCount += 1;
-        const status = getCellStatus(cellX, cellY, ignored);
+        let status = getCellStatus(cellX, cellY, ignored);
+        if (isCellKnown && inMap && !isCellKnown(cellX, cellY)) {
+          const shown = isClaimShown ?? (() => false);
+          status = {
+            ...status,
+            blockedBy: status.blockedBy.filter(shown),
+            crowdedBy: status.crowdedBy.filter((claim) => claim.kind === 'unit' && shown(claim)),
+          };
+          if (!isCellBlockedForPlacement(status)) {
+            unexploredCellCount += 1;
+            continue;
+          }
+        }
         if (!isCellBlockedForPlacement(status)) continue;
         blockedCellCount += 1;
         if (!first) {
@@ -122,7 +136,7 @@ export function createPlacementBlockReporter(deps: PlacementBlockReportDeps): {
     }
     if (!first) return null;
     return isCellKnown
-      ? { ...first, blockedCellCount, knownCellCount }
+      ? { ...first, blockedCellCount, unexploredCellCount }
       : { ...first, blockedCellCount };
   }
 

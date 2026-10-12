@@ -245,7 +245,12 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
 
         const buildingId = currentEntityId(activeWorld, command.buildingRef);
         if (buildingId === null) {
-          clearUnitCommand(id);
+          // The site went before this builder got there: deleted, destroyed, or
+          // cancelled at its start check (foundationStart.ts) by another
+          // builder. He goes on down his build chain, as finishing it would.
+          if (command.type !== 'build' || !advanceQueuedBuildCommand(activeWorld, accessor, command)) {
+            clearUnitCommand(id);
+          }
           continue;
         }
 

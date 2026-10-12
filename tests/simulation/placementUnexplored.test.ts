@@ -298,8 +298,9 @@ describe('placement over unexplored ground (work 122)', () => {
     expect(standerOnSite(), 'the second villager left before the builder started').toBe(true);
   });
 
-  // The refusal is a picture too: it names only what the player has explored.
-  it('a refusal names the explored blocker and counts only explored cells, the same over either variant', () => {
+  // The refusal is a picture too: it names only what the player has explored,
+  // and counts the unexplored cells apart rather than as clear or blocked.
+  it('a refusal names the explored blocker and counts the unexplored cells apart, the same over either variant', () => {
     const messages = [UNEXPLORED_PLACEMENT_OPEN_SEED, UNEXPLORED_PLACEMENT_HIDDEN_SEED].map((seed) => {
       const bridge = createSimulationBridge(seed);
       selectHumanVillager(bridge);
@@ -308,8 +309,42 @@ describe('placement over unexplored ground (work 122)', () => {
       return drainMessages(bridge).join(' | ');
     });
     expect(messages[0]).toContain(`a stone-mine (resource) at (${KNOWN_STONE_CELL.x},${KNOWN_STONE_CELL.y})`);
-    expect(messages[0]).toContain('1 of the 1 explored footprint cell');
+    expect(messages[0]).toContain('; 1 of the 4 footprint cells is blocked, and 3 are unexplored.');
     expect(messages[1]).toBe(messages[0]);
+  });
+
+  // Review finding, work 122: the player is always shown its own foundations,
+  // so one reaching into the fog still refuses another over it. Read as fog,
+  // its cell let a second house stack on the first, and the start check then
+  // cancelled the first for "a house hidden under the fog of war".
+  it('a foundation over the player\'s own earlier one is refused, though both reach into the fog', () => {
+    const bridge = createSimulationBridge(UNEXPLORED_PLACEMENT_OPEN_SEED);
+    selectHumanVillager(bridge);
+    const first = { x: 19, y: 9 };
+    const second = { x: 18, y: 10 };
+    const shared = { x: 19, y: 10 };
+    const { width } = bridge.getMapSize();
+    const explored = exploredCells(bridge);
+    const isExplored = (cell: Cell): boolean => explored.has(cell.y * width + cell.x);
+    expect(isExplored(shared), 'the cell the two share must be unexplored').toBe(false);
+    for (const anchor of [first, second]) {
+      expect(footprintCells(anchor, 'house').some(isExplored), `(${anchor.x},${anchor.y}) must touch explored ground`).toBe(true);
+    }
+    expect(placeableAt(bridge, 'house', first)).toBe(true);
+    expect(bridge.confirmBuildingPlacement(first.x, first.y, { queue: true })).toBe(true);
+    bridge.step(100);
+    expect(humanBuildingAt(bridge, first), 'the first foundation went down').toBeDefined();
+    expect(bridge.getPlacementPreview(second.x, second.y)?.isValid).toBe(false);
+    expect(bridge.confirmBuildingPlacement(second.x, second.y, { queue: true })).toBe(false);
+    expect(drainMessages(bridge).join(' | ')).toContain(`blocked by a house (building) at (${shared.x},${shared.y})`);
+    // Nothing lies hidden under the first, so it goes up.
+    let messages: string[] = [];
+    for (let i = 0; i < 300 && (humanBuildingAt(bridge, first)?.buildProgressTicks ?? 0) === 0; i += 1) {
+      bridge.step(100);
+      messages = messages.concat(drainMessages(bridge));
+    }
+    expect(humanBuildingAt(bridge, first)?.buildProgressTicks ?? 0).toBeGreaterThan(0);
+    expect(messages.join(' | ')).not.toContain('cancelled');
   });
 
   // Beside the footprint the fog meets no requirement: a Dock needs water the

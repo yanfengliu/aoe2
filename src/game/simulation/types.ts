@@ -446,6 +446,9 @@ export interface SimulationDebugSnapshot {
    *  and the wall time the fills took — the feature's OWN timer, which is what
    *  a cost claim has to rest on. Absent on a bridge with none wired. */
   builderReach?: { computed: number; served: number; computeMs: number };
+  /** The same for the player's explored-ground labelling (placementKnowledge.ts),
+   *  built at most once a tick however often the preview asks. */
+  placementKnowledge?: { computed: number; served: number; computeMs: number };
   /** The AI site search's cost and refusals (aiSitePlacement.ts): how many
    *  seal-guard floods it ran, how many open anchors the guard refused for
    *  severing ground, how many searches found no site at all, and the wall

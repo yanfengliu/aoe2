@@ -167,29 +167,30 @@ export function makeBuildingPlaceConfirmValidator(
             + (anchor ? ` Nearest open ground you can see: (${anchor.x},${anchor.y}).` : ''),
         };
       }
-      // A report through the player's view counts only explored cells, and
-      // says so, so a refusal never measures what the fog hides.
-      const explored = report?.knownCellCount !== undefined && report.knownCellCount < report.totalCellCount
-        ? report.knownCellCount
-        : null;
+      // A report through the player's view (spec §12.1) says how many of the
+      // footprint's cells lie on unexplored ground holding nothing the player
+      // is shown. Those are neither clear nor blocked, so the counts name them
+      // apart and never measure what the fog hides.
+      const unexplored = report?.unexploredCellCount;
       if (report?.unreachableForBuilders === true) {
         return {
           code: 'placement_unreachable',
           message:
             `Placement blocked for ${where}: `
-            + (explored === null
+            + (unexplored === undefined
               ? 'the ground is clear, but no builder can walk to a cell beside it.'
-              : 'the explored ground is clear, but no builder can walk to a cell beside it '
-                + 'over ground you have explored.')
+              : `the ${unexplored > 0 ? 'explored ' : ''}ground is clear, but no builder can walk `
+                + 'to a cell beside it over ground you have explored.')
             + (anchor ? ` Nearest open ground a builder can reach: (${anchor.x},${anchor.y}).` : ''),
         };
       }
       const cause = report
         ? `${report.cause} at (${report.firstBlockedCell.x},${report.firstBlockedCell.y})`
         : 'an obstacle';
-      const counts = report && explored !== null
-        ? `; ${report.blockedCellCount} of the ${explored} explored footprint `
-          + `${explored === 1 ? 'cell is' : 'cells are'} blocked`
+      const counts = report && unexplored !== undefined && report.totalCellCount > 1
+        ? `; ${report.blockedCellCount} of the ${report.totalCellCount} footprint cells `
+          + `${report.blockedCellCount === 1 ? 'is' : 'are'} blocked`
+          + (unexplored > 0 ? `, and ${unexplored} ${unexplored === 1 ? 'is' : 'are'} unexplored` : '')
         : report && report.totalCellCount > 1
           ? `; ${report.blockedCellCount} of ${report.totalCellCount} footprint cells are blocked`
           : '';
