@@ -10,6 +10,37 @@ export async function getSnapshot(
   return page.evaluate(() => window.__AOE2_TEST__!.getSnapshot());
 }
 
+// The boot waits poll the HUD state alone. A full snapshot carries the render
+// state of every entity, the 2,160 terrain tiles included, and one round trip
+// of it cost 0.7-0.9 s on CI's SwiftShader runners (work 123), where these
+// polls run before almost every spec. The HUD state is the same bridge read.
+async function hudSeedAndTick(page: Page): Promise<{ seed: string; tick: number }> {
+  return page.evaluate(() => {
+    const hud = window.__AOE2_TEST__!.getHudState();
+    return { seed: hud.seed, tick: hud.tick };
+  });
+}
+
+/** The selection state alone, the same bridge read a full snapshot carries. */
+export async function getSelectionState(page: Page): Promise<BrowserTestSnapshot['selectionState']> {
+  return page.evaluate(() => window.__AOE2_TEST__!.getSelectionState());
+}
+
+/** The HUD state alone. */
+export async function getHudState(page: Page): Promise<BrowserTestSnapshot['hudState']> {
+  return page.evaluate(() => window.__AOE2_TEST__!.getHudState());
+}
+
+/** The economy state alone. */
+export async function getEconomyState(page: Page): Promise<BrowserTestSnapshot['economyState']> {
+  return page.evaluate(() => window.__AOE2_TEST__!.getEconomyState());
+}
+
+/** The camera state alone. */
+export async function getCameraState(page: Page): Promise<BrowserTestSnapshot['cameraState']> {
+  return page.evaluate(() => window.__AOE2_TEST__!.getCameraState());
+}
+
 export async function waitForBoot(page: Page): Promise<void> {
   await waitForBootWithSeed(page, 'aoe2-prototype');
 }
@@ -20,11 +51,8 @@ export async function waitForBoot(page: Page): Promise<void> {
 export async function waitForBootWithSeed(page: Page, seed: string, civ?: string): Promise<void> {
   await page.goto(`/?seed=${seed}${civ ? `&civ=${civ}` : ''}`);
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
-  await expect.poll(async () => (await getSnapshot(page)).hudState.seed).toBe(seed);
-  await expect.poll(async () => {
-    const snapshot = await getSnapshot(page);
-    return snapshot.hudState.tick;
-  }).toBeGreaterThan(0);
+  await expect.poll(async () => (await hudSeedAndTick(page)).seed).toBe(seed);
+  await expect.poll(async () => (await hudSeedAndTick(page)).tick).toBeGreaterThan(0);
 }
 
 export async function waitForPausedBootWithSeed(page: Page, seed: string): Promise<void> {
@@ -37,7 +65,7 @@ export async function waitForPausedBootWithSeed(page: Page, seed: string): Promi
   });
   await page.goto(`/?seed=${seed}`);
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
-  await expect.poll(async () => (await getSnapshot(page)).hudState.seed).toBe(seed);
+  await expect.poll(async () => (await hudSeedAndTick(page)).seed).toBe(seed);
   await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
 }
 

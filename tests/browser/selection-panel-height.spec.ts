@@ -39,7 +39,11 @@
 // window shorter than the band needs (the viewport ceilings then clamp every
 // selection alike), or the replay timeline's reserve. Every state asserts
 // that its selection took effect before measuring, so a selection that
-// silently failed cannot pass as "the same height as before".
+// silently failed cannot pass as "the same height as before". Since work 123
+// (2026-10-12) each viewport is three tests — the villager and the scout; the
+// Town Centre and a House foundation; the resources and groups — each held to
+// its own "nothing selected" at boot. That boot state is the same in all three,
+// so every state is still held to one height.
 
 import { expect, test, type Page } from '@playwright/test';
 
@@ -127,14 +131,14 @@ async function selectTownCentre(page: Page): Promise<void> {
   await expect(page.locator('[data-command-group="train"]')).toBeAttached();
 }
 
-/** Every state the bar can be asked to show at boot, measured in turn. */
-async function measureEveryState(
-  page: Page,
-  viewport: { width: number; height: number },
-): Promise<PanelMetrics[]> {
+/** The villager and scout states, measured in turn from boot. Since work 123 the
+ *  states are measured in three pages per viewport, this one and the next two:
+ *  one page per viewport ran 26-28 s of its 30 s on slow CI runners at
+ *  1920x1080, and two pages left the first at 60-64%. */
+async function measureVillagerAndScout(page: Page): Promise<PanelMetrics[]> {
   const states: PanelMetrics[] = [];
-  const record = async (state: string, scrollsInsideTheBand?: string): Promise<void> => {
-    states.push(await measurePanel(page, state, scrollsInsideTheBand));
+  const record = async (state: string): Promise<void> => {
+    states.push(await measurePanel(page, state));
   };
 
   await clearSelection(page);
@@ -157,6 +161,23 @@ async function measureEveryState(
   await expect(page.locator('[data-selection-name]')).toHaveText('Scout Cavalry');
   await expect(page.locator('[data-command-group="formation"]')).toBeAttached();
   await record('the Scout Cavalry');
+
+  return states;
+}
+
+/** The Town Centre, empty and with a villager queued, and a House foundation,
+ *  from a fresh boot against their own "nothing selected". */
+async function measureTownCentreAndFoundation(
+  page: Page,
+  viewport: { width: number; height: number },
+): Promise<PanelMetrics[]> {
+  const states: PanelMetrics[] = [];
+  const record = async (state: string, scrollsInsideTheBand?: string): Promise<void> => {
+    states.push(await measurePanel(page, state, scrollsInsideTheBand));
+  };
+
+  await clearSelection(page);
+  await record('nothing selected');
 
   await selectTownCentre(page);
   await record('the Town Centre');
@@ -194,6 +215,21 @@ async function measureEveryState(
   await expect(page.locator('[data-selection-name]')).toHaveText('House');
   await record('a House foundation');
 
+  return states;
+}
+
+/** The resource, villager-group and box selections, from a fresh boot, against
+ *  their own "nothing selected": the same boot state the first page's
+ *  reference is, so every state is still held to one height. */
+async function measureResourcesAndGroups(page: Page): Promise<PanelMetrics[]> {
+  const states: PanelMetrics[] = [];
+  const record = async (state: string): Promise<void> => {
+    states.push(await measurePanel(page, state));
+  };
+
+  await clearSelection(page);
+  await record('nothing selected');
+
   await selectResource(page, 'sheep', 'Sheep');
   await record('a sheep');
   await selectResource(page, 'tree', 'Tree');
@@ -229,53 +265,74 @@ async function measureEveryState(
   return states;
 }
 
+const GROUPS = [
+  {
+    name: 'villager and scout',
+    minimum: 5,
+    measure: (page: Page) => measureVillagerAndScout(page),
+    excepted: () => [] as string[],
+  },
+  {
+    name: 'Town Centre and a House foundation',
+    minimum: 4,
+    measure: measureTownCentreAndFoundation,
+    excepted: (viewport: { width: number }) => (viewport.width === 800 ? ['the Town Centre with a villager queued'] : []),
+  },
+  {
+    name: 'resources and groups',
+    minimum: 9,
+    measure: (page: Page) => measureResourcesAndGroups(page),
+    excepted: () => [] as string[],
+  },
+];
+
 for (const viewport of VIEWPORTS) {
-  test(`the command bar keeps one height at ${viewport.width}x${viewport.height}`, async ({
-    page,
-  }) => {
-    await page.setViewportSize(viewport);
-    await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
+  for (const group of GROUPS) {
+    test(`the command bar keeps one height at ${viewport.width}x${viewport.height}: ${group.name}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+      await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
 
-    const states = await measureEveryState(page, viewport);
-    expect(states.length).toBeGreaterThanOrEqual(16);
-    const table = states.map(describe).join('\n  ');
-    const reference = states[0]!;
+      const states = await group.measure(page, viewport);
+      expect(states.length).toBeGreaterThanOrEqual(group.minimum);
+      const table = states.map(describe).join('\n  ');
+      const reference = states[0]!;
 
-    // Every assertion is soft, so one red run lists every state that differs
-    // rather than the first.
-    for (const state of states) {
-      expect.soft(
-        Math.abs(state.height - reference.height),
-        `${state.state}: the bar is ${state.height}px tall against ${reference.height}px with `
-          + `${reference.state}; the bar's height must not depend on the selection.\n  ${table}`,
-      ).toBeLessThanOrEqual(SAME_PX);
-      expect.soft(
-        Math.abs(state.top - reference.top),
-        `${state.state}: the bar's top edge is at ${state.top} against ${reference.top} with `
-          + `${reference.state}; the bar must not move when the selection changes.\n  ${table}`,
-      ).toBeLessThanOrEqual(SAME_PX);
-      // What varies lives INSIDE the band — and fits. A band kept fixed by
-      // clipping a villager's palette would pass the two checks above.
-      if (state.scrollsInsideTheBand) continue;
-      expect.soft(
-        state.scrollHeight,
-        `${state.state}: the bar's content (${state.scrollHeight}px) must fit its `
-          + `${state.clientHeight}px box without a vertical scroll.\n  ${table}`,
-      ).toBeLessThanOrEqual(state.clientHeight + 1);
-    }
-    // The exception is exactly one state at exactly one viewport, and it is
-    // still reachable: rule (b) says what the band cannot show scrolls.
-    const excepted = states.filter((state) => state.scrollsInsideTheBand);
-    expect(excepted.map((state) => state.state)).toEqual(
-      viewport.width === 800 ? ['the Town Centre with a villager queued'] : [],
-    );
-    for (const state of excepted) {
-      expect.soft(
-        state.scrollHeight,
-        `${state.state} is excepted because ${state.scrollsInsideTheBand}, yet its content `
-          + `(${state.scrollHeight}px) fits the ${state.clientHeight}px band: the exception is `
-          + `stale — delete it and let the state be held like the others.\n  ${table}`,
-      ).toBeGreaterThan(state.clientHeight);
-    }
-  });
+      // Every assertion is soft, so one red run lists every state that differs
+      // rather than the first.
+      for (const state of states) {
+        expect.soft(
+          Math.abs(state.height - reference.height),
+          `${state.state}: the bar is ${state.height}px tall against ${reference.height}px with `
+            + `${reference.state}; the bar's height must not depend on the selection.\n  ${table}`,
+        ).toBeLessThanOrEqual(SAME_PX);
+        expect.soft(
+          Math.abs(state.top - reference.top),
+          `${state.state}: the bar's top edge is at ${state.top} against ${reference.top} with `
+            + `${reference.state}; the bar must not move when the selection changes.\n  ${table}`,
+        ).toBeLessThanOrEqual(SAME_PX);
+        // What varies lives INSIDE the band — and fits. A band kept fixed by
+        // clipping a villager's palette would pass the two checks above.
+        if (state.scrollsInsideTheBand) continue;
+        expect.soft(
+          state.scrollHeight,
+          `${state.state}: the bar's content (${state.scrollHeight}px) must fit its `
+            + `${state.clientHeight}px box without a vertical scroll.\n  ${table}`,
+        ).toBeLessThanOrEqual(state.clientHeight + 1);
+      }
+      // The exception is exactly one state at exactly one viewport, and it is
+      // still reachable: rule (b) says what the band cannot show scrolls.
+      const excepted = states.filter((state) => state.scrollsInsideTheBand);
+      expect(excepted.map((state) => state.state)).toEqual(group.excepted(viewport));
+      for (const state of excepted) {
+        expect.soft(
+          state.scrollHeight,
+          `${state.state} is excepted because ${state.scrollsInsideTheBand}, yet its content `
+            + `(${state.scrollHeight}px) fits the ${state.clientHeight}px band: the exception is `
+            + `stale — delete it and let the state be held like the others.\n  ${table}`,
+        ).toBeGreaterThan(state.clientHeight);
+      }
+    });
+  }
 }

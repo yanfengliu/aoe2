@@ -157,7 +157,7 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (c
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(12, 7))).toBe(true);
     // §12.4.2 (v0.3.160): warm the carry so a fine step lands in the sampled
     // 150 ms tick (scout steps land every 2-3 ticks after the first at tick 3).
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(2, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(2, 100); });
     const partialSnapshot = await page.evaluate(
       // The first full step admits the queued command. A 150 ms follow-up
       // guarantees one movement tick plus a half-tick interpolation remainder.
@@ -206,7 +206,7 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (c
     // passed in isolation and failed inside the full suite — the shape that
     // goes red on a CI machine and green on the author's.
     const displayedAtTarget = async (): Promise<number> => {
-      await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+      await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 100); });
       return page.evaluate(() =>
         window.__AOE2_TEST__!
           .getDisplayedEntities()

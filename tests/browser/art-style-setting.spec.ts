@@ -30,6 +30,8 @@ interface UnexploredGround {
   readonly kinds: readonly string[];
   readonly colours: readonly string[];
   readonly maxChannel: number;
+  /** The captured world frame the sample read, as captureWorldFrame's data URL. */
+  readonly frame: string;
 }
 
 async function sampleUnexploredGround(page: Page): Promise<UnexploredGround> {
@@ -65,8 +67,11 @@ async function sampleUnexploredGround(page: Page): Promise<UnexploredGround> {
     const canvas = document.createElement('canvas');
     canvas.width = image.width;
     canvas.height = image.height;
-    const context = canvas.getContext('2d')!;
+    const context = canvas.getContext('2d', { willReadFrequently: true })!;
     context.drawImage(image, 0, 0);
+    // One read of the whole frame, indexed below: the same pixels the
+    // per-cell 1x1 reads returned, without a canvas readback per cell.
+    const pixels = context.getImageData(0, 0, image.width, image.height).data;
     const rect = document.querySelector('.voxel-world-canvas')!.getBoundingClientRect();
     const scale = image.width / rect.width;
     const seenKinds = new Set<string>();
@@ -79,19 +84,26 @@ async function sampleUnexploredGround(page: Page): Promise<UnexploredGround> {
         const px = Math.round((origin.x + (alongX.x - origin.x) * x + (alongY.x - origin.x) * y - rect.left) * scale);
         const py = Math.round((origin.y + (alongX.y - origin.y) * x + (alongY.y - origin.y) * y - rect.top) * scale);
         if (px < 0 || py < 0 || px >= image.width || py >= image.height) continue;
-        const [r, g, b] = context.getImageData(px, py, 1, 1).data;
+        const at = (py * image.width + px) * 4;
+        const r = pixels[at]!;
+        const g = pixels[at + 1]!;
+        const b = pixels[at + 2]!;
         colours.add(`${String(r)},${String(g)},${String(b)}`);
         maxChannel = Math.max(maxChannel, r!, g!, b!);
         seenKinds.add(String(kinds.get(y * width + x)));
         cells += 1;
       }
     }
-    return { cells, kinds: [...seenKinds].sort(), colours: [...colours], maxChannel };
+    return { cells, kinds: [...seenKinds].sort(), colours: [...colours], maxChannel, frame: capture.dataUrl };
   });
 }
 
-async function expectUnexploredGroundHidden(page: Page, style: string): Promise<void> {
-  const ground = await sampleUnexploredGround(page);
+/** Returns the frame it sampled, so the style switch below compares the two
+ *  frames these checks read rather than capturing each again (work 123: a
+ *  capture of the 1280x720 world cost about 1.5 s here and four times that on
+ *  CI's SwiftShader runners). */
+async function expectUnexploredGroundHidden(page: Page, style: string): Promise<string> {
+  const { frame, ...ground } = await sampleUnexploredGround(page);
   const seen = JSON.stringify(ground);
   // The sample has to span terrain kinds, or one colour would prove nothing
   // (measured 2026-09-23: 799 cells of forest, grass, hill and water).
@@ -106,23 +118,37 @@ async function expectUnexploredGroundHidden(page: Page, style: string): Promise<
   expect(ground.colours, `${style}: colours drawn over unexplored ground, ${seen}`).toHaveLength(1);
   expect(ground.maxChannel, `${style}: brightest channel over unexplored ground, ${seen}`).toBeLessThanOrEqual(16);
   if (style === 'de') expect(ground.colours, `de: unexplored ground is black, ${seen}`).toEqual(['0,0,0']);
+  return frame;
 }
 
 async function artStyleDrawn(page: Page): Promise<string> {
   return page.evaluate(() => window.__AOE2_TEST__!.getWorldRendererState().artStyle);
 }
 
-test.describe('art style setting and fog of war', () => {
-  test('switches the live canvas from the menu, keeps the choice, and never draws unexplored ground', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
-    await page.evaluate(() => window.__AOE2_TEST__!.setCameraZoom(0.7));
-    await game.waitForRenderedFrames(page, 2);
+// Three tests since work 123: as one test it ran 24-26 s of its 30 s on CI's
+// SwiftShader runners, most of it the first Moebius frame and four captures of
+// the 1280x720 world. The chain "a click stores the choice, and a reload draws
+// it" is held at the stored value: the second test proves the click writes
+// `aoe2:art-style` = moebius, the third that a boot reading moebius draws it.
+async function bootZoomedOut(page: Page): Promise<void> {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
+  await page.evaluate(() => window.__AOE2_TEST__!.setCameraZoom(0.7));
+  await game.waitForRenderedFrames(page, 2);
+}
 
+test.describe('art style setting and fog of war', () => {
+  test('draws unexplored ground black in the default Natural style', async ({ page }) => {
+    await bootZoomedOut(page);
     // The DE style (Natural) is the default (decision D1, once the CPU ground
     // cost fix landed); Moebius is one click on the menu row away.
     expect(await artStyleDrawn(page)).toBe('de');
     await expectUnexploredGroundHidden(page, 'de');
+  });
+
+  test('switches the live canvas to Moebius from the menu, stores the choice, and never draws unexplored ground', async ({ page }) => {
+    await bootZoomedOut(page);
+    expect(await artStyleDrawn(page)).toBe('de');
     const deFrame = await page.evaluate(() => window.__AOE2_TEST__!.captureWorldFrame().dataUrl);
 
     await page.keyboard.press('Escape');
@@ -135,16 +161,18 @@ test.describe('art style setting and fog of war', () => {
     expect(await page.evaluate(() => window.localStorage.getItem('aoe2:art-style'))).toBe('moebius');
     // Live, with no reload: the paused canvas itself is drawn differently.
     await game.waitForRenderedFrames(page, 2);
-    const moebiusFrame = await page.evaluate(() => window.__AOE2_TEST__!.captureWorldFrame().dataUrl);
+    const moebiusFrame = await expectUnexploredGroundHidden(page, 'moebius');
     expect(moebiusFrame).not.toBe(deFrame);
-    await expectUnexploredGroundHidden(page, 'moebius');
+  });
 
+  test('boots in the stored style, names it on the menu row, and wraps back to Natural', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.addInitScript(() => { window.localStorage.setItem('aoe2:art-style', 'moebius'); });
+    await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
     // The choice survives a reload, and the row names the style drawn.
-    await page.reload();
-    await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
-    await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
     expect(await artStyleDrawn(page)).toBe('moebius');
     await page.keyboard.press('Escape');
+    const row = page.locator('[data-hud="menu-art-style-cycle"]');
     await expect(row).toHaveAccessibleName('Art style: Moebius');
 
     // And the row wraps back to Natural.

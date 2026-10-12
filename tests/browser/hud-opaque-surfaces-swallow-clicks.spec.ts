@@ -162,13 +162,17 @@ async function controlClicks(page: Page, where: string, points: Point[]): Promis
   ).toEqual([]);
 }
 
+// One test per width and state (work 123): a test per width swept all three
+// states and ran 16-22 s of its 30 s on CI's SwiftShader runners. Each state's
+// establish() sets its selection from a fresh boot, so every check above is
+// made exactly as before, one state per page.
 for (const viewport of [{ width: 1280, height: 800 }, { width: 800, height: 600 }]) {
-  test(`opaque HUD surfaces swallow clicks at ${viewport.width}x${viewport.height}`, async ({ page }) => {
-    await page.setViewportSize(viewport);
-    await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
-    await installCanvasProbe(page);
+  for (const state of STATES) {
+    test(`opaque HUD surfaces swallow clicks at ${viewport.width}x${viewport.height}, ${state.name}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
+      await installCanvasProbe(page);
 
-    for (const state of STATES) {
       await state.establish(page);
       const sweep = await sweepHud(page, GRID_STEP, QUIET_POINTS_PER_SURFACE);
       const where = `${viewport.width}x${viewport.height}, ${state.name}`;
@@ -286,6 +290,6 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 800, height: 600 
       const chassis = (list: SurfaceRect[]): SurfaceRect[] => list
         .filter((surface) => /hud-bar|hud-panel/.test(surface.label));
       expect(chassis(again.surfaces), moved).toEqual(chassis(sweep.surfaces));
-    }
-  });
+    });
+  }
 }

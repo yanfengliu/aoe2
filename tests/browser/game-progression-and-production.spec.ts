@@ -28,7 +28,7 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     // "food 200, expected 150" (an incomplete TC trains nothing).
     await game.advanceUntilBuildingComplete(page, 1, 'town-center', 6_000, townCenterPlacement);
     await game.clickCell(page, 18, 10, 'right');
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(80, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(80, 100); });
 
     expect(
       await game.selectOwnedBuildingAtDirect(
@@ -195,12 +195,12 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
         marketPlacement,
       ),
     ).toBe(true);
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 100); });
     await expect(page.locator('[data-hud="wood"]')).toHaveText('275');
 
     // §12.4.2 walk clock (v0.3.160): the builder WALKS to the site now, so the
     // construction window carries the commute on top of the build time.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(900, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(900, 100); });
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'market')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Market');

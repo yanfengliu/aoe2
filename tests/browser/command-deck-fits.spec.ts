@@ -133,10 +133,24 @@ async function selectTownCentre(page: Page): Promise<void> {
   expect(selected, 'the human owns a Town Centre at boot').toBe(true);
 }
 
+// The fixture cards below boot their own scenario, so the describe's boot of
+// the default map was a second boot for each of them (work 123: 2.2 s of a
+// 10 s card test on CI); the hook leaves those tests to their own boot.
+const CARDS = [
+  { seed: 'castle-upgrades-fixture', building: 'blacksmith' },
+  { seed: 'castle-upgrades-fixture', building: 'town-center' },
+  { seed: 'trade-route-fixture', building: 'market' },
+  { seed: 'imperial-castle-fixture', building: 'castle' },
+  { seed: 'monastery-fixture', building: 'monastery' },
+];
+const cardTitle = (card: { seed: string; building: string }): string => `fits or scrolls a ${card.building}'s whole card (${card.seed})`;
+const BOOTS_ITS_OWN_FIXTURE = new Set(CARDS.map(cardTitle));
+
 for (const viewport of VIEWPORTS) {
   test.describe(`command deck at ${viewport.width}x${viewport.height}`, () => {
-    test.beforeEach(async ({ page }) => {
+    test.beforeEach(async ({ page }, testInfo) => {
       await page.setViewportSize(viewport);
+      if (BOOTS_ITS_OWN_FIXTURE.has(testInfo.title)) return;
       await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
     });
 
@@ -241,14 +255,8 @@ for (const viewport of VIEWPORTS) {
     // runs off SIDEWAYS (there is no horizontal scroll below 1120px at all, so
     // sideways overflow is unreachable by any means), and anything the bar
     // cannot show is reachable by scrolling it with a wheel.
-    for (const card of [
-      { seed: 'castle-upgrades-fixture', building: 'blacksmith' },
-      { seed: 'castle-upgrades-fixture', building: 'town-center' },
-      { seed: 'trade-route-fixture', building: 'market' },
-      { seed: 'imperial-castle-fixture', building: 'castle' },
-      { seed: 'monastery-fixture', building: 'monastery' },
-    ]) {
-      test(`fits or scrolls a ${card.building}'s whole card (${card.seed})`, async ({ page }) => {
+    for (const card of CARDS) {
+      test(cardTitle(card), async ({ page }) => {
         await game.waitForPausedBootWithSeed(page, card.seed);
         const selected = await page.evaluate((buildingType) => {
           const api = window.__AOE2_TEST__!;

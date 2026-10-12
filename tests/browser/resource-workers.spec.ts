@@ -63,6 +63,12 @@ async function screenshotResourceFixture(page: Page, name: string, includeToolti
     expect(clip.x + clip.width).toBeGreaterThanOrEqual(region.right);
     expect(clip.y + clip.height).toBeGreaterThanOrEqual(region.bottom);
   }
+  // The PNG is evidence for a person comparing layouts, and H4_LAYOUT_LABEL
+  // names that before/after pair; nothing asserts it. On CI's SwiftShader
+  // runners each capture took 2.6-3.2 s of a 1920px run's 23 s (work 123), so
+  // it is taken only when a label asks for it. The geometry above is the check,
+  // and it runs either way.
+  if (process.env.H4_LAYOUT_LABEL === undefined) return null;
   return play.screenshot(page, name, clip);
 }
 
@@ -110,12 +116,16 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
   // Rendered readout fixture only: no claim about acquiring these resources.
   // Clone the actual bar so live controller updates cannot overwrite the fixture.
   // The separate test above continues to exercise the real input path.
-  test(`large resource readouts stay inside fixed chips at ${viewport.width}px`, async ({ page }) => {
-    await page.setViewportSize(viewport);
-    await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
-    await page.evaluate(() => { const bar = document.querySelector('.hud-bar')!; bar.replaceWith(bar.cloneNode(true)); });
-    const geometry = await barGeometry(page);
-    for (const amount of ['100000', '1000000', '9007199254740991']) {
+  // One test per width and amount (work 123): one test per width ran 21.7 s of
+  // its 30 s on a slow CI runner even without its captures. Each amount starts
+  // from a fresh boot and compares the bar with its own untouched geometry, as
+  // every amount did with the geometry measured before the first.
+  for (const amount of ['100000', '1000000', '9007199254740991']) {
+    test(`large resource readouts stay inside fixed chips at ${viewport.width}px, ${amount}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
+      await page.evaluate(() => { const bar = document.querySelector('.hud-bar')!; bar.replaceWith(bar.cloneNode(true)); });
+      const geometry = await barGeometry(page);
       await page.locator('.hud-resource-readout').evaluateAll((readouts, value) => {
         for (const readout of readouts) {
           const total = readout.querySelector<HTMLElement>('.hud-value')!;
@@ -149,6 +159,6 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
         }
       }
       await page.mouse.move(viewport.width - 1, viewport.height - 1);
-    }
-  });
+    });
+  }
 }

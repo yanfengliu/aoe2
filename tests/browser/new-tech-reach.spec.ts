@@ -24,7 +24,7 @@ test.describe('technologies added since v0.3.48 are reachable with a mouse', () 
     const trainArcher = page.locator('[data-command="train-cavalry-archer"]');
     await expect(trainArcher).toBeVisible();
     await trainArcher.click();
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(400, 100); });
 
     // Read the armor off the SELECTION PANEL — the number the player actually
     // sees — rather than out of a snapshot.
@@ -37,7 +37,7 @@ test.describe('technologies added since v0.3.48 are reachable with a mouse', () 
     await expect(research).toBeVisible();
     await research.click();
     // 65 s of research at 10 ticks per second, plus room for the queue to start.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(800, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(800, 100); });
 
     // technologies.csv: "+1/+2 AR" — one melee, two pierce, on the unit that
     // was already standing there when the research finished.
@@ -65,7 +65,7 @@ test.describe('technologies added since v0.3.48 are reachable with a mouse', () 
       await expect(button).toBeVisible();
       await button.click();
       // 65 s and 75 s of research at 10 ticks per second, one after the other.
-      await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(900, 100));
+      await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(900, 100); });
 
       expect(await game.selectOwnedBuildingDirect(page, 1, 'monastery')).toBe(true);
       await expect(page.locator(`[data-command="research-${tech}"]`)).toHaveCount(0);
@@ -79,10 +79,10 @@ test.describe('technologies added since v0.3.48 are reachable with a mouse', () 
   test('a monk converts an enemy with a right-click and then reads Resting', async ({ page }) => {
     await game.waitForBootWithSeed(page, 'monk-faith-rest-fixture');
 
-    const monks = (await game.getSnapshot(page)).economyState.units.filter(
+    const monks = (await game.getEconomyState(page)).units.filter(
       (unit) => unit.owner === 1 && unit.unitType === 'monk',
     );
-    const target = (await game.getSnapshot(page)).economyState.units.find(
+    const target = (await game.getEconomyState(page)).units.find(
       (unit) => unit.owner === 2 && unit.unitType === 'villager',
     )!;
     expect(monks.length).toBeGreaterThanOrEqual(2);
@@ -96,17 +96,17 @@ test.describe('technologies added since v0.3.48 are reachable with a mouse', () 
     );
     expect(await game.selectOwnedUnitDirect(page, 1, 'monk')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Monk');
-    const selectedId = (await game.getSnapshot(page)).selectionState.selectedEntityId;
+    const selectedId = (await game.getSelectionState(page)).selectedEntityId;
     await game.clickCell(page, target.x, target.y, 'right');
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(200, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(200, 100); });
 
-    const converted = (await game.getSnapshot(page)).economyState.units.find(
+    const converted = (await game.getEconomyState(page)).units.find(
       (unit) => unit.id === target.id,
     );
     expect(converted?.owner).toBe(1);
 
     // Re-select the monk that did it and read the panel.
-    const monk = (await game.getSnapshot(page)).economyState.units.find(
+    const monk = (await game.getEconomyState(page)).units.find(
       (unit) => unit.id === selectedId,
     )!;
     await game.clickCell(page, monk.x, monk.y, 'left');
@@ -125,7 +125,7 @@ test.describe('technologies added since v0.3.48 are reachable with a mouse', () 
       const button = page.locator(`[data-command="research-${tech}"]`);
       await expect(button).toBeVisible();
       await button.click();
-      await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(700, 100));
+      await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(700, 100); });
 
       expect(await game.selectOwnedBuildingDirect(page, 1, 'dock')).toBe(true);
       await expect(page.locator(`[data-command="research-${tech}"]`)).toHaveCount(0);
@@ -135,16 +135,16 @@ test.describe('technologies added since v0.3.48 are reachable with a mouse', () 
     // Ship is 125 wood in units.csv and must now cost 100. Training one is
     // also the only way to check the capacity the other two bought.
     expect(await game.selectOwnedBuildingDirect(page, 1, 'dock')).toBe(true);
-    const woodBefore = (await game.getSnapshot(page)).economyState.playerResources[1]!.wood;
+    const woodBefore = (await game.getEconomyState(page)).playerResources[1]!.wood;
     await page.locator('[data-command="train-transport-ship"]').click();
     // The click QUEUES a command; the charge lands when the next tick processes
     // it, so reading the stockpile immediately would read it unspent.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(20, 100));
-    const woodAfter = (await game.getSnapshot(page)).economyState.playerResources[1]!.wood;
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(20, 100); });
+    const woodAfter = (await game.getEconomyState(page)).playerResources[1]!.wood;
     expect(woodBefore - woodAfter).toBe(100);
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(600, 100));
-    const transport = (await game.getSnapshot(page)).economyState.units.find(
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(600, 100); });
+    const transport = (await game.getEconomyState(page)).units.find(
       (unit) => unit.owner === 1 && unit.unitType === 'transport-ship',
     );
     expect(transport).toBeDefined();

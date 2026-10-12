@@ -30,7 +30,7 @@ test.describe('a Berserk heals itself, and Berserkergang doubles it', () => {
     expect(wounded).toBeLessThan(11);
 
     // Thirty seconds of standing still: one hit point every three seconds.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(300, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(300, 100); });
     const healed = await berserkHp(page);
     expect(healed - wounded).toBeGreaterThan(9);
     expect(healed - wounded).toBeLessThan(11);
@@ -49,14 +49,14 @@ test.describe('a Berserk heals itself, and Berserkergang doubles it', () => {
 
     // 40 s of research at 10 ticks per second, plus room for the queue to
     // start. The Berserk keeps healing at the base rate while it runs.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(450, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(450, 100); });
     expect(await game.selectOwnedBuildingDirect(page, 1, 'castle')).toBe(true);
     await expect(research).toHaveCount(0);
 
     // Twenty seconds at the doubled rate is thirteen hit points, where the
     // base rate would be six or seven — so the window tells them apart.
     const before = await berserkHp(page);
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(200, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(200, 100); });
     const after = await berserkHp(page);
     expect(after - before).toBeGreaterThan(11);
     expect(after).toBeLessThanOrEqual(66);

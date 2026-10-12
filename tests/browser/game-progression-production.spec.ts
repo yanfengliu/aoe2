@@ -12,7 +12,7 @@ test.describe('browser gameplay smoke tests - production', () => {
 
     await page.locator('[data-command="train-camel"]').click();
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(260, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(260, 100); });
 
     const snapshot = await game.getSnapshot(page);
     const camels = snapshot.economyState.units.filter(
@@ -44,7 +44,7 @@ test.describe('browser gameplay smoke tests - production', () => {
 
     await page.locator('[data-command="train-mangonel"]').click();
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(500, 100); });
 
     const snapshot = await game.getSnapshot(page);
     const mangonels = snapshot.economyState.units.filter(
@@ -74,7 +74,7 @@ test.describe('browser gameplay smoke tests - production', () => {
 
     await page.locator('[data-command="train-longbowman"]').click();
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(400, 100); });
 
     const snapshot = await game.getSnapshot(page);
     const longbows = snapshot.economyState.units.filter(
@@ -105,7 +105,7 @@ test.describe('browser gameplay smoke tests - production', () => {
     await expect(page.locator('[data-command="train-monk"]')).toBeVisible();
     await page.locator('[data-command="train-monk"]').click();
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(550, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(550, 100); });
 
     const monkSnapshot = await game.getSnapshot(page);
     const monks = monkSnapshot.economyState.units.filter(
@@ -141,17 +141,21 @@ test.describe('browser gameplay smoke tests - production', () => {
     ).toBe(true);
 
     // Wait until the Monk has walked to and picked up the relic (relic
-    // position matches Monk position).
+    // position matches Monk position). The match is paused and each poll
+    // steps it ten ticks (work 123): waiting on the frame loop's real time took
+    // 8.5 s of this test's 30 s on CI's SwiftShader runners, whose slow frames
+    // also slow the clock, and the walk is the same ticks either way.
+    await page.evaluate(() => { window.__AOE2_TEST__!.setPaused(true); });
     await expect
       .poll(async () => {
-        const snapshot = await game.getSnapshot(page);
+        const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(10, 100));
         const relic = snapshot.economyState.resources.find((r) => r.resourceType === 'relic');
         const monk = snapshot.economyState.units.find(
           (u) => u.owner === 1 && u.unitType === 'monk',
         );
         if (!relic || !monk) return false;
         return relic.x === monk.x && relic.y === monk.y;
-      }, { timeout: 30_000 })
+      }, { timeout: 30_000, intervals: [10] })
       .toBe(true);
 
     // Record gold before deposit.
@@ -175,12 +179,13 @@ test.describe('browser gameplay smoke tests - production', () => {
       ),
     ).toBe(true);
 
-    // Wait until the relic is no longer in the world (deposited).
+    // Wait until the relic is no longer in the world (deposited), stepping
+    // the paused match ten ticks a poll, as above.
     await expect
       .poll(async () => {
-        const snapshot = await game.getSnapshot(page);
+        const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(10, 100));
         return snapshot.economyState.resources.find((r) => r.resourceType === 'relic') === undefined;
-      }, { timeout: 30_000 })
+      }, { timeout: 30_000, intervals: [10] })
       .toBe(true);
 
     // Sample gold and tick together so we can isolate exactly how many
@@ -201,7 +206,7 @@ test.describe('browser gameplay smoke tests - production', () => {
       const hud = window.__AOE2_TEST__!.getHudState();
       return { tick: hud.tick, gold: hud.playerResources.gold };
     });
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(20, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(20, 100); });
     const depositAfter = await page.evaluate(() => {
       const hud = window.__AOE2_TEST__!.getHudState();
       return { tick: hud.tick, gold: hud.playerResources.gold };
@@ -235,7 +240,7 @@ test.describe('browser gameplay smoke tests - production', () => {
 
     // §12.4.2 walk clock (v0.3.160): the builder WALKS to the site now, so the
     // construction window carries the commute on top of the build time.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(900, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(900, 100); });
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'stable')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Stable');
@@ -267,7 +272,7 @@ test.describe('browser gameplay smoke tests - production', () => {
     await expect(page.locator('[data-hud="food"]')).toHaveText('215');
     await expect(page.locator('[data-hud="wood"]')).toHaveText('125');
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(240, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(240, 100); });
 
     expect(await game.selectOwnedUnitDirect(page, 1, 'spearman')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Spearman');
@@ -292,7 +297,7 @@ test.describe('browser gameplay smoke tests - production', () => {
     expect(await game.selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
     await page.locator('[data-command="train-spearman"]').click();
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(230, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(230, 100); });
 
     await expect(page.locator('[data-hud="pop"]')).toHaveText('1/5');
   });
@@ -305,7 +310,7 @@ test.describe('browser gameplay smoke tests - production', () => {
     expect(await game.selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');
     await page.locator('[data-command="train-skirmisher"]').click();
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 100); });
     // units.csv (and DE): a Skirmisher costs 25 food, 35 wood. Until 2026-09-23
     // the table had the two transposed, and this pinned 215 food / 225 wood.
     await expect(page.locator('[data-hud="food"]')).toHaveText('225');
