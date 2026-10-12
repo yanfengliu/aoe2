@@ -21,12 +21,6 @@ import {
   unitDomain,
   type UnitDomain,
 } from '../unitDomain';
-import {
-  requiresShorePlacement,
-  requiresWaterPlacement,
-  sitsOnWater,
-  touchesWater,
-} from '../shorePlacement';
 import { buildingGarrisonCapacity } from '../prototypeBuildingRules';
 import { civHouseGarrisonCapacity } from '../civBuildingBonuses';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
@@ -39,11 +33,13 @@ import {
   playerTeamsCodec,
 } from './bridgeStateSerialize';
 import { createPlacementBlockReporter, type PlacementBlockReport } from './placementBlockReport';
+import { createPlacementFootprint, type PlacementCellView } from './placementFootprint';
 type CivWorld = GameWorld;
 
 // agent-affordances A3: structured "why is this placement blocked" report.
 // Lives in placementBlockReport.ts; re-exported so consumers keep one import.
 export type { PlacementBlockReport } from './placementBlockReport';
+export type { PlacementCellView } from './placementFootprint';
 
 interface WorldOccupancyLike {
   isCellBlockedByBuilding(x: number, y: number): boolean;
@@ -108,13 +104,22 @@ export interface CellPassability {
   ): boolean;
   isCellPassableForWildlife(resourceId: number, x: number, y: number): boolean;
   isHarvestableResource(resourceId: number, resource: ResourceComponent): boolean;
-  isPlacementBlocked(x: number, y: number, w: number, h: number, t?: BuildingType): boolean;
+  /** The footprint rule (placementFootprint.ts): the true map, or a view of it. */
+  isPlacementBlocked(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    t?: BuildingType,
+    view?: PlacementCellView,
+  ): boolean;
   // agent-affordances A3: name what blocks a footprint (null = open).
   describePlacementBlockers(
     x: number,
     y: number,
     width: number,
     height: number,
+    view?: PlacementCellView,
   ): PlacementBlockReport | null;
   // agent-affordances C: deterministic outward ring scan for open
   // footprint anchors. Only anchors whose EVERY footprint cell passes
@@ -302,46 +307,33 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
     return !wildlife.isAlive && resource.resourceType !== 'wolf';
   }
 
+  // The footprint rule lives in placementFootprint.ts with its views; this is
+  // the one instance, over this world's occupancy and terrain.
+  const footprint = createPlacementFootprint({
+    mapWidth,
+    mapHeight,
+    getCellStatus: (x, y, ignoredEntityId) => worldOccupancy.getCellStatus(x, y, ignoredEntityId),
+    terrainKindAt: (x, y) => terrainKindAt(x, y, world),
+    isFootprintOccupied: (x, y, width, height) => worldOccupancy.isPlacementBlocked(x, y, width, height),
+  });
+
   function isPlacementBlocked(
     x: number,
     y: number,
     width: number,
     height: number,
     buildingType?: BuildingType,
+    view?: PlacementCellView,
   ): boolean {
-    // A Fish Trap goes ON the water, so the occupancy grid's static terrain
-    // blocker for a water cell is exactly what it must be allowed past — while
-    // every OTHER claim on that cell (a ship, another trap) still refuses it.
-    if (buildingType && requiresWaterPlacement(buildingType)) {
-      if (!sitsOnWater(x, y, width, height, (cellX, cellY) => terrainKindAt(cellX, cellY, world))) {
-        return true;
-      }
-      for (let cellY = y; cellY < y + height; cellY += 1) {
-        for (let cellX = x; cellX < x + width; cellX += 1) {
-          const status = worldOccupancy.getCellStatus(cellX, cellY);
-          if (status.blockedBy.some((claim) => claim.kind !== 'terrain')) return true;
-          if (status.crowdedBy.some((claim) => claim.kind === 'unit')) return true;
-        }
-      }
-      return false;
-    }
-    if (worldOccupancy.isPlacementBlocked(x, y, width, height)) return true;
-    // M5 naval: a Dock must stand on land AND touch water. Checked here rather
-    // than at the call sites so the placement PREVIEW and the confirm share
-    // one answer — a preview that says valid and a confirm that refuses is
-    // the worst possible pairing.
-    if (buildingType && requiresShorePlacement(buildingType)) {
-      return !touchesWater(x, y, width, height, (cellX, cellY) => (
-        terrainKindAt(cellX, cellY, world)
-      ));
-    }
-    return false;
+    return footprint.isFootprintBlocked(x, y, width, height, buildingType, view);
   }
 
   const { describePlacementBlockers } = createPlacementBlockReporter({
     world,
     tiles,
-    getCellStatus: (x, y) => worldOccupancy.getCellStatus(x, y),
+    mapWidth,
+    mapHeight,
+    getCellStatus: (x, y, ignoredEntityId) => worldOccupancy.getCellStatus(x, y, ignoredEntityId),
   });
 
   function findOpenPlacementAnchors(

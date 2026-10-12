@@ -143,7 +143,9 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
       // ground that is occupied (register entry 2026-09-06). Preview and
       // confirm read one verdict; a green ghost the confirm refuses is the
       // worst possible pairing, and so is a green ghost that spends the
-      // resources and strands the foundation.
+      // resources and strands the foundation. The verdict reads only ground
+      // the player has explored (placementKnowledge.ts, spec §12.1), so the
+      // ghost over black ground looks the same whatever the fog hides.
       isValid: !isPlacementBlocked(
         anchor.x,
         anchor.y,
@@ -228,7 +230,11 @@ export function createPlacementOps(deps: PlacementDeps): PlacementOps {
     // agent-affordances A3: placement_blocked passes the validator's
     // actionable message (cause + cell + nearest-open-anchor) through to
     // the toast; the terse string stays as the fallback.
-    if (result.code === 'placement_blocked' || result.code === 'placement_unreachable') {
+    if (
+      result.code === 'placement_blocked'
+      || result.code === 'placement_unreachable'
+      || result.code === 'placement_unexplored'
+    ) {
       enqueueRejection(result.message ?? 'Placement blocked.');
     } else if (result.code === 'insufficient_resources') {
       const stockpile = accessor.get(playerResourcesCodec).get(humanPlayerId);

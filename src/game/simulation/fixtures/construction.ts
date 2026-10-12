@@ -37,7 +37,10 @@ export function createMultiVillagerConstructionFixture(seed: string): PrototypeS
       },
     ],
     spawns: [
-      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      // The Town Center sees 17 so that every site the construction tests
+      // build on is explored at boot: Definitive Edition refuses a foundation
+      // on ground wholly unexplored (hotfix 45185, spec §12.1, work 122).
+      ownedSpawn('town-center', 1, 8, 8, { vision: 17 }),
       // Five villagers at adjacent free cells south of the Town Center.
       ownedSpawn('villager', 1, 6, 13, { vision: 4 }),
       ownedSpawn('villager', 1, 7, 13, { vision: 4 }),
@@ -120,7 +123,10 @@ export function createAutoMineCampFixture(seed: string): PrototypeScenario {
       },
     ],
     spawns: [
-      ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
+      // The Town Center sees 17 so that every site the camp tests build on
+      // is explored at boot: Definitive Edition refuses a foundation on
+      // ground wholly unexplored (hotfix 45185, spec §12.1, work 122).
+      ownedSpawn('town-center', 1, 8, 8, { vision: 17 }),
       ownedSpawn('villager', 1, 6, 14, { vision: 4 }),
       ownedSpawn('villager', 1, 7, 14, { vision: 4 }),
       ownedSpawn('villager', 1, 8, 14, { vision: 4 }),

@@ -308,6 +308,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     getEntityRef,
     recordUnitAttack,
     recordPlayerHit,
+    foundationStart: deps.foundationStart,
     onBuildingConstructionComplete: (buildingId, owner, buildingType, visionSourceAdded) => {
       if (visionSourceAdded) {
         playerCommandVisibilityRevision.markMutation();

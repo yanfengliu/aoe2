@@ -118,6 +118,7 @@ export interface RegisterBridgeSystemsDeps {
   isLandCell: RegisterAllSystemsArg['isLandCell'];
   isGarrisonedUnit: RegisterAllSystemsArg['isGarrisonedUnit'];
   isPlacementBlocked: (x: number, y: number, w: number, h: number) => boolean;
+  foundationStart: RegisterAllSystemsArg['foundationStart'];
   getOrCreateMemoryMap: RegisterAllSystemsArg['getOrCreateMemoryMap'];
   noteMemoryChanged: RegisterAllSystemsArg['noteMemoryChanged'];
   // Post-register factory inputs
@@ -234,6 +235,7 @@ export function registerBridgeSystems(
     isGarrisonedUnit,
     garrisonUnit,
     isPlacementBlocked,
+    foundationStart,
     getOrCreateMemoryMap,
     noteMemoryChanged,
     getSelectedEntityId,
@@ -317,6 +319,7 @@ export function registerBridgeSystems(
     isMatchRunning,
     getOrCreateMemoryMap,
     noteMemoryChanged,
+    foundationStart,
   });
 
   syncVisibilitySources(

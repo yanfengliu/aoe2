@@ -91,6 +91,8 @@ export interface PlayerCommandsSystemDeps {
   destroyUnitEntity: (id: number) => void;
   killWildlifeEntity: (id: number) => void;
   destroyBuildingEntity: (id: number) => void;
+  // Update 46295: checked before a builder's first work on a foundation.
+  foundationStart: import('../foundationStart').FoundationStart;
   getEntityRef: (id: number) => EntityRef | null;
   recordUnitAttack: (attackerId: number, targetId: number) => void;
   recordPlayerHit: import('../playerHitFeed').RecordPlayerHit;
@@ -303,6 +305,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           moveUnitOneSubgridStep,
           clearUnitCommand,
           buildersCreditedThisTick,
+          mayBeginConstruction: (siteId) => deps.foundationStart.mayBegin(siteId, destroyBuildingEntity),
         });
         if (!advanced) continue;
 

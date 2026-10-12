@@ -95,6 +95,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     isPlacementBlocked,
     describePlacementBlockers,
     findOpenPlacementAnchors,
+    foundationStart,
     isGarrisonedUnit,
     getActionOptions,
     movementPlanOps,
@@ -113,6 +114,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     isBootstrappingScenarioRef,
     ensurePlayerScoreCounters,
     getEntityRef,
+    enqueueRejection,
   });
 
   bootScenarioOrLoad({
@@ -338,6 +340,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     isLandCell: (x: number, y: number) => isTerrainPassableForUnit(x, y),
     isGarrisonedUnit,
     isPlacementBlocked,
+    foundationStart,
     getOrCreateMemoryMap,
     noteMemoryChanged,
     getSelectedEntityId,

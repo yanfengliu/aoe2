@@ -30,10 +30,12 @@ describe('the Dock must be built on a shore', () => {
   it('refuses a placement with no water anywhere near it', () => {
     const bridge = createSimulationBridge('fish-fixture');
     beginDockPlacement(bridge);
-    // Far from the pond, on open grass.
-    const preview = bridge.getPlacementPreview(2, 20);
+    // Far from the pond, on open grass the player has explored — so the
+    // refusal is the shore rule's, not the one for ground wholly unexplored
+    // (hotfix 45185, spec §12.1, work 122).
+    const preview = bridge.getPlacementPreview(2, 12);
     expect(preview?.isValid).toBe(false);
-    expect(bridge.confirmBuildingPlacement(2, 20)).toBe(false);
+    expect(bridge.confirmBuildingPlacement(2, 12)).toBe(false);
   });
 
   it('refuses a placement standing in the water', () => {
@@ -46,11 +48,12 @@ describe('the Dock must be built on a shore', () => {
   it('accepts a placement on the land beside the water, and builds it', () => {
     const bridge = createSimulationBridge('fish-fixture');
     beginDockPlacement(bridge);
-    // A 3x3 footprint just EAST of the pond: its left column sits against the
+    // A 3x3 footprint just SOUTH of the pond: its top row sits against the
     // water. (West of the pond is where the fixture parks its villager, and a
     // unit inside the footprint blocks placement for reasons unrelated to the
-    // shore rule under test.)
-    const anchor = { x: POND_X + 3, y: POND_Y };
+    // shore rule under test; east of it is ground nobody has explored, where
+    // DE refuses a foundation — hotfix 45185, spec §12.1, work 122.)
+    const anchor = { x: POND_X - 1, y: POND_Y + 3 };
     expect(bridge.getPlacementPreview(anchor.x, anchor.y)?.isValid).toBe(true);
     expect(bridge.confirmBuildingPlacement(anchor.x, anchor.y)).toBe(true);
 

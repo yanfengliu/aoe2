@@ -254,6 +254,9 @@ export interface RegisterAllSystemsDeps {
   destroyUnitEntity: (id: number) => void;
   killWildlifeEntity: (id: number) => void;
   destroyBuildingEntity: (id: number) => void;
+  // Update 46295: the check a builder makes before the first work on the
+  // player's foundation (foundationStart.ts).
+  foundationStart: import('./foundationStart').FoundationStart;
   destroyResourceEntity: (id: number) => void;
   getEntityRef: (id: number) => EntityRef | null;
   onBuildingConstructionComplete: (

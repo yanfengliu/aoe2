@@ -20,6 +20,8 @@ import {
   withBuilderReachability,
   type BuilderReachabilityStats,
 } from './builderReachability';
+import { withPlayerKnowledge } from './placementKnowledge';
+import { createFoundationStart } from './foundationStart';
 import { createDebugSnapshotOps } from './debugSnapshotOps';
 import type { PlacementSearchStats } from './placementSearch';
 import { createTransformOps } from './transformOps';
@@ -49,6 +51,7 @@ export type WirePreSeedOpsDeps = Pick<
   | 'isBootstrappingScenarioRef'
   | 'ensurePlayerScoreCounters'
   | 'getEntityRef'
+  | 'enqueueRejection'
 >;
 
 export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
@@ -63,6 +66,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     isBootstrappingScenarioRef,
     ensurePlayerScoreCounters,
     getEntityRef,
+    enqueueRejection,
   } = deps;
   const { movePathCache } = state;
 
@@ -301,12 +305,38 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     structuralRevision: () => worldOccupancy.structuralRevision(),
     getApproachCellsForFootprint,
   });
+  // The player places by what it has explored (placementKnowledge.ts; work
+  // 122): the same three answers, read through the fog for the human seat and
+  // from the true map for every AI seat.
   const {
     isPlacementBlocked,
     describePlacementBlockers,
     findOpenPlacementAnchors,
-  } = withBuilderReachability(placementOccupancy, builderReachability, world);
+  } = withPlayerKnowledge(withBuilderReachability(placementOccupancy, builderReachability, world), {
+    world,
+    accessor,
+    visibility,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
+    occupancy: placementOccupancy,
+    isCellPassableForUnit,
+    getApproachCellsForFootprint,
+    reachesOnTheMap: (builderIds, x, y, width, height) => (
+      builderReachability.canAnyBuilderReachFootprint(builderIds, x, y, width, height, world)
+    ),
+  });
   builderReachStats = builderReachability.stats;
+  // Update 46295: what the fog hid under the player's foundation is found when
+  // a builder comes to start it (foundationStart.ts).
+  const foundationStart = createFoundationStart({
+    world,
+    accessor,
+    humanPlayerId: HUMAN_PLAYER_ID,
+    isPlacementBlocked: placementOccupancy.isPlacementBlocked,
+    describePlacementBlockers: placementOccupancy.describePlacementBlockers,
+    enqueueRejection,
+  });
 
   const { findScenarioSpawnPosition, findBuildingSpawnPosition } = createSpawnFinders({
     uniquePositions,
@@ -359,6 +389,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     isPlacementBlocked,
     describePlacementBlockers,
     findOpenPlacementAnchors,
+    foundationStart,
     isGarrisonedUnit,
     getActionOptions,
     movementPlanOps,

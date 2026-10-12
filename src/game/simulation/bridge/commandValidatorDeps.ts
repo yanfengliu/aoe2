@@ -17,7 +17,7 @@ import type {
 } from '../types';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import type { CommandHandlerDeps } from './registerCommandHandlers';
-import type { ReachabilityBlockReport } from './builderReachability';
+import type { KnowledgeBlockReport } from './placementKnowledge';
 import type { ResearchAvailability } from './researchAvailability';
 
 export interface CommandValidatorDepsInputs {
@@ -50,7 +50,7 @@ export interface CommandValidatorDepsInputs {
     width: number,
     height: number,
     builderIds?: readonly number[],
-  ) => ReachabilityBlockReport | null;
+  ) => KnowledgeBlockReport | null;
   findOpenPlacementAnchors: (
     centerX: number,
     centerY: number,

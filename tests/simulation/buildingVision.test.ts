@@ -136,6 +136,17 @@ describe('every completed building gives its owner sight', () => {
     const map = bridge.getMapSize();
     const build = (buildingType: 'house' | 'barracks', site: { x: number; y: number }): void => {
       expect(selectOwnedUnitDirect(bridge, 1, 'villager')).toBe(true);
+      // The builder first walks to where it can see the site: DE refuses a
+      // foundation on ground wholly unexplored (hotfix 45185, spec §12.1).
+      const lookout = { x: site.x - 2, y: site.y };
+      expect(bridge.issueMoveCommand(lookout.x, lookout.y)).toBe(true);
+      expect(stepBridgeUntil(
+        bridge,
+        () => bridge.getEconomyState().units.some(
+          (unit) => unit.owner === 1 && unit.x === lookout.x && unit.y === lookout.y,
+        ),
+        { maxSteps: 2_000 },
+      ), `the builder never reached (${lookout.x},${lookout.y})`).toBe(true);
       expect(bridge.beginBuildingPlacement(buildingType)).toBe(true);
       expect(bridge.confirmBuildingPlacement(site.x, site.y)).toBe(true);
       expect(stepBridgeUntil(

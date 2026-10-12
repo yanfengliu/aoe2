@@ -1,9 +1,9 @@
 # Placing a building on unexplored ground follows Definitive Edition's rules
 
-Status: planned
+Status: active
 Owner: Coordinator worker w122-unexplored-placement (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
-Updated: 2026-10-11
+Updated: 2026-10-12
 
 ## Problem and outcome
 
@@ -46,7 +46,8 @@ Reproduce the leak through the real controls first, sweeping the ghost across bl
 
 ## Implementation steps
 
-- [ ] Reproduce through the controls, apply the three notes, capture and diff, gate, land.
+- [x] Reproduce through the controls (the bridge's own placement queries), apply the three notes, capture and diff (phase 1, 2026-10-12, branch `unexplored-placement`).
+- [ ] Gate under the lock, land, close (phase 2, after the coordinator accepts).
 
 ## Outcome
 

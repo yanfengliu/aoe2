@@ -93,7 +93,9 @@ describe('wildlife retaliation', () => {
 
     expect(bridge.selectUnitsByIds([villager.id])).toBe(true);
     expect(bridge.beginBuildingPlacement('house')).toBe(true);
-    expect(bridge.confirmBuildingPlacement(24, 24)).toBe(true);
+    // Partly on the ground the villager has explored: DE refuses a foundation
+    // on ground wholly unexplored (hotfix 45185, spec §12.1, work 122).
+    expect(bridge.confirmBuildingPlacement(22, 22)).toBe(true);
 
     // `activeVerb` is 'building' exactly while a build/repair command is live
     // — the same `unitCommands` read the HUD uses. If the retaliation replaced

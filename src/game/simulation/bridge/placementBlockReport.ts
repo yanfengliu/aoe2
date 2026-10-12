@@ -17,18 +17,25 @@ import type {
   TerrainComponent,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
+import type { PlacementCellView } from './placementFootprint';
 
 export interface PlacementBlockReport {
   firstBlockedCell: Position;
   cause: string;
   blockedCellCount: number;
   totalCellCount: number;
+  /** Present when the report was taken through a player's view: how many of
+   *  the footprint's cells that player has explored. Only those are counted
+   *  in `blockedCellCount`, and only they can be named (spec §12.1). */
+  knownCellCount?: number;
 }
 
 export interface PlacementBlockReportDeps {
   world: GameWorld;
   tiles: number[][];
-  getCellStatus(x: number, y: number): OccupancyCellStatus;
+  mapWidth: number;
+  mapHeight: number;
+  getCellStatus(x: number, y: number, ignoredEntityId?: number | null): OccupancyCellStatus;
 }
 
 // Mirrors worldOccupancy.isPlacementBlocked's per-cell predicate:
@@ -38,9 +45,15 @@ export function isCellBlockedForPlacement(status: OccupancyCellStatus): boolean 
 }
 
 export function createPlacementBlockReporter(deps: PlacementBlockReportDeps): {
-  describePlacementBlockers(x: number, y: number, width: number, height: number): PlacementBlockReport | null;
+  describePlacementBlockers(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    view?: PlacementCellView,
+  ): PlacementBlockReport | null;
 } {
-  const { world, tiles, getCellStatus } = deps;
+  const { world, tiles, mapWidth, mapHeight, getCellStatus } = deps;
 
   function blockerCauseAt(status: OccupancyCellStatus, x: number, y: number): string {
     const byKind = (kind: string) => status.blockedBy.find((claim) => claim.kind === kind);
@@ -79,12 +92,22 @@ export function createPlacementBlockReporter(deps: PlacementBlockReportDeps): {
     y: number,
     width: number,
     height: number,
+    view?: PlacementCellView,
   ): PlacementBlockReport | null {
+    // The same view the footprint rule reads (placementFootprint.ts): a cell
+    // the player has not explored is neither named nor counted, and the cell
+    // off the map is always known.
+    const isCellKnown = view?.isCellKnown;
+    const ignored = view?.ignoredEntityId ?? null;
     let first: PlacementBlockReport | null = null;
     let blockedCellCount = 0;
+    let knownCellCount = 0;
     for (let cellY = y; cellY < y + height; cellY += 1) {
       for (let cellX = x; cellX < x + width; cellX += 1) {
-        const status = getCellStatus(cellX, cellY);
+        const inMap = cellX >= 0 && cellX < mapWidth && cellY >= 0 && cellY < mapHeight;
+        if (isCellKnown && inMap && !isCellKnown(cellX, cellY)) continue;
+        if (inMap) knownCellCount += 1;
+        const status = getCellStatus(cellX, cellY, ignored);
         if (!isCellBlockedForPlacement(status)) continue;
         blockedCellCount += 1;
         if (!first) {
@@ -98,7 +121,9 @@ export function createPlacementBlockReporter(deps: PlacementBlockReportDeps): {
       }
     }
     if (!first) return null;
-    return { ...first, blockedCellCount };
+    return isCellKnown
+      ? { ...first, blockedCellCount, knownCellCount }
+      : { ...first, blockedCellCount };
   }
 
   return { describePlacementBlockers };

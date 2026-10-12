@@ -258,16 +258,6 @@ DE's own labels on its unique units give the classes: "(Foot Archer)" for the Lo
 
 The original worker handoffs did not claim final acceptance. Root now accepts the combined source/visual delta, fullgate3 and representative affected play within scope; main/push/remote acceptance remains pending. Flight/look, blast depth, changed unique-tech scopes, automatic minimum-range retargeting and AI Trebuchet orders remain OPEN. The original symptom and source bounds above remain historical evidence rather than a declaration that all combat parity is closed.
 
-## 2026-09-23 — The building-placement ghost turns red over unexplored water and forest, so sweeping it across black ground maps them (found by the de-look step-1 worker, OPEN)
-
-**Symptom.** Found while fixing the unexplored-ground entry above, not reported by the owner. Hold a building over black, unexplored ground and its ghost goes red where the ground is water, forest, occupied or unreachable, and green where it is open grass. So moving the ghost across the dark draws the map. Measured on the boot map by probe (`tmp/probes/de1-placementGhostFog.mjs`: a house on every 2x2 footprint that is wholly unexplored and of one terrain kind): forest invalid on 43 of 43, water invalid on 99 of 99, grass valid on 239 of 292, hill valid on 20 of 20.
-
-**Root cause.** `getPlacementPreview` (`src/game/simulation/bridge/placementOps.ts`) takes its verdict from `isPlacementBlocked` (`cellPassability.ts`), which reads the true terrain, occupancy and reachability and never consults the player's fog. The confirm path has no explored check either, so a building can also be placed on unexplored ground.
-
-**Not fixed, and why.** The fix is a placement rule, not a picture. Whether Definitive Edition refuses a building on unexplored ground is not yet verified against a reference (a web search on 2026-09-23 was inconclusive), and the local rules require that before implementing. The rule also reaches the confirm path and possibly the AI. It needs its own lane. Spec §12.1 names this as the known gap in its "nothing about an unexplored cell may reach any picture" rule.
-
-**How it will be checked.** The same non-interference shape as the entry above: over a fixture with unexplored cells of every kind, the preview's verdict for a footprint touching unexplored ground must not depend on what those cells hold.
-
 ## 2026-09-10 — The villager-defence gate plays one configuration, and the defect is live in another (found while measuring the Imperial surplus trade, OPEN)
 
 **Symptom.** On the coverage lab's configuration — `aoe2-prototype` with `resourcePreset: 'high'`, `difficulty: 'hard'`, `victory: 'conquest-only'` and `disableAiAttacks`, 45,000 ticks — owner 2 loses 34 villagers on `b929d07d`, 21 of them inside owner 1's Castle's reach. The bar in `tests/simulation/villagersAvoidEnemyDefencesSelfPlay.test.ts` is THREE, and that gate is green, because it plays the same seed with the DEFAULT bridge options and nothing else.

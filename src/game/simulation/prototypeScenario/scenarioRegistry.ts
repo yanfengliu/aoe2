@@ -39,6 +39,7 @@ import { createProjectileLookShowcaseFixture } from '../fixtures/projectileLookS
 import { createRaidWarningFixture } from '../fixtures/raidWarning';
 import { createSiegeBaseStatsFixture } from '../fixtures/siegeBaseStats';
 import { createTrafficContestFixture } from '../fixtures/trafficContest';
+import { createUnexploredPlacementFixture } from '../fixtures/unexploredPlacement';
 import {
   createUpgradeKeepsLineBonusesFixture,
   UPGRADE_KEEPS_LINE_BONUSES_SEEDS,
@@ -414,4 +415,6 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['hidden-foundation-spies-fixture', createHiddenFoundationSpiesFixture],
   ['hidden-foundation-splash-fixture', createHiddenFoundationSplashFixture],
   ['hidden-foundation-own-reference-fixture', createHiddenFoundationOwnReferenceFixture],
+  ['unexplored-placement-open-fixture', createUnexploredPlacementFixture],
+  ['unexplored-placement-hidden-fixture', createUnexploredPlacementFixture],
 ]);

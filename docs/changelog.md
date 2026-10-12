@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 122
+
+Placing a building on ground you have not explored now follows Definitive Edition's rules.
+
+- **The placement ghost no longer maps the black.** Over ground you have not explored, the ghost used to turn red where water, forest, a mine or an enemy building lay hidden, and green over open grass, so sweeping it across the black showed you what was there. Now it looks the same whatever the black hides.
+- **A building may stand partly on unexplored ground, but not wholly.** As in Definitive Edition, you can place a building if at least one of its tiles is ground you have explored. A building wholly on unexplored ground is refused, and the message says so.
+- **A foundation over something the black hid is cancelled when your villagers come to build it.** If the ground under it turns out to hold water, trees, a mine, another building or a unit, the foundation is removed, its whole cost comes back, and a message says what your villagers found and where.
+- **A Dock needs water you have seen beside it**, and your villagers must be able to walk to the site over ground you have explored. The AI places its buildings as before.
+- A replay recorded before this version plays its placements again under these rules, so one that put a building on ground nobody had explored, or over something the black hid, can play out differently.
+
 ## 0.3.253
 
 Six civilization bonuses now work as Definitive Edition's text says.

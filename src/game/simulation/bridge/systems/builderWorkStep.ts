@@ -67,6 +67,9 @@ export interface BuilderWorkStepContext {
   // builders on one site take the reduced share above. Owned by the caller's
   // per-tick pass; a fresh set every tick is what makes the curve stateless.
   buildersCreditedThisTick: Map<number, number>;
+  // Update 46295 (foundationStart.ts): asked once a builder stands at a
+  // foundation nobody has started; false means it was cancelled instead.
+  mayBeginConstruction?: (buildingId: number) => boolean;
 }
 
 export type BuilderWorkResult = ConstructionState | null;
@@ -149,6 +152,12 @@ export function runBuilderWorkStep(ctx: BuilderWorkStepContext): BuilderWorkResu
   }
   if (!isUnitAtTarget(id, buildingApproachPlan.destination, activeWorld)) {
     moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
+    return null;
+  }
+  // The first work on a foundation is when the ground the fog hid under it is
+  // found (update 46295). A cancelled site sends the builder on down his chain.
+  if (construction.buildProgressTicks === 0 && ctx.mayBeginConstruction?.(buildingId) === false) {
+    if (!advanceQueuedBuild(ctx)) clearUnitCommand(id);
     return null;
   }
 

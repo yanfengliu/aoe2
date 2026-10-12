@@ -185,8 +185,8 @@ describe('placement reachability — a builder has to be able to get there', () 
     const { width, height } = bridge.world.grid;
 
     for (const [type, footprint, floor] of [
-      ['palisade-gate', { width: 1, height: 1 }, 1_200],
-      ['house', { width: 2, height: 2 }, 550],
+      ['palisade-gate', { width: 1, height: 1 }, 100],
+      ['house', { width: 2, height: 2 }, 75],
     ] as const) {
       expect(bridge.beginBuildingPlacement(type)).toBe(true);
       const stranded: Cell[] = [];
@@ -208,6 +208,12 @@ describe('placement reachability — a builder has to be able to get there', () 
       // stranded 1x1 cells; house 660 both before and after, because none of
       // the pockets is two cells wide. So the HOUSE arm is a control that the
       // fix took nothing away, not a second instance of the defect.
+      // Those counts were over the whole map. Since work 122 the preview reads
+      // only the ground the player has explored, and refuses a footprint none
+      // of which is explored (hotfix 45185, spec §12.1), so the population is
+      // the 218 cells the human has explored at tick 600: palisade gate 125
+      // valid anchors of 218, house 92 of the 254 footprints that touch
+      // explored ground. The floors keep the old margin, about four fifths.
       expect(valid, `${type}: the fix refused nearly everything`).toBeGreaterThan(floor);
     }
   });
@@ -262,7 +268,17 @@ describe('placement reachability — a builder has to be able to get there', () 
     const bridge = bootedBridge();
     selectFirstVillager(bridge);
     // (10,0) and (11,0) sit in a one-cell corridor along the top edge: with
-    // (10,0) built, (11,0) has no reachable approach.
+    // (10,0) built, (11,0) has no reachable approach. Nobody has explored the
+    // corridor at tick 600, and DE refuses a foundation on ground wholly
+    // unexplored (hotfix 45185, spec §12.1), so the villager walks up to look.
+    const { width } = bridge.world.grid;
+    const corridorExplored = (): boolean => {
+      const explored = new Set(bridge.getRenderState().frame?.exploredCells ?? []);
+      return explored.has(0 * width + 10) && explored.has(0 * width + 11);
+    };
+    expect(bridge.issueMoveCommand(10, 3)).toBe(true);
+    for (let i = 0; i < 400 && !corridorExplored(); i += 1) bridge.step(100);
+    expect(corridorExplored(), 'the villager never came within sight of the corridor').toBe(true);
     expect(bridge.beginBuildingPlacement('palisade-gate')).toBe(true);
     expect(bridge.getPlacementPreview(10, 0)?.isValid).toBe(true);
     expect(bridge.getPlacementPreview(11, 0)?.isValid).toBe(true);

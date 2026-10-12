@@ -16,7 +16,8 @@ import { canAfford, describeMissingResources } from '../../prototypeEconomyRules
 import { buildingFootprint } from '../../bridge/pureHelpers';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
 import { playerResourcesCodec } from '../../bridge/bridgeStateSerialize';
-import type { ReachabilityBlockReport } from '../../bridge/builderReachability';
+import type { KnowledgeBlockReport } from '../../bridge/placementKnowledge';
+import { requiresShorePlacement, requiresWaterPlacement } from '../../shorePlacement';
 
 export interface BuildingPlaceConfirmValidatorDeps {
   // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
@@ -34,14 +35,15 @@ export interface BuildingPlaceConfirmValidatorDeps {
   // nearest open anchor the acting owner can see. The suggestion is
   // fog-gated through isCellVisibleToOwner so a rejection never reveals
   // unscouted terrain, and reachability-gated through `builderIds` so it
-  // never names ground the game would itself refuse.
+  // never names ground the game would itself refuse. For the player the
+  // report reads only explored ground (placementKnowledge.ts, spec §12.1).
   describePlacementBlockers: (
     x: number,
     y: number,
     width: number,
     height: number,
     builderIds?: readonly number[],
-  ) => ReachabilityBlockReport | null;
+  ) => KnowledgeBlockReport | null;
   findOpenPlacementAnchors: (
     centerX: number,
     centerY: number,
@@ -151,25 +153,64 @@ export function makeBuildingPlaceConfirmValidator(
           builderIds,
         },
       )[0];
+      const where = `${data.buildingType} (${footprint.width}x${footprint.height}) `
+        + `at (${data.position.x},${data.position.y})`;
+      // Hotfix 45185 (spec §12.1): a building may stand partly on unexplored
+      // ground, never wholly on it.
+      if (report?.unexplored === true) {
+        return {
+          code: 'placement_unexplored',
+          message:
+            `Placement blocked for ${where}: none of that ground has been explored. `
+            + 'A building may stand partly on unexplored ground, but at least one of its cells '
+            + 'must be ground you have explored.'
+            + (anchor ? ` Nearest open ground you can see: (${anchor.x},${anchor.y}).` : ''),
+        };
+      }
+      // A report through the player's view counts only explored cells, and
+      // says so, so a refusal never measures what the fog hides.
+      const explored = report?.knownCellCount !== undefined && report.knownCellCount < report.totalCellCount
+        ? report.knownCellCount
+        : null;
       if (report?.unreachableForBuilders === true) {
         return {
           code: 'placement_unreachable',
           message:
-            `Placement blocked for ${data.buildingType} `
-            + `(${footprint.width}x${footprint.height}) at (${data.position.x},${data.position.y}): `
-            + 'the ground is clear, but no builder can walk to a cell beside it.'
+            `Placement blocked for ${where}: `
+            + (explored === null
+              ? 'the ground is clear, but no builder can walk to a cell beside it.'
+              : 'the explored ground is clear, but no builder can walk to a cell beside it '
+                + 'over ground you have explored.')
             + (anchor ? ` Nearest open ground a builder can reach: (${anchor.x},${anchor.y}).` : ''),
         };
       }
       const cause = report
         ? `${report.cause} at (${report.firstBlockedCell.x},${report.firstBlockedCell.y})`
         : 'an obstacle';
-      const counts = report && report.totalCellCount > 1
-        ? `; ${report.blockedCellCount} of ${report.totalCellCount} footprint cells are blocked`
-        : '';
+      const counts = report && explored !== null
+        ? `; ${report.blockedCellCount} of the ${explored} explored footprint `
+          + `${explored === 1 ? 'cell is' : 'cells are'} blocked`
+        : report && report.totalCellCount > 1
+          ? `; ${report.blockedCellCount} of ${report.totalCellCount} footprint cells are blocked`
+          : '';
       const suggestion = anchor
         ? ` Nearest open ground you can see: (${anchor.x},${anchor.y}).`
         : '';
+      // Nothing stands in the way, so the building's own ground rule refused
+      // it: say which rule, rather than blame an obstacle that is not there.
+      if (!report && requiresShorePlacement(data.buildingType)) {
+        return {
+          code: 'placement_blocked',
+          message: `Placement blocked for ${where}: a ${data.buildingType} must stand on land `
+            + `and touch water you have explored.${suggestion}`,
+        };
+      }
+      if (!report && requiresWaterPlacement(data.buildingType)) {
+        return {
+          code: 'placement_blocked',
+          message: `Placement blocked for ${where}: a ${data.buildingType} must stand on open water.${suggestion}`,
+        };
+      }
       return {
         code: 'placement_blocked',
         message:

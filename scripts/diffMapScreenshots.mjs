@@ -45,6 +45,9 @@ if (a.width !== b.width || a.height !== b.height) {
 
 const diff = new PNG({ width: a.width, height: a.height });
 let changed = 0;
+// Where the change lies, so "confined to the region the change touched" is a
+// rectangle to compare, not an impression of the red overlay.
+const box = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
 for (let i = 0; i < a.data.length; i += 4) {
   const differs =
     a.data[i] !== b.data[i]
@@ -52,6 +55,13 @@ for (let i = 0; i < a.data.length; i += 4) {
     || a.data[i + 2] !== b.data[i + 2];
   if (differs) {
     changed += 1;
+    const pixel = i / 4;
+    const x = pixel % a.width;
+    const y = (pixel - x) / a.width;
+    box.minX = Math.min(box.minX, x);
+    box.minY = Math.min(box.minY, y);
+    box.maxX = Math.max(box.maxX, x);
+    box.maxY = Math.max(box.maxY, y);
     diff.data[i] = 255;
     diff.data[i + 1] = 0;
     diff.data[i + 2] = 0;
@@ -71,3 +81,4 @@ await new Promise((resolve, reject) => {
 const total = a.width * a.height;
 const pct = ((changed / total) * 100).toFixed(2);
 console.log(`changed ${changed}/${total} pixels (${pct}%) of ${a.width}x${a.height}`);
+if (changed > 0) console.log(`changed pixels lie within x ${box.minX}..${box.maxX}, y ${box.minY}..${box.maxY}`);

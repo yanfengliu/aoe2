@@ -18,9 +18,11 @@ describe('shift-queued construction', () => {
     expect(bridge.selectUnitsByIds([villager.id])).toBe(true);
     expect(bridge.beginBuildingPlacement('house')).toBe(true);
     // Shift held on BOTH placements, as in AoE2: mode stays armed throughout.
+    // Both sites are on explored ground: DE refuses a foundation on ground
+    // wholly unexplored (hotfix 45185, spec §12.1, work 122).
     expect(bridge.confirmBuildingPlacement(12, 12, { queue: true })).toBe(true);
-    expect(bridge.getPlacementPreview(14, 16)).not.toBeNull();
-    expect(bridge.confirmBuildingPlacement(14, 16, { queue: true })).toBe(true);
+    expect(bridge.getPlacementPreview(12, 15)).not.toBeNull();
+    expect(bridge.confirmBuildingPlacement(12, 15, { queue: true })).toBe(true);
     bridge.step(100);
     // MECHANISM: the builder's command carries the queued site.
     const rows = (bridge.world.getState('aoe2.unitCommands') ?? []) as ReadonlyArray<
