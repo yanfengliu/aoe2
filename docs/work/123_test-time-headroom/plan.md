@@ -62,4 +62,6 @@ The coordinator split the work into two milestones on 2026-10-12, once the plann
 
 ## Outcome
 
-Pending.
+Pending: M1 is landing as v0.3.249, and M2 is open.
+
+Follow-up candidate from M1, its own card: saves carry the 2,160 static terrain tiles of the boot map, 90% of a 566 KB snapshot, and serializing them is 69% of the replay comparisons' cost. Deriving the tiles from the map seed instead would cut that cost from every save, replay and comparison, but it changes the save format.
