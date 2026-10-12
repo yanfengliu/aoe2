@@ -1,9 +1,9 @@
 # Fog memory stops storing the viewer's own completed buildings
 
-Status: active
+Status: complete
 Owner: Claude session from the task card 'Stop fog memory storing the player's own buildings' (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
-Updated: 2026-10-11
+Updated: 2026-10-12
 
 ## Problem and outcome
 
@@ -96,8 +96,25 @@ One saved world: `scripts/profile-selfplay.mjs --config castle --warmup 30000 --
   - (M10, the round-1 keep-rule's mutation, went with the keep-rule.)
 - [x] Old saves: schema 2, its schema-1 form, and entries with no generation load, and drop the player's entries and the ghost of a lost building on the first tick, keeping the rest.
 - [x] Focused round 3 on `ce2f933f` (`reviews/3_implementation.md`): Codex only. The Claude lane hit the account's session limit after nine turns and wrote no report, an abstention. Codex closed F11 and F24, left F27 open by one route (F34, recorded as a bound above), and found the save/load case weaker than claimed (F35, F36), now stepped in lockstep with its paused-save premises asserted, plus wording (F37). The mutation runs above are of `ce2f933f`'s cases; round 3 tightened only the save/load case, which no mutation targets.
-- [ ] Phase 2: gate lock, rebase, version, `npm run verify`, push, close out.
+- [x] Phase 2: gate lock, rebase, version, `npm run verify`, push, close out.
+  - 2026-10-11 to 12: shipped in v0.3.250 as `d68f0289` on the fifth verify run, after work 123 M1 gave headroom to the tests that had run past their time limits (see Outcome).
 
 ## Outcome
 
-Pending.
+**Shipped in v0.3.250 as `d68f0289` on 2026-10-12.** It landed on top of main at `e273fb09` (work 123 M1, v0.3.249) under the gate lock. The five work commits were rebased four times, onto `8a29c0f9`, `2f259008`, `cc14806f` and `e273fb09`, and no rebase changed code: the diff they make to `src` and `tests` is the same bytes against every base, from `f906a255` on (sha256 `85eb3c27…`). The release commit changes only version comments there. Work 123 M1 took v0.3.249 first, so this branch's first release commit was dropped and the rollover redone at v0.3.250. This plan names the reviewed revisions by their branch hashes; on main they are `8be8f306` → `94191eee`, `ff9cfa40` → `416a7121`, `0cee8e54` → `39739c14`, `ce2f933f` → `d1b56113` and `b398101c` → `81a59069`.
+
+**Checks.** `npm run verify` exited 0 in 18 min 32 s (01:47:03 to 02:05:35 local) on `d68f0289`. Its log shows the whole chain: 585 unit-test files and 4,500 tests passed (1 file and 3 tests skipped) in 278.0 s, the typecheck, 236 browser specs passed and 2 skipped in 12.5 minutes, lint, and the build. That was the fifth run. The four before it failed, none on this change:
+- Run 1 exited 139 after 5 min 16 s: npm's node process crashed with a segmentation fault in the unit stage, after every file it had reported had passed.
+- Run 2 exited 1 after 10 min 29 s on one test of 4,474: `tests/replay/exactSnapshotSerializer.test.ts`, "matches native full snapshots at each of 120 commanded-worker simulation ticks", timed out at 35.0 s against its 30 s limit. Run alone, interleaved with a control worktree at main, it took 11.8 s on main and 17.3 s here, then 8.5 s on both.
+- Run 3 exited 1 after 29 min 26 s. The unit stage and the typecheck passed, and one browser spec of 238 failed: `tests/browser/de-ground.spec.ts:139`, "dims explored-but-unseen ground to about half the brightness of visible ground", hit its 90 s limit in `waitForRenderedFrames` after `advanceTicks(300)`, while other repositories' Playwright runs were using Chrome on the machine. Run alone on an idle machine, ABBA against a control at main with both trees freshly built, the spec file took 81, 74, 74 and 75 s (main, here, here, main), and test 139 took 1.1 min in all four.
+- Run 4 exited 1 after 8 min 7 s on one test of 4,474: `tests/replay/resourceWorkerOccupation.test.ts`, "keeps full non-cosmetic default-map state identical through a 600-tick commanded-worker prefix and real gather", timed out at 51.1 s against its 30 s limit. Run alone, ABBA against a control at main, it took 11.7, 12.3, 12.3 and 12.5 s (main, here, here, main).
+
+After run 4 the coordinator stopped the retries (R11) until work 123 M1 gave those tests headroom. Run 5 ran on top of it.
+
+**Review.** Rounds 0 to 3 are in `reviews/`. Codex `gpt-6-astra` and Claude `claude-opus-5-5[1m]` reviewed rounds 0 to 2. Codex alone reviewed round 3, because the Claude lane stopped at the account's session limit and abstained. The code in `src` is round 3's revision, `ce2f933f`, with one comment changed since (vNEXT to v0.3.250). Round 3's answers, `b398101c`, changed one test and the docs; the coordinator accepted them with no further lane.
+
+**Limits.**
+- No pixel diff. The maintained capture pair (`scripts/captureMapScreenshot.mjs` and `scripts/diffMapScreenshots.mjs`) cannot delete a building before it captures. Two render-state tests in `tests/simulation/fogMemoryOwnBuildings.test.ts` stand in: "leaves no ghost of any building the player deletes, whatever its type" and "leaves no ghost of a House lost to enemy Militia where nothing else of the player's sees it". Both read `getRenderState().entities`, the list the world renderer and the minimap draw. The browser-pane check in the real game stands in too: on the control tree at `f906a255` the deleted House stayed as ghost id 2161, and on this tree it left no ghost and no minimap marker.
+- The interleaved A/B ran on `8be8f306`, not on the final code. The final code writes a byte-identical slot from the same save (18,372 bytes, 94 entries at tick 30,001), so the A/B was not rerun.
+- Bounds, stated in the spec's §12.1 rule: a building a projectile destroys is forgotten a tick later, or never if that kill ends the match (F12). An older save's entry for a building converted away out of sight is refreshed or forgotten on the first tick (F13). A replacement converted in the same tick it takes a reused id still vanishes (F34). The engine's stale conversion records can make a live match and its loaded copy differ (F10).
+- Queued as separate cards and not acted on here: F10 (`destroyBuildingEntity` keeps a destroyed building's conversion record), F23 (converting a foundation miscounts population), F33 (a unit that takes a destroyed building's id inherits its record), and an ally's lone building leaving the same ghost (defect register, 2026-10-11, OPEN).
