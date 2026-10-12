@@ -5,9 +5,10 @@ This changelog lists user-visible behavior changes only. Pure refactors, doc swe
 ## Unreleased — work 121
 
 - **An enemy's foundation stays hidden until someone starts building it**, as in Definitive Edition. A foundation an enemy has placed, and no villager has started, is not drawn on the map or the minimap, cannot be selected or right-clicked, and your units do not attack it, even when it stands right beside them. Once a villager starts building it, it shows and can be attacked as before.
-- **The AI no longer knows about your foundations before you start them.** Its soldiers ignore one beside them, and it no longer marches on a second Town Center you have only placed. Your allies still see your foundations.
-- **Foundations nobody has started no longer keep a player in the match.** A player left with only those is defeated, since no enemy could find them to destroy them.
-- A replay recorded before this version plays these rules again, so a recorded attack on an unstarted foundation can play out differently.
+- **The AI no longer knows about your foundations before you start them.** Its soldiers ignore one beside them, and it no longer marches on a second Town Center you have only placed. Your allies still see your foundations where they can see the ground.
+- **An ally's foundation that nobody has started no longer stays on your map under fog** after you have seen it, as in Definitive Edition. An enemy's never shows there either.
+- **Foundations nobody has started no longer keep a player in the match.** A player left with only those is defeated, since no enemy could find them to destroy them. If that is you, the game says "You have no units or started buildings left."
+- **Older saves and replays.** A save where a player stayed in the match only through a foundation nobody had started ends as soon as it is loaded. A save that holds an attack or a Monk's conversion aimed at another player's unstarted foundation, or a fog-of-war image of one, drops it. A replay recorded before this version plays these rules again, so its fog of war, its units' and the AI's targets, and who is still in the match can play out differently.
 
 ## 0.3.251
 
