@@ -9,7 +9,8 @@
 // scenarios: castle — the match `aiReachesCastleAge.test.ts` plays (boot map,
 // both seats AI); lab — the no-attack coverage lab of
 // `selfPlayContentCoverage.test.ts`; garrison and few — the two cases of
-// `aiGarrisonedDefender.test.ts`. A tree is any checkout of this repo, e.g. a
+// `aiGarrisonedDefender.test.ts`; walk — the order de-ground.spec.ts:139
+// gives, every human unit across the boot map for 300 ticks in 25-tick chunks. A tree is any checkout of this repo, e.g. a
 // control worktree of the older commit made with
 // `node scripts/controlWorktree.mjs create <name> <sha>`.
 //
@@ -164,7 +165,20 @@ const SCENARIOS = {
   },
   garrison: { maxTicks: 8300, open: (create, human) => garrisoned(create('ai-garrisoned-defender-fixture', { forceAiForOwners: new Set([human]) })) },
   few: { maxTicks: 8300, open: (create, human) => garrisoned(create('ai-garrisoned-defender-few-fixture', { forceAiForOwners: new Set([human]) })) },
+  // de-ground.spec.ts:139's order: the human's every unit, its four sheep
+  // included, sent across the boot map to (36, 14), with the AI playing the
+  // other seat as in the browser (work 123: its boxed-in sheep cost 300-600 ms
+  // a tick until the move planner stopped searching once per candidate).
+  walk: { maxTicks: 300, chunkTicks: 25, open: (create) => walkEveryUnit(create('aoe2-prototype'), { x: 36, y: 14 }) },
 };
+
+function walkEveryUnit(bridge, target) {
+  const size = bridge.getMapSize();
+  if (!bridge.selectUnitsInBox(0, 0, size.width, size.height) || !bridge.issueMoveCommand(target.x, target.y)) {
+    throw new Error(`the walk scenario could not order the human's units to (${target.x}, ${target.y})`);
+  }
+  return bridge;
+}
 
 /** aiGarrisonedDefender.test.ts's setup: owner 2's villagers garrison its Town Centre. */
 function garrisoned(bridge) {
@@ -216,7 +230,7 @@ async function main(argv) {
   const { stateDigest } = await import('civ-engine');
   const arms = [await openArm('A', treeA, scenario, stateDigest), await openArm('B', treeB, scenario, stateDigest)];
   const busy = machineBusyCores();
-  const chunkTicks = flag('chunk', 1000);
+  const chunkTicks = flag('chunk', scenario.chunkTicks ?? 1000);
   const result = runInterleaved({
     arms,
     chunkTicks,

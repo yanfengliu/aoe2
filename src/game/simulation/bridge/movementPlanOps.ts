@@ -218,6 +218,38 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     return uniquePositions(candidates);
   }
 
+  function isGridCell(position: Position): boolean {
+    return Number.isInteger(position.x) && Number.isInteger(position.y)
+      && position.x >= 0 && position.y >= 0 && position.x < mapWidth && position.y < mapHeight;
+  }
+
+  /** The cells A* can reach from `start`: orthogonal steps through passable cells, as findGridPath walks. */
+  function floodReachable(start: Position, passable: (x: number, y: number) => boolean): Uint8Array {
+    const reached = new Uint8Array(mapWidth * mapHeight);
+    if (!isGridCell(start) || !passable(start.x, start.y)) return reached;
+    // 0 unknown, 1 reached, 2 read as blocked: each cell's passability is read once.
+    const queue = [start.y * mapWidth + start.x];
+    reached[queue[0]!] = 1;
+    for (let head = 0; head < queue.length; head += 1) {
+      const index = queue[head]!;
+      const x = index % mapWidth;
+      const y = (index - x) / mapWidth;
+      for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]] as const) {
+        if (nx < 0 || ny < 0 || nx >= mapWidth || ny >= mapHeight) continue;
+        const next = ny * mapWidth + nx;
+        if (reached[next] !== 0) continue;
+        if (passable(nx, ny)) {
+          reached[next] = 1;
+          queue.push(next);
+        } else {
+          reached[next] = 2;
+        }
+      }
+    }
+    for (let index = 0; index < reached.length; index += 1) if (reached[index] === 2) reached[index] = 0;
+    return reached;
+  }
+
   function findMovementPathToCandidates(
     unitId: number,
     start: Position,
@@ -244,7 +276,24 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
       }
     }
 
+    // First reachable candidate wins, so a start that reaches few of them used
+    // to pay one failed A* per candidate: a boxed-in sheep ordered across
+    // aoe2-prototype ran 1,756-2,731 a tick (work 123). A* here steps
+    // orthogonally and refuses a blocked start, so it can never reach a goal
+    // outside the start's 4-connected passable region. After the first
+    // failure that region is flooded once and every candidate outside it is
+    // skipped. Every candidate inside it still goes to findGridPath, whose
+    // 10,000-iteration cap (civ-engine's default; builderReachability.ts has
+    // the same boundary) can still turn it down on a map past about 8,000
+    // cells, exactly as before. So the candidate chosen and its path are the
+    // ones the search-per-candidate loop chose (tests/simulation/
+    // movementPlanCandidateReach.test.ts). A candidate the flood cannot index
+    // also goes to findGridPath, which judges it as before.
+    let reachable: Uint8Array | null = null;
     for (const destination of uniqueCandidates) {
+      if (reachable && isGridCell(destination) && reachable[destination.y * mapWidth + destination.x] === 0) {
+        continue;
+      }
       const pathResult = findGridPath({
         width: mapWidth,
         height: mapHeight,
@@ -253,6 +302,7 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
         blocked: (x, y) => !isPassable(unitId, x, y, activeWorld),
       });
       if (!pathResult) {
+        reachable ??= floodReachable(start, (x, y) => isPassable(unitId, x, y, activeWorld));
         continue;
       }
 
