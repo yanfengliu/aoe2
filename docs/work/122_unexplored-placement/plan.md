@@ -3,7 +3,7 @@
 Status: active
 Owner: Coordinator worker w122-unexplored-placement (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
-Updated: 2026-10-12
+Updated: 2026-10-13
 
 ## Problem and outcome
 
@@ -47,6 +47,8 @@ Reproduce the leak through the real controls first, sweeping the ghost across bl
 ## Implementation steps
 
 - [x] Reproduce through the controls (the bridge's own placement queries), apply the three notes, capture and diff (phase 1, 2026-10-12, branch `unexplored-placement`).
+- [x] Fix the independent review of `4792d4fd` (the coordinator's read-only reviewer, 2026-10-12): nine findings fixed in `30b6c566` and its docs commit, and one, a hidden unit frozen under a new foundation, recorded open as the register entry of 2026-10-12, as the coordinator decided. The round's record is the coordinator's to write; the devlog entry of 2026-10-13 holds the fixes, checks and measurements.
+- [ ] Focused re-review of the fix commits, by the coordinator.
 - [ ] Gate under the lock, land, close (phase 2, after the coordinator accepts).
 
 ## Outcome
