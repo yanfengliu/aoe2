@@ -33,6 +33,11 @@ export default defineConfig({
     poolOptions: {
       threads: { maxThreads: '50%', minThreads: 1 },
     },
+    // The default reporter, plus one that writes each test's duration against its
+    // own timeout to tmp/test-times/vitest.json and prints the closest five. CI
+    // fails a run past two thirds of any test's limit from that file
+    // (scripts/test-time-headroom.mjs); locally it only reports.
+    reporters: ['default', './tests/helpers/vitestTestTimeReporter.ts'],
     testTimeout: 30_000,
     hookTimeout: 180_000,
     teardownTimeout: 30_000,

@@ -1,6 +1,18 @@
 // How close each browser spec is running to its OWN timeout, printed at the end
 // of every run from `playwright.config.ts`.
 //
+// ON CI IT IS A GATE, through a file (2026-10-11, work 123). Every finished
+// test's duration, status and own timeout is written to REPORT_PATHS.playwright,
+// and each browser shard's next step, scripts/test-time-headroom.mjs, fails the
+// shard when any test used more than two thirds of its own timeout. The refusal
+// below stands for THIS machine; CI's runners were measured on 2026-10-11 and
+// move each job's tests together, which is the case the script's header makes.
+// Nothing here fails a run: the printout below is the local view. The report
+// also carries the run's own status and its command-line arguments. It is
+// written in onEnd, and Playwright calls each reporter's onEnd in the order
+// playwright.config.ts lists them, so a reporter that reads the report must be
+// listed after this one, or read it once the run is over.
+//
 // It REPORTS and does not fail, and that is a finding rather than a soft option.
 // It was written to be the gate for the lessons-queue entry "a browser spec
 // whose duration is within a few seconds of the timeout is already red on
@@ -40,7 +52,13 @@
 // run when a passing test exceeds that fraction of its own timeout. Read the
 // paragraph above before wiring that into anything: on the data measured here it
 // would have failed run 1 and passed run 2 on identical bytes.
-import type { FullResult, Reporter, TestCase, TestResult } from '@playwright/test/reporter';
+import { dirname } from 'node:path';
+
+import type { FullConfig, FullResult, Reporter, TestCase, TestResult } from '@playwright/test/reporter';
+
+import { REPORT_PATHS, repoRelative, writeTestTimes } from '../../../scripts/test-time-headroom.mjs';
+
+type TestTime = Parameters<typeof writeTestTimes>[1]['tests'][number];
 
 /** Report-only. See the header: no threshold survived the measurement. */
 const BUDGET_FRACTION: number | 'off' = 'off';
@@ -49,13 +67,12 @@ const BUDGET_FRACTION: number | 'off' = 'off';
 // so a reader can tell "this one has an owner" from "this one is new". They are
 // also the tests an opted-in `BROWSER_DURATION_BUDGET` will not fail on.
 //
-// The one below advances up to 2,000 single-tick steps and serialises a full
-// snapshot on every one of them. Measured at 95% of its 30s timeout (28.4s) in
-// one full-suite run and 48% (14.3s) in the next — it is the widest swing in the
-// suite and the reason no threshold shipped. It is the open risk already
-// recorded in `docs/learning/defect-register.md` (2026-09-06, "both were
-// measuring the host instead of the game"), and it is closed by making the test
-// cheaper — deliberately NOT by raising its timeout, and not by chunking the
+// Empty since work 123 (2026-10-13). Its one entry was the barracks rush, which
+// advanced up to 2,000 single-tick steps and serialised a full snapshot on every
+// one of them: 95% of its 30s timeout (28.4s) in one full-suite run here and 48%
+// (14.3s) in the next, and 57-66% on CI's runners. It was closed by making the
+// test cheaper, as this note asked — it now steps with `stepTicks` and reads
+// only the economy each tick — and not by raising its timeout or by chunking the
 // loop, which would let owner 1's Town Centre train a replacement villager
 // inside a chunk and quietly change what the test asserts.
 //
@@ -63,10 +80,7 @@ const BUDGET_FRACTION: number | 'off' = 'off';
 // there; the first entry written here was guessed, did not match, and exempted
 // nothing — an exemption that silently matches no test looks exactly like one
 // that works.
-const EXEMPT = new Set<string>([
-  'game-combat-and-meta-meta.spec.ts › browser gameplay smoke tests - game-combat-and-meta (meta) '
-  + '› runs the baseline AI barracks rush through the live game loop',
-]);
+const EXEMPT = new Set<string>([]);
 
 // BOUNDS, and they are wide.
 //   * It measures DURATION, not the reason for it. It cannot tell a test that is
@@ -118,12 +132,51 @@ const keyOf = (test: TestCase): string => {
   return (fileIndex >= 0 ? parts.slice(fileIndex) : parts).join(' › ').replace(/\\/g, '/');
 };
 
+/** The judge's states; an interrupted run's test is judged on the time it had. */
+const STATE: Record<TestResult['status'], TestTime['state']> = {
+  passed: 'passed', failed: 'failed', timedOut: 'timedOut', skipped: 'skipped', interrupted: 'failed',
+};
+
+interface Options {
+  /** Where to write every test's time; defaults to REPORT_PATHS.playwright under the config's root. */
+  readonly outputFile?: string;
+  /** What the written file paths are relative to; defaults to the config file's folder. */
+  readonly rootDir?: string;
+}
+
 export default class DurationBudgetReporter implements Reporter {
+  readonly outputFile: string;
+
+  private rootDir: string | undefined;
+
   private readonly measured: Measured[] = [];
+
+  /** Every finished test, the last result of each, for scripts/test-time-headroom.mjs. */
+  private readonly times = new Map<string, TestTime>();
 
   private readonly budget = configuredFraction();
 
+  constructor(options: Options = {}) {
+    this.outputFile = options.outputFile ?? REPORT_PATHS.playwright;
+    this.rootDir = options.rootDir;
+  }
+
+  // The config file's folder, the repository root: `config.rootDir` is the
+  // test directory (tests/browser), which would drop that prefix from every path.
+  onBegin(config: FullConfig): void {
+    this.rootDir ??= config.configFile ? dirname(config.configFile) : process.cwd();
+  }
+
   onTestEnd(test: TestCase, result: TestResult): void {
+    const file = repoRelative(test.location.file, this.rootDir ?? process.cwd());
+    this.times.set(`${file}:${String(test.location.line)}:${keyOf(test)}`, {
+      file,
+      line: test.location.line,
+      title: test.title,
+      state: STATE[result.status],
+      durationMs: result.status === 'skipped' ? 0 : result.duration,
+      timeoutMs: test.timeout,
+    });
     if (result.status !== 'passed') return;
     const timeoutMs = test.timeout;
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) return;
@@ -139,6 +192,13 @@ export default class DurationBudgetReporter implements Reporter {
   // `async` because Reporter.onEnd is typed to return void or a Promise; a bare
   // object is a type error even though Playwright awaits it happily at runtime.
   async onEnd(result: FullResult): Promise<{ status: FullResult['status'] } | void> {
+    writeTestTimes(this.outputFile, {
+      runner: 'playwright',
+      writtenAt: new Date().toISOString(),
+      argv: process.argv.slice(2),
+      outcome: { status: result.status },
+      tests: [...this.times.values()],
+    });
     if (this.measured.length === 0) return;
     const ranked = [...this.measured].sort((a, b) => b.fraction - a.fraction);
     const show = (entry: Measured): string => `${(entry.fraction * 100).toFixed(0)}% of `
