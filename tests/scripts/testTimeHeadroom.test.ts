@@ -1,5 +1,5 @@
 // Every gated test keeps headroom under its OWN time limit — the gate for the
-// 2026-10-11 register entry (work 123).
+// register entry of 2026-10-12 (work 123), on what CI measured on 2026-10-11.
 //
 // What happened. Main's CI went red on some runs and not others because single
 // tests ran at or past their time limits on CI's runners: the 600-tick replay

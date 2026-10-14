@@ -28,9 +28,10 @@
 // job's `timeout-minutes`, so the two cannot drift apart.
 //
 // BOUND: it measures from the job's first step to its last, so it sees a job
-// that finished, never one the limit cancelled, and a job that fails before
-// its last step is not measured. It says nothing about workflows other than
-// the jobs that call it.
+// that finished, never one the limit cancelled. Since 2026-10-13 its step runs
+// after a failed step too (`if: ${{ !cancelled() }}`), so a failed job is
+// measured up to its end. It says nothing about workflows other than the jobs
+// that call it.
 
 import { pathToFileURL } from 'node:url';
 

@@ -45,10 +45,11 @@
 // tree and a berry bush; the mines and the groups — each starting from its own
 // "nothing selected" at boot and ending on nothing selected again. Every group
 // boots the same scenario, but no check compares one group's "nothing
-// selected" with another's, and states that followed each other in the one
-// sequence before work 123 and now sit in different groups (the scout and the
-// Town Centre, the foundation and the sheep, the berry bush and the gold mine)
-// are no longer entered one from the other.
+// selected" with another's. Where two states followed each other in the one
+// sequence before work 123 and now sit in different groups, the later group
+// selects the earlier state first, unmeasured, so the Town Centre is still
+// entered from the scout and the gold mine from the berry bush; the sheep is
+// no longer entered from the House foundation.
 
 import { expect, test, type Page } from '@playwright/test';
 
@@ -188,6 +189,11 @@ async function measureTownCentreAndFoundation(
   await clearSelection(page);
   await record('nothing selected');
 
+  // Unmeasured: the Town Centre is entered from the scout, as it was when the
+  // states ran in one sequence.
+  expect(await game.selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
+  await expect(page.locator('[data-selection-name]')).toHaveText('Scout Cavalry');
+
   await selectTownCentre(page);
   await record('the Town Centre');
 
@@ -264,6 +270,10 @@ async function measureMinesAndGroups(page: Page): Promise<PanelMetrics[]> {
 
   await clearSelection(page);
   await record('nothing selected');
+
+  // Unmeasured: the gold mine is entered from the berry bush, as it was when
+  // the states ran in one sequence.
+  await selectResource(page, 'berry-bush', 'Berry Bush');
 
   await selectResource(page, 'gold-mine', 'Gold Mine');
   await record('a gold mine');

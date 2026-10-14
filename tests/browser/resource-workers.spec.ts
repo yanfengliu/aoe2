@@ -72,6 +72,21 @@ async function screenshotResourceFixture(page: Page, name: string, includeToolti
   return play.screenshot(page, name, clip);
 }
 
+/** Writes `value` into every readout of the cloned bar, as the live HUD would. */
+async function labelReadouts(page: Page, value: string): Promise<void> {
+  await page.locator('.hud-resource-readout').evaluateAll((readouts, text) => {
+    for (const readout of readouts) {
+      const total = readout.querySelector<HTMLElement>('.hud-value')!;
+      const kind = total.dataset.hud!;
+      const label = `${kind[0].toUpperCase()}${kind.slice(1)} stockpile: ${text}`;
+      total.textContent = text; total.setAttribute('aria-label', label); total.dataset.tooltip = label;
+      const workers = readout.querySelector<HTMLElement>('.hud-resource-workers')!;
+      workers.querySelector('[data-resource-worker-count]')!.textContent = '100';
+      workers.setAttribute('aria-label', `${kind[0].toUpperCase()}${kind.slice(1)} workers: 100`);
+    }
+  }, value);
+}
+
 /** A full-page PNG of an order's moment, evidence for a person comparing
  *  layouts; nothing asserts it. Taken only when H4_LAYOUT_LABEL asks, as the
  *  fixture captures above are: three of these took 8-9 s of a 1920px run on
@@ -135,17 +150,14 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
       await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
       await page.evaluate(() => { const bar = document.querySelector('.hud-bar')!; bar.replaceWith(bar.cloneNode(true)); });
       const geometry = await barGeometry(page);
-      await page.locator('.hud-resource-readout').evaluateAll((readouts, value) => {
-        for (const readout of readouts) {
-          const total = readout.querySelector<HTMLElement>('.hud-value')!;
-          const kind = total.dataset.hud!;
-          const label = `${kind[0].toUpperCase()}${kind.slice(1)} stockpile: ${value}`;
-          total.textContent = value; total.setAttribute('aria-label', label); total.dataset.tooltip = label;
-          const workers = readout.querySelector<HTMLElement>('.hud-resource-workers')!;
-          workers.querySelector('[data-resource-worker-count]')!.textContent = '100';
-          workers.setAttribute('aria-label', `${kind[0].toUpperCase()}${kind.slice(1)} workers: 100`);
-        }
-      }, amount);
+      // The same elements are labelled and hovered twice, as they were when one
+      // test per width ran the three amounts in turn: a tooltip that kept an
+      // element's first text fails the hovers below.
+      await labelReadouts(page, '0');
+      await page.locator('[data-hud="food"]').hover();
+      await expect(page.locator('[data-hud="tooltip"]')).toContainText('stockpile: 0');
+      await page.mouse.move(viewport.width - 1, viewport.height - 1);
+      await labelReadouts(page, amount);
       const label = process.env.H4_LAYOUT_LABEL ?? 'after';
       await screenshotResourceFixture(page, `r1-${viewport.width}-${amount}-${label}.png`);
       const layout = await readResourceLayout(page);

@@ -4,7 +4,7 @@
 // its numbers BEFORE a slower runner times it out with none. This is
 // scripts/ci-job-headroom.mjs's rule, applied to each test instead of the job.
 //
-// WHY (2026-10-11, defect register entry of that date; work 123). Main's CI was
+// WHY (2026-10-11; defect register entry of 2026-10-12; work 123). Main's CI was
 // red on six of seven runs that day, each time because one test ran at or past
 // its time limit on one runner and not on the others: the 600-tick replay
 // comparison (32.0-35.1 s of 30 s on windows-latest), the 700-tick lifecycle
@@ -22,9 +22,11 @@
 // times it out.
 //
 // WHERE A TEST SHOULD SIT, then: near half its limit at most. On 2026-10-13 the
-// same specs ran on four probe runners of two CPU models (work 123 plan), and a
-// test past about half its limit on one runner was one slower runner from this
-// line. The gate draws the line; the margin under it is the author's.
+// same specs ran on 12 probe runners of four CPU models (work 123 plan). The
+// slowest model, the AMD EPYC 7763, ran them up to 1.76x slower than the
+// fastest. Aim a test at about half its limit on the slowest runner seen,
+// which leaves room for one slower still. The gate draws the line; the margin
+// under it is the author's.
 //
 // WHY CI ONLY, when docs/policies/local-rules.md refused a per-test budget on
 // 2026-09-06. That refusal measured ONE development machine, shared by other

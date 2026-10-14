@@ -27,7 +27,8 @@
 //
 // BOUND. A fake view, so (4) proves the step loops agree, not that the real
 // view's sync leaves the world alone; the barracks spec's break tick, equal
-// under both loops in the browser, is that half (work 123 plan). One seed,
+// under both loops in the browser, is that half (work 123's devlog entry of
+// 2026-10-14). One seed,
 // 120 ticks.
 
 import { stateDigest } from 'civ-engine';

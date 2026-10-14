@@ -23,7 +23,7 @@ import {
 type TestTime = Parameters<typeof judgeTestTimes>[0][number];
 
 interface Options {
-  /** Where to write the report; defaults to REPORT_PATHS.vitest under the run's root. */
+  /** Where to write the report; defaults to REPORT_PATHS.vitest, relative to the working directory. */
   readonly outputFile?: string;
   /** What the report's file paths are relative to; defaults to the vitest root. */
   readonly rootDir?: string;

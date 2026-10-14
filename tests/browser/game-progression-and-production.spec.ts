@@ -104,18 +104,22 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     // fixed number of ticks covers both the build and the shooting.
     // The 100-tick steps run in one `page.evaluate` (work 123): each used to
     // ship a whole snapshot back, 0.7-0.9 s a round trip on CI.
-    const scoutDead = await page.evaluate(() => {
+    const kill = await page.evaluate(() => {
       const api = window.__AOE2_TEST__!;
+      const scoutAlive = () => api.getEconomyState().units.some(
+        (unit) => unit.owner === 2 && unit.unitType === 'scout',
+      );
+      const aliveAtStart = scoutAlive();
       let dead = false;
       for (let advanced = 0; advanced < 1_200 && !dead; advanced += 100) {
         api.stepTicks(100, 100);
-        dead = !api.getEconomyState().units.some(
-          (unit) => unit.owner === 2 && unit.unitType === 'scout',
-        );
+        dead = !scoutAlive();
       }
-      return dead;
+      return { aliveAtStart, dead };
     });
-    expect(scoutDead).toBe(true);
+    // A Scout that was never there would read as killed.
+    expect(kill.aliveAtStart, 'the fixture has an enemy Scout for the tower to kill').toBe(true);
+    expect(kill.dead).toBe(true);
   });
 
   test('can garrison and ungarrison a villager through the Town Center in the live game', async ({

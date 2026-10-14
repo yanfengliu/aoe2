@@ -92,8 +92,10 @@ const EXEMPT = new Set<string>([]);
 //     on whole-suite wall time (41 min against 14), but per-test scaling has
 //     never been checked and the two local runs above show that per-test time
 //     does not follow the suite's.
-//   * A test that FAILED, timed out, or was skipped is not measured at all: its
-//     duration belongs to the failure, not to the test.
+//   * In this printout a test that FAILED, timed out, or was skipped is not
+//     measured: its duration belongs to the failure, not to the test. The
+//     report file records every test, and the CI gate judges failed and
+//     timed-out ones too.
 //   * It says nothing about the SUITE's total wall time, which is a separate
 //     limit and the one CI actually pays.
 //   * Only the five closest are printed. A test sitting sixth is invisible here.
@@ -138,7 +140,7 @@ const STATE: Record<TestResult['status'], TestTime['state']> = {
 };
 
 interface Options {
-  /** Where to write every test's time; defaults to REPORT_PATHS.playwright under the config's root. */
+  /** Where to write every test's time; defaults to REPORT_PATHS.playwright, relative to the working directory. */
   readonly outputFile?: string;
   /** What the written file paths are relative to; defaults to the config file's folder. */
   readonly rootDir?: string;
