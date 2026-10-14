@@ -219,8 +219,8 @@ test.describe('browser gameplay smoke tests - production', () => {
     // `advanceTicks` can move it. This replaced a 20-25 tolerance band that
     // existed only to absorb the frame loop's real-time drift.
     expect(ticksElapsed).toBe(20);
-    // Gold income is exactly +1 per tick per stored relic.
-    expect(depositAfter.gold - depositBaseline.gold).toBe(ticksElapsed);
+    // DE's 0.5 gold a second per relic is one gold on every 20th tick, so any 20 ticks pay exactly one (work 127).
+    expect(depositAfter.gold - depositBaseline.gold).toBe(ticksElapsed / 20);
   });
 
   test('can build a Stable and train a Scout Cavalry through the live command panel', async ({

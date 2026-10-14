@@ -251,7 +251,7 @@ describe('Slice 5 Monastery + Monks + Relics — vision/population/relics', () =
     expect(distance).toBeLessThanOrEqual(4);
   }, 30_000);
 
-  it('deposits a carried relic in a friendly Monastery and earns +1 gold per tick afterwards', () => {
+  it('deposits a carried relic in a friendly Monastery and earns one gold per 20 ticks afterwards', () => {
     const bridge = createSimulationBridge('monk-relic-fixture');
 
     const relic = findFirstResource(bridge, 'relic');
@@ -302,7 +302,9 @@ describe('Slice 5 Monastery + Monks + Relics — vision/population/relics', () =
     const goldBefore = bridge.getHudState().playerResources.gold;
     bridge.step(20 * 100);
     const goldAfter = bridge.getHudState().playerResources.gold;
-    // +1 per tick for 20 ticks => +20.
-    expect(goldAfter - goldBefore).toBe(20);
+    // DE's 0.5 gold a second: one gold on every 20th tick, so any 20
+    // consecutive ticks pay exactly one (work 127; the rate's own gates are in
+    // relicGoldRate.test.ts).
+    expect(goldAfter - goldBefore).toBe(1);
   }, 40_000);
 });

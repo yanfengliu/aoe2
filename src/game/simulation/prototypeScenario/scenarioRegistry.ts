@@ -38,6 +38,7 @@ import {
 import { createMinimumRangeCensusFixture, minimumRangeCensusSeeds } from '../fixtures/minimumRangeCensus';
 import { createProjectileLookShowcaseFixture } from '../fixtures/projectileLookShowcase';
 import { createRaidWarningFixture } from '../fixtures/raidWarning';
+import { createRelicGoldFixture } from '../fixtures/relicGold';
 import { createSiegeBaseStatsFixture } from '../fixtures/siegeBaseStats';
 import { createTrafficContestFixture } from '../fixtures/trafficContest';
 import { createUnexploredPlacementFixture } from '../fixtures/unexploredPlacement';
@@ -157,6 +158,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['converted-unit-gate-fixture', fixtures.createConvertedUnitGateFixture],
   ['monk-relic-drop-fixture', fixtures.createMonkRelicDropFixture],
   ['monk-relic-drop-cramped-fixture', fixtures.createMonkRelicDropCrampedFixture],
+  ['relic-gold-fixture', createRelicGoldFixture],
   ['castle-unique-fixture', fixtures.createCastleUniqueFixture],
   ['castle-non-britons-fixture', fixtures.createCastleNonBritonsFixture],
   ['castle-defensive-fire-fixture', fixtures.createCastleDefensiveFireFixture],

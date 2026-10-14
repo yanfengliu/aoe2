@@ -17,6 +17,7 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import {
   monkCarriedRelicCodec,
   monkTasksCodec,
+  relicsInMonasteryCodec,
 } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import type { PendingCommand } from '../../src/game/simulation/dispatcher';
 import {
@@ -224,27 +225,46 @@ describe('FU4 AI Monks', () => {
   }, 120_000);
 
   it("picks up and deposits a visible neutral relic via the AI's Monk", () => {
+    // Two signals, both read directly (work 127): the relic leaves the map
+    // into a Monastery owner 2 owns (the relic slot), and the relic system
+    // pays owner 2 for it within one 20-tick period, DE's 0.5 gold a second.
+    // Until work 127 the second signal was "owner 2's gold climbs above its
+    // starting gold", which measured the old rate of 10 gold a second, not the
+    // AI's relic play: the AI spends its 200 starting gold by the deposit
+    // (tick 32), so at DE's rate that proxy needs about 4,000 ticks. The
+    // payout reading is gold rising on some tick of the 20 after the deposit.
+    // This AI has no other gold income, but the reading would break, for a
+    // reason that has nothing to do with relics, if the AI spent gold on the
+    // very tick the relic pays.
     const bridge = createSimulationBridge('ai-monk-relic-fixture');
     const aiOwner = 2;
-    const initialEconomy = bridge.getEconomyState();
-    const initialRelics = initialEconomy.resources.filter((r) => r.resourceType === 'relic');
-    expect(initialRelics.length).toBe(1);
+    const relicsOnMap = () => bridge.getEconomyState().resources
+      .filter((r) => r.resourceType === 'relic').length;
+    expect(relicsOnMap()).toBe(1);
 
-    let depositedRelic = false;
-    for (let i = 0; i < 2_500; i += 1) {
+    let deposited = false;
+    for (let i = 0; i < 2_500 && !deposited; i += 1) {
       bridge.step(100);
-      const economy = bridge.getEconomyState();
-      const relicsLeft = economy.resources.filter((r) => r.resourceType === 'relic');
-      // The relic disappears (and the AI's gold ticks up via
-      // prototypeRelicGold) when a Monk deposits it in a friendly
-      // Monastery — verify both signals to keep the test honest.
-      const aiGold = economy.playerResources[aiOwner].gold;
-      if (relicsLeft.length === 0 && aiGold > initialEconomy.playerResources[aiOwner].gold) {
-        depositedRelic = true;
-        break;
-      }
+      deposited = relicsOnMap() === 0;
     }
-    expect(depositedRelic).toBe(true);
+    expect(deposited).toBe(true);
+    const aiMonasteries = bridge.getEconomyState().buildings
+      .filter((b) => b.owner === aiOwner && b.buildingType === 'monastery')
+      .map((b) => b.id);
+    const stored = codecSlotValue(bridge.saveGame(), relicsInMonasteryCodec);
+    expect(stored).toHaveLength(1);
+    expect(aiMonasteries).toContain(stored[0][0]);
+    expect(stored[0][1]).toBe(1);
+
+    let gold = bridge.getEconomyState().playerResources[aiOwner].gold;
+    let paid = false;
+    for (let i = 0; i < 20 && !paid; i += 1) {
+      bridge.step(100);
+      const next = bridge.getEconomyState().playerResources[aiOwner].gold;
+      paid = next > gold;
+      gold = next;
+    }
+    expect(paid).toBe(true);
   }, 120_000);
 });
 
