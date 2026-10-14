@@ -2,6 +2,18 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 120 M3
+
+Six civilization bonuses now work as Definitive Edition's text says.
+
+- **Celtic infantry move +5/10/15/20% faster in the Dark/Feudal/Castle/Imperial Age.** It was +15% in every age, too fast before the Castle Age and too slow in the Imperial. The speed changes the moment you advance, in a loaded game too.
+- **The Ethiopian team bonus is "Outposts +3 line of sight and cost no stone".** Watch Towers and Bombard Towers no longer see 3 farther, and an Outpost costs the Ethiopians and their allies 25 wood and no stone. A tower finished in a game saved before this change keeps the sight it was saved with.
+- **Italian Fishing Ships cost 15% less: 64 wood.** They were 15 wood cheaper, 60.
+- **Italian Foot Archers have +1 melee and +1 pierce armor.** The bonus did nothing before. In a game saved before this change, archers already on the map get it with their next upgrade (Crossbowman or Arbalester); Arbalesters keep the armor they were saved with.
+- **Vietnamese Foot Archers and Skirmishers have +20% hit points, and Cavalry Archers no longer do.** In a game saved before this change, Cavalry Archers already on the map keep their extra hit points until the Heavy Cavalry Archer upgrade, and Heavy Cavalry Archers keep them.
+- **Spanish Conquistadors attack 18% faster, like the other Spanish gunpowder units.** In a game saved before this change, Conquistadors already on the map keep their old attack speed until the Elite Conquistador upgrade, and Elite Conquistadors keep it.
+- The Civilizations panel describes each of these as the game now applies it.
+
 ## 0.3.252
 
 - **An enemy's foundation stays hidden until someone starts building it**, as in Definitive Edition. A foundation an enemy has placed, and no villager has started, is not drawn on the map or the minimap, cannot be selected or right-clicked, and your units do not attack it, even when it stands right beside them. Once a villager starts building it, it shows and can be attacked as before.

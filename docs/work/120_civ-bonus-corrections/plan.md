@@ -3,7 +3,7 @@
 Status: active
 Owner: Coordinator worker w120-civ-bonuses (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
-Updated: 2026-10-12
+Updated: 2026-10-13
 
 ## Problem and outcome
 
@@ -83,6 +83,9 @@ Each fix is sourced, reproduced by a test first, and gated by a mutation. The ba
   - Rows where the code itself departs from DE were left as they are; they are M3.
 - [ ] M3: make the code match DE wherever it departs, for items 1–6, 11 and 12 below. Each item is reproduced first, then fixed, then gated. None goes on the spec's open list. The source is DE's civilization help text in aoe2techtree `3bb43b14` (DE update 185872).
   - 2026-10-12: the coordinator split the original twelve-item M3. Items 1–6, 11 and 12 stay in M3, dispatched to worker `civ-bonus-m3` on branch `civ-bonus-m3`; items 7–10 move to M4. The numbers are the original list's, so a reference to an item keeps its meaning.
+  - 2026-10-12 to 13: items 1–6 implemented, tested and committed on branch `civ-bonus-m3`, phase 1, for the coordinator's acceptance (the account's weekly limit cut the session from 04:25 on 10-12 to 19:55 on 10-13). Each was reproduced first, through the seams every site reads and in a match against a Britons control (two new test files, 14 of 14 red), fixed at its seam and gated; nine mutations, each restored, turned every gate red. Saves keep stored sight, armor, hit points and reload until a line upgrade rebuilds the unit, work 115's precedent; speed and prices apply at once.
+  - Items 11 and 12 were checked; both depart from DE, and both were stopped and reported rather than guessed. The Hun line has no implementation, and DE's "Trebuchets fire more accurately at units and small targets" gives no number; the accuracy roll here also skips buildings, so every trebuchet always hits a building. The Saracen Transport Ship has DE's +100% hit points and no capacity bonus, and DE's base ship differs from this build's (garrison 20 with no Dock technology adding to it, HP 70, armor 0/2, against units.csv's 5 rising to 20, 100 and 4/8), so "+20 carry capacity" has no matching base here.
+  - Seen on the way and reported, not changed: the Petard counts as infantry here, so every infantry bonus reaches it, where DE's data gives it no infantry armor class; and the Mayan foot-archer discount covers the Archer line alone, where DE labels the Plumed Archer a Foot Archer.
   1. Celts: "Infantry moves +5/10/15/20% faster in Dark/Feudal/Castle/Imperial Age". The code gives +15% in every age.
   2. Ethiopians, team bonus: "Outposts +3 line of sight and cost no stone". The code gives the +3 to towers too, and Outposts still cost stone.
   3. Italians: "Fishing Ships cost -15%". The code takes 15 wood off instead.
