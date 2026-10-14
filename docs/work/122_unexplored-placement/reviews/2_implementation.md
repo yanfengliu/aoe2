@@ -31,3 +31,5 @@ The landing gate, `npm run verify` and its receipt check, runs on the rebased tr
 ## Round outcome
 
 Nothing blocking. F10 is fixed and gated, and the memory half's reading of the frame's own projection is confirmed. F14 and F15 are repaired in `6f6fda38`. The coordinator accepted the work to land after these two fixes, with no further review round.
+
+**Landing rebase addendum (2026-10-14).** Under the gate lock the branch was rebased onto main `9e4a320b` (work 120 M3's v0.3.253 and work 125's plan), released as v0.3.254, and pushed as `85499f6c`. Old to new: `3129a878` is `2354f1a1`, `a52c3865` is `4be96f77`, `abdc3778` is `69443d42`, `a237cb57` is `e269f43a`, `72d33458` is `dd3e5d63`, `d1548177` is `1af6eb7d`, `b363fcad` is `03134db6`, `4fe6d820` is `0c8084fe`, `57ce53fe` is `6932729a`, `6f6fda38` is `f26c6db3`, and this record's commit `0ad7aa77` is `68c37966`. `git patch-id --stable` over each commit's diff of `src/`, `tests/` and `scripts/` is unchanged for all eleven. The documents changed only where main had moved: the changelog, the summary line and the register archive's rollover notes sit beside work 120 M3's.

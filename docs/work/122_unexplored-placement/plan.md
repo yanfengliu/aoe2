@@ -1,9 +1,9 @@
 # Placing a building on unexplored ground follows Definitive Edition's rules
 
-Status: active
+Status: complete
 Owner: Coordinator worker w122-unexplored-placement (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
-Updated: 2026-10-13
+Updated: 2026-10-14
 
 ## Problem and outcome
 
@@ -51,8 +51,26 @@ Reproduce the leak through the real controls first, sweeping the ghost across bl
 - [x] Focused re-review of `51db18ac..765295e7` (round 1, record `reviews/1_implementation.md`): nothing blocking. Finding A, what the frame draws on unexplored ground, is repaired in `8e6a8500`; B and C are corrected in the documents; D is recorded.
 - [x] After work 121 landed: rebased onto `c71496a9`, kept work 121's hidden foundations out of the count (`b363fcad`), and took the ghost's before and after captures over the drawn House.
 - [x] A short focused re-review of A's repair, `72d33458` with `b363fcad` (round 2, record `reviews/2_implementation.md`): nothing blocking; its two should-fix items repaired in `6f6fda38`. Accepted to land.
-- [ ] Gate under the lock, land, close (phase 2, after the coordinator accepts).
+- [x] Gate under the lock, land, close: rebased onto main `9e4a320b`, released as v0.3.254, pushed as `85499f6c` on 2026-10-14.
 
 ## Outcome
 
-Pending.
+Shipped in v0.3.254, merged to main as `85499f6c` (9e4a320b..85499f6c) on 2026-10-14. The player's placement reads only explored ground and what the frame draws, following Definitive Edition's notes 44725, 45185 and 46295 (spec §12.1). A footprint wholly unexplored is refused, one partly explored is allowed, and a foundation over something the fog hid is cancelled and refunded when a builder arrives. AI seats still place by the true map. The 2026-09-23 register entry is closed.
+
+**Verified revision.** `85499f6c`, tree `6e4a6fa98cdd`, under the gate lock. `PREVIEW_PORT=4650 npm run verify` exited 0, and its log was read through the build:
+- content validation passed;
+- unit tests: 603 files passed and 1 skipped, 4,628 tests passed and 3 skipped;
+- typecheck passed;
+- browser suite: 237 passed and 2 skipped;
+- lint passed;
+- the build finished.
+
+`node scripts/verify-receipt.mjs check` printed OK for HEAD's tree.
+
+**Review coverage.** Three rounds by the coordinator's read-only reviewer: `reviews/0_implementation.md`, `reviews/1_implementation.md` and `reviews/2_implementation.md`. Every finding was repaired except F1, which is recorded open by the coordinator's decision. Round 2 accepted the work to land. Its two should-fix repairs (`6f6fda38`, rebased as `f26c6db3`) were not re-reviewed, by the coordinator's direction.
+
+**Limitations and open items.**
+- **Open defect.** A unit hidden under a new foundation cannot leave until a builder comes (register entry of 2026-10-12, open). A card is queued for walkable unstarted foundations and a start check that moves units off.
+- **Still read as it is now.** Explored ground the player cannot see now is read as it is, not as last seen. That includes an enemy's unstarted foundation on explored ground, which work 121's open register entry records.
+- **Messages that still name too much.** The walk-order toast names what stops a walk under the fog, and a refused placement over an enemy's hidden foundation on explored ground names it (work 121's open entry); both are on the toast card. The start-check toast no longer names anything the frame does not draw (round 2).
+- **Delete refunds nothing.** Definitive Edition refunds an unstarted foundation in full. That is its own card.
