@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## Unreleased — work 121
+## 0.3.252
 
 - **An enemy's foundation stays hidden until someone starts building it**, as in Definitive Edition. A foundation an enemy has placed, and no villager has started, is not drawn on the map or the minimap, cannot be selected or right-clicked, and your units do not attack it, even when it stands right beside them. Once a villager starts building it, it shows and can be attacked as before.
 - **The AI no longer knows about your foundations before you start them.** Its soldiers ignore one beside them, and it no longer marches on a second Town Center you have only placed. Your allies still see your foundations where they can see the ground.
