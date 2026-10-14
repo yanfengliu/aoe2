@@ -70,7 +70,7 @@ test.describe('a trade route through the live UI', () => {
     const before = await page.evaluate(
       () => window.__AOE2_TEST__!.getEconomyState().playerResources[1]!.gold,
     );
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(2600, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(2600, 100); });
     const after = await page.evaluate(
       () => window.__AOE2_TEST__!.getEconomyState().playerResources[1]!.gold,
     );

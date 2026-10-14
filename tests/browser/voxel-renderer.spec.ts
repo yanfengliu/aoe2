@@ -201,7 +201,7 @@ test.describe('voxel world renderer', () => {
       metrics: window.__AOE2_TEST__!.getWorldRendererState().metrics!,
     }));
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(15, 15))).toBe(true);
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 100); });
     const admitted = await page.evaluate((key) => ({
       motion: window.__AOE2_TEST__!.inspectVoxelUnitMotion(key),
       displayed: window.__AOE2_TEST__!.getDisplayedEntities(),
@@ -209,7 +209,7 @@ test.describe('voxel world renderer', () => {
     // §12.4.2 (v0.3.160): a villager's first fine step lands on movement tick
     // 4 (the carry banks 32 hundredths a tick) — walk ticks 2-3 first so the
     // sampled 150 ms tick is the one that steps.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(2, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(2, 100); });
     const partial = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 150));
     const moving = await page.evaluate((key) => ({
       motion: window.__AOE2_TEST__!.inspectVoxelUnitMotion(key),
@@ -227,7 +227,7 @@ test.describe('voxel world renderer', () => {
     await page.waitForTimeout(150);
     const frozen = await page.evaluate((key) => window.__AOE2_TEST__!.inspectVoxelUnitMotion(key), identity);
     expect(frozen).toEqual(moving.motion);
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 150));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 150); });
     const resumed = await page.evaluate((key) => window.__AOE2_TEST__!.inspectVoxelUnitMotion(key), identity);
     expect(resumed?.gaitPhaseRadians).not.toBe(frozen?.gaitPhaseRadians);
     expect(resumed?.sampleTimeMs).toBeGreaterThan(frozen!.sampleTimeMs);
@@ -271,7 +271,7 @@ test.describe('voxel world renderer', () => {
     await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true);
     expect(await page.evaluate(() => window.__AOE2_TEST__!.selectEntityAtCell(6, 8))).toBe(true);
     expect(await page.evaluate(() => window.__AOE2_TEST__!.issueMoveCommand(15, 15))).toBe(true);
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(120, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(120, 100); });
     await page.evaluate(() => window.__AOE2_TEST__!.replay.seedPriorSession());
 
     await page.locator('[data-hud="menu-button"]').click();

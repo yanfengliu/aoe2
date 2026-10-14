@@ -112,8 +112,7 @@ export async function selectOwnedUnitDirect(
     ({ owner: playerOwner, unitType: expectedUnitType }) => {
       const api = window.__AOE2_TEST__!;
       const unit = api
-        .getSnapshot()
-        .economyState.units.find(
+        .getEconomyState().units.find(
           (candidate) =>
             candidate.owner === playerOwner && candidate.unitType === expectedUnitType,
         );
@@ -139,8 +138,7 @@ export async function getOwnedUnitCells(
   return page.evaluate(
     ({ owner: playerOwner, unitType: expectedUnitType }) =>
       window.__AOE2_TEST__!
-        .getSnapshot()
-        .economyState.units.filter(
+        .getEconomyState().units.filter(
           (candidate) =>
             candidate.owner === playerOwner && candidate.unitType === expectedUnitType,
         )
@@ -157,8 +155,7 @@ export async function getOwnedResourceCells(
   return page.evaluate(
     ({ owner: playerOwner, resourceType: expectedResourceType }) =>
       window.__AOE2_TEST__!
-        .getSnapshot()
-        .economyState.resources.filter(
+        .getEconomyState().resources.filter(
           (candidate) =>
             candidate.resourceType === expectedResourceType
             && (candidate.owner === playerOwner || candidate.baseOwner === playerOwner),
@@ -177,8 +174,7 @@ export async function selectOwnedBuildingDirect(
     ({ owner: playerOwner, buildingType: expectedBuildingType }) => {
       const api = window.__AOE2_TEST__!;
       const building = api
-        .getSnapshot()
-        .economyState.buildings.find(
+        .getEconomyState().buildings.find(
           (candidate) =>
             candidate.owner === playerOwner && candidate.buildingType === expectedBuildingType,
         );
@@ -217,8 +213,7 @@ export async function selectOwnedBuildingAtDirect(
     }) => {
       const api = window.__AOE2_TEST__!;
       const building = api
-        .getSnapshot()
-        .economyState.buildings.find(
+        .getEconomyState().buildings.find(
           (candidate) =>
             candidate.owner === playerOwner
             && candidate.buildingType === expectedBuildingType

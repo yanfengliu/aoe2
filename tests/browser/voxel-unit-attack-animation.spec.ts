@@ -83,7 +83,7 @@ test.describe('voxel unit attack animation', () => {
       restingParts.map((sample) => [sample.identity, sample]),
     );
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 100); });
     await waitForPresentedSnapshot(page);
     const firstStrikePresentation = await page.evaluate(({
       identities,
@@ -199,7 +199,7 @@ test.describe('voxel unit attack animation', () => {
     expect(frozenPresentationAfter.parts).toEqual(frozenPresentationBefore.parts);
     expect(frozenHistoriesAfter).toEqual(frozenHistoriesBefore);
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 150));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 150); });
     await waitForPresentedSnapshot(page);
     const progressedPresentation = await page.evaluate(({
       attackers,
@@ -254,7 +254,7 @@ test.describe('voxel unit attack animation', () => {
     let engagedWeights: number[] = [];
     let laterMotions: Array<{ mode: string; attackWeight: number } | null> = [];
     for (let round = 0; round < 40; round += 1) {
-      await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(2, 150));
+      await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(2, 150); });
       await waitForPresentedSnapshot(page);
       laterMotions = await page.evaluate((approachers) => approachers.map(
         ({ identity }) => window.__AOE2_TEST__!.inspectVoxelUnitMotion(identity),

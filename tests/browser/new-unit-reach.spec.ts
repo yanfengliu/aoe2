@@ -23,7 +23,7 @@ test.describe('units added since v0.3.45 are reachable with a mouse', () => {
     const train = page.locator('[data-command="train-eagle-warrior"]');
     await expect(train).toBeVisible();
     await train.click();
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(400, 100); });
 
     const snapshot = await game.getSnapshot(page);
     const eagles = snapshot.economyState.units.filter(
@@ -52,7 +52,7 @@ test.describe('units added since v0.3.45 are reachable with a mouse', () => {
     const handCannon = page.locator('[data-command="train-hand-cannoneer"]');
     await expect(handCannon).toBeVisible();
     await handCannon.click();
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(400, 100); });
 
     const snapshot = await game.getSnapshot(page);
     const cannoneers = snapshot.economyState.units.filter(
@@ -73,7 +73,7 @@ test.describe('units added since v0.3.45 are reachable with a mouse', () => {
     const cappedRam = page.locator('[data-command="train-capped-ram"]');
     await expect(cappedRam).toBeVisible();
     await cappedRam.click();
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(500, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(500, 100); });
 
     const snapshot = await game.getSnapshot(page);
     const rams = snapshot.economyState.units.filter(
@@ -97,7 +97,7 @@ test.describe('units added since v0.3.45 are reachable with a mouse', () => {
     const train = page.locator('[data-command="train-petard"]');
     await expect(train).toBeVisible();
     await train.click();
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(400, 100); });
 
     const snapshot = await game.getSnapshot(page);
     const petards = snapshot.economyState.units.filter(

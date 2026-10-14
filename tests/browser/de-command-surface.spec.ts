@@ -39,12 +39,12 @@ async function bootWithStackedVillager(page: Page): Promise<{
   let stacked: { x: number; y: number } | null = null;
   for (const villager of villagers) {
     await game.clickWorldPosition(page, villager.x + 0.5, villager.y + 0.5);
-    if ((await game.getSnapshot(page)).selectionState.selectedEntityType !== 'villager') continue;
+    if ((await game.getSelectionState(page)).selectedEntityType !== 'villager') continue;
     // DOUBLE_CLICK_WINDOW_MS is 300; this waits it OUT, which more time only
     // makes safer — it is not a budget for something to happen inside.
     await page.waitForTimeout(600);
     await game.clickWorldPosition(page, villager.x + 0.5, villager.y + 0.5);
-    if ((await game.getSnapshot(page)).selectionState.selectedEntityType !== 'villager') {
+    if ((await game.getSelectionState(page)).selectedEntityType !== 'villager') {
       stacked = villager;
       break;
     }
@@ -107,17 +107,17 @@ test.describe('the command surface behaves the way DE\'s does', () => {
         await page.mouse.move(point.x, point.y);
         await page.mouse.click(point.x, point.y);
         await expect.poll(
-          async () => (await game.getSnapshot(page)).selectionState.queue.length,
+          async () => (await game.getSelectionState(page)).queue.length,
           `click ${String(click + 1)} at (${String(Math.round(point.x))}, ${String(Math.round(point.y))}) queued nothing`,
         ).toBe(click + 1);
       }
 
-      const snapshot = await game.getSnapshot(page);
-      expect(snapshot.selectionState.queue).toHaveLength(3);
+      const selection = await game.getSelectionState(page);
+      expect(selection.queue).toHaveLength(3);
       // Nothing was garrisoned, so no bell was rung.
-      expect(snapshot.selectionState.inventory).toContain('0 / 15 garrisoned');
-      expect(snapshot.selectionState.actionOptions).not.toContain('ungarrison');
-      expect(snapshot.selectionState.actionOptions).not.toContain('back-to-work');
+      expect(selection.inventory).toContain('0 / 15 garrisoned');
+      expect(selection.actionOptions).not.toContain('ungarrison');
+      expect(selection.actionOptions).not.toContain('back-to-work');
       await expect(page.locator('[data-command="action-ungarrison"]')).toHaveCount(0);
 
       // The cursor never moved, so what is under it must still be the card it
@@ -187,7 +187,7 @@ test.describe('the command surface behaves the way DE\'s does', () => {
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await game.clickBuildCommand(page, 'house');
     await expect
-      .poll(async () => (await game.getSnapshot(page)).selectionState.placementMode)
+      .poll(async () => (await game.getSelectionState(page)).placementMode)
       .toBe('house');
 
     // Put the pointer over the world, so the ghost is really up before Escape.
@@ -200,7 +200,7 @@ test.describe('the command surface behaves the way DE\'s does', () => {
     await page.keyboard.press('Escape');
 
     await expect
-      .poll(async () => (await game.getSnapshot(page)).selectionState.placementMode)
+      .poll(async () => (await game.getSelectionState(page)).placementMode)
       .toBe(null);
     expect(
       await page.evaluate(() => window.__AOE2_TEST__!.getPlacementPreviewState()),
@@ -210,9 +210,9 @@ test.describe('the command surface behaves the way DE\'s does', () => {
     await expect(page.locator('[data-hud="game-menu"]')).toBeHidden();
     // ...and the villager is still selected, with its build palette, so the
     // player can arm a different building without re-selecting.
-    const snapshot = await game.getSnapshot(page);
-    expect(snapshot.selectionState.selectedEntityType).toBe('villager');
-    expect(snapshot.selectionState.buildOptions.length).toBeGreaterThan(0);
+    const selection = await game.getSelectionState(page);
+    expect(selection.selectedEntityType).toBe('villager');
+    expect(selection.buildOptions.length).toBeGreaterThan(0);
 
     // With nothing armed, Escape still means "menu" — the meaning it has had
     // since v0.1.95.
@@ -226,14 +226,14 @@ test.describe('the command surface behaves the way DE\'s does', () => {
     expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
     await game.clickBuildCommand(page, 'house');
     await expect
-      .poll(async () => (await game.getSnapshot(page)).selectionState.placementMode)
+      .poll(async () => (await game.getSelectionState(page)).placementMode)
       .toBe('house');
 
     await game.clickBuildCommand(page, 'house');
     await expect
-      .poll(async () => (await game.getSnapshot(page)).selectionState.placementMode)
+      .poll(async () => (await game.getSelectionState(page)).placementMode)
       .toBe(null);
-    expect((await game.getSnapshot(page)).selectionState.selectedEntityType).toBe('villager');
+    expect((await game.getSelectionState(page)).selectedEntityType).toBe('villager');
   });
 
   // DEFECT 3 (2026-09-11). Escape had no notion of which layer was on top: with
@@ -252,7 +252,7 @@ test.describe('the command surface behaves the way DE\'s does', () => {
     await page.keyboard.press('F1');
     await expect(page.locator('[data-hud="tech-tree-panel"]')).toBeVisible();
 
-    const pausedTick = (await game.getSnapshot(page)).hudState.tick;
+    const pausedTick = (await game.getHudState(page)).tick;
     await page.keyboard.press('Escape');
 
     await expect(page.locator('[data-hud="tech-tree-panel"]')).toBeHidden();
@@ -263,9 +263,12 @@ test.describe('the command surface behaves the way DE\'s does', () => {
     // The clock did not resume. Waiting on RENDERED FRAMES rather than on the
     // wall clock, because a sleep that contains no frame cannot tell a paused
     // match from a page that stopped drawing (local rule, 2026-09-06).
-    await game.waitForRenderedFrames(page, 20);
+    // At least four frames and 400 ms: three ticks of simulation time or more
+    // at any frame rate, which is what a resumed clock would show. Twenty
+    // frames took 0.3 s here and 5 s on CI's SwiftShader runners (work 123).
+    await game.waitForRenderedFrames(page, 4, 400);
     expect(
-      (await game.getSnapshot(page)).hudState.tick,
+      (await game.getHudState(page)).tick,
       'the match resumed under a panel the player cannot see past',
     ).toBe(pausedTick);
 
@@ -295,12 +298,12 @@ test.describe('the command surface behaves the way DE\'s does', () => {
     await page.waitForTimeout(600);
     await game.doubleClickWorldPosition(page, stacked.x + 0.5, stacked.y + 0.5);
 
-    const snapshot = await game.getSnapshot(page);
+    const selection = await game.getSelectionState(page);
     expect(
-      snapshot.selectionState.selectedEntityType,
+      selection.selectedEntityType,
       'the double-click landed on the entity behind the villager instead of selecting villagers',
     ).toBe('villager');
-    expect(snapshot.selectionState.selectedCount).toBe(villagers.length);
+    expect(selection.selectedCount).toBe(villagers.length);
   });
 
   // The same gesture on a villager that is ALREADY selected, by an earlier
@@ -319,19 +322,19 @@ test.describe('the command surface behaves the way DE\'s does', () => {
     await page.evaluate(() => { window.__AOE2_TEST__!.clearSelection(); });
     await page.waitForTimeout(600);
     await game.clickWorldPosition(page, stacked.x + 0.5, stacked.y + 0.5);
-    expect((await game.getSnapshot(page)).selectionState).toMatchObject({
+    expect((await game.getSelectionState(page))).toMatchObject({
       selectedCount: 1,
       selectedEntityType: 'villager',
     });
     await page.waitForTimeout(600);
     await game.doubleClickWorldPosition(page, stacked.x + 0.5, stacked.y + 0.5);
 
-    const snapshot = await game.getSnapshot(page);
+    const selection = await game.getSelectionState(page);
     expect(
-      snapshot.selectionState.selectedEntityType,
+      selection.selectedEntityType,
       'the double-click walked the stack instead of selecting villagers',
     ).toBe('villager');
-    expect(snapshot.selectionState.selectedCount).toBe(villagers.length);
+    expect(selection.selectedCount).toBe(villagers.length);
   });
 
   // DEFECT 5 (2026-09-11). A right click on the minimap did nothing at all —
@@ -355,21 +358,20 @@ test.describe('the command surface behaves the way DE\'s does', () => {
       ),
     ).toBe(true);
 
-    const before = await game.getSnapshot(page);
-    const startCells = before.economyState.units
+    const startCells = (await game.getEconomyState(page)).units
       .filter((unit) => unit.owner === 1 && unit.unitType === 'villager')
       .map((unit) => `${String(unit.x)},${String(unit.y)}`)
       .join(' ');
-    expect(before.cameraState, 'the camera state is needed to prove the view held still').not.toBeNull();
-    const camera = { x: before.cameraState!.scrollX, y: before.cameraState!.scrollY };
+    const cameraBefore = await game.getCameraState(page);
+    expect(cameraBefore, 'the camera state is needed to prove the view held still').not.toBeNull();
+    const camera = { x: cameraBefore!.scrollX, y: cameraBefore!.scrollY };
 
     const point = await game.getMinimapPoint(page, 0.72, 0.72);
     await page.mouse.move(point.x, point.y);
     await page.mouse.click(point.x, point.y, { button: 'right' });
 
     await expect.poll(async () => {
-      const snapshot = await game.getSnapshot(page);
-      return snapshot.economyState.units
+      return (await game.getEconomyState(page)).units
         .filter((unit) => unit.owner === 1 && unit.unitType === 'villager')
         .map((unit) => `${String(unit.x)},${String(unit.y)}`)
         .join(' ');
@@ -379,8 +381,8 @@ test.describe('the command surface behaves the way DE\'s does', () => {
 
     // The left button pans and the right button orders; a right click must not
     // do both.
-    const after = await game.getSnapshot(page);
-    expect(after.cameraState!.scrollX).toBe(camera.x);
-    expect(after.cameraState!.scrollY).toBe(camera.y);
+    const cameraAfter = await game.getCameraState(page);
+    expect(cameraAfter!.scrollX).toBe(camera.x);
+    expect(cameraAfter!.scrollY).toBe(camera.y);
   });
 });

@@ -96,6 +96,21 @@ async function rectOf(page: Page, selector: string): Promise<Rect> {
   return rect!;
 }
 
+/** Several elements' rects in one round trip, read at one moment (work 123:
+ *  the tooltip sweep read three a card, one call each). */
+async function rectsOf(page: Page, selectors: readonly string[]): Promise<Rect[]> {
+  const rects = await page.evaluate((list) => list.map((sel) => {
+    const element = document.querySelector(sel);
+    if (!element) return null;
+    const box = element.getBoundingClientRect();
+    return { x: box.left, y: box.top, width: box.width, height: box.height };
+  }), [...selectors]);
+  return rects.map((rect, index) => {
+    expect(rect, `${selectors[index]!} should be in the DOM`).not.toBeNull();
+    return rect!;
+  });
+}
+
 /** Whether an element's content runs past its box — a truncated hint or a
  *  heading wider than its group, both invisible to a rect check. */
 async function overflowsHorizontally(page: Page, selector: string): Promise<boolean> {
@@ -140,9 +155,10 @@ async function selectVillagerWithPalette(page: Page): Promise<number> {
 async function expectTooltipClearOfMinimap(page: Page, context: string): Promise<Rect> {
   const tooltip = page.locator('[data-hud="tooltip"][data-hud-tooltip-active="true"]');
   await expect(tooltip, `${context}: the tooltip should be showing`).toHaveCount(1);
-  const tooltipRect = await rectOf(page, '[data-hud="tooltip"]');
-  const minimapPanel = await rectOf(page, '.hud-panel--map');
-  const minimap = await rectOf(page, '[data-hud="minimap"]');
+  const [tooltipRect, minimapPanel, minimap] = await rectsOf(
+    page,
+    ['[data-hud="tooltip"]', '.hud-panel--map', '[data-hud="minimap"]'],
+  );
   expect(
     intersects(tooltipRect, minimapPanel),
     `${context}: tooltip (${describeRect(tooltipRect)}) overlaps the minimap panel `
@@ -229,7 +245,11 @@ for (const viewport of VIEWPORTS) {
       ).toBeLessThanOrEqual(bar.y + 1);
     });
 
-    test('every build card tooltip clears the minimap, before and during placement', async ({
+    // Before and during placement are two tests since work 123: one test hovered
+    // every card twice, about 20 hovers at 0.3 s each on CI's SwiftShader
+    // runners, and ran at 51-55% of its 30 s at 1280x720. Each half hovers
+    // every card, as before.
+    test('every build card tooltip clears the minimap before placement', async ({
       page,
     }) => {
       const cardCount = await selectVillagerWithPalette(page);
@@ -243,6 +263,13 @@ for (const viewport of VIEWPORTS) {
       }
       await page.mouse.move(viewport.width / 2, 8);
       await expect(page.locator('[data-hud="tooltip"]')).toHaveAttribute('data-hud-tooltip-active', 'false');
+    });
+
+    test('every build card tooltip clears the minimap during placement', async ({
+      page,
+    }) => {
+      const cardCount = await selectVillagerWithPalette(page);
+      const buildCards = page.locator('[data-command-group="build"] [data-command^="build-"]');
 
       await page.locator('[data-command="build-house"]').click();
       await expect(page.locator('[data-placement-mode]')).toHaveText('Placing: House');
