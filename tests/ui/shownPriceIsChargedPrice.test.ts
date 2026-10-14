@@ -135,4 +135,49 @@ describe('a shown price is the charged price', () => {
     expect(bridge.consumeCommandRejection()).toBe('Not enough gold.');
     panel.destroy();
   });
+
+  // The two validators that gated a price the click does not charge. Every
+  // census seat pays from a purse nothing can exhaust, so only a purse between
+  // the two prices tells them apart.
+  it('refuses Spies at its live price with 300 gold against 600, as its button says, and takes nothing', () => {
+    const bridge = standSeat({
+      blob: castleBlob(), civilization: 'Britons', age: 'imperial-age', researched: [],
+      purse: { ...FULL_PURSE, gold: 300 },
+    });
+    const panel = mountSelectionPanel(bridge);
+    expect(selectBuilding(bridge, 'castle')).toBe(true);
+    panel.refresh();
+    const button = panel.host.querySelector<HTMLButtonElement>('[data-command="research-spies"]')!;
+    expect(shownCost(button.dataset.tooltip ?? '')).toEqual({ gold: 600 });
+    expect(button.dataset.commandReason).toBe('Not enough gold.');
+
+    const before = purseOf(bridge);
+    button.click();
+    // Gated at the table's 200-gold floor, the click was accepted and the
+    // charge then refused it silently: no toast, and nothing researched.
+    expect(bridge.consumeCommandRejection(), 'the click was not refused').toBe('Not enough gold.');
+    bridge.step(100);
+    expect(spentBetween(before, purseOf(bridge))).toEqual({});
+    panel.destroy();
+  });
+
+  it('lets a Guilds Market buy 100 food for the 115 gold it charges, from 120 gold at a rate of 100', () => {
+    const bridge = standSeat({
+      blob: bootBlob('showcase', 'building-showcase-fixture'), civilization: 'Britons', age: 'imperial-age',
+      researched: ['guilds'], purse: { ...FULL_PURSE, gold: 120 },
+    });
+    const panel = mountSelectionPanel(bridge);
+    expect(selectBuilding(bridge, 'market')).toBe(true);
+    panel.refresh();
+    const buy = panel.host.querySelector<HTMLButtonElement>('[data-command="market-buy-food"]')!;
+    expect(buy.dataset.commandReason, 'the buy says it is short of gold').toBeUndefined();
+
+    const before = purseOf(bridge);
+    buy.click();
+    // Gated at the un-teched 30% (130 gold), this buy was refused.
+    expect(bridge.consumeCommandRejection(), 'the buy was refused').toBeNull();
+    bridge.step(100);
+    expect(spentBetween(before, purseOf(bridge)), 'gold paid, food gained').toEqual({ food: -100, gold: 115 });
+    panel.destroy();
+  });
 });

@@ -71,7 +71,7 @@ function makeUnitFixture() {
     getTrainOptions: (_owner, buildingType) => trainByType[buildingType] ?? [],
     getBuildOptions: () => ['house', 'barracks'],
     inFlightTechsFor: () => new Set<ResearchableTechnologyType>(),
-    effectiveResearchCostFor: (_owner, tech) => researchCost(tech),
+    ownerResearchCostFor: (_owner, tech) => researchCost(tech),
     researchUnavailableReason: (_owner, _buildingType, tech) => `reason for ${tech}`,
   };
   return { deps, researchByType, visibleByType };

@@ -441,7 +441,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
       accessor.get(playerCivilizationsCodec).get(owner) ?? defaultCivilizationName(owner),
     inFlightTechsFor: (owner) =>
       accessor.get(inFlightTechByOwnerCodec).get(owner) ?? NO_IN_FLIGHT,
-    effectiveResearchCostFor: (owner, tech) => ownerResearchCost(world, accessor, owner, tech),
+    ownerResearchCostFor: (owner, tech) => ownerResearchCost(world, accessor, owner, tech),
     researchUnavailableReason: deps.researchUnavailableReason,
   });
   /** Every unit of `ownerId` whose build menu is non-empty — the units an open
