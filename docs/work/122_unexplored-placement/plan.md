@@ -49,8 +49,8 @@ Reproduce the leak through the real controls first, sweeping the ghost across bl
 - [x] Reproduce through the controls (the bridge's own placement queries), apply the three notes, capture and diff (phase 1, 2026-10-12, branch `unexplored-placement`).
 - [x] Fix the independent review of `4792d4fd` (the coordinator's read-only reviewer, 2026-10-12): nine findings fixed in `30b6c566` and its docs commit, and one, a hidden unit frozen under a new foundation, recorded open as the register entry of 2026-10-12, as the coordinator decided. Record: `reviews/0_implementation.md`; the devlog entry of 2026-10-13 holds the fixes, checks and measurements.
 - [x] Focused re-review of `51db18ac..765295e7` (round 1, record `reviews/1_implementation.md`): nothing blocking. Finding A, what the frame draws on unexplored ground, is repaired in `8e6a8500`; B and C are corrected in the documents; D is recorded.
-- [ ] A short focused re-review of A's repair (round 2).
-- [ ] After work 121 lands: hide its hidden foundations from the live half too, and take the ghost's before and after captures over the drawn House.
+- [x] After work 121 landed: rebased onto `c71496a9`, kept work 121's hidden foundations out of the count (`b363fcad`), and took the ghost's before and after captures over the drawn House.
+- [ ] A short focused re-review of A's repair, `72d33458` with `b363fcad` (round 2).
 - [ ] Gate under the lock, land, close (phase 2, after the coordinator accepts).
 
 ## Outcome
