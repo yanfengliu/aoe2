@@ -41,7 +41,7 @@ import { civGatherRateMultiplier } from '../../src/game/simulation/civBonusEffec
 import { civCollectsWithoutDropOff, civGatherSideIncome } from '../../src/game/simulation/civGatherBonuses';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import type { EconomyResourceKind, GathererComponent, PlayerResources, ResourceKind } from '../../src/game/simulation/types';
-import { stepBridgeUntil } from './createSimulationBridge.helpers';
+import { selectOwnedUnitDirect, stepBridgeUntil } from './createSimulationBridge.helpers';
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
 interface Cell { readonly x: number; readonly y: number }
@@ -127,6 +127,16 @@ describe('a swing paid where the gatherer stands', () => {
     expect(stockpile).toEqual({ ...EMPTY, food: 7 });
   });
 
+  it('scales a Portuguese forager\'s wood by the AI difficulty, as a drop-off scales its food', () => {
+    // Ten food is 3.333 wood, 4.333 at x1.3 and 2.333 at x0.7.
+    for (const [multiplier, expected] of [[1.3, 4], [0.7, 2], [1, 3]] as const) {
+      const stockpile = { ...EMPTY };
+      const forager = villager();
+      for (let i = 0; i < 10; i += 1) swing(forager, 'berry-bush', 'Portuguese', stockpile, multiplier);
+      expect(stockpile.wood, `x${multiplier}`).toBe(expected);
+    }
+  });
+
   it('pays nothing and keeps nothing for a civilization without these bonuses', () => {
     const stockpile = { ...EMPTY };
     for (const kind of EVERY_KIND) {
@@ -173,6 +183,18 @@ describe('Portuguese foragers generate wood in addition to food', () => {
     // The fourth food takes it past one wood, as it does in a game never saved.
     expect(stockpileOf(loaded).wood).toBe(1);
   }, 60_000);
+
+  it('a game saved before the forager\'s first drop-off keeps the wood it has been paid', () => {
+    // Paid where the forager stands, the wood reaches the save only because
+    // the payment marks the stockpile changed; nothing else did this tick.
+    const bridge = gatherer('civ-forager-fixture', 'Portuguese', FORAGER, BUSH);
+    expect(stepBridgeUntil(bridge, () => villagerOf(bridge).carriedAmount >= 4, { maxSteps: 400 })).toBe(true);
+    expect(stockpileOf(bridge)).toMatchObject({ food: 0, wood: 1 });
+    const loaded = createSimulationBridge('civ-forager-fixture', {
+      savedGame: JSON.parse(JSON.stringify(bridge.saveGame())) as ReturnType<Bridge['saveGame']>,
+    });
+    expect(stockpileOf(loaded)).toMatchObject({ food: 0, wood: 1 });
+  }, 60_000);
 });
 
 describe('Khmer farmers do not need a Mill or a Town Center to drop off food', () => {
@@ -216,5 +238,40 @@ describe('Khmer farmers do not need a Mill or a Town Center to drop off food', (
     expect(stockpileOf(bridge).wood).toBe(0);
     expect(stockpileOf(bridge).food).toBeGreaterThan(6 + 8);
     expect([...tasks]).toEqual(['gathering']);
+  }, 60_000);
+
+  it('a game saved mid-farm loads with the food the Khmer farmer had paid in', () => {
+    // No drop-off ever marks this stockpile changed: each payment must.
+    const bridge = gatherer('civ-farmer-fixture', 'Khmer', FARMER, FARM);
+    for (let tick = 0; tick < 600; tick += 1) bridge.step(100);
+    const { food } = stockpileOf(bridge);
+    expect(food).toBeGreaterThan(10);
+    const loaded = createSimulationBridge('civ-farmer-fixture', {
+      savedGame: JSON.parse(JSON.stringify(bridge.saveGame())) as ReturnType<Bridge['saveGame']>,
+    });
+    expect(stockpileOf(loaded).food).toBe(food);
+  }, 60_000);
+
+  it('a Khmer farmer an older save left holding 10 food with no drop-off pays it in when sent back to its Farm', () => {
+    // Before this change a Khmer farmer carried its food like anyone's, so with
+    // no Mill or Town Center it stood holding 10. A save of that moment, with
+    // the owner's civilization written as the Khmer, is such a save.
+    const before = gatherer('civ-farmer-fixture', 'Britons', FARMER, FARM);
+    for (let tick = 0; tick < 1500; tick += 1) before.step(100);
+    expect(villagerOf(before)).toMatchObject({ carriedAmount: 10, task: 'to-dropoff' });
+    const blob = JSON.parse(JSON.stringify(before.saveGame())) as ReturnType<Bridge['saveGame']>;
+    const state = (blob.worldSnapshot as unknown as { state: Record<string, unknown> }).state;
+    state['aoe2.playerCivilizations'] = (state['aoe2.playerCivilizations'] as [number, string][])
+      .map(([owner, civilization]) => [owner, owner === 1 ? 'Khmer' : civilization]);
+    const loaded = createSimulationBridge('civ-farmer-fixture', { savedGame: blob });
+    // Left alone it still stands there: it is on its way to a drop-off.
+    for (let tick = 0; tick < 100; tick += 1) loaded.step(100);
+    expect(villagerOf(loaded)).toMatchObject({ carriedAmount: 10, task: 'to-dropoff' });
+    expect(stockpileOf(loaded).food).toBe(0);
+    // Ordered back to its Farm, its first swing pays the 10 in.
+    expect(selectOwnedUnitDirect(loaded, 1, 'villager')).toBe(true);
+    expect(loaded.issueContextCommand(FARM.x, FARM.y)).toBe(true);
+    expect(stepBridgeUntil(loaded, () => stockpileOf(loaded).food >= 10, { maxSteps: 200 })).toBe(true);
+    expect(villagerOf(loaded)).toMatchObject({ carriedAmount: 0, task: 'gathering' });
   }, 60_000);
 });

@@ -384,11 +384,14 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                   targetResource.resourceType,
                 );
                 const yieldLeft = targetResource.amount * duration;
-                const gatherAmount = Math.min(
+                // Never below 0: hands fuller than this resource's carry (11
+                // food from a Heavy Plow farm, sent to a 10-food bush) took a
+                // negative swing that grew the node (work 120 M4 review).
+                const gatherAmount = Math.max(0, Math.min(
                   gatherAmountFor(targetResource.resourceType),
                   yieldLeft,
                   carryCapacity - gatherer.carriedAmount,
-                );
+                ));
                 targetResource.amount = gatherAmount >= yieldLeft
                   ? 0
                   : targetResource.amount - gatherAmount / duration;

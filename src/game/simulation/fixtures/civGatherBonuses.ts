@@ -64,3 +64,33 @@ export function createCivFarmerFixture(seed: string): PrototypeScenario {
     ],
   };
 }
+
+// The farmer of `civ-farmer-fixture` with Heavy Plow ("Farmers carry +1
+// food") and a berry bush two cells away, still with nowhere to drop food: a
+// farmer that fills its hands with 11 food and is then sent to the bush holds
+// more than a forager may carry (10). Five wood, so a wrong wood payment shows.
+export function createCivFarmToBerriesFixture(seed: string): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      {
+        owner: 1,
+        townCenter: { x: 18, y: 10 },
+        startingAge: 'castle-age',
+        startingResearchedTechnologies: ['horse-collar', 'heavy-plow'],
+        startingResources: { ...EMPTY, wood: 5 },
+        disableAi: true,
+      },
+      { owner: 2, townCenter: { x: 50, y: 30 }, disableAi: true },
+    ],
+    spawns: [
+      ownedSpawn('farm', 1, 20, 12, { vision: 4 }),
+      ownedSpawn('villager', 1, 19, 12, { vision: 4 }),
+      gaiaSpawn('berry-bush', 19, 14, { amount: 400 }),
+      ownedSpawn('town-center', 2, 50, 30, { vision: 7 }),
+    ],
+  };
+}

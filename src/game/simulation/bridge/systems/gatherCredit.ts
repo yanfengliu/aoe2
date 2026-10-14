@@ -99,7 +99,9 @@ export function payGatherSwing(
     stockpile: deps.accessor.get(playerResourcesCodec).get(owner),
     depositMultiplier: aiState ? gatherMultiplier(aiState.difficulty) : 1,
   });
-  if (paid > 0) {
+  // Any change to the stockpile is marked for the save and the snapshot; the
+  // gather loop keeps a swing at 0 or more, so `paid` is never below 0.
+  if (paid !== 0) {
     deps.accessor.markDirty(playerResourcesCodec);
     deps.ensurePlayerScoreCounters(owner).resourcesGathered += paid;
   }

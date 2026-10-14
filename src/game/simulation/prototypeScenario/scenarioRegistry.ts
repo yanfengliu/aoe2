@@ -18,7 +18,7 @@ import { createBlastCensusFixture } from '../fixtures/blastCensus';
 import { blastCensusSeed } from '../fixtures/blastCensusLayout';
 import { createBuildingShotLandingFixture } from '../fixtures/buildingShotLanding';
 import { createBuildingVisionBuildFixture, createBuildingVisionFixture } from '../fixtures/buildingVision';
-import { createCivFarmerFixture, createCivForagerFixture } from '../fixtures/civGatherBonuses';
+import { createCivFarmerFixture, createCivFarmToBerriesFixture, createCivForagerFixture } from '../fixtures/civGatherBonuses';
 import { createCorridorSealFixture } from '../fixtures/corridorSeal';
 import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from '../fixtures/farmsAreWalkable';
 import {
@@ -423,4 +423,5 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['civ-forager-fixture', createCivForagerFixture],
   ['civ-farmer-fixture', createCivFarmerFixture],
   ['civ-farmer-reseed-fixture', createCivFarmerFixture],
+  ['civ-farm-to-berries-fixture', createCivFarmToBerriesFixture],
 ]);
