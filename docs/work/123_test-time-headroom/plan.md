@@ -1,6 +1,6 @@
 # Every gated test keeps headroom under its time limit
 
-Status: active
+Status: complete
 Owner: Coordinator worker w123-test-headroom (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
 Updated: 2026-10-14
@@ -61,13 +61,15 @@ The coordinator split the work into two milestones on 2026-10-12, once the plann
 - [x] M2, the gate: every CI job judges its own suite's tests after the suite (`scripts/test-time-headroom.mjs`, fed by `tests/helpers/vitestTestTimeReporter.ts` and the browser duration reporter), failing a test past two thirds of its own limit and printing the thirty closest. Proven red on the pre-fix tree by branch run 38181131359, on every browser shard and both unit jobs.
 - [x] M2, round 1 (2026-10-12): cheap state reads, the placement search in one round trip, 54 discarded `advanceTicks` snapshots no longer shipped back, evidence captures only on request, the Monk's walk stepped by ticks, one boot per command-deck card, and splits that keep every check. Branch run 38241014818, on the rebased tree `97ff948e`, was green on all six jobs.
 - [x] M2, round 2 (2026-10-13), after the independent review's finding 1: the slowest runners run the same list up to 1.76x slower than the fastest (probes 38508537662, 38515187274 and 38518636843), so tests at 51-58% on the runners then seen were one slow runner from the line. `stepTicks`, a test-API step that draws nothing, for loops that check every tick; waits in one `page.evaluate`; the patrol stepped; three more PNGs on request; and splits: the command bar in four groups per viewport, the build-card tooltips before and during placement, the art-style live switch in two, the Berserk's healing in two. The review's other findings are answered in the devlog entry of 2026-10-14.
-- [ ] M2 landing: verify under the lock, push, and the landing commit's CI figures here. Then close the 2026-10-01 register entry "Hosted resource-chip fixture timed out during screenshot capture" on those figures, as M1 did for the replay entry.
+- [x] M2 landing (2026-10-14): `npm run verify` exited 0 under the gate lock, its log read through lint and the last build, and `node scripts/verify-receipt.mjs check` printed OK on tree `fe5fe573`. Pushed as `e4115b2c..670e07d7`; the landing CI is green, and the 2026-10-01 resource-chip register entry is closed on its figures.
 
 ## Outcome
 
-M1 shipped in v0.3.249 as `e273fb09` (with `23829a60` and `5be2a349`), after `npm run verify` exited 0 with its log through lint and the last build. M2 is gated on branch `test-time-headroom-m2e` and awaits acceptance. Its two review rounds are in `reviews/0_implementation.md` and `reviews/1_implementation.md`.
+M1 shipped in v0.3.249 as `e273fb09` (with `23829a60` and `5be2a349`), after `npm run verify` exited 0 with its log through lint and the last build. M2 shipped as `e4115b2c..670e07d7` (five commits, no version change), after `npm run verify` exited 0 with its log through lint and the last build and the receipt check printed OK. Its two review rounds are in `reviews/0_implementation.md` and `reviews/1_implementation.md`.
 
 M2 on CI, the share of its own limit each named test reached at most on the probe runners after round 2: the barracks rush and the patrol under 31%, the Town Center 40%, the Watch Tower 34%, the save and load 46%, the art-style live switch 59% and its unexplored-ground sample 55%, the 1920x1080 command-deck tooltip test 59%. The last three are the nearest the line, and the next to cut if a slower runner puts them past it. Tracing costs about 10% on the slowest runners and was kept, for its failure traces.
+
+M2's landing commit on CI, run 38621219631 for `670e07d7`, green on all six jobs (playtest-corpus run 38621219476 green too). By shard, the closest browser tests ran at 34%, 37%, 51% and 32%: the 51% is work 122's new `placement-ghost-fog.spec.ts:82`. The 1920px readouts ran at 30%, 28% and 26%, the art-style live switch and its sample at 26% and 32%, and the 1920x1080 command-deck tooltip test at 30%. The replay cases ran under 21% on windows-latest and 10% on ubuntu-latest. The closest unit tests ran at 28% on ubuntu-latest and 50% on windows-latest (`aiReachesCastleAge`, 302 s of 600 s), with `unitMotionPersistence` at 44%.
 
 M1 on CI, run 38224624680 for `e273fb09`: de-ground.spec.ts:139 took 8.2 s on browser shard 2 (start to start), down from an 83.8 s median, and both unit jobs passed. The replay files took 37.5, 34.4 and 14.7 s on windows-latest (600-tick, lifecycle, native-120), and 26.1, 19.1 and 12.2 s on ubuntu-latest. Those logs print per-file totals only. M2's branch run 38228344282, with the same replay tests and the per-test reporter, put no replay case among the 30 tests closest to their limits on windows-latest, so each ran under 17% of 30 s. The run failed on browser shards 1 and 4, at the new per-test verdict rather than in the suites, on four offenders M2 then cut: the 1920x1080 command bar at 88%, the 1920px readouts at 72%, art style at 81% and de-command-surface.spec.ts:316 at 68%. Work 112's 2026-10-01 register entry is closed on these figures.
 
