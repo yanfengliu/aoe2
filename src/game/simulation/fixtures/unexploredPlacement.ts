@@ -21,13 +21,23 @@ import { createGrassFixtureTerrain, gaiaSpawn, ownedSpawn } from './common';
 // differs between the two, and neither does any vision source the human has,
 // so a placement verdict that differs between them read the fog.
 //
+// A third variant, 'unexplored-placement-lookout-fixture', is the hidden one
+// with the villager starting at LOOKOUT_CELL, where it sees one cell of the
+// enemy house. At boot the frame draws that house whole while fog memory has
+// not yet recorded it (the memory pass first runs in the first step), so only
+// the frame's live rule can tell the placement it is there (review round 1).
+//
 // The named footprints below put exactly one hidden obstacle under a house the
 // player is allowed to place, so the start check (update 46295) has one thing
 // to find in each.
 export const UNEXPLORED_PLACEMENT_OPEN_SEED = 'unexplored-placement-open-fixture';
 export const UNEXPLORED_PLACEMENT_HIDDEN_SEED = 'unexplored-placement-hidden-fixture';
+export const UNEXPLORED_PLACEMENT_LOOKOUT_SEED = 'unexplored-placement-lookout-fixture';
 
 export const VILLAGER_CELL: Position = { x: 20, y: 14 };
+/** Where the lookout variant's villager starts: it sees (24,17) of the enemy
+ *  house, and not (24,18), (25,17) or (25,18). */
+export const LOOKOUT_CELL: Position = { x: 21, y: 15 };
 export const VILLAGER_VISION = 4;
 /** The ring the hidden variant fills: farther than VILLAGER_VISION, within this. */
 export const HIDDEN_RING_OUTER = 7;
@@ -98,14 +108,15 @@ export function hiddenObstacleCells(): Array<Position & { kind: HiddenKind }> {
 }
 
 export function createUnexploredPlacementFixture(seed: string): PrototypeScenario {
-  const hidden = seed === UNEXPLORED_PLACEMENT_HIDDEN_SEED;
+  const hidden = seed === UNEXPLORED_PLACEMENT_HIDDEN_SEED || seed === UNEXPLORED_PLACEMENT_LOOKOUT_SEED;
+  const villagerCell = seed === UNEXPLORED_PLACEMENT_LOOKOUT_SEED ? LOOKOUT_CELL : VILLAGER_CELL;
   const terrain = createGrassFixtureTerrain();
   const spawns: ScenarioSpawnSpec[] = [
     // Both Town Centres sit in far corners with short sight, so neither
     // reaches the villager's ground.
     ownedSpawn('town-center', 1, 1, 1, { vision: 3 }),
     ownedSpawn('town-center', 2, 54, 30, { vision: 3 }),
-    ownedSpawn('villager', 1, VILLAGER_CELL.x, VILLAGER_CELL.y, { vision: VILLAGER_VISION }),
+    ownedSpawn('villager', 1, villagerCell.x, villagerCell.y, { vision: VILLAGER_VISION }),
     gaiaSpawn('stone-mine', KNOWN_STONE_CELL.x, KNOWN_STONE_CELL.y, { amount: 350 }),
   ];
   if (hidden) {

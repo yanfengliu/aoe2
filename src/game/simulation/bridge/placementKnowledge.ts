@@ -17,11 +17,17 @@
 // So for the player the verdict reads only explored ground — explored by the
 // player or by anyone it shares vision with, the ground the frame does not draw
 // black. Under the footprint an unexplored cell blocks nothing: whatever it
-// hides is found when building starts. The exception is what the player is
-// shown there anyway, its own buildings and foundations, which still block, so
-// it cannot stack a foundation on its own. Beside the footprint an unexplored
-// cell meets no requirement: a Dock needs water the player has seen
-// (placementFootprint.ts). A footprint with no explored cell is refused.
+// hides is found when building starts. The exception is what the frame draws
+// there anyway, which blocks as it would on explored ground: the player's own
+// entities; anyone else's of which the player's sight sees a cell, since the
+// frame then draws it whole (renderStateOps, `isFootprintSeen`), by its live
+// claims; and a building the frame draws from fog memory, by the footprint
+// remembered — never by its live claims, which would tell whether it still
+// stands. DE fixed the same in update 50292 (2021-07-06): a foundation could be
+// placed on top of another player's building on the edge of its line of
+// sight. Beside the footprint an unexplored cell meets no requirement: a Dock
+// needs water the player has seen (placementFootprint.ts). A footprint with no
+// explored cell is refused.
 // Reachability is asked over explored ground only: a builder must be able to
 // walk to a cell beside the footprint without crossing the fog. Taking the fog
 // as passable would let a hidden lake or wall strand a paid foundation (the
@@ -38,7 +44,7 @@
 // revision) or the owners whose sight the player shares change. Explored ground
 // grows only inside a step, so a labelling taken between two steps holds for
 // every question until the next one. Its builds and reuses are counted
-// (\`getDebugSnapshot().placementKnowledge\`), and a test holds the count to one
+// (`getDebugSnapshot().placementKnowledge`), and a test holds the count to one
 // build per tick however often the preview is asked.
 //
 // Who places this way: the human seat, unless an AI drives it (the AI-vs-AI
@@ -51,16 +57,21 @@
 
 import type { OccupancyCellClaim, Position, VisibilityMap } from 'civ-engine';
 
-import type { BuildingComponent, UnitComponent } from '../types';
+import type {
+  BuildingComponent,
+  RenderableComponent,
+  ResourceComponent,
+  UnitComponent,
+} from '../types';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { aiStatesCodec } from './bridgeStateSerialize';
+import { aiStatesCodec, lastSeenStaticCodec } from './bridgeStateSerialize';
 import type {
   PlacementOccupancyOps,
   PlacementReachabilityOps,
   ReachabilityBlockReport,
 } from './builderReachability';
-import type { PlacementCellView } from './placementFootprint';
-import { readSightOwners } from './humanSight';
+import type { PlacementCellView, RememberedClaim } from './placementFootprint';
+import { isFootprintKnown, isFootprintSeen, readSightOwners } from './humanSight';
 import type { GameWorld } from './pureHelpers';
 import { unitDomain } from '../unitDomain';
 
@@ -107,7 +118,7 @@ export interface ViewablePlacementOccupancy extends PlacementOccupancyOps {
 export interface PlacementKnowledgeDeps {
   world: GameWorld;
   accessor: BridgeStateAccessor;
-  visibility: Pick<VisibilityMap, 'isExplored'>;
+  visibility: Pick<VisibilityMap, 'isExplored' | 'isVisible'>;
   humanPlayerId: number;
   mapWidth: number;
   mapHeight: number;
@@ -135,10 +146,20 @@ export function placesByKnowledge(
 
 interface Knowledge {
   owner: number;
+  sight: readonly number[];
   sightKey: string;
   isCellKnown: (x: number, y: number) => boolean;
-  isClaimShown: (claim: OccupancyCellClaim) => boolean;
+  /** Whether the frame draws this live entity for the player. */
+  isDrawnLive: (entity: number) => boolean;
   view: PlacementCellView;
+}
+
+/** The unexplored cells fog memory draws something on, for one tick. */
+interface RememberedCells {
+  world: GameWorld;
+  tick: number;
+  sightKey: string;
+  cells: Map<number, RememberedClaim>;
 }
 
 interface KnownLabelling {
@@ -157,6 +178,7 @@ export function withPlayerKnowledge(
   const inMap = (x: number, y: number): boolean => x >= 0 && x < mapWidth && y >= 0 && y < mapHeight;
   const stats: PlacementKnowledgeStats = { computed: 0, served: 0, computeMs: 0 };
   const labellings = new Map<string, KnownLabelling>();
+  const remembered = new Map<number, RememberedCells>();
   let floodQueue = new Int32Array(0);
 
   /** The owner whose knowledge decides, or null for the true map. */
@@ -169,21 +191,76 @@ export function withPlayerKnowledge(
   }
 
   /** What `owner` knows: cells explored by it or anyone whose vision it shares
-   *  (the cells not drawn black), and the claims it is shown on any cell —
-   *  those of its own buildings, foundations and units. */
+   *  (the cells not drawn black), and what the frame draws for it on any cell —
+   *  live entities by their claims, remembered ones by their memory. */
   function knowledgeOf(owner: number): Knowledge {
     const sight = readSightOwners(accessor, owner);
+    const sightKey = sight.join(',');
     const isCellKnown = (x: number, y: number): boolean => {
       for (const viewer of sight) if (visibility.isExplored(viewer, x, y)) return true;
       return false;
     };
-    const isClaimShown = (claim: OccupancyCellClaim): boolean => {
-      if (claim.entity === null) return false;
-      const building = world.getComponent<BuildingComponent>(claim.entity, 'building');
-      if (building) return building.owner === owner;
-      return world.getComponent<UnitComponent>(claim.entity, 'unit')?.owner === owner;
+    // The frame's own rule (renderStateOps `isCurrentlyVisibleTo`): the
+    // player's entities always, anyone else's once its sight sees a cell of
+    // the footprint, which is then drawn whole.
+    const isDrawnLive = (entity: number): boolean => {
+      const position = world.getComponent<Position>(entity, 'position');
+      if (!position) return false;
+      const entityOwner = world.getComponent<BuildingComponent>(entity, 'building')?.owner
+        ?? world.getComponent<UnitComponent>(entity, 'unit')?.owner
+        ?? world.getComponent<ResourceComponent>(entity, 'resource')?.owner
+        ?? null;
+      if (entityOwner === owner) return true;
+      const renderable = world.getComponent<RenderableComponent>(entity, 'renderable');
+      return isFootprintSeen(
+        visibility,
+        sight,
+        position.x,
+        position.y,
+        renderable?.footprintWidth ?? 1,
+        renderable?.footprintHeight ?? 1,
+      );
     };
-    return { owner, sightKey: sight.join(','), isCellKnown, isClaimShown, view: { isCellKnown, isClaimShown } };
+    const isClaimShown = (claim: OccupancyCellClaim): boolean => claim.entity !== null && isDrawnLive(claim.entity);
+    const knowledge: Knowledge = { owner, sight, sightKey, isCellKnown, isDrawnLive, view: {} };
+    knowledge.view = {
+      isCellKnown,
+      isClaimShown,
+      rememberedAt: (x, y) => rememberedCells(knowledge).get(y * mapWidth + x) ?? null,
+    };
+    return knowledge;
+  }
+
+  /** The unexplored cells on which the frame draws something from the
+   *  player's fog memory, and what. The frame draws a remembered entry once a
+   *  cell of its footprint is explored, unless the live entity under that id
+   *  is drawn instead (fogMemoryOps, renderStateOps), and it draws it at the
+   *  footprint remembered. That footprint is read, never the live claims under
+   *  it: those would tell the player whether a building it cannot see still
+   *  stands. Fog memory changes only inside a step, so this is built at most
+   *  once a tick, and only when an unexplored cell is asked about. */
+  function rememberedCells(knowledge: Knowledge): Map<number, RememberedClaim> {
+    const tick = world.tick;
+    const cached = remembered.get(knowledge.owner);
+    if (cached && cached.world === world && cached.tick === tick && cached.sightKey === knowledge.sightKey) {
+      return cached.cells;
+    }
+    const cells = new Map<number, RememberedClaim>();
+    for (const [entityId, entry] of accessor.get(lastSeenStaticCodec).get(knowledge.owner) ?? []) {
+      const { x, y } = entry.position;
+      const { footprintWidth: width, footprintHeight: height } = entry;
+      if (!isFootprintKnown(visibility, knowledge.sight, x, y, width, height)) continue;
+      if (world.isAlive(entityId) && knowledge.isDrawnLive(entityId)) continue;
+      for (let cellY = y; cellY < y + height; cellY += 1) {
+        for (let cellX = x; cellX < x + width; cellX += 1) {
+          if (!inMap(cellX, cellY) || knowledge.isCellKnown(cellX, cellY)) continue;
+          const index = cellY * mapWidth + cellX;
+          if (!cells.has(index)) cells.set(index, { kind: entry.kind, entityType: entry.entityType });
+        }
+      }
+    }
+    remembered.set(knowledge.owner, { world, tick, sightKey: knowledge.sightKey, cells });
+    return cells;
   }
 
   function countKnown(x: number, y: number, width: number, height: number, knowledge: Knowledge): number {

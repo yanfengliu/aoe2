@@ -14,11 +14,14 @@
 //    44725: a blueprint over unexplored terrain no longer reveals what occupies
 //    it, and can still be placed). So whatever the fog hides under a footprint
 //    is found when building starts, and the water a Dock needs beside it has
-//    to be water the player has seen. Two things are known on unexplored
-//    ground all the same: the map edge, known to everyone, and whatever the
-//    view's `isClaimShown` accepts — the player's own buildings and
-//    foundations, which it is always shown, so it can never stack a
-//    foundation on its own (review finding, work 122).
+//    to be water the player has seen. What the player is shown there is
+//    known all the same: the map edge, known to everyone; the live claims
+//    the view's `isClaimShown` accepts — its own entities, and anyone else's
+//    the frame draws because a cell of it is seen; and what the view's
+//    `rememberedAt` names, a building the frame draws from fog memory at its
+//    remembered footprint (work 122's two review rounds; DE update 50292
+//    stopped a foundation going down over another player's building at the
+//    edge of sight).
 //  * `ignoredEntityId` — the start check
 //    (update 46295, foundationStart.ts): the true map with the foundation's own
 //    claims left out, so a builder arriving at it can see whether anything
@@ -38,14 +41,24 @@ import {
   touchesWater,
 } from '../shorePlacement';
 
+/** Something the player remembers on a cell: what the frame draws there from
+ *  fog memory, named the way a live claim would be. */
+export interface RememberedClaim {
+  kind: 'building' | 'resource';
+  entityType: string;
+}
+
 /** Which cells a placement verdict may read, and what it leaves out. */
 export interface PlacementCellView {
   /** Present for a player's view: false for an in-map cell the player has not
    *  explored. Never asked about a cell off the map. */
   isCellKnown?: (x: number, y: number) => boolean;
-  /** With `isCellKnown`: a claim the player is shown even on unexplored
-   *  ground — its own buildings and foundations — and so still counts there. */
+  /** With `isCellKnown`: a live claim the player is shown even on unexplored
+   *  ground, and so still counts there: one of the entities the frame draws. */
   isClaimShown?: (claim: OccupancyCellClaim) => boolean;
+  /** With `isCellKnown`: what the player remembers standing on an unexplored
+   *  cell, from fog memory, whatever stands there now; null for nothing. */
+  rememberedAt?: (x: number, y: number) => RememberedClaim | null;
   /** An entity whose own claims do not count: the foundation being started. */
   ignoredEntityId?: number;
 }
@@ -123,9 +136,11 @@ export function createPlacementFootprint(deps: PlacementFootprintDeps): Placemen
     const unitStands = (status: OccupancyCellStatus): boolean => (
       status.crowdedBy.some((claim) => claim.kind === 'unit')
     );
-    // On an unexplored cell only what the player is shown anyway counts.
-    const { isClaimShown } = view;
+    // On an unexplored cell only what the player is shown anyway counts: a
+    // live claim of an entity the frame draws, or a building it remembers.
+    const { isClaimShown, rememberedAt } = view;
     const shownThere = (cellX: number, cellY: number): boolean => {
+      if (rememberedAt?.(cellX, cellY)) return true;
       if (isClaimShown === undefined) return false;
       const status = getCellStatus(cellX, cellY, ignored);
       return status.blockedBy.some(isClaimShown)

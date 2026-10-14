@@ -28,7 +28,7 @@ export interface PlacementBlockReport {
    *  the footprint's cells lie on unexplored ground and hold nothing the player
    *  is shown there. Those cells are neither counted in `blockedCellCount` nor
    *  named (spec §12.1); every other cell — explored, off the map, or holding
-   *  the player's own building — is judged. */
+   *  something the frame draws — is judged. */
   unexploredCellCount?: number;
 }
 
@@ -97,11 +97,13 @@ export function createPlacementBlockReporter(deps: PlacementBlockReportDeps): {
     view?: PlacementCellView,
   ): PlacementBlockReport | null {
     // The same view the footprint rule reads (placementFootprint.ts). A cell
-    // off the map is always known. On an unexplored cell only the claims the
-    // player is shown anyway are read — so they are all the cause can name —
-    // and a cell with none is counted as unexplored, never as clear or blocked.
+    // off the map is always known. On an unexplored cell only what the player
+    // is shown anyway is read — the live claims of what the frame draws, then
+    // what it remembers there — so that is all the cause can name, and a cell
+    // with neither is counted as unexplored, never as clear or blocked.
     const isCellKnown = view?.isCellKnown;
     const isClaimShown = view?.isClaimShown;
+    const rememberedAt = view?.rememberedAt;
     const ignored = view?.ignoredEntityId ?? null;
     let first: PlacementBlockReport | null = null;
     let blockedCellCount = 0;
@@ -110,6 +112,7 @@ export function createPlacementBlockReporter(deps: PlacementBlockReportDeps): {
       for (let cellX = x; cellX < x + width; cellX += 1) {
         const inMap = cellX >= 0 && cellX < mapWidth && cellY >= 0 && cellY < mapHeight;
         let status = getCellStatus(cellX, cellY, ignored);
+        let remembered: string | null = null;
         if (isCellKnown && inMap && !isCellKnown(cellX, cellY)) {
           const shown = isClaimShown ?? (() => false);
           status = {
@@ -118,16 +121,21 @@ export function createPlacementBlockReporter(deps: PlacementBlockReportDeps): {
             crowdedBy: status.crowdedBy.filter((claim) => claim.kind === 'unit' && shown(claim)),
           };
           if (!isCellBlockedForPlacement(status)) {
-            unexploredCellCount += 1;
-            continue;
+            const memory = rememberedAt?.(cellX, cellY) ?? null;
+            if (memory === null) {
+              unexploredCellCount += 1;
+              continue;
+            }
+            remembered = `a ${memory.entityType} (${memory.kind})`;
           }
+        } else if (!isCellBlockedForPlacement(status)) {
+          continue;
         }
-        if (!isCellBlockedForPlacement(status)) continue;
         blockedCellCount += 1;
         if (!first) {
           first = {
             firstBlockedCell: { x: cellX, y: cellY },
-            cause: blockerCauseAt(status, cellX, cellY),
+            cause: remembered ?? blockerCauseAt(status, cellX, cellY),
             blockedCellCount: 0,
             totalCellCount: width * height,
           };

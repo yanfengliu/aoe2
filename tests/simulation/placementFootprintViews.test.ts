@@ -198,6 +198,30 @@ describe('the footprint rule and its views (work 122)', () => {
     expect(passability.describePlacementBlockers(2, 2, 2, 2, own)).toBeNull();
   });
 
+  // Review round 1, work 122: the frame also draws remembered buildings from
+  // fog memory, and the view names them by the footprint remembered. They
+  // block like a live claim, and the refusal names what is remembered.
+  it('on unexplored ground what the player remembers counts, named as remembered', () => {
+    const { passability } = makeWorld();
+    // A remembered house at (12,8): nothing stands there on this map.
+    const rememberedAt = (x: number, y: number) => (
+      x >= 12 && x <= 13 && y >= 8 && y <= 9 ? { kind: 'building' as const, entityType: 'house' } : null
+    );
+    const blind = { isCellKnown: () => false };
+    const recalled = { isCellKnown: () => false, rememberedAt };
+    expect(passability.isPlacementBlocked(11, 7, 2, 2, 'house', blind)).toBe(false);
+    expect(passability.isPlacementBlocked(11, 7, 2, 2, 'house', recalled)).toBe(true);
+    expect(passability.describePlacementBlockers(11, 7, 2, 2, recalled)).toMatchObject({
+      firstBlockedCell: { x: 12, y: 8 },
+      cause: 'a house (building)',
+      blockedCellCount: 1,
+      unexploredCellCount: 3,
+    });
+    // On explored ground the view reads the map, so memory has no say there.
+    const explored = { isCellKnown: () => true, rememberedAt };
+    expect(passability.isPlacementBlocked(11, 7, 2, 2, 'house', explored)).toBe(false);
+  });
+
   it('the start check leaves the foundation\'s own claims out, and only its own', () => {
     const { passability, house, farm } = makeWorld();
     expect(passability.isPlacementBlocked(2, 2, 2, 2, 'house')).toBe(true);
