@@ -64,6 +64,7 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps): 
       // never stops early while the human is out, so the flag below is whole
       // whenever it is read.
       let humanHoldsUnstartedFoundation = false;
+      let anyoneHoldsUnstartedFoundation = false;
       if (remainingOwners.size > 0) {
         for (const id of activeWorld.query('building')) {
           if (remainingOwners.size === 0) break;
@@ -71,6 +72,7 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps): 
           if (!building) continue;
           if (isUnstartedFoundation(accessor, id)) {
             if (building.owner === humanPlayerId) humanHoldsUnstartedFoundation = true;
+            anyoneHoldsUnstartedFoundation = true;
             continue;
           }
           remainingOwners.delete(building.owner);
@@ -94,7 +96,10 @@ export function registerConquestOutcomeSystem(deps: ConquestOutcomeSystemDeps): 
         finalizeMatchEnd(
           'draw',
           'conquest',
-          "Mutual annihilation: every player's units and buildings were destroyed on the same tick.",
+          // True words when a foundation nobody started still stands.
+          anyoneHoldsUnstartedFoundation
+            ? 'Mutual annihilation: no player has units or started buildings left.'
+            : "Mutual annihilation: every player's units and buildings were destroyed on the same tick.",
         );
         return;
       }

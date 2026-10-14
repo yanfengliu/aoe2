@@ -236,14 +236,14 @@ export function registerAiSystem(deps: AiSystemDeps): void {
 
 /** The owner's lowest-id Town Center somebody has started building, or null. */
 function lowestIdStartedTownCenter(world: GameWorld, accessor: BridgeStateAccessor, owner: number): number | null {
-  let oldest: number | null = null;
+  let lowest: number | null = null;
   for (const id of world.query('building')) {
     const building = world.getComponent<BuildingComponent>(id, 'building');
     if (building?.owner !== owner || building.buildingType !== 'town-center') continue;
     if (isUnstartedFoundation(accessor, id)) continue;
-    if (oldest === null || id < oldest) oldest = id;
+    if (lowest === null || id < lowest) lowest = id;
   }
-  return oldest;
+  return lowest;
 }
 
 /**

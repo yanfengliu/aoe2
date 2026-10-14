@@ -115,6 +115,22 @@ describe('an AI does not see the human\'s unstarted foundation', () => {
     expect(anyAttackOn(bridge, soldiers, HIDDEN_LAST_RESORT_FOUNDATION)).toBe(false);
     expect(anyAttackOn(bridge, soldiers, HIDDEN_LAST_RESORT_HOUSE)).toBe(true);
   }, 60_000);
+
+  it('counts an owner whose only Town Center is an unstarted foundation as having none, and falls back on its House', () => {
+    // The human's Town Center reference names the unstarted foundation. Read
+    // as a Town Center the AI may know of, it would leave the human out of the
+    // last resort with nothing to march on, and the army would stand.
+    const bridge = createSimulationBridge('hidden-foundation-last-resort-town-center-fixture');
+    const soldiers = idsOf(bridge, 2, 'militia');
+    const foundation = bridge.getEconomyState().buildings.find((building) =>
+      building.x === HIDDEN_LAST_RESORT_FOUNDATION.x && building.y === HIDDEN_LAST_RESORT_FOUNDATION.y);
+    expect(foundation?.buildingType, 'premise: a Town Center foundation').toBe('town-center');
+    expect(foundation?.buildProgressTicks, 'premise: nobody has started it').toBe(0);
+
+    stepTicks(bridge, 20);
+    expect(anyAttackOn(bridge, soldiers, HIDDEN_LAST_RESORT_FOUNDATION)).toBe(false);
+    expect(anyAttackOn(bridge, soldiers, HIDDEN_LAST_RESORT_HOUSE)).toBe(true);
+  }, 60_000);
 });
 
 describe('an AI\'s own unstarted Town Center', () => {
@@ -167,6 +183,22 @@ describe('an unstarted foundation does not keep its owner in the match', () => {
     stepTicks(bridge, 5);
     expect(bridge.getMatchState().outcome).toBe('defeat');
     expect(bridge.getMatchState().summary).toBe('You have no units or started buildings left.');
+  }, 60_000);
+
+  it('calls a match where every side is left with only unstarted foundations a draw, in true words', () => {
+    const bridge = createSimulationBridge('hidden-foundation-conquest-fixture');
+    const townCenter = bridge.getEconomyState().buildings
+      .find((building) => building.owner === 1 && building.buildingType === 'town-center')!;
+    const villager = idsOf(bridge, 2, 'villager')[0]!;
+    stepTicks(bridge, 5);
+    expect(bridge.getMatchState().outcome).toBe('running');
+
+    // Both sides lose their last unit and started building on the same tick.
+    expect(bridge.world.submitWithResult('entity.delete', { entityId: townCenter.id, requestedBy: 1 }).accepted).toBe(true);
+    expect(bridge.world.submitWithResult('entity.delete', { entityId: villager, requestedBy: 2 }).accepted).toBe(true);
+    stepTicks(bridge, 5);
+    expect(bridge.getMatchState().outcome).toBe('draw');
+    expect(bridge.getMatchState().summary).toBe('Mutual annihilation: no player has units or started buildings left.');
   }, 60_000);
 
   it('a started foundation keeps its owner in, as before', () => {

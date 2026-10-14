@@ -146,6 +146,25 @@ export function createHiddenFoundationTownCenterFixture(seed: string): Prototype
 export const HIDDEN_LAST_RESORT_FOUNDATION = { x: 10, y: 10 } as const;
 export const HIDDEN_LAST_RESORT_HOUSE = { x: 16, y: 10 } as const;
 
+function lastResortScenario(seed: string, foundation: 'barracks' | 'town-center'): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [{ owner: 1, townCenter: { x: 4, y: 4 }, disableAi: true }, OWNER_TWO_CASTLE_AI],
+    spawns: [
+      ownedSpawn(foundation, 1, HIDDEN_LAST_RESORT_FOUNDATION.x, HIDDEN_LAST_RESORT_FOUNDATION.y, {
+        unstartedFoundation: true,
+      }),
+      ownedSpawn('house', 1, HIDDEN_LAST_RESORT_HOUSE.x, HIDDEN_LAST_RESORT_HOUSE.y),
+      ownedSpawn('militia', 1, 4, 32, { vision: 4 }),
+      ownedSpawn('town-center', 2, 52, 28, { vision: 7 }),
+      ...ownerTwoArmy(7, { x: 44, y: 26 }),
+    ],
+  };
+}
+
 /**
  * `hidden-foundation-last-resort-fixture`: the human has no Town Center, a
  * Barracks foundation nobody has started (spawned first, so it has the lowest
@@ -155,22 +174,17 @@ export const HIDDEN_LAST_RESORT_HOUSE = { x: 16, y: 10 } as const;
  * falls back to the human's lowest-numbered building it may attack.
  */
 export function createHiddenFoundationLastResortFixture(seed: string): PrototypeScenario {
-  return {
-    seed,
-    width: MAP_WIDTH,
-    height: MAP_HEIGHT,
-    terrain: createGrassFixtureTerrain(),
-    starts: [{ owner: 1, townCenter: { x: 4, y: 4 }, disableAi: true }, OWNER_TWO_CASTLE_AI],
-    spawns: [
-      ownedSpawn('barracks', 1, HIDDEN_LAST_RESORT_FOUNDATION.x, HIDDEN_LAST_RESORT_FOUNDATION.y, {
-        unstartedFoundation: true,
-      }),
-      ownedSpawn('house', 1, HIDDEN_LAST_RESORT_HOUSE.x, HIDDEN_LAST_RESORT_HOUSE.y),
-      ownedSpawn('militia', 1, 4, 32, { vision: 4 }),
-      ownedSpawn('town-center', 2, 52, 28, { vision: 7 }),
-      ...ownerTwoArmy(7, { x: 44, y: 26 }),
-    ],
-  };
+  return lastResortScenario(seed, 'barracks');
+}
+
+/**
+ * `hidden-foundation-last-resort-town-center-fixture`: the same, with the
+ * foundation a Town Center's. The human's Town Center reference names it, so
+ * an AI that read the reference would find a Town Center to march on, not
+ * see one, and never fall back on the House.
+ */
+export function createHiddenFoundationLastResortTownCenterFixture(seed: string): PrototypeScenario {
+  return lastResortScenario(seed, 'town-center');
 }
 
 export const HIDDEN_CONQUEST_FOUNDATION = { x: 40, y: 20 } as const;

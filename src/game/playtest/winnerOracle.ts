@@ -5,9 +5,11 @@
 // the run envelope as `winner` so a reader of the run, and the
 // conformance probe of `playtest:findings`, see the outcome.
 //
-// Pure data — no I/O, no engine coupling. The runner script collects
-// per-owner counts via the host (which reads the engine's
-// EconomyState, through `entityCountsByOwner` below) and feeds them in.
+// Pure functions, no I/O. The runner script collects per-owner counts via
+// the host, which reads the engine's EconomyState through
+// `entityCountsByOwner` below; that function takes the simulation's rule for
+// a started foundation (`unstartedFoundations.ts`), so the oracle counts
+// presence exactly as conquest does.
 
 import { isConstructionStarted } from '../simulation/bridge/unstartedFoundations';
 import type { EconomyState } from '../simulation/types';

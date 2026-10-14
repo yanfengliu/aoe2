@@ -32,7 +32,7 @@ import { teamHasCivilization } from '../teamBonuses';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
 import { MONK_FAITH_MAX } from './bridgeConstants';
 import { isEnemyOwner } from '../alliances';
-import { isFoundationHiddenFrom } from './unstartedFoundations';
+import { isHiddenUnstartedFoundation } from './unstartedFoundations';
 import { readSightOwners } from './humanSight';
 import { buildingPopulationProvided, buildingTint } from '../prototypeBuildingRules';
 import { civPopulationProvidedBonus } from '../civBonusEffects';
@@ -86,7 +86,7 @@ export function createMonkBuildingConversion(deps: {
     // Nor an enemy's foundation nobody has started building, which the Monk's
     // owner cannot see (work 121): a task on one, armed before this rule or in
     // an older save, is dropped here, the choke point every conversion passes.
-    if (isFoundationHiddenFrom(accessor, targetId, targetBuilding.owner, monkUnit.owner)) {
+    if (isHiddenUnstartedFoundation(accessor, targetId, targetBuilding.owner, monkUnit.owner)) {
       abandon();
       return;
     }

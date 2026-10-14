@@ -48,7 +48,7 @@ export function isUnstartedFoundation(accessor: BridgeStateAccessor, buildingId:
 
 /** Whether `viewer` is kept from knowing building `buildingId` (owned by
  *  `owner`) exists: an unstarted foundation of a player `viewer` is at war with. */
-export function isFoundationHiddenFrom(
+export function isHiddenUnstartedFoundation(
   accessor: BridgeStateAccessor,
   buildingId: number,
   owner: number,

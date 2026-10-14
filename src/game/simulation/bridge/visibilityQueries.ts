@@ -13,7 +13,7 @@ import type {
 import { buildingFootprint, type GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { isCellSeen, isFootprintSeen, readSightOwners } from './humanSight';
-import { isFoundationHiddenFrom } from './unstartedFoundations';
+import { isHiddenUnstartedFoundation } from './unstartedFoundations';
 
 export interface VisibilityQueriesDeps {
   world: GameWorld;
@@ -94,7 +94,7 @@ export function createVisibilityQueries(deps: VisibilityQueriesDeps): Visibility
     const probe = getEntityVisibilityProbe(entityId);
     if (!probe) return false;
     const building = world.getComponent<BuildingComponent>(entityId, 'building');
-    if (building && isFoundationHiddenFrom(accessor, entityId, building.owner, humanPlayerId)) return false;
+    if (building && isHiddenUnstartedFoundation(accessor, entityId, building.owner, humanPlayerId)) return false;
     return isEntityFootprintVisibleToHuman(
       probe.position,
       probe.owner,

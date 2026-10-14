@@ -20,7 +20,7 @@ import {
   monkCarriedRelicCodec,
 } from './bridgeStateSerialize';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { isFoundationHiddenFrom } from './unstartedFoundations';
+import { isHiddenUnstartedFoundation } from './unstartedFoundations';
 
 type CivWorld = GameWorld;
 
@@ -121,7 +121,7 @@ export function createMonkContextOps(deps: MonkContextOpsDeps): MonkContextOps {
     // An enemy's foundation nobody has started building is hidden from the
     // Monk's owner (work 121, unstartedFoundations.ts), so an order naming one
     // is not carried out, as an attack order on one is not.
-    if (targetBuilding && isFoundationHiddenFrom(accessor, targetEntityId, targetBuilding.owner, monkUnit.owner)) {
+    if (targetBuilding && isHiddenUnstartedFoundation(accessor, targetEntityId, targetBuilding.owner, monkUnit.owner)) {
       return false;
     }
 
