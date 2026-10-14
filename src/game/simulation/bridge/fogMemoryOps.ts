@@ -38,6 +38,12 @@ export interface FogMemoryOps {
   // carry `isMemory: true` for the default (non-visible) case; entries whose
   // cells happen to be visible again get `isMemory: false` so the scene can
   // render them as a live (non-memory) projection.
+  //
+  // It also decides where the player may build: the placement reads it, with
+  // no live ids, as what the frame draws from memory over unexplored ground
+  // (placementKnowledge.ts, work 122). So a filter added here moves that rule
+  // too, and a filter that is about presentation alone belongs in the
+  // renderer, not here.
   getFogMemoryEntities(liveEntityIds: Set<number>): ProjectedEntityView[];
   // Cheap pre-check used by `getRenderState` to short-circuit the merge
   // logic when the human player has no fog memory (e.g. immediately after

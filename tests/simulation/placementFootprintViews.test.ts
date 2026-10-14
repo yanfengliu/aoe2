@@ -222,6 +222,18 @@ describe('the footprint rule and its views (work 122)', () => {
     expect(passability.isPlacementBlocked(11, 7, 2, 2, 'house', explored)).toBe(false);
   });
 
+  // Review round 2, work 122: the start check's message reads the cells the
+  // player sees through a view that drops what the frame does not draw there.
+  it('a claim the view hides counts for nothing, even on a cell the player knows', () => {
+    const { passability, house } = makeWorld();
+    const seen = { isCellKnown: () => true };
+    const hidingHouse = { isCellKnown: () => true, isClaimHidden: (claim: OccupancyCellClaim) => claim.entity === house };
+    expect(passability.isPlacementBlocked(2, 2, 2, 2, 'house', seen)).toBe(true);
+    expect(passability.isPlacementBlocked(2, 2, 2, 2, 'house', hidingHouse)).toBe(false);
+    expect(passability.describePlacementBlockers(2, 2, 2, 2, seen)).toMatchObject({ cause: 'a house (building)' });
+    expect(passability.describePlacementBlockers(2, 2, 2, 2, hidingHouse)).toBeNull();
+  });
+
   it('the start check leaves the foundation\'s own claims out, and only its own', () => {
     const { passability, house, farm } = makeWorld();
     expect(passability.isPlacementBlocked(2, 2, 2, 2, 'house')).toBe(true);

@@ -59,8 +59,25 @@ export interface PlacementCellView {
   /** With `isCellKnown`: what the player remembers standing on an unexplored
    *  cell, from fog memory, whatever stands there now; null for nothing. */
   rememberedAt?: (x: number, y: number) => RememberedClaim | null;
+  /** With `isCellKnown`: a claim the player is not shown on a cell it knows,
+   *  which then counts for nothing there either: one of an entity the frame
+   *  does not draw however lit (the start check's message, foundationStart.ts). */
+  isClaimHidden?: (claim: OccupancyCellClaim) => boolean;
   /** An entity whose own claims do not count: the foundation being started. */
   ignoredEntityId?: number;
+}
+
+/** A cell's claims without those `isClaimHidden` rejects. */
+export function withoutHiddenClaims(
+  status: OccupancyCellStatus,
+  isClaimHidden: ((claim: OccupancyCellClaim) => boolean) | undefined,
+): OccupancyCellStatus {
+  if (!isClaimHidden) return status;
+  return {
+    ...status,
+    blockedBy: status.blockedBy.filter((claim) => !isClaimHidden(claim)),
+    crowdedBy: status.crowdedBy.filter((claim) => !isClaimHidden(claim)),
+  };
 }
 
 export interface PlacementFootprintDeps {
@@ -154,7 +171,7 @@ export function createPlacementFootprint(deps: PlacementFootprintDeps): Placemen
             continue;
           }
           if (terrainKindAt(cellX, cellY) !== 'water') return true;
-          const status = getCellStatus(cellX, cellY, ignored);
+          const status = withoutHiddenClaims(getCellStatus(cellX, cellY, ignored), view.isClaimHidden);
           if (status.blockedBy.some((claim) => claim.kind !== 'terrain')) return true;
           if (unitStands(status)) return true;
         }
@@ -167,7 +184,7 @@ export function createPlacementFootprint(deps: PlacementFootprintDeps): Placemen
           if (shownThere(cellX, cellY)) return true;
           continue;
         }
-        const status = getCellStatus(cellX, cellY, ignored);
+        const status = withoutHiddenClaims(getCellStatus(cellX, cellY, ignored), view.isClaimHidden);
         if (status.blockedBy.length > 0 || unitStands(status)) return true;
       }
     }

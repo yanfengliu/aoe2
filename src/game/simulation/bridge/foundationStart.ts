@@ -19,10 +19,11 @@
 // cost-changing bonus (an age, an ally's civilization) arrived in between.
 //
 // The message names what was found, and where, only when the player sees that
-// cell now: a builder beside a 3x3 or 4x4 foundation does not see its far
-// corner, and the toast must not map what the fog still hides. So it names the
-// first blocked cell the player sees, and otherwise says only that the
-// builders found the ground blocked.
+// cell now and the frame draws what blocks it: a builder beside a 3x3 or 4x4
+// foundation does not see its far corner, an enemy's foundation nobody has
+// started building is not drawn however lit (work 121), and the toast must not
+// show what the frame does not. So it names the first such blocked cell, and
+// otherwise says only that the builders found the ground blocked.
 //
 // Who is checked: the owners that place by what they have explored, which is
 // the human seat (placesByKnowledge). An AI seat placed by the true map, so
@@ -70,6 +71,9 @@ export interface FoundationStartDeps {
   ): PlacementBlockReport | null;
   /** Whether `owner` sees the cell now, through its own sight or a shared one. */
   isCellSeen(owner: number, x: number, y: number): boolean;
+  /** Whether the frame draws live entity `entityId` for `viewer`
+   *  (placementKnowledge's `isEntityDrawnFor`, humanSight's rule). */
+  isEntityDrawn(viewer: number, entityId: number): boolean;
   /** The player's message channel, the one the HUD shows as a toast. */
   enqueueRejection(message: string): void;
 }
@@ -141,10 +145,13 @@ export function createFoundationStart(deps: FoundationStartDeps): FoundationStar
         : 'an obstacle the fog of war hid when it was placed';
     }
     // Read again through the player's eyes: a cell it does not see now counts
-    // as unknown, so the report names the first blocked cell it does see.
+    // as unknown, and on one it sees, a claim of something the frame does not
+    // draw counts for nothing, so the report names the first blocked cell it
+    // sees blocked.
     const seen = deps.describePlacementBlockers(anchor.x, anchor.y, width, height, {
       ...view,
       isCellKnown: (x, y) => deps.isCellSeen(building.owner, x, y),
+      isClaimHidden: (claim) => claim.entity !== null && !deps.isEntityDrawn(building.owner, claim.entity),
     });
     return seen
       ? `${seen.cause} at (${seen.firstBlockedCell.x},${seen.firstBlockedCell.y}), `

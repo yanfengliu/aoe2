@@ -73,6 +73,25 @@ export function isCellSeen(
   return false;
 }
 
+/** Whether the frame draws a live entity for `viewer`, and so whether the
+ *  player's placement counts it on unexplored ground (placementKnowledge.ts):
+ *  the viewer's own always; anyone else's once the sight sees a cell of its
+ *  footprint, which is then drawn whole, unless `isHidden` keeps it from the
+ *  viewer however much of it is lit (unstartedFoundations.ts,
+ *  `isBuildingHiddenFrom`). renderStateOps and the placement both ask this,
+ *  so a change to what the frame draws reaches both. */
+export function isLiveEntityDrawn(
+  visibility: SightQuery,
+  sight: readonly number[],
+  viewer: number,
+  entity: { owner: number | null; x: number; y: number; footprintWidth: number; footprintHeight: number },
+  isHidden: () => boolean,
+): boolean {
+  if (entity.owner === viewer) return true;
+  if (isHidden()) return false;
+  return isFootprintSeen(visibility, sight, entity.x, entity.y, entity.footprintWidth, entity.footprintHeight);
+}
+
 /** Any cell of the footprint is visible to any owner in the sight. */
 export function isFootprintSeen(
   visibility: SightQuery,

@@ -106,6 +106,7 @@ function cancelMessage(gold: boolean, isCellSeen: (x: number, y: number) => bool
     isPlacementBlocked: passability.isPlacementBlocked,
     describePlacementBlockers: passability.describePlacementBlockers,
     isCellSeen: (owner, x, y) => owner === 1 && isCellSeen(x, y),
+    isEntityDrawn: () => true,
     enqueueRejection: (message) => messages.push(message),
   });
   const allowed = start.mayBegin(site, (id) => destroyed.push(id));

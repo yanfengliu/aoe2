@@ -75,8 +75,8 @@ import type {
   ReachabilityBlockReport,
 } from './builderReachability';
 import type { PlacementCellView, RememberedClaim } from './placementFootprint';
-import { isFootprintSeen, readSightOwners } from './humanSight';
-import { isHiddenUnstartedFoundation } from './unstartedFoundations';
+import { isLiveEntityDrawn, readSightOwners } from './humanSight';
+import { isBuildingHiddenFrom } from './unstartedFoundations';
 import type { GameWorld } from './pureHelpers';
 import { unitDomain } from '../unitDomain';
 
@@ -143,6 +143,9 @@ export interface PlacementKnowledgeDeps {
 
 export interface PlayerKnowledgePlacement extends PlacementReachabilityOps {
   readonly stats: PlacementKnowledgeStats;
+  /** Whether the frame draws live entity `entity` for `viewer`: the rule
+   *  this module counts claims by, for the start check's message. */
+  isEntityDrawnFor(viewer: number, entity: number): boolean;
 }
 
 /** Whether `owner` places by what it has explored rather than by the true map. */
@@ -210,30 +213,24 @@ export function withPlayerKnowledge(
       for (const viewer of sight) if (visibility.isExplored(viewer, x, y)) return true;
       return false;
     };
-    // The frame's own rule (renderStateOps `isCurrentlyVisibleTo`): the
-    // player's entities always, anyone else's once its sight sees a cell of
-    // the footprint, which is then drawn whole.
+    // The frame's own rule, the one renderStateOps asks (humanSight's
+    // `isLiveEntityDrawn`): the player's entities always, anyone else's once
+    // its sight sees a cell of the footprint, unless a rule hides it however lit.
     const isDrawnLive = (entity: number): boolean => {
       const position = world.getComponent<Position>(entity, 'position');
       if (!position) return false;
-      const building = world.getComponent<BuildingComponent>(entity, 'building');
-      const entityOwner = building?.owner
+      const renderable = world.getComponent<RenderableComponent>(entity, 'renderable');
+      const entityOwner = world.getComponent<BuildingComponent>(entity, 'building')?.owner
         ?? world.getComponent<UnitComponent>(entity, 'unit')?.owner
         ?? world.getComponent<ResourceComponent>(entity, 'resource')?.owner
         ?? null;
-      if (entityOwner === owner) return true;
-      // The frame never draws an enemy's foundation nobody has started
-      // building, however much of it is lit (renderStateOps' `isFoundationHidden`).
-      if (building && isHiddenUnstartedFoundation(accessor, entity, building.owner, owner)) return false;
-      const renderable = world.getComponent<RenderableComponent>(entity, 'renderable');
-      return isFootprintSeen(
-        visibility,
-        sight,
-        position.x,
-        position.y,
-        renderable?.footprintWidth ?? 1,
-        renderable?.footprintHeight ?? 1,
-      );
+      return isLiveEntityDrawn(visibility, sight, owner, {
+        owner: entityOwner,
+        x: position.x,
+        y: position.y,
+        footprintWidth: renderable?.footprintWidth ?? 1,
+        footprintHeight: renderable?.footprintHeight ?? 1,
+      }, () => isBuildingHiddenFrom(world, accessor, entity, owner));
     };
     const isClaimShown = (claim: OccupancyCellClaim): boolean => claim.entity !== null && isDrawnLive(claim.entity);
     const knowledge: Knowledge = { owner, sight, sightKey, isCellKnown, isDrawnLive, view: {} };
@@ -381,6 +378,9 @@ export function withPlayerKnowledge(
 
   return {
     stats,
+    isEntityDrawnFor(viewer, entity) {
+      return knowledgeOf(viewer).isDrawnLive(entity);
+    },
     isPlacementBlocked(x, y, width, height, buildingType, builderIds) {
       const owner = knowingOwner(builderIds);
       if (owner === null) return truth.isPlacementBlocked(x, y, width, height, buildingType, builderIds);

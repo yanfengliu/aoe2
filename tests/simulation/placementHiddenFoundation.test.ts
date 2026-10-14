@@ -16,7 +16,11 @@
 // unexplored cells, and none of its explored ones, gets the same verdict before
 // and after the foundation is removed. The second is the memory half: an older
 // save that remembers the foundation is loaded, and before the first tick,
-// while that entry is still held, the verdicts match a save without it.
+// while that entry is still held, the verdicts match a save without it. The
+// third is the start check (update 46295): a House the player places over the
+// foundation's unexplored cell is cancelled when its villager arrives, since
+// the ground is not clear, and the message names nothing the frame does not
+// draw (review round 2: it named "a house (building) at (24,18)").
 //
 // Bound: one 2x2 foundation, one lit cell of it, House and Barracks footprints
 // near it, at boot. A footprint over the foundation's lit, explored cell reads
@@ -164,5 +168,30 @@ describe('an enemy foundation the frame hides decides nothing on unexplored grou
     const cases = probes(plain);
     expect(cases.length).toBeGreaterThan(3);
     expect(verdicts(loaded, humanVillager(loaded), cases)).toEqual(verdicts(plain, humanVillager(plain), cases));
+  });
+
+  it('a House placed over it is cancelled on arrival, and the message names nothing the frame hides', () => {
+    const bridge = createSimulationBridge(UNEXPLORED_PLACEMENT_LOOKOUT_FOUNDATION_SEED);
+    const villagerId = humanVillager(bridge);
+    const foundationId = enemyBuildingAt(bridge, ENEMY_HOUSE);
+    const site: Cell = { x: 23, y: 18 };
+    expect(bridge.selectUnitsByIds([villagerId])).toBe(true);
+    expect(bridge.beginBuildingPlacement('house')).toBe(true);
+    expect(bridge.getPlacementPreview(site.x, site.y)?.isValid, 'the premise: the ghost is green').toBe(true);
+    expect(bridge.confirmBuildingPlacement(site.x, site.y)).toBe(true);
+    const messages: string[] = [];
+    for (let i = 0; i < 300 && !messages.some((message) => message.includes('cancelled')); i += 1) {
+      bridge.step(100);
+      for (let message = bridge.consumeCommandRejection(); message !== null; message = bridge.consumeCommandRejection()) {
+        messages.push(message);
+      }
+    }
+    const toast = messages.find((message) => message.includes('cancelled'));
+    expect(toast, 'the start check never cancelled the House over the foundation').toBeDefined();
+    expect(bridge.getRenderState().entities.some((e) => e.id === foundationId), 'the premise: the frame still hides it').toBe(false);
+    // It may name another blocker the player now sees (the fixture hides
+    // forest beside it), never the foundation the frame does not draw.
+    expect(toast).not.toContain('house (building)');
+    expect(toast).not.toContain('(24,18)');
   });
 });

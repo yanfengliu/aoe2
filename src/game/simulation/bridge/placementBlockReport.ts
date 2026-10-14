@@ -17,7 +17,7 @@ import type {
   TerrainComponent,
 } from '../types';
 import type { GameWorld } from './pureHelpers';
-import type { PlacementCellView } from './placementFootprint';
+import { withoutHiddenClaims, type PlacementCellView } from './placementFootprint';
 
 export interface PlacementBlockReport {
   firstBlockedCell: Position;
@@ -128,8 +128,9 @@ export function createPlacementBlockReporter(deps: PlacementBlockReportDeps): {
             }
             remembered = `a ${memory.entityType} (${memory.kind})`;
           }
-        } else if (!isCellBlockedForPlacement(status)) {
-          continue;
+        } else {
+          status = withoutHiddenClaims(status, view?.isClaimHidden);
+          if (!isCellBlockedForPlacement(status)) continue;
         }
         blockedCellCount += 1;
         if (!first) {

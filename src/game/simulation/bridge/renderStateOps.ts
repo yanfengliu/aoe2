@@ -12,7 +12,7 @@ import type {
   ProjectedUnitAttackView,
 } from '../types';
 import { compareProjectedRenderEntities } from './pureHelpers';
-import { isFootprintSeen } from './humanSight';
+import { isLiveEntityDrawn } from './humanSight';
 import type { RenderStore } from '../renderStore';
 import { indexVisibleUnitAttackAnimations } from './unitAttackAnimationFeed';
 
@@ -65,17 +65,12 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
   // allies' — not its own vision alone (register 2026-09-24: an ally's base
   // was lit and empty because this asked `humanPlayerId` only). The world and
   // the minimap both draw this list, so an enemy's unstarted foundation leaves
-  // both at once (work 121).
+  // both at once (work 121). The rule is humanSight's `isLiveEntityDrawn`,
+  // which the player's placement asks too (work 122).
   const isCurrentlyVisibleTo = (sight: readonly number[]) => (entity: ProjectedEntityView): boolean => (
     entity.kind === 'tile'
-    || entity.owner === humanPlayerId
-    || (!(entity.kind === 'building' && isFoundationHidden(entity.id)) && isFootprintSeen(
-      visibility,
-      sight,
-      entity.x,
-      entity.y,
-      entity.footprintWidth,
-      entity.footprintHeight,
+    || isLiveEntityDrawn(visibility, sight, humanPlayerId, entity, () => (
+      entity.kind === 'building' && isFoundationHidden(entity.id)
     ))
   );
 

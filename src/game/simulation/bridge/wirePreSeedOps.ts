@@ -336,6 +336,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     isPlacementBlocked: placementOccupancy.isPlacementBlocked,
     describePlacementBlockers: placementOccupancy.describePlacementBlockers,
     isCellSeen: (owner, x, y) => isCellSeen(visibility, readSightOwners(accessor, owner), x, y),
+    isEntityDrawn: (viewer, entityId) => playerKnowledge.isEntityDrawnFor(viewer, entityId),
     enqueueRejection,
   });
 

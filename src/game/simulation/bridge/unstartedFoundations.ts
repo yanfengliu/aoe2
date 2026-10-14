@@ -25,7 +25,9 @@
 // again, and from then on it is a building site like any other.
 
 import { isEnemyOwner } from '../alliances';
+import type { BuildingComponent } from '../types';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import type { GameWorld } from './pureHelpers';
 import { constructionStatesCodec, playerTeamsCodec } from './bridgeStateSerialize';
 
 /** The two fields "started" is read from. The construction slot and the
@@ -56,4 +58,18 @@ export function isHiddenUnstartedFoundation(
 ): boolean {
   return isUnstartedFoundation(accessor, buildingId)
     && isEnemyOwner(accessor.get(playerTeamsCodec), viewer, owner);
+}
+
+/** Whether building `buildingId` is kept from `viewer` however much of it is
+ *  lit. The one place such a rule goes: the frame asks it through the bridge's
+ *  `isFoundationHiddenFrom`, and the player's placement directly (work 122),
+ *  both by way of humanSight's `isLiveEntityDrawn`. */
+export function isBuildingHiddenFrom(
+  world: GameWorld,
+  accessor: BridgeStateAccessor,
+  buildingId: number,
+  viewer: number,
+): boolean {
+  const building = world.getComponent<BuildingComponent>(buildingId, 'building');
+  return building !== undefined && isHiddenUnstartedFoundation(accessor, buildingId, building.owner, viewer);
 }
