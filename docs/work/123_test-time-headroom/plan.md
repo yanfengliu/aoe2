@@ -3,7 +3,7 @@
 Status: active
 Owner: Coordinator worker w123-test-headroom (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-11
-Updated: 2026-10-12
+Updated: 2026-10-14
 
 ## Problem and outcome
 
@@ -58,11 +58,16 @@ The coordinator split the work into two milestones on 2026-10-12, once the plann
 - [x] Measure (2026-10-11). 84 CI job logs from 14 runs (gh api actions/jobs/<id>/logs, parsed by tmp/probes/ci-log-durations.mjs): above two thirds of a limit on some run were the 600- and 700-tick replay comparisons on Windows (timed out, 30.6-35.7 s of 30 s), exactSnapshotSerializer's 120-tick case (20.6 s on Windows) and ten browser specs, de-ground.spec.ts:139 worst at 89.8 s of 90 s. Each job's runner ran its tests at 0.57-1.32x their medians.
 - [x] M1, the replay comparisons: each runs as consecutive cases over the same two worlds (tests/replay/tickChunks.ts): 600 ticks as six 100-tick cases, 700 as seven, 120 as six 20-tick cases. Every tick's check and the whole-run checks are unchanged; five mutations (divergences at late ticks, a broken gather predicate, a wrong deposit credit, a stale-clone instrument) each fail the case that holds them. Hard-problem record: the spent families are comparator and clone tuning (work 112's routes 1-5) and the runtime (route 6). A Node CPU profile put the 600-tick loop at 9% stepping, 69% World.serialize and 22% comparison, over a 566 KB snapshot that is 90% the 2,160 static terrain tiles; making that cheaper means changing the save format, so the case was split instead, which the brief allows.
 - [x] M1, the slow product path behind de-ground.spec.ts:139: four sheep boxed in on the boot map ran 1,756-2,731 failing path searches a tick, because the move planner ran one A* per candidate cell of the whole map. The planner now floods the reachable region once after a failed search and skips unreachable candidates; register entry 2026-10-12 has the evidence and the gates.
-- [ ] M2: the CI per-test headroom gate (judge, reporters, ci.yml steps; prototype red on CI run 38181131359), and the browser specs it flags.
+- [x] M2, the gate: every CI job judges its own suite's tests after the suite (`scripts/test-time-headroom.mjs`, fed by `tests/helpers/vitestTestTimeReporter.ts` and the browser duration reporter), failing a test past two thirds of its own limit and printing the thirty closest. Proven red on the pre-fix tree by branch run 38181131359, on every browser shard and both unit jobs.
+- [x] M2, round 1 (2026-10-12): cheap state reads, the placement search in one round trip, 54 discarded `advanceTicks` snapshots no longer shipped back, evidence captures only on request, the Monk's walk stepped by ticks, one boot per command-deck card, and splits that keep every check. Branch run 38241014818, on the rebased tree `97ff948e`, was green on all six jobs.
+- [x] M2, round 2 (2026-10-13), after the independent review's finding 1: the slowest runners run the same list up to 1.76x slower than the fastest (probes 38508537662, 38515187274 and 38518636843), so tests at 51-58% on the runners then seen were one slow runner from the line. `stepTicks`, a test-API step that draws nothing, for loops that check every tick; waits in one `page.evaluate`; the patrol stepped; three more PNGs on request; and splits: the command bar in four groups per viewport, the build-card tooltips before and during placement, the art-style live switch in two, the Berserk's healing in two. The review's other findings are answered in the devlog entry of 2026-10-14.
+- [ ] M2 landing: verify under the lock, push, and the landing commit's CI figures here. Then close the 2026-10-01 register entry "Hosted resource-chip fixture timed out during screenshot capture" on those figures, as M1 did for the replay entry.
 
 ## Outcome
 
-M1 shipped in v0.3.249 as `e273fb09` (with `23829a60` and `5be2a349`), after `npm run verify` exited 0 with its log through lint and the last build. M2 is open.
+M1 shipped in v0.3.249 as `e273fb09` (with `23829a60` and `5be2a349`), after `npm run verify` exited 0 with its log through lint and the last build. M2 is gated on branch `test-time-headroom-m2d` and awaits acceptance.
+
+M2 on CI, the share of its own limit each named test reached at most on the probe runners after round 2: the barracks rush and the patrol under 31%, the Town Center 40%, the Watch Tower 31%, the save and load 46%, the art-style live switch 59% and its unexplored-ground sample 55%, the 1920x1080 command-deck tooltip test 59%. The last three are the nearest the line, and the next to cut if a slower runner puts them past it. Tracing costs about 10% on the slowest runners and was kept, for its failure traces.
 
 M1 on CI, run 38224624680 for `e273fb09`: de-ground.spec.ts:139 took 8.2 s on browser shard 2 (start to start), down from an 83.8 s median, and both unit jobs passed. The replay files took 37.5, 34.4 and 14.7 s on windows-latest (600-tick, lifecycle, native-120), and 26.1, 19.1 and 12.2 s on ubuntu-latest. Those logs print per-file totals only. M2's branch run 38228344282, with the same replay tests and the per-test reporter, put no replay case among the 30 tests closest to their limits on windows-latest, so each ran under 17% of 30 s. The run failed only on browser shard 4, where the 1920px resource readouts timed out, an offender M2 fixes. Work 112's 2026-10-01 register entry is closed on these figures.
 
