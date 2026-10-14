@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 120 M4
+
+Four civilization bonuses from Definitive Edition, which the game did not have, now work.
+
+- **Turkish Scout Cavalry, Light Cavalry and Hussars have +1 pierce armor**, beside their free upgrades. In a game saved before this change, those already on the map get it with their next upgrade, which the Turks receive free once they have a Stable (Light Cavalry in the Castle Age, Hussar in the Imperial); Hussars keep the armor they were saved with.
+- **Chinese Fire Ships move 5% faster in the Castle Age and 10% faster in the Imperial Age**, in a loaded game too. Definitive Edition's bonus also names the Fire Lancer, which is not in the game.
+- **Portuguese villagers gathering berries also earn wood: a third of a wood for each food.** The wood goes into your stockpile while they gather, not when they bring the food back, as in Definitive Edition.
+- **Khmer farmers no longer need a Mill or a Town Center.** They put their food into your stockpile as they work and never walk off to drop it, and they farm 5% slower for it, as in Definitive Edition. Food a farmer brings to its Farm goes in with its first harvest.
+- The Civilizations panel lists all four.
+
 ## 0.3.254
 
 Placing a building on ground you have not explored now follows Definitive Edition's rules.
