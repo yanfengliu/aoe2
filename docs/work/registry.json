@@ -2853,6 +2853,10 @@
     {
       "id": 124,
       "theme": "verify-receipt"
+    },
+    {
+      "id": 125,
+      "theme": "shown-price-is-charged-price"
     }
   ]
 }
