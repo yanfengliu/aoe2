@@ -9,8 +9,9 @@ Four civilization bonuses from Definitive Edition, which the game did not have, 
 - **Turkish Scout Cavalry, Light Cavalry and Hussars have +1 pierce armor**, beside their free upgrades. In a game saved before this change, those already on the map get it with their next upgrade, which the Turks receive free once they have a Stable (Light Cavalry in the Castle Age, Hussar in the Imperial); Hussars keep the armor they were saved with.
 - **Chinese Fire Ships move 5% faster in the Castle Age and 10% faster in the Imperial Age**, in a loaded game too. Definitive Edition's bonus also names the Fire Lancer, which is not in the game.
 - **Portuguese villagers gathering berries also earn wood: a third of a wood for each food.** The wood goes into your stockpile while they gather, not when they bring the food back, as in Definitive Edition.
-- **Khmer farmers no longer need a Mill or a Town Center.** They put their food into your stockpile as they work and never walk off to drop it, and they farm 5% slower for it, as in Definitive Edition. Food a farmer brings to its Farm goes in with its first harvest.
+- **Khmer farmers no longer need a Mill or a Town Center.** They put their food into your stockpile as they work and never walk off to drop it, and they farm 5% slower for it, as in Definitive Edition. Food a farmer brings to its Farm goes in with its first harvest. In a game saved before this change, a Khmer farmer left standing with 10 food and nowhere to drop it stays there until you send it back to its Farm; then the 10 food goes in and it works on.
 - The Civilizations panel lists all four.
+- **For every civilization, a villager holding more than a resource lets it carry no longer gives food back to it.** A farmer with Heavy Plow carries 11 food; sent to a berry bush, which allows 10, before dropping its load off, its first swing took a food from its hands and put it in the bush. It now takes nothing and goes to drop its load off.
 
 ## 0.3.254
 
