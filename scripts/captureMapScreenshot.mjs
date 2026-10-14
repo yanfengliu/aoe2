@@ -469,6 +469,19 @@ try {
     await page.keyboard.press(key);
     await page.waitForTimeout(120);
   }
+  // HOVER='<css selector>' rests the real mouse on one element before the shot,
+  // so a capture can show what a TOOLTIP says — the price a command button
+  // quotes (work 125), which no click-free frame draws. It goes last, after
+  // SELECT has put the command card on screen, and it refuses a selector that
+  // matches nothing visible rather than shooting a frame without the tooltip.
+  const hover = process.env.HOVER ?? '';
+  if (hover) {
+    const target = page.locator(hover).first();
+    await target.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {
+      throw new Error(`HOVER "${hover}" matches no visible element to rest the mouse on (did SELECT put it on screen?)`);
+    });
+    await target.hover();
+  }
   await page.waitForTimeout(1500);
   await page.screenshot({ path: outputPath, fullPage: false });
   console.log(`saved ${outputPath}`);
