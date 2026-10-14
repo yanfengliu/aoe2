@@ -9,7 +9,7 @@ import type {
   SelectionState,
 } from '../../game/simulation/types';
 import type { ProjectileState } from '../../game/simulation/bridge/projectileTypes';
-import type { StepRefusal, StepReport } from '../../game/simulation/simulationBridgeTypes';
+import type { StepReport } from '../../game/simulation/simulationBridgeTypes';
 import type { StepRunTally } from '../../game/simulation/bridge/stepReport';
 import type {
   BuildingVisualState,
@@ -23,6 +23,7 @@ import type {
 import type { AoeVoxelGameView } from '../AoeVoxelGameView';
 import type { RecordingService } from '../../game/recording/RecordingService';
 import { makeAgentApi, type BrowserTestAgentApi } from './browserTestAgentApi';
+import { makeBrowserTestTicks } from './browserTestTicks';
 import { hasSingleThreeIdentity } from '../../rendering/voxel/threeIdentity';
 import type { AoeUnitMotionHistory } from '../../rendering/voxel/aoeVoxelUnitAnimation';
 import type { AoeVoxelRendererState, PresentedVoxelPartMatrix } from '../../rendering/voxel/AoeVoxelWorldRenderer';
@@ -210,6 +211,9 @@ export interface BrowserTestApi {
   /** Step the world `count` times, reporting what it was willing to do — so a
    *  caller that got fewer ticks than it asked for learns that, and why. */
   advanceTicks(count: number, deltaMs?: number): BrowserTestAdvanceResult;
+  /** `advanceTicks` without its forced view sync and snapshot (work 123): for a
+   *  loop that checks one state each step. The view catches up on its next frame. */
+  stepTicks(count: number, deltaMs?: number): StepRunTally;
   /** playtest-fixes C: manual-pause pass-through (`bridge.setPaused`).
    *  While paused, `bridge.step` is a no-op, so the view's frame loop
    *  cannot advance the sim — `advanceTicks` (which the pausing host
@@ -222,20 +226,6 @@ declare global {
   interface Window {
     __AOE2_TEST__?: BrowserTestApi;
   }
-}
-
-function getSnapshot(
-  bridge: BrowserTestBridge,
-  view: AoeVoxelGameView,
-): BrowserTestSnapshot {
-  view.syncFromBridge(true);
-  return {
-    hudState: bridge.getHudState(),
-    renderState: bridge.getRenderState(),
-    economyState: bridge.getEconomyState(),
-    selectionState: bridge.getSelectionState(),
-    cameraState: view.getCameraState(),
-  };
 }
 
 // Iter-3 V3-25: install once, resolve bridge dynamically. Pre-fix,
@@ -292,8 +282,7 @@ export function installBrowserTestApi(
   // to createApp's live `bridge` cell — so handleLoadGame doesn't
   // need to re-install at all (and now doesn't).
   const previous = target.__AOE2_TEST__;
-  let pausedThroughTestApi = false;
-  const warnedRefusals = new Set<StepRefusal>(); // said out loud already
+  const ticks = makeBrowserTestTicks(getBridge, view);
   const api: BrowserTestApi = {
     isBooted: () => view.isBooted(),
     getHudState: () => getBridge().getHudState(),
@@ -429,56 +418,10 @@ export function installBrowserTestApi(
       view.syncFromBridge(true);
       return didIssue;
     },
-    getSnapshot: () => getSnapshot(getBridge(), view),
-    setPaused: (paused: boolean) => {
-      pausedThroughTestApi = paused;
-      getBridge().setPaused(paused);
-    },
-    advanceTicks: (count: number, deltaMs = 100) => {
-      const safeCount = Math.max(0, Math.floor(count));
-      const safeDeltaMs = Number.isFinite(deltaMs) ? Math.max(0, deltaMs) : 100;
-      const liveBridge = getBridge();
-      // Only the pause THIS api applied is lifted. A pause set through the game
-      // menu stays on, every step below refuses, and THAT was the silent zero.
-      if (pausedThroughTestApi) liveBridge.setPaused(false);
-      let ticksAdvanced = 0;
-      let stepsRun = 0;
-      let refusedBecause: StepRefusal | null = null;
-      try {
-        for (let index = 0; index < safeCount; index += 1) {
-          const report = liveBridge.step(safeDeltaMs);
-          ticksAdvanced += report.ticks;
-          // Every reason outlives this loop, so the rest of `count` would burn.
-          if (report.refusedBecause !== null) {
-            refusedBecause = report.refusedBecause;
-            break;
-          }
-          stepsRun += 1;
-        }
-      } finally {
-        if (pausedThroughTestApi) liveBridge.setPaused(true);
-      }
-      // For a caller that ignores the return value. Once per reason, not per
-      // call, or a poll loop around a finished match prints thousands of lines;
-      // `warn` not `error`, because a finished match is not a fault.
-      if (refusedBecause !== null && !warnedRefusals.has(refusedBecause)) {
-        warnedRefusals.add(refusedBecause);
-        console.warn(
-          `[aoe2 test api] advanceTicks(${String(safeCount)}, ${String(safeDeltaMs)}) advanced `
-          + `${String(ticksAdvanced)} tick(s) then stopped: the simulation refused to step `
-          + `because "${refusedBecause}". Read refusedBecause/ticksAdvanced off the result.`,
-        );
-      }
-
-      view.syncFromBridge(true);
-      return {
-        ...getSnapshot(liveBridge, view),
-        stepsRequested: safeCount,
-        stepsRun,
-        ticksAdvanced,
-        refusedBecause,
-      };
-    },
+    getSnapshot: ticks.getSnapshot,
+    setPaused: ticks.setPaused,
+    advanceTicks: ticks.advanceTicks,
+    stepTicks: ticks.stepTicks,
     replay: options.replay,
     agent: makeAgentApi(getBridge, view, options.getRecording),
   };
