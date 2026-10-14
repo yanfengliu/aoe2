@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  AZTECS_TEAM_RELIC_GOLD_MULTIPLIER,
   BYZANTINES_TEAM_HEAL_MULTIPLIER,
   CHINESE_TEAM_FARM_FOOD_MULTIPLIER,
   MAYANS_TEAM_WALL_COST_MULTIPLIER,
@@ -34,7 +33,8 @@ describe('who carries a team bonus', () => {
 
 describe('the numbers', () => {
   it('are the CSV figures, one constant per line', () => {
-    expect(AZTECS_TEAM_RELIC_GOLD_MULTIPLIER).toBeCloseTo(1.33, 5);
+    // The Aztec relic line is a rate, not a multiplier constant: its 40 gold
+    // a minute against 30 is gated in relicGoldRate.test.ts (work 127).
     expect(SPANISH_TEAM_TRADE_GOLD_MULTIPLIER).toBeCloseTo(1.25, 5); // DE: +25%.
     expect(CHINESE_TEAM_FARM_FOOD_MULTIPLIER).toBeCloseTo(1.1, 5); // DE: farms +10% food.
     expect(BYZANTINES_TEAM_HEAL_MULTIPLIER).toBe(2); // DE: +100% heal speed.

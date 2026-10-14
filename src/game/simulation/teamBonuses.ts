@@ -24,8 +24,9 @@ export function teamHasCivilization(
   return false;
 }
 
-// The numbers, one constant per CSV line so a test can name each.
-export const AZTECS_TEAM_RELIC_GOLD_MULTIPLIER = 1.33;
+// The numbers, one constant per CSV line so a test can name each. The Aztec
+// relic line ("Relics generate +33% gold") is paid as a rate, 40 gold a minute
+// against 30, in bridge/systems/relicGoldSystem.ts (work 127).
 export const SPANISH_TEAM_TRADE_GOLD_MULTIPLIER = 1.25; // DE: +25%.
 export const CHINESE_TEAM_FARM_FOOD_MULTIPLIER = 1.1; // DE: farms +10% food.
 export const BYZANTINES_TEAM_HEAL_MULTIPLIER = 2; // DE: monks heal +100% faster.
