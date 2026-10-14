@@ -20,6 +20,7 @@ import { describe, expect, it } from 'vitest';
 import { projectilesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import type { SaveBlob } from '../../src/game/simulation/saveSchema';
+import type { UnitComponent } from '../../src/game/simulation/types';
 import {
   buildingAtHouseSpot,
   buildingHp,
@@ -47,15 +48,36 @@ function withoutGenerations(save: SaveBlob): SaveBlob {
   return old;
 }
 
+/** Owner 2's Villager that `replaceHouse` sent to build works on the
+ *  foundation until some progress stands, then walks off: no enemy may aim at
+ *  a foundation nobody has started (spec §12.2, work 121), and with nobody
+ *  building, the hit points a stone takes are not given back while it flies. */
+function startThenLeave(bridge: ReturnType<typeof createSimulationBridge>, foundation: number): void {
+  const builder = [...bridge.world.query('unit')].find((id) => {
+    const unit = bridge.world.getComponent<UnitComponent>(id, 'unit');
+    return unit?.owner === 2 && unit.unitType === 'villager';
+  })!;
+  const progress = () => bridge.getEconomyState().buildings.find((b) => b.id === foundation)?.buildProgressTicks ?? 0;
+  for (let n = 0; n < 400 && progress() <= 0; n += 1) bridge.step(100);
+  expect(progress(), 'the premise: owner 2 started the foundation').toBeGreaterThan(0);
+  expect(bridge.world.submitWithResult('unit.move', { unitId: builder, target: { x: 20, y: 4 } }).accepted).toBe(true);
+  bridge.step(100);
+  const left = progress();
+  for (let n = 0; n < 5; n += 1) bridge.step(100);
+  expect(progress(), 'the premise: nobody builds the foundation once its builder walks off').toBe(left);
+}
+
 /** Saves with the Mangonel's stone in the air at the House. With
  *  `recycledTarget`, the House is first replaced by a foundation on its id,
  *  so the stone's target stands at generation 1: a shot that stored a wrong
- *  generation would be right by accident on the fixture's own generation 0. */
+ *  generation would be right by accident on the fixture's own generation 0.
+ *  The foundation is started before the Mangonel is ordered at it. */
 function saveMidFlight(options: { recycledTarget?: boolean } = {}) {
   const bridge = createSimulationBridge(STONE_SEED);
   if (options.recycledTarget) {
     holdFire(bridge);
-    replaceHouse(bridge.world, () => bridge.step(100), buildingAtHouseSpot(bridge.world)!);
+    const foundation = replaceHouse(bridge.world, () => bridge.step(100), buildingAtHouseSpot(bridge.world)!);
+    startThenLeave(bridge, foundation);
   }
   const scene = stoneAtHouse(bridge);
   if (options.recycledTarget) {
