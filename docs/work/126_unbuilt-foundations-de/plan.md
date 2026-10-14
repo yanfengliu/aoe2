@@ -33,7 +33,9 @@ Outcome:
   - work 123 (browser specs near their limits, the playwright reporters, .github/).
 - The AI's site search and its pending-footprint mask must keep their guarantees. Prove the map stays connected with the AI placement gates.
 
-## Milestones
+## Approach
+
+Two milestones, each reproduced first, gated, independently reviewed and landed on its own.
 
 - **M1: walkable unbuilt foundations, a start that moves units off, and the start check limited to structures and terrain.**
   - Source the exact DE rule first: which units may cross an unbuilt foundation (185872 names villagers), and what happens to units on it when construction starts. Use official notes or DE's data. If the sources leave a choice, stop and bring the options to the coordinator.
