@@ -24,10 +24,17 @@
 // Ordering matches the validators' own: a structural rule (prerequisite,
 // age, tech tree, already-in-flight) outranks affordability, so a Feudal
 // Age the player cannot yet reach is never reported as merely expensive.
+//
+// The PRICE of each drawn command is computed here too, beside its reason and
+// from the same per-owner seam the charge reads (ownerCosts.ts), and travels to
+// the tooltip in `SelectionState.commandCosts`. The HUD prices nothing itself:
+// a tooltip that read the base table said an Italian Fishing Ship cost 75 wood
+// while the Dock charged 64 (spec §14.2, work 125).
 
 import type {
   BuildableBuildingType,
   BuildingType,
+  CommandCost,
   MarketActionType,
   PlayerResources,
   ResearchableTechnologyType,
@@ -35,20 +42,17 @@ import type {
   UnavailableCommand,
 } from '../types';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import type { GameWorld } from './pureHelpers';
+import { playerResourcesCodec } from './bridgeStateSerialize';
 import {
-  marketExchangeRatesCodec,
-  playerAgesCodec,
-  playerCivilizationsCodec,
-  playerResourcesCodec,
-  researchedTechnologiesCodec,
-} from './bridgeStateSerialize';
-import { effectiveResearchCost, effectiveTrainingCost } from '../civBonusEffects';
-import { ownerConstructionCost } from './ownerCosts';
+  ownerConstructionCost,
+  ownerMarketBuyCost,
+  ownerResearchCost,
+  ownerTrainingCost,
+} from './ownerCosts';
 import { isBuyMarketAction, marketCommodityForAction } from '../prototypeEconomyRules';
 
 const COST_ORDER: readonly (keyof PlayerResources)[] = ['food', 'wood', 'gold', 'stone'];
-
-const EMPTY_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set();
 
 /**
  * "Not enough food." / "Not enough food and gold." — the resources the
@@ -75,6 +79,8 @@ export function describeUnaffordable(
 }
 
 export interface CommandAvailabilityDeps {
+  /** For the one price that is a query of the world: Spies. */
+  world: GameWorld;
   accessor: BridgeStateAccessor;
   researchUnavailableSummary: (
     owner: number,
@@ -85,7 +91,6 @@ export interface CommandAvailabilityDeps {
    *  refused, so the button says so before the click. Read-only — must
    *  not create an entry for an owner that has none. */
   inFlightTechsFor: (owner: number) => ReadonlySet<ResearchableTechnologyType>;
-  marketFeeRate: number;
   marketTransactionAmount: number;
 }
 
@@ -105,12 +110,14 @@ export interface CommandAvailabilityQuery {
 
 export interface CommandAvailability {
   unavailableCommands(query: CommandAvailabilityQuery): UnavailableCommand[];
+  /** The price of every train, research and build command the card draws. */
+  commandCosts(query: CommandAvailabilityQuery): CommandCost[];
 }
 
 export function createCommandAvailability(
   deps: CommandAvailabilityDeps,
 ): CommandAvailability {
-  const { accessor } = deps;
+  const { accessor, world } = deps;
 
   function resourcesOf(owner: number): PlayerResources | undefined {
     return accessor.get(playerResourcesCodec).get(owner);
@@ -123,8 +130,6 @@ export function createCommandAvailability(
     available: readonly ResearchableTechnologyType[],
     resources: PlayerResources,
   ): UnavailableCommand[] {
-    const civ = accessor.get(playerCivilizationsCodec).get(owner);
-    const age = accessor.get(playerAgesCodec).get(owner) ?? 'dark-age';
     const inFlight = deps.inFlightTechsFor(owner);
     const out: UnavailableCommand[] = [];
     for (const tech of visible) {
@@ -141,7 +146,7 @@ export function createCommandAvailability(
         out.push({ kind: 'research', id: tech, reason: 'Already being researched.' });
         continue;
       }
-      const short = describeUnaffordable(resources, effectiveResearchCost(civ, age, tech));
+      const short = describeUnaffordable(resources, ownerResearchCost(world, accessor, owner, tech));
       if (short) {
         out.push({ kind: 'research', id: tech, reason: short });
       }
@@ -154,15 +159,9 @@ export function createCommandAvailability(
     options: readonly TrainableUnitType[],
     resources: PlayerResources,
   ): UnavailableCommand[] {
-    const civ = accessor.get(playerCivilizationsCodec).get(owner);
-    const age = accessor.get(playerAgesCodec).get(owner) ?? 'dark-age';
-    const techs = accessor.get(researchedTechnologiesCodec).get(owner) ?? EMPTY_TECHS;
     const out: UnavailableCommand[] = [];
     for (const unitType of options) {
-      const short = describeUnaffordable(
-        resources,
-        effectiveTrainingCost(civ, age, unitType, techs),
-      );
+      const short = describeUnaffordable(resources, ownerTrainingCost(accessor, owner, unitType));
       if (short) {
         out.push({ kind: 'train', id: unitType, reason: short });
       }
@@ -189,17 +188,17 @@ export function createCommandAvailability(
   }
 
   function marketEntries(
+    owner: number,
     options: readonly MarketActionType[],
     resources: PlayerResources,
   ): UnavailableCommand[] {
-    const rates = accessor.get(marketExchangeRatesCodec);
     const out: UnavailableCommand[] = [];
     for (const actionType of options) {
       const commodity = marketCommodityForAction(actionType);
-      // The same arithmetic the market validator refuses on, so the
-      // tooltip and the rejection can never disagree.
+      // The owner's price, which the trade and its validator also read, so
+      // the quoted figure is the one the click pays (Guilds included).
       if (isBuyMarketAction(actionType)) {
-        const goldCost = Math.ceil(rates[commodity] * (1 + deps.marketFeeRate));
+        const goldCost = ownerMarketBuyCost(accessor, owner, commodity);
         if (resources.gold < goldCost) {
           out.push({
             kind: 'market',
@@ -237,7 +236,7 @@ export function createCommandAvailability(
       out.push(...trainEntries(query.owner, query.trainOptions, resources));
     }
     if (query.marketOptions && query.marketOptions.length > 0) {
-      out.push(...marketEntries(query.marketOptions, resources));
+      out.push(...marketEntries(query.owner, query.marketOptions, resources));
     }
     if (query.buildOptions && query.buildOptions.length > 0) {
       out.push(...buildEntries(query.owner, query.buildOptions, resources));
@@ -245,5 +244,26 @@ export function createCommandAvailability(
     return out;
   }
 
-  return { unavailableCommands };
+  // Copies, because a seam may hand back the shared table row itself and the
+  // selection state leaves the bridge.
+  function commandCosts(query: CommandAvailabilityQuery): CommandCost[] {
+    const { owner } = query;
+    const out: CommandCost[] = [];
+    // Locked research is priced too: its tooltip states a price, and that
+    // price is what the click will take once the rule that locks it is met.
+    if (query.buildingType !== null) {
+      for (const tech of query.visibleResearchOptions ?? []) {
+        out.push({ kind: 'research', id: tech, cost: { ...ownerResearchCost(world, accessor, owner, tech) } });
+      }
+    }
+    for (const unitType of query.trainOptions ?? []) {
+      out.push({ kind: 'train', id: unitType, cost: { ...ownerTrainingCost(accessor, owner, unitType) } });
+    }
+    for (const buildingType of query.buildOptions ?? []) {
+      out.push({ kind: 'build', id: buildingType, cost: { ...ownerConstructionCost(accessor, owner, buildingType) } });
+    }
+    return out;
+  }
+
+  return { unavailableCommands, commandCosts };
 }

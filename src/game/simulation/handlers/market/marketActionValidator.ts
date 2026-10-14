@@ -11,10 +11,8 @@ import {
   marketCommodityForAction,
 } from '../../prototypeEconomyRules';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
-import {
-  marketExchangeRatesCodec,
-  playerResourcesCodec,
-} from '../../bridge/bridgeStateSerialize';
+import { playerResourcesCodec } from '../../bridge/bridgeStateSerialize';
+import { ownerMarketBuyCost } from '../../bridge/ownerCosts';
 
 export interface MarketActionValidatorDeps {
   // Phase 2D: marketExchangeRates + playerResources migrated to
@@ -22,12 +20,10 @@ export interface MarketActionValidatorDeps {
   accessor: BridgeStateAccessor;
   getMarketOptions: (owner: number, buildingType: BuildingType) => readonly MarketActionType[];
   playerOwnsCompletedMarket: (playerId: number) => boolean;
-  // Threaded as deps (NOT imported from bridgeConstants) so the validator
-  // and handler always agree on rate / fee / transaction amount. The
-  // handler reads these off TrainingMarketOpsDeps; passing the same
-  // values here guards against any future divergence (test rates, scenario
-  // tuning) — Claude impl-11 review F3.
-  marketFeeRate: number;
+  // Threaded as a dep (NOT imported from bridgeConstants) so the validator
+  // and handler always agree on the transaction amount — Claude impl-11
+  // review F3. The buy PRICE is not a dep: it is the owner's (Guilds halves
+  // the fee), from ownerCosts.ts, which the handler and the quote also read.
   marketTransactionAmount: number;
 }
 
@@ -52,10 +48,8 @@ export function makeMarketActionValidator(deps: MarketActionValidatorDeps): Mark
       return { code: 'no_stockpile', message: 'No resource stockpile for the player.' };
     }
     const commodity = marketCommodityForAction(data.actionType);
-    const rate = deps.accessor.get(marketExchangeRatesCodec)[commodity];
     if (isBuyMarketAction(data.actionType)) {
-      const goldCost = Math.ceil(rate * (1 + deps.marketFeeRate));
-      if (stockpile.gold < goldCost) {
+      if (stockpile.gold < ownerMarketBuyCost(deps.accessor, data.playerId, commodity)) {
         return { code: 'insufficient_resources', message: 'Not enough gold to buy.' };
       }
     } else if (stockpile[commodity] < deps.marketTransactionAmount) {

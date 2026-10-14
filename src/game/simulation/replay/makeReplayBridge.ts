@@ -1,4 +1,3 @@
-import { constructionCost } from '../prototypeEconomyRules';
 import {
   RenderAdapter,
 } from 'civ-engine';
@@ -134,8 +133,10 @@ export function makeReplayBridge(
     getSharedVisionOwners: (owner: number) => api.getSharedVisionOwners(owner),
     getPlayerCivilization: (owner: number) => api.getPlayerCivilization?.(owner) ?? 'Britons',
     getResearchedTechnologies: (owner: number) => api.getResearchedTechnologies?.(owner) ?? [],
-    getConstructionCost: (_owner: number, buildingType: import('../types').BuildingType) =>
-      constructionCost(buildingType),
+    // The recorded owner's price (civilization, age and team), not the base
+    // table: a price read off a replay is the price that match charged.
+    getConstructionCost: (owner: number, buildingType: import('../types').BuildingType) =>
+      api.getConstructionCost(owner, buildingType),
     step() {
       flushOutOfBandRenderChange();
       // A replay bridge never advances from a frame — ReplayController owns
@@ -313,7 +314,7 @@ export function makeReplayBridge(
       return replayCommandRejected();
     },
     listTributeTargets: () => [],
-    humanTributeFeeRate: () => 0.3,
+    humanTributeFeeRate: () => api.humanTributeFeeRate(),
     beginBuildingPlacement(buildingType: BuildableBuildingType) {
       void buildingType;
       return replayCommandRejected();

@@ -362,8 +362,19 @@ export interface SelectionState {
    *  looking rather than only after a click (and a DISABLED control, which
    *  cannot be clicked at all, has no other way to say anything). */
   unavailableCommands: UnavailableCommand[];
+  /** What each train, research and build command the card draws costs the
+   *  human right now — from the per-owner seam the charge itself reads
+   *  (bridge/ownerCosts), so a quoted price is the price the click takes. */
+  commandCosts: CommandCost[];
   queue: ProductionQueueEntry[];
   placementMode: BuildableBuildingType | null;
+}
+
+/** One drawn command's price. `kind`-`id` is the HUD's `data-command` hook. */
+export interface CommandCost {
+  kind: 'research' | 'train' | 'build';
+  id: string;
+  cost: Partial<PlayerResources>;
 }
 
 /** One blocked command and the thing it is missing. `kind`-`id` is the

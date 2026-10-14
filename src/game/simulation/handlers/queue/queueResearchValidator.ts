@@ -13,12 +13,10 @@ import type {
 import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pureHelpers';
 import { canResearchAt } from '../../prototypeBuildingRules';
 import { canAfford, describeMissingResources } from '../../prototypeEconomyRules';
-import { effectiveResearchCost } from '../../civBonusEffects';
+import { ownerResearchCost } from '../../bridge/ownerCosts';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
 import {
   constructionStatesCodec,
-  playerAgesCodec,
-  playerCivilizationsCodec,
   playerResourcesCodec,
 } from '../../bridge/bridgeStateSerialize';
 
@@ -86,11 +84,9 @@ export function makeQueueResearchValidator(deps: QueueResearchValidatorDeps): Qu
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }
-    const cost = effectiveResearchCost(
-      deps.accessor.get(playerCivilizationsCodec).get(building.owner),
-      deps.accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age',
-      data.technologyType,
-    );
+    // The owner's price — Spies' live per-enemy-villager figure included —
+    // which the charge in trainingMarketOps takes and the button quotes.
+    const cost = ownerResearchCost(world, deps.accessor, building.owner, data.technologyType);
     if (!canAfford(stockpile, cost)) {
       const detail = describeMissingResources(stockpile, cost);
       return {

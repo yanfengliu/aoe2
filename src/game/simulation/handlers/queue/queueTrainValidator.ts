@@ -12,21 +12,13 @@ import type { GameCommands, GameEvents, GameComponents } from '../../bridge/pure
 import { canTrainAt } from '../../prototypeBuildingRules';
 import { civDenies } from '../../civTechTree';
 import { canAfford, describeMissingResources } from '../../prototypeEconomyRules';
-import { effectiveTrainingCost } from '../../civBonusEffects';
+import { ownerTrainingCost } from '../../bridge/ownerCosts';
 import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
 import {
   constructionStatesCodec,
-  playerAgesCodec,
   playerCivilizationsCodec,
   playerResourcesCodec,
-  researchedTechnologiesCodec,
 } from '../../bridge/bridgeStateSerialize';
-
-// An owner with nothing researched. Shared constant so the lookup below reads
-// the same as every other researched-set read in the bridge.
-const EMPTY_VALIDATOR_TECH_SET: ReadonlySet<
-  import('../../types').ResearchableTechnologyType
-> = new Set();
 
 export interface QueueTrainValidatorDeps {
   // Phase 2D: constructionStates + playerResources migrated to
@@ -88,14 +80,10 @@ export function makeQueueTrainValidator(deps: QueueTrainValidatorDeps): QueueTra
     if (!stockpile) {
       return { code: 'no_stockpile', message: 'No resource stockpile for the owner.' };
     }
-    // Effective cost (every civilization cost rule, such as the Goth infantry
-    // -15/20/25/30% by age, and Shipwright's -20% ship wood) MUST match the
-    // charge in trainingMarketOps, so this gate and that charge stay consistent.
-    const civ = deps.accessor.get(playerCivilizationsCodec).get(building.owner);
-    const age = deps.accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age';
-    const techs = deps.accessor.get(researchedTechnologiesCodec).get(building.owner)
-      ?? EMPTY_VALIDATOR_TECH_SET;
-    const cost = effectiveTrainingCost(civ, age, data.unitType, techs);
+    // The owner's price (every civilization cost rule, such as the Goth
+    // infantry -15/20/25/30% by age, and Shipwright's -20% ship wood): the one
+    // the charge in trainingMarketOps takes and the train button quotes.
+    const cost = ownerTrainingCost(deps.accessor, building.owner, data.unitType);
     if (!canAfford(stockpile, cost)) {
       const detail = describeMissingResources(stockpile, cost);
       return {

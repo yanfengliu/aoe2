@@ -341,7 +341,6 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     issueMarketAction: (actionType) => bridge.issueMarketAction(actionType),
     sendTribute: (toPlayerId, resource, amount) => bridge.sendTribute(toPlayerId, resource, amount),
     listTributeTargets: () => bridge.listTributeTargets(),
-    getConstructionCost: (playerId, buildingType) => bridge.getConstructionCost(playerId, buildingType),
     humanTributeFeeRate: () => bridge.humanTributeFeeRate(),
     beginBuildingPlacement: (buildingType) => bridge.beginBuildingPlacement(buildingType),
     consumeCommandRejection: () => bridge.consumeCommandRejection(),

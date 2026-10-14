@@ -18,13 +18,13 @@ import type {
   TrainableUnitType,
 } from '../types';
 import { clamp, type GameWorld } from './pureHelpers';
-import { resourcesMissing, trainingCost } from '../prototypeEconomyRules';
-import { effectiveResearchCost } from '../civBonusEffects';
+import { resourcesMissing } from '../prototypeEconomyRules';
+import { ownerResearchCost, ownerTrainingCost } from './ownerCosts';
 import { createIdleVillagerOps } from './idleVillagerOps';
 import { createIdleMilitaryOps } from './idleMilitaryOps';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { removePendingUnitCommands } from './pendingCommandQuery';
-import { constructionStatesCodec, playerAgesCodec, playerCivilizationsCodec, playerResourcesCodec } from './bridgeStateSerialize';
+import { constructionStatesCodec, playerResourcesCodec } from './bridgeStateSerialize';
 
 export interface HumanInputOpsDeps {
   world: GameWorld;
@@ -299,12 +299,10 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
         enqueueRejection('Building is still under construction.');
       } else if (result.code === 'insufficient_resources') {
         const stockpile = accessor.get(playerResourcesCodec).get(humanPlayerId);
-        // Base cost is fine here — this only names WHICH resource is short for
-        // the toast (the authoritative gate already rejected using the effective
-        // cost). Byte-identical for a non-Goths human; a Goths human still sees
-        // the right resource named, just computed from the pre-discount amount.
+        // The price the validator just refused on, so the toast names a
+        // resource that really is short — never one a discount already covers.
         const missing = stockpile
-          ? resourcesMissing(stockpile, trainingCost(unitType))
+          ? resourcesMissing(stockpile, ownerTrainingCost(accessor, humanPlayerId, unitType))
           : null;
         enqueueRejection(missing ? `Not enough ${missing}.` : 'Cannot train that unit here.');
       } else {
@@ -337,9 +335,7 @@ export function createHumanInputOps(deps: HumanInputOpsDeps): HumanInputOps {
       } else if (result.code === 'insufficient_resources') {
         const stockpile = accessor.get(playerResourcesCodec).get(humanPlayerId);
         const missing = stockpile
-          ? resourcesMissing(stockpile, effectiveResearchCost(
-            accessor.get(playerCivilizationsCodec).get(humanPlayerId),
-            accessor.get(playerAgesCodec).get(humanPlayerId) ?? 'dark-age', technologyType))
+          ? resourcesMissing(stockpile, ownerResearchCost(world, accessor, humanPlayerId, technologyType))
           : null;
         enqueueRejection(missing ? `Not enough ${missing}.` : 'Cannot research that here.');
       } else {

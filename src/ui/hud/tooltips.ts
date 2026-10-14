@@ -1,17 +1,10 @@
-import { effectiveConstructionCost } from '../../game/simulation/civBonusEffects';
 import type {
   ActionType,
-  BuildableBuildingType,
   MarketActionType,
   PlayerResources,
   ResearchableTechnologyType,
-  TrainableUnitType,
 } from '../../game/simulation/types';
-import {
-  researchCost,
-  researchTimeTicks,
-  trainingCost,
-} from '../../game/simulation/prototypeEconomyRules';
+import { researchTimeTicks } from '../../game/simulation/prototypeEconomyRules';
 import { SPIES_GOLD_PER_ENEMY_VILLAGER } from '../../game/simulation/spiesRules';
 
 // A short, human-readable cost like "60 food, 20 gold" from a partial resource
@@ -87,33 +80,42 @@ export function formatMarketActionTooltip(actionType: MarketActionType): string 
   }
 }
 
+// The PRICE in each command tooltip is the simulation's, passed in from
+// `SelectionState.commandCosts` — the per-owner seam the charge itself reads —
+// and never looked up here. A tooltip that priced from the base table said an
+// Italian Fishing Ship cost 75 wood while the Dock charged 64 (spec §14.2,
+// work 125). With no price supplied a tooltip states none, rather than a
+// figure the click would not charge.
 export function formatTrainTooltip(
-  unitType: TrainableUnitType,
   unitDisplayName: string,
+  cost: Partial<PlayerResources> | undefined,
 ): string {
-  return `Queue a ${unitDisplayName} at this building. Cost: ${formatResourceCost(trainingCost(unitType))}. Needs an open production queue slot.`;
+  const price = cost ? ` Cost: ${formatResourceCost(cost)}.` : '';
+  return `Queue a ${unitDisplayName} at this building.${price} Needs an open production queue slot.`;
 }
 
 export function formatResearchTooltip(
   technologyType: ResearchableTechnologyType,
   techDisplayName: string,
+  cost: Partial<PlayerResources> | undefined,
 ): string {
   const seconds = Math.round(researchTimeTicks(technologyType) / 10);
-  if (technologyType === 'spies') {
-    // The one dynamically-priced technology: the table's 200 gold is only the
-    // floor, so a static figure here would under-quote every real charge.
-    return `Research ${techDisplayName}. Cost: ${String(SPIES_GOLD_PER_ENEMY_VILLAGER)} gold per enemy villager (halved by Atheism); takes ${seconds}s.`;
-  }
-  return `Research ${techDisplayName}. Cost: ${formatResourceCost(researchCost(technologyType))}; takes ${seconds}s.`;
+  // Spies is the one technology priced by a query, so its quoted figure moves
+  // with the enemy's villager count; the rule rides beside it.
+  const rule = technologyType === 'spies'
+    ? ` (${String(SPIES_GOLD_PER_ENEMY_VILLAGER)} per enemy villager, halved by Atheism)`
+    : '';
+  return cost
+    ? `Research ${techDisplayName}. Cost: ${formatResourceCost(cost)}${rule}; takes ${seconds}s.`
+    : `Research ${techDisplayName}. Takes ${seconds}s.`;
 }
 
 export function formatBuildTooltip(
-  buildingType: BuildableBuildingType,
   buildingDisplayName: string,
-  cost?: Partial<import('../../game/simulation/types').PlayerResources>,
+  cost: Partial<PlayerResources> | undefined,
 ): string {
-  const shown = cost ?? effectiveConstructionCost(undefined, buildingType);
-  return `Place a ${buildingDisplayName} foundation (cost: ${formatResourceCost(shown)}). The selected villager walks to the site and builds it.`;
+  const price = cost ? ` (cost: ${formatResourceCost(cost)})` : '';
+  return `Place a ${buildingDisplayName} foundation${price}. The selected villager walks to the site and builds it.`;
 }
 
 export interface TooltipHandle {

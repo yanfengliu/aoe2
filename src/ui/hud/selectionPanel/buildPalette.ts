@@ -10,13 +10,16 @@
 // readers, the reachability suite, the play-test panel reader) with the CSS
 // hiding them visually. The cost a card no longer prints is in its tooltip and
 // its `aria-label`, and an unaffordable card is dimmed the way DE dims one.
+//
+// Every price here is the simulation's (`SelectionState.commandCosts`, from
+// the seam the placement charge reads), handed in as `costOf`; this file has
+// no price table to fall back on, so a card can only quote what it will cost.
 
 import type {
   BuildableBuildingType,
   PlayerResources,
 } from '../../../game/simulation/types';
 import { canAfford } from '../../../game/simulation/prototypeEconomyRules';
-import { effectiveConstructionCost } from '../../../game/simulation/civBonusEffects';
 import { formatEntityName } from '../displayNames';
 import { formatBuildTooltip, formatResourceCost } from '../tooltips';
 import type { CommandReasons } from './buttons';
@@ -68,17 +71,20 @@ function formatMissingBuildResources(
     .join(' and ');
 }
 
+/** A building's price, or undefined when the simulation priced none. */
+export type BuildCostOf = (buildingType: BuildableBuildingType) => Partial<PlayerResources> | undefined;
+
 /** The affordability half of the panel's render signature: a price the player
  *  can now (or no longer) pay has to redraw the palette even when the
  *  selection itself has not changed. */
 export function buildAvailabilitySignature(
   buildOptions: readonly BuildableBuildingType[],
   resources: PlayerResources,
-  costOf: (buildingType: BuildableBuildingType) => Partial<PlayerResources>,
+  costOf: BuildCostOf,
 ): string {
   return buildOptions
     .map((buildingType) => {
-      const cost = costOf(buildingType);
+      const cost = costOf(buildingType) ?? {};
       return BUILD_COST_ORDER
         .filter((resource) => (cost[resource] ?? 0) > 0)
         .map((resource) => `${resource}:${resources[resource] >= (cost[resource] ?? 0)}`)
@@ -91,19 +97,19 @@ export function renderBuildButtons(
   buildOptions: readonly BuildableBuildingType[],
   resources: PlayerResources,
   placementMode: BuildableBuildingType | null,
-  costOf: (buildingType: BuildableBuildingType) => Partial<PlayerResources>
-    = (buildingType) => effectiveConstructionCost(undefined, buildingType),
+  costOf: BuildCostOf,
   reasons: CommandReasons = NO_BUILD_REASONS,
 ): string {
   return buildOptions
     .map((buildingType) => {
       const displayName = formatEntityName(buildingType);
       // The OWNER's price (Franks castles, Mayan walls…): display = charge.
+      // Unpriced, the card claims nothing: no figure, and not Short.
       const cost = costOf(buildingType);
-      const affordable = canAfford(resources, cost);
+      const affordable = cost === undefined || canAfford(resources, cost);
       const active = placementMode === buildingType;
       const readiness = affordable ? 'Ready' : 'Short';
-      const missingResources = affordable ? '' : formatMissingBuildResources(cost, resources);
+      const missingResources = affordable || !cost ? '' : formatMissingBuildResources(cost, resources);
       // §14.2 keeps a Short card DIMMED rather than annotated, so the
       // reason rides the tooltip and the accessible name — the two places
       // a player and a screen reader ask — and not the tile's face.
@@ -118,7 +124,8 @@ export function renderBuildButtons(
       // keeps exactly the accessible status it had before this change.
       const refusal = reasons.get(`build-${buildingType}`) ?? '';
       const accessibleStatus = refusal || (affordable ? 'ready.' : `short on ${missingResources}.`);
-      const baseTooltip = formatBuildTooltip(buildingType, displayName, cost);
+      const baseTooltip = formatBuildTooltip(displayName, cost);
+      const price = cost ? ` Cost: ${formatResourceCost(cost)}.` : '';
       return `
           <button
             class="hud-command-button hud-build-card"
@@ -128,14 +135,14 @@ export function renderBuildButtons(
             data-tooltip="${refusal ? `${baseTooltip} ${refusal}` : baseTooltip}"
             ${refusal ? `data-command-reason="${refusal}"` : ''}
             type="button"
-            aria-label="Build ${displayName}. Cost: ${formatResourceCost(cost)}. ${accessibleStatus}"
+            aria-label="Build ${displayName}.${price} ${accessibleStatus}"
             aria-pressed="${active}"
           >
             <span class="hud-build-card__visual">${buildingGlyph(buildingType)}</span>
             <span class="hud-command-label hud-build-card__name"><span class="hud-build-card__verb">Build </span>${displayName}</span>
             <span class="hud-build-card__readiness" data-build-readiness>${readiness}</span>
             <span class="hud-build-card__costs" aria-hidden="true">
-              ${buildCostMarkup(cost, resources)}
+              ${cost ? buildCostMarkup(cost, resources) : ''}
             </span>
           </button>
         `;

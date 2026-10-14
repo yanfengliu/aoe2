@@ -7,8 +7,10 @@
 
 import type {
   ActionType,
+  CommandCost,
   EconomyResourceKind,
   MarketActionType,
+  PlayerResources,
   ResearchableTechnologyType,
   TrainableUnitType,
 } from '../../../game/simulation/types';
@@ -39,6 +41,20 @@ export type CommandReasons = ReadonlyMap<string, string>;
 const NO_REASONS: CommandReasons = new Map();
 
 /**
+ * What each drawn command costs, keyed by its `data-command` hook. Built by
+ * the panel from `selectionState.commandCosts`: the simulation prices every
+ * command from the seam its charge reads, so the figure a tooltip quotes is
+ * the figure the click takes (spec §14.2). The HUD never prices one itself.
+ */
+export type CommandCosts = ReadonlyMap<string, Partial<PlayerResources>>;
+
+const NO_COSTS: CommandCosts = new Map();
+
+export function commandCostsByHook(costs: readonly CommandCost[]): CommandCosts {
+  return new Map(costs.map((entry) => [`${entry.kind}-${entry.id}`, entry.cost]));
+}
+
+/**
  * The reason goes in two places, for two readers. `data-tooltip` is what
  * the player sees on hover — the only channel a DISABLED control has,
  * since it can never be clicked into a rejection toast. `data-command-reason`
@@ -55,11 +71,16 @@ export function renderResearchButtons(
   visibleResearchOptions: ResearchableTechnologyType[],
   availableResearchOptions: ResearchableTechnologyType[],
   reasons: CommandReasons = NO_REASONS,
+  costs: CommandCosts = NO_COSTS,
 ): string {
   return visibleResearchOptions
     .map((technologyType) => {
       const isAvailable = availableResearchOptions.includes(technologyType);
-      const base = formatResearchTooltip(technologyType, formatTechnologyName(technologyType));
+      const base = formatResearchTooltip(
+        technologyType,
+        formatTechnologyName(technologyType),
+        costs.get(`research-${technologyType}`),
+      );
       return `
           <button
             class="hud-command-button"
@@ -126,11 +147,12 @@ export function renderMarketButtons(
 export function renderTrainButtons(
   trainOptions: TrainableUnitType[],
   reasons: CommandReasons = NO_REASONS,
+  costs: CommandCosts = NO_COSTS,
 ): string {
   return trainOptions
     .map(
       (unitType) => {
-        const base = formatTrainTooltip(unitType, formatEntityName(unitType));
+        const base = formatTrainTooltip(formatEntityName(unitType), costs.get(`train-${unitType}`));
         return `
           <button
             class="hud-command-button"

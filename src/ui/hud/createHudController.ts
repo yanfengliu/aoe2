@@ -37,7 +37,7 @@ import {
 } from './minimap';
 import { mountMinimapInput } from './minimapInput';
 import { cancelBuildingPlacement } from '../../app/cancelBuildingPlacement';
-import { createSelectionPanel } from './selectionPanel';
+import { createSelectionPanel, type SelectionPanelDeps } from './selectionPanel';
 import { createGameMenu } from './gameMenu';
 
 interface HudCameraState {
@@ -72,7 +72,6 @@ interface HudBridge {
   issueMarketAction(actionType: MarketActionType): boolean;
   sendTribute: SimulationBridge['sendTribute'];
   listTributeTargets(): number[];
-  getConstructionCost: SimulationBridge['getConstructionCost'];
   humanTributeFeeRate(): number;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
   // v0.3.223: the build card toggles OFF on a second click, which needs the
@@ -144,6 +143,36 @@ export interface HudController {
   // the same controller continues with the new bridge), but the
   // capability now exists for teardown contexts that need it.
   destroy(): void;
+}
+
+/** What the selection panel needs from the bridge. */
+export type SelectionPanelBridge = Pick<
+  HudBridge,
+  | 'getEconomyState' | 'issueAction' | 'setSelectionStance' | 'setSelectionFormation'
+  | 'queueTrainUnit' | 'queueResearch' | 'issueMarketAction' | 'sendTribute'
+  | 'listTributeTargets' | 'humanTributeFeeRate' | 'beginBuildingPlacement'
+  | 'getSelectionState' | 'getSelectedEntityRefs' | 'select'
+>;
+
+/** The selection panel's wiring to the bridge, in one place so a test mounts
+ *  the panel exactly as the HUD does. It carries no price: every price the
+ *  panel quotes comes in the selection state, from the seam the charge reads. */
+export function selectionPanelDepsFor(bridge: SelectionPanelBridge): SelectionPanelDeps {
+  return {
+    getEconomyState: () => bridge.getEconomyState(),
+    issueAction: (actionType) => bridge.issueAction(actionType),
+    setSelectionStance: (stance) => bridge.setSelectionStance(stance),
+    setSelectionFormation: (formation) => bridge.setSelectionFormation(formation),
+    queueTrainUnit: (unitType) => bridge.queueTrainUnit(unitType),
+    queueResearch: (technologyType) => bridge.queueResearch(technologyType),
+    issueMarketAction: (actionType) => bridge.issueMarketAction(actionType),
+    sendTribute: (toOwner, resource) => bridge.sendTribute(toOwner, resource, TRIBUTE_AMOUNT),
+    getTributeTargets: () => (
+      { owners: bridge.listTributeTargets(), feeRate: bridge.humanTributeFeeRate() }
+    ),
+    beginBuildingPlacement: (buildingType) => bridge.beginBuildingPlacement(buildingType),
+    cancelBuildingPlacement: () => cancelBuildingPlacement(bridge),
+  };
 }
 
 export function createHudController(root: HTMLElement, bridge: HudBridge): HudController {
@@ -302,22 +331,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
 
   // Selection panel: icons + details + queue + command buttons. Skips
   // re-render when the `selectionState` signature is unchanged.
-  const selectionPanelHandle = createSelectionPanel(selectionPanel, {
-    getEconomyState: () => bridge.getEconomyState(),
-    issueAction: (actionType) => bridge.issueAction(actionType),
-    setSelectionStance: (stance) => bridge.setSelectionStance(stance),
-    setSelectionFormation: (formation) => bridge.setSelectionFormation(formation),
-    queueTrainUnit: (unitType) => bridge.queueTrainUnit(unitType),
-    queueResearch: (technologyType) => bridge.queueResearch(technologyType),
-    issueMarketAction: (actionType) => bridge.issueMarketAction(actionType),
-    sendTribute: (toOwner, resource) => bridge.sendTribute(toOwner, resource, TRIBUTE_AMOUNT),
-    getConstructionCost: (buildingType) => bridge.getConstructionCost(1, buildingType),
-    getTributeTargets: () => (
-      { owners: bridge.listTributeTargets(), feeRate: bridge.humanTributeFeeRate() }
-    ),
-    beginBuildingPlacement: (buildingType) => bridge.beginBuildingPlacement(buildingType),
-    cancelBuildingPlacement: () => cancelBuildingPlacement(bridge),
-  });
+  const selectionPanelHandle = createSelectionPanel(selectionPanel, selectionPanelDepsFor(bridge));
 
   if (minimap) {
     const minimapInput = mountMinimapInput(minimap, {

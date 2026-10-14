@@ -6,8 +6,7 @@
 // change.
 
 import { teamResearchTimeMultiplier, teamTrainTimeMultiplier } from './teamProductionBonuses';
-import { spiesCost } from '../spiesRules';
-import { countEnemyVillagers } from './countEnemyVillagers';
+import { ownerMarketBuyCost, ownerMarketFeeRate, ownerResearchCost, ownerTrainingCost } from './ownerCosts';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
   BuildableBuildingType,
@@ -42,15 +41,13 @@ import { createConstructionStart } from './constructionStartOps';
 import {
   constructionStatesCodec,
   marketExchangeRatesCodec,
-  playerAgesCodec,
   playerCivilizationsCodec,
   playerResourcesCodec,
   productionQueuesCodec,
   researchedTechnologiesCodec,
 } from './bridgeStateSerialize';
-import { civTrainTimeMultiplier, effectiveResearchCost, effectiveTrainingCost } from '../civBonusEffects';
+import { civTrainTimeMultiplier } from '../civBonusEffects';
 import { shipwrightTrainTimeMultiplier } from '../dockTechEffects';
-import { marketFeeRateFor } from '../marketTechEffects';
 import {
   conscriptionTrainTimeMultiplier,
   uniqueTechTrainTimeMultiplier,
@@ -62,7 +59,6 @@ export interface TrainingMarketOpsDeps {
   humanPlayerId: number;
   mapWidth: number;
   mapHeight: number;
-  marketFeeRate: number;
   marketTransactionAmount: number;
   marketRateStep: number;
   marketMinRate: number;
@@ -160,7 +156,6 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     state,
     mapWidth,
     mapHeight,
-    marketFeeRate,
     marketTransactionAmount,
     marketRateStep,
     marketMinRate,
@@ -222,15 +217,14 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     if (!stockpile) return false;
 
     // Cost + train time both read the owner's persisted civ (+ age/tech) state.
-    // effectiveTrainingCost applies every civilization cost rule (the Goth
-    // infantry -15/20/25/30% by age, for one) and Shipwright's -20% ship wood;
-    // the time takes the Aztec military rule (time / 1.15) and Conscription
-    // (x0.75 at military buildings). The SAME effective cost gates and charges
-    // here — the validator uses effectiveTrainingCost too, so they agree.
+    // The price is the owner's (ownerCosts.ts: every civilization cost rule,
+    // such as the Goth infantry -15/20/25/30% by age, and Shipwright's -20% ship
+    // wood) — the one the validator gates on and the train button quotes. The
+    // time takes the Aztec military rule (time / 1.15) and Conscription (x0.75
+    // at military buildings).
     const ownerCiv = accessor.get(playerCivilizationsCodec).get(building.owner);
-    const ownerAge = accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age';
     const ownerTechs = accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET;
-    const cost = effectiveTrainingCost(ownerCiv, ownerAge, unitType, ownerTechs);
+    const cost = ownerTrainingCost(accessor, building.owner, unitType);
     if (!canAfford(stockpile, cost)) return false;
 
     spendResources(stockpile, cost);
@@ -283,22 +277,10 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
     const stockpile = accessor.get(playerResourcesCodec).get(building.owner);
     if (!stockpile) return false;
 
-    // Spies is the one technology whose price is a QUERY, not a table row:
-    // 200 gold per living enemy villager, halved by Atheism. Everything else
-    // reads the static table.
-    const cost = technologyType === 'spies'
-      ? spiesCost(
-          countEnemyVillagers(world, building.owner),
-          (accessor.get(researchedTechnologiesCodec).get(building.owner) ?? EMPTY_TECH_SET)
-            .has('atheism'),
-        )
-      // Civ research discounts (sourced v0.3.147): the charge and the gate
-      // both price through the owner's civilization and age.
-      : effectiveResearchCost(
-          accessor.get(playerCivilizationsCodec).get(building.owner),
-          accessor.get(playerAgesCodec).get(building.owner) ?? 'dark-age',
-          technologyType,
-        );
+    // The owner's price (ownerCosts.ts): the civilization research discounts
+    // at the owner's age, or for Spies the live 200 gold per enemy villager,
+    // halved by Atheism — the one the validator gates on and the button quotes.
+    const cost = ownerResearchCost(world, accessor, building.owner, technologyType);
     if (!canAfford(stockpile, cost)) return false;
 
     spendResources(stockpile, cost);
@@ -336,14 +318,11 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
 
     const commodity = marketCommodityForAction(actionType);
     const rate = accessor.get(marketExchangeRatesCodec)[commodity];
-    // Guilds takes the Market's cut from 30% to 15% for this owner; the
-    // constant the bridge passes in is the un-teched rate.
-    const feeRate = marketFeeRateFor(
-      accessor.get(researchedTechnologiesCodec).get(playerId) ?? EMPTY_TECH_SET,
-    );
-    void marketFeeRate;
+    // The owner's fee (Guilds takes it from 30% to 15%) and the owner's buy
+    // price, which the validator and the Market's quoted price also read.
+    const feeRate = ownerMarketFeeRate(accessor, playerId);
     if (isBuyMarketAction(actionType)) {
-      const goldCost = Math.ceil(rate * (1 + feeRate));
+      const goldCost = ownerMarketBuyCost(accessor, playerId, commodity);
       if (stockpile.gold < goldCost) return false;
       stockpile.gold -= goldCost;
       accessor.markDirty(playerResourcesCodec);

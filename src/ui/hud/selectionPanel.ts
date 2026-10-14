@@ -16,7 +16,6 @@ import type {
   TrainableUnitType,
 } from '../../game/simulation/types';
 
-import { effectiveConstructionCost } from '../../game/simulation/civBonusEffects';
 import {
   formatEntityName,
   formatQueueEntryName,
@@ -58,6 +57,7 @@ export {
   renderTributeButtons,
 } from './selectionPanel/buttons';
 import {
+  commandCostsByHook,
   renderActionButtons,
   renderMarketButtons,
   renderResearchButtons,
@@ -154,9 +154,6 @@ export interface SelectionPanelDeps {
   sendTribute(toOwner: number, resource: EconomyResourceKind): boolean;
   /** The other players a tribute could go to, and the human's current fee. */
   getTributeTargets(): { owners: number[]; feeRate: number };
-  /** The human's real building price — civ AND team discounts included,
-   *  so the card never quotes more than the charge. */
-  getConstructionCost?(buildingType: BuildableBuildingType): Partial<PlayerResources>;
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
   /** Puts an armed placement away again, leaving the builders selected. */
   cancelBuildingPlacement(): boolean;
@@ -200,9 +197,11 @@ export function createSelectionPanel(
     lastSelectionState = selectionState;
     lastPlayerResources = playerResources;
 
-    const costOf = (buildingType: BuildableBuildingType): Partial<PlayerResources> =>
-      deps.getConstructionCost?.(buildingType)
-        ?? effectiveConstructionCost(undefined, buildingType);
+    // Every price the card quotes is the simulation's, from the seam the
+    // charge reads (spec §14.2); the panel prices nothing itself.
+    const costs = commandCostsByHook(selectionState.commandCosts);
+    const costOf = (buildingType: BuildableBuildingType): Partial<PlayerResources> | undefined =>
+      costs.get(`build-${buildingType}`);
     const buildPages = partitionBuildOptions(selectionState.buildOptions);
     const selectionKey = JSON.stringify([
       selectionState.selectedEntityIds, selectionState.selectedEntityType,
@@ -313,7 +312,7 @@ export function createSelectionPanel(
     // the status visible if that ever stops being true.
     const placementOutsideDeck = buildButtons ? '' : placementMarkup;
     const actionButtons = renderActionButtons(selectionState.actionOptions);
-    const trainButtons = renderTrainButtons(selectionState.trainOptions, reasons);
+    const trainButtons = renderTrainButtons(selectionState.trainOptions, reasons, costs);
     const marketButtons = renderMarketButtons(selectionState.marketOptions, reasons);
     // Tribute rides the Market card: buttons exist only while a completed own
     // Market is selected, which is exactly when marketOptions is non-empty.
@@ -326,6 +325,7 @@ export function createSelectionPanel(
       selectionState.visibleResearchOptions,
       selectionState.researchOptions,
       reasons,
+      costs,
     );
 
     const commandGroups = [

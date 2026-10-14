@@ -59,6 +59,7 @@ function baseSelectionState(overrides: Partial<SelectionState>): SelectionState 
     visibleResearchOptions: [],
     researchOptions: [],
     unavailableCommands: [],
+    commandCosts: [],
     queue: [],
     placementMode: null,
     ...overrides,

@@ -66,7 +66,6 @@ function makeValidator(overrides: {
   marketExchangeRates?: { food: number; wood: number; stone: number };
   getMarketOptions?: (owner: number, buildingType: BuildingType) => readonly MarketActionType[];
   playerOwnsCompletedMarket?: (playerId: number) => boolean;
-  marketFeeRate?: number;
   marketTransactionAmount?: number;
   world?: GameWorld;
 } = {}) {
@@ -83,7 +82,6 @@ function makeValidator(overrides: {
       ?? (() => ['buy-food', 'sell-food', 'buy-wood', 'sell-wood', 'buy-stone', 'sell-stone'] as readonly MarketActionType[]),
     playerOwnsCompletedMarket:
       overrides.playerOwnsCompletedMarket ?? (() => true),
-    marketFeeRate: overrides.marketFeeRate ?? 0.3,
     marketTransactionAmount: overrides.marketTransactionAmount ?? 100,
   });
 }

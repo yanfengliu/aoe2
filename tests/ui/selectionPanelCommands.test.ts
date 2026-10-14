@@ -14,6 +14,10 @@ import {
 
 const POOR_RESOURCES: PlayerResources = { food: 200, wood: 174, gold: 100, stone: 200 };
 const READY_RESOURCES: PlayerResources = { food: 200, wood: 175, gold: 100, stone: 200 };
+// The simulation prices every drawn command (SelectionState.commandCosts); the
+// panel quotes those figures and prices nothing itself.
+const BUILD_PRICES: Record<string, Partial<PlayerResources>> = { house: { wood: 25 }, barracks: { wood: 175 } };
+const priceOf = (buildingType: string): Partial<PlayerResources> | undefined => BUILD_PRICES[buildingType];
 
 function villagerSelection(overrides: Partial<SelectionState> = {}): SelectionState {
   return {
@@ -51,6 +55,10 @@ function villagerSelection(overrides: Partial<SelectionState> = {}): SelectionSt
     visibleResearchOptions: [],
     researchOptions: [],
     unavailableCommands: [],
+    commandCosts: [
+      { kind: 'build', id: 'house', cost: { wood: 25 } },
+      { kind: 'build', id: 'barracks', cost: { wood: 175 } },
+    ],
     queue: [],
     placementMode: null,
     ...overrides,
@@ -87,6 +95,7 @@ describe('villager build palette', () => {
       ['house', 'barracks'],
       POOR_RESOURCES,
       'house',
+      priceOf,
     );
 
     const house = host.querySelector<HTMLButtonElement>('[data-command="build-house"]')!;

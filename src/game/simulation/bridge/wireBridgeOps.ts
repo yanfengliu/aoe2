@@ -20,10 +20,7 @@ import { createAiIntentionPushers } from './aiIntentionPushers';
 import { setReplayWorldContext } from '../replay/replayWorldContext';
 import { HUMAN_PLAYER_ID } from '../prototypeScenario';
 import { createTributeOps } from './tributeOps';
-import {
-  MARKET_FEE_RATE,
-  MARKET_TRANSACTION_AMOUNT,
-} from './bridgeConstants';
+import { MARKET_TRANSACTION_AMOUNT } from './bridgeConstants';
 
 export type { WireBridgeOpsDeps, WireBridgeOpsResult } from './wireBridgeOpsTypes';
 import type { WireBridgeOpsDeps, WireBridgeOpsResult } from './wireBridgeOpsTypes';
@@ -370,7 +367,6 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     describePlacementBlockers,
     findOpenPlacementAnchors,
     isCellVisibleToOwner: (owner, x, y) => visibility.isVisible(owner, x, y),
-    marketFeeRate: MARKET_FEE_RATE,
     marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
     mapWidth: world.grid.width,
     mapHeight: world.grid.height,

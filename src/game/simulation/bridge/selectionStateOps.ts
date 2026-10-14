@@ -117,6 +117,10 @@ export interface SelectionStateOpsDeps {
   unavailableCommands: (
     query: import('./commandAvailability').CommandAvailabilityQuery,
   ) => import('../types').UnavailableCommand[];
+  /** What each drawn command costs the human, from the seam the charge reads. */
+  commandCosts: (
+    query: import('./commandAvailability').CommandAvailabilityQuery,
+  ) => import('../types').CommandCost[];
 }
 
 export interface SelectionStateOps {
@@ -144,6 +148,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     getResearchOptions,
     getVisibleResearchOptions,
     unavailableCommands,
+    commandCosts,
   } = deps;
   const { getEntityHealth, getWildlifeAlive, getUnitActiveVerb } =
     createEntityReadProbes({ world, accessor });
@@ -281,6 +286,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
         visibleResearchOptions: [],
         researchOptions: [],
         unavailableCommands: [],
+        commandCosts: [],
         queue: [],
         placementMode: placementMode.current,
       };
@@ -383,6 +389,13 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       building?.owner === humanPlayerId
         ? getVisibleResearchOptions(building.owner, building.buildingType)
         : [];
+    // Only the HUMAN's own commands are ever drawn as buttons, so an enemy
+    // building's card asks for nothing and gets nothing.
+    const commandQuery = {
+      owner: humanPlayerId,
+      buildingType: building?.owner === humanPlayerId ? building.buildingType : null,
+      visibleResearchOptions, researchOptions, trainOptions, marketOptions, buildOptions,
+    };
     const selectedKind = unit ? 'unit' : building ? 'building' : 'resource';
     const owner = unit?.owner ?? building?.owner ?? resource?.owner ?? null;
 
@@ -452,17 +465,9 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       trainOptions,
       visibleResearchOptions,
       researchOptions,
-      // Only the HUMAN's own commands are ever drawn as buttons, so an
-      // enemy building's card asks for nothing and gets nothing.
-      unavailableCommands: unavailableCommands({
-        owner: humanPlayerId,
-        buildingType: building?.owner === humanPlayerId ? building.buildingType : null,
-        visibleResearchOptions,
-        researchOptions,
-        trainOptions,
-        marketOptions,
-        buildOptions,
-      }),
+      unavailableCommands: unavailableCommands(commandQuery),
+      // The price every drawn command quotes, from the seam its charge reads.
+      commandCosts: commandCosts(commandQuery),
       queue: building
         ? cloneQueue(accessor.get(productionQueuesCodec).get(selectedEntityId) ?? [])
         : [],

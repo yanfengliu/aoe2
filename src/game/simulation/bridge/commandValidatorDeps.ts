@@ -64,7 +64,6 @@ export interface CommandValidatorDepsInputs {
     },
   ) => Position[];
   isCellVisibleToOwner: (owner: number, x: number, y: number) => boolean;
-  marketFeeRate: number;
   marketTransactionAmount: number;
   mapWidth: number;
   mapHeight: number;
@@ -105,7 +104,6 @@ export function buildCommandValidatorDeps(
         accessor: inputs.accessor,
         getMarketOptions: inputs.getMarketOptions,
         playerOwnsCompletedMarket: inputs.playerOwnsCompletedMarket,
-        marketFeeRate: inputs.marketFeeRate,
         marketTransactionAmount: inputs.marketTransactionAmount,
       },
       buildingPlaceConfirmValidatorDeps: {

@@ -7,7 +7,7 @@ import type { EntityRef, Position, VisibilityMap } from 'civ-engine';
 
 import type { GameWorld } from './pureHelpers';
 import { currentEntityId } from './pureHelpers';
-import { effectiveResearchCost } from '../civBonusEffects';
+import { ownerResearchCost } from './ownerCosts';
 import type { BridgeState } from './bridgeState';
 import type {
   BuildableBuildingType,
@@ -18,7 +18,7 @@ import type {
   TerrainComponent,
   UnitType,
 } from '../types';
-import { playerAgesCodec, playerCivilizationsCodec, inFlightTechByOwnerCodec } from './bridgeStateSerialize';
+import { playerCivilizationsCodec, inFlightTechByOwnerCodec } from './bridgeStateSerialize';
 import { unitTint } from '../prototypeUnitRules';
 import {
   AI_MONK_HEAL_HP_FRACTION,
@@ -41,7 +41,6 @@ import { createSelectionStateOps } from './selectionStateOps';
 import { createCommandAvailability } from './commandAvailability';
 import { HUMAN_PLAYER_ID } from '../prototypeScenario';
 import {
-  MARKET_FEE_RATE,
   MARKET_MIN_RATE,
   MARKET_RATE_STEP,
   MARKET_TRANSACTION_AMOUNT,
@@ -274,7 +273,6 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     humanPlayerId: HUMAN_PLAYER_ID,
     mapWidth: world.grid.width,
     mapHeight: world.grid.height,
-    marketFeeRate: MARKET_FEE_RATE,
     marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
     marketRateStep: MARKET_RATE_STEP,
     marketMinRate: MARKET_MIN_RATE,
@@ -305,17 +303,17 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
   const { findBuildPlacementNear, garrisonUnit } = trainingMarketOps;
   deps.setAiSitePlacementStats(trainingMarketOps.aiSitePlacementStats);
 
-  // Why each drawn command refuses. Read-only over the same tables the
-  // validators charge from, so a tooltip and the rejection it predicts can
-  // never disagree. `?? NO_IN_FLIGHT` rather than the get-or-create
+  // Why each drawn command refuses, and what it costs. Read-only over the
+  // per-owner prices the charges read, so a tooltip and the click it predicts
+  // can never disagree. `?? NO_IN_FLIGHT` rather than the get-or-create
   // inFlightTechSetFor: this runs on every selection read and must not
   // insert an entry for an owner with no research.
-  const { unavailableCommands } = createCommandAvailability({
+  const { unavailableCommands, commandCosts } = createCommandAvailability({
+    world,
     accessor,
     researchUnavailableSummary: deps.researchUnavailableSummary,
     inFlightTechsFor: (owner) =>
       accessor.get(inFlightTechByOwnerCodec).get(owner) ?? NO_IN_FLIGHT,
-    marketFeeRate: MARKET_FEE_RATE,
     marketTransactionAmount: MARKET_TRANSACTION_AMOUNT,
   });
 
@@ -339,6 +337,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     getResearchOptions,
     getVisibleResearchOptions,
     unavailableCommands,
+    commandCosts,
   });
 
   const targetFindingOps = createTargetFindingOps({ world, visibility, accessor });
@@ -442,11 +441,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
       accessor.get(playerCivilizationsCodec).get(owner) ?? defaultCivilizationName(owner),
     inFlightTechsFor: (owner) =>
       accessor.get(inFlightTechByOwnerCodec).get(owner) ?? NO_IN_FLIGHT,
-    effectiveResearchCostFor: (owner, tech) => effectiveResearchCost(
-      accessor.get(playerCivilizationsCodec).get(owner),
-      accessor.get(playerAgesCodec).get(owner) ?? 'dark-age',
-      tech,
-    ),
+    effectiveResearchCostFor: (owner, tech) => ownerResearchCost(world, accessor, owner, tech),
     researchUnavailableReason: deps.researchUnavailableReason,
   });
   /** Every unit of `ownerId` whose build menu is non-empty — the units an open

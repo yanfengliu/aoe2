@@ -5,6 +5,7 @@ import {
   resourceGlyph,
 } from '../../src/ui/hud/icons/glyphs';
 import { renderBuildButtons } from '../../src/ui/hud/selectionPanel';
+import { constructionCost } from '../../src/game/simulation/prototypeEconomyRules';
 import type { BuildableBuildingType } from '../../src/game/simulation/types';
 
 // M7 UI-icons slice 1: original procedural glyph icons for the resource
@@ -122,6 +123,7 @@ describe('renderBuildButtons — augments, does not replace', () => {
       ['house', 'mill', 'lumber-camp'],
       { food: 200, wood: 200, gold: 100, stone: 200 },
       null,
+      constructionCost,
     );
 
     // Contract preserved for the existing browser tests + click handler.
@@ -140,7 +142,7 @@ describe('renderBuildButtons — augments, does not replace', () => {
 
   it('renders nothing for an empty build-options list', () => {
     expect(
-      renderBuildButtons([], { food: 200, wood: 200, gold: 100, stone: 200 }, null),
+      renderBuildButtons([], { food: 200, wood: 200, gold: 100, stone: 200 }, null, constructionCost),
     ).toBe('');
   });
 });
