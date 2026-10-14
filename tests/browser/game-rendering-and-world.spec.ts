@@ -30,7 +30,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
 
     // Placement commands are applied at the next deterministic simulation
     // boundary; do not depend on a browser animation frame winning this race.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 100); });
 
     const placedSnapshot = await game.getSnapshot(page);
     expect(
@@ -66,7 +66,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     expect(townCenterVisual?.widthPx).toBe((constructingHouseVisual?.widthPx ?? 0) * 2);
     expect(townCenterVisual?.heightPx).toBe((constructingHouseVisual?.heightPx ?? 0) * 2);
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(400, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(400, 100); });
 
     const completedHouseVisual = await game.getBuildingVisualState(
       page,
@@ -115,7 +115,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
 
     await game.clickCell(page, 8, 8);
     await game.clickCell(page, 10, 8, 'right');
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(80, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(80, 100); });
 
     const damagedHouseBar = await game.getEntityHealthBarState(page, 2, 'building', 'house');
     expect(damagedHouseBar?.currentHp).toBeLessThan(40); // below the fragile seed
@@ -133,7 +133,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     // (matches the owned-sheep / fish tests' approach to off-screen targets).
     const boarMinimap = await game.getMinimapPoint(page, 13 / 60, 8 / 36);
     await page.mouse.click(boarMinimap.x, boarMinimap.y);
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 16));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 16); });
 
     await game.clickCell(page, 13, 8);
     await expect(page.locator('[data-selection-name]')).toHaveText('Boar');
@@ -155,7 +155,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     const initialVillagerBar = await game.getEntityHealthBarState(page, 1, 'unit', 'villager');
     expect(initialVillagerBar?.currentHp).toBe(25);
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(80, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(80, 100); });
 
     const idleVillagerBar = await game.getEntityHealthBarState(page, 1, 'unit', 'villager');
     expect(idleVillagerBar?.currentHp).toBe(25);
@@ -184,7 +184,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     });
     expect(initialWolfBar?.barY ?? 0).toBeLessThan(initialWolfBar?.entityTopPx ?? 0);
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(120, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(120, 100); });
 
     const damagedVillagerBar = await game.getEntityHealthBarState(page, 1, 'unit', 'villager');
     if (!damagedVillagerBar) {
@@ -435,7 +435,7 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
 
     // §12.4.2 walk clock (v0.3.160): commute + build time.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(900, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(900, 100); });
 
     const completedSnapshot = await game.getSnapshot(page);
     expect(

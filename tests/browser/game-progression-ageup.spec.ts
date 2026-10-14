@@ -16,7 +16,7 @@ test.describe('browser gameplay smoke tests - age up', () => {
     await page.locator('[data-command="research-feudal-age"]').click();
     await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Researching: Feudal Age');
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1320, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1320, 100); });
 
     await expect(page.locator('[data-hud="age"]')).toHaveText('Feudal Age');
 
@@ -33,7 +33,7 @@ test.describe('browser gameplay smoke tests - age up', () => {
     ).toBe(true);
     // §12.4.2 walk clock (v0.3.160): the builder WALKS to the site now, so the
     // construction window carries the commute on top of the build time.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(900, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(900, 100); });
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'archery-range')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');
@@ -62,7 +62,7 @@ test.describe('browser gameplay smoke tests - age up', () => {
     await expect(page.locator('[data-hud="food"]')).toHaveText('200');
     await expect(page.locator('[data-hud="gold"]')).toHaveText('200');
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1620, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1620, 100); });
 
     await expect(page.locator('[data-hud="age"]')).toHaveText('Castle Age');
 

@@ -86,7 +86,7 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
     // the owned-sheep test's approach to off-screen targets).
     const fishMinimap = await game.getMinimapPoint(page, (fish?.x ?? 0) / 60, (fish?.y ?? 0) / 36);
     await page.mouse.click(fishMinimap.x, fishMinimap.y);
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 16));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 16); });
 
     await game.clickCell(page, fish?.x ?? 0, fish?.y ?? 0);
     await expect(page.locator('[data-selection-name]')).toHaveText('Fish');
@@ -252,7 +252,7 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
     const minimapPoint = await game.getMinimapPoint(page, 20 / 60, 19 / 36);
     await page.mouse.click(minimapPoint.x, minimapPoint.y);
     // Let the scene flush the new camera position.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 16));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 16); });
 
     const renderedSheep = await game.getRenderedOwnedEntitiesByType(page, 1, 'resource', 'sheep');
     expect(renderedSheep.length).toBeGreaterThanOrEqual(ownedSheepCells.length);
@@ -332,7 +332,7 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
     }, { timeout: 30_000 }).toBeLessThanOrEqual(1);
 
     // A few more ticks for visibility to settle.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(5, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(5, 100); });
 
     const memoryHouse = await page.evaluate(() =>
       window

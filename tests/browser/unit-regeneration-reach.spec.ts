@@ -15,8 +15,14 @@ async function berserkHp(page: import('@playwright/test').Page): Promise<number>
   return bar!.currentHp;
 }
 
+// Two tests since work 123 (2026-10-13): as one they ran at 43-53% of 30 s on
+// CI's runners, 950 ticks of a fixture where every tick re-projects the whole
+// world (docs/engine-feedback/current.md, the RenderAdapter ask). The second
+// starts its doubled-rate window from a fresh boot, after the research, so the
+// Berserk enters it at about 25 hit points rather than 35; both stay under its
+// 66, so the window measures the same rate.
 test.describe('a Berserk heals itself, and Berserkergang doubles it', () => {
-  test('the health bar climbs on its own and the Castle offers Berserkergang', async ({ page }) => {
+  test('the health bar climbs on its own', async ({ page }) => {
     await game.waitForBootWithSeed(page, 'vikings-regeneration-fixture');
 
     // The wound the fixture starts with, as the player sees it in the panel.
@@ -30,10 +36,14 @@ test.describe('a Berserk heals itself, and Berserkergang doubles it', () => {
     expect(wounded).toBeLessThan(11);
 
     // Thirty seconds of standing still: one hit point every three seconds.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(300, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(300, 100); });
     const healed = await berserkHp(page);
     expect(healed - wounded).toBeGreaterThan(9);
     expect(healed - wounded).toBeLessThan(11);
+  });
+
+  test('the Castle offers Berserkergang, and it doubles the rate', async ({ page }) => {
+    await game.waitForBootWithSeed(page, 'vikings-regeneration-fixture');
 
     // The technology that doubles it, reached the way a player reaches it.
     expect(await game.selectOwnedBuildingDirect(page, 1, 'castle')).toBe(true);
@@ -49,14 +59,14 @@ test.describe('a Berserk heals itself, and Berserkergang doubles it', () => {
 
     // 40 s of research at 10 ticks per second, plus room for the queue to
     // start. The Berserk keeps healing at the base rate while it runs.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(450, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(450, 100); });
     expect(await game.selectOwnedBuildingDirect(page, 1, 'castle')).toBe(true);
     await expect(research).toHaveCount(0);
 
     // Twenty seconds at the doubled rate is thirteen hit points, where the
     // base rate would be six or seven — so the window tells them apart.
     const before = await berserkHp(page);
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(200, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(200, 100); });
     const after = await berserkHp(page);
     expect(after - before).toBeGreaterThan(11);
     expect(after).toBeLessThanOrEqual(66);

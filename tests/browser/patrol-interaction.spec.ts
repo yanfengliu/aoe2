@@ -43,11 +43,24 @@ test.describe('patrol interaction', () => {
     // Assert the BEHAVIOUR rather than a debug field: the unit leaves, and then
     // comes back. Leaving alone would also be true of an attack-move; coming
     // back without another order is what makes it a patrol.
+    //
+    // The walk is stepped, two ticks a look, once the click has queued the
+    // order (work 123). It was waited for in real time, 250 ms a look for at
+    // most 60 looks: about 150 ticks at full speed, sampled every 2.5 ticks,
+    // and 7 s of this test's 30 s on CI, where slow frames slow the clock
+    // too. 100 looks of two ticks, 200 ticks, cover that horizon and sample
+    // more finely; the frame loop still draws between looks.
+    await page.evaluate(() => { window.__AOE2_TEST__!.setPaused(true); });
+    const stepAndLook = async (unitId: number) => page.evaluate((id) => {
+      const api = window.__AOE2_TEST__!;
+      api.stepTicks(2, 100);
+      const unit = api.getEconomyState().units.find((entry) => entry.id === id);
+      return unit ? { x: unit.x, y: unit.y } : null;
+    }, unitId);
     let left = false;
     let returned = false;
-    for (let attempt = 0; attempt < 60 && !returned; attempt += 1) {
-      await page.waitForTimeout(250);
-      const now = await cellOf(selected!);
+    for (let attempt = 0; attempt < 100 && !returned; attempt += 1) {
+      const now = await stepAndLook(selected!);
       if (!now) break;
       const distance = Math.abs(now.x - start!.x) + Math.abs(now.y - start!.y);
       if (distance >= 3) left = true;

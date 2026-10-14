@@ -51,7 +51,7 @@ test.describe('voxel terrain and water presentation', () => {
     expect(before.metrics.drawCalls).toBeLessThanOrEqual(20);
     expect(before.metrics.triangles).toBeLessThan(100_000);
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 250));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 250); });
     await expect.poll(() => page.evaluate(() => {
       const metrics = window.__AOE2_TEST__!.getWorldRendererState().metrics;
       return metrics.presentedRevision === metrics.acceptedRevision;

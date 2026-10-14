@@ -19,7 +19,7 @@ test.describe('browser gameplay smoke tests - upgrades', () => {
     await page.locator('[data-command="research-fletching"]').click();
     await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Researching: Fletching');
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(320, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(320, 100); });
 
     snapshot = await game.getSnapshot(page);
     expect(
@@ -59,7 +59,7 @@ test.describe('browser gameplay smoke tests - upgrades', () => {
     await page.locator('[data-command="research-crossbowman-upgrade"]').click();
     await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Researching: Crossbowman');
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(380, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(380, 100); });
 
     const snapshot = await game.getSnapshot(page);
     expect(
@@ -110,7 +110,7 @@ test.describe('browser gameplay smoke tests - upgrades', () => {
       'Researching: Arbalest',
     );
 
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(700, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(700, 100); });
 
     // Post-research: the Archery Range swaps its archer-line train slot
     // to Arbalest and the pre-existing Crossbowman has mutated in place.

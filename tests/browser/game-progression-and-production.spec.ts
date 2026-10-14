@@ -28,7 +28,7 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     // "food 200, expected 150" (an incomplete TC trains nothing).
     await game.advanceUntilBuildingComplete(page, 1, 'town-center', 6_000, townCenterPlacement);
     await game.clickCell(page, 18, 10, 'right');
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(80, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(80, 100); });
 
     expect(
       await game.selectOwnedBuildingAtDirect(
@@ -43,20 +43,22 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     await page.locator('[data-command="train-villager"]').click();
     await expect(page.locator('[data-hud="food"]')).toHaveText('150');
 
-    const trainedSnapshot = await page.evaluate(
-      () => window.__AOE2_TEST__!.advanceTicks(320, 100),
-    );
+    // The counts are taken in the page: the whole snapshot shipped back cost
+    // 0.7-0.9 s a round trip on CI (work 123).
+    const trained = await page.evaluate(() => {
+      const economy = window.__AOE2_TEST__!.advanceTicks(320, 100).economyState;
+      return {
+        townCenters: economy.buildings.filter(
+          (building) => building.owner === 1 && building.buildingType === 'town-center',
+        ).length,
+        villagers: economy.units.filter(
+          (unit) => unit.owner === 1 && unit.unitType === 'villager',
+        ).length,
+      };
+    });
 
-    expect(
-      trainedSnapshot.economyState.buildings.filter(
-        (building) => building.owner === 1 && building.buildingType === 'town-center',
-      ),
-    ).toHaveLength(2);
-    expect(
-      trainedSnapshot.economyState.units.filter(
-        (unit) => unit.owner === 1 && unit.unitType === 'villager',
-      ),
-    ).toHaveLength(2);
+    expect(trained.townCenters).toBe(2);
+    expect(trained.villagers).toBe(2);
   });
 
   test('can build a Watch Tower and let it automatically kill a nearby visible Scout', async ({
@@ -100,13 +102,19 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
     // Completion is the START of the tower's job: it still has to see the
     // Scout and shoot it, so this waits for the KILL rather than assuming a
     // fixed number of ticks covers both the build and the shooting.
-    let scoutDead = false;
-    for (let advanced = 0; advanced < 1_200 && !scoutDead; advanced += 100) {
-      const snapshot = await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(100, 100));
-      scoutDead = !snapshot.economyState.units.some(
-        (unit) => unit.owner === 2 && unit.unitType === 'scout',
-      );
-    }
+    // The 100-tick steps run in one `page.evaluate` (work 123): each used to
+    // ship a whole snapshot back, 0.7-0.9 s a round trip on CI.
+    const scoutDead = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      let dead = false;
+      for (let advanced = 0; advanced < 1_200 && !dead; advanced += 100) {
+        api.stepTicks(100, 100);
+        dead = !api.getEconomyState().units.some(
+          (unit) => unit.owner === 2 && unit.unitType === 'scout',
+        );
+      }
+      return dead;
+    });
     expect(scoutDead).toBe(true);
   });
 
@@ -195,12 +203,12 @@ test.describe('browser gameplay smoke tests - progression and production', () =>
         marketPlacement,
       ),
     ).toBe(true);
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(1, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 100); });
     await expect(page.locator('[data-hud="wood"]')).toHaveText('275');
 
     // §12.4.2 walk clock (v0.3.160): the builder WALKS to the site now, so the
     // construction window carries the commute on top of the build time.
-    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(900, 100));
+    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(900, 100); });
 
     expect(await game.selectOwnedBuildingDirect(page, 1, 'market')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Market');

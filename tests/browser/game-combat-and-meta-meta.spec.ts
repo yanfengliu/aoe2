@@ -7,41 +7,35 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (meta)', () =
   }) => {
     await game.waitForBootWithSeed(page, 'ai-rush-fixture');
 
-    const advancedSnapshot = await page.evaluate(() => {
+    // One tick at a time, checking the economy after each, as before. It steps
+    // with `stepTicks` and reads only the economy: `advanceTicks` drew the view
+    // and built a whole snapshot after every tick, so on this machine's SwiftShader
+    // the loop took 13.2 s, of which the simulation was 1.9 s (work 123).
+    const advanced = await page.evaluate(() => {
       const api = window.__AOE2_TEST__!;
-      let snapshot = api.getSnapshot();
+      let aiBarracksComplete = false;
+      let playerVillagers = Number.NaN;
       for (let index = 0; index < 2_000; index += 1) {
-        snapshot = api.advanceTicks(1, 100);
-        const aiBarracksComplete = snapshot.economyState.buildings.some(
+        api.stepTicks(1, 100);
+        const economy = api.getEconomyState();
+        aiBarracksComplete = economy.buildings.some(
           (building) =>
             building.owner === 2
             && building.buildingType === 'barracks'
             && building.isComplete,
         );
-        const villagerLossOccurred =
-          snapshot.economyState.units.filter(
-            (unit) => unit.owner === 1 && unit.unitType === 'villager',
-          ).length < 3;
-        if (aiBarracksComplete && villagerLossOccurred) {
+        playerVillagers = economy.units.filter(
+          (unit) => unit.owner === 1 && unit.unitType === 'villager',
+        ).length;
+        if (aiBarracksComplete && playerVillagers < 3) {
           break;
         }
       }
-      return snapshot;
+      return { aiBarracksComplete, playerVillagers };
     });
 
-    expect(
-      advancedSnapshot.economyState.buildings.some(
-        (building) =>
-          building.owner === 2
-          && building.buildingType === 'barracks'
-          && building.isComplete,
-      ),
-    ).toBe(true);
-    expect(
-      advancedSnapshot.economyState.units.filter(
-        (unit) => unit.owner === 1 && unit.unitType === 'villager',
-      ).length,
-    ).toBeLessThan(3);
+    expect(advanced.aiBarracksComplete).toBe(true);
+    expect(advanced.playerVillagers).toBeLessThan(3);
   });
 
   test('shows victory after the player destroys the last enemy structure in the conquest fixture', async ({
@@ -200,28 +194,41 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (meta)', () =
     // Parse the stored blob — that's the authoritative snapshot of the
     // moment the Save click fired. The natural game-view RAF loop keeps
     // ticking between our test commands, so comparing to a pre-click
-    // `game.getSnapshot()` would race.
-    const storedBlob = await page.evaluate(
-      () => window.localStorage.getItem('aoe2-save-v1'),
-    );
-    expect(storedBlob).not.toBeNull();
-    expect(typeof storedBlob).toBe('string');
-    const parsedBlob = JSON.parse(storedBlob!);
-    expect(parsedBlob.schema).toBe(2);
-    expect(parsedBlob.seed).toBe('aoe2-prototype');
-    const savedTick: number = parsedBlob.worldSnapshot.tick;
+    // `game.getSnapshot()` would race. It is parsed in the page and only
+    // the fields read here come back: the blob is the whole world, and every
+    // whole-world round trip cost 0.7-0.9 s on CI (work 123).
+    const stored = await page.evaluate(() => {
+      const blob = window.localStorage.getItem('aoe2-save-v1');
+      if (blob === null) return { kind: 'null' as const };
+      const parsed = JSON.parse(blob) as {
+        schema: unknown;
+        seed: unknown;
+        worldSnapshot: { tick: number; state: Record<string, Array<[number, { food: number }]>> };
+      };
+      return {
+        kind: typeof blob,
+        schema: parsed.schema,
+        seed: parsed.seed,
+        tick: parsed.worldSnapshot.tick,
+        food: parsed.worldSnapshot.state['aoe2.playerResources'].find(([playerId]) => playerId === 1)![1].food,
+      };
+    });
+    expect(stored.kind, 'nothing was saved to localStorage').not.toBe('null');
+    expect(stored.kind).toBe('string');
+    if (stored.kind === 'null') return;
+    expect(stored.schema).toBe(2);
+    expect(stored.seed).toBe('aoe2-prototype');
+    const savedTick = stored.tick;
     expect(savedTick).toBeGreaterThan(0);
-    const savedFood: number = parsedBlob.worldSnapshot.state['aoe2.playerResources'].find(
-      ([playerId]: [number, unknown]) => playerId === 1,
-    )![1].food;
+    const savedFood = stored.food;
 
     // Advance further so the running bridge's state diverges from the
     // saved blob. After loading, those extra ticks must disappear.
     await page.evaluate(() => {
       window.__AOE2_TEST__!.advanceTicks(15, 100);
     });
-    const driftedSnapshot = await game.getSnapshot(page);
-    expect(driftedSnapshot.hudState.tick).toBeGreaterThan(savedTick);
+    const driftedTick = (await game.getHudState(page)).tick;
+    expect(driftedTick).toBeGreaterThan(savedTick);
 
     // Open Load panel (re-open the game menu first), confirm localStorage restore.
     await page.locator('[data-hud="menu-button"]').click();
@@ -235,17 +242,21 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (meta)', () =
 
     // The loaded bridge starts at savedTick. The natural RAF loop is
     // also running — so tick may be >= savedTick by the time we observe
-    // it. Assert the tick rewound (is <= driftedSnapshot.tick) and that
-    // resources match the saved blob.
-    const postLoadSnapshot = await game.getSnapshot(page);
-    expect(postLoadSnapshot.hudState.tick).toBeGreaterThanOrEqual(savedTick);
-    expect(postLoadSnapshot.hudState.tick).toBeLessThan(driftedSnapshot.hudState.tick);
+    // it. Assert the tick rewound (is <= driftedTick) and that resources
+    // match the saved blob. Both are read in one call, at one moment, as the
+    // snapshot they came from was.
+    const postLoad = await page.evaluate(() => {
+      const api = window.__AOE2_TEST__!;
+      return { tick: api.getHudState().tick, food: api.getEconomyState().playerResources[1]!.food };
+    });
+    expect(postLoad.tick).toBeGreaterThanOrEqual(savedTick);
+    expect(postLoad.tick).toBeLessThan(driftedTick);
 
     // Resources captured at the exact load moment must match the saved
     // blob — a few frames of natural RAF post-load won't change food
     // unless a drop-off fires, which the early-game fixture won't
     // trigger for 2-3 frames of wall-clock.
-    expect(postLoadSnapshot.economyState.playerResources[1]!.food).toBe(savedFood);
+    expect(postLoad.food).toBe(savedFood);
   });
 
   // Iter-2 V5-4: Save flow drops back to a download when localStorage is

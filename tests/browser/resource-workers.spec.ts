@@ -63,7 +63,22 @@ async function screenshotResourceFixture(page: Page, name: string, includeToolti
     expect(clip.x + clip.width).toBeGreaterThanOrEqual(region.right);
     expect(clip.y + clip.height).toBeGreaterThanOrEqual(region.bottom);
   }
+  // The PNG is evidence for a person comparing layouts, and H4_LAYOUT_LABEL
+  // names that before/after pair; nothing asserts it. On CI's SwiftShader
+  // runners each capture took 2.6-3.2 s of a 1920px run's 23 s (work 123), so
+  // it is taken only when a label asks for it. The geometry above is the check,
+  // and it runs either way.
+  if (process.env.H4_LAYOUT_LABEL === undefined) return null;
   return play.screenshot(page, name, clip);
+}
+
+/** A full-page PNG of an order's moment, evidence for a person comparing
+ *  layouts; nothing asserts it. Taken only when H4_LAYOUT_LABEL asks, as the
+ *  fixture captures above are: three of these took 8-9 s of a 1920px run on
+ *  CI's SwiftShader runners (work 123). The checks around it run either way. */
+async function evidenceScreenshot(page: Page, name: string): Promise<void> {
+  if (process.env.H4_LAYOUT_LABEL === undefined) return;
+  await play.screenshot(page, name);
 }
 
 for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 }, { width: 1920, height: 1080 }]) {
@@ -85,7 +100,7 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
     await play.clickAt(page, sheep!.screen, 'right');
     await expect(food).toHaveAttribute('aria-label', 'Food workers: 1');
     await expect(page.locator('[data-resource-worker-count="food"]')).toHaveText('1');
-    await play.screenshot(page, `h4-${viewport.width}-gather.png`);
+    await evidenceScreenshot(page, `h4-${viewport.width}-gather.png`);
 
     await page.locator('[data-command="build-house"]').click();
     const anchor = await game.findValidPlacementNearTownCenter(page, 'house');
@@ -93,11 +108,11 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
     await game.clickCell(page, anchor.x, anchor.y, 'right');
     await expect(page.locator('[data-selection-activity]')).toHaveText('Moving');
     await expect(page.locator('[data-resource-worker-count="food"]')).toHaveText('1');
-    await play.screenshot(page, `h4-${viewport.width}-walk.png`);
+    await evidenceScreenshot(page, `h4-${viewport.width}-walk.png`);
     await page.locator('[data-command="build-house"]').click();
     await game.clickCell(page, anchor.x, anchor.y);
     await expect(page.locator('[data-resource-worker-count="food"]')).toHaveText('0');
-    await play.screenshot(page, `h4-${viewport.width}-build.png`);
+    await evidenceScreenshot(page, `h4-${viewport.width}-build.png`);
 
     const layout = await readResourceLayout(page);
     expect(layout).toHaveLength(4);
@@ -110,12 +125,16 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
   // Rendered readout fixture only: no claim about acquiring these resources.
   // Clone the actual bar so live controller updates cannot overwrite the fixture.
   // The separate test above continues to exercise the real input path.
-  test(`large resource readouts stay inside fixed chips at ${viewport.width}px`, async ({ page }) => {
-    await page.setViewportSize(viewport);
-    await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
-    await page.evaluate(() => { const bar = document.querySelector('.hud-bar')!; bar.replaceWith(bar.cloneNode(true)); });
-    const geometry = await barGeometry(page);
-    for (const amount of ['100000', '1000000', '9007199254740991']) {
+  // One test per width and amount (work 123): one test per width ran 21.7 s of
+  // its 30 s on a slow CI runner even without its captures. Each amount starts
+  // from a fresh boot and compares the bar with its own untouched geometry, as
+  // every amount did with the geometry measured before the first.
+  for (const amount of ['100000', '1000000', '9007199254740991']) {
+    test(`large resource readouts stay inside fixed chips at ${viewport.width}px, ${amount}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
+      await page.evaluate(() => { const bar = document.querySelector('.hud-bar')!; bar.replaceWith(bar.cloneNode(true)); });
+      const geometry = await barGeometry(page);
       await page.locator('.hud-resource-readout').evaluateAll((readouts, value) => {
         for (const readout of readouts) {
           const total = readout.querySelector<HTMLElement>('.hud-value')!;
@@ -149,6 +168,6 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
         }
       }
       await page.mouse.move(viewport.width - 1, viewport.height - 1);
-    }
-  });
+    });
+  }
 }

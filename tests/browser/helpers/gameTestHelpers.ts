@@ -17,6 +17,10 @@ export type {
 
 export {
   advanceUntilBuildingComplete,
+  getCameraState,
+  getEconomyState,
+  getHudState,
+  getSelectionState,
   getSnapshot,
   waitForBoot,
   waitForBootWithSeed,
