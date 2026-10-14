@@ -41,11 +41,11 @@ describe('the Castle-Age Monastery tier', () => {
 describe('Fervor', () => {
   // technologies.csv: "Monks have +15% speed".
   it('makes a monk faster and leaves everyone else alone', () => {
-    const base = movementSpeedPercent(none, 'monk');
-    expect(movementSpeedPercent(withTech('fervor'), 'monk')).toBeGreaterThan(base);
+    const base = movementSpeedPercent(none, 'monk', undefined, 'dark-age');
+    expect(movementSpeedPercent(withTech('fervor'), 'monk', undefined, 'dark-age')).toBeGreaterThan(base);
     for (const other of ['villager', 'knight', 'militia'] as const) {
-      expect(movementSpeedPercent(withTech('fervor'), other))
-        .toBe(movementSpeedPercent(none, other));
+      expect(movementSpeedPercent(withTech('fervor'), other, undefined, 'dark-age'))
+        .toBe(movementSpeedPercent(none, other, undefined, 'dark-age'));
     }
   });
 });

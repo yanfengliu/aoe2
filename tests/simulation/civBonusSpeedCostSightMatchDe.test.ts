@@ -24,7 +24,8 @@
 // BOUNDS: the seams and the match paths below. The infantry list is written
 // out from DE's "(Infantry)" labels and the lines, not read from the code. A
 // tower completed in a game saved before this change keeps the sight it was
-// saved with (spec §11.11).
+// saved with (spec §9.2.2, the building-bonus paragraph). The walks cover the
+// Dark and Imperial rungs; the census covers all four at the seam.
 
 import { describe, expect, it } from 'vitest';
 
@@ -87,25 +88,41 @@ describe('Celtic infantry speed steps with the age', () => {
   it('a Celtic militia outwalks a plain one by about 5% in the Dark Age, not 15%', () => {
     // attack-ally-fixture is a Dark-Age match whose militia has open grass east.
     const target = { x: 32, y: 14 };
-    const arrivalTicks = (civilization: string): number => {
-      const bridge = createSimulationBridge('attack-ally-fixture', {
-        civilizationsByOwner: new Map([[1, civilization]]),
-      });
-      expect(selectOwnedUnitDirect(bridge, 1, 'militia')).toBe(true);
-      expect(bridge.issueMoveCommand(target.x, target.y)).toBe(true);
-      for (let tick = 1; tick <= 1500; tick += 1) {
-        bridge.step(100);
-        const militia = bridge.getEconomyState().units.find((u) => u.owner === 1 && u.unitType === 'militia');
-        if (militia && militia.x === target.x && militia.y === target.y) return tick;
-      }
-      throw new Error(`the ${civilization} militia did not reach (${target.x},${target.y})`);
-    };
-    const ratio = arrivalTicks('Britons') / arrivalTicks('Celts');
+    const ratio = militiaArrivalTicks('attack-ally-fixture', 'Britons', target)
+      / militiaArrivalTicks('attack-ally-fixture', 'Celts', target);
     // 118% against 112% walks about 1.05 times as fast; the old 129% made it 1.14.
     expect(ratio).toBeGreaterThan(1.02);
     expect(ratio).toBeLessThan(1.09);
   }, 60_000);
+
+  it('a Celtic militia outwalks a plain one by about 20% in the Imperial Age, the age the step executor reads', () => {
+    // civ-goths-infantry-fixture is an Imperial-Age match whose militia has
+    // open grass south. The rung comes from the owner's age at the step
+    // executor, so a walk outside the Dark Age is what sees that age read:
+    // the Dark rung would make this about 1.05, the old flat 15% about 1.14.
+    const target = { x: 13, y: 28 };
+    const ratio = militiaArrivalTicks('civ-goths-infantry-fixture', 'Britons', target)
+      / militiaArrivalTicks('civ-goths-infantry-fixture', 'Celts', target);
+    // 134% against 112% walks about 1.19 times as fast.
+    expect(ratio).toBeGreaterThan(1.16);
+    expect(ratio).toBeLessThan(1.24);
+  }, 60_000);
 });
+
+/** Ticks owner 1's militia takes to reach `target` when ordered there. */
+function militiaArrivalTicks(fixture: string, civilization: string, target: { x: number; y: number }): number {
+  const bridge = createSimulationBridge(fixture, {
+    civilizationsByOwner: new Map([[1, civilization]]),
+  });
+  expect(selectOwnedUnitDirect(bridge, 1, 'militia')).toBe(true);
+  expect(bridge.issueMoveCommand(target.x, target.y)).toBe(true);
+  for (let tick = 1; tick <= 1500; tick += 1) {
+    bridge.step(100);
+    const militia = bridge.getEconomyState().units.find((u) => u.owner === 1 && u.unitType === 'militia');
+    if (militia && militia.x === target.x && militia.y === target.y) return tick;
+  }
+  throw new Error(`the ${civilization} militia in ${fixture} did not reach (${target.x},${target.y})`);
+}
 
 describe('the Ethiopian side\'s Outposts', () => {
   const SOLO = new Map<number, number>();

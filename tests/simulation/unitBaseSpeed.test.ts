@@ -48,7 +48,7 @@ describe('per-unit base movement speed', () => {
 
 describe('base speed composes with the movement technologies', () => {
   it('leaves an unteched villager on the no-modifier fast path', () => {
-    expect(movementSpeedPercent(NONE, 'villager')).toBe(100);
+    expect(movementSpeedPercent(NONE, 'villager', undefined, 'dark-age')).toBe(100);
   });
 
   it('multiplies Husbandry onto a knight base rather than replacing it', () => {
@@ -56,30 +56,30 @@ describe('base speed composes with the movement technologies', () => {
     expect(base).toBeGreaterThan(100);
     const withHusbandry = movementSpeedPercent(
       new Set<ResearchableTechnologyType>(['husbandry']),
-      'knight',
+      'knight', undefined, 'dark-age',
     );
     expect(withHusbandry).toBe(Math.round((base * 110) / 100));
   });
 
   it('multiplies Squires onto an infantry base', () => {
     const base = unitBaseSpeedPercent('champion');
-    expect(movementSpeedPercent(new Set<ResearchableTechnologyType>(['squires']), 'champion'))
+    expect(movementSpeedPercent(new Set<ResearchableTechnologyType>(['squires']), 'champion', undefined, 'dark-age'))
       .toBe(Math.round((base * 110) / 100));
   });
 
   it('still stacks Wheelbarrow and Hand Cart on the villager', () => {
-    expect(movementSpeedPercent(new Set<ResearchableTechnologyType>(['wheelbarrow']), 'villager'))
+    expect(movementSpeedPercent(new Set<ResearchableTechnologyType>(['wheelbarrow']), 'villager', undefined, 'dark-age'))
       .toBe(110);
     expect(movementSpeedPercent(
       new Set<ResearchableTechnologyType>(['wheelbarrow', 'hand-cart']),
-      'villager',
+      'villager', undefined, 'dark-age',
     )).toBe(121);
   });
 
   it('applies a base speed to units no movement technology touches', () => {
     // A Mangonel has no speed tech at all, so before this slice its percent was
     // a flat 100 and it moved exactly as fast as a villager.
-    expect(movementSpeedPercent(NONE, 'mangonel')).toBeLessThan(100);
-    expect(movementSpeedPercent(NONE, 'hussar')).toBeGreaterThan(100);
+    expect(movementSpeedPercent(NONE, 'mangonel', undefined, 'dark-age')).toBeLessThan(100);
+    expect(movementSpeedPercent(NONE, 'hussar', undefined, 'dark-age')).toBeGreaterThan(100);
   });
 });

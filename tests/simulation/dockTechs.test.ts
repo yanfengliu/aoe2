@@ -127,18 +127,18 @@ describe('Careening — +0 melee / +1 pierce for ships', () => {
 
 describe('Dry Dock — ships move 15% faster', () => {
   it('raises a ship’s speed percent and nothing else’s', () => {
-    const base = movementSpeedPercent(NONE, 'galley');
-    expect(movementSpeedPercent(DRY_DOCK, 'galley')).toBe(Math.round(base * 1.15));
+    const base = movementSpeedPercent(NONE, 'galley', undefined, 'dark-age');
+    expect(movementSpeedPercent(DRY_DOCK, 'galley', undefined, 'dark-age')).toBe(Math.round(base * 1.15));
     // Careening alone is not a speed technology.
-    expect(movementSpeedPercent(CAREENING, 'galley')).toBe(base);
-    expect(movementSpeedPercent(DRY_DOCK, 'knight')).toBe(movementSpeedPercent(NONE, 'knight'));
-    expect(movementSpeedPercent(DRY_DOCK, 'villager')).toBe(movementSpeedPercent(NONE, 'villager'));
+    expect(movementSpeedPercent(CAREENING, 'galley', undefined, 'dark-age')).toBe(base);
+    expect(movementSpeedPercent(DRY_DOCK, 'knight', undefined, 'dark-age')).toBe(movementSpeedPercent(NONE, 'knight', undefined, 'dark-age'));
+    expect(movementSpeedPercent(DRY_DOCK, 'villager', undefined, 'dark-age')).toBe(movementSpeedPercent(NONE, 'villager', undefined, 'dark-age'));
   });
 
   it('applies to every ship, fishing and fighting alike', () => {
     for (const unitType of ['fishing-ship', 'transport-ship', 'galleon', 'longboat'] as const) {
-      expect(movementSpeedPercent(DRY_DOCK, unitType))
-        .toBe(Math.round(movementSpeedPercent(NONE, unitType) * 1.15));
+      expect(movementSpeedPercent(DRY_DOCK, unitType, undefined, 'dark-age'))
+        .toBe(Math.round(movementSpeedPercent(NONE, unitType, undefined, 'dark-age') * 1.15));
     }
   });
 });

@@ -121,8 +121,10 @@ const SHIPS = new Set<UnitType>([
 ]);
 const CAVALRY_ARCHER_LINE = new Set<UnitType>(['cavalry-archer', 'heavy-cavalry-archer']);
 const RANGED_SOLDIERS = new Set<UnitType>(['archer', 'crossbowman', 'arbalest', 'skirmisher', 'elite-skirmisher', 'cavalry-archer', 'heavy-cavalry-archer', 'hand-cannoneer']);
-// The Archer line alone: the Mayan discount's scope. Whether DE's "Foot
-// Archers cost -10/20/30%" also reaches the Plumed Archer is not checked.
+// The Archer line alone: the Mayan discount's scope. DE's line is "Foot
+// Archers cost -10/20/30% in Feudal/Castle/Imperial Age", and DE labels the
+// Plumed Archer a Foot Archer, so a Mayan Plumed Archer misses a discount DE
+// gives it; spec §11.11's open list holds that.
 const FOOT_ARCHER_LINE = new Set<UnitType>(['archer', 'crossbowman', 'arbalest']);
 const SCOUT_LINE = new Set<UnitType>(['scout', 'light-cavalry', 'hussar']);
 const SIEGE_UNITS = new Set<UnitType>(['battering-ram', 'capped-ram', 'siege-ram', 'mangonel', 'onager', 'siege-onager', 'scorpion', 'heavy-scorpion', 'bombard-cannon', 'petard', 'trebuchet']);

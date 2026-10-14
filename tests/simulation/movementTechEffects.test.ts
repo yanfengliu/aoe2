@@ -66,22 +66,22 @@ const UNMOUNTED_TYPES: UnitType[] = [
 describe('movementSpeedPercent — Husbandry scope (technologies.csv:79 Cavalry;Cavalry Archer)', () => {
   it('grants 110% to every mounted unit when husbandry is researched', () => {
     for (const unitType of MOUNTED_TYPES) {
-      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType))
+      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType, undefined, 'dark-age'))
         .toBe(boosted(unitType, HUSBANDRY_SPEED_PERCENT));
     }
   });
 
   it('leaves every non-mounted unit at its own base even with husbandry researched', () => {
     for (const unitType of UNMOUNTED_TYPES) {
-      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType))
+      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType, undefined, 'dark-age'))
         .toBe(unitBaseSpeedPercent(unitType));
     }
   });
 
   it('leaves mounted units at their base without husbandry (none / unrelated tech)', () => {
     for (const unitType of MOUNTED_TYPES) {
-      expect(movementSpeedPercent(NO_TECHS, unitType)).toBe(unitBaseSpeedPercent(unitType));
-      expect(movementSpeedPercent(UNRELATED_TECH, unitType)).toBe(unitBaseSpeedPercent(unitType));
+      expect(movementSpeedPercent(NO_TECHS, unitType, undefined, 'dark-age')).toBe(unitBaseSpeedPercent(unitType));
+      expect(movementSpeedPercent(UNRELATED_TECH, unitType, undefined, 'dark-age')).toBe(unitBaseSpeedPercent(unitType));
     }
   });
 });
@@ -108,34 +108,34 @@ const INFANTRY_TYPES: UnitType[] = [
 describe('movementSpeedPercent — Squires scope (technologies.csv:12 Infantry) + independence from Husbandry', () => {
   it('grants 110% to every infantry unit when squires is researched', () => {
     for (const unitType of INFANTRY_TYPES) {
-      expect(movementSpeedPercent(SQUIRES_ONLY, unitType))
+      expect(movementSpeedPercent(SQUIRES_ONLY, unitType, undefined, 'dark-age'))
         .toBe(boosted(unitType, SQUIRES_SPEED_PERCENT));
     }
   });
 
   it('leaves non-infantry (mounted / villager / archer / monk / siege) at its base with squires', () => {
     for (const unitType of [...MOUNTED_TYPES, 'villager', 'archer', 'monk', 'mangonel'] as UnitType[]) {
-      expect(movementSpeedPercent(SQUIRES_ONLY, unitType)).toBe(unitBaseSpeedPercent(unitType));
+      expect(movementSpeedPercent(SQUIRES_ONLY, unitType, undefined, 'dark-age')).toBe(unitBaseSpeedPercent(unitType));
     }
   });
 
   it('does not cross the wires: Husbandry never speeds infantry, Squires never speeds mounted', () => {
     for (const unitType of INFANTRY_TYPES) {
-      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType)).toBe(unitBaseSpeedPercent(unitType));
+      expect(movementSpeedPercent(HUSBANDRY_ONLY, unitType, undefined, 'dark-age')).toBe(unitBaseSpeedPercent(unitType));
     }
     for (const unitType of MOUNTED_TYPES) {
-      expect(movementSpeedPercent(SQUIRES_ONLY, unitType)).toBe(unitBaseSpeedPercent(unitType));
+      expect(movementSpeedPercent(SQUIRES_ONLY, unitType, undefined, 'dark-age')).toBe(unitBaseSpeedPercent(unitType));
     }
   });
 
   it('with BOTH techs researched, each unit gets its own +10% (no double-count)', () => {
-    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'knight'))
+    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'knight', undefined, 'dark-age'))
       .toBe(boosted('knight', HUSBANDRY_SPEED_PERCENT));
-    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'militia'))
+    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'militia', undefined, 'dark-age'))
       .toBe(boosted('militia', SQUIRES_SPEED_PERCENT));
     // A villager gets neither Husbandry nor Squires — only the carry techs
     // (below) touch it, and a villager IS the 100% reference.
-    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'villager')).toBe(100);
+    expect(movementSpeedPercent(BOTH_SPEED_TECHS, 'villager', undefined, 'dark-age')).toBe(100);
   });
 });
 
@@ -154,10 +154,10 @@ describe('movementSpeedPercent — Wheelbarrow/Hand Cart villager speed (STACKIN
   it('each carry tech gives villagers +10%, and the two STACK multiplicatively to 121%', () => {
     expect(WHEELBARROW_SPEED_PERCENT).toBe(110);
     expect(HAND_CART_SPEED_PERCENT).toBe(110);
-    expect(movementSpeedPercent(NO_TECHS, 'villager')).toBe(100);
-    expect(movementSpeedPercent(WHEELBARROW_ONLY, 'villager')).toBe(110);
-    expect(movementSpeedPercent(HAND_CART_ONLY, 'villager')).toBe(110);
-    expect(movementSpeedPercent(BOTH_CARRY_TECHS, 'villager')).toBe(121); // 110 × 1.1
+    expect(movementSpeedPercent(NO_TECHS, 'villager', undefined, 'dark-age')).toBe(100);
+    expect(movementSpeedPercent(WHEELBARROW_ONLY, 'villager', undefined, 'dark-age')).toBe(110);
+    expect(movementSpeedPercent(HAND_CART_ONLY, 'villager', undefined, 'dark-age')).toBe(110);
+    expect(movementSpeedPercent(BOTH_CARRY_TECHS, 'villager', undefined, 'dark-age')).toBe(121); // 110 × 1.1
   });
 
   it('the carry techs speed ONLY villagers — mounted / infantry / archer / monk / siege unaffected', () => {
@@ -168,7 +168,7 @@ describe('movementSpeedPercent — Wheelbarrow/Hand Cart villager speed (STACKIN
       'monk',
       'mangonel',
     ] as UnitType[]) {
-      expect(movementSpeedPercent(BOTH_CARRY_TECHS, unitType))
+      expect(movementSpeedPercent(BOTH_CARRY_TECHS, unitType, undefined, 'dark-age'))
         .toBe(unitBaseSpeedPercent(unitType));
     }
   });
@@ -180,13 +180,13 @@ describe('movementSpeedPercent — Wheelbarrow/Hand Cart villager speed (STACKIN
       'wheelbarrow',
       'hand-cart',
     ] as ResearchableTechnologyType[]);
-    expect(movementSpeedPercent(allSpeed, 'knight'))
+    expect(movementSpeedPercent(allSpeed, 'knight', undefined, 'dark-age'))
       .toBe(boosted('knight', HUSBANDRY_SPEED_PERCENT));
-    expect(movementSpeedPercent(allSpeed, 'militia'))
+    expect(movementSpeedPercent(allSpeed, 'militia', undefined, 'dark-age'))
       .toBe(boosted('militia', SQUIRES_SPEED_PERCENT));
-    expect(movementSpeedPercent(allSpeed, 'villager')).toBe(121); // Wheelbarrow × Hand Cart
+    expect(movementSpeedPercent(allSpeed, 'villager', undefined, 'dark-age')).toBe(121); // Wheelbarrow × Hand Cart
     // The archer line has no movement tech at all, so it keeps exactly its base.
-    expect(movementSpeedPercent(allSpeed, 'archer')).toBe(unitBaseSpeedPercent('archer'));
+    expect(movementSpeedPercent(allSpeed, 'archer', undefined, 'dark-age')).toBe(unitBaseSpeedPercent('archer'));
   });
 });
 

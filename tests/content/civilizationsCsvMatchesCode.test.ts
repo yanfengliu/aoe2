@@ -80,6 +80,14 @@ const PAIRS: readonly Pair[] = [
     },
   },
   {
+    civilization: 'Berbers', column: 'civilizationBonuses', line: 'Villagers move +5% faster in Dark Age and +10% from Feudal Age',
+    code: () => {
+      // All four ages: the rule holds a value for each (civBonusTable.ts).
+      const rates = [1.05, 1.1, 1.1, 1.1];
+      AGES.forEach((age, i) => expect(civSpeedMultiplier('Berbers', 'villager', age), age).toBeCloseTo(rates[i]!, 12));
+    },
+  },
+  {
     civilization: 'Britons', column: 'teamBonuses', line: 'Archery Ranges work +10% faster',
     code: () => expect(teamTrainTimeMultiplier(stateOf('Britons'), 1, 'archery-range', 'archer')).toBeCloseTo(1 / 1.1, 12),
   },

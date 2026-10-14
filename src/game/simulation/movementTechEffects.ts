@@ -76,11 +76,12 @@ export function moveCarryCapHundredths(perTickHundredths: number): number {
 export function movementSpeedPercent(
   researchedTechnologies: ReadonlySet<ResearchableTechnologyType>,
   unitType: UnitType,
-  civilization?: string,
+  /** The owner's civilization; undefined reads as no civilization bonus. */
+  civilization: string | undefined,
   /** The owner's age: the Celtic infantry and Berber villager rates step with
-   *  it (civBonusTable.ts). Absent reads as the Dark Age, as at the step
-   *  executor. */
-  age: AgeType = 'dark-age',
+   *  it (civBonusTable.ts). Required, so a caller that drops it fails to
+   *  compile rather than walking every civilization at its Dark-Age rate. */
+  age: AgeType,
 ): number {
   // The unit's own rate is the STARTING point, not a special case: a Mangonel
   // is slow whether or not anyone researched anything, and Husbandry makes a

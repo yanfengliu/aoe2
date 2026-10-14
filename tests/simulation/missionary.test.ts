@@ -30,10 +30,10 @@ describe('the Missionary — data', () => {
 
   it('rides: faster than a monk, and faster still with Husbandry', () => {
     const none = new Set<'husbandry'>();
-    expect(movementSpeedPercent(none, 'missionary'))
-      .toBeGreaterThan(movementSpeedPercent(none, 'monk'));
-    expect(movementSpeedPercent(new Set(['husbandry']), 'missionary'))
-      .toBeGreaterThan(movementSpeedPercent(none, 'missionary'));
+    expect(movementSpeedPercent(none, 'missionary', undefined, 'dark-age'))
+      .toBeGreaterThan(movementSpeedPercent(none, 'monk', undefined, 'dark-age'));
+    expect(movementSpeedPercent(new Set(['husbandry']), 'missionary', undefined, 'dark-age'))
+      .toBeGreaterThan(movementSpeedPercent(none, 'missionary', undefined, 'dark-age'));
   });
 
   it('cannot carry relics — the monk can', () => {

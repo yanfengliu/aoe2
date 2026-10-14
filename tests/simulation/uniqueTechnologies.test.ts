@@ -151,7 +151,7 @@ describe('unit effects', () => {
     ];
     for (const unitType of workshop) {
       expect(afterResearch('furor-celtica', unitType).maxHp, unitType).toBe(150);
-      expect(movementSpeedPercent(set('drill'), unitType), unitType)
+      expect(movementSpeedPercent(set('drill'), unitType, undefined, 'dark-age'), unitType)
         .toBe(Math.round(unitBaseSpeedPercent(unitType) * 1.5));
     }
     // technologies.csv says "Siege Workshop Units", and the Trebuchet is a
@@ -178,14 +178,14 @@ describe('unit effects', () => {
 describe('speed effects ride the movement seam', () => {
   it('Drill moves siege 50% faster and nothing else', () => {
     const base = unitBaseSpeedPercent('mangonel');
-    expect(movementSpeedPercent(set('drill'), 'mangonel')).toBe(Math.round(base * 1.5));
-    expect(movementSpeedPercent(set('drill'), 'knight'))
+    expect(movementSpeedPercent(set('drill'), 'mangonel', undefined, 'dark-age')).toBe(Math.round(base * 1.5));
+    expect(movementSpeedPercent(set('drill'), 'knight', undefined, 'dark-age'))
       .toBe(unitBaseSpeedPercent('knight'));
   });
 
   it('Mahouts moves War Elephants 30% faster', () => {
     const base = unitBaseSpeedPercent('war-elephant');
-    expect(movementSpeedPercent(set('mahouts'), 'war-elephant')).toBe(Math.round(base * 1.3));
+    expect(movementSpeedPercent(set('mahouts'), 'war-elephant', undefined, 'dark-age')).toBe(Math.round(base * 1.3));
   });
 });
 
