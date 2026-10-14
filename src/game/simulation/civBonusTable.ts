@@ -229,7 +229,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     extraStartingUnits: [{ kind: 'villager', count: 3 }],
     populationProvided: { 'town-center': 15 },
     // DE (aoe2techtree 3bb43b14, DE update 185872): "Fire Lancers and Fire
-    // Ships move +5/10% faster in Castle/Imperial Age" (sourced vNEXT; no
+    // Ships move +5/10% faster in Castle/Imperial Age" (sourced v0.3.255; no
     // implementation until then). This build has no Fire Lancer.
     speed: [{
       applies: (unit) => FIRE_SHIPS.has(unit),
@@ -319,7 +319,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Khmer',
     // DE: "Farmers don't require Mills or Town Centers to drop off food"
-    // (aoe2techtree 3bb43b14, DE update 185872; sourced vNEXT, no
+    // (aoe2techtree 3bb43b14, DE update 185872; sourced v0.3.255, no
     // implementation until then). DE's notes give the method and the rate:
     // farmers no longer drop off (update 34699), the gather task's
     // "auto-collection" (185872), and they work 5% slower for it (42848,
@@ -402,7 +402,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     // Ship +10/15/20% HP rides the age ladder (ageScaledHp, v0.3.148).
     cost: [{ applies: () => true, goldMultiplier: 0.8 }], // DE: -20% gold.
     // DE: "Foragers generate wood in addition to food" (aoe2techtree
-    // 3bb43b14; sourced vNEXT, no implementation until then). The rate and
+    // 3bb43b14; sourced v0.3.255, no implementation until then). The rate and
     // the method are DE's update 73855, "Foragers generate a trickle of wood
     // (33%)", which DE's data holds as 33.33% of the forager's work rate
     // (resource 267): paid as the forager works, not at the drop-off.
@@ -430,7 +430,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     gatherRate: { 'gold-mine': 1.25 }, // DE: gold miners +25%.
     unitHp: [{ applies: (unit) => GUNPOWDER_UNITS.has(unit), multiplier: 1.25 }],
     // DE: "Scout Cavalry-line +1 pierce armor and upgrades free" (aoe2techtree
-    // 3bb43b14; sourced vNEXT, the armor had no implementation until then).
+    // 3bb43b14; sourced v0.3.255, the armor had no implementation until then).
     // The free upgrades are CIV_FREE_TECHNOLOGIES below.
     pierceArmor: [{ applies: (unit) => SCOUT_LINE.has(unit), bonus: 1 }],
   },

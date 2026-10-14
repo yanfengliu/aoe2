@@ -450,7 +450,7 @@ const STABLE_UNITS_ARMOR = new Set<UnitType>([
 ]);
 
 /** Pierce-only armor: the table's flat rules (the Turkish Scout line, sourced
- *  vNEXT), which no age changes, and Malians' "Barracks Units +1/+2/+3 pierce
+ *  v0.3.255), which no age changes, and Malians' "Barracks Units +1/+2/+3 pierce
  *  armor in Feudal/Castle/Imperial", the ladder the age-up sweep re-derives. */
 export function civPierceArmorBonus(
   civilization: string | undefined,

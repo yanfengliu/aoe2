@@ -148,7 +148,7 @@ export interface GathererComponent {
   // Earnings paid into the stockpile as the gatherer works, short of a whole
   // unit, in ten-thousandths (bridge/systems/gatherCredit.ts): a Portuguese
   // forager's wood, a Khmer farmer's food when an AI difficulty scales it.
-  // Absent until first needed, and in a game saved before vNEXT.
+  // Absent until first needed, and in a game saved before v0.3.255.
   creditTenThousandths?: Partial<Record<EconomyResourceKind, number>>;
 }
 
