@@ -1,6 +1,8 @@
 // Civilization bonuses on movement, price and sight do what Definitive
 // Edition's do (work 120 M3; defect register 2026-10-12, "Six civilization
-// bonuses departed from Definitive Edition's text").
+// bonuses departed from Definitive Edition's text"; and work 120 M4, defect
+// register 2026-10-14, "Four Definitive Edition civilization bonuses had no
+// implementation").
 //
 // SOURCE: the civilization help texts in SiegeEngineers/aoe2techtree
 // data/locales/en/strings.json at 3bb43b14 (DE update 185872):
@@ -8,11 +10,15 @@
 //    Age"
 //  - Ethiopians, team bonus: "Outposts +3 line of sight and cost no stone"
 //  - Italians: "Fishing Ships cost -15%"
+//  - Chinese: "Fire Lancers and Fire Ships move +5/10% faster in
+//    Castle/Imperial Age"
 //
 // THE DEFECTS: Celtic infantry moved 15% faster in every age. The Ethiopian
 // side's Watch Towers and Bombard Towers saw 3 farther too, and its Outposts
 // still cost stone. An Italian Fishing Ship cost 15 wood less, 60 instead of
-// DE's 64 (75 less 15%, rounded as every cost rule here rounds).
+// DE's 64 (75 less 15%, rounded as every cost rule here rounds). A Chinese
+// Fire Ship moved at the base rate in every age; this build has no Fire
+// Lancer.
 //
 // THE CLASS: a civilization bonus whose amount, age steps or scope departs from
 // DE's text. Each census walks every unit or building type through the seam
@@ -25,7 +31,9 @@
 // out from DE's "(Infantry)" labels and the lines, not read from the code. A
 // tower completed in a game saved before this change keeps the sight it was
 // saved with (spec §9.2.2, the building-bonus paragraph). The walks cover the
-// Dark and Imperial rungs; the census covers all four at the seam.
+// Dark and Imperial rungs; the census covers all four at the seam. The Fire
+// Ship voyages cover the Castle and Imperial rungs. Speed is derived every
+// tick, so a game saved before this change moves at the new rates at once.
 
 import { describe, expect, it } from 'vitest';
 
@@ -122,6 +130,64 @@ function militiaArrivalTicks(fixture: string, civilization: string, target: { x:
     if (militia && militia.x === target.x && militia.y === target.y) return tick;
   }
   throw new Error(`the ${civilization} militia in ${fixture} did not reach (${target.x},${target.y})`);
+}
+
+// DE: +5/10% in the Castle/Imperial Age, nothing before. DE's Fire Ship line as
+// this build has it: no Fire Galley, and no Fire Lancer at all.
+const FIRE_SHIP_LADDER: Readonly<Record<AgeType, number>> = {
+  'dark-age': 1, 'feudal-age': 1, 'castle-age': 1.05, 'imperial-age': 1.1,
+};
+const FIRE_SHIPS: ReadonlySet<UnitType> = new Set<UnitType>(['fire-ship', 'fast-fire-ship']);
+
+describe('Chinese Fire Ships move faster in the Castle and Imperial Ages', () => {
+  it('moves the Fire Ship line +5/10% in the Castle/Imperial Age at the step executor\'s seam, and nothing else', () => {
+    const wrong: string[] = [];
+    for (const unitType of EVERY_UNIT_TYPE) {
+      for (const age of AGES) {
+        const plain = movementSpeedPercent(NONE, unitType, 'Britons', age);
+        const expected = FIRE_SHIPS.has(unitType)
+          ? Math.round(UNIT_BASE_SPEED_PERCENT[unitType] * FIRE_SHIP_LADDER[age])
+          : plain;
+        const actual = movementSpeedPercent(NONE, unitType, 'Chinese', age);
+        if (actual !== expected) wrong.push(`${unitType} in the ${age}: ${actual}%, expected ${expected}%`);
+      }
+    }
+    expect(wrong).toEqual([]);
+    // Not vacuous: the Imperial rung takes a Fire Ship from 169% to 186%.
+    expect(movementSpeedPercent(NONE, 'fire-ship', 'Chinese', 'imperial-age')).toBe(186);
+  });
+
+  it('a Chinese Fire Ship in the Imperial Age sails about 10% faster than a plain one, the age the step executor reads', () => {
+    const ratio = fireShipVoyageTicks('Britons') / fireShipVoyageTicks('Chinese');
+    // 186% against 169% sails about 1.10 times as fast; the Castle rung would
+    // make it about 1.05, and the Dark Age's none 1.00.
+    expect(ratio).toBeGreaterThan(1.07);
+    expect(ratio).toBeLessThan(1.13);
+  }, 60_000);
+});
+
+/** Ticks owner 1's Fire Ship takes to sail from its berth in the unit
+ *  showcase's pool (Imperial Age) to the pool's far corners, one after the
+ *  other. A seeded ship, not a trained one: the Chinese opening villagers come
+ *  after the scenario's own units, so both arms' ships have the same id, and
+ *  so the same place in their cell. A trained one does not, and the cell it
+ *  starts from shifted a Chinese voyage 2% with no bonus at all. */
+function fireShipVoyageTicks(civilization: string): number {
+  const bridge = createSimulationBridge('unit-showcase-fixture', { civilizationsByOwner: new Map([[1, civilization]]) });
+  let ticks = 0;
+  for (const target of [{ x: 26, y: 29 }, { x: 2, y: 25 }]) {
+    expect(selectOwnedUnitDirect(bridge, 1, 'fire-ship')).toBe(true);
+    expect(bridge.issueMoveCommand(target.x, target.y)).toBe(true);
+    const there = () => bridge.getEconomyState().units.some(
+      (u) => u.owner === 1 && u.unitType === 'fire-ship' && u.x === target.x && u.y === target.y,
+    );
+    for (let leg = 0; !there(); leg += 1) {
+      if (leg >= 1500) throw new Error(`the ${civilization} Fire Ship in the unit showcase did not reach (${target.x},${target.y})`);
+      bridge.step(100);
+      ticks += 1;
+    }
+  }
+  return ticks;
 }
 
 describe('the Ethiopian side\'s Outposts', () => {

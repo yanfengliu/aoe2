@@ -449,17 +449,20 @@ const STABLE_UNITS_ARMOR = new Set<UnitType>([
   'scout', 'light-cavalry', 'hussar', 'knight', 'cavalier', 'paladin', 'camel', 'heavy-camel',
 ]);
 
-/** Malians: "Barracks Units +1/+2/+3 pierce armor in Feudal/Castle/Imperial". */
+/** Pierce-only armor: the table's flat rules (the Turkish Scout line, sourced
+ *  vNEXT), which no age changes, and Malians' "Barracks Units +1/+2/+3 pierce
+ *  armor in Feudal/Castle/Imperial", the ladder the age-up sweep re-derives. */
 export function civPierceArmorBonus(
   civilization: string | undefined,
   unitType: UnitType,
   age: AgeType,
 ): number {
-  if (civilization !== 'Malians' || !BARRACKS_UNITS.has(unitType)) return 0;
-  if (age === 'imperial-age') return 3;
-  if (age === 'castle-age') return 2;
-  if (age === 'feudal-age') return 1;
-  return 0;
+  let flat = 0;
+  for (const rule of civBonusesFor(civilization)?.pierceArmor ?? []) {
+    if (rule.applies(unitType)) flat += rule.bonus;
+  }
+  if (civilization !== 'Malians' || !BARRACKS_UNITS.has(unitType)) return flat;
+  return flat + { 'dark-age': 0, 'feudal-age': 1, 'castle-age': 2, 'imperial-age': 3 }[age];
 }
 
 /** Teutons: "Barracks and Stable Units +1/+2 melee armor in Castle/Imperial". */

@@ -41,6 +41,7 @@ import {
 import { civCarryBonus, civFishingShipRateMultiplier,
   civGatherRateMultiplier, civResourceDurationMultiplier } from '../../civBonusEffects';
 import { tryReseedFarm } from '../farmReseed';
+import { payGatherSwing } from './gatherCredit';
 import {
   aiStatesCodec,
   gathererDropOffStuckSinceTickCodec,
@@ -243,6 +244,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
       }
 
       const aiStates = accessor.get(aiStatesCodec); // auto-gather gate's AI-control clause
+      const creditDeps = { accessor, aiStates, civilizations: playerCivilizations, ensurePlayerScoreCounters };
 
       for (const id of activeWorld.query('position', 'unit', 'gatherer')) {
         if (unitCommands.has(id)) {
@@ -390,8 +392,12 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                 targetResource.amount = gatherAmount >= yieldLeft
                   ? 0
                   : targetResource.amount - gatherAmount / duration;
-                gatherer.carriedResource = carriedResource;
-                gatherer.carriedAmount += gatherAmount;
+                // A Khmer farmer pays its food in where it stands, and a
+                // Portuguese forager earns wood beside its food (gatherCredit.ts).
+                if (!payGatherSwing(creditDeps, unit.owner, gatherer, targetResource.resourceType, gatherAmount)) {
+                  gatherer.carriedResource = carriedResource;
+                  gatherer.carriedAmount += gatherAmount;
+                }
 
                 // Capture depletion BEFORE a reseed refills `amount` (so the
                 // villager still drops off its carry this cycle either way).
@@ -407,7 +413,11 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
                   // reseeded in place keeps both the flag and the farmer.
                   endExplicitOrderIfChained(id, gatherer);
                 }
-                if (depleted || gatherer.carriedAmount >= carryCapacity) {
+                if (gatherer.carriedAmount <= 0) {
+                  // Empty hands (a Khmer farmer's) take nothing home: it farms a
+                  // reseeded Farm on, and looks for work when its Farm is gone.
+                  if (gatherer.targetResourceId === null) gatherer.task = 'idle';
+                } else if (depleted || gatherer.carriedAmount >= carryCapacity) {
                   gatherer.task = 'to-dropoff';
                 }
               }

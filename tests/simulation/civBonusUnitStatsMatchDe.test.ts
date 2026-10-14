@@ -1,12 +1,15 @@
 // Civilization bonuses on a unit's own numbers do what Definitive Edition's do
 // (work 120 M3; defect register 2026-10-12, "Six civilization bonuses departed
-// from Definitive Edition's text").
+// from Definitive Edition's text"; and work 120 M4, defect register
+// 2026-10-14, "Four Definitive Edition civilization bonuses had no
+// implementation").
 //
 // SOURCE: the civilization help texts in SiegeEngineers/aoe2techtree
 // data/locales/en/strings.json at 3bb43b14 (DE update 185872):
 //  - Italians: "Foot Archers and Condottieri +1 melee/+1 pierce armor"
 //  - Vietnamese: "Foot Archers and Skirmishers +20% HP"
 //  - Spanish: "Gunpowder Units attack +18% faster"
+//  - Turks: "Scout Cavalry-line +1 pierce armor and upgrades free"
 // DE's labels for its unique units give the classes. "(Foot Archer)" is the
 // Longbowman, Chu Ko Nu, Plumed Archer, Genoese Crossbowman and Rattan Archer,
 // so Foot Archers are the Archer line and those. The Skirmisher line is named
@@ -18,7 +21,8 @@
 // THE DEFECTS: the Italian armour had no implementation. The Vietnamese +20%
 // reached every Archery Range unit, the Cavalry Archer line and the Hand
 // Cannoneer included. The Spanish attack speed left out the Conquistador and
-// the Janissary.
+// the Janissary. The Turkish pierce armour had no implementation (the free
+// upgrades did).
 //
 // THE CLASS: a civilization bonus on a unit's numbers whose scope or presence
 // departs from DE's text. Each census walks every unit type in every age
@@ -29,9 +33,11 @@
 //
 // BOUNDS: the factory, and units made in a real match. A unit standing in a
 // game saved before this change keeps the numbers it was saved with until a
-// line upgrade rebuilds it (spec §11.11). A converted unit keeps its old
-// owner's numbers, as it always has. The Genoese Crossbowman, Condottiero,
-// Rattan Archer and Imperial Skirmisher are not in this build.
+// line upgrade rebuilds it (spec §11.11); for a Turkish Scout Cavalry that is
+// the Light Cavalry upgrade, free from the Castle Age. A converted unit keeps
+// its old owner's numbers, as it always has. The Genoese Crossbowman,
+// Condottiero, Rattan Archer, Imperial Skirmisher and Winged Hussar are not in
+// this build.
 
 import { describe, expect, it } from 'vitest';
 
@@ -55,6 +61,9 @@ const DE_FOOT_ARCHERS: ReadonlySet<UnitType> = new Set<UnitType>([
   'plumed-archer', 'elite-plumed-archer',
 ]);
 const DE_SKIRMISHERS: ReadonlySet<UnitType> = new Set<UnitType>(['skirmisher', 'elite-skirmisher']);
+// DE's Scout Cavalry line as the Turks have it: the Winged Hussar is not in
+// their tree, nor in this build.
+const DE_SCOUT_CAVALRY_LINE: ReadonlySet<UnitType> = new Set<UnitType>(['scout', 'light-cavalry', 'hussar']);
 const DE_GUNPOWDER_UNITS: ReadonlySet<UnitType> = new Set<UnitType>([
   'hand-cannoneer', 'bombard-cannon', 'cannon-galleon', 'elite-cannon-galleon',
   'conquistador', 'elite-conquistador', 'janissary', 'elite-janissary',
@@ -103,6 +112,21 @@ describe('the combat-state factory gives each bonus to DE\'s class alone', () =>
         const expected = inClass ? Math.round(unitMaxHp(unitType) * 1.2) : made('Britons', unitType, age).maxHp;
         const actual = made('Vietnamese', unitType, age).maxHp;
         if (actual !== expected) wrong.push(`${unitType} in the ${age}: ${actual} HP, expected ${expected}`);
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it('the Turkish Scout Cavalry line has +1 pierce armor and no more melee armor in every age, and no other unit changes', () => {
+    const wrong: string[] = [];
+    for (const unitType of EVERY_UNIT_TYPE) {
+      for (const age of AGES) {
+        const expected = DE_SCOUT_CAVALRY_LINE.has(unitType) ? 1 : 0;
+        const melee = meleeArmor('Turks', unitType, age) - meleeArmor('Britons', unitType, age);
+        const pierce = pierceArmor('Turks', unitType, age) - pierceArmor('Britons', unitType, age);
+        if (melee !== 0 || pierce !== expected) {
+          wrong.push(`${unitType} in the ${age}: +${melee}/+${pierce}, expected +0/+${expected}`);
+        }
       }
     }
     expect(wrong).toEqual([]);
@@ -180,6 +204,19 @@ describe('units made in a real match', () => {
     for (const unitType of ['conquistador', 'elite-conquistador']) {
       expect(reloadOf('Spanish', unitType), unitType)
         .toBe(Math.max(1, Math.round(reloadOf('Britons', unitType) / 1.18)));
+    }
+  }, 60_000);
+
+  it('a Turkish player\'s starting Scout Cavalry and a Castle-Age Light Cavalry show +1 pierce armor in their panels', () => {
+    const armorOf = (fixture: string, civilization: string, unitType: string) => panelArmor(
+      createSimulationBridge(fixture, { civilizationsByOwner: new Map([[1, civilization]]) }),
+      unitType,
+    );
+    // The boot map's opening Scout, and the Light Cavalry the Mongol scout
+    // fixture seeds in the Castle Age.
+    for (const [fixture, unitType] of [['aoe2-prototype', 'scout'], ['civ-mongols-scout-control-fixture', 'light-cavalry']] as const) {
+      const plain = armorOf(fixture, 'Britons', unitType);
+      expect(armorOf(fixture, 'Turks', unitType), unitType).toEqual({ melee: plain.melee, pierce: plain.pierce! + 1 });
     }
   }, 60_000);
 });

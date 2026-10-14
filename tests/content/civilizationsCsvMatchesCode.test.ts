@@ -4,7 +4,8 @@
 // copy in civProfiles.ts. Where the code follows current Definitive Edition,
 // a row that still states an older value tells the player something false.
 // Work 120 M3 (defect register 2026-10-12) brought the code itself to DE on
-// five more lines, and pairs them here the same way.
+// five more lines, and pairs them here the same way, and work 120 M4 (defect
+// register 2026-10-14) gave four DE lines the implementation they lacked.
 //
 // SOURCE for every line below: the civilization help texts in
 // SiegeEngineers/aoe2techtree data/locales/en/strings.json at 3bb43b14 (DE
@@ -30,8 +31,10 @@ import { slavsTeamMilitaryPop } from '../../src/game/simulation/bridge/teamPopul
 import {
   civArmorBonus,
   civBuildingAttackLadder,
+  civGatherRateMultiplier,
   civCarryBonus,
   civImperialPopulationBonus,
+  civPierceArmorBonus,
   civPopulationProvidedBonus,
   civReloadMultiplier,
   civResourceDurationMultiplier,
@@ -43,7 +46,9 @@ import {
   effectiveResearchCost,
   effectiveTrainingCost,
 } from '../../src/game/simulation/civBonusEffects';
+import { CIV_FREE_TECHNOLOGIES } from '../../src/game/simulation/civBonusTable';
 import { teamBuildingVisionBonus } from '../../src/game/simulation/civBuildingBonuses';
+import { civCollectsWithoutDropOff, civGatherSideIncome } from '../../src/game/simulation/civGatherBonuses';
 import { CIV_PROFILES, civProfileFor } from '../../src/game/simulation/civProfiles';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { constructionCost, researchCost, trainingCost } from '../../src/game/simulation/prototypeEconomyRules';
@@ -107,6 +112,16 @@ const PAIRS: readonly Pair[] = [
     code: () => {
       expect(teamBuildingVisionBonus(SOLO, new Map([[1, 'Chinese']]), 1, 'town-center')).toBe(7);
       expect(civPopulationProvidedBonus('Chinese', 'town-center')).toBe(15);
+    },
+  },
+  {
+    civilization: 'Chinese', column: 'civilizationBonuses', line: 'Fire Lancers and Fire Ships move +5/10% faster in Castle/Imperial Age',
+    code: () => {
+      // All four ages, for both ships of the line; this build has no Fire Lancer.
+      const rates = [1, 1, 1.05, 1.1];
+      for (const ship of ['fire-ship', 'fast-fire-ship'] as const) {
+        AGES.forEach((age, i) => expect(civSpeedMultiplier('Chinese', ship, age), `${ship} ${age}`).toBeCloseTo(rates[i]!, 12));
+      }
     },
   },
   {
@@ -190,6 +205,14 @@ const PAIRS: readonly Pair[] = [
     },
   },
   {
+    civilization: 'Khmer', column: 'civilizationBonuses', line: "Farmers don't require Mills or Town Centers to drop off food",
+    code: () => {
+      // DE's method and rate (updates 34699, 42848, 185872): no drop-off, 5% slower.
+      expect(civCollectsWithoutDropOff('Khmer', 'farm')).toBe(true);
+      expect(civGatherRateMultiplier('Khmer', 'farm')).toBe(0.95);
+    },
+  },
+  {
     civilization: 'Mayans', column: 'civilizationBonuses', line: 'Resources last +15% longer',
     code: () => expect(civResourceDurationMultiplier('Mayans', 'tree')).toBe(1.15),
   },
@@ -199,6 +222,11 @@ const PAIRS: readonly Pair[] = [
       const rates = [1.05, 1.1, 1.15, 1.2];
       AGES.forEach((age, i) => expect(teamTrainTimeMultiplier(stateOf('Persians', age), 1, 'town-center', 'villager'), age).toBeCloseTo(1 / rates[i]!, 12));
     },
+  },
+  {
+    civilization: 'Portuguese', column: 'civilizationBonuses', line: 'Foragers generate wood in addition to food',
+    // DE's rate (update 73855; resource 267 in DE's data): 33.33% of the food.
+    code: () => expect(civGatherSideIncome('Portuguese', 'berry-bush')).toEqual({ resource: 'wood', perUnit: 0.3333 }),
   },
   {
     civilization: 'Spanish', column: 'civilizationBonuses', line: 'Gunpowder Units attack +18% faster',
@@ -220,6 +248,15 @@ const PAIRS: readonly Pair[] = [
     code: () => {
       expect(slavsTeamMilitaryPop(stateOf('Slavs'), 1, 'barracks')).toBe(5);
       expect(slavsTeamMilitaryPop(stateOf('Slavs'), 1, 'castle')).toBe(0);
+    },
+  },
+  {
+    civilization: 'Turks', column: 'civilizationBonuses', line: 'Scout Cavalry-line +1 pierce armor and upgrades free',
+    code: () => {
+      for (const scout of ['scout', 'light-cavalry', 'hussar'] as const) {
+        AGES.forEach((age) => expect(civPierceArmorBonus('Turks', scout, age), `${scout} ${age}`).toBe(1));
+      }
+      expect(CIV_FREE_TECHNOLOGIES.Turks).toEqual(expect.arrayContaining(['light-cavalry-upgrade', 'hussar-upgrade']));
     },
   },
   {

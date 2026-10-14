@@ -8,7 +8,7 @@
 // in ageScaledHp.ts, building sight and garrison in civBuildingBonuses.ts. A
 // line no seam expresses yet is listed in spec §11.11, not silently dropped.
 
-import type { AgeType, ResourceKind, UnitType } from './types';
+import type { AgeType, EconomyResourceKind, ResourceKind, UnitType } from './types';
 import { isInfantryUnit } from './prototypeUnitRules';
 
 export interface CivCostRule {
@@ -66,6 +66,12 @@ export interface CivBonusEntry {
     readonly applies: (unitType: UnitType) => boolean;
     readonly bonus: number;
   }>;
+  /** "+N pierce armor" alone: the pierce-only accumulator, read with the
+   *  Malian ladder by `civPierceArmorBonus` (the Turkish Scout line). */
+  readonly pierceArmor?: ReadonlyArray<{
+    readonly applies: (unitType: UnitType) => boolean;
+    readonly bonus: number;
+  }>;
   readonly cost?: ReadonlyArray<CivCostRule>;
   /** Building-cost rules: whole-cost or single-component multipliers,
    *  flat or by the owner's age (Franks castles, Briton TC wood). */
@@ -89,6 +95,16 @@ export interface CivBonusEntry {
     readonly applies: (kind: ResourceKind) => boolean;
     readonly multiplier: number;
   }>;
+  /** A gatherer of `kind` also earns `perUnit` of `resource` for each unit it
+   *  takes, paid into the stockpile as it works (Portuguese foragers' wood). */
+  readonly gatherSideIncome?: ReadonlyArray<{
+    readonly kind: ResourceKind;
+    readonly resource: EconomyResourceKind;
+    readonly perUnit: number;
+  }>;
+  /** Kinds whose gatherers pay into the stockpile as they work, with no trip
+   *  to a drop-off (Khmer farmers). */
+  readonly collectsWithoutDropOff?: readonly ResourceKind[];
   /** True: population is never limited by housing (Huns). */
   readonly houselessPopulation?: boolean;
 }
@@ -119,6 +135,8 @@ const WARSHIPS = new Set<UnitType>([
 const SHIPS = new Set<UnitType>([
   ...WARSHIPS, 'fishing-ship', 'transport-ship', 'trade-cog',
 ]);
+// DE's Fire Ship line as this build has it: no Fire Galley.
+const FIRE_SHIPS = new Set<UnitType>(['fire-ship', 'fast-fire-ship']);
 const CAVALRY_ARCHER_LINE = new Set<UnitType>(['cavalry-archer', 'heavy-cavalry-archer']);
 const RANGED_SOLDIERS = new Set<UnitType>(['archer', 'crossbowman', 'arbalest', 'skirmisher', 'elite-skirmisher', 'cavalry-archer', 'heavy-cavalry-archer', 'hand-cannoneer']);
 // The Archer line alone: the Mayan discount's scope. DE's line is "Foot
@@ -210,6 +228,13 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     startingResourcesDelta: { wood: -50, food: -200 },
     extraStartingUnits: [{ kind: 'villager', count: 3 }],
     populationProvided: { 'town-center': 15 },
+    // DE (aoe2techtree 3bb43b14, DE update 185872): "Fire Lancers and Fire
+    // Ships move +5/10% faster in Castle/Imperial Age" (sourced vNEXT; no
+    // implementation until then). This build has no Fire Lancer.
+    speed: [{
+      applies: (unit) => FIRE_SHIPS.has(unit),
+      multiplierByAge: { 'dark-age': 1, 'feudal-age': 1, 'castle-age': 1.05, 'imperial-age': 1.1 },
+    }],
   },
   {
     civilization: 'Ethiopians',
@@ -292,6 +317,17 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     }],
   },
   {
+    civilization: 'Khmer',
+    // DE: "Farmers don't require Mills or Town Centers to drop off food"
+    // (aoe2techtree 3bb43b14, DE update 185872; sourced vNEXT, no
+    // implementation until then). DE's notes give the method and the rate:
+    // farmers no longer drop off (update 34699), the gather task's
+    // "auto-collection" (185872), and they work 5% slower for it (42848,
+    // "-3% ▶ -5%").
+    collectsWithoutDropOff: ['farm'],
+    gatherRate: { farm: 0.95 },
+  },
+  {
     civilization: 'Koreans',
     gatherRate: { 'stone-mine': 1.2 },
     // DE (sourced v0.3.151): "Ranged Soldiers and Infantry cost -50% wood"
@@ -365,6 +401,12 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     civilization: 'Portuguese',
     // Ship +10/15/20% HP rides the age ladder (ageScaledHp, v0.3.148).
     cost: [{ applies: () => true, goldMultiplier: 0.8 }], // DE: -20% gold.
+    // DE: "Foragers generate wood in addition to food" (aoe2techtree
+    // 3bb43b14; sourced vNEXT, no implementation until then). The rate and
+    // the method are DE's update 73855, "Foragers generate a trickle of wood
+    // (33%)", which DE's data holds as 33.33% of the forager's work rate
+    // (resource 267): paid as the forager works, not at the drop-off.
+    gatherSideIncome: [{ kind: 'berry-bush', resource: 'wood', perUnit: 0.3333 }],
   },
   {
     civilization: 'Saracens',
@@ -387,6 +429,10 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     civilization: 'Turks',
     gatherRate: { 'gold-mine': 1.25 }, // DE: gold miners +25%.
     unitHp: [{ applies: (unit) => GUNPOWDER_UNITS.has(unit), multiplier: 1.25 }],
+    // DE: "Scout Cavalry-line +1 pierce armor and upgrades free" (aoe2techtree
+    // 3bb43b14; sourced vNEXT, the armor had no implementation until then).
+    // The free upgrades are CIV_FREE_TECHNOLOGIES below.
+    pierceArmor: [{ applies: (unit) => SCOUT_LINE.has(unit), bonus: 1 }],
   },
   {
     civilization: 'Vikings',
