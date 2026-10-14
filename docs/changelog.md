@@ -12,7 +12,7 @@ Six civilization bonuses now work as Definitive Edition's text says.
 - **Italian Foot Archers have +1 melee and +1 pierce armor.** The bonus did nothing before. In a game saved before this change, archers already on the map get it with their next upgrade (Crossbowman or Arbalester); Arbalesters keep the armor they were saved with.
 - **Vietnamese Foot Archers and Skirmishers have +20% hit points, and Cavalry Archers no longer do.** In a game saved before this change, Cavalry Archers already on the map keep their extra hit points until the Heavy Cavalry Archer upgrade, and Heavy Cavalry Archers keep them.
 - **Spanish Conquistadors attack 18% faster, like the other Spanish gunpowder units.** In a game saved before this change, Conquistadors already on the map keep their old attack speed until the Elite Conquistador upgrade, and Elite Conquistadors keep it.
-- The Civilizations panel describes each of these as the game now applies it.
+- The Civilizations panel describes each of these as the game now applies it, and names the Italians' unique technologies as Definitive Edition does, Silk Road and Pirotechnia (it listed Pavise and Silk Road). Neither is in the game yet, so both stay struck through.
 
 ## 0.3.252
 
