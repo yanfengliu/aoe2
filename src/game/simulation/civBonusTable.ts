@@ -163,7 +163,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     civilization: 'Berbers',
     // DE: "Villagers move +5% faster in Dark Age, +10% faster starting in
     // Feudal Age" (since v0.3.152; a branch in movementTechEffects.ts until
-    // vNEXT) · "Ships move +10% faster" · "Stable Units cost -15/20% in
+    // v0.3.253) · "Ships move +10% faster" · "Stable Units cost -15/20% in
     // Castle/Imperial Age".
     speed: [
       {
@@ -196,7 +196,7 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     civilization: 'Celts',
     // DE: "Lumberjacks work +15% faster" · "Infantry moves +5/10/15/20%
     // faster in Dark/Feudal/Castle/Imperial Age" (aoe2techtree 3bb43b14, DE
-    // update 185872; sourced vNEXT, +15% in every age until then).
+    // update 185872; sourced v0.3.253, +15% in every age until then).
     gatherRate: { tree: 1.15 },
     speed: [{
       applies: (unit) => isInfantryUnit(unit),
@@ -274,9 +274,9 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
   {
     civilization: 'Italians',
     // DE (aoe2techtree 3bb43b14, DE update 185872): "Gunpowder Units cost
-    // -20%" · "Fishing Ships cost -15%" (sourced vNEXT; 15 wood off until
+    // -20%" · "Fishing Ships cost -15%" (sourced v0.3.253; 15 wood off until
     // then) · "Foot Archers and Condottieri +1 melee/+1 pierce armor"
-    // (sourced vNEXT; this build has no Condottiero).
+    // (sourced v0.3.253; this build has no Condottiero).
     cost: [
       { applies: (unit) => GUNPOWDER_UNITS.has(unit), multiplier: 0.8 },
       { applies: (unit) => unit === 'fishing-ship', multiplier: 0.85 },

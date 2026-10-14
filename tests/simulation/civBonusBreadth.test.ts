@@ -71,7 +71,7 @@ describe('anti-building bonuses', () => {
 
 describe('speed bonuses', () => {
   it('moves the named lines faster', () => {
-    // DE: Celtic infantry +5/10/15/20% by age (sourced vNEXT; +15% flat
+    // DE: Celtic infantry +5/10/15/20% by age (sourced v0.3.253; +15% flat
     // before), Berber villagers +5% in the Dark Age and +10% after.
     expect(civSpeedMultiplier('Celts', 'militia', 'dark-age')).toBeCloseTo(1.05, 5);
     expect(civSpeedMultiplier('Celts', 'militia', 'feudal-age')).toBeCloseTo(1.1, 5);
@@ -144,7 +144,7 @@ describe('cost bonuses', () => {
     expect(effectiveTrainingCost('Vikings', 'feudal-age', 'transport-ship', NONE))
       .toEqual({ wood: 125 });
     // Italians: gunpowder -20% (sourced v0.3.144), fishing ships -15%
-    // (sourced vNEXT; 15 wood off before): 75 x 0.85 = 63.75, rounded to 64.
+    // (sourced v0.3.253; 15 wood off before): 75 x 0.85 = 63.75, rounded to 64.
     expect(effectiveTrainingCost('Italians', 'imperial-age', 'hand-cannoneer', NONE))
       .toEqual({ food: 36, gold: 40 });
     expect(effectiveTrainingCost('Italians', 'dark-age', 'fishing-ship', NONE))

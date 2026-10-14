@@ -267,7 +267,7 @@ const RETIRED_LINES: readonly string[] = [
   'Foot archers have +2 attack bonus against buildings',
   'Military buildings provide +5% population',
   'Reveals enemy positions at game start',
-  // Work 120 M3 (vNEXT): the code itself departed from DE on these.
+  // Work 120 M3 (v0.3.253): the code itself departed from DE on these.
   'Infantry moves 15% faster',
   'Towers and Outposts +3 LOS',
   'Fishing ship cost -15 wood',

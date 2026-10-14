@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## Unreleased — work 120 M3
+## 0.3.253
 
 Six civilization bonuses now work as Definitive Edition's text says.
 

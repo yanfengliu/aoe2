@@ -1,6 +1,6 @@
 // Building-scoped civilization/team bonuses (spec §9.2):
 //  - Ethiopians (team_bonus): DE's "Outposts +3 line of sight and cost no
-//    stone" (aoe2techtree 3bb43b14; towers had the +3 too until vNEXT)
+//    stone" (aoe2techtree 3bb43b14; towers had the +3 too until v0.3.253)
 //  - Teutons (civ): "Town Centers have +1 attack and +5 line of sight",
 //    "Towers can garrison 2x units", "Monks have 2x healing range"
 // The vision bonus must ride BOTH creation branches (explicit fixture vision

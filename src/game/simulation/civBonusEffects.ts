@@ -89,7 +89,7 @@ export function civSpeedMultiplier(
   return 1;
 }
 
-// Flat "+N melee/+N pierce armor" (Italian Foot Archers, sourced vNEXT),
+// Flat "+N melee/+N pierce armor" (Italian Foot Archers, sourced v0.3.253),
 // added by the combat-state factory to the symmetric accumulator, which melee
 // and pierce armor both read. It does not step with the age, so the age-up
 // sweep has nothing to re-derive.
@@ -351,7 +351,7 @@ export function civReloadMultiplier(
       return unitType === 'fire-ship' || unitType === 'fast-fire-ship' ? 1 / 1.25 : 1;
     case 'Spanish':
       // "Gunpowder Units attack +18% faster": every gunner, the Conquistador
-      // included (sourced vNEXT; the Hand Cannoneer, Bombard Cannon and
+      // included (sourced v0.3.253; the Hand Cannoneer, Bombard Cannon and
       // Cannon Galleon line alone until then).
       return GUNPOWDER_UNITS.has(unitType) ? 1 / 1.18 : 1;
     case 'Indians':

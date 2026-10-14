@@ -49,7 +49,7 @@ export function ownerConstructionCost(
     scale(VIKINGS_TEAM_DOCK_COST_MULTIPLIER);
   }
   // Ethiopian team bonus, DE: "Outposts +3 line of sight and cost no stone"
-  // (aoe2techtree 3bb43b14, DE update 185872; sourced vNEXT). The sight half
+  // (aoe2techtree 3bb43b14, DE update 185872; sourced v0.3.253). The sight half
   // is teamBuildingVisionBonus in civBuildingBonuses.ts.
   if (buildingType === 'outpost' && teamHasCivilization(teams, civilizations, owner, 'Ethiopians')) {
     const { stone: _stone, ...withoutStone } = cost;

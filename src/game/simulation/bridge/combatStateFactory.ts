@@ -114,7 +114,7 @@ export function createCombatStateFactory(deps: CombatStateFactoryDeps): (
       cooldownTicks: 0,
       // Per-age civ armor ladders (sourced v0.3.152): Teuton melee,
       // Malian barracks pierce. And the flat +1 melee/+1 pierce of Italian
-      // Foot Archers (sourced vNEXT), which both halves read from `armor`.
+      // Foot Archers (sourced v0.3.253), which both halves read from `armor`.
       armor: civMeleeArmorBonus(getCivilization(owner), unitType, getAge(owner))
         + civArmorBonus(getCivilization(owner), unitType),
       pierceArmorBonus: civPierceArmorBonus(getCivilization(owner), unitType, getAge(owner)),

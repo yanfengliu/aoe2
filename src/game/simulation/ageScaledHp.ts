@@ -38,7 +38,7 @@ const SHIPS = new Set<UnitType>([
 ]);
 
 // The Vietnamese scope. DE: "Foot Archers and Skirmishers +20% HP"
-// (aoe2techtree 3bb43b14, DE update 185872; sourced vNEXT). Until then it was
+// (aoe2techtree 3bb43b14, DE update 185872; sourced v0.3.253). Until then it was
 // every Archery Range unit, so the Cavalry Archer line and the Hand Cannoneer
 // had it too, and the foot-archer unique units did not.
 const FOOT_ARCHERS_AND_SKIRMISHERS: ReadonlySet<UnitType> = new Set<UnitType>([

@@ -35,7 +35,7 @@ describe('civReloadMultiplier (pure)', () => {
     expect(civReloadMultiplier('Saracens', 'galley', 'feudal-age')).toBeCloseTo(1 / 1.25, 5);
     expect(civReloadMultiplier('Byzantines', 'fire-ship', 'castle-age')).toBeCloseTo(1 / 1.25, 5);
     expect(civReloadMultiplier('Spanish', 'hand-cannoneer', 'imperial-age')).toBeCloseTo(1 / 1.18, 5);
-    // Every gunner, the Conquistador included (vNEXT; it was left out before).
+    // Every gunner, the Conquistador included (v0.3.253; it was left out before).
     expect(civReloadMultiplier('Spanish', 'conquistador', 'castle-age')).toBeCloseTo(1 / 1.18, 5);
     expect(civReloadMultiplier('Spanish', 'archer', 'castle-age')).toBe(1);
     expect(civReloadMultiplier('Indians', 'camel', 'castle-age')).toBeCloseTo(1 / 1.2, 5);
