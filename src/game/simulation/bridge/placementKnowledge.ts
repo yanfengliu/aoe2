@@ -25,7 +25,10 @@
 // remembered — never by its live claims, which would tell whether it still
 // stands. DE fixed the same in update 50292 (2021-07-06): a foundation could be
 // placed on top of another player's building on the edge of its line of
-// sight. Beside the footprint an unexplored cell meets no requirement: a Dock
+// sight. What the frame hides is not counted either: an enemy's foundation
+// nobody has started building is drawn neither live nor from memory however
+// much of it is lit (work 121, unstartedFoundations.ts), so it no more decides
+// the verdict on unexplored ground than anything else the fog hides. Beside the footprint an unexplored cell meets no requirement: a Dock
 // needs water the player has seen (placementFootprint.ts). A footprint with no
 // explored cell is refused.
 // Reachability is asked over explored ground only: a builder must be able to
@@ -59,19 +62,21 @@ import type { OccupancyCellClaim, Position, VisibilityMap } from 'civ-engine';
 
 import type {
   BuildingComponent,
+  ProjectedEntityView,
   RenderableComponent,
   ResourceComponent,
   UnitComponent,
 } from '../types';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
-import { aiStatesCodec, lastSeenStaticCodec } from './bridgeStateSerialize';
+import { aiStatesCodec } from './bridgeStateSerialize';
 import type {
   PlacementOccupancyOps,
   PlacementReachabilityOps,
   ReachabilityBlockReport,
 } from './builderReachability';
 import type { PlacementCellView, RememberedClaim } from './placementFootprint';
-import { isFootprintKnown, isFootprintSeen, readSightOwners } from './humanSight';
+import { isFootprintSeen, readSightOwners } from './humanSight';
+import { isHiddenUnstartedFoundation } from './unstartedFoundations';
 import type { GameWorld } from './pureHelpers';
 import { unitDomain } from '../unitDomain';
 
@@ -129,6 +134,11 @@ export interface PlacementKnowledgeDeps {
   getApproachCellsForFootprint: (anchor: Position, width: number, height: number, range?: number) => Position[];
   /** Bumped by every change to what blocks a cell (worldOccupancy). */
   structuralRevision: () => number;
+  /** What the frame draws from the human's fog memory, before it drops the
+   *  entries whose live entity it draws: fogMemoryOps' own projection, called
+   *  with no live ids, so its rules (an explored cell of the footprint, never
+   *  another player's unstarted foundation) are the frame's by construction. */
+  fogMemoryViews: () => readonly ProjectedEntityView[];
 }
 
 export interface PlayerKnowledgePlacement extends PlacementReachabilityOps {
@@ -206,11 +216,15 @@ export function withPlayerKnowledge(
     const isDrawnLive = (entity: number): boolean => {
       const position = world.getComponent<Position>(entity, 'position');
       if (!position) return false;
-      const entityOwner = world.getComponent<BuildingComponent>(entity, 'building')?.owner
+      const building = world.getComponent<BuildingComponent>(entity, 'building');
+      const entityOwner = building?.owner
         ?? world.getComponent<UnitComponent>(entity, 'unit')?.owner
         ?? world.getComponent<ResourceComponent>(entity, 'resource')?.owner
         ?? null;
       if (entityOwner === owner) return true;
+      // The frame never draws an enemy's foundation nobody has started
+      // building, however much of it is lit (renderStateOps' `isFoundationHidden`).
+      if (building && isHiddenUnstartedFoundation(accessor, entity, building.owner, owner)) return false;
       const renderable = world.getComponent<RenderableComponent>(entity, 'renderable');
       return isFootprintSeen(
         visibility,
@@ -232,13 +246,15 @@ export function withPlayerKnowledge(
   }
 
   /** The unexplored cells on which the frame draws something from the
-   *  player's fog memory, and what. The frame draws a remembered entry once a
-   *  cell of its footprint is explored, unless the live entity under that id
-   *  is drawn instead (fogMemoryOps, renderStateOps), and it draws it at the
-   *  footprint remembered. That footprint is read, never the live claims under
+   *  player's fog memory, and what. The memory views are the frame's own
+   *  projection (`fogMemoryViews`); the frame then drops a view whose live
+   *  entity it draws instead (renderStateOps), and so does this. A view sits at
+   *  the footprint remembered, and that is read, never the live claims under
    *  it: those would tell the player whether a building it cannot see still
    *  stands. Fog memory changes only inside a step, so this is built at most
-   *  once a tick, and only when an unexplored cell is asked about. */
+   *  once a tick, and only when an unexplored cell is asked about. The
+   *  projection is the human's, and the knower is always the human seat
+   *  (`placesByKnowledge`). */
   function rememberedCells(knowledge: Knowledge): Map<number, RememberedClaim> {
     const tick = world.tick;
     const cached = remembered.get(knowledge.owner);
@@ -246,16 +262,14 @@ export function withPlayerKnowledge(
       return cached.cells;
     }
     const cells = new Map<number, RememberedClaim>();
-    for (const [entityId, entry] of accessor.get(lastSeenStaticCodec).get(knowledge.owner) ?? []) {
-      const { x, y } = entry.position;
-      const { footprintWidth: width, footprintHeight: height } = entry;
-      if (!isFootprintKnown(visibility, knowledge.sight, x, y, width, height)) continue;
-      if (world.isAlive(entityId) && knowledge.isDrawnLive(entityId)) continue;
-      for (let cellY = y; cellY < y + height; cellY += 1) {
-        for (let cellX = x; cellX < x + width; cellX += 1) {
+    for (const view of deps.fogMemoryViews()) {
+      if (view.kind !== 'building' && view.kind !== 'resource') continue;
+      if (world.isAlive(view.id) && knowledge.isDrawnLive(view.id)) continue;
+      for (let cellY = view.y; cellY < view.y + view.footprintHeight; cellY += 1) {
+        for (let cellX = view.x; cellX < view.x + view.footprintWidth; cellX += 1) {
           if (!inMap(cellX, cellY) || knowledge.isCellKnown(cellX, cellY)) continue;
           const index = cellY * mapWidth + cellX;
-          if (!cells.has(index)) cells.set(index, { kind: entry.kind, entityType: entry.entityType });
+          if (!cells.has(index)) cells.set(index, { kind: view.kind, entityType: view.entityType });
         }
       }
     }

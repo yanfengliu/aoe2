@@ -322,6 +322,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     isCellPassableForUnit,
     getApproachCellsForFootprint,
     structuralRevision: () => worldOccupancy.structuralRevision(),
+    fogMemoryViews: () => getFogMemoryEntities(new Set()),
   });
   const { isPlacementBlocked, describePlacementBlockers, findOpenPlacementAnchors } = playerKnowledge;
   builderReachStats = builderReachability.stats;

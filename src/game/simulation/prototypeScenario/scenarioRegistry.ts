@@ -418,4 +418,5 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['unexplored-placement-open-fixture', createUnexploredPlacementFixture],
   ['unexplored-placement-hidden-fixture', createUnexploredPlacementFixture],
   ['unexplored-placement-lookout-fixture', createUnexploredPlacementFixture],
+  ['unexplored-placement-lookout-foundation-fixture', createUnexploredPlacementFixture],
 ]);

@@ -33,6 +33,10 @@ import { createGrassFixtureTerrain, gaiaSpawn, ownedSpawn } from './common';
 export const UNEXPLORED_PLACEMENT_OPEN_SEED = 'unexplored-placement-open-fixture';
 export const UNEXPLORED_PLACEMENT_HIDDEN_SEED = 'unexplored-placement-hidden-fixture';
 export const UNEXPLORED_PLACEMENT_LOOKOUT_SEED = 'unexplored-placement-lookout-fixture';
+/** The lookout variant with the enemy house a foundation nobody has started
+ *  building, which the frame hides from the human however much of it is lit
+ *  (work 121). */
+export const UNEXPLORED_PLACEMENT_LOOKOUT_FOUNDATION_SEED = 'unexplored-placement-lookout-foundation-fixture';
 
 export const VILLAGER_CELL: Position = { x: 20, y: 14 };
 /** Where the lookout variant's villager starts: it sees (24,17) of the enemy
@@ -108,8 +112,10 @@ export function hiddenObstacleCells(): Array<Position & { kind: HiddenKind }> {
 }
 
 export function createUnexploredPlacementFixture(seed: string): PrototypeScenario {
-  const hidden = seed === UNEXPLORED_PLACEMENT_HIDDEN_SEED || seed === UNEXPLORED_PLACEMENT_LOOKOUT_SEED;
-  const villagerCell = seed === UNEXPLORED_PLACEMENT_LOOKOUT_SEED ? LOOKOUT_CELL : VILLAGER_CELL;
+  const foundation = seed === UNEXPLORED_PLACEMENT_LOOKOUT_FOUNDATION_SEED;
+  const lookout = seed === UNEXPLORED_PLACEMENT_LOOKOUT_SEED || foundation;
+  const hidden = seed === UNEXPLORED_PLACEMENT_HIDDEN_SEED || lookout;
+  const villagerCell = lookout ? LOOKOUT_CELL : VILLAGER_CELL;
   const terrain = createGrassFixtureTerrain();
   const spawns: ScenarioSpawnSpec[] = [
     // Both Town Centres sit in far corners with short sight, so neither
@@ -128,7 +134,7 @@ export function createUnexploredPlacementFixture(seed: string): PrototypeScenari
       }
       if (cell.kind === 'gold') spawns.push(gaiaSpawn('gold-mine', cell.x, cell.y, { amount: 800 }));
     }
-    spawns.push(ownedSpawn('house', 2, ENEMY_HOUSE.x, ENEMY_HOUSE.y));
+    spawns.push(ownedSpawn('house', 2, ENEMY_HOUSE.x, ENEMY_HOUSE.y, foundation ? { unstartedFoundation: true } : {}));
     spawns.push(ownedSpawn('militia', 2, ENEMY_MILITIA_CELL.x, ENEMY_MILITIA_CELL.y));
   }
   return {
