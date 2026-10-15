@@ -259,6 +259,16 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     everything else keeps the blend; the tier is a define in the ground's one
     material, and `aoe2:de-ground-tier` in localStorage overrides it for a spec. `rendering/voxel/` owns the sole world adapter,
     procedural art, feedback parts, and Three runtime integration.
+    The adapter (`aoeVoxelAdapter.ts`) poses on each frame only what can have
+    changed (work 130): `aoeVoxelEntityPrep.ts` keeps a still entity's parts
+    (a building, a resource that is not wildlife, anything remembered) while its
+    projected view is equal field by field, and poses units, wildlife and
+    anything striking every frame; `aoeVoxelTerrainFrame.ts` keeps the voxel
+    ground's chunk drafts and the visible terrain detail between frames; and
+    `aoeVoxelLaneBatches.ts` splits the opaque surfaces into terrain, still and
+    moving lanes that keep their revision while unchanged, so the runtime keeps
+    those batches, while the translucent shadow and memory lanes stay one batch
+    each, because their in-batch order is what makes a pixel blend once.
     `aoeVoxelDaylight.ts` is the one source for the daylight rig the renderer
     hands to the runtime AND for the sun projection every entity's ground
     shadow is drawn from. The shadow splits in two: `aoeVoxelShadowShape.ts`
@@ -269,7 +279,7 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     and `aoeVoxelCastShadows.ts` owns WHERE the pieces sit in depth: a
     per-cell level, plus `resolveShadowLevels`, the whole-lane pass that
     lifts casters the cell rule cannot separate (two in one cell), which
-    `aoeVoxelResources.ts` runs while batching, so two overlapping shadows
+    the shadow lane runs while batching (`aoeVoxelLaneBatches.ts`), so two overlapping shadows
     never rasterise at one height. The lane draws on its own flat triangle
     geometry (`aoeVoxelShadowWedge.ts`) rather than the shared cube, because a
     silhouette is a polygon and a box instance can only be a parallelogram;

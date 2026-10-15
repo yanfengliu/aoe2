@@ -41,14 +41,24 @@ The presentation rebuilds and resubmits the whole known world on every drawn fra
 
 ## Fix
 
-Not built in this session: the cause is the presentation's architecture (a whole snapshot a frame), so the options went to the coordinator first, per the work-130 brief. They are in the plan.
+The coordinator chose option A, incremental presentation, as work 130 M1 (2026-10-15).
+
+- `src/rendering/voxel/aoeVoxelEntityPrep.ts`: posing, identities and motion histories moved out of the adapter, with a cache: a still entity (a building, a resource that is not wildlife, anything remembered) keeps its parts while its projected view is equal field by field; units, wildlife and anything striking are posed every frame.
+- `src/rendering/voxel/aoeVoxelTerrainFrame.ts`: the voxel ground's chunk drafts (Moebius) are kept while the frame object and the terrain are the same objects, and the visible terrain detail while the visible ground is equal.
+- `src/rendering/voxel/aoeVoxelLaneBatches.ts`: the opaque surfaces come in terrain, still and moving lanes, each keeping its batch revision while its parts are unchanged, so the runtime keeps the batch. The shadow and memory lanes stay one batch each, built by the same functions as before, because their in-batch order is what makes a pixel blend once and three.js orders separate translucent batches by bounding-sphere depth, which aoe2 cannot set.
+- `src/rendering/voxel/AoeVoxelWorldRenderer.ts`: the Natural ground is packed once per frame object.
+- `src/ui/hud/hudDomWrites.ts` and its callers: the HUD writes a value only when it differs. The audio loop's rect reads were where a layout dirtied by the HUD's writes was paid; with nothing dirty they cost nothing.
 
 ## Verification
 
-Not yet; the plan names the gate's measure (instances written a frame, read from the runtime's counters, at a saved late match against the opening).
+- Picture: `tests/rendering/aoeVoxelLaneEquivalence.test.ts` (the old adapter kept verbatim as the oracle, 120 frames of a real match and a scripted sequence), red under five mutations. Captures, before (base build) and after, 1280x800, `TICKS=1`, on SwiftShader: Natural and Moebius, the opening and a loaded tick-11,700 save, zoom 1.2 and 2.4. 0 changed pixels in 6 of 8 framings; 1 pixel in the two late zoomed framings (Natural (29,440) under the mute button's frosted glass, 18,23,19 against 19,23,19; Moebius (538,472) at the tip of a decor strip against a wall, green against grey); a second capture of the base build differs from the first by 0 pixels in all 8. On the GPU, the late default view: Natural 2 edge pixels, Moebius 0, floor 0. The instances being equal, the only difference left is the opaque draw order between lanes, which decides exactly-equal depth ties.
+- Cost, browser, interleaved against the base build, 4 rounds, 26-32 of 32 CPUs busy with other work and the GPU shared with a game: the opening frame's callbacks 14.6 ms (14.0-14.8) to 7.2 (7.1-7.2), fps 56.7 to 58.9; the tick-11,700 save's 27.3 ms (25.5-30.1) to 12.5 (11.6-13.7), p90 37.9 to 18.8, fps 32.6 (24.5-36.4) to 58.7 (51.4-59.7). Matrix writes per drawn frame 1,513 to 876 at the opening and about 3,010 to 2,070 late.
+- Cost, Node, the adapter alone over recorded frames, interleaved, on a saturated machine: opening 17.6 to 4.8 ms a frame, tick 1,700 26.6 to 11.1, tick 11,700 25.9 to 11.2, tick 18,000 46.9 to 19.2.
+- Gates: `tests/rendering/presentationFrameWork.test.ts`, `tests/browser/presentation-keeps-still-world.spec.ts`, `tests/browser/hud-frame-dom-writes.spec.ts`, each red with its defect put back (`docs/learning/gate-proofs.md`).
 
 ## Follow-ups
 
-- The heap of a running page rose from 128 to 342 MB over 18,085 ticks (sampled, not garbage-collected first), with frame costs flat; not investigated.
-- `stackAboveBell` in `src/audio/mountGameAudio.ts` forces a layout three times a frame (3.5-6.2% of the main thread) whatever the match holds.
-- One event listener more per replay round trip (91 to 94 over three).
+- Open: the shadow and memory lanes are rebuilt on any frame a unit moves, so per-frame work still grows with the world's shadows (43% of instances at tick 11,700) and with the units; a late frame costs 1.7 times the opening's. The trade is in the plan.
+- Open: a full snapshot is still validated in full each frame, including the kept batches (the runtime parses it twice and compares each kept batch with its live copy); the delta path (option B) would remove that.
+- The heap of a running page rose from 128 to 342 MB over 18,085 ticks (sampled, not garbage-collected first), with frame costs flat; not investigated, and in work 106's card queue.
+- One event listener more per replay round trip (91 to 94 over three); in work 106's card queue.

@@ -2,6 +2,13 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 130
+
+The frame rate holds better through a match.
+
+- **A frame no longer redraws the whole world it has already drawn.** The buildings, trees, mines and remembered ruins you have seen are kept from frame to frame and redrawn only when they change, so what you have explored and built costs a late match far less. On the development machine a frame of an AI-played match at 19:30 took 12.5 ms where it took 27.3 (59 frames a second where it managed 33), and the opening frame 7.2 ms where it took 14.6. Their shadows are still redrawn every frame, so a larger base still costs a little more. Moving units, shots and selection marks are drawn afresh every frame, as before, and the picture is unchanged.
+- **The HUD stops redrawing values that did not change.** It rewrote every resource count, worker count and label on every frame, even with the game paused.
+
 ## 0.3.257
 
 Every price the game states is now the price the click takes.
