@@ -108,9 +108,9 @@ describe('hunters gather what they kill, and carry on only to more hunt (DE)', (
     const idle = stepUntil(bridge, () => bridge.countIdleVillagers() === villagerIds(bridge).length, 1_000);
     expect(idle, 'the hunters did not all stand idle once the hunt within reach was gone').not.toBeNull();
     for (let tick = 0; tick < 300; tick += 1) bridge.step(100);
-    expect(bridge.countIdleVillagers()).toBe(villagerIds(bridge).length);
+    expect(bridge.countIdleVillagers(), 'a hunter found work after the carcass').toBe(villagerIds(bridge).length);
     expect(secondTouched, 'a hunter went for the live boar on its own').toBe(false);
-    expect(isAlive(bridge, second)).toBe(true);
+    expect(isAlive(bridge, second), 'the live boar beside the carcass was killed').toBe(true);
     expect(amountOf(bridge, second)).toBe(CARRY_ON_HUNT.secondBoarFood);
     const sheep = bridge.getEconomyState().resources.find((resource) => resource.resourceType === 'sheep')!;
     expect(sheep.amount, 'a hunter went on to the sheep').toBe(100);

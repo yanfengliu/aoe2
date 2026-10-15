@@ -19,7 +19,7 @@ import { blastCensusSeed } from '../fixtures/blastCensusLayout';
 import { createBuildingShotLandingFixture } from '../fixtures/buildingShotLanding';
 import { createBuildingVisionBuildFixture, createBuildingVisionFixture } from '../fixtures/buildingVision';
 import { createCivFarmerFixture, createCivFarmToBerriesFixture, createCivForagerFixture } from '../fixtures/civGatherBonuses';
-import { carryOnSeeds, createCarryOnFixture, createCarryOnHuntFixture } from '../fixtures/economyBasics/carryOn';
+import { carryOnSeeds, createCarryOnFixture, createCarryOnHuntFixture, createCarryOnRadiusFixture } from '../fixtures/economyBasics/carryOn';
 import { createCorridorSealFixture } from '../fixtures/corridorSeal';
 import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from '../fixtures/farmsAreWalkable';
 import {
@@ -430,4 +430,5 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   // Work 131: a gatherer carries on to the same kind close by, or stands idle.
   ...carryOnSeeds().map((seed) => [seed, createCarryOnFixture] as const),
   ['carry-on-hunt-fixture', createCarryOnHuntFixture],
+  ['carry-on-radius-fixture', createCarryOnRadiusFixture],
 ]);

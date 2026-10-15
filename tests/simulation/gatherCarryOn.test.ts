@@ -8,6 +8,7 @@ import {
   CARRY_ON_FISH_LAYOUT,
   CARRY_ON_KINDS,
   CARRY_ON_LAYOUT,
+  CARRY_ON_RADIUS_LAYOUT,
   carryOnSeed,
   type CarryOnFixtureKind,
 } from '../../src/game/simulation/fixtures/economyBasics/carryOn';
@@ -32,7 +33,9 @@ import type { GathererComponent, ResourceComponent, ResourceKind } from '../../s
 //
 // Bound: one villager, open ground, nodes placed at the stated distances
 // around a radius of 5 cells. It proves the rule on these layouts — the kind
-// filter, the radius, the return after delivery and the idle at the end. It
+// filter, the return after delivery and the idle at the end — and the radius
+// from both sides (a bush exactly 5 cells away is close by, one 5.4 away is
+// not; carry-on-radius-fixture). It
 // does not prove the radius against every shipped map's patch shapes
 // (work 131's plan records that measurement), it does not cover Fishing
 // Ships (excluded from the rule), and hunting is huntCarryOn.test.ts.
@@ -204,7 +207,41 @@ describe('a gatherer carries on to the same kind close by, or stands idle (DE)',
       idleRun = standing && nodesLeft > 0 ? idleRun + 1 : 0;
       longestIdleRun = Math.max(longestIdleRun, idleRun);
     }
-    expect(startNodes - nodesLeft, 'premise: the AI villager finished several nodes').toBeGreaterThanOrEqual(3);
     expect(longestIdleRun, 'the computer left its own villager standing idle beside food').toBeLessThan(50);
+    expect(startNodes - nodesLeft, 'premise: the AI villager finished several nodes').toBeGreaterThanOrEqual(3);
   }, 120_000);
+  it('the radius: a bush 5 cells from the one that ran out is close by, one 5.4 cells away is not', () => {
+    const bridge = createSimulationBridge('carry-on-radius-fixture', { renderProjection: 'on-read' });
+    const { inside, outside } = CARRY_ON_RADIUS_LAYOUT;
+    expect(distance(inside.first, inside.second)).toBe(RADIUS);
+    expect(distance(outside.first, outside.second)).toBeGreaterThan(RADIUS);
+    expect(distance(outside.first, outside.second)).toBeLessThan(RADIUS + 0.5);
+    const villagerAt = (at: Position) => bridge.getEconomyState().units
+      .find((unit) => unit.unitType === 'villager' && unit.x === at.x && unit.y === at.y)!.id;
+    const pairs = [inside, outside].map((pair) => ({
+      villager: villagerAt(pair.villager),
+      first: nodeIdAt(bridge, pair.first, 'berry-bush'),
+      second: nodeIdAt(bridge, pair.second, 'berry-bush'),
+      targets: new Set<number>(),
+    }));
+    for (const pair of pairs) {
+      expect(bridge.selectUnitsByIds([pair.villager])).toBe(true);
+      expect(bridge.issueContextCommandAtEntity(pair.first)).toBe(true);
+    }
+    for (let tick = 1; tick <= 2_500; tick += 1) {
+      bridge.step(100);
+      for (const pair of pairs) {
+        const target = bridge.world.getComponent<GathererComponent>(pair.villager, 'gatherer')?.targetResourceId;
+        if (target !== null && target !== undefined) pair.targets.add(target);
+      }
+    }
+    const [inPair, outPair] = pairs;
+    expect(amountOf(bridge, inPair!.first, 'berry-bush'), 'premise: the inside forager finished its first bush').toBeNull();
+    expect(amountOf(bridge, outPair!.first, 'berry-bush'), 'premise: the outside forager finished its first bush').toBeNull();
+    expect(inPair!.targets.has(inPair!.second), 'a bush exactly 5 cells away was not close by').toBe(true);
+    expect(amountOf(bridge, inPair!.second, 'berry-bush'), 'the inside forager did not work its second bush').toBeNull();
+    expect(outPair!.targets.has(outPair!.second), 'a bush 5.4 cells away was taken as close by').toBe(false);
+    expect(amountOf(bridge, outPair!.second, 'berry-bush')).toBe(8);
+    expect(bridge.countIdleVillagers(), 'both foragers stand idle once nothing is close by').toBe(2);
+  }, 60_000);
 });

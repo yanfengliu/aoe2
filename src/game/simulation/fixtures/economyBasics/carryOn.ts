@@ -144,6 +144,38 @@ export function createCarryOnFixture(seed: string): PrototypeScenario {
   };
 }
 
+/** The radius itself, both sides of it: two foragers, each beside a bush of 8
+ *  food. The inside pair's second bush stands exactly 5 cells from its first,
+ *  the outside pair's 5.4 (5 across and 2 down), and the two pairs are 12 rows
+ *  apart, so neither can see the other's. */
+export const CARRY_ON_RADIUS_LAYOUT = {
+  inside: { villager: { x: 12, y: 10 }, first: { x: 13, y: 10 }, second: { x: 18, y: 10 } },
+  outside: { villager: { x: 12, y: 22 }, first: { x: 13, y: 22 }, second: { x: 18, y: 24 } },
+} as const;
+
+export function createCarryOnRadiusFixture(seed: string): PrototypeScenario {
+  const { inside, outside } = CARRY_ON_RADIUS_LAYOUT;
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 4, y: 4 }, startingResources: { food: 0, wood: 0, gold: 0, stone: 0 } },
+      { owner: 2, townCenter: { x: 50, y: 28 }, disableAi: true },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ...[inside, outside].flatMap((pair) => [
+        ownedSpawn('villager', 1, pair.villager.x, pair.villager.y, { vision: 4 }),
+        gaiaSpawn('berry-bush', pair.first.x, pair.first.y, { amount: 8, baseOwner: 1 }),
+        gaiaSpawn('berry-bush', pair.second.x, pair.second.y, { amount: 8, baseOwner: 1 }),
+      ]),
+      ownedSpawn('town-center', 2, 50, 28, { vision: 7 }),
+    ],
+  };
+}
+
 /** Two live boars 4 cells apart and a sheep 3 cells from the first, with six
  *  villagers (Loom) ringed round the first, as `boar-hunt-fixture` rings them. */
 export const CARRY_ON_HUNT = {
