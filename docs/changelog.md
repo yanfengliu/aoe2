@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## Unreleased — work 127
+## 0.3.256
 
 - **A relic in a Monastery pays 0.5 gold a second, as in Definitive Edition.** It paid 10 gold a second, twenty times too much. Each relic now earns 30 gold a minute, one gold every 2 seconds, and a side with the Aztecs, yours or an ally's, earns a third more: 40 a minute, one gold every 1.5 seconds. Gold your relics earned in a game saved before this change stays yours, and from the load on they pay the new rate. A replay recorded before this version plays out differently from the first relic payout.
 
