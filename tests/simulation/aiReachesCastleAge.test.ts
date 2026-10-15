@@ -26,11 +26,12 @@
 // measures the AI's progression and its army, not the victory conditions, so
 // its match runs with the Wonder and Relic victories off, as the coverage lab
 // does. Once the computer's Monks could carry relics home (work 128), owner 2
-// stored both relics on this map and won by Relic victory at tick 29,650 under
-// the Standard rules, before the late game this gate scores: no Crossbowman
-// was ever trained, and the shipped union floor below went red. The relic
-// countdown's own length is in question too (200 s for "200 years"), which is
-// its own work item, so no progression gate should end on it. Everything else
+// stored both relics on this map and, under the Standard rules with the
+// 2,000-tick countdown of the time, won by Relic victory at tick 29,650,
+// before the late game this gate scores: no Crossbowman was ever trained, and
+// the shipped union floor below went red. Work 132 makes the countdown DE's
+// 10,000 ticks, which would move that victory near tick 37,650; either way a
+// relic clock, not the AI's progression, would end the match. Everything else
 // is the shipped configuration: standard resources, the standard AI, attacks
 // on. The Standard rules' relic outcome is gated where work 128 put it, in
 // `aiRelicsSelfPlay.test.ts`, without the countdown's length.

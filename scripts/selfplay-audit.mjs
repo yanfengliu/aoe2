@@ -32,14 +32,19 @@
 // `aoe2.relicsInMonastery` (Monastery -> count), and only when the slot's
 // object changes, which is once per write.
 //
-// `--config castle` (the default) plays the shipped configuration, as
-// `tests/simulation/aiReachesCastleAge.test.ts` does; `--config lab` plays the
-// no-attack coverage lab of `tests/simulation/selfPlayContentCoverage.test.ts`
-// (attacks off, conquest only, high resources, hard AI), the two configurations
-// `scripts/profile-selfplay.mjs` names the same way.
+// `--config castle` (the default) plays the match
+// `tests/simulation/aiReachesCastleAge.test.ts` plays: the shipped configuration
+// with the Wonder and Relic victories off (work 128; that test's header says
+// why). `--config standard` plays it under the shipped Standard rules, every
+// victory on, as `tests/simulation/aiRelicsSelfPlay.test.ts` does; a match it
+// plays can end in a Relic or Wonder victory before the late game.
+// `--config lab` plays the no-attack coverage lab of
+// `tests/simulation/selfPlayContentCoverage.test.ts` (attacks off, conquest
+// only, high resources, hard AI). `scripts/profile-selfplay.mjs` and
+// `scripts/aiTickAb.mjs` name castle and lab the same way.
 //
 // Usage:
-//   npx tsx scripts/selfplay-audit.mjs [--seeds a,b,c] [--ticks 45000] [--config castle|lab] [--ledger]
+//   npx tsx scripts/selfplay-audit.mjs [--seeds a,b,c] [--ticks 45000] [--config castle|standard|lab] [--ledger]
 
 import { createSimulationBridge } from '../src/game/simulation/createSimulationBridge.ts';
 import { createBuildingCombatState } from '../src/game/simulation/prototypeBuildingRules.ts';
@@ -52,7 +57,8 @@ const arg = (name, fallback) => {
 const SEEDS = String(arg('seeds', 'aoe2-prototype,default-seed,corpus-seed-b')).split(',');
 const CONFIG = String(arg('config', 'castle'));
 const CONFIGS = {
-  castle: {},
+  castle: { victory: 'conquest-only' },
+  standard: {},
   lab: { disableAiAttacks: true, victory: 'conquest-only', resourcePreset: 'high', difficulty: 'hard' },
 };
 if (!(CONFIG in CONFIGS)) {

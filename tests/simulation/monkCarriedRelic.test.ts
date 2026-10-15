@@ -43,6 +43,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   monkCarriedRelicCodec,
+  monkTasksCodec,
   relicsInMonasteryCodec,
 } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 import type { GameCommands, GameEvents } from '../../src/game/simulation/bridge/pureHelpers';
@@ -107,6 +108,13 @@ function carriedRelics(bridge: Bridge): Map<number, number> {
   return monkCarriedRelicCodec.deserialize(
     bridge.world.getState(monkCarriedRelicCodec.slot) as Array<[number, number]> | undefined,
   );
+}
+
+/** The errand each Monk is on, read from the world state. */
+function monkTaskKind(bridge: Bridge, monkId: number): string | undefined {
+  return monkTasksCodec.deserialize(
+    bridge.world.getState(monkTasksCodec.slot) as Parameters<typeof monkTasksCodec.deserialize>[0],
+  ).get(monkId)?.kind;
 }
 
 /** Monastery -> relics stored in it. */
@@ -318,6 +326,10 @@ describe('a relic in a Monk\'s hands stands on no ground (work 128)', () => {
     relicPosition.y = CARRIED_MONK_CELL.y;
     const loaded = createSimulationBridge(MONK_CARRIED_RELIC_SEED, { savedGame: blob });
     expect(relicById(loaded, relic.id)).toMatchObject(CARRIED_MONK_CELL);
+    // The premise: on the relic's cell the Monk stands on blocked ground.
+    expect(loaded.selectUnitsByIds([monk.id])).toBe(true);
+    expect(loaded.issueMoveCommand(WALK_TARGET.x, WALK_TARGET.y)).toBe(true);
+    expect(loaded.consumeCommandRejection(), 'the staged save did not put the Monk on blocked ground').not.toBeNull();
 
     pickUpWith(loaded, monk.id, relic.id);
     expect(walkTo(loaded, monk.id, WALK_TARGET, true), 'the Monk that picked up the relic under it never reached the cell it was sent to').toBe(true);
@@ -345,8 +357,15 @@ describe('a relic in a Monk\'s hands stands on no ground (work 128)', () => {
     const relic = theRelic(bridge);
     // The computer decides first, while the relic lies on the ground, so both
     // Monks are sent for it; the player's, beside it, gets it.
-    bridge.step(100);
+    expect(
+      stepBridgeUntil(bridge, () => monkTaskKind(bridge, theirs.id) === 'pickup', { maxSteps: 20 }),
+      'the premise: the computer never sent its Monk for the relic',
+    ).toBe(true);
     pickUpWith(bridge, mine.id, relic.id);
+    // The computer's Monk, six cells off and walking, gives up the errand the
+    // tick the relic leaves the ground, rather than walking on to the carrier.
+    bridge.step(100);
+    expect(monkTaskKind(bridge, theirs.id), 'the computer\'s Monk walked on for a relic in the player\'s hands').not.toBe('pickup');
     for (let tick = 0; tick < 300; tick += 1) bridge.step(100);
     expect(unitById(bridge, mine.id), 'the player\'s Monk died, the only way to lose a carried relic').not.toBeNull();
     expect(carriedRelics(bridge).get(mine.id), 'the computer\'s Monk took the relic from the player\'s hands').toBe(relic.id);

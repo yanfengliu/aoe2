@@ -7,7 +7,7 @@
 //   npm run ai:tick-ab -- <scenario> <treeA> <treeB> [--chunk 1000] [--max-ticks N]
 //
 // scenarios: castle — the match `aiReachesCastleAge.test.ts` plays (boot map,
-// both seats AI); lab — the no-attack coverage lab of
+// both seats AI, the Wonder and Relic victories off since work 128); lab — the no-attack coverage lab of
 // `selfPlayContentCoverage.test.ts`; garrison and few — the two cases of
 // `aiGarrisonedDefender.test.ts`; walk — the order de-ground.spec.ts:139
 // gives, every human unit across the boot map for 300 ticks in 25-tick chunks. A tree is any checkout of this repo, e.g. a
@@ -153,7 +153,7 @@ function machineBusyCores() {
 
 // The configurations each scenario's test plays, stepped the way it steps.
 const SCENARIOS = {
-  castle: { maxTicks: 45000, open: (create, human) => create('aoe2-prototype', { forceAiForOwners: new Set([human]) }) },
+  castle: { maxTicks: 45000, open: (create, human) => create('aoe2-prototype', { forceAiForOwners: new Set([human]), victory: 'conquest-only' }) },
   lab: {
     maxTicks: 45000,
     open: (create, human) => create('aoe2-prototype', {

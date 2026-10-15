@@ -9,11 +9,14 @@
 // that seat sees as explored rather than black. Until work 128 they went only
 // for a relic in sight at that moment, so a relic the seat had found and then
 // lost sight of was never sought. No Definitive Edition source states what
-// DE's computer knows about relics; its AI was previewed as one that does not
-// see through the fog and must scout (E3 2019), so it may not use ground its
-// seat has never seen. BOUND: the search reads where a relic lies NOW, not
-// where the seat last saw it, so a relic moved on explored ground out of sight
-// (dropped by a dying carrier, or taken away) is known at its new place.
+// DE's computer knows about where relics lie: DE's own AI scripts leave the
+// gathering to the engine's relic order and only count the map's relics,
+// through the fog, to decide on a Monastery (spec §13.3 cites the lines). Its
+// AI was previewed as one that does not see through the fog and must scout
+// (E3 2019), so it may not use ground its seat has never seen. BOUND: the
+// search reads where a relic lies NOW, not where the seat last saw it, so a
+// relic moved on explored ground out of sight (dropped by a dying carrier, or
+// taken away) is known at its new place.
 
 import type { Position } from 'civ-engine';
 

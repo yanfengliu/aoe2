@@ -21,10 +21,10 @@
 // and 27,651 with the rule). `aiMonkKnownRelics.test.ts` gates the knowledge
 // rule.
 //
-// WHAT IS NOT ASSERTED: when the countdown ends or who wins. Its length, 2,000
-// ticks for "200 years", is in question (Definitive Edition's community table
-// gives 200 years as 1,000 seconds, and makes the years depend on map size),
-// and that is its own work item. Nor are the ticks of the stores asserted:
+// WHAT IS NOT ASSERTED: when the countdown ends or who wins. Its length was
+// 2,000 ticks for "200 years" when this case was written, and work 132 makes
+// it Definitive Edition's 10,000 ticks for two to four players; this case
+// holds under either. Nor are the ticks of the stores asserted:
 // they are a trajectory, printed for the reader, and other AI work moves them.
 //
 // BOUND: one seed. The countdown starts only while one seat holds every relic,

@@ -48,12 +48,13 @@
 // CONQUEST ONLY (work 128, 2026-10-15; the coordinator's decision). This gate
 // is about the late game, armies at each other's bases, and the Standard
 // rules stopped reaching it: once the computer's Monks could carry relics home
-// (work 128), owner 2 stored both relics on this map and won by Relic victory
-// at tick 29,650, ten thousand ticks before the endgame this bar was measured
-// over, so the census stopped short and the gate went red on coverage. The
-// match now runs with the Wonder and Relic victories off, as the coverage lab
-// does. The relic countdown's own length is in question too (its own work
-// item). The Standard rules' relic outcome is gated in
+// (work 128), owner 2 stored both relics on this map and, with the 2,000-tick
+// countdown of the time, won by Relic victory at tick 29,650, ten thousand
+// ticks before the endgame this bar was measured over, so the census stopped
+// short and the gate went red on coverage. Work 132's DE-length countdown,
+// 10,000 ticks, would move that victory near tick 37,650, still short of the
+// deaths above. The match now runs with the Wonder and Relic victories off, as
+// the coverage lab does. The Standard rules' relic outcome is gated in
 // `aiRelicsSelfPlay.test.ts`.
 //
 // THE BOUND THAT MATTERS MOST IS THE CONFIGURATION, and it is load-bearing

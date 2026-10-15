@@ -4,8 +4,9 @@
 // and no other Monk can take it, whoever owns that Monk. Definitive Edition
 // drops a carried relic only when its carrier dies, so a Monk sent for a relic
 // that another Monk picks up first gives up the errand. `relicHolder` is the
-// one answer to "who holds this relic", read without allocating, because the
-// occupancy sync asks it on every step an animal or a relic takes.
+// one answer to "who holds this relic". It walks the carried-relic map, a few
+// entries, without building an array, because the occupancy sync asks it on
+// every step an animal or a relic takes.
 //
 // On the ground it claims its cell, so where a relic lands matters (review
 // round 0 of work 128, SF1). `findRelicLandingCells` is the one search for it,

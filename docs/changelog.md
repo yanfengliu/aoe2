@@ -6,9 +6,12 @@ This changelog lists user-visible behavior changes only. Pure refactors, doc swe
 
 The computer plays the relic game.
 
-- **A Monk carrying a relic walks.** A Monk that picked up a relic could not be sent anywhere: a move order was refused ("blocked ground blocks every route out"), and an order to take the relic to a Monastery out of reach was dropped. It now walks where you send it, carries the relic home, and other units can pass through its cell. A relic whose Monk dies lies where the Monk stood.
+- **A Monk carrying a relic walks.** A Monk that picked up a relic could not be sent anywhere: a move order was refused ("blocked ground blocks every route out"), and an order to take the relic to a Monastery out of reach was dropped. It now walks where you send it, carries the relic home, and other units can pass through its cell.
+- **A relic whose Monk dies lands on free ground.** It falls where the Monk stood, or, when another unit stands there or the Monk died on a Farm, on the nearest free cell, so no unit is left standing on it unable to move. In a game saved before this change, a unit standing on a relic still cannot move until a Monk picks the relic up.
+- **No Monk takes a relic from another Monk's hands**, yours or the computer's. To get a relic someone carries, kill the carrier. A Monk you send for a relic that another Monk picks up first stops, and right-clicking a carried relic walks your Monk to it.
 - **The computer's Monks bring relics home.** They picked relics up and stood still with them, so the computer never stored one. Now they carry them to its Monastery, and a computer that holds every relic on the map can win by Relic victory.
-- **The computer seeks every relic it has found.** Its Monks went only for a relic in sight at that moment. Now they go for any relic on ground the computer has explored, never for one it has not seen.
+- **The computer seeks every relic it has found.** Its Monks went only for a relic in sight at that moment. Now they go for any relic on ground the computer or an ally has explored, and never for one on ground none of them has seen. It knows where such a relic lies now, even if it has moved since the computer last saw it. A relic its Monks cannot walk to is passed over for the next one.
+- **The computer's Missionaries heal.** It sent them for any relic in sight, which they cannot carry, so they stood still instead of healing. Its Monks heal too when no relic they can reach is left.
 
 ## 0.3.257
 
