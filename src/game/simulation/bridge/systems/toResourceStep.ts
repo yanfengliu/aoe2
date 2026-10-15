@@ -17,6 +17,7 @@ import { assignIdleGatherer, shouldRetryReachability } from '../idleGatherAssign
 import type { EnemyStaticDefenceLookup } from '../enemyDefenceRange';
 import { retargetOutOfEnemyDefence } from '../enemyDefenceRetarget';
 import { GATHER_APPROACH_BUDGET_TICKS } from './gatherApproachBudget';
+import { endGatherOrder } from '../gatherCarryOn';
 import { sheepMoveOrdersCodec } from '../bridgeStateSerialize';
 
 // Wood/gather gridlock fix (campaign-4): villagers piled onto ONE nearest tree
@@ -79,6 +80,11 @@ export interface ToResourceStepDeps {
   ) => AssignmentOutcome;
   /** The enemy's complete static defences, cached per tick (§6.4). */
   enemyStaticDefences: EnemyStaticDefenceLookup;
+  /** The human player's villager (work 131): carried on from the node it
+   *  cannot work, to the same kind within reach — true when it now holds a
+   *  new node. Null for the computer's gatherers, which the reroutes below
+   *  re-task as before. */
+  playerCarryOn: ((fromId: number, spreadCap: number) => boolean) | null;
 }
 
 /** Advances one gatherer that is walking to its resource. */
@@ -97,6 +103,7 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
     moveUnitOneSubgridStep,
     assignResource,
     enemyStaticDefences,
+    playerCarryOn,
   } = deps;
         const targetResource = gatherer.targetResourceId === null
           ? null
@@ -133,7 +140,21 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
           // Pre-fix this fell to `idle`, then the bottom-of-loop idle→assign
           // re-picked the same nearest unreachable resource every tick —
           // never trying the reachable resources, so food income stayed 0.
-          if (gatherer.carriedAmount > 0) {
+          if (playerCarryOn) {
+            // The human player's villager keeps its trade and its patch (work
+            // 131): on its probe tick it carries on to a reachable node of the
+            // same kind near this one, with whatever it holds, or its order
+            // ends — an interior tree clicked in a woodline is worked from the
+            // woodline's edge, a walled-in bush never becomes a fish.
+            const unreachableTarget = gatherer.targetResourceId;
+            if (unreachableTarget !== null && shouldRetryReachability(activeWorld.tick, id)) {
+              gatherTargetCounts.set(
+                unreachableTarget,
+                Math.max(0, (gatherTargetCounts.get(unreachableTarget) ?? 1) - 1),
+              );
+              if (!playerCarryOn(unreachableTarget, MAX_GATHERERS_PER_RESOURCE)) endGatherOrder(gatherer);
+            }
+          } else if (gatherer.carriedAmount > 0) {
             // Deposit a carry first (mirrors the depleted/gone branch above —
             // a villager CAN reach `to-resource` carrying, via an explicit
             // gather order issued mid-carry); the next idle→assign reroutes
@@ -227,6 +248,13 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
               );
             }
             gatherer.gatherProgressTicks = 0;
+            if (playerCarryOn) {
+              // The player's villager: the same kind near the node, or nothing.
+              if (abandoned === null || !playerCarryOn(abandoned, MAX_GATHERERS_PER_RESOURCE)) {
+                endGatherOrder(gatherer);
+              }
+              return;
+            }
             // Same safe-first walk as the unreachable-target branch above: a
             // give-up is an automatic re-assignment, and an automatic
             // re-assignment takes safe work of any kind before it accepts a
@@ -258,6 +286,14 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
             }
             const previousTask = gatherer.task;
             gatherer.gatherProgressTicks = 0;
+            if (playerCarryOn) {
+              // The player's villager spreads only within its patch, and with
+              // nothing there it keeps its place in the queue.
+              if (previousTarget !== null && !playerCarryOn(previousTarget, MAX_GATHERERS_PER_RESOURCE)) {
+                gatherTargetCounts.set(previousTarget, (gatherTargetCounts.get(previousTarget) ?? 0) + 1);
+              }
+              return;
+            }
             // The FIFTH automatic-assignment site, and the only one that must
             // not change the villager's resource KIND: it is redistributing
             // within one kind, and swapping the kind here would fight the AI's

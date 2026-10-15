@@ -91,6 +91,8 @@ export interface PlayerCommandsSystemDeps {
   destroyUnitEntity: (id: number) => void;
   killWildlifeEntity: (id: number) => void;
   destroyBuildingEntity: (id: number) => void;
+  /** A hunter gathers the animal it killed (work 131; attackCommandStep). */
+  gatherKilledAnimal: (unitId: number, resourceId: number) => boolean;
   // Update 46295: checked before a builder's first work on a foundation.
   foundationStart: import('../foundationStart').FoundationStart;
   getEntityRef: (id: number) => EntityRef | null;
@@ -130,7 +132,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     ensurePlayerScoreCounters,
     destroyUnitEntity,
     killWildlifeEntity,
-    destroyBuildingEntity,
+    destroyBuildingEntity, gatherKilledAnimal,
     getEntityRef, recordUnitAttack, recordPlayerHit,
     onBuildingConstructionComplete,
   } = deps;
@@ -165,7 +167,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             beginTrebuchetUnpack,
             recordUnitAttack, recordPlayerHit, markOutOfBandRenderChange,
             ensurePlayerScoreCounters, destroyUnitEntity, killWildlifeEntity,
-            destroyBuildingEntity,
+            destroyBuildingEntity, gatherKilledAnimal,
           });
           void handled;
           continue;

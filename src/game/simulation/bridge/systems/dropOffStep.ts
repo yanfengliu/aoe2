@@ -157,7 +157,10 @@ export interface DropOffStepContext {
       gatherer.task = 'idle';
       gatherer.carriedAmount = 0;
       gatherer.carriedResource = null;
-      gatherer.targetResourceId = null;
+      // A gatherer under an order remembers its node across the delivery: the
+      // human player's villager goes back to it (work 131, as DE's does), and
+      // the computer re-tasks its own on this same tick whatever it holds.
+      if (!gatherer.hasExplicitGatherOrder) gatherer.targetResourceId = null;
       gatherer.gatherProgressTicks = 0;
       clearStuck(id);
     } else {

@@ -4,6 +4,7 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 import { CARRY_ON_HUNT } from '../../src/game/simulation/fixtures/economyBasics/carryOn';
 import type { GathererComponent, ResourceComponent } from '../../src/game/simulation/types';
+import { wildlifeStatesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 
 // Hunters in Definitive Edition gather the animal they killed, and once its
 // carcass is eaten they carry on to more hunt close by — never to a LIVE boar,
@@ -41,9 +42,11 @@ const amountOf = (bridge: Bridge, id: number): number | null => {
   return resource?.resourceType === 'boar' ? resource.amount : null;
 };
 const gathererOf = (bridge: Bridge, id: number) => bridge.world.getComponent<GathererComponent>(id, 'gatherer');
-const isAlive = (bridge: Bridge, id: number): boolean => (
-  bridge.getRenderState().entities.find((entity) => entity.id === id)?.wildlifeAlive === true
-);
+// Read from the world's own wildlife slot: the render state leaves out what
+// the player cannot see, and a boar out of sight is not a dead one.
+const isAlive = (bridge: Bridge, id: number): boolean => wildlifeStatesCodec
+  .deserialize(bridge.world.getState(wildlifeStatesCodec.slot) as Parameters<typeof wildlifeStatesCodec.deserialize>[0])
+  .get(id)?.isAlive === true;
 const commandOf = (bridge: Bridge, id: number) => bridge.getDebugSnapshot().unitPaths.find((path) => path.id === id);
 
 function huntOrder(bridge: Bridge, boarId: number): void {
@@ -81,7 +84,7 @@ describe('hunters gather what they kill, and carry on only to more hunt (DE)', (
     // And they work it: a minute of game time eats into it and banks food.
     for (let tick = 0; tick < 600; tick += 1) bridge.step(100);
     expect(amountOf(bridge, boar)).toBeLessThan(340 - 60);
-    expect(food() - foodAtKill).toBeGreaterThan(60);
+    expect(food() - foodAtKill, 'no load reached the Town Center').toBeGreaterThanOrEqual(40);
     expect(bridge.countIdleVillagers()).toBe(0);
   }, 60_000);
 

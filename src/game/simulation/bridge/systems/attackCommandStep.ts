@@ -67,6 +67,10 @@ export interface AttackStepDeps {
   destroyUnitEntity: (id: number) => void;
   killWildlifeEntity: (id: number) => void;
   destroyBuildingEntity: (id: number) => void;
+  /** A hunter whose animal is dead gathers its carcass: the gather order a
+   *  right-click gives (setUnitGatherCommandDirect), false for a unit that
+   *  cannot gather or an animal that left nothing to gather (work 131). */
+  gatherKilledAnimal: (unitId: number, resourceId: number) => boolean;
 }
 
 export function runAttackCommandStep(deps: AttackStepDeps): boolean {
@@ -79,7 +83,7 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
     beginTrebuchetUnpack,
     recordUnitAttack, recordPlayerHit, markOutOfBandRenderChange,
     ensurePlayerScoreCounters, destroyUnitEntity, killWildlifeEntity,
-    destroyBuildingEntity,
+    destroyBuildingEntity, gatherKilledAnimal,
   } = deps;
   {
 
@@ -194,6 +198,10 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
             const targetResource = activeWorld.getComponent<ResourceComponent>(targetId, 'resource');
             const targetWildlife = accessor.get(wildlifeStatesCodec).get(targetId);
             if (!targetPosition || !targetResource || !targetWildlife?.isAlive) {
+              // Its animal died to someone else's blow — another hunter's, a
+              // Town Center's arrow: a villager gathers the carcass, as DE's
+              // hunters do (spec §6.4). Anyone else stands down.
+              if (!targetWildlife?.isAlive && gatherKilledAnimal(id, targetId)) return true;
               clearUnitCommand(id);
               return true;
             }
@@ -254,7 +262,8 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
               animals,
               recordPlayerHit,
             });
-            if (animalDied) clearUnitCommand(id);
+            // The blow that killed it: the hunter gathers what it killed.
+            if (animalDied && !gatherKilledAnimal(id, targetId)) clearUnitCommand(id);
             return true;
           }
 

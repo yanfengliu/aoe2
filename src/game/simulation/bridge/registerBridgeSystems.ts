@@ -126,6 +126,7 @@ export interface RegisterBridgeSystemsDeps {
   selectUnitsByIds: (ids: number[]) => boolean;
   // Shift-queued entity orders (v0.3.141): villager in-pass pop hook.
   popQueuedEntityOrder: (unitId: number) => boolean;
+  gatherKilledAnimal: (unitId: number, resourceId: number) => boolean;
   hasQueuedEntityOrders: (unitId: number) => boolean;
   getSelectedEntityIds: () => number[];
   getSelectedOwnedSheepIds: () => number[];
@@ -258,6 +259,7 @@ export function registerBridgeSystems(
   registerAllSystems({
     isLandCell,
     popQueuedEntityOrder: deps.popQueuedEntityOrder,
+    gatherKilledAnimal: deps.gatherKilledAnimal,
     hasQueuedEntityOrders: deps.hasQueuedEntityOrders,
     ...playerQueries,
     ...aiDecisionOps,

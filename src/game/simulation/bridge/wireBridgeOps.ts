@@ -279,6 +279,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   const finalize = registerBridgeSystems({
     selectUnitsByIds,
     popQueuedEntityOrder: queuedOrders.popQueuedEntityOrder,
+    gatherKilledAnimal: setUnitGatherCommandDirect,
     hasQueuedEntityOrders: queuedOrders.hasQueuedEntityOrders,
     world,
     systemMode,

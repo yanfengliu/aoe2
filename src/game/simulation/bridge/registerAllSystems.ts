@@ -292,6 +292,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
         destroyUnitEntity(...args);
       });
     },
+    gatherKilledAnimal: deps.gatherKilledAnimal,
     killWildlifeEntity: (...args) => {
       playerCommandVisibilityRevision.runEntityMutation(args[0], () => {
         killWildlifeEntity(...args);

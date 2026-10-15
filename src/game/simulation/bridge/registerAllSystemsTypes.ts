@@ -42,6 +42,8 @@ export interface RegisterAllSystemsDeps {
   world: GameWorld;
   // Shift-queued entity orders (v0.3.141): fired when a gatherer idles in-pass.
   popQueuedEntityOrder: (unitId: number) => boolean;
+  /** Work 131: a hunter gathers the animal it killed — the right-click gather order. */
+  gatherKilledAnimal: (unitId: number, resourceId: number) => boolean;
   hasQueuedEntityOrders: (unitId: number) => boolean;
   systemMode?: 'live' | 'replay';
   humanPlayerId: number;
