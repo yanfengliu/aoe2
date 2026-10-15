@@ -1,6 +1,6 @@
 # Every price the HUD shows is the price the game charges
 
-Status: planned
+Status: active
 Owner: Coordinator worker w125-shown-price (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-14
 Updated: 2026-10-14
@@ -33,7 +33,8 @@ Reproduce first in the real HUD path, and find every place that formats a price 
 
 ## Implementation steps
 
-- [ ] Reproduce, find every price surface, route each through the charge's seam, gate the class, capture, record, land.
+- [x] Reproduce, find every price surface, route each through the charge's seam, gate the class, capture, record (branch `shown-price`, devlog 2026-10-14; phase 1 handed to the coordinator for review).
+- [ ] Land: rebase, version, `npm run verify`, receipt check, push, close.
 
 ## Outcome
 

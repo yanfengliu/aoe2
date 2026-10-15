@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 125
+
+Every price the game states is now the price the click takes.
+
+- **Train and research tooltips quote what you pay**, with every civilization and technology discount. They quoted the base price, so a discount never showed. An Italian Fishing Ship said 75 wood and cost 64. A Goth Militia said 50 food and 20 gold, and in the Dark Age costs 43 and 17. Chinese and Italian technologies showed no discount, and after Shipwright every ship still showed its full wood. A quoted price changes the moment the price does, for example when you advance an age.
+- **Spies states its real price**: 200 gold for every living enemy villager, halved by Atheism. With less gold than that, the button says "Not enough gold." and a click is refused with that message. Before, a click with at least 200 gold was accepted and nothing happened.
+- **After Guilds, the Market quotes the 15% fee it charges, and lets you buy at it.** Its refusal quoted the 30% fee, and it refused a buy you could afford at 15%.
+- **A refused unit names the resource you are really short of.** An Inca Militia, short of gold but not of food, said "Not enough food."
+- **Replays show the recorded player's building prices**, with their civilization, age and team discounts, instead of the base prices.
+
 ## 0.3.256
 
 - **A relic in a Monastery pays 0.5 gold a second, as in Definitive Edition.** It paid 10 gold a second, twenty times too much. Each relic now earns 30 gold a minute, one gold every 2 seconds, and a side with the Aztecs, yours or an ally's, earns a third more: 40 a minute, one gold every 1.5 seconds. Gold your relics earned in a game saved before this change stays yours, and from the load on they pay the new rate. A replay recorded before this version plays out differently from the first relic payout.
