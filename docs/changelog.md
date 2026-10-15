@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
-## Unreleased — work 125
+## 0.3.257
 
 Every price the game states is now the price the click takes.
 
