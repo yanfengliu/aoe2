@@ -1,0 +1,3989 @@
+{
+  "reviewer": "/root/occupation_source_acceptance",
+  "createdAt": "2026-10-01T09:20:14.423Z",
+  "workspace": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250",
+  "base": "10c26f52f0810321784603a7b73f3fbf6789dc44",
+  "currentRows": [
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/bridgeState.ts",
+      "bytes": 7171,
+      "sha256": "4f2f0d19ab152bd43721448d37dc9d38b99f86d9b6d6aa30a78c6d2a54f899d5",
+      "actualSHA256": "4f2f0d19ab152bd43721448d37dc9d38b99f86d9b6d6aa30a78c6d2a54f899d5",
+      "matches": true
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/bridgeStateSerialize.ts",
+      "bytes": 17577,
+      "sha256": "0d7d87b6a8f1f07990df508ac63ab54bc1fa47c0e561b79a406c763871a41699",
+      "actualSHA256": "0d7d87b6a8f1f07990df508ac63ab54bc1fa47c0e561b79a406c763871a41699",
+      "matches": true
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/systems/playerCommandsSystem.ts",
+      "bytes": 12620,
+      "sha256": "b49ebe86759e0f078324111198c470630ef8a366a18c806db0ff3cfc572bc61f",
+      "actualSHA256": "b49ebe86759e0f078324111198c470630ef8a366a18c806db0ff3cfc572bc61f",
+      "matches": true
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/wireBridgeOps.ts",
+      "bytes": 15715,
+      "sha256": "c024d595e2d936489e6b0276e9531e7789607145cd9d58f958e7183a66c541ae",
+      "actualSHA256": "c024d595e2d936489e6b0276e9531e7789607145cd9d58f958e7183a66c541ae",
+      "matches": true
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/movePathPersistenceTypes.ts",
+      "bytes": 370,
+      "sha256": "2504671edbd86d770e046cff0b8df4eb770eb9eebf2f18b520f384095a0dc62a",
+      "actualSHA256": "2504671edbd86d770e046cff0b8df4eb770eb9eebf2f18b520f384095a0dc62a",
+      "matches": true
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/persistedMovePathCache.ts",
+      "bytes": 5680,
+      "sha256": "cd439fb4a25173d23f61ce495bf2e46843b2ece635b3372a4104c95c6af0138a",
+      "actualSHA256": "cd439fb4a25173d23f61ce495bf2e46843b2ece635b3372a4104c95c6af0138a",
+      "matches": true
+    },
+    {
+      "group": "tests",
+      "path": "tests/replay/bridgeStateAccessor.test.ts",
+      "bytes": 13980,
+      "sha256": "a7ee2d9c3eb22063187ca685e533114ee520a8ffa5b709cf522bcedfa231e47b",
+      "actualSHA256": "a7ee2d9c3eb22063187ca685e533114ee520a8ffa5b709cf522bcedfa231e47b",
+      "matches": true
+    },
+    {
+      "group": "tests",
+      "path": "tests/replay/snapshotEquivalence.test.ts",
+      "bytes": 11500,
+      "sha256": "3cdf8978e083740ed34f3f14606fd9997e719d60208e7807bdfab51a247f51c0",
+      "actualSHA256": "3cdf8978e083740ed34f3f14606fd9997e719d60208e7807bdfab51a247f51c0",
+      "matches": true
+    },
+    {
+      "group": "tests",
+      "path": "tests/simulation/movementPathCaching.test.ts",
+      "bytes": 7877,
+      "sha256": "269b76a580d6c930a2d5790ae98c1b67d9b27ca6225492a08340cafef19bbc58",
+      "actualSHA256": "269b76a580d6c930a2d5790ae98c1b67d9b27ca6225492a08340cafef19bbc58",
+      "matches": true
+    },
+    {
+      "group": "tests",
+      "path": "tests/replay/movementCheckpointContinuation.test.ts",
+      "bytes": 6148,
+      "sha256": "eba69cb8f7092ca3dbf40a2c65bb39e2d8cec3d5beb64a45ccd40bcb166de43d",
+      "actualSHA256": "eba69cb8f7092ca3dbf40a2c65bb39e2d8cec3d5beb64a45ccd40bcb166de43d",
+      "matches": true
+    },
+    {
+      "group": "tests",
+      "path": "tests/replay/movementRoutePersistence.test.ts",
+      "bytes": 11024,
+      "sha256": "6b34f0e63e5d1b2c819e2d85c2e496e48c0b4e419373f3b4b43f27d4076de781",
+      "actualSHA256": "6b34f0e63e5d1b2c819e2d85c2e496e48c0b4e419373f3b4b43f27d4076de781",
+      "matches": true
+    },
+    {
+      "group": "authored-retest",
+      "path": "docs/work/107_replay-movement-parity/engine-2.5-retest.md",
+      "bytes": 5265,
+      "sha256": "5475cdbf5d1806615a19d9bb6fb535e6ef94b8b7bd1d3ac6b999f70ad85321b9",
+      "actualSHA256": "5475cdbf5d1806615a19d9bb6fb535e6ef94b8b7bd1d3ac6b999f70ad85321b9",
+      "matches": true
+    }
+  ],
+  "oldWorkspace": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001",
+  "oldBase": "c4024020a09c99f74728f2a880a86fbcbaef8e48",
+  "old22Rows": [
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/bridgeState.ts",
+      "bytes": 7171,
+      "sha256": "4f2f0d19ab152bd43721448d37dc9d38b99f86d9b6d6aa30a78c6d2a54f899d5",
+      "actualSHA256": "4f2f0d19ab152bd43721448d37dc9d38b99f86d9b6d6aa30a78c6d2a54f899d5",
+      "matches": true
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/bridgeStateSerialize.ts",
+      "bytes": 17577,
+      "sha256": "0d7d87b6a8f1f07990df508ac63ab54bc1fa47c0e561b79a406c763871a41699",
+      "actualSHA256": "0d7d87b6a8f1f07990df508ac63ab54bc1fa47c0e561b79a406c763871a41699",
+      "matches": true
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/systems/playerCommandsSystem.ts",
+      "bytes": 12620,
+      "sha256": "b49ebe86759e0f078324111198c470630ef8a366a18c806db0ff3cfc572bc61f",
+      "actualSHA256": "b49ebe86759e0f078324111198c470630ef8a366a18c806db0ff3cfc572bc61f",
+      "matches": true
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/wireBridgeOps.ts",
+      "bytes": 15715,
+      "sha256": "c024d595e2d936489e6b0276e9531e7789607145cd9d58f958e7183a66c541ae",
+      "actualSHA256": "c024d595e2d936489e6b0276e9531e7789607145cd9d58f958e7183a66c541ae",
+      "matches": true
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/movePathPersistenceTypes.ts",
+      "bytes": 370,
+      "sha256": "2504671edbd86d770e046cff0b8df4eb770eb9eebf2f18b520f384095a0dc62a",
+      "actualSHA256": "2504671edbd86d770e046cff0b8df4eb770eb9eebf2f18b520f384095a0dc62a",
+      "matches": true
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/persistedMovePathCache.ts",
+      "bytes": 5680,
+      "sha256": "cd439fb4a25173d23f61ce495bf2e46843b2ece635b3372a4104c95c6af0138a",
+      "actualSHA256": "cd439fb4a25173d23f61ce495bf2e46843b2ece635b3372a4104c95c6af0138a",
+      "matches": true
+    },
+    {
+      "group": "tests",
+      "path": "tests/replay/bridgeStateAccessor.test.ts",
+      "bytes": 13980,
+      "sha256": "a7ee2d9c3eb22063187ca685e533114ee520a8ffa5b709cf522bcedfa231e47b",
+      "actualSHA256": "a7ee2d9c3eb22063187ca685e533114ee520a8ffa5b709cf522bcedfa231e47b",
+      "matches": true
+    },
+    {
+      "group": "tests",
+      "path": "tests/replay/snapshotEquivalence.test.ts",
+      "bytes": 11500,
+      "sha256": "3cdf8978e083740ed34f3f14606fd9997e719d60208e7807bdfab51a247f51c0",
+      "actualSHA256": "3cdf8978e083740ed34f3f14606fd9997e719d60208e7807bdfab51a247f51c0",
+      "matches": true
+    },
+    {
+      "group": "tests",
+      "path": "tests/simulation/movementPathCaching.test.ts",
+      "bytes": 7877,
+      "sha256": "269b76a580d6c930a2d5790ae98c1b67d9b27ca6225492a08340cafef19bbc58",
+      "actualSHA256": "269b76a580d6c930a2d5790ae98c1b67d9b27ca6225492a08340cafef19bbc58",
+      "matches": true
+    },
+    {
+      "group": "tests",
+      "path": "tests/replay/movementCheckpointContinuation.test.ts",
+      "bytes": 6148,
+      "sha256": "eba69cb8f7092ca3dbf40a2c65bb39e2d8cec3d5beb64a45ccd40bcb166de43d",
+      "actualSHA256": "eba69cb8f7092ca3dbf40a2c65bb39e2d8cec3d5beb64a45ccd40bcb166de43d",
+      "matches": true
+    },
+    {
+      "group": "tests",
+      "path": "tests/replay/movementRoutePersistence.test.ts",
+      "bytes": 11024,
+      "sha256": "6b34f0e63e5d1b2c819e2d85c2e496e48c0b4e419373f3b4b43f27d4076de781",
+      "actualSHA256": "6b34f0e63e5d1b2c819e2d85c2e496e48c0b4e419373f3b4b43f27d4076de781",
+      "matches": true
+    },
+    {
+      "group": "canonical",
+      "path": "design/spec-final.md",
+      "bytes": 459790,
+      "sha256": "f78b0e48a3802ad1717d49b3c612c5bb7ecd8aed54a8882dc85aa696d35e1068",
+      "actualSHA256": "f78b0e48a3802ad1717d49b3c612c5bb7ecd8aed54a8882dc85aa696d35e1068",
+      "matches": true
+    },
+    {
+      "group": "canonical",
+      "path": "docs/architecture/ARCHITECTURE.md",
+      "bytes": 56474,
+      "sha256": "75229990f93250ed87cd631e7b619f56c6ce843947347594a302276dbaaec6a3",
+      "actualSHA256": "75229990f93250ed87cd631e7b619f56c6ce843947347594a302276dbaaec6a3",
+      "matches": true
+    },
+    {
+      "group": "canonical",
+      "path": "docs/architecture/decisions.md",
+      "bytes": 144484,
+      "sha256": "12bc9aa98c4f86f28bc07d6535ec2f1cab14a3099abca5342690d2af0b42548a",
+      "actualSHA256": "12bc9aa98c4f86f28bc07d6535ec2f1cab14a3099abca5342690d2af0b42548a",
+      "matches": true
+    },
+    {
+      "group": "canonical",
+      "path": "docs/architecture/drift-log.md",
+      "bytes": 77656,
+      "sha256": "4b6e8d7c5a2da9b8b0b0491043a225c843cc142d5e6fdb805f9b37fbe4ee0ea4",
+      "actualSHA256": "4b6e8d7c5a2da9b8b0b0491043a225c843cc142d5e6fdb805f9b37fbe4ee0ea4",
+      "matches": true
+    },
+    {
+      "group": "canonical",
+      "path": "docs/devlog/summary.md",
+      "bytes": 16859,
+      "sha256": "82263863cbe2ec6162687790c8b9110f5c9e1cd338354fc4772942cb18063de4",
+      "actualSHA256": "82263863cbe2ec6162687790c8b9110f5c9e1cd338354fc4772942cb18063de4",
+      "matches": true
+    },
+    {
+      "group": "canonical",
+      "path": "docs/devlog/detailed/2026-10-01_2026-10-01.md",
+      "bytes": 3407,
+      "sha256": "c60bb6c1dd6a321015b1cd488ab681d69ff4a11dde2125b208ca5505de9896bf",
+      "actualSHA256": "c60bb6c1dd6a321015b1cd488ab681d69ff4a11dde2125b208ca5505de9896bf",
+      "matches": true
+    },
+    {
+      "group": "canonical",
+      "path": "docs/learning/defect-register.md",
+      "bytes": 143382,
+      "sha256": "54f02be0020eb497c78e2390b67e5f39a9ebfc857d2734a56d305d844c9828e8",
+      "actualSHA256": "54f02be0020eb497c78e2390b67e5f39a9ebfc857d2734a56d305d844c9828e8",
+      "matches": true
+    },
+    {
+      "group": "canonical",
+      "path": "docs/debugging/2026-10-01-movement-replay.md",
+      "bytes": 7268,
+      "sha256": "6cabcb7e5ab8d0c33631623c561222099732ca0a6c6ec3c9e31e5cd4d1c2e02b",
+      "actualSHA256": "6cabcb7e5ab8d0c33631623c561222099732ca0a6c6ec3c9e31e5cd4d1c2e02b",
+      "matches": true
+    },
+    {
+      "group": "canonical",
+      "path": "docs/work/107_replay-movement-parity/plan.md",
+      "bytes": 4979,
+      "sha256": "8a23da6c4ed7358066181ac73bbc201ab6fa8fed14b90f7a47694d69ef3d337a",
+      "actualSHA256": "8a23da6c4ed7358066181ac73bbc201ab6fa8fed14b90f7a47694d69ef3d337a",
+      "matches": true
+    },
+    {
+      "group": "canonical",
+      "path": "docs/work/107_replay-movement-parity/gate-proof.md",
+      "bytes": 7211,
+      "sha256": "818e16ed9942add7c1229f8fbece3439480586775055e0c53ba72cf75b09c2b4",
+      "actualSHA256": "818e16ed9942add7c1229f8fbece3439480586775055e0c53ba72cf75b09c2b4",
+      "matches": true
+    },
+    {
+      "group": "allocation",
+      "path": "docs/work/registry.json",
+      "bytes": 134689,
+      "sha256": "f12d779e93214c130ba6a1f60bade1ac7a08578ed2b490c28b24cf1377fa4ef8",
+      "actualSHA256": "f12d779e93214c130ba6a1f60bade1ac7a08578ed2b490c28b24cf1377fa4ef8",
+      "matches": true
+    }
+  ],
+  "rootCanonical": [
+    {
+      "path": "docs/work/107_replay-movement-parity/plan.md",
+      "sha256": "50e169a67e783c1e9353ec9f7f5291a3b47e281e3a92fabcb26811e86c9c362b",
+      "actualSHA256": "50e169a67e783c1e9353ec9f7f5291a3b47e281e3a92fabcb26811e86c9c362b",
+      "matches": true
+    },
+    {
+      "path": "docs/work/108_engine-coverage-adoption/plan.md",
+      "sha256": "b717f7987bd07aa590a6139a23f45f2d85cc4d514e11295b9c3ead9c5dcfe0e9",
+      "actualSHA256": "b717f7987bd07aa590a6139a23f45f2d85cc4d514e11295b9c3ead9c5dcfe0e9",
+      "matches": true
+    },
+    {
+      "path": "docs/work/registry.json",
+      "sha256": "41dd8abbd175f91ae85a6ecff71c235eaf1719763e3b55f8cfe4b855edb44961",
+      "actualSHA256": "41dd8abbd175f91ae85a6ecff71c235eaf1719763e3b55f8cfe4b855edb44961",
+      "matches": true
+    }
+  ],
+  "noBaseChangesIn11Paths": true,
+  "evidence": [
+    {
+      "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/prepared-current-main.json",
+      "sha256": "1a6dac557f680c1fb10936d16b29ac60147eb0b93dc5d7d324b7d9706b10b556",
+      "bytes": 2998
+    },
+    {
+      "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/source-bound.json",
+      "sha256": "fc4adb48932eb448dc55bbaaf54e271b9f0d65a2dca357c7be918374a3409b3c",
+      "bytes": 3295
+    },
+    {
+      "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/execution-proof.json",
+      "sha256": "acd45f870603051a8bf0ec4719ceade18fc88aad89d74d7f66ea2e0538a06985",
+      "bytes": 2652
+    },
+    {
+      "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/selfcheck-result.json",
+      "sha256": "7ee26e2cc6b4615ff52b323f16351153f34dc38a779aeafeb47b2d65ba56b07b",
+      "bytes": 1122
+    },
+    {
+      "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/focused-contract.json",
+      "sha256": "755c8fe704572bebc3e11b2ccb4ccb4ea1cdd99af748c1bf13534dc90d3bad61",
+      "bytes": 31827
+    },
+    {
+      "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/exact-repro.log",
+      "sha256": "cc3252adfe6e47b4711ac4ffa94607f7321efbe7a9495e034fa74f9b60a62c61",
+      "bytes": 1116
+    },
+    {
+      "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/focused-contract.log",
+      "sha256": "98ade55da9ac10cb5a1e5cb052679eb9d298ba723d7477d7397d7036c553b1c6",
+      "bytes": 130
+    },
+    {
+      "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/probes/legacy-long-walk-replay.mjs",
+      "sha256": "52564fa57bf1aeda2e383358e50dbd805a20be99eb319d8590dbe905f23e01c8",
+      "bytes": 2475
+    },
+    {
+      "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/probes/movement-250-selfcheck-evidence.mjs",
+      "sha256": "ae41b9d20e3ffea8cd1d233bb473e06fe2f6328975f123cf032009bf0fea660d",
+      "bytes": 1580
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/prepared-manifest.json",
+      "sha256": "c76508af4a443246e64f195cb977a96590e8cad0c141be9430594c0162ec3803",
+      "bytes": 5261
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/tests-first-red.json",
+      "sha256": "903a916b4493debdf720dc72e3b2fefc7040a4727fb0fbca82a5842b61c48716",
+      "bytes": 12310
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/transition-red.json",
+      "sha256": "c3212ea21ab29be7fab3a215dfdc60e28c75d6b62be60e58e07f63c09be62e0e",
+      "bytes": 8874
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/mutation-proof.json",
+      "sha256": "6aedd9431f04502f2b9f4269354ddd48b518936ca038c3dca938d46e5531b074",
+      "bytes": 7600
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/probes/movement-gate-mutations.mjs",
+      "sha256": "16f653c6624a985038481dbe2356e7110bd3342a9b3b772c70edad358af84d60",
+      "bytes": 3329
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/mutant-omit-route-hydration.json",
+      "sha256": "2a4f3a3d6895c5da1cd1890ca18f761a23cb9e023c6bb391f2b03f156da6a3e6",
+      "bytes": 18525
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/mutant-accept-stale-generation.json",
+      "sha256": "3789010a61d452db9e2e3227a6ac0aec019d23dca2ca52bf762b227bd57a7d19",
+      "bytes": 9011
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/mutant-persist-historical-absence.json",
+      "sha256": "6b0f7ad1d16fd6439e28ed8096281e275a8d286e87e17f32ee92abd975375cc6",
+      "bytes": 9023
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/mutant-omit-route-deletion.json",
+      "sha256": "ddbb96fd579bce1e71eaeaa7fea597aaaefe57cf97e79f90df96c0cd37c7faee",
+      "bytes": 9033
+    }
+  ],
+  "outsideDiff": [
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/bridgeStateAccessor.ts",
+      "bytes": 8787,
+      "sha256": "c163b8591f5ef9e15d8017585e89bf2fd4957e776c0dd284eeac3b5007ac56f4",
+      "oldPath": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/src/game/simulation/bridge/bridgeStateAccessor.ts",
+      "oldBytes": 8787,
+      "oldSHA256": "c163b8591f5ef9e15d8017585e89bf2fd4957e776c0dd284eeac3b5007ac56f4",
+      "sameBytes": true
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/createWorld.ts",
+      "bytes": 11505,
+      "sha256": "88d684f3917bc1bfa41446fea2a66bde920c5302733577f4b03afdcbdf1663fc",
+      "oldPath": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/src/game/simulation/bridge/createWorld.ts",
+      "oldBytes": 11505,
+      "oldSHA256": "88d684f3917bc1bfa41446fea2a66bde920c5302733577f4b03afdcbdf1663fc",
+      "sameBytes": true
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/replay/createReplayWorldOnly.ts",
+      "bytes": 1320,
+      "sha256": "196a63b97ef9b64dac603158848ec7db54d602587820e70bd6764616aaa586f4",
+      "oldPath": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/src/game/simulation/replay/createReplayWorldOnly.ts",
+      "oldBytes": 1320,
+      "oldSHA256": "196a63b97ef9b64dac603158848ec7db54d602587820e70bd6764616aaa586f4",
+      "sameBytes": true
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/initializeBridgeOutput.ts",
+      "bytes": 1189,
+      "sha256": "6550c433d80e9adc642399698ccbf2e2f17726b4c617a17f2afcac71126fd78c",
+      "oldPath": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/src/game/simulation/bridge/initializeBridgeOutput.ts",
+      "oldBytes": 1189,
+      "oldSHA256": "6550c433d80e9adc642399698ccbf2e2f17726b4c617a17f2afcac71126fd78c",
+      "sameBytes": true
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/bridgeHelpers.ts",
+      "bytes": 10964,
+      "sha256": "8cab1511ccd42d05306567969a0681ca31c35e9c34ed2ff4596bd0f9356f1dbc",
+      "oldPath": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/src/game/simulation/bridge/bridgeHelpers.ts",
+      "oldBytes": 10964,
+      "oldSHA256": "8cab1511ccd42d05306567969a0681ca31c35e9c34ed2ff4596bd0f9356f1dbc",
+      "sameBytes": true
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/entityDestroyOps.ts",
+      "bytes": 19537,
+      "sha256": "71c3ee308944e0dc800b752032f3dcb9a1c512915afbe8db0e7149b397fb84f9",
+      "oldPath": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/src/game/simulation/bridge/entityDestroyOps.ts",
+      "oldBytes": 19537,
+      "oldSHA256": "71c3ee308944e0dc800b752032f3dcb9a1c512915afbe8db0e7149b397fb84f9",
+      "sameBytes": true
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/moveDestinationSearch.ts",
+      "bytes": 16207,
+      "sha256": "963a09079f1989f9548a12c2928896f6a6640b22ffdc13ba2034f6ab32b659eb",
+      "oldPath": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/src/game/simulation/bridge/moveDestinationSearch.ts",
+      "oldBytes": 16207,
+      "oldSHA256": "963a09079f1989f9548a12c2928896f6a6640b22ffdc13ba2034f6ab32b659eb",
+      "sameBytes": true
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/cellPassability.ts",
+      "bytes": 14946,
+      "sha256": "e1eb27d696f20e16031d12ac947acaba6dfd85bfd2d331597484cd4aadd39407",
+      "oldPath": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/src/game/simulation/bridge/cellPassability.ts",
+      "oldBytes": 14946,
+      "oldSHA256": "e1eb27d696f20e16031d12ac947acaba6dfd85bfd2d331597484cd4aadd39407",
+      "sameBytes": true
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/wirePreSeedOps.ts",
+      "bytes": 12826,
+      "sha256": "3824d1cc5caabed5128151d215b6621d77566b6c46567166338b9cf14f22ed27",
+      "oldPath": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/src/game/simulation/bridge/wirePreSeedOps.ts",
+      "oldBytes": 12826,
+      "oldSHA256": "3824d1cc5caabed5128151d215b6621d77566b6c46567166338b9cf14f22ed27",
+      "sameBytes": true
+    },
+    {
+      "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/resourceWorkerCounts.ts",
+      "bytes": 4301,
+      "sha256": "1a90b3ceca7b317f252f9b51afc5a3b7687b444d611af772647cb1c3800e38bd",
+      "oldPath": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/src/game/simulation/resourceWorkerCounts.ts",
+      "oldBytes": 4301,
+      "oldSHA256": "1a90b3ceca7b317f252f9b51afc5a3b7687b444d611af772647cb1c3800e38bd",
+      "sameBytes": true
+    }
+  ],
+  "closingVerification": {
+    "time": "2026-10-01T09:29:40.077Z",
+    "currentRows": [
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\src\\game\\simulation\\bridge\\bridgeState.ts",
+        "bytes": 7171,
+        "sha256": "4f2f0d19ab152bd43721448d37dc9d38b99f86d9b6d6aa30a78c6d2a54f899d5",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\src\\game\\simulation\\bridge\\bridgeStateSerialize.ts",
+        "bytes": 17577,
+        "sha256": "0d7d87b6a8f1f07990df508ac63ab54bc1fa47c0e561b79a406c763871a41699",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\src\\game\\simulation\\bridge\\systems\\playerCommandsSystem.ts",
+        "bytes": 12620,
+        "sha256": "b49ebe86759e0f078324111198c470630ef8a366a18c806db0ff3cfc572bc61f",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\src\\game\\simulation\\bridge\\wireBridgeOps.ts",
+        "bytes": 15715,
+        "sha256": "c024d595e2d936489e6b0276e9531e7789607145cd9d58f958e7183a66c541ae",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\src\\game\\simulation\\bridge\\movePathPersistenceTypes.ts",
+        "bytes": 370,
+        "sha256": "2504671edbd86d770e046cff0b8df4eb770eb9eebf2f18b520f384095a0dc62a",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\src\\game\\simulation\\bridge\\persistedMovePathCache.ts",
+        "bytes": 5680,
+        "sha256": "cd439fb4a25173d23f61ce495bf2e46843b2ece635b3372a4104c95c6af0138a",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\tests\\replay\\bridgeStateAccessor.test.ts",
+        "bytes": 13980,
+        "sha256": "a7ee2d9c3eb22063187ca685e533114ee520a8ffa5b709cf522bcedfa231e47b",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\tests\\replay\\snapshotEquivalence.test.ts",
+        "bytes": 11500,
+        "sha256": "3cdf8978e083740ed34f3f14606fd9997e719d60208e7807bdfab51a247f51c0",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\tests\\simulation\\movementPathCaching.test.ts",
+        "bytes": 7877,
+        "sha256": "269b76a580d6c930a2d5790ae98c1b67d9b27ca6225492a08340cafef19bbc58",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\tests\\replay\\movementCheckpointContinuation.test.ts",
+        "bytes": 6148,
+        "sha256": "eba69cb8f7092ca3dbf40a2c65bb39e2d8cec3d5beb64a45ccd40bcb166de43d",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\tests\\replay\\movementRoutePersistence.test.ts",
+        "bytes": 11024,
+        "sha256": "6b34f0e63e5d1b2c819e2d85c2e496e48c0b4e419373f3b4b43f27d4076de781",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\docs\\work\\107_replay-movement-parity\\engine-2.5-retest.md",
+        "bytes": 5265,
+        "sha256": "5475cdbf5d1806615a19d9bb6fb535e6ef94b8b7bd1d3ac6b999f70ad85321b9",
+        "matches": true
+      }
+    ],
+    "old22Rows": [
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\src\\game\\simulation\\bridge\\bridgeState.ts",
+        "bytes": 7171,
+        "sha256": "4f2f0d19ab152bd43721448d37dc9d38b99f86d9b6d6aa30a78c6d2a54f899d5",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\src\\game\\simulation\\bridge\\bridgeStateSerialize.ts",
+        "bytes": 17577,
+        "sha256": "0d7d87b6a8f1f07990df508ac63ab54bc1fa47c0e561b79a406c763871a41699",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\src\\game\\simulation\\bridge\\systems\\playerCommandsSystem.ts",
+        "bytes": 12620,
+        "sha256": "b49ebe86759e0f078324111198c470630ef8a366a18c806db0ff3cfc572bc61f",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\src\\game\\simulation\\bridge\\wireBridgeOps.ts",
+        "bytes": 15715,
+        "sha256": "c024d595e2d936489e6b0276e9531e7789607145cd9d58f958e7183a66c541ae",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\src\\game\\simulation\\bridge\\movePathPersistenceTypes.ts",
+        "bytes": 370,
+        "sha256": "2504671edbd86d770e046cff0b8df4eb770eb9eebf2f18b520f384095a0dc62a",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\src\\game\\simulation\\bridge\\persistedMovePathCache.ts",
+        "bytes": 5680,
+        "sha256": "cd439fb4a25173d23f61ce495bf2e46843b2ece635b3372a4104c95c6af0138a",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\tests\\replay\\bridgeStateAccessor.test.ts",
+        "bytes": 13980,
+        "sha256": "a7ee2d9c3eb22063187ca685e533114ee520a8ffa5b709cf522bcedfa231e47b",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\tests\\replay\\snapshotEquivalence.test.ts",
+        "bytes": 11500,
+        "sha256": "3cdf8978e083740ed34f3f14606fd9997e719d60208e7807bdfab51a247f51c0",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\tests\\simulation\\movementPathCaching.test.ts",
+        "bytes": 7877,
+        "sha256": "269b76a580d6c930a2d5790ae98c1b67d9b27ca6225492a08340cafef19bbc58",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\tests\\replay\\movementCheckpointContinuation.test.ts",
+        "bytes": 6148,
+        "sha256": "eba69cb8f7092ca3dbf40a2c65bb39e2d8cec3d5beb64a45ccd40bcb166de43d",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\tests\\replay\\movementRoutePersistence.test.ts",
+        "bytes": 11024,
+        "sha256": "6b34f0e63e5d1b2c819e2d85c2e496e48c0b4e419373f3b4b43f27d4076de781",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\design\\spec-final.md",
+        "bytes": 459790,
+        "sha256": "f78b0e48a3802ad1717d49b3c612c5bb7ecd8aed54a8882dc85aa696d35e1068",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\docs\\architecture\\ARCHITECTURE.md",
+        "bytes": 56474,
+        "sha256": "75229990f93250ed87cd631e7b619f56c6ce843947347594a302276dbaaec6a3",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\docs\\architecture\\decisions.md",
+        "bytes": 144484,
+        "sha256": "12bc9aa98c4f86f28bc07d6535ec2f1cab14a3099abca5342690d2af0b42548a",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\docs\\architecture\\drift-log.md",
+        "bytes": 77656,
+        "sha256": "4b6e8d7c5a2da9b8b0b0491043a225c843cc142d5e6fdb805f9b37fbe4ee0ea4",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\docs\\devlog\\summary.md",
+        "bytes": 16859,
+        "sha256": "82263863cbe2ec6162687790c8b9110f5c9e1cd338354fc4772942cb18063de4",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\docs\\devlog\\detailed\\2026-10-01_2026-10-01.md",
+        "bytes": 3407,
+        "sha256": "c60bb6c1dd6a321015b1cd488ab681d69ff4a11dde2125b208ca5505de9896bf",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\docs\\learning\\defect-register.md",
+        "bytes": 143382,
+        "sha256": "54f02be0020eb497c78e2390b67e5f39a9ebfc857d2734a56d305d844c9828e8",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\docs\\debugging\\2026-10-01-movement-replay.md",
+        "bytes": 7268,
+        "sha256": "6cabcb7e5ab8d0c33631623c561222099732ca0a6c6ec3c9e31e5cd4d1c2e02b",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\docs\\work\\107_replay-movement-parity\\plan.md",
+        "bytes": 4979,
+        "sha256": "8a23da6c4ed7358066181ac73bbc201ab6fa8fed14b90f7a47694d69ef3d337a",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\docs\\work\\107_replay-movement-parity\\gate-proof.md",
+        "bytes": 7211,
+        "sha256": "818e16ed9942add7c1229f8fbece3439480586775055e0c53ba72cf75b09c2b4",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001\\docs\\work\\registry.json",
+        "bytes": 134689,
+        "sha256": "f12d779e93214c130ba6a1f60bade1ac7a08578ed2b490c28b24cf1377fa4ef8",
+        "matches": true
+      }
+    ],
+    "rootCanonical": [
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\docs\\work\\107_replay-movement-parity\\plan.md",
+        "bytes": 4945,
+        "sha256": "50e169a67e783c1e9353ec9f7f5291a3b47e281e3a92fabcb26811e86c9c362b",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\docs\\work\\108_engine-coverage-adoption\\plan.md",
+        "bytes": 8858,
+        "sha256": "b717f7987bd07aa590a6139a23f45f2d85cc4d514e11295b9c3ead9c5dcfe0e9",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250\\docs\\work\\registry.json",
+        "bytes": 134761,
+        "sha256": "41dd8abbd175f91ae85a6ecff71c235eaf1719763e3b55f8cfe4b855edb44961",
+        "matches": true
+      }
+    ],
+    "evidence": [
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/prepared-current-main.json",
+        "bytes": 2998,
+        "sha256": "1a6dac557f680c1fb10936d16b29ac60147eb0b93dc5d7d324b7d9706b10b556",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/source-bound.json",
+        "bytes": 3295,
+        "sha256": "fc4adb48932eb448dc55bbaaf54e271b9f0d65a2dca357c7be918374a3409b3c",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/execution-proof.json",
+        "bytes": 2652,
+        "sha256": "acd45f870603051a8bf0ec4719ceade18fc88aad89d74d7f66ea2e0538a06985",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/selfcheck-result.json",
+        "bytes": 1122,
+        "sha256": "7ee26e2cc6b4615ff52b323f16351153f34dc38a779aeafeb47b2d65ba56b07b",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/focused-contract.json",
+        "bytes": 31827,
+        "sha256": "755c8fe704572bebc3e11b2ccb4ccb4ea1cdd99af748c1bf13534dc90d3bad61",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/exact-repro.log",
+        "bytes": 1116,
+        "sha256": "cc3252adfe6e47b4711ac4ffa94607f7321efbe7a9495e034fa74f9b60a62c61",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/parity-107-250/focused-contract.log",
+        "bytes": 130,
+        "sha256": "98ade55da9ac10cb5a1e5cb052679eb9d298ba723d7477d7397d7036c553b1c6",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/probes/legacy-long-walk-replay.mjs",
+        "bytes": 2475,
+        "sha256": "52564fa57bf1aeda2e383358e50dbd805a20be99eb319d8590dbe905f23e01c8",
+        "matches": true
+      },
+      {
+        "path": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-250/tmp/probes/movement-250-selfcheck-evidence.mjs",
+        "bytes": 1580,
+        "sha256": "ae41b9d20e3ffea8cd1d233bb473e06fe2f6328975f123cf032009bf0fea660d",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/prepared-manifest.json",
+        "bytes": 5261,
+        "sha256": "c76508af4a443246e64f195cb977a96590e8cad0c141be9430594c0162ec3803",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/tests-first-red.json",
+        "bytes": 12310,
+        "sha256": "903a916b4493debdf720dc72e3b2fefc7040a4727fb0fbca82a5842b61c48716",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/transition-red.json",
+        "bytes": 8874,
+        "sha256": "c3212ea21ab29be7fab3a215dfdc60e28c75d6b62be60e58e07f63c09be62e0e",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/mutation-proof.json",
+        "bytes": 7600,
+        "sha256": "6aedd9431f04502f2b9f4269354ddd48b518936ca038c3dca938d46e5531b074",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/probes/movement-gate-mutations.mjs",
+        "bytes": 3329,
+        "sha256": "16f653c6624a985038481dbe2356e7110bd3342a9b3b772c70edad358af84d60",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/mutant-omit-route-hydration.json",
+        "bytes": 18525,
+        "sha256": "2a4f3a3d6895c5da1cd1890ca18f761a23cb9e023c6bb391f2b03f156da6a3e6",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/mutant-accept-stale-generation.json",
+        "bytes": 9011,
+        "sha256": "3789010a61d452db9e2e3227a6ac0aec019d23dca2ca52bf762b227bd57a7d19",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/mutant-persist-historical-absence.json",
+        "bytes": 9023,
+        "sha256": "6b0f7ad1d16fd6439e28ed8096281e275a8d286e87e17f32ee92abd975375cc6",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-1001/tmp/parity-107/mutant-omit-route-deletion.json",
+        "bytes": 9033,
+        "sha256": "ddbb96fd579bce1e71eaeaa7fea597aaaefe57cf97e79f90df96c0cd37c7faee",
+        "matches": true
+      }
+    ],
+    "outsideDiff": [
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/bridgeStateAccessor.ts",
+        "bytes": 8787,
+        "sha256": "c163b8591f5ef9e15d8017585e89bf2fd4957e776c0dd284eeac3b5007ac56f4",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/createWorld.ts",
+        "bytes": 11505,
+        "sha256": "88d684f3917bc1bfa41446fea2a66bde920c5302733577f4b03afdcbdf1663fc",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/replay/createReplayWorldOnly.ts",
+        "bytes": 1320,
+        "sha256": "196a63b97ef9b64dac603158848ec7db54d602587820e70bd6764616aaa586f4",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/initializeBridgeOutput.ts",
+        "bytes": 1189,
+        "sha256": "6550c433d80e9adc642399698ccbf2e2f17726b4c617a17f2afcac71126fd78c",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/bridgeHelpers.ts",
+        "bytes": 10964,
+        "sha256": "8cab1511ccd42d05306567969a0681ca31c35e9c34ed2ff4596bd0f9356f1dbc",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/entityDestroyOps.ts",
+        "bytes": 19537,
+        "sha256": "71c3ee308944e0dc800b752032f3dcb9a1c512915afbe8db0e7149b397fb84f9",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/moveDestinationSearch.ts",
+        "bytes": 16207,
+        "sha256": "963a09079f1989f9548a12c2928896f6a6640b22ffdc13ba2034f6ab32b659eb",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/cellPassability.ts",
+        "bytes": 14946,
+        "sha256": "e1eb27d696f20e16031d12ac947acaba6dfd85bfd2d331597484cd4aadd39407",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/bridge/wirePreSeedOps.ts",
+        "bytes": 12826,
+        "sha256": "3824d1cc5caabed5128151d215b6621d77566b6c46567166338b9cf14f22ed27",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/src/game/simulation/resourceWorkerCounts.ts",
+        "bytes": 4301,
+        "sha256": "1a90b3ceca7b317f252f9b51afc5a3b7687b444d611af772647cb1c3800e38bd",
+        "matches": true
+      }
+    ],
+    "runtimeArtifacts": [
+      {
+        "path": "C:/Users/38909/Documents/github/civ-engine-worktrees/engine-feedback-1001/tmp/engine-feedback/m1/release-eb61e44/verification/dist-manifest.json",
+        "bytes": 54794,
+        "sha256": "59d03515bf9db7c2e372b7b13cd0551482f59184f53ad3f5ef4a948d36aeef8d",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/civ-engine-worktrees/engine-feedback-1001/tmp/engine-feedback/m1/release-eb61e44/civ-engine.tgz",
+        "bytes": 648792,
+        "sha256": "478d0aa36b49bd02a9a75df87ad08f6e672801011bee570887f84e5217c17fff",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/civ-engine-worktrees/engine-feedback-1001/tmp/engine-feedback/m1/release-eb61e44/adoption/result.json",
+        "bytes": 1149,
+        "sha256": "c2e77fab745e3a92b60d5f26867064a8b36bd171fea98ea0e7139d36fc973f21",
+        "matches": true
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/node_modules/civ-engine/package.json",
+        "bytes": 2524,
+        "sha256": "44b04b51aa19397bc94c52f44db97cc35c836237e0bd00cd7e61b766f5cbe973",
+        "matches": true
+      }
+    ],
+    "allMatches": true,
+    "head": "10c26f52f0810321784603a7b73f3fbf6789dc44",
+    "branch": "codex/replay-parity-250",
+    "status": "M src/game/simulation/bridge/bridgeState.ts\n M src/game/simulation/bridge/bridgeStateSerialize.ts\n M src/game/simulation/bridge/systems/playerCommandsSystem.ts\n M src/game/simulation/bridge/wireBridgeOps.ts\n M tests/replay/bridgeStateAccessor.test.ts\n M tests/replay/snapshotEquivalence.test.ts\n M tests/simulation/movementPathCaching.test.ts\n?? docs/work/107_replay-movement-parity/engine-2.5-retest.md\n?? src/game/simulation/bridge/movePathPersistenceTypes.ts\n?? src/game/simulation/bridge/persistedMovePathCache.ts\n?? tests/replay/movementCheckpointContinuation.test.ts\n?? tests/replay/movementRoutePersistence.test.ts",
+    "runtimeFilesVerification": {
+      "checkedCount": 376,
+      "allHashesAndLengthsMatch": true,
+      "mismatches": [],
+      "expectedRows": "runtimeVerification.rows",
+      "reason": "The complete 376-row first inventory is retained above; this final read rehashed every file without duplicating that inventory."
+    }
+  },
+  "runtimeVerification": {
+    "time": "2026-10-01T09:24:44.335Z",
+    "rows": [
+      {
+        "file": "ai-contract.js",
+        "sha256": "b3b36503836b3d7a74af446af146e376ec1f92b10ad374962b4ce39bcc8923be",
+        "bytes": 1166,
+        "actualSHA256": "b3b36503836b3d7a74af446af146e376ec1f92b10ad374962b4ce39bcc8923be",
+        "actualBytes": 1166,
+        "matches": true
+      },
+      {
+        "file": "ai-playtester.js",
+        "sha256": "60fff47ad3a04cbcb16f6e8324447cfc2e7e02a8e080941e9416b9d9e0021b5b",
+        "bytes": 10319,
+        "actualSHA256": "60fff47ad3a04cbcb16f6e8324447cfc2e7e02a8e080941e9416b9d9e0021b5b",
+        "actualBytes": 10319,
+        "matches": true
+      },
+      {
+        "file": "apply-tick-diff.js",
+        "sha256": "ada9d84893d830831badbc5ff04b8eef6fca6390495fe5601eaf375582742119",
+        "bytes": 5573,
+        "actualSHA256": "ada9d84893d830831badbc5ff04b8eef6fca6390495fe5601eaf375582742119",
+        "actualBytes": 5573,
+        "matches": true
+      },
+      {
+        "file": "behavior-tree.js",
+        "sha256": "490dd82fbf2df111758397f660c710e4cb34a1575194ae360eba420c2679f797",
+        "bytes": 6766,
+        "actualSHA256": "490dd82fbf2df111758397f660c710e4cb34a1575194ae360eba420c2679f797",
+        "actualBytes": 6766,
+        "matches": true
+      },
+      {
+        "file": "behavioral-metrics.js",
+        "sha256": "7b61c422671c45576f8c903d2a10fe78604d84f6b62f2b0759512479c60be8f3",
+        "bytes": 9820,
+        "actualSHA256": "7b61c422671c45576f8c903d2a10fe78604d84f6b62f2b0759512479c60be8f3",
+        "actualBytes": 9820,
+        "matches": true
+      },
+      {
+        "file": "bundle-corpus-manifest.js",
+        "sha256": "d6211fc7cca696d53417d534e57c35534d5ee779347ce22cf9adae1371da10fb",
+        "bytes": 8824,
+        "actualSHA256": "d6211fc7cca696d53417d534e57c35534d5ee779347ce22cf9adae1371da10fb",
+        "actualBytes": 8824,
+        "matches": true
+      },
+      {
+        "file": "bundle-corpus-types.js",
+        "sha256": "48fff30e12a1aaa9c216cd27ed43dae88838e28c0d9bb3ef05a5b104c983d7d6",
+        "bytes": 909,
+        "actualSHA256": "48fff30e12a1aaa9c216cd27ed43dae88838e28c0d9bb3ef05a5b104c983d7d6",
+        "actualBytes": 909,
+        "matches": true
+      },
+      {
+        "file": "bundle-corpus.js",
+        "sha256": "8d7dee12a9ea35ceeaa8eb2cf785e5fcda423c7dee41360f0d649b54be39cc46",
+        "bytes": 14845,
+        "actualSHA256": "8d7dee12a9ea35ceeaa8eb2cf785e5fcda423c7dee41360f0d649b54be39cc46",
+        "actualBytes": 14845,
+        "matches": true
+      },
+      {
+        "file": "bundle-hotspots.js",
+        "sha256": "9b17bdf9cab782322ec2b488c6fef148a16d52918f24b94d6aeaeb11955009d3",
+        "bytes": 7205,
+        "actualSHA256": "9b17bdf9cab782322ec2b488c6fef148a16d52918f24b94d6aeaeb11955009d3",
+        "actualBytes": 7205,
+        "matches": true
+      },
+      {
+        "file": "bundle-viewer-internal.js",
+        "sha256": "a8bd86dd5eacfb9241f63fb31c5281e499f85c41919399ae5e09f5141d20a47d",
+        "bytes": 6968,
+        "actualSHA256": "a8bd86dd5eacfb9241f63fb31c5281e499f85c41919399ae5e09f5141d20a47d",
+        "actualBytes": 6968,
+        "matches": true
+      },
+      {
+        "file": "bundle-viewer-types.js",
+        "sha256": "3bcaa909d52a197003895453dfa463af163316580e7929482e9ecc680ab60f53",
+        "bytes": 956,
+        "actualSHA256": "3bcaa909d52a197003895453dfa463af163316580e7929482e9ecc680ab60f53",
+        "actualBytes": 956,
+        "matches": true
+      },
+      {
+        "file": "bundle-viewer.js",
+        "sha256": "423bdfd7241f58e4c6cc209a3c1025ff53a6ca6f56a458fdf3694903dcda22c3",
+        "bytes": 15744,
+        "actualSHA256": "423bdfd7241f58e4c6cc209a3c1025ff53a6ca6f56a458fdf3694903dcda22c3",
+        "actualBytes": 15744,
+        "matches": true
+      },
+      {
+        "file": "cellular.js",
+        "sha256": "9c0f1578f8a94864ef401d81caa42c00974f023b6e30f4b2f04913f6f0439d5d",
+        "bytes": 2273,
+        "actualSHA256": "9c0f1578f8a94864ef401d81caa42c00974f023b6e30f4b2f04913f6f0439d5d",
+        "actualBytes": 2273,
+        "matches": true
+      },
+      {
+        "file": "client-adapter.js",
+        "sha256": "a8de6753d940724078c37c0aff6241eeb877227f17d189aebf214b9a27445f00",
+        "bytes": 6837,
+        "actualSHA256": "a8de6753d940724078c37c0aff6241eeb877227f17d189aebf214b9a27445f00",
+        "actualBytes": 6837,
+        "matches": true
+      },
+      {
+        "file": "command-queue.js",
+        "sha256": "9cfc2ae2931cff1fdf5570834fb4ac8783bfeac359ae1d72839a6ae2c185fc19",
+        "bytes": 440,
+        "actualSHA256": "9cfc2ae2931cff1fdf5570834fb4ac8783bfeac359ae1d72839a6ae2c185fc19",
+        "actualBytes": 440,
+        "matches": true
+      },
+      {
+        "file": "command-transaction.js",
+        "sha256": "dbfd51f3f181451800ff767fa04030c2db559487aed93d3932840534d8668231",
+        "bytes": 10360,
+        "actualSHA256": "dbfd51f3f181451800ff767fa04030c2db559487aed93d3932840534d8668231",
+        "actualBytes": 10360,
+        "matches": true
+      },
+      {
+        "file": "component-store.js",
+        "sha256": "c2551e37d04cdbbeb3baea924d9c7a8606bc821339daf087ec1c0d606e14e50e",
+        "bytes": 4892,
+        "actualSHA256": "c2551e37d04cdbbeb3baea924d9c7a8606bc821339daf087ec1c0d606e14e50e",
+        "actualBytes": 4892,
+        "matches": true
+      },
+      {
+        "file": "diff.js",
+        "sha256": "3f6396d087718950564039de6e3365748fb4b215f32b64e0b365cd3c07d79661",
+        "bytes": 43,
+        "actualSHA256": "3f6396d087718950564039de6e3365748fb4b215f32b64e0b365cd3c07d79661",
+        "actualBytes": 43,
+        "matches": true
+      },
+      {
+        "file": "engine-error.js",
+        "sha256": "22fdc86bcd2afdec41984ad6ca314e8e6d88b1ea9be011747161f6c03d01a2a7",
+        "bytes": 5637,
+        "actualSHA256": "22fdc86bcd2afdec41984ad6ca314e8e6d88b1ea9be011747161f6c03d01a2a7",
+        "actualBytes": 5637,
+        "matches": true
+      },
+      {
+        "file": "entity-manager.js",
+        "sha256": "fb880146b205649f1e7e5ca15f92565f9c32c6dc8b4eff961cb59b96ba17e38b",
+        "bytes": 4243,
+        "actualSHA256": "fb880146b205649f1e7e5ca15f92565f9c32c6dc8b4eff961cb59b96ba17e38b",
+        "actualBytes": 4243,
+        "matches": true
+      },
+      {
+        "file": "event-bus.js",
+        "sha256": "7e3c69e6ced8394eb430653ed5d3128b3920c911833b53e12101e664c356ac26",
+        "bytes": 1757,
+        "actualSHA256": "7e3c69e6ced8394eb430653ed5d3128b3920c911833b53e12101e664c356ac26",
+        "actualBytes": 1757,
+        "matches": true
+      },
+      {
+        "file": "game-loop.js",
+        "sha256": "081a33556c33a94b4785c41e0fed4bd4a0c12c40856ed212d78ef17d8bee3de2",
+        "bytes": 3740,
+        "actualSHA256": "081a33556c33a94b4785c41e0fed4bd4a0c12c40856ed212d78ef17d8bee3de2",
+        "actualBytes": 3740,
+        "matches": true
+      },
+      {
+        "file": "history-range-summary.js",
+        "sha256": "e2f14f981ca5bfc88186ffba05d53ebab70c8a36a626b324e819de393a67146e",
+        "bytes": 5833,
+        "actualSHA256": "e2f14f981ca5bfc88186ffba05d53ebab70c8a36a626b324e819de393a67146e",
+        "actualBytes": 5833,
+        "matches": true
+      },
+      {
+        "file": "history-recorder.js",
+        "sha256": "7fc0d3effed8e8ee34fdd87bb7f5625ed08861f2b4655ef10211c3acea9f4fef",
+        "bytes": 8377,
+        "actualSHA256": "7fc0d3effed8e8ee34fdd87bb7f5625ed08861f2b4655ef10211c3acea9f4fef",
+        "actualBytes": 8377,
+        "matches": true
+      },
+      {
+        "file": "improvement-loop-types.js",
+        "sha256": "6440121cffc6ad378fbdc23fcc2bdd51f5b5262525ba8bb7f0c2695ae10fa563",
+        "bytes": 61,
+        "actualSHA256": "6440121cffc6ad378fbdc23fcc2bdd51f5b5262525ba8bb7f0c2695ae10fa563",
+        "actualBytes": 61,
+        "matches": true
+      },
+      {
+        "file": "improvement-loop.js",
+        "sha256": "c52a05d70d27ca8164d96bcc8bb7ed3273030f70acbcafda00b68acddf57ffd7",
+        "bytes": 17511,
+        "actualSHA256": "c52a05d70d27ca8164d96bcc8bb7ed3273030f70acbcafda00b68acddf57ffd7",
+        "actualBytes": 17511,
+        "matches": true
+      },
+      {
+        "file": "improvement-signature.js",
+        "sha256": "9984177cff94886b1802d8534f8d3aadb7b32716533e2c1bdc12f600583a88a4",
+        "bytes": 2971,
+        "actualSHA256": "9984177cff94886b1802d8534f8d3aadb7b32716533e2c1bdc12f600583a88a4",
+        "actualBytes": 2971,
+        "matches": true
+      },
+      {
+        "file": "index.browser.js",
+        "sha256": "535488342bd533ddea403744f706622769fb0560529f3b4a553c6123511f125a",
+        "bytes": 7419,
+        "actualSHA256": "535488342bd533ddea403744f706622769fb0560529f3b4a553c6123511f125a",
+        "actualBytes": 7419,
+        "matches": true
+      },
+      {
+        "file": "index.js",
+        "sha256": "1a69afd7eb66b388575ad0eb6bca4a858d5a13f9ea0b424825392be27f5b9ab2",
+        "bytes": 6873,
+        "actualSHA256": "1a69afd7eb66b388575ad0eb6bca4a858d5a13f9ea0b424825392be27f5b9ab2",
+        "actualBytes": 6873,
+        "matches": true
+      },
+      {
+        "file": "json.js",
+        "sha256": "f027eb26affbca46682acae1cd1d6b4f4dff8e5ecd9a847d5ef31fbf6dbe364e",
+        "bytes": 3318,
+        "actualSHA256": "f027eb26affbca46682acae1cd1d6b4f4dff8e5ecd9a847d5ef31fbf6dbe364e",
+        "actualBytes": 3318,
+        "matches": true
+      },
+      {
+        "file": "layer.js",
+        "sha256": "4c4dae2b1c8fea589d79c64819ad12014f9c62aa1dc46f8195671b93ff55b478",
+        "bytes": 11478,
+        "actualSHA256": "4c4dae2b1c8fea589d79c64819ad12014f9c62aa1dc46f8195671b93ff55b478",
+        "actualBytes": 11478,
+        "matches": true
+      },
+      {
+        "file": "map-gen.js",
+        "sha256": "3cc0bec67fb53fa2fa63cd0efc8ece69abbd18c5a41718bf27cf5dff899b4262",
+        "bytes": 691,
+        "actualSHA256": "3cc0bec67fb53fa2fa63cd0efc8ece69abbd18c5a41718bf27cf5dff899b4262",
+        "actualBytes": 691,
+        "matches": true
+      },
+      {
+        "file": "noise.js",
+        "sha256": "c3a54141cc585455816a266086878310f98d2ac634a1259fe060bc9a7400c85e",
+        "bytes": 3760,
+        "actualSHA256": "c3a54141cc585455816a266086878310f98d2ac634a1259fe060bc9a7400c85e",
+        "actualBytes": 3760,
+        "matches": true
+      },
+      {
+        "file": "occupancy-binding-internal.js",
+        "sha256": "506509ef48cded70240b0ae9088f12522d0871b7fc6a9d51663b404ced610100",
+        "bytes": 2255,
+        "actualSHA256": "506509ef48cded70240b0ae9088f12522d0871b7fc6a9d51663b404ced610100",
+        "actualBytes": 2255,
+        "matches": true
+      },
+      {
+        "file": "occupancy-binding.js",
+        "sha256": "635280b47dc8c4d83dbe35114ab30cf8e5f4d4ad2ef4eeccd76625f75f2f4ee7",
+        "bytes": 12589,
+        "actualSHA256": "635280b47dc8c4d83dbe35114ab30cf8e5f4d4ad2ef4eeccd76625f75f2f4ee7",
+        "actualBytes": 12589,
+        "matches": true
+      },
+      {
+        "file": "occupancy-cell-grid.js",
+        "sha256": "b0dc57847356e6dc5ef4e8acd72e0babf6322b695ae5599de488afa3f7a6c39f",
+        "bytes": 9658,
+        "actualSHA256": "b0dc57847356e6dc5ef4e8acd72e0babf6322b695ae5599de488afa3f7a6c39f",
+        "actualBytes": 9658,
+        "matches": true
+      },
+      {
+        "file": "occupancy-grid.js",
+        "sha256": "edd5d79f31cdd4734f7791e46f7499f4f3faff99918bc751f70cb3182eb8b5a1",
+        "bytes": 222,
+        "actualSHA256": "edd5d79f31cdd4734f7791e46f7499f4f3faff99918bc751f70cb3182eb8b5a1",
+        "actualBytes": 222,
+        "matches": true
+      },
+      {
+        "file": "occupancy-internal.js",
+        "sha256": "1711d8c3da5f06a96e4c57f02a68e187b04e898454fe3a09f59ffe1eb98f3765",
+        "bytes": 2519,
+        "actualSHA256": "1711d8c3da5f06a96e4c57f02a68e187b04e898454fe3a09f59ffe1eb98f3765",
+        "actualBytes": 2519,
+        "matches": true
+      },
+      {
+        "file": "occupancy-subcell.js",
+        "sha256": "e6c72da43e37588269730d2d93a1e9178a677bbc05419b2ddc3e549aeee236d8",
+        "bytes": 12104,
+        "actualSHA256": "e6c72da43e37588269730d2d93a1e9178a677bbc05419b2ddc3e549aeee236d8",
+        "actualBytes": 12104,
+        "matches": true
+      },
+      {
+        "file": "occupancy-types.js",
+        "sha256": "60c56ee14d282c7dda05a0d9d92240233c06baad055b0698743c8ea9cee21369",
+        "bytes": 54,
+        "actualSHA256": "60c56ee14d282c7dda05a0d9d92240233c06baad055b0698743c8ea9cee21369",
+        "actualBytes": 54,
+        "matches": true
+      },
+      {
+        "file": "path-service.js",
+        "sha256": "29b872b5f0e83fa913d040c75007dd28842fe4ac346ad22579125edf0f8e45ec",
+        "bytes": 9688,
+        "actualSHA256": "29b872b5f0e83fa913d040c75007dd28842fe4ac346ad22579125edf0f8e45ec",
+        "actualBytes": 9688,
+        "matches": true
+      },
+      {
+        "file": "pathfinding.js",
+        "sha256": "6992b8e3d8c06cb53494f4ac6aa5235ed0926abbd06496bc3eb7e17c923667a1",
+        "bytes": 3372,
+        "actualSHA256": "6992b8e3d8c06cb53494f4ac6aa5235ed0926abbd06496bc3eb7e17c923667a1",
+        "actualBytes": 3372,
+        "matches": true
+      },
+      {
+        "file": "player-observer.js",
+        "sha256": "2704fc36f0372dc115c1b2df4062355625d1c71a9530eadb4384007503a264cc",
+        "bytes": 13781,
+        "actualSHA256": "2704fc36f0372dc115c1b2df4062355625d1c71a9530eadb4384007503a264cc",
+        "actualBytes": 13781,
+        "matches": true
+      },
+      {
+        "file": "random.js",
+        "sha256": "be2dd36fdacef8e0211ab7c9a4aa423dfd486eb35205cf02afbd2b7319c27734",
+        "bytes": 1530,
+        "actualSHA256": "be2dd36fdacef8e0211ab7c9a4aa423dfd486eb35205cf02afbd2b7319c27734",
+        "actualBytes": 1530,
+        "matches": true
+      },
+      {
+        "file": "render-adapter.js",
+        "sha256": "7ce2314efd50ca079c579ca02e4c8d8340e96fa3ed38901ae44908753a3e3c8e",
+        "bytes": 7000,
+        "actualSHA256": "7ce2314efd50ca079c579ca02e4c8d8340e96fa3ed38901ae44908753a3e3c8e",
+        "actualBytes": 7000,
+        "matches": true
+      },
+      {
+        "file": "resource-store.js",
+        "sha256": "02825e0e310bed3703a0627351849e267faa748f67df10c8da3076c94ac89cfa",
+        "bytes": 13036,
+        "actualSHA256": "02825e0e310bed3703a0627351849e267faa748f67df10c8da3076c94ac89cfa",
+        "actualBytes": 13036,
+        "matches": true
+      },
+      {
+        "file": "scenario-runner.js",
+        "sha256": "78a5efba0a7c6f35db6f68c05d8e46fd88f22a2fbfcd05cdaa399c9b3d9bd987",
+        "bytes": 8040,
+        "actualSHA256": "78a5efba0a7c6f35db6f68c05d8e46fd88f22a2fbfcd05cdaa399c9b3d9bd987",
+        "actualBytes": 8040,
+        "matches": true
+      },
+      {
+        "file": "serializer.js",
+        "sha256": "735526efa22fd29421707b1df13b89b9b7f9212b14c45ddf7908770ed7b6a25f",
+        "bytes": 49,
+        "actualSHA256": "735526efa22fd29421707b1df13b89b9b7f9212b14c45ddf7908770ed7b6a25f",
+        "actualBytes": 49,
+        "matches": true
+      },
+      {
+        "file": "session-attachment-id.js",
+        "sha256": "58869b87a128cdd87e372f4b5336ae20bc873727ead418f84e399fe24e36a3ec",
+        "bytes": 1132,
+        "actualSHA256": "58869b87a128cdd87e372f4b5336ae20bc873727ead418f84e399fe24e36a3ec",
+        "actualBytes": 1132,
+        "matches": true
+      },
+      {
+        "file": "session-bundle-diff.js",
+        "sha256": "f943efd1be0db460931913ed02a86df2b7cf9b066da194de62fa2ebbab11ea67",
+        "bytes": 15669,
+        "actualSHA256": "f943efd1be0db460931913ed02a86df2b7cf9b066da194de62fa2ebbab11ea67",
+        "actualBytes": 15669,
+        "matches": true
+      },
+      {
+        "file": "session-bundle-equivalence.js",
+        "sha256": "0f59c6decb239c6b115447fbf511ad085c78c784670bf6293b85c2e44ed98afe",
+        "bytes": 2677,
+        "actualSHA256": "0f59c6decb239c6b115447fbf511ad085c78c784670bf6293b85c2e44ed98afe",
+        "actualBytes": 2677,
+        "matches": true
+      },
+      {
+        "file": "session-bundle.js",
+        "sha256": "056dcfd6ff1107b343b4b85f974f3a88205132cbf62660c13958c6cbfb9735ab",
+        "bytes": 1162,
+        "actualSHA256": "056dcfd6ff1107b343b4b85f974f3a88205132cbf62660c13958c6cbfb9735ab",
+        "actualBytes": 1162,
+        "matches": true
+      },
+      {
+        "file": "session-continuity.js",
+        "sha256": "271faffbc02d17d7b8f5ebed20ccd8b9654091588931c0e8f5b7d6420a3d9d75",
+        "bytes": 1418,
+        "actualSHA256": "271faffbc02d17d7b8f5ebed20ccd8b9654091588931c0e8f5b7d6420a3d9d75",
+        "actualBytes": 1418,
+        "matches": true
+      },
+      {
+        "file": "session-deep-equal.js",
+        "sha256": "e69acca7737ecad4a6ae6ffc80404b395b12af70aa520eaa91818780e7ce1d63",
+        "bytes": 2291,
+        "actualSHA256": "e69acca7737ecad4a6ae6ffc80404b395b12af70aa520eaa91818780e7ce1d63",
+        "actualBytes": 2291,
+        "matches": true
+      },
+      {
+        "file": "session-errors.js",
+        "sha256": "97fcdcc2cd7bb0f6524f1108c8bcb1ff21dd18970f8807ec37da439c6da98772",
+        "bytes": 4972,
+        "actualSHA256": "97fcdcc2cd7bb0f6524f1108c8bcb1ff21dd18970f8807ec37da439c6da98772",
+        "actualBytes": 4972,
+        "matches": true
+      },
+      {
+        "file": "session-file-sink.js",
+        "sha256": "c09c09b434cd302d05f89f6204a8da75be3d3d0b0a76df0d9db23da19a657cb0",
+        "bytes": 18424,
+        "actualSHA256": "c09c09b434cd302d05f89f6204a8da75be3d3d0b0a76df0d9db23da19a657cb0",
+        "actualBytes": 18424,
+        "matches": true
+      },
+      {
+        "file": "session-fork-divergence.js",
+        "sha256": "a023f30ccd301249315b29d019264af935ceafd0f445617c4e143f46be7c96ef",
+        "bytes": 6493,
+        "actualSHA256": "a023f30ccd301249315b29d019264af935ceafd0f445617c4e143f46be7c96ef",
+        "actualBytes": 6493,
+        "matches": true
+      },
+      {
+        "file": "session-fork.js",
+        "sha256": "ff1cf267edb01d89b88dad791efac52b420034d7372a20e539fde92ef94186fa",
+        "bytes": 10902,
+        "actualSHA256": "ff1cf267edb01d89b88dad791efac52b420034d7372a20e539fde92ef94186fa",
+        "actualBytes": 10902,
+        "matches": true
+      },
+      {
+        "file": "session-internals.js",
+        "sha256": "b66beea3867c53c7ccfee580581fdc56fe37a7fd551f071456f4bf3672239fd1",
+        "bytes": 56,
+        "actualSHA256": "b66beea3867c53c7ccfee580581fdc56fe37a7fd551f071456f4bf3672239fd1",
+        "actualBytes": 56,
+        "matches": true
+      },
+      {
+        "file": "session-marker-validation.js",
+        "sha256": "6efb6cce0401020857f843dca09d34caf98e4bc4959bed5f1eb0e2ef2aaa18e2",
+        "bytes": 3614,
+        "actualSHA256": "6efb6cce0401020857f843dca09d34caf98e4bc4959bed5f1eb0e2ef2aaa18e2",
+        "actualBytes": 3614,
+        "matches": true
+      },
+      {
+        "file": "session-recorder.js",
+        "sha256": "a46d88fc3e82abdfebeb5e2aacc770fd26a76e345c90aad58ad77d6e91b79760",
+        "bytes": 16399,
+        "actualSHA256": "a46d88fc3e82abdfebeb5e2aacc770fd26a76e345c90aad58ad77d6e91b79760",
+        "actualBytes": 16399,
+        "matches": true
+      },
+      {
+        "file": "session-registration.js",
+        "sha256": "503eb0233346f97701a0115df56c7ade563c8fe8bc361f0a061961e4bdba7c9a",
+        "bytes": 5155,
+        "actualSHA256": "503eb0233346f97701a0115df56c7ade563c8fe8bc361f0a061961e4bdba7c9a",
+        "actualBytes": 5155,
+        "matches": true
+      },
+      {
+        "file": "session-replayer-guards.js",
+        "sha256": "21bb17e4c1983a5f09fdd5edea365cd190e9f510b55ab717a4834d0bcf9cecd3",
+        "bytes": 5287,
+        "actualSHA256": "21bb17e4c1983a5f09fdd5edea365cd190e9f510b55ab717a4834d0bcf9cecd3",
+        "actualBytes": 5287,
+        "matches": true
+      },
+      {
+        "file": "session-replayer-markers.js",
+        "sha256": "aee18794240a0b0e36629b8aa37b5de9d93fbb7da068cab858f2454bb607ab13",
+        "bytes": 1751,
+        "actualSHA256": "aee18794240a0b0e36629b8aa37b5de9d93fbb7da068cab858f2454bb607ab13",
+        "actualBytes": 1751,
+        "matches": true
+      },
+      {
+        "file": "session-replayer-types.js",
+        "sha256": "f3206f6e6b9450439988ee630c19e0ff300eafba1fec9a77c941f99e4f01a550",
+        "bytes": 305,
+        "actualSHA256": "f3206f6e6b9450439988ee630c19e0ff300eafba1fec9a77c941f99e4f01a550",
+        "actualBytes": 305,
+        "matches": true
+      },
+      {
+        "file": "session-replayer.js",
+        "sha256": "9168f3aa92a7873515314bbf26f1b497add9d385f9e41b1a4c2277fd47042b33",
+        "bytes": 19599,
+        "actualSHA256": "9168f3aa92a7873515314bbf26f1b497add9d385f9e41b1a4c2277fd47042b33",
+        "actualBytes": 19599,
+        "matches": true
+      },
+      {
+        "file": "session-scenario-bundle.js",
+        "sha256": "a53741f6f97e803f0e44c962994cf7f6d24596de355d59e463492f272831bf08",
+        "bytes": 5334,
+        "actualSHA256": "a53741f6f97e803f0e44c962994cf7f6d24596de355d59e463492f272831bf08",
+        "actualBytes": 5334,
+        "matches": true
+      },
+      {
+        "file": "session-self-check-coverage.js",
+        "sha256": "68a92062c5240845ab1ec452e8b7515d2c922d2978352477aea16570b960c331",
+        "bytes": 1851,
+        "actualSHA256": "68a92062c5240845ab1ec452e8b7515d2c922d2978352477aea16570b960c331",
+        "actualBytes": 1851,
+        "matches": true
+      },
+      {
+        "file": "session-sink.js",
+        "sha256": "1a0f465cec0f47c44ab04c8ca485c50a10774062e30dcf0377dbd8ca71c7f972",
+        "bytes": 8852,
+        "actualSHA256": "1a0f465cec0f47c44ab04c8ca485c50a10774062e30dcf0377dbd8ca71c7f972",
+        "actualBytes": 8852,
+        "matches": true
+      },
+      {
+        "file": "snapshot-diff.js",
+        "sha256": "e6339fff3a3664be4d9631cedd5c4e4d42a09370bbb6f1a930279661c8c1e9ea",
+        "bytes": 8538,
+        "actualSHA256": "e6339fff3a3664be4d9631cedd5c4e4d42a09370bbb6f1a930279661c8c1e9ea",
+        "actualBytes": 8538,
+        "matches": true
+      },
+      {
+        "file": "spatial-grid.js",
+        "sha256": "3417673f464bb9eb67b93c329b6cddb3d7c94b365d677e62d9500c98498b893e",
+        "bytes": 4977,
+        "actualSHA256": "3417673f464bb9eb67b93c329b6cddb3d7c94b365d677e62d9500c98498b893e",
+        "actualBytes": 4977,
+        "matches": true
+      },
+      {
+        "file": "state-digest.js",
+        "sha256": "9d14149250575162365165146d71ba4784b29c7724844b912ed90ea916763a1d",
+        "bytes": 3156,
+        "actualSHA256": "9d14149250575162365165146d71ba4784b29c7724844b912ed90ea916763a1d",
+        "actualBytes": 3156,
+        "matches": true
+      },
+      {
+        "file": "synthetic-playtest.js",
+        "sha256": "e5efd7d49a454638a1713a4a1e8bc449f5201a01eaf3895a8b42e2a36eb17a96",
+        "bytes": 8035,
+        "actualSHA256": "e5efd7d49a454638a1713a4a1e8bc449f5201a01eaf3895a8b42e2a36eb17a96",
+        "actualBytes": 8035,
+        "matches": true
+      },
+      {
+        "file": "types.js",
+        "sha256": "01ae2a5b120382f9a648ced7ee8507493a134f216d100fc61600c6c9738235d2",
+        "bytes": 44,
+        "actualSHA256": "01ae2a5b120382f9a648ced7ee8507493a134f216d100fc61600c6c9738235d2",
+        "actualBytes": 44,
+        "matches": true
+      },
+      {
+        "file": "uuid.js",
+        "sha256": "65970a24d51d037d292c91fd3089f09ecab35ce0e98d32b66722bfc62de2b252",
+        "bytes": 1078,
+        "actualSHA256": "65970a24d51d037d292c91fd3089f09ecab35ce0e98d32b66722bfc62de2b252",
+        "actualBytes": 1078,
+        "matches": true
+      },
+      {
+        "file": "version.js",
+        "sha256": "ee27a9e1f60426713030ab7ee1a6e882f765a4931e5468e3212a466d4ad6536b",
+        "bytes": 368,
+        "actualSHA256": "ee27a9e1f60426713030ab7ee1a6e882f765a4931e5468e3212a466d4ad6536b",
+        "actualBytes": 368,
+        "matches": true
+      },
+      {
+        "file": "visibility-map.js",
+        "sha256": "d379d5122d5d8034e92c4aa19016579c38f2e9a175d7da4f4e6ef5b43ec1e881",
+        "bytes": 8441,
+        "actualSHA256": "d379d5122d5d8034e92c4aa19016579c38f2e9a175d7da4f4e6ef5b43ec1e881",
+        "actualBytes": 8441,
+        "matches": true
+      },
+      {
+        "file": "visual-playtest-prompt.js",
+        "sha256": "6d846314994df886d2476e7540e536cfa90a39f089fc194940237a6adb96823b",
+        "bytes": 4553,
+        "actualSHA256": "6d846314994df886d2476e7540e536cfa90a39f089fc194940237a6adb96823b",
+        "actualBytes": 4553,
+        "matches": true
+      },
+      {
+        "file": "visual-playtest-types.js",
+        "sha256": "590ca3fd2e89f4fdaa381f451560eb9ce988bd9b1386d274273efe01171988da",
+        "bytes": 60,
+        "actualSHA256": "590ca3fd2e89f4fdaa381f451560eb9ce988bd9b1386d274273efe01171988da",
+        "actualBytes": 60,
+        "matches": true
+      },
+      {
+        "file": "visual-playtest.js",
+        "sha256": "d2a914f74f1c5c54562521535ed8cd45c25f8e39bfaa2ca0a34542b9126768b3",
+        "bytes": 16335,
+        "actualSHA256": "d2a914f74f1c5c54562521535ed8cd45c25f8e39bfaa2ca0a34542b9126768b3",
+        "actualBytes": 16335,
+        "matches": true
+      },
+      {
+        "file": "world-commands.js",
+        "sha256": "8a8971ad08e54fe120024d7e77a9d7c9c1495892b2f0bf0662f0f1780e0a190f",
+        "bytes": 10753,
+        "actualSHA256": "8a8971ad08e54fe120024d7e77a9d7c9c1495892b2f0bf0662f0f1780e0a190f",
+        "actualBytes": 10753,
+        "matches": true
+      },
+      {
+        "file": "world-core.js",
+        "sha256": "90c03cf8da4bf28935f3d3a4bf2fff317c5ae7dc3a19327f34a4eb5882891c83",
+        "bytes": 9258,
+        "actualSHA256": "90c03cf8da4bf28935f3d3a4bf2fff317c5ae7dc3a19327f34a4eb5882891c83",
+        "actualBytes": 9258,
+        "matches": true
+      },
+      {
+        "file": "world-debug-probes.js",
+        "sha256": "9f365c444b3f1561ef357fbbd95c95025e340d6eaca3a513478188e3b7875663",
+        "bytes": 2077,
+        "actualSHA256": "9f365c444b3f1561ef357fbbd95c95025e340d6eaca3a513478188e3b7875663",
+        "actualBytes": 2077,
+        "matches": true
+      },
+      {
+        "file": "world-debugger.js",
+        "sha256": "71a1308b3065226961d16207769fa1f5f21e27a17fc9b00efbc82c46fed46d3d",
+        "bytes": 10578,
+        "actualSHA256": "71a1308b3065226961d16207769fa1f5f21e27a17fc9b00efbc82c46fed46d3d",
+        "actualBytes": 10578,
+        "matches": true
+      },
+      {
+        "file": "world-entities.js",
+        "sha256": "dee78e96968da2c7ed7cb030f90696936deef9b2a380811ae195fa7617e06f18",
+        "bytes": 5417,
+        "actualSHA256": "dee78e96968da2c7ed7cb030f90696936deef9b2a380811ae195fa7617e06f18",
+        "actualBytes": 5417,
+        "matches": true
+      },
+      {
+        "file": "world-internal.js",
+        "sha256": "44de2d4158878b0af2c4fbe0b14eb7d714bfa8ef261922ce193168aea43202d3",
+        "bytes": 9379,
+        "actualSHA256": "44de2d4158878b0af2c4fbe0b14eb7d714bfa8ef261922ce193168aea43202d3",
+        "actualBytes": 9379,
+        "matches": true
+      },
+      {
+        "file": "world-observers.js",
+        "sha256": "05e369bedacf4bf240e742c69336df6fa9af09382fb4bc91e0b944baca9cb617",
+        "bytes": 6266,
+        "actualSHA256": "05e369bedacf4bf240e742c69336df6fa9af09382fb4bc91e0b944baca9cb617",
+        "actualBytes": 6266,
+        "matches": true
+      },
+      {
+        "file": "world-queries.js",
+        "sha256": "dfc2cdc44ee26871020fa602d27e15e46ee8eb2a5808cc3bfd026c67ad2bf7fa",
+        "bytes": 11003,
+        "actualSHA256": "dfc2cdc44ee26871020fa602d27e15e46ee8eb2a5808cc3bfd026c67ad2bf7fa",
+        "actualBytes": 11003,
+        "matches": true
+      },
+      {
+        "file": "world-strict-mode.js",
+        "sha256": "c7033fd27365ed22095554e408c543483ee010a9f67f8ffcd7beb1e00e28ee8f",
+        "bytes": 2626,
+        "actualSHA256": "c7033fd27365ed22095554e408c543483ee010a9f67f8ffcd7beb1e00e28ee8f",
+        "actualBytes": 2626,
+        "matches": true
+      },
+      {
+        "file": "world-systems.js",
+        "sha256": "bb6d5e188d397e6c404100047773b2d63623fdd44cddddb60922d8ead920db6e",
+        "bytes": 7986,
+        "actualSHA256": "bb6d5e188d397e6c404100047773b2d63623fdd44cddddb60922d8ead920db6e",
+        "actualBytes": 7986,
+        "matches": true
+      },
+      {
+        "file": "world-tags-meta.js",
+        "sha256": "45237f6f9894bab04351269bd037e71978a2992f8b7956a8dc00fb39174f074f",
+        "bytes": 6304,
+        "actualSHA256": "45237f6f9894bab04351269bd037e71978a2992f8b7956a8dc00fb39174f074f",
+        "actualBytes": 6304,
+        "matches": true
+      },
+      {
+        "file": "world-tick.js",
+        "sha256": "498e2a13c7a634e71d24bc1576b81d0c348c5d8dd0f90e9174a68fb7cf2f9f65",
+        "bytes": 11680,
+        "actualSHA256": "498e2a13c7a634e71d24bc1576b81d0c348c5d8dd0f90e9174a68fb7cf2f9f65",
+        "actualBytes": 11680,
+        "matches": true
+      },
+      {
+        "file": "world-types.js",
+        "sha256": "fa165978f03c21ac0e91ac668ca340596f6dba9cb8fad0bece4709b1dfd7d91b",
+        "bytes": 670,
+        "actualSHA256": "fa165978f03c21ac0e91ac668ca340596f6dba9cb8fad0bece4709b1dfd7d91b",
+        "actualBytes": 670,
+        "matches": true
+      },
+      {
+        "file": "world.js",
+        "sha256": "0d0d9decd305bdecbfb0b66c881afa973d29340dcfa84ca1a03ca6ee8d05d086",
+        "bytes": 18578,
+        "actualSHA256": "0d0d9decd305bdecbfb0b66c881afa973d29340dcfa84ca1a03ca6ee8d05d086",
+        "actualBytes": 18578,
+        "matches": true
+      },
+      {
+        "file": "ai-contract.d.ts.map",
+        "sha256": "64001fa283ab6da8c9646a8c9597e3c4b159601acf9ea4602a3ad7eff6ac150f",
+        "bytes": 846,
+        "actualSHA256": "64001fa283ab6da8c9646a8c9597e3c4b159601acf9ea4602a3ad7eff6ac150f",
+        "actualBytes": 846,
+        "matches": true
+      },
+      {
+        "file": "ai-contract.js.map",
+        "sha256": "8bb7cb48ebc6c546fb7254298acabbf78b1016d7253fefe0bc0e22c7e4caa360",
+        "bytes": 832,
+        "actualSHA256": "8bb7cb48ebc6c546fb7254298acabbf78b1016d7253fefe0bc0e22c7e4caa360",
+        "actualBytes": 832,
+        "matches": true
+      },
+      {
+        "file": "ai-playtester.d.ts.map",
+        "sha256": "83fc23956031be96558424dbfbadddd23a23174cf6ae57ed965550ee48d0c168",
+        "bytes": 4447,
+        "actualSHA256": "83fc23956031be96558424dbfbadddd23a23174cf6ae57ed965550ee48d0c168",
+        "actualBytes": 4447,
+        "matches": true
+      },
+      {
+        "file": "ai-playtester.js.map",
+        "sha256": "6909b0dbaf539123c9de6d30505697b7ce38d0fe79c3dd7e691b08eb851e7eaf",
+        "bytes": 6717,
+        "actualSHA256": "6909b0dbaf539123c9de6d30505697b7ce38d0fe79c3dd7e691b08eb851e7eaf",
+        "actualBytes": 6717,
+        "matches": true
+      },
+      {
+        "file": "apply-tick-diff.d.ts.map",
+        "sha256": "ff0d9acdddefa349e3c2f8aa7af7c76913d6886b4b0feaba135e40a410b87412",
+        "bytes": 293,
+        "actualSHA256": "ff0d9acdddefa349e3c2f8aa7af7c76913d6886b4b0feaba135e40a410b87412",
+        "actualBytes": 293,
+        "matches": true
+      },
+      {
+        "file": "apply-tick-diff.js.map",
+        "sha256": "7d8c53ad8c0e3c4af8fec808b413d8352944243a47d4515e455f3c266f4c0583",
+        "bytes": 5041,
+        "actualSHA256": "7d8c53ad8c0e3c4af8fec808b413d8352944243a47d4515e455f3c266f4c0583",
+        "actualBytes": 5041,
+        "matches": true
+      },
+      {
+        "file": "behavior-tree.d.ts.map",
+        "sha256": "47d7b5e979a2c60689bcbb68351b60a1f6a402bfbb67b11ecfa024a1d3f45ccd",
+        "bytes": 1423,
+        "actualSHA256": "47d7b5e979a2c60689bcbb68351b60a1f6a402bfbb67b11ecfa024a1d3f45ccd",
+        "actualBytes": 1423,
+        "matches": true
+      },
+      {
+        "file": "behavior-tree.js.map",
+        "sha256": "2ac2be061eec194f4ddf02551a770e1adad3e000f08a0028a43d44664a6d5d8f",
+        "bytes": 7523,
+        "actualSHA256": "2ac2be061eec194f4ddf02551a770e1adad3e000f08a0028a43d44664a6d5d8f",
+        "actualBytes": 7523,
+        "matches": true
+      },
+      {
+        "file": "behavioral-metrics.d.ts.map",
+        "sha256": "b21beaa420ca85fdf09a550d9e28b60fcd76e8b831565c039006a418df26f14f",
+        "bytes": 3460,
+        "actualSHA256": "b21beaa420ca85fdf09a550d9e28b60fcd76e8b831565c039006a418df26f14f",
+        "actualBytes": 3460,
+        "matches": true
+      },
+      {
+        "file": "behavioral-metrics.js.map",
+        "sha256": "b31ae1ef5ec10c3984301c0035cc9e0685f8def6937369f9fd24f15633074f8a",
+        "bytes": 11369,
+        "actualSHA256": "b31ae1ef5ec10c3984301c0035cc9e0685f8def6937369f9fd24f15633074f8a",
+        "actualBytes": 11369,
+        "matches": true
+      },
+      {
+        "file": "bundle-corpus-manifest.d.ts.map",
+        "sha256": "e08eecfd846bcaa83e36d2d46023a452c0377096ee1efebd0c3e97bf8e577f1a",
+        "bytes": 415,
+        "actualSHA256": "e08eecfd846bcaa83e36d2d46023a452c0377096ee1efebd0c3e97bf8e577f1a",
+        "actualBytes": 415,
+        "matches": true
+      },
+      {
+        "file": "bundle-corpus-manifest.js.map",
+        "sha256": "83bc36d32484291145c3a0e8df17f2782213ac86d1306fa47f8a4e76c559ab79",
+        "bytes": 7511,
+        "actualSHA256": "83bc36d32484291145c3a0e8df17f2782213ac86d1306fa47f8a4e76c559ab79",
+        "actualBytes": 7511,
+        "matches": true
+      },
+      {
+        "file": "bundle-corpus-types.d.ts.map",
+        "sha256": "d6a80263046c0f81ab8b0c4f33a111d6d7bba6ee28c463cb9262304b44ac2fc7",
+        "bytes": 3575,
+        "actualSHA256": "d6a80263046c0f81ab8b0c4f33a111d6d7bba6ee28c463cb9262304b44ac2fc7",
+        "actualBytes": 3575,
+        "matches": true
+      },
+      {
+        "file": "bundle-corpus-types.js.map",
+        "sha256": "111be5a434084caff6b375c750efb8d5262c8aac2633e2b17d42708821a7b145",
+        "bytes": 1178,
+        "actualSHA256": "111be5a434084caff6b375c750efb8d5262c8aac2633e2b17d42708821a7b145",
+        "actualBytes": 1178,
+        "matches": true
+      },
+      {
+        "file": "bundle-corpus.d.ts.map",
+        "sha256": "bd8fe206940cecb65f0a1e2b6b9cf70654fa3ba91ef3332deda462eb9a7017d3",
+        "bytes": 1393,
+        "actualSHA256": "bd8fe206940cecb65f0a1e2b6b9cf70654fa3ba91ef3332deda462eb9a7017d3",
+        "actualBytes": 1393,
+        "matches": true
+      },
+      {
+        "file": "bundle-corpus.js.map",
+        "sha256": "bee5a0c2d0c9d235fe197d9f4693534baa4e87050d6a58324c2947efa81daff4",
+        "bytes": 14966,
+        "actualSHA256": "bee5a0c2d0c9d235fe197d9f4693534baa4e87050d6a58324c2947efa81daff4",
+        "actualBytes": 14966,
+        "matches": true
+      },
+      {
+        "file": "bundle-hotspots.d.ts.map",
+        "sha256": "a5c91ab421fd093f2428f73af78eae4ed35f4d853706413712632a0488b28df8",
+        "bytes": 959,
+        "actualSHA256": "a5c91ab421fd093f2428f73af78eae4ed35f4d853706413712632a0488b28df8",
+        "actualBytes": 959,
+        "matches": true
+      },
+      {
+        "file": "bundle-hotspots.js.map",
+        "sha256": "24d39f569f75e04e908c8f3878998debbedef4bccfff213eaf36c6a5394a1220",
+        "bytes": 5260,
+        "actualSHA256": "24d39f569f75e04e908c8f3878998debbedef4bccfff213eaf36c6a5394a1220",
+        "actualBytes": 5260,
+        "matches": true
+      },
+      {
+        "file": "bundle-viewer-internal.d.ts.map",
+        "sha256": "895b3a3205b00598de5be7e4fb8dcecf4f76352682e7b4ca759f70f064f5ab8d",
+        "bytes": 984,
+        "actualSHA256": "895b3a3205b00598de5be7e4fb8dcecf4f76352682e7b4ca759f70f064f5ab8d",
+        "actualBytes": 984,
+        "matches": true
+      },
+      {
+        "file": "bundle-viewer-internal.js.map",
+        "sha256": "b10e12688d5f157066b238a778cdb9e1f2342d5ae245fa72547d9b9220ae5203",
+        "bytes": 7284,
+        "actualSHA256": "b10e12688d5f157066b238a778cdb9e1f2342d5ae245fa72547d9b9220ae5203",
+        "actualBytes": 7284,
+        "matches": true
+      },
+      {
+        "file": "bundle-viewer-types.d.ts.map",
+        "sha256": "d5e347112e93ef9620e6358bd969e1b736b064db7e5567c41b74c4a8ff9c8dde",
+        "bytes": 3479,
+        "actualSHA256": "d5e347112e93ef9620e6358bd969e1b736b064db7e5567c41b74c4a8ff9c8dde",
+        "actualBytes": 3479,
+        "matches": true
+      },
+      {
+        "file": "bundle-viewer-types.js.map",
+        "sha256": "a6ba8c5fc78ba4e38dbc0586002774050b04d2e764bf8400b669e35539548b8b",
+        "bytes": 939,
+        "actualSHA256": "a6ba8c5fc78ba4e38dbc0586002774050b04d2e764bf8400b669e35539548b8b",
+        "actualBytes": 939,
+        "matches": true
+      },
+      {
+        "file": "bundle-viewer.d.ts.map",
+        "sha256": "05a72a21dba60bbd6d44ec7b48c665aaf5fc86d941ac9c69b25134f58bc58b72",
+        "bytes": 3475,
+        "actualSHA256": "05a72a21dba60bbd6d44ec7b48c665aaf5fc86d941ac9c69b25134f58bc58b72",
+        "actualBytes": 3475,
+        "matches": true
+      },
+      {
+        "file": "bundle-viewer.js.map",
+        "sha256": "d22c117b5ded6e2a30dddc920242f90cecddf829c62cd1f14144cc191f421fa0",
+        "bytes": 14595,
+        "actualSHA256": "d22c117b5ded6e2a30dddc920242f90cecddf829c62cd1f14144cc191f421fa0",
+        "actualBytes": 14595,
+        "matches": true
+      },
+      {
+        "file": "cellular.d.ts.map",
+        "sha256": "5107574640555653b66788ccba8a9a10cd84a79095322450bf7aad435aa25d7b",
+        "bytes": 759,
+        "actualSHA256": "5107574640555653b66788ccba8a9a10cd84a79095322450bf7aad435aa25d7b",
+        "actualBytes": 759,
+        "matches": true
+      },
+      {
+        "file": "cellular.js.map",
+        "sha256": "4cbd54a8a60c1b6afe6e5aa5385e12da0248137ccf2a8c244b2ba9ff32c311ab",
+        "bytes": 3008,
+        "actualSHA256": "4cbd54a8a60c1b6afe6e5aa5385e12da0248137ccf2a8c244b2ba9ff32c311ab",
+        "actualBytes": 3008,
+        "matches": true
+      },
+      {
+        "file": "client-adapter.d.ts.map",
+        "sha256": "9da107d661459ba3083a1b5aec3fef564db1d86f9309b8fa5881f94b7157e5ac",
+        "bytes": 2920,
+        "actualSHA256": "9da107d661459ba3083a1b5aec3fef564db1d86f9309b8fa5881f94b7157e5ac",
+        "actualBytes": 2920,
+        "matches": true
+      },
+      {
+        "file": "client-adapter.js.map",
+        "sha256": "c1516af4c25f8f56bcb4a2d49241932cfffd3286cda806136004f7648b86ea9e",
+        "bytes": 5086,
+        "actualSHA256": "c1516af4c25f8f56bcb4a2d49241932cfffd3286cda806136004f7648b86ea9e",
+        "actualBytes": 5086,
+        "matches": true
+      },
+      {
+        "file": "command-queue.d.ts.map",
+        "sha256": "e6ba058dcb7bf6087c392990d2dc4a8b1440b7cad65ed9792a16f3c413a5b0e4",
+        "bytes": 663,
+        "actualSHA256": "e6ba058dcb7bf6087c392990d2dc4a8b1440b7cad65ed9792a16f3c413a5b0e4",
+        "actualBytes": 663,
+        "matches": true
+      },
+      {
+        "file": "command-queue.js.map",
+        "sha256": "41b9c1c10d513a1951caac513d6bd1c622a032971c14599f80e1f2d0c2c786d8",
+        "bytes": 520,
+        "actualSHA256": "41b9c1c10d513a1951caac513d6bd1c622a032971c14599f80e1f2d0c2c786d8",
+        "actualBytes": 520,
+        "matches": true
+      },
+      {
+        "file": "command-transaction.d.ts.map",
+        "sha256": "d2296c20a52ad4b76245e17d949d708e2ec6936870cbcf59f55a837141800a2e",
+        "bytes": 3671,
+        "actualSHA256": "d2296c20a52ad4b76245e17d949d708e2ec6936870cbcf59f55a837141800a2e",
+        "actualBytes": 3671,
+        "matches": true
+      },
+      {
+        "file": "command-transaction.js.map",
+        "sha256": "6ba43b9df30852637344f64bb85d774b1e4f513b3e21fc3abeac978556025aa9",
+        "bytes": 7439,
+        "actualSHA256": "6ba43b9df30852637344f64bb85d774b1e4f513b3e21fc3abeac978556025aa9",
+        "actualBytes": 7439,
+        "matches": true
+      },
+      {
+        "file": "component-store.d.ts.map",
+        "sha256": "34442950fe6a5cce493ec12cced387586844358e38596853f9606145fc996464",
+        "bytes": 1108,
+        "actualSHA256": "34442950fe6a5cce493ec12cced387586844358e38596853f9606145fc996464",
+        "actualBytes": 1108,
+        "matches": true
+      },
+      {
+        "file": "component-store.js.map",
+        "sha256": "3911d4754cbccb9bb5561f5b76b81f9f60a7a9136386bd5599e6a4dc63bb4e50",
+        "bytes": 4436,
+        "actualSHA256": "3911d4754cbccb9bb5561f5b76b81f9f60a7a9136386bd5599e6a4dc63bb4e50",
+        "actualBytes": 4436,
+        "matches": true
+      },
+      {
+        "file": "diff.d.ts.map",
+        "sha256": "898aeae92cfd2ad5b9f5f2940291dd3324c8928a050e7f257a730cb73aa7170c",
+        "bytes": 978,
+        "actualSHA256": "898aeae92cfd2ad5b9f5f2940291dd3324c8928a050e7f257a730cb73aa7170c",
+        "actualBytes": 978,
+        "matches": true
+      },
+      {
+        "file": "diff.js.map",
+        "sha256": "5889368c3a566af93d0f76c34bdae4fb4f36d7fcd50241be3ce72e57f93ee9c4",
+        "bytes": 100,
+        "actualSHA256": "5889368c3a566af93d0f76c34bdae4fb4f36d7fcd50241be3ce72e57f93ee9c4",
+        "actualBytes": 100,
+        "matches": true
+      },
+      {
+        "file": "engine-error.d.ts.map",
+        "sha256": "cc42b841e1bd7c4f96fc61c186923fd24cddcd6bda96c516bd4066930a6a8b3c",
+        "bytes": 1076,
+        "actualSHA256": "cc42b841e1bd7c4f96fc61c186923fd24cddcd6bda96c516bd4066930a6a8b3c",
+        "actualBytes": 1076,
+        "matches": true
+      },
+      {
+        "file": "engine-error.js.map",
+        "sha256": "24be8fca40a969b0c9684b66d70af0a2e0fd113dc1a8aa90a2200c70cc0cacaa",
+        "bytes": 2971,
+        "actualSHA256": "24be8fca40a969b0c9684b66d70af0a2e0fd113dc1a8aa90a2200c70cc0cacaa",
+        "actualBytes": 2971,
+        "matches": true
+      },
+      {
+        "file": "entity-manager.d.ts.map",
+        "sha256": "c5aa5edf31177d189dfce00ebe0f04f0251a782abd906799c98b158ee18d32c2",
+        "bytes": 1009,
+        "actualSHA256": "c5aa5edf31177d189dfce00ebe0f04f0251a782abd906799c98b158ee18d32c2",
+        "actualBytes": 1009,
+        "matches": true
+      },
+      {
+        "file": "entity-manager.js.map",
+        "sha256": "bb30b4cfe304907ec7401c9dd519f55364b7a991ea56688bc44e4886c651f889",
+        "bytes": 4528,
+        "actualSHA256": "bb30b4cfe304907ec7401c9dd519f55364b7a991ea56688bc44e4886c651f889",
+        "actualBytes": 4528,
+        "matches": true
+      },
+      {
+        "file": "event-bus.d.ts.map",
+        "sha256": "1149b051ff827591dca4d55ed96bf8315118ddf333537496df66c0b9d2a9d39f",
+        "bytes": 774,
+        "actualSHA256": "1149b051ff827591dca4d55ed96bf8315118ddf333537496df66c0b9d2a9d39f",
+        "actualBytes": 774,
+        "matches": true
+      },
+      {
+        "file": "event-bus.js.map",
+        "sha256": "728cc8c9d746299f80b20c47eeb7f33e4d52d8ea56cb6749a7b495c0d9425c6a",
+        "bytes": 1646,
+        "actualSHA256": "728cc8c9d746299f80b20c47eeb7f33e4d52d8ea56cb6749a7b495c0d9425c6a",
+        "actualBytes": 1646,
+        "matches": true
+      },
+      {
+        "file": "game-loop.d.ts.map",
+        "sha256": "e33814a8530dadf277e38238e27d253e3bbe87448792daac7d51e993c1d3fd57",
+        "bytes": 1059,
+        "actualSHA256": "e33814a8530dadf277e38238e27d253e3bbe87448792daac7d51e993c1d3fd57",
+        "actualBytes": 1059,
+        "matches": true
+      },
+      {
+        "file": "game-loop.js.map",
+        "sha256": "403f4ab7b3b5b59bfaf75b752ac172308b0c0dd1d447ca147308cc2466af568c",
+        "bytes": 3714,
+        "actualSHA256": "403f4ab7b3b5b59bfaf75b752ac172308b0c0dd1d447ca147308cc2466af568c",
+        "actualBytes": 3714,
+        "matches": true
+      },
+      {
+        "file": "history-range-summary.d.ts.map",
+        "sha256": "8e60011d33a4c2439e2de04f1b9df5391645a273f0712900d3d4f62ba3517a44",
+        "bytes": 617,
+        "actualSHA256": "8e60011d33a4c2439e2de04f1b9df5391645a273f0712900d3d4f62ba3517a44",
+        "actualBytes": 617,
+        "matches": true
+      },
+      {
+        "file": "history-range-summary.js.map",
+        "sha256": "4ca76a74acd3df38dc8ea7cf26dc1b27f2589ee3505172ab753bc0aa1fb4a096",
+        "bytes": 6220,
+        "actualSHA256": "4ca76a74acd3df38dc8ea7cf26dc1b27f2589ee3505172ab753bc0aa1fb4a096",
+        "actualBytes": 6220,
+        "matches": true
+      },
+      {
+        "file": "history-recorder.d.ts.map",
+        "sha256": "e2ae7140a149f3ea2720023e014fc721e80ee114ff4e47f954384a88afec5647",
+        "bytes": 4586,
+        "actualSHA256": "e2ae7140a149f3ea2720023e014fc721e80ee114ff4e47f954384a88afec5647",
+        "actualBytes": 4586,
+        "matches": true
+      },
+      {
+        "file": "history-recorder.js.map",
+        "sha256": "ab99941e8f362a9e3b3a2ce1982a8bc80e1e8506d2df452f2919b910e5587cf3",
+        "bytes": 7464,
+        "actualSHA256": "ab99941e8f362a9e3b3a2ce1982a8bc80e1e8506d2df452f2919b910e5587cf3",
+        "actualBytes": 7464,
+        "matches": true
+      },
+      {
+        "file": "improvement-loop-types.d.ts.map",
+        "sha256": "77a5b5dde897c536d7be7c98d75a57db74bcdf448220e02faeeb480f9be2d066",
+        "bytes": 3158,
+        "actualSHA256": "77a5b5dde897c536d7be7c98d75a57db74bcdf448220e02faeeb480f9be2d066",
+        "actualBytes": 3158,
+        "matches": true
+      },
+      {
+        "file": "improvement-loop-types.js.map",
+        "sha256": "dee415b152df7f87055ca948f8ca8120f973b4c9890e754af2a673749fa96c63",
+        "bytes": 136,
+        "actualSHA256": "dee415b152df7f87055ca948f8ca8120f973b4c9890e754af2a673749fa96c63",
+        "actualBytes": 136,
+        "matches": true
+      },
+      {
+        "file": "improvement-loop.d.ts.map",
+        "sha256": "b71cf6fb4a4c170fb28da990473f1b8f9e340db4d1f749465694f43a1dd9a24a",
+        "bytes": 1192,
+        "actualSHA256": "b71cf6fb4a4c170fb28da990473f1b8f9e340db4d1f749465694f43a1dd9a24a",
+        "actualBytes": 1192,
+        "matches": true
+      },
+      {
+        "file": "improvement-loop.js.map",
+        "sha256": "dbe005635d6a3298501ff5f7b052b3ff4227dec00bb4109f1a94296a48c9b811",
+        "bytes": 16117,
+        "actualSHA256": "dbe005635d6a3298501ff5f7b052b3ff4227dec00bb4109f1a94296a48c9b811",
+        "actualBytes": 16117,
+        "matches": true
+      },
+      {
+        "file": "improvement-signature.d.ts.map",
+        "sha256": "9319b91fd70f4fa2367808bfff94d8abcff8b8cdcb43d20a9c7044be9ea35596",
+        "bytes": 361,
+        "actualSHA256": "9319b91fd70f4fa2367808bfff94d8abcff8b8cdcb43d20a9c7044be9ea35596",
+        "actualBytes": 361,
+        "matches": true
+      },
+      {
+        "file": "improvement-signature.js.map",
+        "sha256": "16294606c7728250e66eafe7d23768f96c6ff7d4d6af304dfacfe1c1ace92a93",
+        "bytes": 1984,
+        "actualSHA256": "16294606c7728250e66eafe7d23768f96c6ff7d4d6af304dfacfe1c1ace92a93",
+        "actualBytes": 1984,
+        "matches": true
+      },
+      {
+        "file": "index.browser.d.ts.map",
+        "sha256": "95cfa0f4b5ee215fc9562b91211492490ea870203cd404bd43dd6f6a30d146c4",
+        "bytes": 7442,
+        "actualSHA256": "95cfa0f4b5ee215fc9562b91211492490ea870203cd404bd43dd6f6a30d146c4",
+        "actualBytes": 7442,
+        "matches": true
+      },
+      {
+        "file": "index.browser.js.map",
+        "sha256": "0821559a7284c058db6867302380cc3f8d9710349321bc0a72f69dc8129de1b7",
+        "bytes": 3469,
+        "actualSHA256": "0821559a7284c058db6867302380cc3f8d9710349321bc0a72f69dc8129de1b7",
+        "actualBytes": 3469,
+        "matches": true
+      },
+      {
+        "file": "index.d.ts.map",
+        "sha256": "4823b372d4c343e421a075f44640c6d54e40e2a9b64d964ff5fd6bd23f04f574",
+        "bytes": 7479,
+        "actualSHA256": "4823b372d4c343e421a075f44640c6d54e40e2a9b64d964ff5fd6bd23f04f574",
+        "actualBytes": 7479,
+        "matches": true
+      },
+      {
+        "file": "index.js.map",
+        "sha256": "5ce958d79636c0ab173178c676ac0c3c4b4a298415d9df55c40fd43c3edd56b1",
+        "bytes": 3425,
+        "actualSHA256": "5ce958d79636c0ab173178c676ac0c3c4b4a298415d9df55c40fd43c3edd56b1",
+        "actualBytes": 3425,
+        "matches": true
+      },
+      {
+        "file": "json.d.ts.map",
+        "sha256": "dd133c04da3e65d6049c6c71c9f41f618efd306d3c5b4eb34b08e96c1f18773f",
+        "bytes": 573,
+        "actualSHA256": "dd133c04da3e65d6049c6c71c9f41f618efd306d3c5b4eb34b08e96c1f18773f",
+        "actualBytes": 573,
+        "matches": true
+      },
+      {
+        "file": "json.js.map",
+        "sha256": "bca7336fa37b66b2e5cea5fcbfb65cd3108ca3cc59f75a0d7228c05b3c04d490",
+        "bytes": 3105,
+        "actualSHA256": "bca7336fa37b66b2e5cea5fcbfb65cd3108ca3cc59f75a0d7228c05b3c04d490",
+        "actualBytes": 3105,
+        "matches": true
+      },
+      {
+        "file": "layer.d.ts.map",
+        "sha256": "927e44a978741b95160deda008276b765dd3bdca1adec79eb1e3e81792055a84",
+        "bytes": 1796,
+        "actualSHA256": "927e44a978741b95160deda008276b765dd3bdca1adec79eb1e3e81792055a84",
+        "actualBytes": 1796,
+        "matches": true
+      },
+      {
+        "file": "layer.js.map",
+        "sha256": "d9c6352438a4ca3ce757aac2463ed1f8103df4f3818ac9e119c7a35ef55916b6",
+        "bytes": 10575,
+        "actualSHA256": "d9c6352438a4ca3ce757aac2463ed1f8103df4f3818ac9e119c7a35ef55916b6",
+        "actualBytes": 10575,
+        "matches": true
+      },
+      {
+        "file": "map-gen.d.ts.map",
+        "sha256": "34ba07c4864f162224bae1efc295c15af16cc9b12a380146586d04ec1336a518",
+        "bytes": 381,
+        "actualSHA256": "34ba07c4864f162224bae1efc295c15af16cc9b12a380146586d04ec1336a518",
+        "actualBytes": 381,
+        "matches": true
+      },
+      {
+        "file": "map-gen.js.map",
+        "sha256": "3705015a8e227e03a7efedc34b7edc1118b69d5fded21642ca42609b57ecf593",
+        "bytes": 845,
+        "actualSHA256": "3705015a8e227e03a7efedc34b7edc1118b69d5fded21642ca42609b57ecf593",
+        "actualBytes": 845,
+        "matches": true
+      },
+      {
+        "file": "noise.d.ts.map",
+        "sha256": "b86a8ead0c8b94fc077d67f99d2c1c586d01587433b9e8fce1a8fb93da5afb30",
+        "bytes": 394,
+        "actualSHA256": "b86a8ead0c8b94fc077d67f99d2c1c586d01587433b9e8fce1a8fb93da5afb30",
+        "actualBytes": 394,
+        "matches": true
+      },
+      {
+        "file": "noise.js.map",
+        "sha256": "fe85de13442ed9e406184dcecd964fce76b20fd48ad6c2ad62972e0f6a105e01",
+        "bytes": 5403,
+        "actualSHA256": "fe85de13442ed9e406184dcecd964fce76b20fd48ad6c2ad62972e0f6a105e01",
+        "actualBytes": 5403,
+        "matches": true
+      },
+      {
+        "file": "occupancy-binding-internal.d.ts.map",
+        "sha256": "097746b484dca705bd9e936ff5a4f5a074be1f48c4e38e13e6d89b0a62dd2d73",
+        "bytes": 1267,
+        "actualSHA256": "097746b484dca705bd9e936ff5a4f5a074be1f48c4e38e13e6d89b0a62dd2d73",
+        "actualBytes": 1267,
+        "matches": true
+      },
+      {
+        "file": "occupancy-binding-internal.js.map",
+        "sha256": "1675165b3b3d526c6e642bc8cd889f067da2f750e0b1d490d35d563b083f26a0",
+        "bytes": 2375,
+        "actualSHA256": "1675165b3b3d526c6e642bc8cd889f067da2f750e0b1d490d35d563b083f26a0",
+        "actualBytes": 2375,
+        "matches": true
+      },
+      {
+        "file": "occupancy-binding.d.ts.map",
+        "sha256": "b366951c0e29d09fa08d11567df4752d9b468f39314fdccfdd29e74c5fec883e",
+        "bytes": 2055,
+        "actualSHA256": "b366951c0e29d09fa08d11567df4752d9b468f39314fdccfdd29e74c5fec883e",
+        "actualBytes": 2055,
+        "matches": true
+      },
+      {
+        "file": "occupancy-binding.js.map",
+        "sha256": "c0e3c0bf9386660a63e2c7a7c16f1a0a4f9e5b34952ff5aaabdb8c161c41a34b",
+        "bytes": 12278,
+        "actualSHA256": "c0e3c0bf9386660a63e2c7a7c16f1a0a4f9e5b34952ff5aaabdb8c161c41a34b",
+        "actualBytes": 12278,
+        "matches": true
+      },
+      {
+        "file": "occupancy-cell-grid.d.ts.map",
+        "sha256": "24b42687d898ef9b27673304945b390f4ba9639baa5756076ab9d0135197c72f",
+        "bytes": 1789,
+        "actualSHA256": "24b42687d898ef9b27673304945b390f4ba9639baa5756076ab9d0135197c72f",
+        "actualBytes": 1789,
+        "matches": true
+      },
+      {
+        "file": "occupancy-cell-grid.js.map",
+        "sha256": "e000ba4a1f8afa9e24560faf00965bdff25bd416450a73fe0318417cdcd676c0",
+        "bytes": 10506,
+        "actualSHA256": "e000ba4a1f8afa9e24560faf00965bdff25bd416450a73fe0318417cdcd676c0",
+        "actualBytes": 10506,
+        "matches": true
+      },
+      {
+        "file": "occupancy-grid.d.ts.map",
+        "sha256": "f7ce3cef2413a05280253783bcecdad753e74452ee4813e9aa700f6b1c56d43e",
+        "bytes": 576,
+        "actualSHA256": "f7ce3cef2413a05280253783bcecdad753e74452ee4813e9aa700f6b1c56d43e",
+        "actualBytes": 576,
+        "matches": true
+      },
+      {
+        "file": "occupancy-grid.js.map",
+        "sha256": "f969ba201de8c5105dd8abe4f57db230851699118dd99a06b5d9a51f1e004f68",
+        "bytes": 252,
+        "actualSHA256": "f969ba201de8c5105dd8abe4f57db230851699118dd99a06b5d9a51f1e004f68",
+        "actualBytes": 252,
+        "matches": true
+      },
+      {
+        "file": "occupancy-internal.d.ts.map",
+        "sha256": "8978b68ed976eb78d227cef8a2a91e236e8bd291086366f92d0d3b7643831d2e",
+        "bytes": 783,
+        "actualSHA256": "8978b68ed976eb78d227cef8a2a91e236e8bd291086366f92d0d3b7643831d2e",
+        "actualBytes": 783,
+        "matches": true
+      },
+      {
+        "file": "occupancy-internal.js.map",
+        "sha256": "eca94a8f2a4459b7beed79ec5a1fc5526d8571173cd5aead9a8776bf2230c51c",
+        "bytes": 3026,
+        "actualSHA256": "eca94a8f2a4459b7beed79ec5a1fc5526d8571173cd5aead9a8776bf2230c51c",
+        "actualBytes": 3026,
+        "matches": true
+      },
+      {
+        "file": "occupancy-subcell.d.ts.map",
+        "sha256": "6417ef9507416e6ce34e26de4b65e6f7cbc4ba645791df71225f0645e9dc0579",
+        "bytes": 1650,
+        "actualSHA256": "6417ef9507416e6ce34e26de4b65e6f7cbc4ba645791df71225f0645e9dc0579",
+        "actualBytes": 1650,
+        "matches": true
+      },
+      {
+        "file": "occupancy-subcell.js.map",
+        "sha256": "912f69df7c2c00e89e0e80b7f9ce87eae8430dd90daf8af8d68fc9ceb7594e35",
+        "bytes": 13287,
+        "actualSHA256": "912f69df7c2c00e89e0e80b7f9ce87eae8430dd90daf8af8d68fc9ceb7594e35",
+        "actualBytes": 13287,
+        "matches": true
+      },
+      {
+        "file": "occupancy-types.d.ts.map",
+        "sha256": "13e1d88d100269a94347ccbadf000c8c0ec638f801f5fc4bbfe27f8648365f9f",
+        "bytes": 3415,
+        "actualSHA256": "13e1d88d100269a94347ccbadf000c8c0ec638f801f5fc4bbfe27f8648365f9f",
+        "actualBytes": 3415,
+        "matches": true
+      },
+      {
+        "file": "occupancy-types.js.map",
+        "sha256": "e035e08c88899744afb588f51a0c62aa6eb0ffe31c1cdf89d0e87fa785ebab55",
+        "bytes": 122,
+        "actualSHA256": "e035e08c88899744afb588f51a0c62aa6eb0ffe31c1cdf89d0e87fa785ebab55",
+        "actualBytes": 122,
+        "matches": true
+      },
+      {
+        "file": "path-service.d.ts.map",
+        "sha256": "25529a75f11607b1c897b86a9d9a28eaf3acf6c0f27331326e9a82bfd58eb2fa",
+        "bytes": 2780,
+        "actualSHA256": "25529a75f11607b1c897b86a9d9a28eaf3acf6c0f27331326e9a82bfd58eb2fa",
+        "actualBytes": 2780,
+        "matches": true
+      },
+      {
+        "file": "path-service.js.map",
+        "sha256": "16ee309f643d551b37e35e2cb6c91fc88ced5d9e415d896f3c8e4e08a98e7b21",
+        "bytes": 10673,
+        "actualSHA256": "16ee309f643d551b37e35e2cb6c91fc88ced5d9e415d896f3c8e4e08a98e7b21",
+        "actualBytes": 10673,
+        "matches": true
+      },
+      {
+        "file": "pathfinding.d.ts.map",
+        "sha256": "55d7a838e13a43f3393f2659f5c98986054a2d14ed414211584032e5885771f0",
+        "bytes": 780,
+        "actualSHA256": "55d7a838e13a43f3393f2659f5c98986054a2d14ed414211584032e5885771f0",
+        "actualBytes": 780,
+        "matches": true
+      },
+      {
+        "file": "pathfinding.js.map",
+        "sha256": "a30030bfe3f8279b94d937afd70bda25361caa67552b5b4f4b4a6bd3a90f33b4",
+        "bytes": 4204,
+        "actualSHA256": "a30030bfe3f8279b94d937afd70bda25361caa67552b5b4f4b4a6bd3a90f33b4",
+        "actualBytes": 4204,
+        "matches": true
+      },
+      {
+        "file": "player-observer.d.ts.map",
+        "sha256": "609c461cfb4c2f9105394f14cd8f18734cc41a0ed43dca51f03845ac3ad40b77",
+        "bytes": 3692,
+        "actualSHA256": "609c461cfb4c2f9105394f14cd8f18734cc41a0ed43dca51f03845ac3ad40b77",
+        "actualBytes": 3692,
+        "matches": true
+      },
+      {
+        "file": "player-observer.js.map",
+        "sha256": "8a3b4d452e2824448903b274c517fe29fd43efd57bdcf78c3b61e8cb90da631d",
+        "bytes": 11871,
+        "actualSHA256": "8a3b4d452e2824448903b274c517fe29fd43efd57bdcf78c3b61e8cb90da631d",
+        "actualBytes": 11871,
+        "matches": true
+      },
+      {
+        "file": "random.d.ts.map",
+        "sha256": "c5c8b20f4b9024c6bcf6a73ec1c9c93b399d1461d9fb56691c28a61b2196aa98",
+        "bytes": 354,
+        "actualSHA256": "c5c8b20f4b9024c6bcf6a73ec1c9c93b399d1461d9fb56691c28a61b2196aa98",
+        "actualBytes": 354,
+        "matches": true
+      },
+      {
+        "file": "random.js.map",
+        "sha256": "678cc99e84f8ce40bcf235504f72f064de361972a3218beb23bc1efd008c2c69",
+        "bytes": 1807,
+        "actualSHA256": "678cc99e84f8ce40bcf235504f72f064de361972a3218beb23bc1efd008c2c69",
+        "actualBytes": 1807,
+        "matches": true
+      },
+      {
+        "file": "render-adapter.d.ts.map",
+        "sha256": "b426bd7cd9055d3cfcad3fe5dd9481d82a5643329b496ed933973d47c4526abe",
+        "bytes": 2998,
+        "actualSHA256": "b426bd7cd9055d3cfcad3fe5dd9481d82a5643329b496ed933973d47c4526abe",
+        "actualBytes": 2998,
+        "matches": true
+      },
+      {
+        "file": "render-adapter.js.map",
+        "sha256": "e7f91a778607c73381d99c62a46627d07ff309b3780bc382f16deed535cec7b4",
+        "bytes": 7383,
+        "actualSHA256": "e7f91a778607c73381d99c62a46627d07ff309b3780bc382f16deed535cec7b4",
+        "actualBytes": 7383,
+        "matches": true
+      },
+      {
+        "file": "resource-store.d.ts.map",
+        "sha256": "0d4fe854fcf49680af42de96693e9ac435613c012000e7716081e17dcc09989a",
+        "bytes": 2480,
+        "actualSHA256": "0d4fe854fcf49680af42de96693e9ac435613c012000e7716081e17dcc09989a",
+        "actualBytes": 2480,
+        "matches": true
+      },
+      {
+        "file": "resource-store.js.map",
+        "sha256": "8a0af37d72275efe8498f594e84e50d68fc77f20a7913b95d67a03daf09d16d0",
+        "bytes": 14638,
+        "actualSHA256": "8a0af37d72275efe8498f594e84e50d68fc77f20a7913b95d67a03daf09d16d0",
+        "actualBytes": 14638,
+        "matches": true
+      },
+      {
+        "file": "scenario-runner.d.ts.map",
+        "sha256": "3232357f2d82d21efcac41508ec3bd4d7ad7d3e71f809b9d346532d8291dd356",
+        "bytes": 4540,
+        "actualSHA256": "3232357f2d82d21efcac41508ec3bd4d7ad7d3e71f809b9d346532d8291dd356",
+        "actualBytes": 4540,
+        "matches": true
+      },
+      {
+        "file": "scenario-runner.js.map",
+        "sha256": "0cd774bc455fe0edb986f8055ec7ded42983fa84a608ff159b143142d1237ec0",
+        "bytes": 7661,
+        "actualSHA256": "0cd774bc455fe0edb986f8055ec7ded42983fa84a608ff159b143142d1237ec0",
+        "actualBytes": 7661,
+        "matches": true
+      },
+      {
+        "file": "serializer.d.ts.map",
+        "sha256": "1f4302c7dad4dbd21fd2833cc95200f724e5824632b2efba8f365325f7b751a8",
+        "bytes": 2754,
+        "actualSHA256": "1f4302c7dad4dbd21fd2833cc95200f724e5824632b2efba8f365325f7b751a8",
+        "actualBytes": 2754,
+        "matches": true
+      },
+      {
+        "file": "serializer.js.map",
+        "sha256": "fe36491492c84286276c1c5f03b73849a3163f87753104b4b7615824b7ae501e",
+        "bytes": 112,
+        "actualSHA256": "fe36491492c84286276c1c5f03b73849a3163f87753104b4b7615824b7ae501e",
+        "actualBytes": 112,
+        "matches": true
+      },
+      {
+        "file": "session-attachment-id.d.ts.map",
+        "sha256": "371c65071c161dc723b0309f9bb081dc51fc4b627b496c3286266d953eb722b9",
+        "bytes": 245,
+        "actualSHA256": "371c65071c161dc723b0309f9bb081dc51fc4b627b496c3286266d953eb722b9",
+        "actualBytes": 245,
+        "matches": true
+      },
+      {
+        "file": "session-attachment-id.js.map",
+        "sha256": "158af5c3971f97e03cee80574f27f6b2056f429f04373648c671d4b8ac406a47",
+        "bytes": 640,
+        "actualSHA256": "158af5c3971f97e03cee80574f27f6b2056f429f04373648c671d4b8ac406a47",
+        "actualBytes": 640,
+        "matches": true
+      },
+      {
+        "file": "session-bundle-diff.d.ts.map",
+        "sha256": "d7d1f3596a62ef03336238d5d764bfc4639420d98feee7c20bd7bba3ed2bba1b",
+        "bytes": 2562,
+        "actualSHA256": "d7d1f3596a62ef03336238d5d764bfc4639420d98feee7c20bd7bba3ed2bba1b",
+        "actualBytes": 2562,
+        "matches": true
+      },
+      {
+        "file": "session-bundle-diff.js.map",
+        "sha256": "a0174b0ee144c20600ec6255622660b8d9be1c1d8c1f6c325db58bfc7ee0969f",
+        "bytes": 14386,
+        "actualSHA256": "a0174b0ee144c20600ec6255622660b8d9be1c1d8c1f6c325db58bfc7ee0969f",
+        "actualBytes": 14386,
+        "matches": true
+      },
+      {
+        "file": "session-bundle-equivalence.d.ts.map",
+        "sha256": "be46aebacf8c5b2b737af525ee52dff132ad75282b79b6f05b10571deee50360",
+        "bytes": 623,
+        "actualSHA256": "be46aebacf8c5b2b737af525ee52dff132ad75282b79b6f05b10571deee50360",
+        "actualBytes": 623,
+        "matches": true
+      },
+      {
+        "file": "session-bundle-equivalence.js.map",
+        "sha256": "3d998ba79a29982a11c3aef8a1cb6bcef7aee61526773e41a43c8f4aa7e31cc1",
+        "bytes": 2502,
+        "actualSHA256": "3d998ba79a29982a11c3aef8a1cb6bcef7aee61526773e41a43c8f4aa7e31cc1",
+        "actualBytes": 2502,
+        "matches": true
+      },
+      {
+        "file": "session-bundle.d.ts.map",
+        "sha256": "9a391e7334cee997641a377ecb1fd7fdf292785cbe25a5680c80f4b46758d557",
+        "bytes": 3961,
+        "actualSHA256": "9a391e7334cee997641a377ecb1fd7fdf292785cbe25a5680c80f4b46758d557",
+        "actualBytes": 3961,
+        "matches": true
+      },
+      {
+        "file": "session-bundle.js.map",
+        "sha256": "7cc6937ba516b2f626d47c635e5701c9beddfaf44405dfec7d235a1047ecd440",
+        "bytes": 373,
+        "actualSHA256": "7cc6937ba516b2f626d47c635e5701c9beddfaf44405dfec7d235a1047ecd440",
+        "actualBytes": 373,
+        "matches": true
+      },
+      {
+        "file": "session-continuity.d.ts.map",
+        "sha256": "4452f080fffe1f134a48b97992f656c625a4d05d9202c9404822d4f1763660e3",
+        "bytes": 316,
+        "actualSHA256": "4452f080fffe1f134a48b97992f656c625a4d05d9202c9404822d4f1763660e3",
+        "actualBytes": 316,
+        "matches": true
+      },
+      {
+        "file": "session-continuity.js.map",
+        "sha256": "9d99a004f78b81c753e74bcd67122b546ede84415a70f1de823f5c8bd88bfe25",
+        "bytes": 973,
+        "actualSHA256": "9d99a004f78b81c753e74bcd67122b546ede84415a70f1de823f5c8bd88bfe25",
+        "actualBytes": 973,
+        "matches": true
+      },
+      {
+        "file": "session-deep-equal.d.ts.map",
+        "sha256": "f91b9dc1766f1bbcc025594bab46bc8ea9a1449beff831a7b4e05a83823a5320",
+        "bytes": 375,
+        "actualSHA256": "f91b9dc1766f1bbcc025594bab46bc8ea9a1449beff831a7b4e05a83823a5320",
+        "actualBytes": 375,
+        "matches": true
+      },
+      {
+        "file": "session-deep-equal.js.map",
+        "sha256": "9732fdf216771a28fd4111b12ba8031284a98a18a6fbc5edc8b80fb208669dea",
+        "bytes": 2523,
+        "actualSHA256": "9732fdf216771a28fd4111b12ba8031284a98a18a6fbc5edc8b80fb208669dea",
+        "actualBytes": 2523,
+        "matches": true
+      },
+      {
+        "file": "session-errors.d.ts.map",
+        "sha256": "a211897b4df18434ff59ed8a9aabff8691697e17b126182dedf52a584dd1373f",
+        "bytes": 858,
+        "actualSHA256": "a211897b4df18434ff59ed8a9aabff8691697e17b126182dedf52a584dd1373f",
+        "actualBytes": 858,
+        "matches": true
+      },
+      {
+        "file": "session-errors.js.map",
+        "sha256": "bf4cdd7ea9741f19f7e12041f03ad94db956300b338cfff84436bb63cabe06a4",
+        "bytes": 1173,
+        "actualSHA256": "bf4cdd7ea9741f19f7e12041f03ad94db956300b338cfff84436bb63cabe06a4",
+        "actualBytes": 1173,
+        "matches": true
+      },
+      {
+        "file": "session-file-sink.d.ts.map",
+        "sha256": "b05af88fcd59cfd036e32b18f4c7c7d6e577d8c0a04d222702cf8eda850e9a34",
+        "bytes": 1587,
+        "actualSHA256": "b05af88fcd59cfd036e32b18f4c7c7d6e577d8c0a04d222702cf8eda850e9a34",
+        "actualBytes": 1587,
+        "matches": true
+      },
+      {
+        "file": "session-file-sink.js.map",
+        "sha256": "a0d66393ea96868f23afa386eed82a69bcb2079bfc98c93fe09a4e26b01ba690",
+        "bytes": 13736,
+        "actualSHA256": "a0d66393ea96868f23afa386eed82a69bcb2079bfc98c93fe09a4e26b01ba690",
+        "actualBytes": 13736,
+        "matches": true
+      },
+      {
+        "file": "session-fork-divergence.d.ts.map",
+        "sha256": "5274a0a60d950b345593518e3e7e776d2aad3a53f1e237d52eece14684b35bd9",
+        "bytes": 466,
+        "actualSHA256": "5274a0a60d950b345593518e3e7e776d2aad3a53f1e237d52eece14684b35bd9",
+        "actualBytes": 466,
+        "matches": true
+      },
+      {
+        "file": "session-fork-divergence.js.map",
+        "sha256": "7a0b4b700a506c2e50b904f43aa007c863c6071cd26d712a73fd79b6fe0b43d6",
+        "bytes": 6278,
+        "actualSHA256": "7a0b4b700a506c2e50b904f43aa007c863c6071cd26d712a73fd79b6fe0b43d6",
+        "actualBytes": 6278,
+        "matches": true
+      },
+      {
+        "file": "session-fork.d.ts.map",
+        "sha256": "0f86489d8147ed3784d8fed42a817d57578700b3d2e4d52852e8fa920e81db05",
+        "bytes": 5321,
+        "actualSHA256": "0f86489d8147ed3784d8fed42a817d57578700b3d2e4d52852e8fa920e81db05",
+        "actualBytes": 5321,
+        "matches": true
+      },
+      {
+        "file": "session-fork.js.map",
+        "sha256": "98110974b1e437119bca418f551a1458e1229eb5e8d396cc950dee70140c3d55",
+        "bytes": 7953,
+        "actualSHA256": "98110974b1e437119bca418f551a1458e1229eb5e8d396cc950dee70140c3d55",
+        "actualBytes": 7953,
+        "matches": true
+      },
+      {
+        "file": "session-internals.d.ts.map",
+        "sha256": "bd86d400587fdd5f0c950a41c279b926d56f532e6ea5f07381582540882a1a8f",
+        "bytes": 759,
+        "actualSHA256": "bd86d400587fdd5f0c950a41c279b926d56f532e6ea5f07381582540882a1a8f",
+        "actualBytes": 759,
+        "matches": true
+      },
+      {
+        "file": "session-internals.js.map",
+        "sha256": "a9842702dd537e61162db9e53d104e5362967d7a7ecac9729ed37b339d289974",
+        "bytes": 126,
+        "actualSHA256": "a9842702dd537e61162db9e53d104e5362967d7a7ecac9729ed37b339d289974",
+        "actualBytes": 126,
+        "matches": true
+      },
+      {
+        "file": "session-marker-validation.d.ts.map",
+        "sha256": "bc41dda6cf627234a8c6869befb651a94a4f2b5ec5c96f12d2918549fa167322",
+        "bytes": 663,
+        "actualSHA256": "bc41dda6cf627234a8c6869befb651a94a4f2b5ec5c96f12d2918549fa167322",
+        "actualBytes": 663,
+        "matches": true
+      },
+      {
+        "file": "session-marker-validation.js.map",
+        "sha256": "b415dde74e46caec5b29d53b326be0a33dfdc2561219ef03430901cb96c2af2a",
+        "bytes": 3281,
+        "actualSHA256": "b415dde74e46caec5b29d53b326be0a33dfdc2561219ef03430901cb96c2af2a",
+        "actualBytes": 3281,
+        "matches": true
+      },
+      {
+        "file": "session-recorder.d.ts.map",
+        "sha256": "5043b0233948c99143f45d5b95a2d831808f00ffcbb1f25f62f6b00740f097c2",
+        "bytes": 3186,
+        "actualSHA256": "5043b0233948c99143f45d5b95a2d831808f00ffcbb1f25f62f6b00740f097c2",
+        "actualBytes": 3186,
+        "matches": true
+      },
+      {
+        "file": "session-recorder.js.map",
+        "sha256": "2bcff9d8e88103f852e2280d19f1b28f0d18583bbdcae4014724a1e3306aa95f",
+        "bytes": 12639,
+        "actualSHA256": "2bcff9d8e88103f852e2280d19f1b28f0d18583bbdcae4014724a1e3306aa95f",
+        "actualBytes": 12639,
+        "matches": true
+      },
+      {
+        "file": "session-registration.d.ts.map",
+        "sha256": "bbe08ec1653ea942ddeeb0cfb53459b6e9080df1db7af0b3f89aaef6e9960ce0",
+        "bytes": 1351,
+        "actualSHA256": "bbe08ec1653ea942ddeeb0cfb53459b6e9080df1db7af0b3f89aaef6e9960ce0",
+        "actualBytes": 1351,
+        "matches": true
+      },
+      {
+        "file": "session-registration.js.map",
+        "sha256": "0aceefaa61a9d1b814420511149a6f9a007927b99f59459fd1d2b9fcf16dc7df",
+        "bytes": 4775,
+        "actualSHA256": "0aceefaa61a9d1b814420511149a6f9a007927b99f59459fd1d2b9fcf16dc7df",
+        "actualBytes": 4775,
+        "matches": true
+      },
+      {
+        "file": "session-replayer-guards.d.ts.map",
+        "sha256": "4a32a191d2ec61b90376cee1f41a00a8240f623eaeba5e327befa2f2809081ff",
+        "bytes": 670,
+        "actualSHA256": "4a32a191d2ec61b90376cee1f41a00a8240f623eaeba5e327befa2f2809081ff",
+        "actualBytes": 670,
+        "matches": true
+      },
+      {
+        "file": "session-replayer-guards.js.map",
+        "sha256": "cb69d3556346f3c0d9130ee7227c06b92b99d8e0e3b2cb3541933b0ea11d2e96",
+        "bytes": 3655,
+        "actualSHA256": "cb69d3556346f3c0d9130ee7227c06b92b99d8e0e3b2cb3541933b0ea11d2e96",
+        "actualBytes": 3655,
+        "matches": true
+      },
+      {
+        "file": "session-replayer-markers.d.ts.map",
+        "sha256": "db0c0b17ad5b152a154ffb510f8f643acffbd620b40e694a791e1033fffbadb0",
+        "bytes": 417,
+        "actualSHA256": "db0c0b17ad5b152a154ffb510f8f643acffbd620b40e694a791e1033fffbadb0",
+        "actualBytes": 417,
+        "matches": true
+      },
+      {
+        "file": "session-replayer-markers.js.map",
+        "sha256": "f2e7c744c45ea3bc0d904c82c7db422d2f7273ce82fe23e50554796a98c36e18",
+        "bytes": 1340,
+        "actualSHA256": "f2e7c744c45ea3bc0d904c82c7db422d2f7273ce82fe23e50554796a98c36e18",
+        "actualBytes": 1340,
+        "matches": true
+      },
+      {
+        "file": "session-replayer-types.d.ts.map",
+        "sha256": "1513f33c46574173bd7b513908bf86dd51f0ef19fb540e36c1b4c983c86aacff",
+        "bytes": 2476,
+        "actualSHA256": "1513f33c46574173bd7b513908bf86dd51f0ef19fb540e36c1b4c983c86aacff",
+        "actualBytes": 2476,
+        "matches": true
+      },
+      {
+        "file": "session-replayer-types.js.map",
+        "sha256": "c842d81866406764b201a303b7e63b4d197520baaaa8e9ae15750938aafc00a0",
+        "bytes": 184,
+        "actualSHA256": "c842d81866406764b201a303b7e63b4d197520baaaa8e9ae15750938aafc00a0",
+        "actualBytes": 184,
+        "matches": true
+      },
+      {
+        "file": "session-replayer.d.ts.map",
+        "sha256": "b77f0ae948eca7b04300385fbd11f39c9fb79d91258bb73f173976368cf4eb2f",
+        "bytes": 2995,
+        "actualSHA256": "b77f0ae948eca7b04300385fbd11f39c9fb79d91258bb73f173976368cf4eb2f",
+        "actualBytes": 2995,
+        "matches": true
+      },
+      {
+        "file": "session-replayer.js.map",
+        "sha256": "72412424e6efdc67fb55c1ef808525d7e24d1efbfa1cb4a0ebc0c42512da922d",
+        "bytes": 15660,
+        "actualSHA256": "72412424e6efdc67fb55c1ef808525d7e24d1efbfa1cb4a0ebc0c42512da922d",
+        "actualBytes": 15660,
+        "matches": true
+      },
+      {
+        "file": "session-scenario-bundle.d.ts.map",
+        "sha256": "1bfb633367307bfecfda343acc9b64c8f5442d19f38fab7b65841b98bf2812f8",
+        "bytes": 848,
+        "actualSHA256": "1bfb633367307bfecfda343acc9b64c8f5442d19f38fab7b65841b98bf2812f8",
+        "actualBytes": 848,
+        "matches": true
+      },
+      {
+        "file": "session-scenario-bundle.js.map",
+        "sha256": "6cb91d2b5fd74d2da3ac1fe011e1fa13873c269e1809bdbcb6d20f27c6b435b4",
+        "bytes": 2977,
+        "actualSHA256": "6cb91d2b5fd74d2da3ac1fe011e1fa13873c269e1809bdbcb6d20f27c6b435b4",
+        "actualBytes": 2977,
+        "matches": true
+      },
+      {
+        "file": "session-self-check-coverage.d.ts.map",
+        "sha256": "ff34daaf9dc2419b32088a0246ca6170c57ff607e12c596d153e1682e858c253",
+        "bytes": 450,
+        "actualSHA256": "ff34daaf9dc2419b32088a0246ca6170c57ff607e12c596d153e1682e858c253",
+        "actualBytes": 450,
+        "matches": true
+      },
+      {
+        "file": "session-self-check-coverage.js.map",
+        "sha256": "f65ac887c1d4481fc2a5c862290cc8c260eb54ab3114f76ff522a3c2a7e6c390",
+        "bytes": 2089,
+        "actualSHA256": "f65ac887c1d4481fc2a5c862290cc8c260eb54ab3114f76ff522a3c2a7e6c390",
+        "actualBytes": 2089,
+        "matches": true
+      },
+      {
+        "file": "session-sink.d.ts.map",
+        "sha256": "dcdf8e97942d8f63ac3c3c59b64fd6589497e8029784223362b8feb5cec474e9",
+        "bytes": 2730,
+        "actualSHA256": "dcdf8e97942d8f63ac3c3c59b64fd6589497e8029784223362b8feb5cec474e9",
+        "actualBytes": 2730,
+        "matches": true
+      },
+      {
+        "file": "session-sink.js.map",
+        "sha256": "2031e8ebe6e2f3ddbc04e4406c082aefcfb8814daf1dd5aac2722061a6a10479",
+        "bytes": 6745,
+        "actualSHA256": "2031e8ebe6e2f3ddbc04e4406c082aefcfb8814daf1dd5aac2722061a6a10479",
+        "actualBytes": 6745,
+        "matches": true
+      },
+      {
+        "file": "snapshot-diff.d.ts.map",
+        "sha256": "4e8e231cb321351c710f2f262ec28f04498bdcbb7e37e6a6d0dd353a931b2a9b",
+        "bytes": 374,
+        "actualSHA256": "4e8e231cb321351c710f2f262ec28f04498bdcbb7e37e6a6d0dd353a931b2a9b",
+        "actualBytes": 374,
+        "matches": true
+      },
+      {
+        "file": "snapshot-diff.js.map",
+        "sha256": "8236f2efc9813f7da14e86574b31ca8059fd388a01f17fec9bd30f2e0b1e125e",
+        "bytes": 9562,
+        "actualSHA256": "8236f2efc9813f7da14e86574b31ca8059fd388a01f17fec9bd30f2e0b1e125e",
+        "actualBytes": 9562,
+        "matches": true
+      },
+      {
+        "file": "spatial-grid.d.ts.map",
+        "sha256": "050249044b380b89872040e9192bca5edfabfad4dfbaa70561f8097c8e47153e",
+        "bytes": 1696,
+        "actualSHA256": "050249044b380b89872040e9192bca5edfabfad4dfbaa70561f8097c8e47153e",
+        "actualBytes": 1696,
+        "matches": true
+      },
+      {
+        "file": "spatial-grid.js.map",
+        "sha256": "5a3c181c2df1142a5411b5c3baffff40b8f0a46c8b263cd1bde00790c29d3f8c",
+        "bytes": 5813,
+        "actualSHA256": "5a3c181c2df1142a5411b5c3baffff40b8f0a46c8b263cd1bde00790c29d3f8c",
+        "actualBytes": 5813,
+        "matches": true
+      },
+      {
+        "file": "state-digest.d.ts.map",
+        "sha256": "b6f0786cd17b9413141fdc18d8c18b85d40b3feaed920e101debcf551cef734b",
+        "bytes": 292,
+        "actualSHA256": "b6f0786cd17b9413141fdc18d8c18b85d40b3feaed920e101debcf551cef734b",
+        "actualBytes": 292,
+        "matches": true
+      },
+      {
+        "file": "state-digest.js.map",
+        "sha256": "431ca4dacc64346ea7b8594d062133a0414d0f45993b16200b3a3d63eecaf2b7",
+        "bytes": 3077,
+        "actualSHA256": "431ca4dacc64346ea7b8594d062133a0414d0f45993b16200b3a3d63eecaf2b7",
+        "actualBytes": 3077,
+        "matches": true
+      },
+      {
+        "file": "synthetic-playtest.d.ts.map",
+        "sha256": "370b7176e0dd0b5b6c0ae6af90d341b721c40b27ff015644ac78aa59f0006cd4",
+        "bytes": 5109,
+        "actualSHA256": "370b7176e0dd0b5b6c0ae6af90d341b721c40b27ff015644ac78aa59f0006cd4",
+        "actualBytes": 5109,
+        "matches": true
+      },
+      {
+        "file": "synthetic-playtest.js.map",
+        "sha256": "3d34917325a710894bca0079f32a2b9b90df5e9a4314abf740701d931db8267d",
+        "bytes": 6054,
+        "actualSHA256": "3d34917325a710894bca0079f32a2b9b90df5e9a4314abf740701d931db8267d",
+        "actualBytes": 6054,
+        "matches": true
+      },
+      {
+        "file": "types.d.ts.map",
+        "sha256": "ffb4226a9c24ccae7fc62bb98a13d06ba055b811b95964144daa2578be58c40e",
+        "bytes": 645,
+        "actualSHA256": "ffb4226a9c24ccae7fc62bb98a13d06ba055b811b95964144daa2578be58c40e",
+        "actualBytes": 645,
+        "matches": true
+      },
+      {
+        "file": "types.js.map",
+        "sha256": "a7de897b48fe57bf54d6f84169135ff2e89e2fc95ea0a0a815761cc29a41efee",
+        "bytes": 102,
+        "actualSHA256": "a7de897b48fe57bf54d6f84169135ff2e89e2fc95ea0a0a815761cc29a41efee",
+        "actualBytes": 102,
+        "matches": true
+      },
+      {
+        "file": "uuid.d.ts.map",
+        "sha256": "cdafa4e3d230055f4ba70bfcc5dc337e6ec5187330bac42078912ead5b675d2e",
+        "bytes": 136,
+        "actualSHA256": "cdafa4e3d230055f4ba70bfcc5dc337e6ec5187330bac42078912ead5b675d2e",
+        "actualBytes": 136,
+        "matches": true
+      },
+      {
+        "file": "uuid.js.map",
+        "sha256": "497043237f775585d7c8af741f86cec89ff9928a46cc928a0e21ad24029f521f",
+        "bytes": 1114,
+        "actualSHA256": "497043237f775585d7c8af741f86cec89ff9928a46cc928a0e21ad24029f521f",
+        "actualBytes": 1114,
+        "matches": true
+      },
+      {
+        "file": "version.d.ts.map",
+        "sha256": "8868ae3949fd7d35a44a88653a0ce81e524971e7e938814fee2ea889f85c7f28",
+        "bytes": 157,
+        "actualSHA256": "8868ae3949fd7d35a44a88653a0ce81e524971e7e938814fee2ea889f85c7f28",
+        "actualBytes": 157,
+        "matches": true
+      },
+      {
+        "file": "version.js.map",
+        "sha256": "9785996468f75d09808511796874714d29dcd9bf0c3dbc7c5d5179c180f7271d",
+        "bytes": 160,
+        "actualSHA256": "9785996468f75d09808511796874714d29dcd9bf0c3dbc7c5d5179c180f7271d",
+        "actualBytes": 160,
+        "matches": true
+      },
+      {
+        "file": "visibility-map.d.ts.map",
+        "sha256": "bb9b7431ba85a7158895de3dfc931d1f3a4e38014c382cd7a6e20e31c053ac04",
+        "bytes": 1759,
+        "actualSHA256": "bb9b7431ba85a7158895de3dfc931d1f3a4e38014c382cd7a6e20e31c053ac04",
+        "actualBytes": 1759,
+        "matches": true
+      },
+      {
+        "file": "visibility-map.js.map",
+        "sha256": "bbdcd6c9f72244a3edda9018f42089da74b6ab1ee1151eec2b126a7541fcefb5",
+        "bytes": 9240,
+        "actualSHA256": "bbdcd6c9f72244a3edda9018f42089da74b6ab1ee1151eec2b126a7541fcefb5",
+        "actualBytes": 9240,
+        "matches": true
+      },
+      {
+        "file": "visual-playtest-prompt.d.ts.map",
+        "sha256": "8ac3e686322983632c0c1d1a43effa5846b184d4d56bf2112e5a2e286a77e799",
+        "bytes": 324,
+        "actualSHA256": "8ac3e686322983632c0c1d1a43effa5846b184d4d56bf2112e5a2e286a77e799",
+        "actualBytes": 324,
+        "matches": true
+      },
+      {
+        "file": "visual-playtest-prompt.js.map",
+        "sha256": "79eb97569c08c9d3be75ec63915da74bc13de74fdecea532cb024d93af1229c0",
+        "bytes": 5269,
+        "actualSHA256": "79eb97569c08c9d3be75ec63915da74bc13de74fdecea532cb024d93af1229c0",
+        "actualBytes": 5269,
+        "matches": true
+      },
+      {
+        "file": "visual-playtest-types.d.ts.map",
+        "sha256": "ba3b067402b484ea9f5c59ad7137ccf9c87ef5f08750a798b66b0d692790ecb4",
+        "bytes": 6718,
+        "actualSHA256": "ba3b067402b484ea9f5c59ad7137ccf9c87ef5f08750a798b66b0d692790ecb4",
+        "actualBytes": 6718,
+        "matches": true
+      },
+      {
+        "file": "visual-playtest-types.js.map",
+        "sha256": "48cb9b1c47eb80bf5d00655994709b4c08793adca9683da320ea018430a9aa1a",
+        "bytes": 134,
+        "actualSHA256": "48cb9b1c47eb80bf5d00655994709b4c08793adca9683da320ea018430a9aa1a",
+        "actualBytes": 134,
+        "matches": true
+      },
+      {
+        "file": "visual-playtest.d.ts.map",
+        "sha256": "6c6d1f7163bfd804f5a171966692057b67a373593e4ea9be902431ceb3543fad",
+        "bytes": 1218,
+        "actualSHA256": "6c6d1f7163bfd804f5a171966692057b67a373593e4ea9be902431ceb3543fad",
+        "actualBytes": 1218,
+        "matches": true
+      },
+      {
+        "file": "visual-playtest.js.map",
+        "sha256": "54314e8f43b19c70dd29bb06cf27a9ba2fa2d717bbed908b5ed87ae6eca696f7",
+        "bytes": 16537,
+        "actualSHA256": "54314e8f43b19c70dd29bb06cf27a9ba2fa2d717bbed908b5ed87ae6eca696f7",
+        "actualBytes": 16537,
+        "matches": true
+      },
+      {
+        "file": "world-commands.d.ts.map",
+        "sha256": "21accb25bd2339c59a8edbb99d53d6de914821ead9febfcc07a4ca235964d287",
+        "bytes": 2216,
+        "actualSHA256": "21accb25bd2339c59a8edbb99d53d6de914821ead9febfcc07a4ca235964d287",
+        "actualBytes": 2216,
+        "matches": true
+      },
+      {
+        "file": "world-commands.js.map",
+        "sha256": "e04ab820a339c6c94ae89511d3032338a2c4be2670c3ba15c25b391e41bdd4d5",
+        "bytes": 8465,
+        "actualSHA256": "e04ab820a339c6c94ae89511d3032338a2c4be2670c3ba15c25b391e41bdd4d5",
+        "actualBytes": 8465,
+        "matches": true
+      },
+      {
+        "file": "world-core.d.ts.map",
+        "sha256": "13430efc524f8446f285d03557b12878d73d324c8dde0eeb5bf07c611548f97d",
+        "bytes": 4323,
+        "actualSHA256": "13430efc524f8446f285d03557b12878d73d324c8dde0eeb5bf07c611548f97d",
+        "actualBytes": 4323,
+        "matches": true
+      },
+      {
+        "file": "world-core.js.map",
+        "sha256": "cc70008a2fafa30eab24f20c0bf97f880b11b2f80332f26597197a1ede90c497",
+        "bytes": 6810,
+        "actualSHA256": "cc70008a2fafa30eab24f20c0bf97f880b11b2f80332f26597197a1ede90c497",
+        "actualBytes": 6810,
+        "matches": true
+      },
+      {
+        "file": "world-debug-probes.d.ts.map",
+        "sha256": "e6186a06e662be37b3d982912869addfecb9902eded0cd2e180585d7ea0c6277",
+        "bytes": 661,
+        "actualSHA256": "e6186a06e662be37b3d982912869addfecb9902eded0cd2e180585d7ea0c6277",
+        "actualBytes": 661,
+        "matches": true
+      },
+      {
+        "file": "world-debug-probes.js.map",
+        "sha256": "8c32e882e0f1f8312749feca8da3bda577c68105bccfe7efca892d79fe52056b",
+        "bytes": 1818,
+        "actualSHA256": "8c32e882e0f1f8312749feca8da3bda577c68105bccfe7efca892d79fe52056b",
+        "actualBytes": 1818,
+        "matches": true
+      },
+      {
+        "file": "world-debugger.d.ts.map",
+        "sha256": "a6e2ca9d54099fc7f53239569b3a1abc0dd6725dee7c632e28f47dde41b1ee78",
+        "bytes": 3346,
+        "actualSHA256": "a6e2ca9d54099fc7f53239569b3a1abc0dd6725dee7c632e28f47dde41b1ee78",
+        "actualBytes": 3346,
+        "matches": true
+      },
+      {
+        "file": "world-debugger.js.map",
+        "sha256": "9af5288d1e3a85cbf71487824d90a1ebda86ae3ea9f71f201dcce5a63b2ce6bf",
+        "bytes": 9998,
+        "actualSHA256": "9af5288d1e3a85cbf71487824d90a1ebda86ae3ea9f71f201dcce5a63b2ce6bf",
+        "actualBytes": 9998,
+        "matches": true
+      },
+      {
+        "file": "world-entities.d.ts.map",
+        "sha256": "78fde461c77304ab62e2dc0863ae5526e4c06b875db05f052e39cb92102a983b",
+        "bytes": 2785,
+        "actualSHA256": "78fde461c77304ab62e2dc0863ae5526e4c06b875db05f052e39cb92102a983b",
+        "actualBytes": 2785,
+        "matches": true
+      },
+      {
+        "file": "world-entities.js.map",
+        "sha256": "9e29b031cb98782449339ed5f5532d62915f9b8d0dac840b2d9dc02c8f65cd1b",
+        "bytes": 5358,
+        "actualSHA256": "9e29b031cb98782449339ed5f5532d62915f9b8d0dac840b2d9dc02c8f65cd1b",
+        "actualBytes": 5358,
+        "matches": true
+      },
+      {
+        "file": "world-internal.d.ts.map",
+        "sha256": "34d561793f1ceb97ce2db95a598c2ef7d510345712ebf8b81030d09dbb257e7c",
+        "bytes": 1858,
+        "actualSHA256": "34d561793f1ceb97ce2db95a598c2ef7d510345712ebf8b81030d09dbb257e7c",
+        "actualBytes": 1858,
+        "matches": true
+      },
+      {
+        "file": "world-internal.js.map",
+        "sha256": "7b070f70bc40f027b9824bcd1514b7d6667f19760ed78e63c4fed70d898f6731",
+        "bytes": 8031,
+        "actualSHA256": "7b070f70bc40f027b9824bcd1514b7d6667f19760ed78e63c4fed70d898f6731",
+        "actualBytes": 8031,
+        "matches": true
+      },
+      {
+        "file": "world-observers.d.ts.map",
+        "sha256": "6329c1c5de8de1d3991e862788fd21ac4acc050c94afbcdda7e1d09f21f2f864",
+        "bytes": 3756,
+        "actualSHA256": "6329c1c5de8de1d3991e862788fd21ac4acc050c94afbcdda7e1d09f21f2f864",
+        "actualBytes": 3756,
+        "matches": true
+      },
+      {
+        "file": "world-observers.js.map",
+        "sha256": "cc11a299a7d54c178f4d32a85d7800220b2979bd8bcd668b172c9e535e7be6c7",
+        "bytes": 6111,
+        "actualSHA256": "cc11a299a7d54c178f4d32a85d7800220b2979bd8bcd668b172c9e535e7be6c7",
+        "actualBytes": 6111,
+        "matches": true
+      },
+      {
+        "file": "world-queries.d.ts.map",
+        "sha256": "dc50523f35b291bfd4b52afe7384677e5c195f1452b6d4f8e1855ef9d40a542f",
+        "bytes": 1624,
+        "actualSHA256": "dc50523f35b291bfd4b52afe7384677e5c195f1452b6d4f8e1855ef9d40a542f",
+        "actualBytes": 1624,
+        "matches": true
+      },
+      {
+        "file": "world-queries.js.map",
+        "sha256": "611c66c139cf00edce31846be5327dd9114d3ae6cb74701d4b69ff696ad6cbf2",
+        "bytes": 10684,
+        "actualSHA256": "611c66c139cf00edce31846be5327dd9114d3ae6cb74701d4b69ff696ad6cbf2",
+        "actualBytes": 10684,
+        "matches": true
+      },
+      {
+        "file": "world-strict-mode.d.ts.map",
+        "sha256": "2b0e5304dfcf20ea2e8124b839359912014afbd68545923d3d0bb46b5a255eea",
+        "bytes": 928,
+        "actualSHA256": "2b0e5304dfcf20ea2e8124b839359912014afbd68545923d3d0bb46b5a255eea",
+        "actualBytes": 928,
+        "matches": true
+      },
+      {
+        "file": "world-strict-mode.js.map",
+        "sha256": "0d8ebd936995096a416bf79630f867095afd11c7ee76708d08dd0ac16b3bd1b4",
+        "bytes": 1207,
+        "actualSHA256": "0d8ebd936995096a416bf79630f867095afd11c7ee76708d08dd0ac16b3bd1b4",
+        "actualBytes": 1207,
+        "matches": true
+      },
+      {
+        "file": "world-systems.d.ts.map",
+        "sha256": "346794ea5c17a2e3932d98cfe45ffb4f65dbf8f19d5839b3e1f503c2a19bfae3",
+        "bytes": 1037,
+        "actualSHA256": "346794ea5c17a2e3932d98cfe45ffb4f65dbf8f19d5839b3e1f503c2a19bfae3",
+        "actualBytes": 1037,
+        "matches": true
+      },
+      {
+        "file": "world-systems.js.map",
+        "sha256": "43fbc1feefe0b7e5c3cbc8b86acec8b3fce83968851a6f3f26c3851748533cb6",
+        "bytes": 7796,
+        "actualSHA256": "43fbc1feefe0b7e5c3cbc8b86acec8b3fce83968851a6f3f26c3851748533cb6",
+        "actualBytes": 7796,
+        "matches": true
+      },
+      {
+        "file": "world-tags-meta.d.ts.map",
+        "sha256": "c198d9e3539d2eace56314ddc3e6e0fca873076dbc061a27fc8bd6ac0b3daaed",
+        "bytes": 1638,
+        "actualSHA256": "c198d9e3539d2eace56314ddc3e6e0fca873076dbc061a27fc8bd6ac0b3daaed",
+        "actualBytes": 1638,
+        "matches": true
+      },
+      {
+        "file": "world-tags-meta.js.map",
+        "sha256": "c80f31f1160c486ef0734b5698e7251333853477a0e2a4092ddfbf4e93c4d632",
+        "bytes": 6415,
+        "actualSHA256": "c80f31f1160c486ef0734b5698e7251333853477a0e2a4092ddfbf4e93c4d632",
+        "actualBytes": 6415,
+        "matches": true
+      },
+      {
+        "file": "world-tick.d.ts.map",
+        "sha256": "42b4d70afad9a3f009119b1bd50ae2f2fea77b366cfe002f43dd4271633a9203",
+        "bytes": 932,
+        "actualSHA256": "42b4d70afad9a3f009119b1bd50ae2f2fea77b366cfe002f43dd4271633a9203",
+        "actualBytes": 932,
+        "matches": true
+      },
+      {
+        "file": "world-tick.js.map",
+        "sha256": "ca44d44f3c33c15f12ec7861b1228e62f51799791ec8cfc149ec9e74cd0d29b5",
+        "bytes": 8812,
+        "actualSHA256": "ca44d44f3c33c15f12ec7861b1228e62f51799791ec8cfc149ec9e74cd0d29b5",
+        "actualBytes": 8812,
+        "matches": true
+      },
+      {
+        "file": "world-types.d.ts.map",
+        "sha256": "e6eff87a415afdad1464f29d177eadb9c2d696e64bc103ca8037fb3088fa509b",
+        "bytes": 5178,
+        "actualSHA256": "e6eff87a415afdad1464f29d177eadb9c2d696e64bc103ca8037fb3088fa509b",
+        "actualBytes": 5178,
+        "matches": true
+      },
+      {
+        "file": "world-types.js.map",
+        "sha256": "949d78d95bb36fc6f7f32ecfc7afca1ac012a060444ce6439c78476687430f6a",
+        "bytes": 388,
+        "actualSHA256": "949d78d95bb36fc6f7f32ecfc7afca1ac012a060444ce6439c78476687430f6a",
+        "actualBytes": 388,
+        "matches": true
+      },
+      {
+        "file": "world.d.ts.map",
+        "sha256": "c4ffa79f706e20d92ac58784049ce3eb1799b5d6dce0a9aacdfe3b571929c07f",
+        "bytes": 1950,
+        "actualSHA256": "c4ffa79f706e20d92ac58784049ce3eb1799b5d6dce0a9aacdfe3b571929c07f",
+        "actualBytes": 1950,
+        "matches": true
+      },
+      {
+        "file": "world.js.map",
+        "sha256": "7e1f797309c696d6df152ba5175ddf96c374582ada5a09732fa30977a14f4d31",
+        "bytes": 12700,
+        "actualSHA256": "7e1f797309c696d6df152ba5175ddf96c374582ada5a09732fa30977a14f4d31",
+        "actualBytes": 12700,
+        "matches": true
+      },
+      {
+        "file": "ai-contract.d.ts",
+        "sha256": "01991b1fd93662143fa7f35a4c62c9d32918b21c49f60e253f49517248e00da9",
+        "bytes": 1323,
+        "actualSHA256": "01991b1fd93662143fa7f35a4c62c9d32918b21c49f60e253f49517248e00da9",
+        "actualBytes": 1323,
+        "matches": true
+      },
+      {
+        "file": "ai-playtester.d.ts",
+        "sha256": "0bf6a94528590c8ea2840252c5847aa6618cf24f13651feb63fc5844e370de36",
+        "bytes": 6871,
+        "actualSHA256": "0bf6a94528590c8ea2840252c5847aa6618cf24f13651feb63fc5844e370de36",
+        "actualBytes": 6871,
+        "matches": true
+      },
+      {
+        "file": "apply-tick-diff.d.ts",
+        "sha256": "e80794e781cd9b2f484ec04ed21e2cee722078c16dab4591bbe8d70a0ec4f3a7",
+        "bytes": 237,
+        "actualSHA256": "e80794e781cd9b2f484ec04ed21e2cee722078c16dab4591bbe8d70a0ec4f3a7",
+        "actualBytes": 237,
+        "matches": true
+      },
+      {
+        "file": "behavior-tree.d.ts",
+        "sha256": "a6bb8efc72caac77213d72027d74a9e44eee2be030cefffe0ca123de1ec6ba1b",
+        "bytes": 1243,
+        "actualSHA256": "a6bb8efc72caac77213d72027d74a9e44eee2be030cefffe0ca123de1ec6ba1b",
+        "actualBytes": 1243,
+        "matches": true
+      },
+      {
+        "file": "behavioral-metrics.d.ts",
+        "sha256": "367ca3b02f381191e26746eab0f3d373eb00b5052fb0d5729a950d584a55e7e8",
+        "bytes": 3621,
+        "actualSHA256": "367ca3b02f381191e26746eab0f3d373eb00b5052fb0d5729a950d584a55e7e8",
+        "actualBytes": 3621,
+        "matches": true
+      },
+      {
+        "file": "bundle-corpus-manifest.d.ts",
+        "sha256": "f8659ae82abf4b827a62ed8cbe97d5e3e55b0044467f60afedba0c38a430e5eb",
+        "bytes": 440,
+        "actualSHA256": "f8659ae82abf4b827a62ed8cbe97d5e3e55b0044467f60afedba0c38a430e5eb",
+        "actualBytes": 440,
+        "matches": true
+      },
+      {
+        "file": "bundle-corpus-types.d.ts",
+        "sha256": "2a5b7a3b560730fabb6f3ad1dbdf1887a6a1989a330906fdbf38cc54bfbe3993",
+        "bytes": 3641,
+        "actualSHA256": "2a5b7a3b560730fabb6f3ad1dbdf1887a6a1989a330906fdbf38cc54bfbe3993",
+        "actualBytes": 3641,
+        "matches": true
+      },
+      {
+        "file": "bundle-corpus.d.ts",
+        "sha256": "d96500ac76878ddfcb9890f0075159622ba187b20b1978c8ecd7d24537ef8a05",
+        "bytes": 1483,
+        "actualSHA256": "d96500ac76878ddfcb9890f0075159622ba187b20b1978c8ecd7d24537ef8a05",
+        "actualBytes": 1483,
+        "matches": true
+      },
+      {
+        "file": "bundle-hotspots.d.ts",
+        "sha256": "b9165b4a9281e4e35935e4011e19a0cfc8dc79c0ffa8e2dc7cfab967b0294585",
+        "bytes": 2868,
+        "actualSHA256": "b9165b4a9281e4e35935e4011e19a0cfc8dc79c0ffa8e2dc7cfab967b0294585",
+        "actualBytes": 2868,
+        "matches": true
+      },
+      {
+        "file": "bundle-viewer-internal.d.ts",
+        "sha256": "319f96b2c352fdff568c55914f7cb6a6d66dd3b45b8f3b3382b30330c6e778d6",
+        "bytes": 1522,
+        "actualSHA256": "319f96b2c352fdff568c55914f7cb6a6d66dd3b45b8f3b3382b30330c6e778d6",
+        "actualBytes": 1522,
+        "matches": true
+      },
+      {
+        "file": "bundle-viewer-types.d.ts",
+        "sha256": "ef7e3ed062b71a0ca5684cfbb413134bc2b9ba3d94bdeb14c0b74bfdea230307",
+        "bytes": 3669,
+        "actualSHA256": "ef7e3ed062b71a0ca5684cfbb413134bc2b9ba3d94bdeb14c0b74bfdea230307",
+        "actualBytes": 3669,
+        "matches": true
+      },
+      {
+        "file": "bundle-viewer.d.ts",
+        "sha256": "5da7ea7a2a68540e1f15be56d3af8ccd1863adb310d51c296dbb765989b10a74",
+        "bytes": 4105,
+        "actualSHA256": "5da7ea7a2a68540e1f15be56d3af8ccd1863adb310d51c296dbb765989b10a74",
+        "actualBytes": 4105,
+        "matches": true
+      },
+      {
+        "file": "cellular.d.ts",
+        "sha256": "2527352553b1627204c0d03f07f097bca8fe7cf0e232dadb4d9348c4ac2677e3",
+        "bytes": 614,
+        "actualSHA256": "2527352553b1627204c0d03f07f097bca8fe7cf0e232dadb4d9348c4ac2677e3",
+        "actualBytes": 614,
+        "matches": true
+      },
+      {
+        "file": "client-adapter.d.ts",
+        "sha256": "74b5d8afe2c5c49a21a59879fbab91bb586a9ea0f1aa409ac6aed41f62ed04e6",
+        "bytes": 2877,
+        "actualSHA256": "74b5d8afe2c5c49a21a59879fbab91bb586a9ea0f1aa409ac6aed41f62ed04e6",
+        "actualBytes": 2877,
+        "matches": true
+      },
+      {
+        "file": "command-queue.d.ts",
+        "sha256": "8edec3a5debad5215410da0dd93d3a49f21e2787d8c9918575407398a71e155c",
+        "bytes": 572,
+        "actualSHA256": "8edec3a5debad5215410da0dd93d3a49f21e2787d8c9918575407398a71e155c",
+        "actualBytes": 572,
+        "matches": true
+      },
+      {
+        "file": "command-transaction.d.ts",
+        "sha256": "770d257ee3833bb73fb0d03517fcb4fac4ad2909201f50efaa8b090c890f3679",
+        "bytes": 5046,
+        "actualSHA256": "770d257ee3833bb73fb0d03517fcb4fac4ad2909201f50efaa8b090c890f3679",
+        "actualBytes": 5046,
+        "matches": true
+      },
+      {
+        "file": "component-store.d.ts",
+        "sha256": "a2986cba7216c66405c78a3d3d26af2b1d1128865771e6d1234125d4664cf4e8",
+        "bytes": 953,
+        "actualSHA256": "a2986cba7216c66405c78a3d3d26af2b1d1128865771e6d1234125d4664cf4e8",
+        "actualBytes": 953,
+        "matches": true
+      },
+      {
+        "file": "diff.d.ts",
+        "sha256": "ab8b506afd7fc357d51e8380631291899765778b728f2ad70f30bec5343c1a6b",
+        "bytes": 786,
+        "actualSHA256": "ab8b506afd7fc357d51e8380631291899765778b728f2ad70f30bec5343c1a6b",
+        "actualBytes": 786,
+        "matches": true
+      },
+      {
+        "file": "engine-error.d.ts",
+        "sha256": "ab2afb90542c125668588b32f9fc6a67db3f233fc96f050c3cca20bea0017511",
+        "bytes": 2654,
+        "actualSHA256": "ab2afb90542c125668588b32f9fc6a67db3f233fc96f050c3cca20bea0017511",
+        "actualBytes": 2654,
+        "matches": true
+      },
+      {
+        "file": "entity-manager.d.ts",
+        "sha256": "dc29e714de6f7cd5226ea592b0558370d62111e37a1744b360f61bef1084b922",
+        "bytes": 908,
+        "actualSHA256": "dc29e714de6f7cd5226ea592b0558370d62111e37a1744b360f61bef1084b922",
+        "actualBytes": 908,
+        "matches": true
+      },
+      {
+        "file": "event-bus.d.ts",
+        "sha256": "2b1e5e51d15787af565643f48f2410f642e9b5d2dfdce4cd13ee006c743eaa8d",
+        "bytes": 588,
+        "actualSHA256": "2b1e5e51d15787af565643f48f2410f642e9b5d2dfdce4cd13ee006c743eaa8d",
+        "actualBytes": 588,
+        "matches": true
+      },
+      {
+        "file": "game-loop.d.ts",
+        "sha256": "ace7f3e19a2fb868de8ff7a099dfd7d0d1c1d984a6b622e0eba783a686433c6a",
+        "bytes": 946,
+        "actualSHA256": "ace7f3e19a2fb868de8ff7a099dfd7d0d1c1d984a6b622e0eba783a686433c6a",
+        "actualBytes": 946,
+        "matches": true
+      },
+      {
+        "file": "history-range-summary.d.ts",
+        "sha256": "bb4c0cf66c8129060afff22889b85f52854270ff0643f9ed1d20e23da9fc3545",
+        "bytes": 576,
+        "actualSHA256": "bb4c0cf66c8129060afff22889b85f52854270ff0643f9ed1d20e23da9fc3545",
+        "actualBytes": 576,
+        "matches": true
+      },
+      {
+        "file": "history-recorder.d.ts",
+        "sha256": "a47eff1920552d9931e52a5faaa68c1b00d256891329ccf19e0fef07290d2014",
+        "bytes": 6046,
+        "actualSHA256": "a47eff1920552d9931e52a5faaa68c1b00d256891329ccf19e0fef07290d2014",
+        "actualBytes": 6046,
+        "matches": true
+      },
+      {
+        "file": "improvement-loop-types.d.ts",
+        "sha256": "03a1a73fc12a4ecf050038c09ddda90003bb22176f0a05479e349d8a32aae72b",
+        "bytes": 3634,
+        "actualSHA256": "03a1a73fc12a4ecf050038c09ddda90003bb22176f0a05479e349d8a32aae72b",
+        "actualBytes": 3634,
+        "matches": true
+      },
+      {
+        "file": "improvement-loop.d.ts",
+        "sha256": "1bc24c43350d78d98ed5d03c44f2f0d14ecc91cf0bba2cbf09108facfd2138af",
+        "bytes": 1848,
+        "actualSHA256": "1bc24c43350d78d98ed5d03c44f2f0d14ecc91cf0bba2cbf09108facfd2138af",
+        "actualBytes": 1848,
+        "matches": true
+      },
+      {
+        "file": "improvement-signature.d.ts",
+        "sha256": "374eb328be3e8301138b01279d496eea7b7d8670f50d13c089ee80bd038e5c47",
+        "bytes": 1133,
+        "actualSHA256": "374eb328be3e8301138b01279d496eea7b7d8670f50d13c089ee80bd038e5c47",
+        "actualBytes": 1133,
+        "matches": true
+      },
+      {
+        "file": "index.browser.d.ts",
+        "sha256": "53762862694fd392362f77d63402a6c50b6e1af72f5d679b0da4b735c76984cb",
+        "bytes": 10787,
+        "actualSHA256": "53762862694fd392362f77d63402a6c50b6e1af72f5d679b0da4b735c76984cb",
+        "actualBytes": 10787,
+        "matches": true
+      },
+      {
+        "file": "index.d.ts",
+        "sha256": "2ef72a15614d29126fda596391d4be21d2a6adbd03d333f6876550d395cc9f45",
+        "bytes": 10838,
+        "actualSHA256": "2ef72a15614d29126fda596391d4be21d2a6adbd03d333f6876550d395cc9f45",
+        "actualBytes": 10838,
+        "matches": true
+      },
+      {
+        "file": "json.d.ts",
+        "sha256": "fcde2e473ba802d160b2961c44f1c0e2aed15549d85f00ddc8030258c7f1a785",
+        "bytes": 1068,
+        "actualSHA256": "fcde2e473ba802d160b2961c44f1c0e2aed15549d85f00ddc8030258c7f1a785",
+        "actualBytes": 1068,
+        "matches": true
+      },
+      {
+        "file": "layer.d.ts",
+        "sha256": "aa0e4c29b6d9fce9f234f56425b1dad601b45b9da5fb5377fce74d30c4918c61",
+        "bytes": 1709,
+        "actualSHA256": "aa0e4c29b6d9fce9f234f56425b1dad601b45b9da5fb5377fce74d30c4918c61",
+        "actualBytes": 1709,
+        "matches": true
+      },
+      {
+        "file": "map-gen.d.ts",
+        "sha256": "70e4dcc9fa77e3c4973a461115a2795532851039b85440d18c4b033116f65e38",
+        "bytes": 301,
+        "actualSHA256": "70e4dcc9fa77e3c4973a461115a2795532851039b85440d18c4b033116f65e38",
+        "actualBytes": 301,
+        "matches": true
+      },
+      {
+        "file": "noise.d.ts",
+        "sha256": "2d913798cac5b9206b14537987c8f91ce71efe2a198ecf3bb752ec4314968eff",
+        "bytes": 292,
+        "actualSHA256": "2d913798cac5b9206b14537987c8f91ce71efe2a198ecf3bb752ec4314968eff",
+        "actualBytes": 292,
+        "matches": true
+      },
+      {
+        "file": "occupancy-binding-internal.d.ts",
+        "sha256": "b80f2b4274b969d82459936c0716f8a9a236e21dbb29c8875bf8934ead4f3358",
+        "bytes": 1446,
+        "actualSHA256": "b80f2b4274b969d82459936c0716f8a9a236e21dbb29c8875bf8934ead4f3358",
+        "actualBytes": 1446,
+        "matches": true
+      },
+      {
+        "file": "occupancy-binding.d.ts",
+        "sha256": "4f0e1c368d8de7317d694f0605d531fb632fb9efc74f6ec59071b8119125f58a",
+        "bytes": 2358,
+        "actualSHA256": "4f0e1c368d8de7317d694f0605d531fb632fb9efc74f6ec59071b8119125f58a",
+        "actualBytes": 2358,
+        "matches": true
+      },
+      {
+        "file": "occupancy-cell-grid.d.ts",
+        "sha256": "3e9cc38a85e04757fe121c60a30cb083b1283dec40b5d482d979cd2ba1406fb1",
+        "bytes": 1797,
+        "actualSHA256": "3e9cc38a85e04757fe121c60a30cb083b1283dec40b5d482d979cd2ba1406fb1",
+        "actualBytes": 1797,
+        "matches": true
+      },
+      {
+        "file": "occupancy-grid.d.ts",
+        "sha256": "04301db869adc19199b026e4251d71874dbf208a2c20257fb12129c3d05ab0ba",
+        "bytes": 794,
+        "actualSHA256": "04301db869adc19199b026e4251d71874dbf208a2c20257fb12129c3d05ab0ba",
+        "actualBytes": 794,
+        "matches": true
+      },
+      {
+        "file": "occupancy-internal.d.ts",
+        "sha256": "f5e1ff785d631b6a3104df498105d8786a589ae4577c7dc947ea8227fe8be5ad",
+        "bytes": 759,
+        "actualSHA256": "f5e1ff785d631b6a3104df498105d8786a589ae4577c7dc947ea8227fe8be5ad",
+        "actualBytes": 759,
+        "matches": true
+      },
+      {
+        "file": "occupancy-subcell.d.ts",
+        "sha256": "c1b5cb46f9fb5b4cc08327680d50dfa601c0b936b0eb10d5fa5daa68ca67f9bb",
+        "bytes": 1822,
+        "actualSHA256": "c1b5cb46f9fb5b4cc08327680d50dfa601c0b936b0eb10d5fa5daa68ca67f9bb",
+        "actualBytes": 1822,
+        "matches": true
+      },
+      {
+        "file": "occupancy-types.d.ts",
+        "sha256": "ff1feabf37a318bbe1c42f9c696219909187f862eb3d303bdaf8d39ed72c902e",
+        "bytes": 3539,
+        "actualSHA256": "ff1feabf37a318bbe1c42f9c696219909187f862eb3d303bdaf8d39ed72c902e",
+        "actualBytes": 3539,
+        "matches": true
+      },
+      {
+        "file": "path-service.d.ts",
+        "sha256": "c0a3d2c1e6755aed8c4963d4e42aff2ddc5f06eed73fc42161678467e6e4d6c3",
+        "bytes": 2687,
+        "actualSHA256": "c0a3d2c1e6755aed8c4963d4e42aff2ddc5f06eed73fc42161678467e6e4d6c3",
+        "actualBytes": 2687,
+        "matches": true
+      },
+      {
+        "file": "pathfinding.d.ts",
+        "sha256": "dc32611df2b3fc31db0f7d801d1767c6e5f829aff84f9f8a424592d15dab1fd1",
+        "bytes": 511,
+        "actualSHA256": "dc32611df2b3fc31db0f7d801d1767c6e5f829aff84f9f8a424592d15dab1fd1",
+        "actualBytes": 511,
+        "matches": true
+      },
+      {
+        "file": "player-observer.d.ts",
+        "sha256": "3cc4cbc8f69c230630c0f5bc4d2ef85f35f4bae9fe057e7b6d4d9e745b363489",
+        "bytes": 5879,
+        "actualSHA256": "3cc4cbc8f69c230630c0f5bc4d2ef85f35f4bae9fe057e7b6d4d9e745b363489",
+        "actualBytes": 5879,
+        "matches": true
+      },
+      {
+        "file": "random.d.ts",
+        "sha256": "95bfc6e97b5d0372dfa10e6e1a2645555f9d34325a9df50431dc00231b95b51c",
+        "bytes": 333,
+        "actualSHA256": "95bfc6e97b5d0372dfa10e6e1a2645555f9d34325a9df50431dc00231b95b51c",
+        "actualBytes": 333,
+        "matches": true
+      },
+      {
+        "file": "render-adapter.d.ts",
+        "sha256": "61479aa23c45177bfa6629edf362932a74ca9e331698e4c20112b030a27863d3",
+        "bytes": 2717,
+        "actualSHA256": "61479aa23c45177bfa6629edf362932a74ca9e331698e4c20112b030a27863d3",
+        "actualBytes": 2717,
+        "matches": true
+      },
+      {
+        "file": "resource-store.d.ts",
+        "sha256": "ea83d8401263839651e3a687715acd23bb196d26100702c14592813ad9250f93",
+        "bytes": 2375,
+        "actualSHA256": "ea83d8401263839651e3a687715acd23bb196d26100702c14592813ad9250f93",
+        "actualBytes": 2375,
+        "matches": true
+      },
+      {
+        "file": "scenario-runner.d.ts",
+        "sha256": "b4d6b0d6aa6318c216e0134e57c4c71ebc677d65c12e961e4709a6f3b7b558b3",
+        "bytes": 4936,
+        "actualSHA256": "b4d6b0d6aa6318c216e0134e57c4c71ebc677d65c12e961e4709a6f3b7b558b3",
+        "actualBytes": 4936,
+        "matches": true
+      },
+      {
+        "file": "serializer.d.ts",
+        "sha256": "36225f2b01e9693aa62cb1a953a150c43ddcfd0d6569f2622da85ad061796e85",
+        "bytes": 2793,
+        "actualSHA256": "36225f2b01e9693aa62cb1a953a150c43ddcfd0d6569f2622da85ad061796e85",
+        "actualBytes": 2793,
+        "matches": true
+      },
+      {
+        "file": "session-attachment-id.d.ts",
+        "sha256": "66c92e4c1cc9b625aec70786ccc68a50c0ec1d08ebfe4db9982f7fec570a9b14",
+        "bytes": 182,
+        "actualSHA256": "66c92e4c1cc9b625aec70786ccc68a50c0ec1d08ebfe4db9982f7fec570a9b14",
+        "actualBytes": 182,
+        "matches": true
+      },
+      {
+        "file": "session-bundle-diff.d.ts",
+        "sha256": "4930cac2908dcc98426de5afbd0d120f33436080e70bd806e48d8a01e265f05a",
+        "bytes": 3721,
+        "actualSHA256": "4930cac2908dcc98426de5afbd0d120f33436080e70bd806e48d8a01e265f05a",
+        "actualBytes": 3721,
+        "matches": true
+      },
+      {
+        "file": "session-bundle-equivalence.d.ts",
+        "sha256": "7cd8f52c080281b1cf501491394a37ab01e827ff9ae82bc9530c8f7c63fc28cb",
+        "bytes": 534,
+        "actualSHA256": "7cd8f52c080281b1cf501491394a37ab01e827ff9ae82bc9530c8f7c63fc28cb",
+        "actualBytes": 534,
+        "matches": true
+      },
+      {
+        "file": "session-bundle.d.ts",
+        "sha256": "41b8c053466e9329cbb2c9b41c97543395e0150551be940d43528c15f1a1c43e",
+        "bytes": 6801,
+        "actualSHA256": "41b8c053466e9329cbb2c9b41c97543395e0150551be940d43528c15f1a1c43e",
+        "actualBytes": 6801,
+        "matches": true
+      },
+      {
+        "file": "session-continuity.d.ts",
+        "sha256": "fcc5315fc222d259a4f1be2b81b5dde64d685dd41e2027a79590ae4bf64521ca",
+        "bytes": 844,
+        "actualSHA256": "fcc5315fc222d259a4f1be2b81b5dde64d685dd41e2027a79590ae4bf64521ca",
+        "actualBytes": 844,
+        "matches": true
+      },
+      {
+        "file": "session-deep-equal.d.ts",
+        "sha256": "200c1b9b3e581d9fd6d1397a931164eaf95d44f1e45baa7637235c376e2378b8",
+        "bytes": 486,
+        "actualSHA256": "200c1b9b3e581d9fd6d1397a931164eaf95d44f1e45baa7637235c376e2378b8",
+        "actualBytes": 486,
+        "matches": true
+      },
+      {
+        "file": "session-errors.d.ts",
+        "sha256": "f77068492f22d7cde65e3b2efbf7ca00ac0276b0d582acb059e273ad7335fe86",
+        "bytes": 4781,
+        "actualSHA256": "f77068492f22d7cde65e3b2efbf7ca00ac0276b0d582acb059e273ad7335fe86",
+        "actualBytes": 4781,
+        "matches": true
+      },
+      {
+        "file": "session-file-sink.d.ts",
+        "sha256": "aff026745ab0076b7791ccaf6889415b8331633bb86604b29786835d106315f2",
+        "bytes": 3596,
+        "actualSHA256": "aff026745ab0076b7791ccaf6889415b8331633bb86604b29786835d106315f2",
+        "actualBytes": 3596,
+        "matches": true
+      },
+      {
+        "file": "session-fork-divergence.d.ts",
+        "sha256": "6a713166669b9a111b15736ce2bf6de0e3da04c0ddb8ffa572129427de1dc93b",
+        "bytes": 462,
+        "actualSHA256": "6a713166669b9a111b15736ce2bf6de0e3da04c0ddb8ffa572129427de1dc93b",
+        "actualBytes": 462,
+        "matches": true
+      },
+      {
+        "file": "session-fork.d.ts",
+        "sha256": "57224ba58f9ee10821d71e4b47fd5132808c4c54497ce8707124fbd9eb89a5ab",
+        "bytes": 10380,
+        "actualSHA256": "57224ba58f9ee10821d71e4b47fd5132808c4c54497ce8707124fbd9eb89a5ab",
+        "actualBytes": 10380,
+        "matches": true
+      },
+      {
+        "file": "session-internals.d.ts",
+        "sha256": "5f7bcf349fcd2cc7c3e15525bcfb2f7cee0e0f5cf605f4368dc5de563a8d9ba8",
+        "bytes": 1236,
+        "actualSHA256": "5f7bcf349fcd2cc7c3e15525bcfb2f7cee0e0f5cf605f4368dc5de563a8d9ba8",
+        "actualBytes": 1236,
+        "matches": true
+      },
+      {
+        "file": "session-marker-validation.d.ts",
+        "sha256": "2de365651f1260f5c2d2eaa621e41424c88b08a2fad2f990a7ee2db31437991c",
+        "bytes": 781,
+        "actualSHA256": "2de365651f1260f5c2d2eaa621e41424c88b08a2fad2f990a7ee2db31437991c",
+        "actualBytes": 781,
+        "matches": true
+      },
+      {
+        "file": "session-recorder.d.ts",
+        "sha256": "0d942b3739d9dcc0da130345b18ae2a28d91fda94e74bc83430496d2e3b5d778",
+        "bytes": 4497,
+        "actualSHA256": "0d942b3739d9dcc0da130345b18ae2a28d91fda94e74bc83430496d2e3b5d778",
+        "actualBytes": 4497,
+        "matches": true
+      },
+      {
+        "file": "session-registration.d.ts",
+        "sha256": "afb1c57b1e80ba010ee0fd2558666b97cd4d058fee955b0c7c1c724fd0e99484",
+        "bytes": 1711,
+        "actualSHA256": "afb1c57b1e80ba010ee0fd2558666b97cd4d058fee955b0c7c1c724fd0e99484",
+        "actualBytes": 1711,
+        "matches": true
+      },
+      {
+        "file": "session-replayer-guards.d.ts",
+        "sha256": "32133c5ce42ee8130d508ec50c85756fc43ace1959d3d1cdb52db9cf08fec0f0",
+        "bytes": 961,
+        "actualSHA256": "32133c5ce42ee8130d508ec50c85756fc43ace1959d3d1cdb52db9cf08fec0f0",
+        "actualBytes": 961,
+        "matches": true
+      },
+      {
+        "file": "session-replayer-markers.d.ts",
+        "sha256": "428d3ea1e593cf1577d7845a0b5b67a82b36c062a845bd8c3fcfa8910de8ee80",
+        "bytes": 696,
+        "actualSHA256": "428d3ea1e593cf1577d7845a0b5b67a82b36c062a845bd8c3fcfa8910de8ee80",
+        "actualBytes": 696,
+        "matches": true
+      },
+      {
+        "file": "session-replayer-types.d.ts",
+        "sha256": "743b96fef90579e45527c3931a24c2d9714b6da4a7f4dcf2e0323250289bc5c9",
+        "bytes": 3935,
+        "actualSHA256": "743b96fef90579e45527c3931a24c2d9714b6da4a7f4dcf2e0323250289bc5c9",
+        "actualBytes": 3935,
+        "matches": true
+      },
+      {
+        "file": "session-replayer.d.ts",
+        "sha256": "051752d52f00ac4569fe2e3088aa6205f38c5c990f9b18bba2b9fd8fe4d74b15",
+        "bytes": 3955,
+        "actualSHA256": "051752d52f00ac4569fe2e3088aa6205f38c5c990f9b18bba2b9fd8fe4d74b15",
+        "actualBytes": 3955,
+        "matches": true
+      },
+      {
+        "file": "session-scenario-bundle.d.ts",
+        "sha256": "fb97be28a90f0f6e2121eb2fb44d768fde88e8086610de113bed97c6ea05c25b",
+        "bytes": 2252,
+        "actualSHA256": "fb97be28a90f0f6e2121eb2fb44d768fde88e8086610de113bed97c6ea05c25b",
+        "actualBytes": 2252,
+        "matches": true
+      },
+      {
+        "file": "session-self-check-coverage.d.ts",
+        "sha256": "033012eeee47854176603f417be4aeacbf6bc5789eaf81cef597f23e406989ba",
+        "bytes": 425,
+        "actualSHA256": "033012eeee47854176603f417be4aeacbf6bc5789eaf81cef597f23e406989ba",
+        "actualBytes": 425,
+        "matches": true
+      },
+      {
+        "file": "session-sink.d.ts",
+        "sha256": "a4850da95400b2cd98b789932c4fed2551a2f7afe18e85c612cc71932b9c1445",
+        "bytes": 5372,
+        "actualSHA256": "a4850da95400b2cd98b789932c4fed2551a2f7afe18e85c612cc71932b9c1445",
+        "actualBytes": 5372,
+        "matches": true
+      },
+      {
+        "file": "snapshot-diff.d.ts",
+        "sha256": "7c57d8af50d6d5f987a9b598b5bca11c252f5b7a86e3e90125ca984f27821854",
+        "bytes": 1249,
+        "actualSHA256": "7c57d8af50d6d5f987a9b598b5bca11c252f5b7a86e3e90125ca984f27821854",
+        "actualBytes": 1249,
+        "matches": true
+      },
+      {
+        "file": "spatial-grid.d.ts",
+        "sha256": "2752db56921781d93918563748c90403ee0842857ce0ef7d7c9c335a5421dc41",
+        "bytes": 1362,
+        "actualSHA256": "2752db56921781d93918563748c90403ee0842857ce0ef7d7c9c335a5421dc41",
+        "actualBytes": 1362,
+        "matches": true
+      },
+      {
+        "file": "state-digest.d.ts",
+        "sha256": "8285dcd7091d8e2197131b044592902855b09fe6973ea088a87ea30157267fad",
+        "bytes": 943,
+        "actualSHA256": "8285dcd7091d8e2197131b044592902855b09fe6973ea088a87ea30157267fad",
+        "actualBytes": 943,
+        "matches": true
+      },
+      {
+        "file": "synthetic-playtest.d.ts",
+        "sha256": "a2c29570f918009bfe797dc9fef9fffc005862dc8897e58008f14bb16b418749",
+        "bytes": 4999,
+        "actualSHA256": "a2c29570f918009bfe797dc9fef9fffc005862dc8897e58008f14bb16b418749",
+        "actualBytes": 4999,
+        "matches": true
+      },
+      {
+        "file": "types.d.ts",
+        "sha256": "b9199138c157141b3c011ea7a7274b3b9189cbc4e699ef950cffe5c519cd6661",
+        "bytes": 1496,
+        "actualSHA256": "b9199138c157141b3c011ea7a7274b3b9189cbc4e699ef950cffe5c519cd6661",
+        "actualBytes": 1496,
+        "matches": true
+      },
+      {
+        "file": "uuid.d.ts",
+        "sha256": "9a5219fd44995227627ee2c2d7ead4dcd74e3d5891ee6cdfae710731d77ee372",
+        "bytes": 88,
+        "actualSHA256": "9a5219fd44995227627ee2c2d7ead4dcd74e3d5891ee6cdfae710731d77ee372",
+        "actualBytes": 88,
+        "matches": true
+      },
+      {
+        "file": "version.d.ts",
+        "sha256": "376dc74cc82780df783b2f3bc292fc77db563c9f5ef16dc46aa682ef6be7647c",
+        "bytes": 377,
+        "actualSHA256": "376dc74cc82780df783b2f3bc292fc77db563c9f5ef16dc46aa682ef6be7647c",
+        "actualBytes": 377,
+        "matches": true
+      },
+      {
+        "file": "visibility-map.d.ts",
+        "sha256": "910f2b874074d7678e347648c7034d91c094c25b01b35df2cc2c6641b1225bc8",
+        "bytes": 2145,
+        "actualSHA256": "910f2b874074d7678e347648c7034d91c094c25b01b35df2cc2c6641b1225bc8",
+        "actualBytes": 2145,
+        "matches": true
+      },
+      {
+        "file": "visual-playtest-prompt.d.ts",
+        "sha256": "221f5dc0c28eabe428a9daf834884454809e765f2490b11aa34bcf97e0078e0b",
+        "bytes": 366,
+        "actualSHA256": "221f5dc0c28eabe428a9daf834884454809e765f2490b11aa34bcf97e0078e0b",
+        "actualBytes": 366,
+        "matches": true
+      },
+      {
+        "file": "visual-playtest-types.d.ts",
+        "sha256": "f59a341b903595814394074dd6dd3bc2c85e262c37f675904d7f8d5f556c21f0",
+        "bytes": 7190,
+        "actualSHA256": "f59a341b903595814394074dd6dd3bc2c85e262c37f675904d7f8d5f556c21f0",
+        "actualBytes": 7190,
+        "matches": true
+      },
+      {
+        "file": "visual-playtest.d.ts",
+        "sha256": "9d80a0bb5281d6ab12132ac6844e769ee941390bc34214e4b7ebe242234a6e1c",
+        "bytes": 1989,
+        "actualSHA256": "9d80a0bb5281d6ab12132ac6844e769ee941390bc34214e4b7ebe242234a6e1c",
+        "actualBytes": 1989,
+        "matches": true
+      },
+      {
+        "file": "world-commands.d.ts",
+        "sha256": "56ead3aa5b51b33d788cb980fdc70c6c9a1a7abed05fde2d15a5a0bdc60b8725",
+        "bytes": 2253,
+        "actualSHA256": "56ead3aa5b51b33d788cb980fdc70c6c9a1a7abed05fde2d15a5a0bdc60b8725",
+        "actualBytes": 2253,
+        "matches": true
+      },
+      {
+        "file": "world-core.d.ts",
+        "sha256": "8cff160069985c78429b8e0bc5580e78c18a980f04cada7f9d76a1a578aded99",
+        "bytes": 6585,
+        "actualSHA256": "8cff160069985c78429b8e0bc5580e78c18a980f04cada7f9d76a1a578aded99",
+        "actualBytes": 6585,
+        "matches": true
+      },
+      {
+        "file": "world-debug-probes.d.ts",
+        "sha256": "05ceaef953d86d763268c9819ef990a65030f17ab08a50312d0ed0e9df630ad9",
+        "bytes": 737,
+        "actualSHA256": "05ceaef953d86d763268c9819ef990a65030f17ab08a50312d0ed0e9df630ad9",
+        "actualBytes": 737,
+        "matches": true
+      },
+      {
+        "file": "world-debugger.d.ts",
+        "sha256": "5d91379ea10a92334a9ee8d7eedd44c3a2a04a5bab65d0abdf1a18f67b75df44",
+        "bytes": 3384,
+        "actualSHA256": "5d91379ea10a92334a9ee8d7eedd44c3a2a04a5bab65d0abdf1a18f67b75df44",
+        "actualBytes": 3384,
+        "matches": true
+      },
+      {
+        "file": "world-entities.d.ts",
+        "sha256": "ec83014fa9fc3321eef2d7721cf82891ed225a0c165f7ed46a174f389ba6be2c",
+        "bytes": 2489,
+        "actualSHA256": "ec83014fa9fc3321eef2d7721cf82891ed225a0c165f7ed46a174f389ba6be2c",
+        "actualBytes": 2489,
+        "matches": true
+      },
+      {
+        "file": "world-internal.d.ts",
+        "sha256": "87649982dba609b9d93f9b41fa0b59ff1f4bfb5f4f43a877480aa2aaa4c4b67e",
+        "bytes": 2093,
+        "actualSHA256": "87649982dba609b9d93f9b41fa0b59ff1f4bfb5f4f43a877480aa2aaa4c4b67e",
+        "actualBytes": 2093,
+        "matches": true
+      },
+      {
+        "file": "world-observers.d.ts",
+        "sha256": "7ecfe5d141ffcda8d13bef9281fb629a252fb24b99bea6668439174d86e6a7b4",
+        "bytes": 4244,
+        "actualSHA256": "7ecfe5d141ffcda8d13bef9281fb629a252fb24b99bea6668439174d86e6a7b4",
+        "actualBytes": 4244,
+        "matches": true
+      },
+      {
+        "file": "world-queries.d.ts",
+        "sha256": "9fed88a1f2162d9287ece1da32616d0821d7fdae606ce794fc6e8abdd8f44fe4",
+        "bytes": 1978,
+        "actualSHA256": "9fed88a1f2162d9287ece1da32616d0821d7fdae606ce794fc6e8abdd8f44fe4",
+        "actualBytes": 1978,
+        "matches": true
+      },
+      {
+        "file": "world-strict-mode.d.ts",
+        "sha256": "1747ecc9ee47b39285fddc6d0e9fac9e3a5120ffa571d5bd6c85b14ee3c485f6",
+        "bytes": 1541,
+        "actualSHA256": "1747ecc9ee47b39285fddc6d0e9fac9e3a5120ffa571d5bd6c85b14ee3c485f6",
+        "actualBytes": 1541,
+        "matches": true
+      },
+      {
+        "file": "world-systems.d.ts",
+        "sha256": "83b6602ee7e0586f1bf06cda07238293ab3d7cdbe8fd4b3d93f87ca00459f7c7",
+        "bytes": 1075,
+        "actualSHA256": "83b6602ee7e0586f1bf06cda07238293ab3d7cdbe8fd4b3d93f87ca00459f7c7",
+        "actualBytes": 1075,
+        "matches": true
+      },
+      {
+        "file": "world-tags-meta.d.ts",
+        "sha256": "b243c4cc36973f3ec0a7173d37595a0576f2c113ad12f199c4cdcee9bdc7c950",
+        "bytes": 1774,
+        "actualSHA256": "b243c4cc36973f3ec0a7173d37595a0576f2c113ad12f199c4cdcee9bdc7c950",
+        "actualBytes": 1774,
+        "matches": true
+      },
+      {
+        "file": "world-tick.d.ts",
+        "sha256": "afb6e57fe3548900bd4c31949c1e76d12955ba3e77ea31c97cb10c58b7659b62",
+        "bytes": 927,
+        "actualSHA256": "afb6e57fe3548900bd4c31949c1e76d12955ba3e77ea31c97cb10c58b7659b62",
+        "actualBytes": 927,
+        "matches": true
+      },
+      {
+        "file": "world-types.d.ts",
+        "sha256": "75ae73bd1e8f02d5b1b42e74203743c7b4e07d6b211e92d0f7c918d7ec884f81",
+        "bytes": 5804,
+        "actualSHA256": "75ae73bd1e8f02d5b1b42e74203743c7b4e07d6b211e92d0f7c918d7ec884f81",
+        "actualBytes": 5804,
+        "matches": true
+      },
+      {
+        "file": "world.d.ts",
+        "sha256": "60e51061a6ef02a717a58655954cf3d1e925b3db8b0a0ab4d0d32d2c935f0b88",
+        "bytes": 3789,
+        "actualSHA256": "60e51061a6ef02a717a58655954cf3d1e925b3db8b0a0ab4d0d32d2c935f0b88",
+        "actualBytes": 3789,
+        "matches": true
+      }
+    ],
+    "actualFileCount": 376,
+    "extras": [],
+    "artifacts": [
+      {
+        "path": "C:/Users/38909/Documents/github/civ-engine-worktrees/engine-feedback-1001/tmp/engine-feedback/m1/release-eb61e44/verification/dist-manifest.json",
+        "bytes": 54794,
+        "sha256": "59d03515bf9db7c2e372b7b13cd0551482f59184f53ad3f5ef4a948d36aeef8d"
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/civ-engine-worktrees/engine-feedback-1001/tmp/engine-feedback/m1/release-eb61e44/civ-engine.tgz",
+        "bytes": 648792,
+        "sha256": "478d0aa36b49bd02a9a75df87ad08f6e672801011bee570887f84e5217c17fff"
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/civ-engine-worktrees/engine-feedback-1001/tmp/engine-feedback/m1/release-eb61e44/adoption/result.json",
+        "bytes": 1149,
+        "sha256": "c2e77fab745e3a92b60d5f26867064a8b36bd171fea98ea0e7139d36fc973f21"
+      },
+      {
+        "path": "C:/Users/38909/Documents/github/aoe2-worktrees/replay-parity-250/node_modules/civ-engine/package.json",
+        "bytes": 2524,
+        "sha256": "44b04b51aa19397bc94c52f44db97cc35c836237e0bd00cd7e61b766f5cbe973"
+      }
+    ]
+  },
+  "processExitProvenance": {
+    "kind": "worker original tool transcript observation; no disk process-exit receipt",
+    "exactRepro": {
+      "reportedBy": "/root/replay_movement_parity",
+      "chunk": "8a9db2",
+      "exitCode": 0,
+      "wallSeconds": 2.5818094
+    },
+    "focusedTests": {
+      "reportedBy": "/root/replay_movement_parity",
+      "initialChunk": "657bb7",
+      "completionChunk": "2b9fb6",
+      "sessionId": 36727,
+      "exitCode": 0
+    },
+    "reviewerIndependentlyInspected": "source instrument, result JSONs, logs and bindings; no rerun; no inference of process exit from JSON"
+  },
+  "authoredReport": {
+    "path": "C:/Users/38909/Documents/github/aoe2/tmp/review-runs/m7-persistence-source-1001/report.md",
+    "bytes": 17868,
+    "sha256": "8a31f23708c580eb0a7959c1cc27b9b0c17aec3232266ed5f18ca068a1da5aba",
+    "lfOnly": true
+  }
+}

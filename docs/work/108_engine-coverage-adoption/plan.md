@@ -3,7 +3,7 @@
 Status: active
 Owner: Codex orchestrator (/root), implementation worker /root/game_engine_coverage_adoption
 Created: 2026-10-01
-Updated: 2026-10-01
+Updated: 2026-10-15
 
 ## Problem and outcome
 
@@ -50,3 +50,7 @@ The recovered final sources passed all ten focused cases on Node 20.20.2 and Nod
 ## Outcome
 
 Pending. Coverage implementation remains paused for the required work-106 shipping blocker. No adapter implementation or shipped coverage claim follows from this plan. The test-only priority repair has three rejected routes, a bounded native-binding phase-cost reduction and ten passing focused cases on both Node versions. Removing the exact cache guard fails the native-120 control at tick 2 and the original nested-mutation control. Frozen source is independently accepted, and root's full gate passes on unmerged candidate `846652ab659bc82b1f5d588a1cef8c74470a55bb`, exact tree `407af4aa36b5a86f2bb853ab051f098e6a0ff2a5`. [Work106 review 9](../106_de-parity-orchestration/reviews/9_integration.md) records provisional integration review and local gate; final focused acceptance, main merge/push and new hosted CI/corpus remain pending. Main remains `c4024020`; its original Windows hosted failure is still RED. All consumer criteria above stay unchecked until separately implemented and verified. Engine `2.5.0` runtime readiness is observed; whole-game replay determinism is not established here.
+
+## Preserved review record (work 129 M1)
+
+Copied on 2026-10-15, byte for byte, from `C:/Users/38909/Documents/github/aoe2-worktrees/parity-integration-0930/docs/work/108_engine-coverage-adoption/` (staged there): [round 0, the independent review of the consumer source](reviews/0_implementation.md) and the snapshots it cites, `snapshots/report.md`, `snapshots/inputs.json.txt` and `snapshots/provenance-note.md`. Every size and SHA-256 the round cites for them matches the stored files, and the largest is 165,939 bytes. The round describes a candidate that is not on main: four implementation and script files and seven tests that read the engine's comparison coverage. The frozen source the round reviewed sits in `coverage-consumer-1001`, and the copy integrated with work 107 is staged in `parity-integration-0930`; [work 129](../129_codex-lane-retirement/plan.md) M2 lands or cancels it. The combined integration review of this work with work 107 is [107's round 1](../107_replay-movement-parity/reviews/1_integration.md), and 107's round 2 reviews the documentation publication. Not copied: the newer plan text staged in `parity-integration-0930`, whose bytes are the published-after file that 107's round 1 names for this plan; M2 commits or preserves it before it retires that checkout.

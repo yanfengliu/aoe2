@@ -1,0 +1,154 @@
+{
+  "base": "c4024020a09c99f74728f2a880a86fbcbaef8e48",
+  "branch": "codex/replay-parity-1001",
+  "workspace": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\replay-parity-1001",
+  "engine": "2.4.2",
+  "voxel": "1.2.0",
+  "dependencyJunction": {
+    "isLink": true,
+    "target": "C:\\Users\\38909\\Documents\\github\\aoe2-worktrees\\parity-gameplay-0930\\tmp\\parity-106\\dependencies\\install-mirror\\aoe2\\node_modules"
+  },
+  "controlCheckoutStillExists": false,
+  "trackedDiffSha256": "8ec84e47ffa12853f07d6517a3c58a6dbd74b520c247662e1e05af83aa2c5aa4",
+  "trackedDiffNote": "Tracked diff excludes untracked new files; complete prepared files are enumerated by digest below.",
+  "groups": {
+    "product": 6,
+    "tests": 5,
+    "canonical": 10,
+    "allocation": 1
+  },
+  "rows": [
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/bridgeState.ts",
+      "bytes": 7171,
+      "sha256": "4f2f0d19ab152bd43721448d37dc9d38b99f86d9b6d6aa30a78c6d2a54f899d5"
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/bridgeStateSerialize.ts",
+      "bytes": 17577,
+      "sha256": "0d7d87b6a8f1f07990df508ac63ab54bc1fa47c0e561b79a406c763871a41699"
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/systems/playerCommandsSystem.ts",
+      "bytes": 12620,
+      "sha256": "b49ebe86759e0f078324111198c470630ef8a366a18c806db0ff3cfc572bc61f"
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/wireBridgeOps.ts",
+      "bytes": 15715,
+      "sha256": "c024d595e2d936489e6b0276e9531e7789607145cd9d58f958e7183a66c541ae"
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/movePathPersistenceTypes.ts",
+      "bytes": 370,
+      "sha256": "2504671edbd86d770e046cff0b8df4eb770eb9eebf2f18b520f384095a0dc62a"
+    },
+    {
+      "group": "product",
+      "path": "src/game/simulation/bridge/persistedMovePathCache.ts",
+      "bytes": 5680,
+      "sha256": "cd439fb4a25173d23f61ce495bf2e46843b2ece635b3372a4104c95c6af0138a"
+    },
+    {
+      "group": "tests",
+      "path": "tests/replay/bridgeStateAccessor.test.ts",
+      "bytes": 13980,
+      "sha256": "a7ee2d9c3eb22063187ca685e533114ee520a8ffa5b709cf522bcedfa231e47b"
+    },
+    {
+      "group": "tests",
+      "path": "tests/replay/snapshotEquivalence.test.ts",
+      "bytes": 11500,
+      "sha256": "3cdf8978e083740ed34f3f14606fd9997e719d60208e7807bdfab51a247f51c0"
+    },
+    {
+      "group": "tests",
+      "path": "tests/simulation/movementPathCaching.test.ts",
+      "bytes": 7877,
+      "sha256": "269b76a580d6c930a2d5790ae98c1b67d9b27ca6225492a08340cafef19bbc58"
+    },
+    {
+      "group": "tests",
+      "path": "tests/replay/movementCheckpointContinuation.test.ts",
+      "bytes": 6148,
+      "sha256": "eba69cb8f7092ca3dbf40a2c65bb39e2d8cec3d5beb64a45ccd40bcb166de43d"
+    },
+    {
+      "group": "tests",
+      "path": "tests/replay/movementRoutePersistence.test.ts",
+      "bytes": 11024,
+      "sha256": "6b34f0e63e5d1b2c819e2d85c2e496e48c0b4e419373f3b4b43f27d4076de781"
+    },
+    {
+      "group": "canonical",
+      "path": "design/spec-final.md",
+      "bytes": 459790,
+      "sha256": "f78b0e48a3802ad1717d49b3c612c5bb7ecd8aed54a8882dc85aa696d35e1068"
+    },
+    {
+      "group": "canonical",
+      "path": "docs/architecture/ARCHITECTURE.md",
+      "bytes": 56474,
+      "sha256": "75229990f93250ed87cd631e7b619f56c6ce843947347594a302276dbaaec6a3"
+    },
+    {
+      "group": "canonical",
+      "path": "docs/architecture/decisions.md",
+      "bytes": 144484,
+      "sha256": "12bc9aa98c4f86f28bc07d6535ec2f1cab14a3099abca5342690d2af0b42548a"
+    },
+    {
+      "group": "canonical",
+      "path": "docs/architecture/drift-log.md",
+      "bytes": 77656,
+      "sha256": "4b6e8d7c5a2da9b8b0b0491043a225c843cc142d5e6fdb805f9b37fbe4ee0ea4"
+    },
+    {
+      "group": "canonical",
+      "path": "docs/devlog/summary.md",
+      "bytes": 16859,
+      "sha256": "82263863cbe2ec6162687790c8b9110f5c9e1cd338354fc4772942cb18063de4"
+    },
+    {
+      "group": "canonical",
+      "path": "docs/devlog/detailed/2026-10-01_2026-10-01.md",
+      "bytes": 3407,
+      "sha256": "c60bb6c1dd6a321015b1cd488ab681d69ff4a11dde2125b208ca5505de9896bf"
+    },
+    {
+      "group": "canonical",
+      "path": "docs/learning/defect-register.md",
+      "bytes": 143382,
+      "sha256": "54f02be0020eb497c78e2390b67e5f39a9ebfc857d2734a56d305d844c9828e8"
+    },
+    {
+      "group": "canonical",
+      "path": "docs/debugging/2026-10-01-movement-replay.md",
+      "bytes": 7268,
+      "sha256": "6cabcb7e5ab8d0c33631623c561222099732ca0a6c6ec3c9e31e5cd4d1c2e02b"
+    },
+    {
+      "group": "canonical",
+      "path": "docs/work/107_replay-movement-parity/plan.md",
+      "bytes": 4979,
+      "sha256": "8a23da6c4ed7358066181ac73bbc201ab6fa8fed14b90f7a47694d69ef3d337a"
+    },
+    {
+      "group": "canonical",
+      "path": "docs/work/107_replay-movement-parity/gate-proof.md",
+      "bytes": 7211,
+      "sha256": "818e16ed9942add7c1229f8fbece3439480586775055e0c53ba72cf75b09c2b4"
+    },
+    {
+      "group": "allocation",
+      "path": "docs/work/registry.json",
+      "bytes": 134689,
+      "sha256": "f12d779e93214c130ba6a1f60bade1ac7a08578ed2b490c28b24cf1377fa4ef8"
+    }
+  ]
+}
