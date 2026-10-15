@@ -122,7 +122,8 @@ M4, civilization and technology semantics:
 M5, economy, pathing and AI:
 - A villager retasked to another resource keeps its load relabelled as the new one, 5 wood becoming food (work 120 M4). (The hunters-idle card moved to work 131.)
 - AI prices: affordability reads the base price; the research loop stalls at Spies (`aiSystemProductionPhase.ts`); `unitRepair` prices from the base table; the research tooltip's time ignores team speed bonuses (work 125 and its review).
-- AI defence, not yet driven in play: the town bell takes the lowest-id sighting, not the nearest, measured from the Town Center's corner; the base scan counts an ally's unit as an enemy (`aiSystemDefensePhase.ts`, work 117).
+- AI defence, not yet driven in play: the town bell takes the lowest-id sighting, not the nearest, measured from the Town Center's corner; the base scan counts an ally's unit as an enemy (`aiSystemDefensePhase.ts`, work 117). In the lab configuration (attack phase off) a computer seat never answers a lone Scout wearing down a building away from its Town Center: owner 2's Scout attacked owner 1's Castle from tick 12,600, from a cell the Castle cannot hit without Murder Holes, and the Castle fell at about tick 19,300 (work 126's second-seed census on `default-seed`); whether the attack phase answers it is unchecked.
+- On main (`5b6838df`, lab settings, `default-seed`), owner 1's House at (13,1) stayed unstarted from tick 27,650 to the end, 17,350 ticks (work 126's census probe); not investigated.
 - The queue-slot text names no queue limit; check DE (work 125). DE cancels a queued purchase with a full refund, while here no cancel path exists and a queue entry does not record the price paid, so it needs saved state (work 125 review; persistence, so review required).
 
 M6, fog and information:
@@ -149,6 +150,8 @@ M7, save, replay and performance:
 Repo and tooling:
 - Hosted CI runs Node 20 (`ci.yml`) and the playtest workflow Node 22, while `.nvmrc` says 24 and the fleet canon baselines Node at 24 [R28]; `ci.yml`'s own comment says neither reads the file. Wire `setup-node` to `node-version-file:`, and keep an older-major job only if that support is wanted (found by work 129's triage).
 - `scripts/controlWorktree.mjs remove` checks the shared checkout's local `main`, not `origin/main` (a deletion guard, so its own task and review).
+- A page's heap rose from 128 to 342 MB over 18,085 ticks while frame costs stayed flat, and each replay round trip leaves one more listener (work 130's diagnosis); neither investigated.
+- A gate candidate from work 126: an architecture test that every backticked code name in `ARCHITECTURE.md` still exists in `src`, since a docs pass left the removed `blocksWildlife` described there and only a grep caught it.
 - Stale text: the `civBuildingBonuses.test.ts` header, ten "spec §9.2" citations across nine source files (work 116), and the `civOpeningSeed.ts` comment saying fixtures get no opening units (work 120 M4).
 - §11.4 says spec prose does not restate CSV rows, yet §11.11 restates values; trim to mechanism plus a pointer, or say why not.
 
