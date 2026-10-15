@@ -25,9 +25,9 @@ import {
 } from './debugOverlay';
 import { createPostGameSummary } from './postGameSummary';
 import { createSaveLoadPanel } from './saveLoadPanel';
+import { countdownChipView } from './countdownChip';
 import {
   formatAgeName,
-  formatCountdownTicks,
   formatMatchTime,
 } from './displayNames';
 import {
@@ -385,27 +385,23 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
 
     if (countdownChip && countdownLabel && countdownValue) {
       // Slice 8: surface the human player's active countdown (Wonder or
-      // Relic) in the top bar so the player sees the timer drop live.
-      // Wonder takes precedence when both are active (rare; the first
-      // countdown to start wins per the deterministic tie-break rule).
-      const wonderTicks = hudState.matchState.wonderCountdownTicks;
-      const relicTicks = hudState.matchState.relicCountdownTicks;
-      const activeKind: 'wonder' | 'relic' | null =
-        wonderTicks !== null
-          ? 'wonder'
-          : relicTicks !== null
-            ? 'relic'
-            : null;
-      if (activeKind === null) {
+      // Relic) in the top bar so the player sees the timer drop live. The
+      // view (countdownChip.ts) picks the kind, states the time and the years
+      // the same ticks are, and writes the tooltip.
+      const chip = countdownChipView(hudState.matchState, hudState.fpsTarget);
+      if (!chip.active) {
         // v0.1.95: reserve the slot (keep its box) so the countdown appearing
         // never reflows the bar — toggle content visibility via the attribute,
         // not `hidden` (display:none, which would remove the box).
         countdownChip.dataset.hudCountdownActive = 'false';
       } else {
         countdownChip.dataset.hudCountdownActive = 'true';
-        const ticks = activeKind === 'wonder' ? wonderTicks! : relicTicks!;
-        countdownLabel.textContent = activeKind === 'wonder' ? 'Wonder' : 'Relic';
-        countdownValue.textContent = formatCountdownTicks(ticks, hudState.fpsTarget);
+        countdownChip.dataset.hudCountdownYears = String(chip.yearsLeft);
+        // Only when it moved: a rewrite is a DOM mutation, and the tooltip
+        // controller watches this copy for a pointer resting on the chip.
+        if (countdownChip.dataset.tooltip !== chip.tooltip) countdownChip.dataset.tooltip = chip.tooltip;
+        countdownLabel.textContent = chip.label;
+        countdownValue.textContent = chip.value;
       }
     }
     selectionPanelHandle.update(selectionState, hudState.playerResources);

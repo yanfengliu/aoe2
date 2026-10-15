@@ -406,6 +406,24 @@ export function createTooltipController(
   });
   ownerObserver.observe(root, { childList: true, subtree: true });
 
+  // Copy that moves under a tooltip that is showing it: the countdown chip's
+  // years and time (work 132) change while the pointer rests on the chip, and a
+  // tooltip that kept its first reading would disagree with the time beside it.
+  // The HUD rewrites some copy every frame with the same text (a resource
+  // chip's), and a rewrite is a mutation record, so only copy that differs from
+  // what the tooltip shows is shown again.
+  const copyObserver = new MutationObserver((records) => {
+    const host = describedHost;
+    if (!host || !root.contains(host) || !records.some((record) => record.target === host)) {
+      return;
+    }
+    const copy = host.getAttribute('data-tooltip') ?? '';
+    if (copy !== tooltipElement.textContent) {
+      showTooltipFor(host, copy);
+    }
+  });
+  copyObserver.observe(root, { attributes: true, attributeFilter: ['data-tooltip'], subtree: true });
+
   const onPointerDown = (event: PointerEvent): void => {
     const target = event.target instanceof Element ? event.target : null;
     const host = target?.closest('[data-tooltip]');
@@ -464,6 +482,7 @@ export function createTooltipController(
         resizeFrame = null;
       }
       ownerObserver.disconnect();
+      copyObserver.disconnect();
       pointerHost = null;
       focusHost = null;
       pointerPressedKey = null;

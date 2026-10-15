@@ -44,7 +44,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     systemMode = 'live',
     humanPlayerId,
     visibility,
-    defaultRelicCountdownTicks,
     state,
     accessor,
     visibilityCell,
@@ -491,7 +490,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     isMatchRunning,
     finalizeMatchEnd,
     currentRelicHoldingOwner,
-    defaultRelicCountdownTicks,
     computePlayerScore,
     gameLength,
   });

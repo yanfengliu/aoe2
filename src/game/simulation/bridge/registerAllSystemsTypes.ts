@@ -46,7 +46,6 @@ export interface RegisterAllSystemsDeps {
   systemMode?: 'live' | 'replay';
   humanPlayerId: number;
   visibility: VisibilityMap;
-  defaultRelicCountdownTicks: number;
   state: BridgeState;
   // Phase 2D — accessor for migrated slots. Threaded into systems that
   // mutate Tier-1 slots flowing through `world.state.aoe2.*`.

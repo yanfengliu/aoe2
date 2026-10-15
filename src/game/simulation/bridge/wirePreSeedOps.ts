@@ -37,7 +37,6 @@ import { createResearchAvailability } from './researchAvailability';
 import { civDenies } from '../civTechTree';
 import { VisibilityCell } from './visibilityCell';
 import { HUMAN_PLAYER_ID } from '../prototypeScenario';
-import { WONDER_COUNTDOWN_TICKS } from './bridgeConstants';
 import type { WireBridgeOpsDeps } from './wireBridgeOpsTypes';
 
 export type WirePreSeedOpsDeps = Pick<
@@ -222,7 +221,6 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
 
   const entityCreateOps = createEntityCreateOps({
     world,
-    wonderCountdownTicks: WONDER_COUNTDOWN_TICKS,
     state,
     accessor,
     ensurePlayerScoreCounters,

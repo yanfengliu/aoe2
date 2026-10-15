@@ -32,7 +32,6 @@ import type { MonkTaskOps } from './monkTaskOps';
 import type { TransformOps } from './transformOps';
 import type { MatchEndOps } from './matchEndOps';
 import { HUMAN_PLAYER_ID } from '../prototypeScenario';
-import { RELIC_COUNTDOWN_TICKS } from './bridgeConstants';
 
 type RegisterAllSystemsArg = Parameters<typeof registerAllSystems>[0];
 
@@ -275,7 +274,6 @@ export function registerBridgeSystems(
     gameLength,
     disableAiAttacks,
     visibility,
-    defaultRelicCountdownTicks: RELIC_COUNTDOWN_TICKS,
     accessor,
     visibilityCell,
     visibilityFingerprints,

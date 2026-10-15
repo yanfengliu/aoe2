@@ -2,6 +2,15 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 132
+
+A Wonder or Relic victory takes as long as in Definitive Edition.
+
+- **A Wonder or Relic countdown lasts Definitive Edition's years, not 200 seconds.** It was 2,000 ticks, 3:20, for any game; a year was one second of game time. A year is now 5 seconds of it, as in DE, and the length depends on the map as in DE, by the number of players: 2, 3 or 4 players 200 years (16:40), 5 or 6 players 300 years (25:00), 7 or 8 players 350 years (29:10). Holding a Wonder or every relic therefore takes five times as long to win on a two-player map, and the other side has that long to break it. The lengths come from the community wiki's table, which no DE text states (spec §4.3 names the sources and the bound).
+- **Atheism adds 100 years, 8:20 of game time**, to a Wonder or Relic countdown, where it added 1:40. It still lengthens every countdown in the match, the researcher's own included; current DE lengthens only an enemy's, and that is not changed yet (spec §9.2.2).
+- **The Wonder/Relic timer in the top bar states the years left** in its tooltip beside the time (for example "Wonder victory in 161 years (13:23 of game time)"), and the tooltip keeps up with the countdown while the pointer rests on it.
+- **A game saved while a countdown was running keeps its saved deadline** when you load it, so a countdown from an earlier version finishes on its old, shorter clock; only a countdown that opens after the load has the new length. A replay recorded before this version plays out differently from the first countdown it opens.
+
 ## 0.3.257
 
 Every price the game states is now the price the click takes.

@@ -112,9 +112,9 @@ export interface PlayerStartSpec {
   startingAge?: AgeType;
   startingResources?: PlayerResources;
   // Test-only override for the Wonder and Relic victory countdown.
-  // Production uses the authoritative `WONDER_COUNTDOWN_TICKS` /
-  // `RELIC_COUNTDOWN_TICKS` constants; fixtures can shrink this to a
-  // handful of ticks so vitest cases resolve quickly. Applied per owner.
+  // Production uses the years for the players seated (`victoryCountdown.ts`,
+  // spec §4.3); fixtures can shrink this to a handful of ticks so vitest
+  // cases resolve quickly. Applied per owner.
   wonderCountdownOverrideTicks?: number;
   relicCountdownOverrideTicks?: number;
   // Slice 10 (AI baseline). Non-human players get a per-owner

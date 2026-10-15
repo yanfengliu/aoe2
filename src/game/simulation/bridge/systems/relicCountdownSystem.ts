@@ -4,17 +4,16 @@
 // `bridge/matchEndOps.currentRelicHoldingOwner` so the in-flight vs
 // deposited distinction stays in one place.
 
-import { atheismCountdownExtension } from '../atheismCountdowns';
+import { countdownTotalTicks } from '../countdownLengths';
 import type { GameWorld } from '../pureHelpers';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
-import { matchSettingsCodec, relicCountdownOverridesCodec, relicCountdownsCodec } from '../bridgeStateSerialize';
+import { matchSettingsCodec, relicCountdownsCodec } from '../bridgeStateSerialize';
 
 export interface RelicCountdownSystemDeps {
   world: GameWorld;
   // Phase 2D: relicCountdowns + relicCountdownOverrides both flow through accessor.
   accessor: BridgeStateAccessor;
   currentRelicHoldingOwner: () => number | null;
-  defaultRelicCountdownTicks: number;
   isMatchRunning: () => boolean;
 }
 
@@ -23,7 +22,6 @@ export function registerRelicCountdownSystem(deps: RelicCountdownSystemDeps): vo
     world,
     accessor,
     currentRelicHoldingOwner,
-    defaultRelicCountdownTicks,
     isMatchRunning,
   } = deps;
 
@@ -51,8 +49,7 @@ export function registerRelicCountdownSystem(deps: RelicCountdownSystemDeps): vo
       }
       let entry = relicCountdowns.get(holdingOwner);
       if (!entry) {
-        const totalTicks = (accessor.get(relicCountdownOverridesCodec).get(holdingOwner) ?? defaultRelicCountdownTicks)
-          + atheismCountdownExtension(accessor);
+        const totalTicks = countdownTotalTicks(accessor, holdingOwner, 'relic');
         entry = { remainingTicks: totalTicks, totalTicks, lastCompletedTick: null };
         relicCountdowns.set(holdingOwner, entry);
         dirty = true;

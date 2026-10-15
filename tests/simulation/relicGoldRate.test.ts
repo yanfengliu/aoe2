@@ -92,7 +92,9 @@ describe('relic gold at Definitive Edition\'s rate (work 127)', () => {
 
   it('pays a relic a Monk carries in 30 gold a minute, every minute for ten minutes', () => {
     // Conquest only: holding the map's one relic would otherwise start the
-    // relic victory clock, and its 2,000 ticks end the match inside the window.
+    // relic victory clock. At DE's length (200 years, 10,000 ticks, work 132)
+    // it outlasts this 6,000-tick window; at the old 2,000 ticks it ended the
+    // match inside it. The option keeps the count free of the clock.
     const bridge = boot('monk-relic-fixture', {
       disableAiForOwners: new Set([2]),
       victory: 'conquest-only',

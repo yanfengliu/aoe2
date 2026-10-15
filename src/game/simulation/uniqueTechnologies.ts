@@ -18,6 +18,7 @@ import { isInfantryUnit } from './prototypeUnitRules';
 import type { BuildingType } from './types';
 import type { ResearchableTechnologyType } from './technologyTypes';
 import type { UnitType } from './unitTypes';
+import { ATHEISM_COUNTDOWN_EXTENSION_YEARS, TICKS_PER_YEAR } from './victoryCountdown';
 
 /** What a unique technology does to the combat state of the units it names. */
 export interface UniqueUnitEffect {
@@ -113,9 +114,9 @@ const is = (...types: UnitType[]) => {
   return (unitType: UnitType) => set.has(unitType);
 };
 
-// Atheism's +100 years, in ticks: the 2000-tick countdown is spec §4.3's
-// "200 in-game years", so a year is 10 ticks.
-export const ATHEISM_COUNTDOWN_EXTENSION_TICKS = 1000;
+// Atheism's +100 years, in ticks: a year is 5 seconds of game time, 50 ticks
+// (spec §4.3, victoryCountdown.ts), so 5,000.
+export const ATHEISM_COUNTDOWN_EXTENSION_TICKS = ATHEISM_COUNTDOWN_EXTENSION_YEARS * TICKS_PER_YEAR;
 
 export const UNIQUE_TECHNOLOGIES: readonly UniqueTechnology[] = [
   {

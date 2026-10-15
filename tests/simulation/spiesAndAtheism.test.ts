@@ -79,16 +79,18 @@ describe('Atheism — the Huns unique technology', () => {
     expect(researchCost('atheism')).toEqual({ food: 500, wood: 300 });
     expect(researchTimeTicks('atheism')).toBe(600);
     expect(canResearchAt('castle', 'atheism')).toBe(true);
-    // +100 years at 10 ticks a year (the 2000-tick countdown is 200 years).
-    expect(ATHEISM_COUNTDOWN_EXTENSION_TICKS).toBe(1000);
-    expect(technology?.countdownExtensionTicks).toBe(1000);
+    // +100 years at 50 ticks a year: a year is 5 seconds of game time, as DE
+    // counts it (work 132; spec section 4.3). It read 1,000 while a year was one
+    // second, and the countdown 2,000 ticks.
+    expect(ATHEISM_COUNTDOWN_EXTENSION_TICKS).toBe(5000);
+    expect(technology?.countdownExtensionTicks).toBe(5000);
     expect([...DEFERRED_UNIQUE_TECHNOLOGIES]).toEqual([]);
   });
 
   it('adds 100 years to a Wonder countdown already running when researched', () => {
     // A countdown mid-flight, and a Huns player researching Atheism at a real
-    // Castle: on completion the countdown is 1000 ticks longer than the pure
-    // ticking of the research time would leave it.
+    // Castle: on completion the countdown is 5000 ticks (100 years) longer than
+    // the pure ticking of the research time would leave it.
     const boot = createSimulationBridge('vikings-regeneration-fixture');
     // Keyed by a REAL building id — the load path prunes countdowns whose
     // entity no longer exists, so an invented key would silently vanish.
@@ -112,18 +114,18 @@ describe('Atheism — the Huns unique technology', () => {
       }]>).find(([id]) => id === castleId)![1];
     };
     // 700 steps cover the 600-tick research with margin; the countdown ticks
-    // down 1 per step but gains 1000 on completion, so it ends HIGHER only if
+    // down 1 per step but gains 5000 on completion, so it ends HIGHER only if
     // the extension landed.
     const before = readCountdown().remainingTicks;
     for (let step = 0; step < 700; step += 1) bridge.step(100);
     const after = readCountdown();
-    expect(after.totalTicks).toBe(6000);
-    expect(after.remainingTicks).toBe(before - 700 + 1000);
+    expect(after.totalTicks).toBe(10_000);
+    expect(after.remainingTicks).toBe(before - 700 + 5000);
   }, 60_000);
 
   it('lengthens a countdown that STARTS while any owner has Atheism', () => {
     // The relic-short fixture's Monastery holds every relic, so its countdown
-    // opens on the first tick — at 10 ticks by override, or 1010 when ANYBODY
+    // opens on the first tick — at 10 ticks by override, or 5010 when ANYBODY
     // in the match (here the other player) has researched Atheism. The
     // extension belongs to the match, not to the researcher: it delays every
     // victory clock, which is the whole point of the technology.
@@ -137,6 +139,6 @@ describe('Atheism — the Huns unique technology', () => {
       totalTicks: number;
     }]>;
     expect(entries.length).toBeGreaterThan(0);
-    expect(entries[0]![1].totalTicks).toBe(10 + ATHEISM_COUNTDOWN_EXTENSION_TICKS);
+    expect(entries[0]![1].totalTicks).toBe(10 + 5000);
   });
 });

@@ -38,6 +38,7 @@ import {
 import { createMinimumRangeCensusFixture, minimumRangeCensusSeeds } from '../fixtures/minimumRangeCensus';
 import { createProjectileLookShowcaseFixture } from '../fixtures/projectileLookShowcase';
 import { createRaidWarningFixture } from '../fixtures/raidWarning';
+import { createVictoryClockFixture, victoryClockSeeds } from '../fixtures/victoryClocks';
 import { createRelicGoldFixture } from '../fixtures/relicGold';
 import { createSiegeBaseStatsFixture } from '../fixtures/siegeBaseStats';
 import { createTrafficContestFixture } from '../fixtures/trafficContest';
@@ -426,4 +427,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['civ-farmer-fixture', createCivFarmerFixture],
   ['civ-farmer-reseed-fixture', createCivFarmerFixture],
   ['civ-farm-to-berries-fixture', createCivFarmToBerriesFixture],
+  // Work 132: a Wonder or every relic with NO countdown override, for 2-8 players,
+  // so a victory clock runs the length the rule gives the players seated.
+  ...victoryClockSeeds().map((seed) => [seed, createVictoryClockFixture] as const),
 ]);
