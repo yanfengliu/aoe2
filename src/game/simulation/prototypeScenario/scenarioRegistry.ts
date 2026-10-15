@@ -36,6 +36,14 @@ import {
   createHiddenFoundationViewFixture,
 } from '../fixtures/hiddenFoundation';
 import { createMinimumRangeCensusFixture, minimumRangeCensusSeeds } from '../fixtures/minimumRangeCensus';
+import {
+  AI_MISSIONARY_KNOWN_RELIC_SEED,
+  AI_MONK_KNOWN_RELIC_SEED,
+  createAiMissionaryKnownRelicFixture,
+  createAiMonkKnownRelicFixture,
+  createMonkCarriedRelicFixture,
+  MONK_CARRIED_RELIC_SEED,
+} from '../fixtures/monkRelics';
 import { createProjectileLookShowcaseFixture } from '../fixtures/projectileLookShowcase';
 import { createRaidWarningFixture } from '../fixtures/raidWarning';
 import { createRelicGoldFixture } from '../fixtures/relicGold';
@@ -254,6 +262,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['garrison-heal-fixture', fixtures.createGarrisonHealFixture],
   ['garrison-heal-herbal-fixture', fixtures.createGarrisonHealHerbalFixture],
   ['monk-relic-fixture', fixtures.createMonkRelicFixture],
+  [MONK_CARRIED_RELIC_SEED, createMonkCarriedRelicFixture],
   ['wonder-imperial-fixture', fixtures.createWonderImperialFixture],
   ['wonder-existing-fixture', fixtures.createWonderExistingFixture],
   ['wonder-short-countdown-fixture', fixtures.createWonderShortCountdownFixture],
@@ -294,6 +303,8 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['ai-monk-fixture', fixtures.createAiMonkFixture],
   ['ai-monk-heal-fixture', fixtures.createAiMonkHealFixture],
   ['ai-monk-relic-fixture', fixtures.createAiMonkRelicFixture],
+  [AI_MONK_KNOWN_RELIC_SEED, createAiMonkKnownRelicFixture],
+  [AI_MISSIONARY_KNOWN_RELIC_SEED, createAiMissionaryKnownRelicFixture],
   ['ai-wonder-fixture', fixtures.createAiWonderFixture],
   ['feudal-market-fixture', fixtures.createFeudalMarketFixture],
   ['town-center-defense-fixture', fixtures.createTownCenterDefenseFixture],

@@ -69,6 +69,8 @@ export interface MonkTaskAppliersDeps {
    *  who a unit is, and gate admittance is keyed on who is asking, so every
    *  owner flip is a passability change the reachability caches must hear. */
   notePassabilityChange: () => void;
+  /** transformOps' occupancy sync: a relic taken into a Monk's hands gives up its cell. */
+  syncOccupancyForEntity: (entity: number) => void;
   monkHealTickInterval: number;
   monkHealHpPerInterval: number;
   monkConvertProgressPerTick: number;
@@ -107,6 +109,7 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
     unitTint,
     clearMonkTask,
     notePassabilityChange,
+    syncOccupancyForEntity,
     monkHealTickInterval,
     monkHealHpPerInterval,
     monkConvertProgressPerTick,
@@ -415,6 +418,9 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
       }
       m.set(monkId, relicId);
     });
+    // In the Monk's hands the relic claims no cell (work 128), even when the
+    // Monk picks it up from the cell it stands on, where no follow step runs.
+    syncOccupancyForEntity(relicId);
     clearMonkTask(monkId);
     markOutOfBandRenderChange();
   }

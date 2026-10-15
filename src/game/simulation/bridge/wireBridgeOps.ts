@@ -171,6 +171,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     getApproachCellsForFootprint,
     placeFreshSpawnUnit,
     clearPositionAndSyncOccupancy,
+    syncOccupancyForEntity: (entity) => transformOps.syncOccupancyForEntity(entity),
     addBuildingEntity,
     addResourceEntity,
     findScenarioSpawnPosition,

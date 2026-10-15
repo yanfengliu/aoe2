@@ -24,12 +24,8 @@ import {
   type GameWorld,
 } from './pureHelpers';
 import { structureClaimKind } from '../passableStructures';
-import { constructionStatesCodec, playerAgesCodec, playerCivilizationsCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
-import {
-  movementEntitlement,
-  movementSpeedPercent,
-  settleMovementCarry,
-} from '../movementTechEffects';
+import { constructionStatesCodec, monkCarriedRelicCodec, playerAgesCodec, playerCivilizationsCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
+import { movementEntitlement, movementSpeedPercent, settleMovementCarry } from '../movementTechEffects';
 import type { UnitAttackFeedRuntime } from './bridgeState';
 import { markUnitAttackMovementStartedForEntity } from './unitAttackAnimationFeed';
 
@@ -167,7 +163,9 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     }
 
     if (activeWorld.getComponent<ResourceComponent>(entity, 'resource')) {
-      worldOccupancy.syncResource(entity, position);
+      // A relic in a Monk's hands claims no ground, or its carrier could not walk (work 128).
+      if ([...accessor.get(monkCarriedRelicCodec).values()].includes(entity)) worldOccupancy.release(entity);
+      else worldOccupancy.syncResource(entity, position);
       return;
     }
 

@@ -142,10 +142,19 @@ describe('Slice 5 Monastery + Monks + Relics — vision/population/relics', () =
       ),
     ).toBe(true);
 
-    // Move the Monk off somewhere; relic should track.
+    // Move the Monk off somewhere; relic should track. The Monk must actually
+    // get there: until work 128 the carried relic claimed the Monk's own cell,
+    // the Monk never moved, and the two positions matched by standing still.
     expect(selectOwnedUnitDirect(bridge, 1, 'monk')).toBe(true);
     expect(bridge.issueMoveCommand(12, 12)).toBe(true);
-    bridge.step(30 * 100);
+    expect(bridge.consumeCommandRejection()).toBeNull();
+    expect(
+      stepBridgeUntil(bridge, () => {
+        const m = findFirstOwnedUnit(bridge, 1, 'monk');
+        return m !== undefined && m.x === 12 && m.y === 12;
+      }, { maxSteps: 300 }),
+      'the Monk carrying the relic never reached (12, 12)',
+    ).toBe(true);
     const rAfter = findFirstResource(bridge, 'relic');
     const mAfter = findFirstOwnedUnit(bridge, 1, 'monk');
     expect(rAfter).toBeDefined();

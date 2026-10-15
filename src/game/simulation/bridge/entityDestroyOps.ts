@@ -83,6 +83,8 @@ export interface EntityDestroyOpsDeps {
   // on a forest tile left the tile impassable forever, and everything behind
   // the rim of a woodline could never be reached.
   clearForestTerrainAt: (position: Position) => void;
+  /** transformOps' occupancy sync: a relic dropped by a dead carrier claims its cell. */
+  syncOccupancyForEntity: (entity: number) => void;
   markOutOfBandRenderChange: () => void;
 }
 
@@ -109,6 +111,7 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     isCellBlockedByResource,
     addResourceEntity,
     clearForestTerrainAt,
+    syncOccupancyForEntity,
     markOutOfBandRenderChange,
   } = deps;
   const { monksByOwner } = state;
@@ -220,12 +223,16 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     accessor.mutate(combatStatesCodec, (m) => m.delete(id));
     const monkTasks = accessor.get(monkTasksCodec);
     if (monkTasks.delete(id)) accessor.markDirty(monkTasksCodec);
+    const droppedRelicId = accessor.get(monkCarriedRelicCodec).get(id);
     accessor.mutate(monkCarriedRelicCodec, (m) => m.delete(id));
     accessor.mutate(conversionStateCodec, (m) => m.delete(id));
     accessor.mutate(monkHealCountersCodec, (m) => m.delete(id));
     accessor.mutate(trebuchetPackStatesCodec, (m) => m.delete(id));
     accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) => m.delete(id));
     world.destroyEntity(id);
+    // A relic in the dead unit's hands falls where it stood. Carried, it held no
+    // claim (work 128); on the ground it claims its cell like any relic.
+    if (droppedRelicId !== undefined) syncOccupancyForEntity(droppedRelicId);
     markOutOfBandRenderChange();
   }
 

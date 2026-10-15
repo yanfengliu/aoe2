@@ -97,6 +97,7 @@ export interface WirePostSeedDeps {
   getApproachCellsForFootprint: Parameters<typeof createEntityDestroyOps>[0]['getApproachCellsForFootprint'];
   placeFreshSpawnUnit: Parameters<typeof createTrainingMarketOps>[0]['placeFreshSpawnUnit'];
   clearPositionAndSyncOccupancy: Parameters<typeof createTrainingMarketOps>[0]['clearPositionAndSyncOccupancy'];
+  syncOccupancyForEntity: Parameters<typeof createEntityDestroyOps>[0]['syncOccupancyForEntity'];
   addBuildingEntity: Parameters<typeof createTrainingMarketOps>[0]['addBuildingEntity'];
   addResourceEntity: Parameters<typeof createEntityDestroyOps>[0]['addResourceEntity'];
   findScenarioSpawnPosition: (origin: Position) => Position | null;
@@ -180,6 +181,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     getApproachCellsForFootprint,
     placeFreshSpawnUnit,
     clearPositionAndSyncOccupancy,
+    syncOccupancyForEntity,
     addBuildingEntity,
     addResourceEntity,
     tiles,
@@ -265,6 +267,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     isCellBlockedByResource,
     addResourceEntity,
     clearForestTerrainAt,
+    syncOccupancyForEntity,
     markOutOfBandRenderChange,
   });
 
@@ -371,6 +374,8 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     buildingOccupiesCell,
     isAiMilitaryUnit,
     isVisibleToOwner: (owner, x, y) => visibility.isVisible(owner, x, y),
+    isExploredByOwner: (owner, x, y) => visibility.isExplored(owner, x, y),
+    syncOccupancyForEntity,
     currentEntityId,
     unitTint,
     notePassabilityChange: () => { worldOccupancy.notePassabilityChange(); },

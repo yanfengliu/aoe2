@@ -16,7 +16,7 @@
 // factories; the shape is named (`MonkTaskDeps`) so readers can navigate it
 // in one jump.
 
-import { isMonasticUnit } from '../monasticUnits';
+import { canCarryRelics, isMonasticUnit } from '../monasticUnits';
 import type { EntityRef, Position } from 'civ-engine';
 
 import type {
@@ -60,6 +60,10 @@ export interface MonkTaskDeps {
   ) => boolean;
   isAiMilitaryUnit: (unitType: UnitType) => boolean;
   isVisibleToOwner: (owner: number, x: number, y: number) => boolean;
+  /** The VisibilityMap's explored record: what the computer knows of relics. */
+  isExploredByOwner: (owner: number, x: number, y: number) => boolean;
+  /** transformOps' occupancy sync, for the relic a Monk picks up (work 128). */
+  syncOccupancyForEntity: (entity: number) => void;
   currentEntityId: (
     activeWorld: GameWorld,
     ref: EntityRef | undefined | null,
@@ -94,7 +98,7 @@ export interface MonkTaskOps {
   ): void;
   // Search helpers used by the AI monk task routing and save/load tests.
   findNearestOwnedMonasteryToDeposit(owner: number, origin: Position): number | null;
-  findNearestVisibleNeutralRelic(owner: number, origin: Position): number | null;
+  findNearestKnownNeutralRelic(owner: number, origin: Position): number | null;
   findNearestWoundedFriendlyMilitary(owner: number, origin: Position): number | null;
   // Task-apply handlers invoked by `prototypeMonkBehavior` once the Monk is
   // within action range of its target.
@@ -138,6 +142,8 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     buildingOccupiesCell,
     isAiMilitaryUnit,
     isVisibleToOwner,
+    isExploredByOwner,
+    syncOccupancyForEntity,
     currentEntityId,
     unitTint,
     notePassabilityChange,
@@ -182,12 +188,17 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
         continue;
       }
 
-      // Priority 2: pick up the nearest visible neutral relic.
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
-      const relicId = findNearestVisibleNeutralRelic(owner, monkPosition);
-      if (relicId !== null) {
-        accept({ monkId, kind: 'pickup', targetEntityId: relicId });
-        continue;
+      // Priority 2: fetch the nearest neutral relic the seat knows of, on
+      // ground it has explored (monkAiSearchHelpers says why). Only a Monk can
+      // carry one: a Missionary sent for a relic is refused, and would stand
+      // there instead of healing.
+      if (canCarryRelics(unit.unitType)) {
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
+        const relicId = findNearestKnownNeutralRelic(owner, monkPosition);
+        if (relicId !== null) {
+          accept({ monkId, kind: 'pickup', targetEntityId: relicId });
+          continue;
+        }
       }
 
       // Priority 3: heal the nearest wounded friendly military unit.
@@ -225,12 +236,12 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     world,
     accessor,
     isAiMilitaryUnit,
-    isVisibleToOwner,
+    isExploredByOwner,
     aiMonkHealHpFraction,
   });
   const {
     findNearestOwnedMonasteryToDeposit,
-    findNearestVisibleNeutralRelic,
+    findNearestKnownNeutralRelic,
     findNearestWoundedFriendlyMilitary,
   } = aiSearch;
 
@@ -248,6 +259,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     unitTint,
     clearMonkTask,
     notePassabilityChange,
+    syncOccupancyForEntity,
     monkHealTickInterval,
     monkHealHpPerInterval,
     monkConvertProgressPerTick,
@@ -373,7 +385,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   return {
     pushAiMonkTaskIntentions,
     findNearestOwnedMonasteryToDeposit,
-    findNearestVisibleNeutralRelic,
+    findNearestKnownNeutralRelic,
     findNearestWoundedFriendlyMilitary,
     applyMonkHeal,
     applyMonkConvert,
