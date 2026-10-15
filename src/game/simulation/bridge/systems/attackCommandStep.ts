@@ -9,12 +9,14 @@ import type { EntityRef, Position } from 'civ-engine';
 type CivWorld = GameWorld;
 import type {
   BuildingComponent,
+  GathererComponent,
   ResourceComponent,
   UnitComponent,
 } from '../../types';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import type { UnitCommand } from '../sharedTypes';
 import {
+  aiStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
   playerAgesCodec,
@@ -38,6 +40,7 @@ import { unitMinAttackRange } from '../../prototypeUnitRules';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { RecordPlayerHit } from '../playerHitFeed';
 import { isHiddenUnstartedFoundation } from '../unstartedFoundations';
+import { isPlayerTaskedVillager } from '../gatherCarryOn';
 
 export interface AttackStepDeps {
   activeWorld: CivWorld;
@@ -197,11 +200,21 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
             const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
             const targetResource = activeWorld.getComponent<ResourceComponent>(targetId, 'resource');
             const targetWildlife = accessor.get(wildlifeStatesCodec).get(targetId);
+            // A hunter whose animal is dead gathers its carcass, as DE's do
+            // (spec §6.4). The computer's does so without the player's
+            // standing order: what it does after that is the computer's.
+            const gatherCarcass = (): boolean => {
+              if (!gatherKilledAnimal(id, targetId)) return false;
+              if (!isPlayerTaskedVillager(unit.owner, unit.unitType, accessor.get(aiStatesCodec).has(unit.owner))) {
+                const gatherer = activeWorld.getComponent<GathererComponent>(id, 'gatherer');
+                if (gatherer) gatherer.hasExplicitGatherOrder = false;
+              }
+              return true;
+            };
             if (!targetPosition || !targetResource || !targetWildlife?.isAlive) {
               // Its animal died to someone else's blow — another hunter's, a
-              // Town Center's arrow: a villager gathers the carcass, as DE's
-              // hunters do (spec §6.4). Anyone else stands down.
-              if (!targetWildlife?.isAlive && gatherKilledAnimal(id, targetId)) return true;
+              // Town Center's arrow. Anyone but a villager stands down.
+              if (!targetWildlife?.isAlive && gatherCarcass()) return true;
               clearUnitCommand(id);
               return true;
             }
@@ -263,7 +276,7 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
               recordPlayerHit,
             });
             // The blow that killed it: the hunter gathers what it killed.
-            if (animalDied && !gatherKilledAnimal(id, targetId)) clearUnitCommand(id);
+            if (animalDied && !gatherCarcass()) clearUnitCommand(id);
             return true;
           }
 
