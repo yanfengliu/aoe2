@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
 import { AoeVoxelAdapter } from '../../src/rendering/voxel/aoeVoxelAdapter';
+import { STANDING_BATCH_COUNT } from '../../src/rendering/voxel/aoeVoxelLaneBatches';
 
 function view(overrides: Partial<ProjectedEntityView> = {}): ProjectedEntityView {
   return {
@@ -79,7 +80,8 @@ describe('AoeVoxelAdapter occlusion silhouettes', () => {
     expect(silhouetteBatch).toBeDefined();
     expect(occlusionKeys.every((key) => silhouetteBatch!.instanceKeys.includes(key))).toBe(true);
 
-    expect(snapshot.batches.length).toBeLessThanOrEqual(9);
+    // No batch of its own: the snapshot carries exactly its standing lanes (aoeVoxelLaneBatches.ts).
+    expect(snapshot.batches.length).toBe(STANDING_BATCH_COUNT);
     expect(adapter.latestOccludedUnits()).toEqual([
       { id: 7, x: 7, y: 7, entityType: 'villager' },
     ]);

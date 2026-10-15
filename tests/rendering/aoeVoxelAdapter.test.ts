@@ -220,13 +220,17 @@ describe('AoeVoxelAdapter instance projection', () => {
       }),
     ]);
 
+    // The opaque surfaces come in lanes by where their parts come from (work 130, aoeVoxelLaneBatches.ts); the
+    // translucent shadow and memory lanes stay one batch each.
     expect(snapshot.batches.map((batch) => batch.key)).toEqual([
-      'aoe2:batch:matte-parts', 'aoe2:batch:matte-animated-parts',
-      'aoe2:batch:metal-parts', 'aoe2:batch:metal-animated-parts',
-      'aoe2:batch:water-parts', 'aoe2:batch:water-animated-parts',
+      'aoe2:batch:terrain-matte-parts', 'aoe2:batch:terrain-water-parts',
+      'aoe2:batch:terrain-water-animated-parts',
+      'aoe2:batch:still-matte-parts', 'aoe2:batch:still-metal-parts',
+      'aoe2:batch:moving-matte-parts', 'aoe2:batch:moving-matte-animated-parts',
+      'aoe2:batch:moving-metal-parts', 'aoe2:batch:moving-metal-animated-parts',
+      'aoe2:batch:moving-ui-parts',
       'aoe2:batch:shadow-parts',
       'aoe2:batch:memory-parts',
-      'aoe2:batch:ui-parts',
     ]);
     const keys = allInstanceKeys(snapshot);
     expect(keys).toEqual(expect.arrayContaining([
@@ -356,10 +360,23 @@ describe('AoeVoxelAdapter lifecycle', () => {
     const adapter = new AoeVoxelAdapter();
     const entities = [terrain(1, 0, 0), view({ id: 2, kind: 'unit', layer: 'unit' })];
 
+    const revisionOf = (snapshot: ReturnType<AoeVoxelAdapter['createSnapshot']>, key: string): number => (
+      snapshot.batches.find((batch) => batch.key === key)!.revision
+    );
+
     const first = adapter.createSnapshot(entities);
     const second = adapter.createSnapshot(entities);
     expect([first.revision, second.revision]).toEqual([1, 2]);
-    expect([first.batches[0]!.revision, second.batches[0]!.revision]).toEqual([1, 2]);
+    // A moving lane takes every snapshot's revision; a still or terrain lane keeps its own while its parts are
+    // unchanged, which is what lets the runtime keep it (work 130).
+    expect([
+      revisionOf(first, 'aoe2:batch:moving-matte-parts'),
+      revisionOf(second, 'aoe2:batch:moving-matte-parts'),
+    ]).toEqual([1, 2]);
+    expect([
+      revisionOf(first, 'aoe2:batch:terrain-matte-parts'),
+      revisionOf(second, 'aoe2:batch:terrain-matte-parts'),
+    ]).toEqual([1, 1]);
     expect(second.chunks[0]!.revision).toBe(first.chunks[0]!.revision);
 
     const changed = adapter.createSnapshot([
@@ -372,7 +389,7 @@ describe('AoeVoxelAdapter lifecycle', () => {
     const reset = adapter.createSnapshot(entities);
     expect(reset.descriptor.epoch).not.toBe(changed.descriptor.epoch);
     expect(reset.revision).toBe(1);
-    expect(reset.batches[0]!.revision).toBe(1);
+    expect(reset.batches.every((batch) => batch.revision === 1)).toBe(true);
     expect(reset.chunks[0]!.revision).toBe(1);
   });
 
