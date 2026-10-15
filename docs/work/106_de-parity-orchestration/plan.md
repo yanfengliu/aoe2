@@ -92,7 +92,7 @@ Retained legacy work wrappers 97 (lumber routing) and 98 (concurrency) and their
 
 Findings from workers and reviews that are not yet scheduled, each with where it came from. "Check DE" means the DE rule is not sourced yet. A card leaves this list in the commit that schedules it as a work item, or that drops it with a reason. The milestones above group them; play decides the order.
 
-In flight on 2026-10-14: work 126 M1 (unbuilt foundations walkable, a start moves units off), work 124 M2 (the receipt needs the suites' own reports; the run-directly guard), and works 127 and 125 landing. Work 126 M2 (Delete refunds an unstarted foundation) follows M1.
+In flight on 2026-10-14: work 126 M1 (unbuilt foundations walkable, a start moves units off), work 124 M2 (the receipt needs the suites' own reports; the run-directly guard), and works 127 and 125 landing. Work 126 M2 (Delete refunds an unstarted foundation) follows M1. Planned: work 128, the computer's Monks collect the relics it knows about (from work 127's probe).
 
 M2, combat depth:
 - Trebuchet and Cannon Galleon accuracy from DE effect data, with the Hun trebuchet accuracy and the Saracen Transport Ship capacity on §11.11's open list; re-source the Transport Ship and the Careening and Dry Dock capacity (work 120 M3).
@@ -107,7 +107,6 @@ M4, civilization and technology semantics:
 
 M5, economy, pathing and AI:
 - A hunt order leaves villagers idle after the kill, where DE's hunters go on to gather; check in play (work 120). A villager retasked to another resource keeps its load relabelled as the new one, 5 wood becoming food (work 120 M4).
-- AI Monks seek only relics already in sight (`findNearestVisibleNeutralRelic`, `monkAiSearchHelpers.ts`), so the castle gate match stores no relic in 45,000 ticks (work 127).
 - AI prices: affordability reads the base price; the research loop stalls at Spies (`aiSystemProductionPhase.ts`); `unitRepair` prices from the base table; the research tooltip's time ignores team speed bonuses (work 125 and its review).
 - AI defence, not yet driven in play: the town bell takes the lowest-id sighting, not the nearest, measured from the Town Center's corner; the base scan counts an ally's unit as an enemy (`aiSystemDefensePhase.ts`, work 117).
 - The queue-slot text names no queue limit; check DE (work 125). DE cancels a queued purchase with a full refund, while here no cancel path exists and a queue entry does not record the price paid, so it needs saved state (work 125 review; persistence, so review required).
