@@ -63,12 +63,12 @@ Two milestones, each reproduced first, gated, independently reviewed and landed 
 
 ## Implementation steps
 
-- [ ] M1 — implemented on branch `unbuilt-foundations`; the sources and the coordinator's rule choices are in [design.md](design.md).
+- [x] M1 — landed as `59980f93` (v0.3.258) on 2026-10-15; the sources and the coordinator's rule choices are in [design.md](design.md).
   - [x] Independent read-only review of `b4ca7f01`, round 0 (record `reviews/0_implementation.md`): one blocking finding (two seats' builders waiting on each other forever), four should-fix with five gate gaps, four nits and a second-seed census. All repaired or answered on the coordinator's rules, with 13 new mutations; the second seed showed the AI on another path and nothing stalled, so the census re-recorded in phase 1 stands.
   - [x] Focused re-review of `491931c6`, round 1 (record `reviews/1_implementation.md`): nothing blocking, every round-0 repair confirmed. One should-fix, the builders' exception too wide (a villager passing through a pass was put on its far side), narrowed to a builder beside its own site, and three nits, all repaired.
-  - [ ] Landing.
+  - [x] Landing under the gate lock: `npm run verify` exited 0, and `node scripts/verify-receipt.mjs check` printed OK with Vitest 4,881 passed and 3 skipped and Playwright 267 passed and 2 skipped, the suites' own summaries.
 - [ ] M2
 
 ## Outcome
 
-Pending.
+M1 shipped as `59980f93` (v0.3.258) on 2026-10-15, after two rounds of independent read-only review (`reviews/0_implementation.md`, `reviews/1_implementation.md`). An unbuilt foundation is open ground until it is started: every unit and animal crosses it, only an enemy of its owner may build over it, the first of two overlapping foundations to start wins, and a unit never cancels a start. It closed the register entries of 2026-10-12 on a hidden unit frozen under a foundation and on unstarted foundations blocking other players. M2, the Delete refund, is still to do.
