@@ -53,7 +53,7 @@ Branch `gatherers`, from main `5b6838df`. No version taken; the changelog sits u
 - **The radius is 5 cells from the node that ran out.** DE states no number. At 4, one shipped base patch (Arabia, owner 1's berries) is two groups at tick 0; at 5 none of the shipped base patches of berries, gold, stone or sheep is (measured with a scratch probe over all nine maps). DE's own patches are tighter; 5 is what lets a villager finish its patch here.
 - **What it carries goes with it**, and every gatherer of the node carries on at the swing that empties it, including one walking home with a load.
 - **The human player's villager goes back to its node after a delivery** (109739's "go back to the same target"), and its automatic recoveries (unreachable, crowded, walked at too long) stay inside the carry-on. A rally point on a resource gathers that node.
-- **The computer** follows the same unit rule and keeps re-tasking its own idle villagers as before; nothing in its strategy was retuned.
+- **The computer** follows the same unit rule and keeps re-tasking its own idle villagers as before; nothing in its strategy was retuned. Its hunters gather their kill without the player's standing order, so the enemy-defence retarget and auto-aggression treat them as before (`0f1b1570`, after the measurements below, which ran on `2ae0220c`).
 
 ### What was measured, before and after
 
