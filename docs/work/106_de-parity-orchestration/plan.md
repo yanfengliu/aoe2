@@ -92,7 +92,7 @@ Retained legacy work wrappers 97 (lumber routing) and 98 (concurrency) and their
 
 Findings from workers and reviews that are not yet scheduled, each with where it came from. "Check DE" means the DE rule is not sourced yet. A card leaves this list in the commit that schedules it as a work item, or that drops it with a reason. The milestones above group them; play decides the order.
 
-In flight on 2026-10-14: work 126 M1 (unbuilt foundations walkable, a start moves units off), work 124 M2 (the receipt needs the suites' own reports; the run-directly guard), and works 127 and 125 landing. Work 126 M2 (Delete refunds an unstarted foundation) follows M1. Planned: work 128, the computer's Monks collect the relics it knows about (from work 127's probe).
+In flight on 2026-10-14: work 126 M1 (unbuilt foundations walkable, a start moves units off), work 124 M2 (the receipt needs the suites' own reports; the run-directly guard), and works 127 and 125 landing. Work 126 M2 (Delete refunds an unstarted foundation) follows M1. Planned: work 128, the computer's Monks collect the relics it knows about (from work 127's probe); work 129, Codex's lanes 107-113 finish on main and their ten checkouts are retired.
 
 M2, combat depth:
 - Trebuchet and Cannon Galleon accuracy from DE effect data, with the Hun trebuchet accuracy and the Saracen Transport Ship capacity on §11.11's open list; re-source the Transport Ship and the Careening and Dry Dock capacity (work 120 M3).
@@ -125,7 +125,7 @@ M7, save, replay and performance:
 - Byzantine gates already in a save keep their raised hit points until something recomputes them on load (work 119, a stated bound).
 
 Repo and tooling:
-- Codex's work 107–111 and 113 are stale, and ten `aoe2-worktrees` checkouts remain from them: find what is on main and what is unique, then close or cancel each plan and retire each checkout (owner direction 2026-09-29).
+- Hosted CI runs Node 20 (`ci.yml`) and the playtest workflow Node 22, while `.nvmrc` says 24 and the fleet canon baselines Node at 24 [R28]; `ci.yml`'s own comment says neither reads the file. Wire `setup-node` to `node-version-file:`, and keep an older-major job only if that support is wanted (found by work 129's triage).
 - `scripts/controlWorktree.mjs remove` checks the shared checkout's local `main`, not `origin/main` (a deletion guard, so its own task and review).
 - Stale text: the `civBuildingBonuses.test.ts` header, ten "spec §9.2" citations across nine source files (work 116), and the `civOpeningSeed.ts` comment saying fixtures get no opening units (work 120 M4).
 - §11.4 says spec prose does not restate CSV rows, yet §11.11 restates values; trim to mechanism plus a pointer, or say why not.
