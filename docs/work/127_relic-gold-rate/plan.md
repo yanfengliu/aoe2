@@ -1,6 +1,6 @@
 # A relic in a Monastery pays 0.5 gold a second, as in Definitive Edition
 
-Status: active
+Status: complete
 Owner: Coordinator worker w127-relic-gold (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-14
 Updated: 2026-10-14
@@ -40,8 +40,10 @@ Reproduce the rate in a match first: count the gold one relic yields over a fixe
 - [x] Fix with integer accounting. By the end of tick n a relic has earned floor(n × gold-per-minute / 600) gold, and each tick pays what that total crosses: one gold every 20th tick, every 15th on a side with the Aztecs (40 a minute, Forgotten Empires' 1.5 seconds a gold). No float and no new saved state: the schedule reads the tick number and the saved relic counts, so a game saved mid-period loads onto the same schedule and loses nothing. The part-period fraction DE keeps is not kept: a relic that comes or goes part way through a period can be paid up to one gold more or less.
 - [x] Gate. `tests/simulation/relicGoldRate.test.ts`, 8 cases, 7 red with the old file, and seven other mutations each red. The two checks that pinned the old rate, and the AI relic case whose gold proxy measured it (coordinator-approved), are updated. 25 self-play and economy files are green: no relic is ever stored in the castle or lab gate matches.
 - [x] Record: register entry, changelog line under "Unreleased — work 127", devlog lines, spec §6.9, the team-bonus line and Appendix A.
-- [ ] Land: version, `npm run verify` under the gate lock, the receipt check, push.
+- [x] Land: version, `npm run verify` under the gate lock, the receipt check, push.
 
 ## Outcome
 
-Pending: phase 1 is on branch `relic-gold`, awaiting the coordinator's acceptance.
+**Shipped in v0.3.256 as `3a1ffffe` on 2026-10-14**, under the gate lock, in one batch with work 125 (v0.3.257) on top of main at `f3b03b51` (v0.3.255, work 120 M4). The coordinator accepted phase 1 and phase 2, which deleted the unused `AZTECS_TEAM_RELIC_GOLD_MULTIPLIER` (`ef230bb0`). A landing worker rebased the branch, took the version and made the release commit, changing no product code; this work's commits are `3ac10186` to `3a1ffffe`. `npm run verify` ran once, on the batch's top (`5b7fb929`, work 125's release, tree `c4ff9408`), from 17:47 to 18:01 local and exited 0, so it covered this work's release commit only as part of that tree; each commit of the batch had the architecture suite (15 files and 150 tests on this work's commits). The log shows the whole chain: 612 unit-test files passed (1 skipped) and 4,791 tests (3 skipped), the typecheck, 267 browser specs passed and 2 skipped in 9.0 minutes, lint, and the final build. Nothing was re-run. `node scripts/verify-receipt.mjs check` accepted the receipt for HEAD's tree, and main moved `f3b03b51..5b7fb929`. At the rebase, work 120 M4 had already moved the 2026-10-11 garrisoned-sight entry this branch had moved, so the register rolled over again by what the gate named, the closed 2026-10-11 Vietnamese-reveal entry, verbatim with a note in the archive.
+
+Found on the way and reported to the coordinator: the AI's Monks store no relic in the castle or lab gate matches, so those matches carry no relic income at either rate (devlog, 2026-10-14).

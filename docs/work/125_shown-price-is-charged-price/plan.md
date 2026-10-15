@@ -1,6 +1,6 @@
 # Every price the HUD shows is the price the game charges
 
-Status: active
+Status: complete
 Owner: Coordinator worker w125-shown-price (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-14
 Updated: 2026-10-14
@@ -34,8 +34,10 @@ Reproduce first in the real HUD path, and find every place that formats a price 
 ## Implementation steps
 
 - [x] Reproduce, find every price surface, route each through the charge's seam, gate the class, capture, record (branch `shown-price`, devlog 2026-10-14; phase 1 handed to the coordinator for review).
-- [ ] Land: rebase, version, `npm run verify`, receipt check, push, close.
+- [x] Land: rebase, version, `npm run verify`, receipt check, push, close.
 
 ## Outcome
 
-Pending.
+**Shipped in v0.3.257 as `5b7fb929` on 2026-10-14**, under the gate lock, in one batch with work 127 (v0.3.256, `3a1ffffe`) on top of main at `f3b03b51` (v0.3.255). The coordinator's independent read-only review of `0f91fbdf` found nothing blocking; its fixes are in `ca435884` and recorded in `b456336f`, and the coordinator accepted them. A landing worker rebased the branch onto work 127, took the version and made the release commit, changing no product code; this work's commits are `04775b65` to `5b7fb929`. `npm run verify` ran once, on this work's release commit, the batch's top (tree `c4ff9408`), from 17:47 to 18:01 local and exited 0. The log shows the whole chain: 612 unit-test files passed (1 skipped) and 4,791 tests (3 skipped), the typecheck, 267 browser specs passed and 2 skipped in 9.0 minutes, `shown-price-is-charged.spec.ts` among them, lint, and the final build. Nothing was re-run, and each commit of the batch had the architecture suite (16 files and 152 tests on this work's commits). `node scripts/verify-receipt.mjs check` accepted the receipt for HEAD's tree, and main moved `f3b03b51..5b7fb929`. At the rebase, work 120 M4 had already moved the register entry this branch had moved, and work 127 the summary row, so the register rolled over by what the gate named, the closed 2026-10-11 stone-at-a-deleted-House entry, verbatim with a note in the archive, and the summary's next oldest row went to this work's devlog entry.
+
+The AI's affordability checks, which still read the base training table, and the other open items are queued by the coordinator as separate cards; the register entry carries the AI card's note.
