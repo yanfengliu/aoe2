@@ -94,7 +94,7 @@ Retained legacy work wrapper 97 (lumber routing) and its owner thread are not cl
 
 Findings from workers and reviews that are not yet scheduled, each with where it came from. "Check DE" means the DE rule is not sourced yet. A card leaves this list in the commit that schedules it as a work item, or that drops it with a reason. The milestones above group them; play decides the order.
 
-In flight on 2026-10-14: work 126 M1 (unbuilt foundations walkable, a start moves units off), work 124 M2 (the receipt needs the suites' own reports; the run-directly guard), and works 127 and 125 landing. Work 126 M2 (Delete refunds an unstarted foundation) follows M1. Planned: work 128, the computer's Monks collect the relics it knows about (from work 127's probe); work 129, Codex's lanes 107-113 finish on main and their ten checkouts are retired. Work 129 M1 (2026-10-15) added the cards marked (work 109) and (work 98) below.
+In flight on 2026-10-14: work 126 M1 (unbuilt foundations walkable, a start moves units off), work 124 M2 (the receipt needs the suites' own reports; the run-directly guard), and works 127 and 125 landing. Work 126 M2 (Delete refunds an unstarted foundation) follows M1. Planned: work 128, the computer's Monks collect the relics it knows about (from work 127's probe); work 129, Codex's lanes 107-113 finish on main and their ten checkouts are retired. Later on 2026-10-14 and 15: work 130 (the frame rate through a match), work 131 (gatherers carry on as in DE) and work 132 (DE's countdown lengths). Work 129 M1 (2026-10-15) added the cards marked (work 109) and (work 98) below.
 
 From the play session of 2026-10-14 (play-1014: v0.3.257, real mouse and keyboard, the lobby's defaults, two matches to the Feudal Age; evidence was in its checkout's `tmp/`). Its answer to "can we play this and feel like DE?" was not yet, mainly for the economy and the computer opponent. Ranked by how much each breaks that feeling:
 - Performance: the frame rate falls through a match to about 21 fps by 19:30; scheduled as work 130.
@@ -102,7 +102,8 @@ From the play session of 2026-10-14 (play-1014: v0.3.257, real mouse and keyboar
 - The computer opponent: the same opening every match (a Barracks at 00:36, one Militia at about 02:30); housed at 9/10 population from about 01:32 to 05:30 with 65-95 wood banked; 10 villagers at 14:16 and 14 at 19:25; 430 gold unspent (register 2026-09-03).
 - Controls: a unit behind a building cannot be right-clicked (the click lands on the building); a box selection picks up sheep, and the panel names a mixed group after one member; a gather point set on a sheep stays on the ground (check DE); two quick clicks on two different villagers count as a double-click (check DE); no command-grid hotkeys, such as DE's Q for a Villager at the Town Center.
 - HUD: buildings show 0/0 armor (`selectionCombatStats.ts` returns 0 for every building; the Town Center is 3/5); every queued item reads "Training: Villager 0% complete" and only three rows fit; tooltips give price and time but no effect, and the Feudal Age tooltip omits its two-building requirement; the game menu is unlabelled icons and two settings rows are unlabelled; placement refusals are long and quote grid coordinates; villagers show stance and formation buttons, which DE villagers lack; buildings keep one look in every age.
-- Victory countdowns: 200 years is 2,000 ticks (200 seconds) here (`WONDER_COUNTDOWN_TICKS`, `RELIC_COUNTDOWN_TICKS`); the community wiki's DE table gives 200 years as 16:40 of game time and makes the years depend on map size (found while deciding work 128's gates). Source it, then fix.
+- Victory countdowns: 200 years is 2,000 ticks here against DE's 16:40 of game time; scheduled as work 132.
+- Game speed: the spec's §4.5 presets are Slow 1.0x, Normal 1.5x and Fast 2.0x, and the play session measured Normal at 15 ticks a second, while DE's presets are Slow 1.0x, Casual 1.5x, Normal 1.7x and Fast 2.0x. By the DE tiebreak, adopt DE's four, check DE first (found while planning work 132).
 - Also: the scout on waypoint scouting died twice, cause not found; the live match's tick went from 10,618 to 11,046 while the menu and a replay were open (check DE's single-player pause); a dev server in a `controlWorktree` checkout serves the HUD without its font, because the `node_modules` junction lies outside Vite's `server.fs.allow` (403).
 
 M2, combat depth:
@@ -127,6 +128,11 @@ M5, economy, pathing and AI:
 M6, fog and information:
 - No toast may name what the player cannot see: placement's `blockerCauseAt`, the walk order's `describeWalkOrderReach`, and work 122's start-check toast naming a hidden enemy foundation (works 121 and 122; after 126 M1).
 - Explored but unseen ground is read as it is now, not as last seen (work 122). An AI Town Center reference names its own unstarted Town Center, and a remembered construction site is drawn at full height (work 121). An ally's lone destroyed building leaves a fog-memory ghost (register, PARTLY FIXED, OPEN).
+
+Monks and relics (from work 128's worker, 2026-10-14):
+- Monks can never garrison: both context-command validators refuse a Monk (`monk_should_route_via_facade`), where DE lets Monks garrison in buildings.
+- A Monk takes a relic out of another Monk's hands (`applyMonkPickup`, the player's Monks too), which DE does not allow (register, OPEN, from work 128).
+- The easiest computer level should ignore relics, as DE's does and spec §13.1 asks; it does not.
 
 Conversion and recycled ids:
 - Converting a Transport Ship changes only the ship's owner (`flipConvertedUnit`), and `unloadTransport` has no owner check (work 115).
