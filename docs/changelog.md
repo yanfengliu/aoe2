@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 131
+
+Gatherers carry on as in Definitive Edition when what they gather runs out.
+
+- **Hunters gather the animal they killed.** Villagers that kill a boar start on its carcass at once, including those whose blow did not kill it. They used to stand idle beside it, with all its food on the ground, until you gave a new order. Once the carcass is eaten they carry on to another carcass close by, or a deer, and never to a live boar.
+- **A villager whose bush, tree, mine pile, sheep or carcass runs out moves to the next one of the same kind within 5 tiles**, carrying what it holds. With nothing of that kind close by, it takes its load home and stands idle, and the idle-villager button counts it. Foragers no longer walk across the map to fish distant ponds when the berries run out, and no villager changes trade on its own: a forager never becomes a fisherman, a miner never moves from gold to stone, and a farmer whose Farm runs out without wood for a reseed stands idle.
+- **After a drop-off, a villager goes back to the bush, tree or pile it was working.** It used to be sent to whichever node of that resource ranked best.
+- **A new villager rallied onto a resource gathers that resource**, not the best-ranked node of its kind.
+- The computer's villagers follow the same rule. The computer re-tasks any it leaves idle, as before.
+
 ## 0.3.257
 
 Every price the game states is now the price the click takes.
