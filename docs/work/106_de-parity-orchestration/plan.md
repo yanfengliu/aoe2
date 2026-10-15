@@ -1,9 +1,9 @@
 # Single-player DE parity: first milestone and remaining queue
 
 Status: active
-Owner: Codex orchestrator (/root)
+Owner: Claude coordinator, from Codex orchestrator (/root) on 2026-10-14 under the owner's direction of 2026-10-11
 Created: 2026-09-30
-Updated: 2026-10-10
+Updated: 2026-10-14
 
 ## Problem and outcome
 
@@ -87,6 +87,53 @@ The [pinned-source roster audit](snapshots/roster-audit.md) reconciles 56 mainli
 The roadmap's 26/30 active-bonus figure counts only `CIV_BONUSES`. Spanish Blacksmith gold waiver, Burmese free lumber upgrades, Khmer house garrison and Vietnamese range-unit HP already exist in other runtime seams. Those four are not blank, and the other 26 are not proven complete.
 
 Retained legacy work wrappers 97 (lumber routing) and 98 (concurrency) and their owner threads are not closed by this task. Advance/freshen only what this milestone touches. The later de-look owner plan remains the visual backlog. Aggregate repair attempts across lanes: after two failures for one reason reassess; cap automatic substantive repairs at five absent explicit owner override.
+
+### Card queue (Claude coordinator, from 2026-10-14)
+
+Findings from workers and reviews that are not yet scheduled, each with where it came from. "Check DE" means the DE rule is not sourced yet. A card leaves this list in the commit that schedules it as a work item, or that drops it with a reason. The milestones above group them; play decides the order.
+
+In flight on 2026-10-14: work 126 M1 (unbuilt foundations walkable, a start moves units off), work 124 M2 (the receipt needs the suites' own reports; the run-directly guard), and works 127 and 125 landing. Work 126 M2 (Delete refunds an unstarted foundation) follows M1.
+
+M2, combat depth:
+- Trebuchet and Cannon Galleon accuracy from DE effect data, with the Hun trebuchet accuracy and the Saracen Transport Ship capacity on §11.11's open list; re-source the Transport Ship and the Careening and Dry Dock capacity (work 120 M3).
+
+M4, civilization and technology semantics:
+- A converted unit keeps its old owner's bonuses; DE applies the new owner's technologies and bonuses (work 120 M3 review).
+- Missing unique technologies, Pirotechnia and Silk Road among them (work 120 M3), and a unique-technology and unit-name census against DE: the Portuguese Carrack, the Khmer Battle Elephant (work 120 M4).
+- Class scopes: the Petard counted as infantry, the Mayan Plumed Archer discount, the Ethiopian and Briton sets (work 120 M3).
+- §11.11's open list from work 120: Teuton melee armor also adds pierce armor; the Inca llama is owner-only where DE makes it a team bonus; Magyar villagers' one-strike wolves are missing; a standing Mongol scout and one trained after the advance differ in hit points.
+- Atheism halving enemy relic gold is not modelled (work 127). Allies' villagers count toward the Spies price, `countEnemyVillagers.ts`; check DE (work 125 review).
+- Walls and gates: `structures.csv` gives the Gate and the Stone Wall the Feudal Age, where `buildOptions.ts` and the spec offer them from the Castle Age; the CSV gives the Gate +1250 HP with Fortified Wall, where the code gives it to the Stone Wall only (work 119).
+
+M5, economy, pathing and AI:
+- A hunt order leaves villagers idle after the kill, where DE's hunters go on to gather; check in play (work 120). A villager retasked to another resource keeps its load relabelled as the new one, 5 wood becoming food (work 120 M4).
+- AI Monks seek only relics already in sight (`findNearestVisibleNeutralRelic`, `monkAiSearchHelpers.ts`), so the castle gate match stores no relic in 45,000 ticks (work 127).
+- AI prices: affordability reads the base price; the research loop stalls at Spies (`aiSystemProductionPhase.ts`); `unitRepair` prices from the base table; the research tooltip's time ignores team speed bonuses (work 125 and its review).
+- AI defence, not yet driven in play: the town bell takes the lowest-id sighting, not the nearest, measured from the Town Center's corner; the base scan counts an ally's unit as an enemy (`aiSystemDefensePhase.ts`, work 117).
+- The queue-slot text names no queue limit; check DE (work 125). DE cancels a queued purchase with a full refund, while here no cancel path exists and a queue entry does not record the price paid, so it needs saved state (work 125 review; persistence, so review required).
+
+M6, fog and information:
+- No toast may name what the player cannot see: placement's `blockerCauseAt`, the walk order's `describeWalkOrderReach`, and work 122's start-check toast naming a hidden enemy foundation (works 121 and 122; after 126 M1).
+- Explored but unseen ground is read as it is now, not as last seen (work 122). An AI Town Center reference names its own unstarted Town Center, and a remembered construction site is drawn at full height (work 121). An ally's lone destroyed building leaves a fog-memory ghost (register, PARTLY FIXED, OPEN).
+
+Conversion and recycled ids:
+- Converting a Transport Ship changes only the ship's owner (`flipConvertedUnit`), and `unloadTransport` has no owner check (work 115).
+- Converting a foundation counts its 5 population twice; a unit that reuses a destroyed building's id inherits its conversion progress, which is reachable against the AI; `destroyBuildingEntity` never clears conversion records (work 116 findings F23, F33, F10).
+- `winnerOracle` and `entityCountsByOwner` miss the garrisoned and transported units that conquest counts (work 121).
+
+M7, save, replay and performance:
+- A save carries 2,160 static terrain tiles, 90% of the snapshot, and `World.serialize` is 69% of the replay cases' time; deriving the tiles from the seed changes the save format (work 123 M1; persistence, so review required).
+- Byzantine gates already in a save keep their raised hit points until something recomputes them on load (work 119, a stated bound).
+
+Repo and tooling:
+- Codex's work 107–111 and 113 are stale, and ten `aoe2-worktrees` checkouts remain from them: find what is on main and what is unique, then close or cancel each plan and retire each checkout (owner direction 2026-09-29).
+- `scripts/controlWorktree.mjs remove` checks the shared checkout's local `main`, not `origin/main` (a deletion guard, so its own task and review).
+- Stale text: the `civBuildingBonuses.test.ts` header, ten "spec §9.2" citations across nine source files (work 116), and the `civOpeningSeed.ts` comment saying fixtures get no opening units (work 120 M4).
+- §11.4 says spec prose does not restate CSV rows, yet §11.11 restates values; trim to mechanism plus a pointer, or say why not.
+
+Owner decisions waiting:
+- The pre-push hook that would enforce the receipt check for every session, Codex included (work 124).
+- Whether a started, unfinished building gives sight in DE; a three-minute test in DE settles it (work 118).
 
 ## Outcome
 
