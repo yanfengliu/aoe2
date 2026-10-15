@@ -80,6 +80,7 @@ export function createPostGameSummary(
     };
   }
 
+  let writtenHtml = '';
   function update(hudState: HudState): void {
     const el = matchSummaryElement;
     overlay.update(hudState.matchState);
@@ -94,11 +95,16 @@ export function createPostGameSummary(
     if (shouldShowSummary) {
       // The HUD pattern keeps everything inside the single footer element so
       // the existing `[data-hud="match-summary"]` selector in browser tests
-      // still finds the status text.
+      // still finds the status text. Compared with what was last written, not
+      // with `innerHTML`, whose serialisation need not match the source.
       const html = renderMatchSummary(hudState.matchState, humanPlayerId);
-      if (el.innerHTML !== html) el.innerHTML = html;
+      if (html !== writtenHtml || !el.firstChild) {
+        el.innerHTML = html;
+        writtenHtml = html;
+      }
     } else if (el.firstChild) {
       el.replaceChildren();
+      writtenHtml = '';
     }
   }
 
