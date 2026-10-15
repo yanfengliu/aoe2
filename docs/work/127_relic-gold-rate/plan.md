@@ -1,6 +1,6 @@
 # A relic in a Monastery pays 0.5 gold a second, as in Definitive Edition
 
-Status: planned
+Status: active
 Owner: Coordinator worker w127-relic-gold (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-14
 Updated: 2026-10-14
@@ -36,8 +36,12 @@ Reproduce the rate in a match first: count the gold one relic yields over a fixe
 
 ## Implementation steps
 
-- [ ] Reproduce, fix with integer accounting, gate, record, land.
+- [x] Reproduce (2026-10-14). The simulation runs 10 ticks a second (`TPS = 10`; the bridge turns 1,000 ms into exactly 10 ticks). A relic a Monk carried into a Monastery through right-click orders paid 600 gold in each of ten minutes, 10 a second; three relics on an Aztec side paid 24,000 in ten minutes.
+- [x] Fix with integer accounting. By the end of tick n a relic has earned floor(n × gold-per-minute / 600) gold, and each tick pays what that total crosses: one gold every 20th tick, every 15th on a side with the Aztecs (40 a minute, Forgotten Empires' 1.5 seconds a gold). No float and no new saved state: the schedule reads the tick number and the saved relic counts, so a game saved mid-period loads onto the same schedule and loses nothing. The part-period fraction DE keeps is not kept: a relic that comes or goes part way through a period can be paid up to one gold more or less.
+- [x] Gate. `tests/simulation/relicGoldRate.test.ts`, 8 cases, 7 red with the old file, and seven other mutations each red. The two checks that pinned the old rate, and the AI relic case whose gold proxy measured it (coordinator-approved), are updated. 25 self-play and economy files are green: no relic is ever stored in the castle or lab gate matches.
+- [x] Record: register entry, changelog line under "Unreleased — work 127", devlog lines, spec §6.9, the team-bonus line and Appendix A.
+- [ ] Land: version, `npm run verify` under the gate lock, the receipt check, push.
 
 ## Outcome
 
-Pending.
+Pending: phase 1 is on branch `relic-gold`, awaiting the coordinator's acceptance.
