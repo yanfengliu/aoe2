@@ -39,7 +39,8 @@ test.describe('voxel terrain and water presentation', () => {
     expect(sha256(sameTime.capture)).toBe(sha256(before.capture));
     expect(before.metrics).toMatchObject({
       materialResources: 7,
-      instanceBatches: 9,
+      // The standing lanes (aoeVoxelLaneBatches.ts, work 130).
+      instanceBatches: 12,
       animatedBatches: 1,
     });
     expect(before.metrics.animatedInstances).toBeGreaterThan(10);

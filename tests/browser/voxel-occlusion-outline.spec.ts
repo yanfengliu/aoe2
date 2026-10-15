@@ -50,7 +50,8 @@ test.describe('voxel behind-building unit silhouette', () => {
       .toEqual(new Set([states.hiddenId, states.enemyHiddenId]));
     expect(states.occluded.map((entry) => entry.id)).not.toContain(states.controlId);
     expect(states.occluded.every((entry) => entry.entityType === 'villager')).toBe(true);
-    expect(states.batches).toBeLessThanOrEqual(9);
+    // No batch of its own: the snapshot carries its twelve standing lanes (aoeVoxelLaneBatches.ts, work 130).
+    expect(states.batches).toBeLessThanOrEqual(12);
 
     // The cue is the owner's silhouette colour, not white — a flat white body
     // read as a ghost standing in FRONT of the building and said nothing about

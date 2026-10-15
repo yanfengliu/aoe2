@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import { mkdir, readdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { captureRasteriserLaunch, refuseFrameFromOtherRasteriser } from './captureRasteriser.mjs';
+import { loadSaveThroughHud, stageSaveForLoad } from './captureLoadSave.mjs';
 
 const label = process.env.LABEL ?? 'screenshot';
 // SEED selects the scenario to capture. Defaults to the real default view
@@ -224,6 +225,8 @@ try {
       window.clearInterval(timer);
     }, 0);
   });
+  // LOAD=<save.json> captures a saved match loaded through the HUD's own Load (captureLoadSave.mjs).
+  const savedTick = process.env.LOAD ? await stageSaveForLoad(page, process.env.LOAD) : null;
   await page.goto(`http://127.0.0.1:${previewPort}/${query}`);
   await page.waitForFunction(() => window.__AOE2_TEST__?.isBooted() === true, {
     timeout: 60_000,
@@ -274,6 +277,7 @@ try {
   // screenshot is taken still paused; pause-frozen rendering is byte-identical
   // by project invariant, so nothing else changes.
   await page.evaluate(() => { window.__AOE2_TEST__?.setPaused(true); });
+  if (savedTick !== null) await loadSaveThroughHud(page, savedTick);
   // BUILD="house@10,16" places a building via a selected villager BEFORE the
   // TICKS run, so a capture can stage a real mid-construction site.
   const build = process.env.BUILD ?? '';
