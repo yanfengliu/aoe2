@@ -22,6 +22,8 @@ import {
 } from './builderReachability';
 import { withPlayerKnowledge, type PlacementKnowledgeStats } from './placementKnowledge';
 import { createFoundationStart } from './foundationStart';
+import { createFoundationClaimRules } from './foundationClaims';
+import { createFootprintClearing } from './footprintClearing';
 import { isCellSeen, readSightOwners } from './humanSight';
 import { createDebugSnapshotOps } from './debugSnapshotOps';
 import type { PlacementSearchStats } from './placementSearch';
@@ -294,6 +296,10 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     getNearestMoveCandidates,
   } = movementPlanOps;
 
+  // Whom an unstarted foundation stands aside for, and whom it will wall in
+  // (foundationClaims.ts, work 126): the placement answers and their routes.
+  const foundationClaims = createFoundationClaimRules(world, accessor);
+  const { futureWallsOf } = foundationClaims;
   // Reachability (builderReachability.ts; register entry 2026-09-06): a
   // placement the game accepts has to be one a builder can walk to, and so does
   // every anchor it suggests. Folded into the three placement answers here so
@@ -307,11 +313,15 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     isCellPassableForUnit,
     structuralRevision: () => worldOccupancy.structuralRevision(),
     getApproachCellsForFootprint,
+    futureWallsOf,
   });
   // The player places by what it has explored (placementKnowledge.ts; work
   // 122): the same three answers, read through the fog for the human seat and
   // from the true map for every AI seat.
-  const playerKnowledge = withPlayerKnowledge(withBuilderReachability(placementOccupancy, builderReachability, world), {
+  const truthWithRoutes = withBuilderReachability(
+    placementOccupancy, builderReachability, world, foundationClaims.standsAsideFor,
+  );
+  const playerKnowledge = withPlayerKnowledge(truthWithRoutes, {
     world,
     accessor,
     visibility,
@@ -323,18 +333,37 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     getApproachCellsForFootprint,
     structuralRevision: () => worldOccupancy.structuralRevision(),
     fogMemoryViews: () => getFogMemoryEntities(new Set()),
+    standsAsideFor: foundationClaims.standsAsideFor,
+    futureWallsOf,
   });
   const { isPlacementBlocked, describePlacementBlockers, findOpenPlacementAnchors } = playerKnowledge;
   builderReachStats = builderReachability.stats;
   placementKnowledgeStats = playerKnowledge.stats;
-  // Update 46295: what the fog hid under the player's foundation is found when
-  // a builder comes to start it (foundationStart.ts).
+  // Updates 46295 and 185872 (works 122 and 126): what stands on a foundation's
+  // ground is found when its first builder comes to start it, for every seat
+  // (foundationStart.ts).
   const foundationStart = createFoundationStart({
     world,
     accessor,
     humanPlayerId: HUMAN_PLAYER_ID,
     isPlacementBlocked: placementOccupancy.isPlacementBlocked,
     describePlacementBlockers: placementOccupancy.describePlacementBlockers,
+    getCellStatus: (x, y) => worldOccupancy.getCellStatus(x, y),
+    // Who stands on the ground when the first builder starts it (work 126).
+    clearing: createFootprintClearing({
+      world,
+      accessor,
+      mapWidth: world.grid.width,
+      mapHeight: world.grid.height,
+      getCellStatus: (x, y) => worldOccupancy.getCellStatus(x, y),
+      isCellPassableForUnit: (unitId, x, y) => isCellPassableForUnit(unitId, x, y),
+      isCellPassableForWildlife,
+      relocate: (entityId, cell) => {
+        transformOps.setPositionAndSyncOccupancy(entityId, cell);
+        transformOps.syncUnitTransformToPosition(entityId, cell);
+      },
+    }),
+    syncBuildingClaim: (buildingId) => transformOps.syncOccupancyForEntity(buildingId),
     isCellSeen: (owner, x, y) => isCellSeen(visibility, readSightOwners(accessor, owner), x, y),
     isEntityDrawn: (viewer, entityId) => playerKnowledge.isEntityDrawnFor(viewer, entityId),
     enqueueRejection,

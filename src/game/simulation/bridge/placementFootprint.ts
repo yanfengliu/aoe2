@@ -65,6 +65,11 @@ export interface PlacementCellView {
   isClaimHidden?: (claim: OccupancyCellClaim) => boolean;
   /** An entity whose own claims do not count: the foundation being started. */
   ignoredEntityId?: number;
+  /** A claim that stands aside for this placement on every cell, known or
+   *  not: an enemy's foundation nobody has started, for its enemy (update
+   *  185872, foundationClaims.ts); and for the start check a unit, or an
+   *  animal it moves off (work 126, foundationStart.ts). */
+  standsAside?: (claim: OccupancyCellClaim) => boolean;
 }
 
 /** A cell's claims without those `isClaimHidden` rejects. */
@@ -150,6 +155,10 @@ export function createPlacementFootprint(deps: PlacementFootprintDeps): Placemen
       isCellKnown === undefined || !inMap(cellX, cellY) || isCellKnown(cellX, cellY)
     );
     const ignored = view.ignoredEntityId ?? null;
+    // What stands aside counts for nothing anywhere.
+    const statusAt = (cellX: number, cellY: number): OccupancyCellStatus => (
+      withoutHiddenClaims(getCellStatus(cellX, cellY, ignored), view.standsAside)
+    );
     const unitStands = (status: OccupancyCellStatus): boolean => (
       status.crowdedBy.some((claim) => claim.kind === 'unit')
     );
@@ -159,7 +168,7 @@ export function createPlacementFootprint(deps: PlacementFootprintDeps): Placemen
     const shownThere = (cellX: number, cellY: number): boolean => {
       if (rememberedAt?.(cellX, cellY)) return true;
       if (isClaimShown === undefined) return false;
-      const status = getCellStatus(cellX, cellY, ignored);
+      const status = statusAt(cellX, cellY);
       return status.blockedBy.some(isClaimShown)
         || status.crowdedBy.some((claim) => claim.kind === 'unit' && isClaimShown(claim));
     };
@@ -171,7 +180,7 @@ export function createPlacementFootprint(deps: PlacementFootprintDeps): Placemen
             continue;
           }
           if (terrainKindAt(cellX, cellY) !== 'water') return true;
-          const status = withoutHiddenClaims(getCellStatus(cellX, cellY, ignored), view.isClaimHidden);
+          const status = withoutHiddenClaims(statusAt(cellX, cellY), view.isClaimHidden);
           if (status.blockedBy.some((claim) => claim.kind !== 'terrain')) return true;
           if (unitStands(status)) return true;
         }
@@ -184,7 +193,7 @@ export function createPlacementFootprint(deps: PlacementFootprintDeps): Placemen
           if (shownThere(cellX, cellY)) return true;
           continue;
         }
-        const status = withoutHiddenClaims(getCellStatus(cellX, cellY, ignored), view.isClaimHidden);
+        const status = withoutHiddenClaims(statusAt(cellX, cellY), view.isClaimHidden);
         if (status.blockedBy.length > 0 || unitStands(status)) return true;
       }
     }

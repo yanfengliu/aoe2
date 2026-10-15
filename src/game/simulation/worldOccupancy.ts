@@ -15,6 +15,7 @@ import { createSpawnPassabilityMemo } from './spawnPassabilityMemo';
 import type { StructureClaimKind } from './passableStructures';
 import {
   blocksWholeCell,
+  hasWholeCellBlocker,
   positionKey,
   removeClaimFromCellMap,
   syntheticOutOfBoundsStatus,
@@ -38,8 +39,8 @@ export interface WorldOccupancy {
   blockTerrain(cells: ReadonlyArray<Position>): void;
   /** Releases a terrain blocker — a felled tree leaves open ground behind. */
   unblockTerrain(cells: ReadonlyArray<Position>): void;
-  /** `kind` is `structureClaimKind(buildingType)`: a 'building' walls its
-   *  footprint; a 'farm' refuses placement there and admits every unit. */
+  /** `kind` is `structureClaimKind(buildingType, started)`: a 'building' walls
+   *  its footprint; a 'farm' or a 'foundation' admits every unit and animal. */
   syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint, kind?: StructureClaimKind): void;
   syncResource(entity: EntityId, position: Position): void;
   syncUnit(entity: EntityId, position: Position, preferredOffset?: SubcellSlotOffset, restoreOverflow?: boolean): SyncUnitResult;
@@ -87,7 +88,11 @@ export interface WorldOccupancy {
   isCellOccupiedByUnit(x: number, y: number, ignoredEntityId?: EntityId | null): boolean;
   isCellPassableForSpawn(x: number, y: number): boolean;
   isCellPassableForWildlife(resourceId: EntityId, x: number, y: number): boolean;
-  isPlacementBlocked(x: number, y: number, width: number, height: number): boolean;
+  /** Every claim counts unless `standsAside` excuses it (foundationClaims.ts). */
+  isPlacementBlocked(
+    x: number, y: number, width: number, height: number,
+    standsAside?: (claim: OccupancyCellClaim) => boolean,
+  ): boolean;
 }
 
 export function createWorldOccupancy(worldWidth: number, worldHeight: number): WorldOccupancy {
@@ -228,11 +233,6 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
     return true;
   };
 
-  const hasWholeCellBlocker = (
-    status: OccupancyCellStatus,
-    kind: 'terrain' | 'building' | 'resource' | 'bounds',
-  ): boolean => status.blockedBy.some((claim) => claim.kind === kind);
-
   return {
     attachWorld(world: OccupancyBindingWorldHooks): void {
       if (attachedWorld === world) {
@@ -292,15 +292,15 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
     syncBuilding(entity: EntityId, anchor: Position, footprint: Footprint, kind: StructureClaimKind = 'building'): void {
       releaseClaims(entity, false);
 
-      // A farm never takes the ENGINE claim: the engine's sub-cell grid refuses
-      // a unit slot on any cell another entity occupies, so an engine-claimed
-      // farm could not be walked on whatever the predicate said (units would
-      // route through it and stack as overflow). Its footprint is recorded on
-      // this side only, where `isPlacementBlocked` counts every claim and
-      // `blocksWholeCell` — the list movement, spawn and wildlife read — does
-      // not list 'farm'. See passableStructures.ts.
+      // A farm or an unstarted foundation never takes the ENGINE claim: the
+      // engine's sub-cell grid refuses a unit slot on any cell another entity
+      // occupies, so an engine-claimed one could not be walked on whatever the
+      // predicate said (units would route through it and stack as overflow).
+      // Its footprint is recorded on this side only, where `isPlacementBlocked`
+      // counts it and `blocksWholeCell` — the list movement, spawn and
+      // wildlife read — does not list it. See passableStructures.ts.
       const area = { x: anchor.x, y: anchor.y, width: footprint.width, height: footprint.height };
-      if (kind === 'farm' || !binding.occupy(entity, area, { metadata: { kind } })) {
+      if (kind !== 'building' || !binding.occupy(entity, area, { metadata: { kind } })) {
         addOverflowBlockedClaim(entity, toFootprintCells(anchor, footprint), kind);
       }
       structuralEntities.add(entity);
@@ -477,13 +477,14 @@ export function createWorldOccupancy(worldWidth: number, worldHeight: number): W
       return !this.getCellStatus(x, y, resourceId).blockedBy.some(blocksWholeCell);
     },
 
-    isPlacementBlocked(x: number, y: number, width: number, height: number): boolean {
+    isPlacementBlocked(x, y, width, height, standsAside): boolean {
+      const counts = (claim: OccupancyCellClaim): boolean => standsAside === undefined || !standsAside(claim);
       for (let cellY = y; cellY < y + height; cellY += 1) {
         for (let cellX = x; cellX < x + width; cellX += 1) {
           const status = this.getCellStatus(cellX, cellY);
           if (
-            status.blockedBy.length > 0
-            || status.crowdedBy.some((claim) => claim.kind === 'unit')
+            status.blockedBy.some(counts)
+            || status.crowdedBy.some((claim) => claim.kind === 'unit' && counts(claim))
           ) {
             return true;
           }

@@ -24,6 +24,7 @@ import {
   type GameWorld,
 } from './pureHelpers';
 import { structureClaimKind } from '../passableStructures';
+import { isConstructionStarted } from './unstartedFoundations';
 import { constructionStatesCodec, playerAgesCodec, playerCivilizationsCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
 import {
   movementEntitlement,
@@ -162,7 +163,8 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     if (building) {
       const construction = accessor.get(constructionStatesCodec).get(entity);
       const footprint = construction ?? buildingFootprint(building.buildingType);
-      worldOccupancy.syncBuilding(entity, position, footprint, structureClaimKind(building.buildingType));
+      const kind = structureClaimKind(building.buildingType, isConstructionStarted(construction));
+      worldOccupancy.syncBuilding(entity, position, footprint, kind);
       return;
     }
 

@@ -2,6 +2,18 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## 0.3.258
+
+A foundation nobody has started building no longer gets in anyone's way, as in Definitive Edition.
+
+- **Units walk over an unbuilt foundation.** Until a villager starts building it, a foundation is open ground: your units, your allies' and your enemies', and animals too, walk straight across it instead of around it. Once building starts, it is a wall as before.
+- **You can build over an enemy's unbuilt foundation.** An enemy's foundation that nobody has started is hidden from you, and it no longer refuses your placement or names itself in the refusal. Your own and your allies' unstarted foundations still block your placement, since you can see them.
+- **The first one started wins the ground.** If two players' foundations overlap, the one a villager starts first goes up. The other is cancelled when its own villagers arrive and find the building site, and its whole cost comes back. If that is yours, a message says what your villagers found and where. The AI then puts its building down somewhere else. This holds between allies too, whose foundations can overlap only where one was placed partly over unexplored ground.
+- **Units on a foundation step off when building starts.** Your own and your allies' units, wild animals, and sheep that are nobody's, yours or an ally's are moved to the nearest open ground beside it, and keep doing what they were doing. An enemy unit or an enemy's sheep standing on it holds the start: your villagers wait beside it until it leaves, and nothing is cancelled. An enemy villager standing there beside its own foundation, building it, is moved off like your own units, so two players' builders never wait on each other for good. One only passing through holds the start like any enemy unit until it has gone by. A unit never cancels a foundation any more.
+- **A relic lying on a foundation's ground cancels it, as a tree or a carcass does.** A relic spilled from a lost Monastery can land on an unbuilt foundation, as on any open ground. When its villagers arrive, the foundation is cancelled and refunded, and the message names the relic without blaming the fog of war, as it now does for a carcass or another player's building that came after the foundation went down.
+- **Fixed: a unit hidden in the black under a foundation you placed could not move** until your villagers came and the foundation was cancelled. It can now walk off, and the foundation is built once it has gone.
+- A replay recorded before this version plays these rules again, so it can play out differently wherever a unit met an unbuilt foundation, a building went over another player's unstarted foundation, two foundations overlapped, or villagers found a unit or an animal on their site. Saves load unchanged.
+
 ## 0.3.257
 
 Every price the game states is now the price the click takes.

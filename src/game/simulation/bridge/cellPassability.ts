@@ -2,7 +2,7 @@
 // terrain tile grid so the rest of the bridge doesn't need to know which
 // subsystem owns the answer. Pure read-only.
 
-import type { OccupancyCellStatus, Position } from 'civ-engine';
+import type { OccupancyCellClaim, OccupancyCellStatus, Position } from 'civ-engine';
 import { gateAdmits } from '../gates';
 import type {
   ActionType,
@@ -51,7 +51,7 @@ interface WorldOccupancyLike {
     y: number,
     width: number,
     height: number,
-    buildingType?: BuildingType,
+    standsAside?: (claim: OccupancyCellClaim) => boolean,
   ): boolean;
   getCellStatus(x: number, y: number, ignoredEntityId?: number | null): OccupancyCellStatus;
 }
@@ -135,6 +135,8 @@ export interface CellPassability {
       max: number;
       maxRadius?: number;
       isCellVisible: (x: number, y: number) => boolean;
+      /** A claim that does not refuse the asker (placementFootprint's view). */
+      standsAside?: (claim: OccupancyCellClaim) => boolean;
     },
   ): Position[];
   isGarrisonedUnit(id: number): boolean;
@@ -345,6 +347,7 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
       max: number;
       maxRadius?: number;
       isCellVisible: (x: number, y: number) => boolean;
+      standsAside?: (claim: OccupancyCellClaim) => boolean;
     },
   ): Position[] {
     const out: Position[] = [];
@@ -357,7 +360,7 @@ export function createCellPassability(deps: CellPassabilityDeps): CellPassabilit
           if (!opts.isCellVisible(cellX, cellY)) return;
         }
       }
-      if (worldOccupancy.isPlacementBlocked(x, y, width, height)) return;
+      if (worldOccupancy.isPlacementBlocked(x, y, width, height, opts.standsAside)) return;
       out.push({ x, y });
     };
     // Chebyshev rings outward from the center, row-major within each

@@ -55,18 +55,30 @@
 // to) rather than a new one. Untested; `tests/simulation/placementReachability.test.ts`
 // asserts the map size for exactly this reason.
 //
+// FUTURE WALLS (work 126). A foundation nobody has started is open ground that
+// every unit walks over (update 185872), and a wall from its first build
+// progress. So the labelling takes the asking owner's own and its allies'
+// unstarted foundations as the walls they will be (`futureWallsOf`,
+// foundationClaims.ts): a second foundation founded behind a first must not
+// count on crossing it, or it is stranded the moment the first goes up. This is
+// the one place the labelling is not the mover's answer today, and it errs
+// toward refusing. A builder standing on such a foundation may still walk off
+// it, so its reach is that of the labelled cells beside it.
+//
 // Invalidation: a labelling is replayed only for the same world and the same
 // `worldOccupancy.structuralRevision` (the fifth consumer of that counter).
 // Units never block passability, so nothing else the search reads can change
 // between bumps; the one in-place owner change that would, monk conversion,
-// announces itself as a bump.
+// announces itself as a bump. A foundation placed, started or removed re-claims
+// its footprint, which bumps, so the future walls follow it.
 
 import type { Position } from 'civ-engine';
 
 import type { BuildingType, UnitComponent } from '../types';
 import { unitDomain } from '../unitDomain';
 import type { GameWorld } from './pureHelpers';
-import type { PlacementBlockReport } from './cellPassability';
+import type { PlacementBlockReport, PlacementCellView } from './cellPassability';
+import { componentsReachedFrom, reachesFromEvery, type ClaimTest } from './foundationClaims';
 
 /** Blocked, or off the map. Never equal to a component id. */
 const NO_COMPONENT = -1;
@@ -100,6 +112,10 @@ export interface BuilderReachabilityDeps {
     height: number,
     range?: number,
   ) => Position[];
+  /** The cells of the foundations nobody has started that will wall
+   *  `owner`'s ground once started, its own and its allies' (foundationClaims.ts),
+   *  as a map-sized mask; null for none. A route does not count on crossing one. */
+  futureWallsOf?: (owner: number) => Uint8Array | null;
 }
 
 export interface BuilderReachability {
@@ -132,15 +148,19 @@ export function createBuilderReachability(deps: BuilderReachabilityDeps): Builde
   const entries = new Map<string, LabelEntry>();
   const stats: BuilderReachabilityStats = { computed: 0, served: 0, computeMs: 0 };
 
-  function label(activeWorld: GameWorld, probeUnitId: number): Int32Array {
+  function label(activeWorld: GameWorld, probeUnitId: number, owner: number): Int32Array {
     const labels = new Int32Array(size).fill(NO_COMPONENT);
     const queue = new Int32Array(size);
+    const walls = deps.futureWallsOf?.(owner) ?? null;
+    const walkable = (x: number, y: number): boolean => (
+      isCellPassableForUnit(probeUnitId, x, y, activeWorld) && walls?.[y * mapWidth + x] !== 1
+    );
     let component = 0;
     for (let seed = 0; seed < size; seed += 1) {
       if (labels[seed] !== NO_COMPONENT) continue;
       const seedX = seed % mapWidth;
       const seedY = (seed - seedX) / mapWidth;
-      if (!isCellPassableForUnit(probeUnitId, seedX, seedY, activeWorld)) continue;
+      if (!walkable(seedX, seedY)) continue;
       let head = 0;
       let tail = 0;
       labels[seed] = component;
@@ -155,7 +175,7 @@ export function createBuilderReachability(deps: BuilderReachabilityDeps): Builde
           if (nx < 0 || nx >= mapWidth || ny < 0 || ny >= mapHeight) return;
           const next = ny * mapWidth + nx;
           if (labels[next] !== NO_COMPONENT) return;
-          if (!isCellPassableForUnit(probeUnitId, nx, ny, activeWorld)) return;
+          if (!walkable(nx, ny)) return;
           labels[next] = component;
           queue[tail] = next;
           tail += 1;
@@ -181,7 +201,7 @@ export function createBuilderReachability(deps: BuilderReachabilityDeps): Builde
       return cached.labels;
     }
     const startedAt = performance.now();
-    const labels = label(activeWorld, probeUnitId);
+    const labels = label(activeWorld, probeUnitId, unit.owner);
     stats.computeMs += performance.now() - startedAt;
     stats.computed += 1;
     entries.set(key, { world: activeWorld, revision, labels });
@@ -209,13 +229,23 @@ export function createBuilderReachability(deps: BuilderReachabilityDeps): Builde
         ) continue;
         // A blocked start is a null path in `findGridPath`, so a builder whose
         // own cell is off the field reaches nothing — never NO_COMPONENT ===
-        // NO_COMPONENT by accident.
-        const from = labels[position.y * mapWidth + position.x];
-        if (from === NO_COMPONENT) continue;
-        for (const cell of ring) {
-          if (cell.x < 0 || cell.x >= mapWidth || cell.y < 0 || cell.y >= mapHeight) continue;
-          if (labels[cell.y * mapWidth + cell.x] === from) return true;
-        }
+        // NO_COMPONENT by accident. A builder standing on a future wall may
+        // still walk off it, so it reaches what lies beyond, and the site must
+        // be reachable from every side it could be standing on when the wall
+        // goes up (work 126).
+        const from = labels[position.y * mapWidth + position.x]!;
+        const owner = activeWorld.getComponent<UnitComponent>(builderId, 'unit')?.owner;
+        const walls = from === NO_COMPONENT && owner !== undefined ? deps.futureWallsOf?.(owner) ?? null : null;
+        const reached = walls === null
+          ? new Set([from])
+          : componentsReachedFrom(position, mapWidth, mapHeight, labels, (x, y) => (
+            walls[y * mapWidth + x] === 1 && isCellPassableForUnit(builderId, x, y, activeWorld)
+          ));
+        reached.delete(NO_COMPONENT);
+        const ringLabels = ring
+          .filter((cell) => cell.x >= 0 && cell.x < mapWidth && cell.y >= 0 && cell.y < mapHeight)
+          .map((cell) => labels[cell.y * mapWidth + cell.x]!);
+        if (reachesFromEvery(reached, ringLabels)) return true;
       }
       return false;
     },
@@ -232,12 +262,14 @@ export interface PlacementOccupancyOps {
     width: number,
     height: number,
     buildingType?: BuildingType,
+    view?: PlacementCellView,
   ): boolean;
   describePlacementBlockers(
     x: number,
     y: number,
     width: number,
     height: number,
+    view?: PlacementCellView,
   ): PlacementBlockReport | null;
   findOpenPlacementAnchors(
     centerX: number,
@@ -248,6 +280,7 @@ export interface PlacementOccupancyOps {
       max: number;
       maxRadius?: number;
       isCellVisible: (x: number, y: number) => boolean;
+      standsAside?: ClaimTest;
     },
   ): Position[];
 }
@@ -302,7 +335,20 @@ export function withBuilderReachability(
   occupancy: PlacementOccupancyOps,
   reachability: BuilderReachability,
   world: GameWorld,
+  /** Which claims stand aside for a placer: an enemy's unstarted foundation
+   *  (foundationClaims.ts). Without builders a call has no placer, and every
+   *  claim counts. */
+  standsAsideFor?: (placer: number) => ClaimTest,
 ): PlacementReachabilityOps {
+  const standsAsideForBuilders = (builderIds: readonly number[] | undefined): ClaimTest | undefined => {
+    const first = builderIds?.[0];
+    const placer = first === undefined ? undefined : world.getComponent<UnitComponent>(first, 'unit')?.owner;
+    return placer === undefined || standsAsideFor === undefined ? undefined : standsAsideFor(placer);
+  };
+  const viewFor = (builderIds: readonly number[] | undefined): PlacementCellView | undefined => {
+    const standsAside = standsAsideForBuilders(builderIds);
+    return standsAside === undefined ? undefined : { standsAside };
+  };
   const unreachable = (
     x: number,
     y: number,
@@ -317,11 +363,11 @@ export function withBuilderReachability(
 
   return {
     isPlacementBlocked(x, y, width, height, buildingType, builderIds) {
-      if (occupancy.isPlacementBlocked(x, y, width, height, buildingType)) return true;
+      if (occupancy.isPlacementBlocked(x, y, width, height, buildingType, viewFor(builderIds))) return true;
       return unreachable(x, y, width, height, builderIds);
     },
     describePlacementBlockers(x, y, width, height, builderIds) {
-      const report = occupancy.describePlacementBlockers(x, y, width, height);
+      const report = occupancy.describePlacementBlockers(x, y, width, height, viewFor(builderIds));
       if (report) return report;
       if (!unreachable(x, y, width, height, builderIds)) return null;
       return {
@@ -344,6 +390,7 @@ export function withBuilderReachability(
       const candidates = occupancy.findOpenPlacementAnchors(centerX, centerY, width, height, {
         ...opts,
         max: Math.max(wanted * 8, 64),
+        standsAside: standsAsideForBuilders(builderIds),
       });
       const out: Position[] = [];
       for (const anchor of candidates) {

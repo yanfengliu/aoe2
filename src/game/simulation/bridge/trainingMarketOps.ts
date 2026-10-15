@@ -21,6 +21,7 @@ import type {
 import { createGarrisonOps } from './garrisonOps';
 import type { GameWorld } from './pureHelpers';
 import { createAiSitePlacement } from './aiSitePlacement';
+import { createFoundationClaimRules } from './foundationClaims';
 import type { PlacementSearchStats } from './placementSearch';
 import {
   canResearchAt,
@@ -368,9 +369,11 @@ export function createTrainingMarketOps(deps: TrainingMarketOpsDeps): TrainingMa
   });
 
   // The AI's site search lives in its own module; it shares this file's
-  // placement validator and nothing else.
+  // placement validator, and its seal guard counts every unstarted foundation
+  // as the wall it will be (foundationClaims.ts, work 126).
   const aiSitePlacement = createAiSitePlacement({
     state, mapWidth, mapHeight, isPlacementBlocked, isCellPassableForUnit,
+    unstartedFoundationCells: createFoundationClaimRules(world, accessor).unstartedFoundationCells,
   });
 
   return {

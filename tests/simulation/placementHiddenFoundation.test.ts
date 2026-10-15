@@ -22,11 +22,13 @@
 // the ground is not clear, and the message names nothing the frame does not
 // draw (review round 2: it named "a house (building) at (24,18)").
 //
+// Since work 126 the same holds over the foundation's lit, explored cell: an
+// enemy's foundation nobody has started refuses nothing the player places
+// (update 185872, foundationClaims.ts), so the fourth case compares footprints
+// over that cell with and without it too.
+//
 // Bound: one 2x2 foundation, one lit cell of it, House and Barracks footprints
-// near it, at boot. A footprint over the foundation's lit, explored cell reads
-// the true map and turns red over it; that is the open register entry of
-// 2026-10-12 on unstarted foundations blocking placement (work 121), not this
-// gate's.
+// near it, at boot.
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
@@ -69,8 +71,9 @@ function exploredCells(bridge: Bridge): Set<number> {
 }
 
 /** Footprints that cover an unexplored cell of the foundation, none of its
- *  explored ones, and at least one explored cell. */
-function probes(bridge: Bridge): Array<{ type: BuildableBuildingType; anchor: Cell }> {
+ *  explored ones, and at least one explored cell; or, with `overLit`, footprints
+ *  that cover one of its explored cells. */
+function probes(bridge: Bridge, overLit = false): Array<{ type: BuildableBuildingType; anchor: Cell }> {
   const { width } = bridge.getMapSize();
   const explored = exploredCells(bridge);
   const known = (x: number, y: number): boolean => explored.has(y * width + x);
@@ -93,14 +96,15 @@ function probes(bridge: Bridge): Array<{ type: BuildableBuildingType; anchor: Ce
             else coversHidden = true;
           }
         }
-        if (coversHidden && !coversLit && anyKnown) out.push({ type, anchor: { x, y } });
+        if (overLit ? coversLit : coversHidden && !coversLit && anyKnown) out.push({ type, anchor: { x, y } });
       }
     }
   }
   return out;
 }
 
-/** The ghost's verdict on each probe, and the refusal text where it refuses. */
+/** The ghost's verdict on each probe: valid or refused. The refusal's words over
+ *  an enemy's hidden foundation are unbuiltFoundationPlacement.test.ts's. */
 function verdicts(bridge: Bridge, villagerId: number, cases: ReturnType<typeof probes>): string[] {
   return cases.map(({ type, anchor }) => {
     expect(bridge.selectUnitsByIds([villagerId])).toBe(true);
@@ -122,6 +126,21 @@ describe('an enemy foundation the frame hides decides nothing on unexplored grou
     expect(exploredCells(bridge).has(ENEMY_HOUSE.y * width + ENEMY_HOUSE.x), 'the premise: a cell of it is lit').toBe(true);
     const cases = probes(bridge);
     expect(cases.length, 'too few footprints over the foundation to say anything').toBeGreaterThan(3);
+    const withFoundation = verdicts(bridge, villagerId, cases);
+    bridge.world.runMaintenance(() => bridge.world.destroyEntity(foundationId));
+    expect(verdicts(bridge, villagerId, cases)).toEqual(withFoundation);
+    // And the comparison can fail: the same footprints over the drawn House refuse.
+    const drawn = createSimulationBridge(UNEXPLORED_PLACEMENT_LOOKOUT_SEED);
+    expect(verdicts(drawn, humanVillager(drawn), cases).filter((line) => line.endsWith('refused')).length)
+      .toBe(cases.length);
+  });
+
+  it('over its lit, explored cell too, every footprint gets the verdict it would get without it (work 126)', () => {
+    const bridge = createSimulationBridge(UNEXPLORED_PLACEMENT_LOOKOUT_FOUNDATION_SEED);
+    const villagerId = humanVillager(bridge);
+    const foundationId = enemyBuildingAt(bridge, ENEMY_HOUSE);
+    const cases = probes(bridge, true);
+    expect(cases.length, 'too few footprints over the lit cell to say anything').toBeGreaterThan(3);
     const withFoundation = verdicts(bridge, villagerId, cases);
     bridge.world.runMaintenance(() => bridge.world.destroyEntity(foundationId));
     expect(verdicts(bridge, villagerId, cases)).toEqual(withFoundation);

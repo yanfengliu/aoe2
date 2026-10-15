@@ -18,6 +18,9 @@
 //      tick. So every pending `building.placeConfirm` footprint counts as
 //      blocked ground here — for the footprint test AND for the seal guard —
 //      whichever owner asked for it: two AI seats decide on the same ticks.
+//      The same holds a step later for a foundation nobody has started: units
+//      walk over one (update 185872, work 126), but it is a wall the moment it
+//      starts, so the seal guard counts it as one, whoever owns it.
 //
 // The seal guard walks the SAME predicate the pathfinder and the walk-order
 // flood use, `isCellPassableForUnit`, asked about a probe that is no unit at
@@ -62,6 +65,11 @@ export interface AiSitePlacementDeps {
     builderIds?: readonly number[],
   ) => boolean;
   isCellPassableForUnit: (unitId: number, x: number, y: number) => boolean;
+  /** The cells of every foundation nobody has started building, of any owner,
+   *  as a map-sized mask (null for none): units walk over one today (update
+   *  185872), and it is a wall the moment it starts, so the seal guard counts
+   *  it as one (work 126, foundationClaims.ts). */
+  unstartedFoundationCells: () => Uint8Array | null;
 }
 
 export interface AiSitePlacement {
@@ -89,7 +97,7 @@ export const placementSearchInstrument: {
 } = { search: null, maskPending: true };
 
 export function createAiSitePlacement(deps: AiSitePlacementDeps): AiSitePlacement {
-  const { state, mapWidth, mapHeight, isPlacementBlocked, isCellPassableForUnit } = deps;
+  const { state, mapWidth, mapHeight, isPlacementBlocked, isCellPassableForUnit, unstartedFoundationCells } = deps;
   const stats = createPlacementSearchStats();
 
   /** The cells every pending `building.placeConfirm` will occupy next tick, as
@@ -126,6 +134,7 @@ export function createAiSitePlacement(deps: AiSitePlacementDeps): AiSitePlacemen
     const pending = pendingFootprintMask();
     const pendingAt = (x: number, y: number): boolean =>
       pending !== null && pending[y * mapWidth + x] === 1;
+    const futureWalls = unstartedFoundationCells();
     const isBlocked = (x: number, y: number, width: number, height: number): boolean => {
       if (isPlacementBlocked(x, y, width, height, undefined, builderIds)) return true;
       if (pending === null) return false;
@@ -137,7 +146,7 @@ export function createAiSitePlacement(deps: AiSitePlacementDeps): AiSitePlacemen
       return false;
     };
     const isFree = (x: number, y: number): boolean =>
-      isCellPassableForUnit(LAND_PROBE_UNIT_ID, x, y) && !pendingAt(x, y);
+      isCellPassableForUnit(LAND_PROBE_UNIT_ID, x, y) && !pendingAt(x, y) && futureWalls?.[y * mapWidth + x] !== 1;
     const search = placementSearchInstrument.search ?? findPlacementAnchorNear;
     return search(
       origin,

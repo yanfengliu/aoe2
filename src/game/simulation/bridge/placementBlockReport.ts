@@ -69,9 +69,9 @@ export function createPlacementBlockReporter(deps: PlacementBlockReportDeps): {
       if (terrain?.kind === 'forest') return 'forest';
       return 'impassable terrain';
     }
-    // A 'farm' claim is a building for this purpose: it is the thing standing
-    // on the cell, and its own `buildingType` names it.
-    const buildingClaim = byKind('building') ?? byKind('farm');
+    // A 'farm' or 'foundation' claim is a building for this purpose: it is the
+    // thing standing on the cell, and its own `buildingType` names it.
+    const buildingClaim = byKind('building') ?? byKind('farm') ?? byKind('foundation');
     if (buildingClaim) {
       const building = buildingClaim.entity === null
         ? null
@@ -111,7 +111,8 @@ export function createPlacementBlockReporter(deps: PlacementBlockReportDeps): {
     for (let cellY = y; cellY < y + height; cellY += 1) {
       for (let cellX = x; cellX < x + width; cellX += 1) {
         const inMap = cellX >= 0 && cellX < mapWidth && cellY >= 0 && cellY < mapHeight;
-        let status = getCellStatus(cellX, cellY, ignored);
+        // What stands aside for this placement is not there for it at all.
+        let status = withoutHiddenClaims(getCellStatus(cellX, cellY, ignored), view?.standsAside);
         let remembered: string | null = null;
         if (isCellKnown && inMap && !isCellKnown(cellX, cellY)) {
           const shown = isClaimShown ?? (() => false);

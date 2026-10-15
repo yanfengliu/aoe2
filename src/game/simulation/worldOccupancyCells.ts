@@ -49,14 +49,23 @@ export const UNIT_OCCUPANCY_SLOTS: ReadonlyArray<SubcellSlotOffset> = [
  *  merely crowded. Listed ONCE: spawn passability, wildlife passability, the
  *  spiral search and the group allocator all read this (they were four copies;
  *  the allocators kept theirs after the other three were unified). A 'farm'
- *  claim is deliberately NOT here — this list is the one place movement and
- *  placement diverge. `isPlacementBlocked` counts every claim, so a farm still
- *  refuses further building, while every land unit walks and spawns across it
+ *  claim is deliberately NOT here, nor a 'foundation' (work 126; animals cross
+ *  one as units do) — this list is the one place movement and placement
+ *  diverge. `isPlacementBlocked` counts every claim, so a farm still refuses
+ *  further building, while every land unit walks and spawns across it
  *  (`passableStructures.ts` says why it has to be a claim kind). */
 export const blocksWholeCell = (claim: OccupancyCellClaim): boolean => (
   claim.kind === 'bounds' || claim.kind === 'terrain'
   || claim.kind === 'building' || claim.kind === 'resource'
 );
+
+/** Whether a claim of `kind` stands on the cell. */
+export function hasWholeCellBlocker(
+  status: OccupancyCellStatus,
+  kind: 'terrain' | 'building' | 'resource' | 'bounds',
+): boolean {
+  return status.blockedBy.some((claim) => claim.kind === kind);
+}
 
 export function positionKey(x: number, y: number): string {
   return `${x},${y}`;

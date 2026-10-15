@@ -1,9 +1,9 @@
 # Unbuilt foundations behave as in Definitive Edition
 
-Status: planned
+Status: active
 Owner: Coordinator worker w126-unbuilt-foundations (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-14
-Updated: 2026-10-14
+Updated: 2026-10-15
 
 ## Problem and outcome
 
@@ -63,7 +63,10 @@ Two milestones, each reproduced first, gated, independently reviewed and landed 
 
 ## Implementation steps
 
-- [ ] M1
+- [ ] M1 — implemented on branch `unbuilt-foundations`; the sources and the coordinator's rule choices are in [design.md](design.md).
+  - [x] Independent read-only review of `b4ca7f01`, round 0 (record `reviews/0_implementation.md`): one blocking finding (two seats' builders waiting on each other forever), four should-fix with five gate gaps, four nits and a second-seed census. All repaired or answered on the coordinator's rules, with 13 new mutations; the second seed showed the AI on another path and nothing stalled, so the census re-recorded in phase 1 stands.
+  - [x] Focused re-review of `491931c6`, round 1 (record `reviews/1_implementation.md`): nothing blocking, every round-0 repair confirmed. One should-fix, the builders' exception too wide (a villager passing through a pass was put on its far side), narrowed to a builder beside its own site, and three nits, all repaired.
+  - [ ] Landing.
 - [ ] M2
 
 ## Outcome

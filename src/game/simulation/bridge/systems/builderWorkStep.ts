@@ -35,6 +35,7 @@ import {
 import { repairCost } from '../../prototypeEconomyRules';
 import { chargeRepairTick, clearRepairAccrual } from '../../repairCharging';
 import type { ConstructionState, UnitCommand } from '../sharedTypes';
+import type { FoundationStartVerdict } from '../foundationStart';
 import { currentEntityId, type GameWorld } from '../pureHelpers';
 
 const EMPTY_TECH_SET: ReadonlySet<never> = new Set();
@@ -67,9 +68,12 @@ export interface BuilderWorkStepContext {
   // builders on one site take the reduced share above. Owned by the caller's
   // per-tick pass; a fresh set every tick is what makes the curve stateless.
   buildersCreditedThisTick: Map<number, number>;
-  // Update 46295 (foundationStart.ts): asked once a builder stands at a
-  // foundation nobody has started; false means it was cancelled instead.
-  mayBeginConstruction?: (buildingId: number) => boolean;
+  // Update 46295 and work 126 (foundationStart.ts): asked while a builder
+  // stands at a foundation nobody has started. 'wait' keeps the builder there
+  // with its order; 'cancelled' means the foundation is gone.
+  beginConstruction?: (buildingId: number) => FoundationStartVerdict;
+  // The first work has landed: the footprint becomes the building's own claim.
+  onConstructionStarted?: (buildingId: number) => void;
 }
 
 export type BuilderWorkResult = ConstructionState | null;
@@ -154,11 +158,17 @@ export function runBuilderWorkStep(ctx: BuilderWorkStepContext): BuilderWorkResu
     moveUnitOneSubgridStep(id, buildingApproachPlan.nextStep, activeWorld);
     return null;
   }
-  // The first work on a foundation is when the ground the fog hid under it is
-  // found (update 46295). A cancelled site sends the builder on down his chain.
-  if (construction.buildProgressTicks === 0 && ctx.mayBeginConstruction?.(buildingId) === false) {
-    if (!advanceQueuedBuild(ctx)) clearUnitCommand(id);
-    return null;
+  // The first work on a foundation is when what stands on its ground is found
+  // (update 46295, work 126). A cancelled site sends the builder on down his
+  // chain; a site an enemy's unit stands on keeps him waiting beside it.
+  const unstarted = construction.buildProgressTicks === 0;
+  if (unstarted) {
+    const verdict = ctx.beginConstruction?.(buildingId) ?? 'begin';
+    if (verdict === 'cancelled') {
+      if (!advanceQueuedBuild(ctx)) clearUnitCommand(id);
+      return null;
+    }
+    if (verdict === 'wait') return null;
   }
 
   // Treadmill Crane makes a builder work 20% faster. The progress
@@ -189,6 +199,7 @@ export function runBuilderWorkStep(ctx: BuilderWorkStepContext): BuilderWorkResu
   );
   construction.buildProgressTicks += progressDelta;
   accessor.markDirty(constructionStatesCodec);
+  if (unstarted && construction.buildProgressTicks > 0) ctx.onConstructionStarted?.(buildingId);
   // Health is a READING of the progress just credited, not a second
   // accumulator racing it (constructionHealth.ts). Crediting a flat
   // `(maxHp - startHp) / totalBuildTicks` per builder — which is what this did

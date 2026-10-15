@@ -41,6 +41,20 @@ import { createRaidWarningFixture } from '../fixtures/raidWarning';
 import { createRelicGoldFixture } from '../fixtures/relicGold';
 import { createSiegeBaseStatsFixture } from '../fixtures/siegeBaseStats';
 import { createTrafficContestFixture } from '../fixtures/trafficContest';
+import {
+  createUnbuiltFoundationsAiFixture,
+  createUnbuiltFoundationsAiGuardFixture,
+  createUnbuiltFoundationsAnimalFixture,
+  createUnbuiltFoundationsFixture,
+  createUnbuiltFoundationsPassFixture,
+  createUnbuiltFoundationsRelicFixture,
+  UNBUILT_FOUNDATIONS_AI_GUARD_SEED,
+  UNBUILT_FOUNDATIONS_AI_SEED,
+  UNBUILT_FOUNDATIONS_ANIMAL_SEED,
+  UNBUILT_FOUNDATIONS_PASS_SEED,
+  UNBUILT_FOUNDATIONS_RELIC_SEED,
+  UNBUILT_FOUNDATIONS_SEED,
+} from '../fixtures/unbuiltFoundations';
 import { createUnexploredPlacementFixture } from '../fixtures/unexploredPlacement';
 import {
   createUpgradeKeepsLineBonusesFixture,
@@ -426,4 +440,10 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['civ-farmer-fixture', createCivFarmerFixture],
   ['civ-farmer-reseed-fixture', createCivFarmerFixture],
   ['civ-farm-to-berries-fixture', createCivFarmToBerriesFixture],
+  [UNBUILT_FOUNDATIONS_SEED, createUnbuiltFoundationsFixture],
+  [UNBUILT_FOUNDATIONS_ANIMAL_SEED, createUnbuiltFoundationsAnimalFixture],
+  [UNBUILT_FOUNDATIONS_AI_SEED, createUnbuiltFoundationsAiFixture],
+  [UNBUILT_FOUNDATIONS_AI_GUARD_SEED, createUnbuiltFoundationsAiGuardFixture],
+  [UNBUILT_FOUNDATIONS_RELIC_SEED, createUnbuiltFoundationsRelicFixture],
+  [UNBUILT_FOUNDATIONS_PASS_SEED, createUnbuiltFoundationsPassFixture],
 ]);
