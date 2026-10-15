@@ -46,6 +46,7 @@ Branch `gatherers`, from main `5b6838df`. No version taken; the changelog sits u
 - Patch notes for Update 111772 (ageofempires.com, 2024): it "prevented hunters from attacking nearby violent huntable animals upon depleting the one they are currently working on" when Drop Off had been used.
 - The AoE2 DE bug forum, whose reports state the expected result: "Villagers find next gold tile to mine" (thread 283435, 2026); "Villager is suppose to continue to the nearest forage bush" (288852, 2026); villagers go "to the next deer in their LOS", and "villager next hunt search radius is really small" (67431, 2020); villagers stand idle once the boar meat is gone (243424, 2023).
 - The DE data: a villager's line of sight is 4 tiles (HSZemi/aoe2dat's dump of the DE `.dat`).
+- DE's own strings, read from the installed copy (`resources\en\strings\key-value\key-value-strings-utf8.txt`, per the local rule of 2026-10-15): 3760, on a live animal, "You cannot gather food from it unless you hunt it with a villager"; the tutorial's 44433, "Build 4 Farms near your Mill when your forage bushes are depleted"; 43020, villagers "are shown as foragers, hunters, etc., depending on their current task"; and the game option 30806, which makes villagers "lose resources when being retasked to a different type of resource node". None of them gives a radius, and `_common\dat\dropsites.json` and `AIConsts.json` hold none either.
 
 ### Decisions, each a reversible default
 
