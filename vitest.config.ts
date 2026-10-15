@@ -38,6 +38,11 @@ export default defineConfig({
     // fails a run past two thirds of any test's limit from that file
     // (scripts/test-time-headroom.mjs); locally it only reports.
     reporters: ['default', './tests/helpers/vitestTestTimeReporter.ts'],
+    // A `.only` fails the run rather than narrowing its file, here as on CI, so
+    // a focused run cannot report itself as the whole suite to `npm run
+    // verify`'s receipt (work 124 M2). To focus while iterating, name the file,
+    // pass `-t <name>`, or pass `--allowOnly`.
+    allowOnly: false,
     testTimeout: 30_000,
     hookTimeout: 180_000,
     teardownTimeout: 30_000,

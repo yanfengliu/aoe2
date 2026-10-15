@@ -40,6 +40,11 @@ export default defineConfig({
   // port is serving some other checkout's bundle (see the helper).
   globalSetup: './tests/browser/helpers/verifyPreviewServesThisBuild.ts',
   fullyParallel: false,
+  // A `.only` fails the run rather than narrowing it, locally and on CI, so a
+  // focused run cannot report itself as the whole suite to `npm run verify`'s
+  // receipt (work 124 M2). To focus while iterating, name the spec file,
+  // `file:line`, or pass `--grep`.
+  forbidOnly: true,
   retries: 0,
   workers: 1,
   // `line` as before, plus a report of how close the five slowest specs ran to

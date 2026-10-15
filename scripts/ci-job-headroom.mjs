@@ -33,7 +33,7 @@
 // measured up to its end. It says nothing about workflows other than the jobs
 // that call it.
 
-import { pathToFileURL } from 'node:url';
+import { runDirectly } from './run-directly.mjs';
 
 export const MAX_SHARE = 2 / 3;
 
@@ -79,7 +79,7 @@ function readArgs(argv) {
   return { limitMinutes, startedAtMs: startedAtSeconds * 1000 };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (runDirectly(import.meta.url)) {
   try {
     const { limitMinutes, startedAtMs } = readArgs(process.argv.slice(2));
     const verdict = judgeHeadroom({ startedAtMs, nowMs: Date.now(), limitMinutes });

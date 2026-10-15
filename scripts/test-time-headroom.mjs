@@ -64,7 +64,8 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { pathToFileURL } from 'node:url';
+
+import { runDirectly } from './run-directly.mjs';
 
 export const MAX_SHARE = 2 / 3;
 
@@ -173,7 +174,7 @@ export function readTestTimes(path) {
   return report;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (runDirectly(import.meta.url)) {
   const paths = process.argv.slice(2);
   try {
     if (paths.length === 0) {

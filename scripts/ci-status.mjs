@@ -47,10 +47,10 @@
 // line names every run in its window that passed that way.
 
 import { execFileSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
 
 import { attemptsForWorkflow, describeEarlierAttempts, laterRunVerdict } from './ci-status-attempts.mjs';
 import { globToRegExp, matchesFilter, parsePushTrigger } from './ci-status-triggers.mjs';
+import { runDirectly } from './run-directly.mjs';
 
 export { globToRegExp, matchesFilter, parsePushTrigger };
 
@@ -483,6 +483,4 @@ export function main(argv = process.argv.slice(2)) {
   return exitCode;
 }
 
-const invokedDirectly = process.argv[1]
-  && pathToFileURL(process.argv[1]).href === import.meta.url;
-if (invokedDirectly) process.exit(main());
+if (runDirectly(import.meta.url)) process.exit(main());

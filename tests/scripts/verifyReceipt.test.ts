@@ -2,159 +2,42 @@
 // 2026-10-11 a run of `npm run verify` that stopped in the browser suite wrote 0 to its exit file: a chain ended
 // through WMI's `Win32_Process.Terminate` exits 0, so the exit file could not tell a pass from a run that never
 // finished (docs/learning/defect-register.md, 2026-10-11). The verify chain now begins with `start`, which removes
-// the last receipt, and ends with `write`, which certifies the run only if the checkout matched HEAD (no changed,
+// the last receipt and the suites' last reports, and ends with `write`, which certifies the run only if both suites
+// left a report of a whole, passing run (verifyReceiptEvidence.test.ts), the checkout matched HEAD (no changed,
 // staged or untracked file outside the ignored ones) when the gate started and when it finished, and HEAD's tree did
 // not move between. `check` accepts a receipt only for the tree being pushed, or for one that differs from it only in
 // docs/ and design/spec-final.md.
 //
-// These tests drive the real command, as a child process, against SACRIFICIAL repositories only: each sandbox is a
-// fresh `git init` under the OS temp directory, git runs with every GIT_* variable scrubbed, an empty global config and
-// no system config, and each sandbox checks that git sees it as its own top level before any test uses it, so no test
-// can reach this checkout or its receipt. The npm lifecycle variables are scrubbed too, and set only where a test
-// plays the verify chain's last step. The one junction a test makes points at a copy of the command inside its own
-// sandbox, and is removed on its own before the sandbox is deleted.
+// The sandboxes, and why no test here can reach this checkout, are in helpers/receiptSandbox.ts. The command run
+// through a junction is tests/scripts/runDirectly.test.ts's.
 //
 // BOUND. A cut chain is played as `start` with no `write` after it. That a real chain whose sequencer is cut by WMI
 // never reaches its last step is a property of `&&` and of where `write` sits in package.json: the last case here
-// holds the second, and the first was measured once on a real npm chain (docs/learning/gate-proofs.md). A stage whose
-// own process is ended through WMI exits 0 and the chain goes on, which no case here can see; docs/learning/lessons.md
-// holds that. Nothing here checks what the receipt does not bind: ../civ-engine, ../voxel, node_modules, the machine.
+// holds the second, and the first was measured on a real npm chain and on the real gate (docs/learning/gate-proofs.md).
+// Nothing here checks what the receipt does not bind: ../civ-engine, ../voxel, node_modules, the machine.
 
 import { spawnSync } from 'node:child_process';
-import {
-  copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmdirSync, rmSync, symlinkSync, unlinkSync,
-  writeFileSync,
-} from 'node:fs';
-import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { isDocsOnlyPath } from '../../scripts/verify-receipt-lib.mjs';
+import {
+  check, cleanupSandboxes, commit, gatedRun, git, put, readReceipt, RECEIPT, receiptExists, run, type Run, sandbox,
+  short, start, START_RECORD, suitesReport, write,
+} from './helpers/receiptSandbox';
 
-const SCRIPT = fileURLToPath(new URL('../../scripts/verify-receipt.mjs', import.meta.url));
-const LIB = fileURLToPath(new URL('../../scripts/verify-receipt-lib.mjs', import.meta.url));
 const PACKAGE_JSON = fileURLToPath(new URL('../../package.json', import.meta.url));
-const RECEIPT = 'tmp/verify-receipt.json';
-const START_RECORD = 'tmp/verify-receipt.start.json';
 
-interface Sandbox { root: string; repo: string; env: NodeJS.ProcessEnv }
-interface Run { status: number | null; out: string; err: string }
-
-const same = (a: string, b: string) => {
-  const norm = (p: string) => resolve(p).replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
-  return norm(a) === norm(b);
-};
-
-function hermeticEnv(root: string): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = {};
-  for (const [key, value] of Object.entries(process.env)) {
-    const upper = key.toUpperCase();
-    if (upper.startsWith('GIT_') && upper !== 'GIT_EXEC_PATH') continue;
-    if (upper.startsWith('NPM_LIFECYCLE_')) continue;
-    env[key] = value;
-  }
-  const globalConfig = join(root, 'empty-global.gitconfig');
-  writeFileSync(globalConfig, '');
-  return {
-    ...env,
-    GIT_CONFIG_GLOBAL: globalConfig,
-    GIT_CONFIG_NOSYSTEM: '1',
-    GIT_TERMINAL_PROMPT: '0',
-    GIT_AUTHOR_NAME: 'sandbox',
-    GIT_AUTHOR_EMAIL: 'sandbox@example.invalid',
-    GIT_COMMITTER_NAME: 'sandbox',
-    GIT_COMMITTER_EMAIL: 'sandbox@example.invalid',
-  };
-}
-
-function git(sb: Sandbox, ...args: string[]): string {
-  const r = spawnSync('git', args, { cwd: sb.repo, env: sb.env, encoding: 'utf8' });
-  if (r.status !== 0) throw new Error(`git ${args.join(' ')} failed in ${sb.repo} (exit ${String(r.status)}): ${r.stderr}`);
-  return r.stdout.trim();
-}
-
-function put(sb: Sandbox, path: string, text: string) {
-  const file = join(sb.repo, path);
-  mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, text);
-}
-
-function commit(sb: Sandbox, message: string, files: Record<string, string>) {
-  for (const [path, text] of Object.entries(files)) put(sb, path, text);
-  git(sb, 'add', '--', ...Object.keys(files));
-  git(sb, 'commit', '-q', '-m', message);
-}
-
-// Each sandbox root, and the links inside it, which are removed one by one before the root is.
-const live: Array<{ root: string; links: string[] }> = [];
-afterEach(() => {
-  while (live.length) {
-    const { root, links } = live.pop()!;
-    for (const link of links) {
-      try {
-        rmdirSync(link);
-      } catch {
-        unlinkSync(link);
-      }
-    }
-    rmSync(root, { recursive: true, force: true, maxRetries: 3 });
-  }
-});
-
-function sandbox(): Sandbox {
-  const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'verify-receipt-test-')));
-  live.push({ root, links: [] });
-  const repo = join(root, 'repo');
-  mkdirSync(repo);
-  const sb: Sandbox = { root, repo, env: hermeticEnv(root) };
-  git(sb, 'init', '-q', '-b', 'main');
-  if (!same(git(sb, 'rev-parse', '--show-toplevel'), repo)) {
-    throw new Error(`SAFETY: git in ${repo} did not see the sandbox as its own repository; refusing to go on`);
-  }
-  commit(sb, 'init', {
-    '.gitignore': 'tmp/\n',
-    'src/a.ts': 'export const a = 1;\n',
-    'docs/notes.md': '# Notes\n',
-    'design/spec-final.md': '# Spec\n',
-    'design/stats/units.csv': 'unit,hp\nmilitia,40\n',
-  });
-  return sb;
-}
-
-// `asVerifyStep` plays the environment npm gives a step of `npm run verify`.
-function run(sb: Sandbox, args: string[], { asVerifyStep = false, cwd = sb.repo, script = SCRIPT } = {}): Run {
-  const env = asVerifyStep
-    ? { ...sb.env, npm_lifecycle_event: 'verify', npm_lifecycle_script: 'node scripts/verify-receipt.mjs start && (the stages) && node scripts/verify-receipt.mjs write' }
-    : sb.env;
-  const r = spawnSync(process.execPath, [script, ...args], { cwd, env, encoding: 'utf8', timeout: 30_000 });
-  if (r.error) throw r.error;
-  return { status: r.status, out: r.stdout, err: r.stderr };
-}
-
-const start = (sb: Sandbox) => run(sb, ['start'], { asVerifyStep: true });
-const write = (sb: Sandbox) => run(sb, ['write'], { asVerifyStep: true });
-const check = (sb: Sandbox, ...rev: string[]) => run(sb, ['check', ...rev]);
-
-// A whole gate run as the verify chain plays it: `start`, every stage passing, `write`.
-function gatedRun(sb: Sandbox) {
-  const begun = start(sb);
-  expect(begun.status, begun.err).toBe(0);
-  const ended = write(sb);
-  expect(ended.status, ended.err).toBe(0);
-  expect(ended.err, 'the control certifies').toBe('');
-}
+afterEach(cleanupSandboxes);
 
 // write does not certify such a run, and still exits 0, so the exit code of `npm run verify` keeps saying whether
-// every stage exited 0; `check` is what refuses it.
+// every stage passed; `check` is what refuses it.
 function uncertified(ended: Run) {
   expect(ended.status, 'write exits 0, so the verdict on the stages stands').toBe(0);
   expect(ended.err).toContain('NOT CERTIFIED');
 }
-
-const receiptExists = (sb: Sandbox) => existsSync(join(sb.repo, RECEIPT));
-const readReceipt = (sb: Sandbox) => JSON.parse(readFileSync(join(sb.repo, RECEIPT), 'utf8')) as { tree: string; commit: string };
-const short = (hash: string) => hash.slice(0, 12);
 
 describe('a gate run earns a receipt only by reaching its last step', () => {
   it('a run that reaches write earns a receipt that check accepts for HEAD', () => {
@@ -179,20 +62,6 @@ describe('a gate run earns a receipt only by reaching its last step', () => {
     expect(refused.status).toBe(1);
     expect(refused.err).toContain('No receipt');
     expect(refused.err).toContain('npm run verify');
-  });
-
-  it('the command does its work when reached through a junction, rather than exiting 0 having done nothing', () => {
-    const sb = sandbox();
-    const tool = join(sb.root, 'tool');
-    mkdirSync(tool);
-    copyFileSync(SCRIPT, join(tool, 'verify-receipt.mjs'));
-    copyFileSync(LIB, join(tool, 'verify-receipt-lib.mjs'));
-    const link = join(sb.root, 'tool-link');
-    symlinkSync(tool, link, 'junction');
-    live.at(-1)!.links.push(link);
-    const refused = run(sb, ['check'], { script: join(link, 'verify-receipt.mjs') });
-    expect(refused.status, 'no receipt exists, so check must refuse').toBe(1);
-    expect(refused.err).toContain('No receipt');
   });
 });
 
@@ -228,6 +97,7 @@ describe('check refuses a receipt that does not cover the tree being pushed', ()
     git(sb, 'checkout', '--', 'src/a.ts');
     rmSync(join(sb.repo, 'src/new.ts'));
     expect(git(sb, 'status', '--porcelain'), 'the premise: the checkout matches HEAD again before write').toBe('');
+    suitesReport(sb);
     const ended = write(sb);
     const refused = check(sb);
     expect(refused.status, 'check refuses the run').toBe(1);
@@ -244,6 +114,7 @@ describe('check refuses a receipt that does not cover the tree being pushed', ()
     expect(start(sb).status).toBe(0);
     put(sb, 'src/new.ts', 'export const fresh = 2;\n');
     expect(git(sb, 'status', '--porcelain'), 'the premise: only the untracked file differs').toBe('?? src/new.ts');
+    suitesReport(sb);
     const ended = write(sb);
     const refused = check(sb);
     expect(refused.status, 'check refuses the run').toBe(1);
@@ -256,6 +127,7 @@ describe('check refuses a receipt that does not cover the tree being pushed', ()
     const sb = sandbox();
     expect(start(sb).status).toBe(0);
     commit(sb, 'devlog while the gate runs', { 'docs/notes.md': '# Notes\n\nA line written mid-run.\n' });
+    suitesReport(sb);
     const ended = write(sb);
     const refused = check(sb);
     expect(refused.status, 'check refuses the run').toBe(1);
@@ -268,6 +140,7 @@ describe('check refuses a receipt that does not cover the tree being pushed', ()
     const sb = sandbox();
     expect(start(sb).status).toBe(0);
     git(sb, 'commit', '-q', '--allow-empty', '-m', 'same tree');
+    suitesReport(sb);
     const ended = write(sb);
     expect(ended.status, ended.err).toBe(0);
     expect(check(sb).status).toBe(0);
@@ -333,6 +206,7 @@ describe('write and check refuse what they cannot vouch for', () => {
   it('write refuses outside npm run verify, and without a start record', () => {
     const sb = sandbox();
     expect(start(sb).status).toBe(0);
+    suitesReport(sb);
     const alone = run(sb, ['write']);
     expect(alone.status).toBe(1);
     expect(alone.err).toContain('npm_lifecycle_event');
@@ -344,17 +218,22 @@ describe('write and check refuse what they cannot vouch for', () => {
     expect(receiptExists(sb)).toBe(false);
   });
 
-  it('check refuses a receipt it cannot read, and an unknown mode is a usage error', () => {
+  it('check refuses a receipt it cannot read, one of an older format, and an unknown mode is a usage error', () => {
     const sb = sandbox();
     mkdirSync(join(sb.repo, 'tmp'), { recursive: true });
-    writeFileSync(join(sb.repo, RECEIPT), '{"format": 1, "tree": ');
+    writeFileSync(join(sb.repo, RECEIPT), '{"format": 2, "tree": ');
     const garbled = check(sb);
     expect(garbled.status).toBe(1);
     expect(garbled.err).toContain('not valid JSON');
-    writeFileSync(join(sb.repo, RECEIPT), JSON.stringify({ format: 2 }));
-    const foreign = check(sb);
-    expect(foreign.status).toBe(1);
-    expect(foreign.err).toContain('format');
+    // A format-1 receipt, as work 124 M1 wrote them: certified, for HEAD's tree, and silent on the suites' reports.
+    gatedRun(sb);
+    const { format: _format, suiteProblems: _problems, evidence: _evidence, ...m1 } = readReceipt(sb);
+    writeFileSync(join(sb.repo, RECEIPT), JSON.stringify({ ...m1, format: 1 }));
+    const older = check(sb);
+    expect(older.status, 'a receipt from before the suites\' reports were required').toBe(1);
+    expect(older.err).toContain('format 1');
+    expect(older.err).toContain('test suites');
+    expect(older.err).toContain('npm run verify');
     const usage = run(sb, ['bogus']);
     expect(usage.status).toBe(2);
     expect(usage.err).toContain('usage');

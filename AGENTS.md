@@ -66,7 +66,7 @@ Obtain independent, preferably read-only review for substantial or high-risk cha
 
 ## Gates
 
-`npm run verify` is THE gate: `content:validate && test && typecheck && test:browser && lint && build`, chained with `&&` between `node scripts/verify-receipt.mjs start` and `write`. Its EXIT CODE says whether every stage exited 0; a landing reads `node scripts/verify-receipt.mjs check` instead, because a run cut short through WMI exits 0 (register, 2026-10-11). Run it before every code commit. Reading a summary line out of a piped run is not running the gate — `npm test | tail` reports zero while the suite is red, and a look-alike summary has twice been quoted as green over a failing run. Only affected tests while iterating. Dependency audit gate: `npm audit --audit-level=high` (full tree and `--omit=dev`).
+`npm run verify` is THE gate: `content:validate && test && typecheck && test:browser && lint && build`, chained with `&&` between `node scripts/verify-receipt.mjs start` and `write`. Its EXIT CODE says whether every stage exited 0 and both test suites reported a whole, passing run; a landing reads `node scripts/verify-receipt.mjs check` instead, because a run cut short through WMI exits 0 (register, 2026-10-11). Run it before every code commit. Reading a summary line out of a piped run is not running the gate — `npm test | tail` reports zero while the suite is red, and a look-alike summary has twice been quoted as green over a failing run. Only affected tests while iterating. Dependency audit gate: `npm audit --audit-level=high` (full tree and `--omit=dev`).
 
 ## Session start
 

@@ -50,6 +50,7 @@
 import os from 'node:os';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { runDirectly } from './run-directly.mjs';
 import { advanceMeasuredTicks } from './selfplayMeasurement.mjs';
 
 /**
@@ -261,7 +262,7 @@ async function main(argv) {
   console.log(`per-chunk rows: ${out}`);
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+if (runDirectly(import.meta.url)) {
   main(process.argv.slice(2)).catch((error) => {
     console.error(error instanceof Error ? error.message : error);
     process.exit(1);
