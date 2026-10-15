@@ -116,6 +116,7 @@ M4, civilization and technology semantics:
 - Missing unique technologies, Pirotechnia and Silk Road among them (work 120 M3), and a unique-technology and unit-name census against DE: the Portuguese Carrack, the Khmer Battle Elephant (work 120 M4).
 - Class scopes: the Petard counted as infantry, the Mayan Plumed Archer discount, the Ethiopian and Briton sets (work 120 M3).
 - §11.11's open list from work 120: Teuton melee armor also adds pierce armor; the Inca llama is owner-only where DE makes it a team bonus; Magyar villagers' one-strike wolves are missing; a standing Mongol scout and one trained after the advance differ in hit points.
+- Atheism: DE update 185872 applies its +100 years only to enemy and neutral players' countdowns and lets it stack, while this game extends every countdown once, the researcher's own included (register, OPEN, from work 132). Visible years beside the countdown's time would need a wider HUD slot (work 132 tried a second line, which grew the top bar in every match).
 - Atheism halving enemy relic gold is not modelled (work 127). Allies' villagers count toward the Spies price, `countEnemyVillagers.ts`; check DE (work 125 review).
 - Walls and gates: `structures.csv` gives the Gate and the Stone Wall the Feudal Age, where `buildOptions.ts` and the spec offer them from the Castle Age; the CSV gives the Gate +1250 HP with Fortified Wall, where the code gives it to the Stone Wall only (work 119).
 
