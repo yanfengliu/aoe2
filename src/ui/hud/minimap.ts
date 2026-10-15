@@ -1,3 +1,4 @@
+import { writeData } from './hudDomWrites';
 import type { RenderState } from '../../game/simulation/types';
 import {
   attackWarningSignature,
@@ -144,7 +145,8 @@ function setMinimapViewportDataset(
   canvas: HTMLCanvasElement,
   viewportState: MinimapViewportState | null,
 ): void {
-  canvas.dataset.viewportActive = viewportState ? 'true' : 'false';
+  // Redrawn every tick, so the mirror writes only what differs (hudDomWrites.ts says why).
+  writeData(canvas, 'viewportActive', viewportState ? 'true' : 'false');
   // Mirror the projected quad's bounding box for browser tests (they only need
   // presence + rough placement, not the exact quad).
   if (viewportState) {
@@ -152,15 +154,15 @@ function setMinimapViewportDataset(
     const ys = viewportState.points.map((p) => p.y);
     const minX = Math.min(...xs);
     const minY = Math.min(...ys);
-    canvas.dataset.viewportX = minX.toFixed(2);
-    canvas.dataset.viewportY = minY.toFixed(2);
-    canvas.dataset.viewportWidth = (Math.max(...xs) - minX).toFixed(2);
-    canvas.dataset.viewportHeight = (Math.max(...ys) - minY).toFixed(2);
+    writeData(canvas, 'viewportX', minX.toFixed(2));
+    writeData(canvas, 'viewportY', minY.toFixed(2));
+    writeData(canvas, 'viewportWidth', (Math.max(...xs) - minX).toFixed(2));
+    writeData(canvas, 'viewportHeight', (Math.max(...ys) - minY).toFixed(2));
   } else {
-    canvas.dataset.viewportX = '';
-    canvas.dataset.viewportY = '';
-    canvas.dataset.viewportWidth = '';
-    canvas.dataset.viewportHeight = '';
+    writeData(canvas, 'viewportX', '');
+    writeData(canvas, 'viewportY', '');
+    writeData(canvas, 'viewportWidth', '');
+    writeData(canvas, 'viewportHeight', '');
   }
 }
 

@@ -24,6 +24,7 @@ import {
   type DebugOverlayMode,
 } from './debugOverlay';
 import { createPostGameSummary } from './postGameSummary';
+import { writeAttribute, writeData, writeText } from './hudDomWrites';
 import { createSaveLoadPanel } from './saveLoadPanel';
 import {
   formatAgeName,
@@ -365,21 +366,21 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
       const kind = value.dataset.hud as 'food' | 'wood' | 'gold' | 'stone';
       const amount = String(hudState.playerResources[kind]);
       const label = `${kind[0].toUpperCase()}${kind.slice(1)} stockpile: ${amount}`;
-      value.textContent = amount;
-      value.setAttribute('aria-label', label);
-      value.dataset.tooltip = label;
+      writeText(value, amount);
+      writeAttribute(value, 'aria-label', label);
+      writeData(value, 'tooltip', label);
     }
     for (const workers of resourceWorkers) {
       const kind = workers.dataset.resourceWorkers as 'food' | 'wood' | 'gold' | 'stone';
       const count = hudState.resourceWorkers[kind];
-      workers.querySelector('[data-resource-worker-count]')!.textContent = String(count);
+      writeText(workers.querySelector('[data-resource-worker-count]')!, String(count));
       const label = `${kind[0].toUpperCase()}${kind.slice(1)} workers: ${count}`;
-      workers.setAttribute('aria-label', label);
-      workers.dataset.tooltip = `${label}. Includes gathering, drop-off, and former gathering occupation while walking; fishing ships work food and active trade units work gold.`;
+      writeAttribute(workers, 'aria-label', label);
+      writeData(workers, 'tooltip', `${label}. Includes gathering, drop-off, and former gathering occupation while walking; fishing ships work food and active trade units work gold.`);
     }
-    if (age) age.textContent = formatAgeName(hudState.currentAge);
-    if (pop) pop.textContent = `${hudState.population.current}/${hudState.population.cap}`;
-    if (time) time.textContent = formatMatchTime(hudState.tick, hudState.fpsTarget);
+    if (age) writeText(age, formatAgeName(hudState.currentAge));
+    if (pop) writeText(pop, `${hudState.population.current}/${hudState.population.cap}`);
+    if (time) writeText(time, formatMatchTime(hudState.tick, hudState.fpsTarget));
 
     postGameSummary.update(hudState);
 
@@ -400,12 +401,12 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
         // v0.1.95: reserve the slot (keep its box) so the countdown appearing
         // never reflows the bar — toggle content visibility via the attribute,
         // not `hidden` (display:none, which would remove the box).
-        countdownChip.dataset.hudCountdownActive = 'false';
+        writeData(countdownChip, 'hudCountdownActive', 'false');
       } else {
-        countdownChip.dataset.hudCountdownActive = 'true';
+        writeData(countdownChip, 'hudCountdownActive', 'true');
         const ticks = activeKind === 'wonder' ? wonderTicks! : relicTicks!;
-        countdownLabel.textContent = activeKind === 'wonder' ? 'Wonder' : 'Relic';
-        countdownValue.textContent = formatCountdownTicks(ticks, hudState.fpsTarget);
+        writeText(countdownLabel, activeKind === 'wonder' ? 'Wonder' : 'Relic');
+        writeText(countdownValue, formatCountdownTicks(ticks, hudState.fpsTarget));
       }
     }
     selectionPanelHandle.update(selectionState, hudState.playerResources);

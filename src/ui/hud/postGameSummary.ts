@@ -89,14 +89,16 @@ export function createPostGameSummary(
     const shouldShowSummary =
       isFinished(hudState.matchState.outcome)
       && hudState.matchState.summary.trim().length > 0;
-    el.hidden = !shouldShowSummary;
+    // Called every frame: written only when it differs (hudDomWrites.ts says why).
+    if (el.hidden !== !shouldShowSummary) el.hidden = !shouldShowSummary;
     if (shouldShowSummary) {
       // The HUD pattern keeps everything inside the single footer element so
       // the existing `[data-hud="match-summary"]` selector in browser tests
       // still finds the status text.
-      el.innerHTML = renderMatchSummary(hudState.matchState, humanPlayerId);
-    } else {
-      el.innerHTML = '';
+      const html = renderMatchSummary(hudState.matchState, humanPlayerId);
+      if (el.innerHTML !== html) el.innerHTML = html;
+    } else if (el.firstChild) {
+      el.replaceChildren();
     }
   }
 
