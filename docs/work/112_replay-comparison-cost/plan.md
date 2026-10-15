@@ -3,7 +3,7 @@
 Status: cancelled
 Owner: Claude coordinator (AOE2 repo coordinator setup), from Codex /root on 2026-10-11
 Created: 2026-10-01
-Updated: 2026-10-11
+Updated: 2026-10-15
 
 ## Problem and outcome
 
@@ -107,7 +107,7 @@ The SOURCE-ONLY next packet is retained at primary tmp/replay-route6-1001/contin
 - [ ] Obtain a new owner/human decision for any further controlled comparison; no seventh route is released.
 - [ ] Complete accepted controlled whole-suite comparison, ordinaryverify, final integrated source review, main/push and fresh hosted acceptance.
 
-Exact source/protocol inputs bind through [the reviewed-input recovery contract](snapshots/route6-reviewed-inputs.json.txt). Oversized pre-arm manifests, actual logs/results and source-review preimages remain ignored under primary/worker tmp/replay-route6-1001/ while the active unresolved handoff needs them. The route6 tree is deliberately retained pending root integration/retention/cleanup; it must not be removed or its unmerged sources discarded. Broader DE parity, M7 and separately authorized engine scopes remain OPEN.
+Exact source/protocol inputs bind through [the reviewed-input recovery contract](snapshots/route6-reviewed-inputs.json.txt). Oversized pre-arm manifests, actual logs/results and source-review preimages remain ignored under primary/worker tmp/replay-route6-1001/ while the active unresolved handoff needs them. The route6 tree was retained pending root integration/retention/cleanup. That instruction ended when work 123 superseded and cancelled this plan on 2026-10-11 (see Superseded below), and nothing here needs the tree any more. It still holds three files main lacks, which concern the CI Node runtime: a `ci.yml` change (Linux Node 20.20.2, Windows 24.12.0) and two tests, `tests/replay/exactSnapshotRuntimeContract.test.ts` and `tests/scripts/ciNodeRuntime.test.ts`. They belong to the CI Node-version card in [work 106](../106_de-parity-orchestration/plan.md), under Repo and tooling, and [work 129](../129_codex-lane-retirement/plan.md) M2 settles them before it retires the checkout through `scripts/controlWorktree.mjs`. Broader DE parity, M7 and separately authorized engine scopes remain OPEN.
 
 
 **Current publication checkpoint (2026-10-02 local).** The complete original continuation review and source-only CP1/CP2 addendum are retained in [round12](reviews/12_plan.md) and [round13](reviews/13_plan.md). Both conditions close in proposal source only; final executor/environment/input guard/predicate are not frozen, implemented or accepted. The new runtime-budget question and provider-export questions remain unanswered. No proposed shim, pretest control or fullA20/B24 pair ran. This docs-only publication preserves the root approval/engine overlays while leaving the route6 runtime tree intact. Engine M2 producer2.6.0 is genuinely shipped/hosted/artifact-verified; all21 game consumer dispositions remain OPEN, and assigned M8 tests/large-reader proof are not yet verified. Main4c6c WindowsCI36936991772 remains RED/corpus36936991809 GREEN. M7 and fullDE parity remain OPEN.

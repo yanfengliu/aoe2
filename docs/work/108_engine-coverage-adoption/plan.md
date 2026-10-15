@@ -11,7 +11,7 @@ The developer ledger currently calls a checked prefix successful when the record
 
 ## Scope
 
-Base is game `c4024020a09c99f74728f2a880a86fbcbaef8e48`, version `0.3.242`. The isolated worker branch is `codex/engine-coverage-adoption-1001`. Engine `eb61e448789a95ef907ae6f6e28e2dd33ae4c8a8` publishes core `2.5.0`; the worker independently loaded `ENGINE_VERSION=2.5.0` through its existing dependency junction. Root owns published-runtime verification, the linked-engine lock metadata and final integration.
+Base is game `c4024020a09c99f74728f2a880a86fbcbaef8e48`, version `0.3.242`. The isolated worker branch was `codex/engine-coverage-adoption-1001`; work 129 M1 retired that checkout and deleted the branch on 2026-10-15, because everything it held was an older draft of what main has. Engine `eb61e448789a95ef907ae6f6e28e2dd33ae4c8a8` publishes core `2.5.0`; the worker independently loaded `ENGINE_VERSION=2.5.0` through its existing dependency junction. Root owns published-runtime verification, the linked-engine lock metadata and final integration.
 
 Limit changes to the playtest evidence adapter/helper, ledger formatting, the script's adjacent no-payload bypass, focused tests and this developer reporting contract in spec §15.7. Preserve developer ledger schema version 1 with optional additive coverage metadata. Do not change world, save or bundle formats, gameplay, the playtest model policy, dependencies, other work units or siblings. Playtest tools report only; they never generate or apply fixes or touch Git.
 

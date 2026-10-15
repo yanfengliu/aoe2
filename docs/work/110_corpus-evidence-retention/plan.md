@@ -1,9 +1,9 @@
 # Retain per-run corpus oracle reports
 
-Status: active
-Owner: /root (integration), corpus evidence worker (source)
+Status: complete
+Owner: Claude coordinator, from Codex /root on 2026-10-15 under the owner's direction of 2026-10-11
 Created: 2026-10-01
-Updated: 2026-10-01
+Updated: 2026-10-15
 
 ## Problem and outcome
 
@@ -25,7 +25,7 @@ Keep output/corpus/ and add output/playtests/*-report/REPORT.md to the existing 
 - [x] Independent read-only source review accepts the unchanged workflow/test with no material findings.
 - [x] Root final integrated gate/reviews and main/push complete on sourceaaf59f33.
 - [x] Hosted corpus delivery accepted on run36912947148/artifact11187123603.
-- [ ] Combined CI and worktree cleanup accepted.
+- [x] Combined CI and worktree cleanup accepted (closure paragraph at the end of the Outcome, 2026-10-15).
 - [x] Root inspected the first new hosted artifact:exactly the summary and both configured REPORT.md files, without excluded payload.
 
 ## Implementation steps
@@ -34,7 +34,7 @@ Keep output/corpus/ and add output/playtests/*-report/REPORT.md to the existing 
 - [x] Write the contract test first and observe a native failure on the original workflow.
 - [x] Add the report path and rerun the identical short test successfully.
 - [x] Root integrates after final combined verification.
-- [ ] Root retires the worktree after hosted acceptance.
+- [x] Root retires the worktree after hosted acceptance (work 129 M1, 2026-10-15).
 
 ## Outcome
 
@@ -47,3 +47,5 @@ Keep output/corpus/ and add output/playtests/*-report/REPORT.md to the existing 
 **Published/local acceptance (2026-10-01).** Source aaf59f33e74da2b5113697c71b48d57f2bffecf4 is committed, FF merged and pushed to main/origin, with all original reviewed inputs recoverable there. Root full verify2 passed all six stages, native0 in864.765s:4,378 unit tests/567 files passed with3 tests/1 file skipped;236 browser cases passed and2 skipped of238. All2,972 frozen rows (including376 core and320 voxel inputs) remained unchanged. Job cleanup reported0 leftovers, port4291 free and locks absent. Independent full/focused reviews PASS; [work111 review1](../111_resource-chip-capture/reviews/1_integration.md) retains the complete24,248-byte focused report. Post-publication127 indexed documentation checks passed native0 in3.51s. Corpus36912947148 is SUCCESS and its actual summary-plus-both-report artifact delivery is accepted. CI36912947277 is terminal RED solely on the existing600-tick replay comparison timing out30000ms on Windows (4376PASS/1FAIL/4SKIP,1812.00s). Linux passes4377/4SKIP; all four browser shards pass235/3SKIP of238, including resource1920 at21.9s within unchanged30s. Combined acceptance/cleanup stay OPEN; work112 fifth candidate is rejected after whole-case Node20/24 cost regressions of89.5%/104.9%; the five-route budget is exhausted and further repair needs explicit human extension. First gate1 remains historical RED225.035s, sole rollover failure, with later && stages not run. Local acceptance does not establish a hosted-timeout fix, actual artifact delivery, elapsed/CPU/cost improvement, whole-game replay or full DE parity. M7's human-extension hold,26 absent civilizations/17 missing unique-unit identities/technology backlog and21 engine asks remain OPEN.
 
 **Actual hosted delivery accepted — 2026-10-01.** Root downloaded artifact11187123603 from SUCCESS corpus36912947148 at sourceaaf59f33:2,666-byte ZIP, SHA256d255e0fe5948aff27b136c424e1411e60f44ed883a9a5c1b6887672c1e512219. Root read every ZIP member and checked current configured runs:exactly corpus/2026-10-01/SUMMARY.md plus the boot-map-both-owners and default-seed-smoke REPORT.md files, no excluded payloads. Summary and reports agree at0high/43medium/18low; both runs executed20,001 ticks under their20,100 cap. Medium detections name no-pinned-or-oscillating-units and low detections no-perf-regression. Current43 medium instances are visible oracle detections, not confirmed gameplay defects; the older lost43 details remain unrecovered. Primary ignored artifact-acceptance.json (1,749 bytes, SHA256e9bf3c0246d7135c562866476192868ad462dc27bd24d318ae0f222165a6b918) records root's actual inspection, not a new probe by this document worker. Status remains active until combined CI and cleanup acceptance; no bundle/replay/full-parity or speed claim.
+
+**Closure (2026-10-15, work 129 M1).** Complete. Source `aaf59f33` is on main: the playtest workflow uploads `output/playtests/*-report/REPORT.md` beside `output/corpus/`, and `tests/scripts/corpusArtifacts.test.ts` holds that selection. Delivery was accepted on the first new hosted run (corpus 36912947148, artifact 11187123603, above). Main's latest corpus run, 38664157664, uploaded an artifact of 2,640 bytes against that one's 2,666, the same size class (its members were not listed), and the corpus is GREEN on 20+ consecutive main runs. The combined-CI condition that kept the last two boxes open was the Windows replay timeout, fixed by work 123 (v0.3.249); main's CI is GREEN on eight consecutive runs (latest `83b6ffa3`, 2026-10-15). The older 43 medium instances stay unrecovered because the runner that held them ended, as recorded above. The register entry is closed and archived. The private worktree `corpus-evidence-1001` held only copies of what main has: `playtest.yml` and `corpusArtifacts.test.ts` byte-identical to main's, the allocation row already in the registry, and an older draft of this plan; work 129 M1 retired it on 2026-10-15 (plan 129 lists what was discarded and why).

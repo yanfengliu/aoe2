@@ -1,9 +1,9 @@
 # Align DE siege base stats
 
-Status: active
-Owner: /root/siege_content
+Status: complete
+Owner: Claude coordinator, from Codex /root/siege_content on 2026-10-15 under the owner's direction of 2026-10-11
 Created: 2026-10-01
-Updated: 2026-10-01
+Updated: 2026-10-15
 
 ## Problem and outcome
 
@@ -25,7 +25,7 @@ Promote a compact independent literal fixture from raw data.json at 3bb43b14, ve
 - [x] Agreed old-save bound remains explicit: serialized attack/sight survive until an existing applicable rebuild, current target pierce armor follows the table, and historical combat re-execution may differ.
 - [x] Literal RED and one-field rollback/population controls recorded with restored GREEN. No whole-game determinism or speed claim.
 - [x] Before/after/pixel diff from maintained scripts and representative real train/research/move controls accepted by root.
-- [ ] Root final integrated gates, review, main/push and hosted acceptance complete before closure.
+- [x] Root final integrated gates, review, main/push and hosted acceptance complete before closure (closure paragraph at the end of the Outcome, 2026-10-15).
 
 ## Implementation steps
 
@@ -61,3 +61,5 @@ Capped/Siege Ram explicit static melee-3 versus pinned-2/-1, with separate class
 
 
 **Published/local acceptance (2026-10-01).** Source aaf59f33e74da2b5113697c71b48d57f2bffecf4 is committed, FF merged and pushed to main/origin, with all original reviewed inputs recoverable there. Root full verify2 passed all six stages, native0 in864.765s:4,378 unit tests/567 files passed with3 tests/1 file skipped;236 browser cases passed and2 skipped of238. All2,972 frozen rows (including376 core and320 voxel inputs) remained unchanged. Job cleanup reported0 leftovers, port4291 free and locks absent. Independent full/focused reviews PASS; [work111 review1](../111_resource-chip-capture/reviews/1_integration.md) retains the complete24,248-byte focused report. Post-publication127 indexed documentation checks passed native0 in3.51s. Corpus36912947148 is SUCCESS and its actual summary-plus-both-report artifact delivery is accepted. CI36912947277 is terminal RED solely on the existing600-tick replay comparison timing out30000ms on Windows (4376PASS/1FAIL/4SKIP,1812.00s). Linux passes4377/4SKIP; all four browser shards pass235/3SKIP of238, including resource1920 at21.9s within unchanged30s. Combined acceptance/cleanup stay OPEN; work112 fifth candidate is rejected after whole-case Node20/24 cost regressions of89.5%/104.9%; the five-route budget is exhausted and further repair needs explicit human extension. First gate1 remains historical RED225.035s, sole rollover failure, with later && stages not run. Local acceptance does not establish a hosted-timeout fix, actual artifact delivery, elapsed/CPU/cost improvement, whole-game replay or full DE parity. M7's human-extension hold,26 absent civilizations/17 missing unique-unit identities/technology backlog and21 engine asks remain OPEN.
+
+**Closure (2026-10-15, work 129 M1).** Complete. The ten stale fields are corrected on main by `0d290ab5`: the content and runtime tables, the literal fixture and the source header. The reviewed JSON snapshots were normalized to LF by `9848ec2d` after the first hosted run failed `checkoutLineEndings`, and `06efe6c0` retains that repair's review. `aaf59f33` landed with works 110 and 111 after a full `npm run verify` and independent reviews. Hosted acceptance: the two timeouts that kept CI red afterwards, the 1920px resource-chip case and the Windows replay comparison, were fixed by work 123 (v0.3.249; M2 closed in `45bdc118`), and main's CI is GREEN on eight consecutive runs (latest `83b6ffa3`, 2026-10-15) with the playtest corpus GREEN on 20+ (`npm run ci:status`). The gate, `tests/content/siegeBaseStats.test.ts` and `tests/simulation/siegeBaseStats.test.ts`, passes at `83b6ffa3`: 2 files, 37 tests, native exit 0. Its register entry is closed and archived. Two boundaries the scope above excluded are cards in [work 106's queue](../106_de-parity-orchestration/plan.md): the Capped Ram and Siege Ram melee armor (-3 locally; -2 and -1 in the pinned dataset) and the Champion's attack (13 locally; 14 pinned). The private worktree `siege-content-1001` held a clean tree, nothing main lacks; work 129 M1 retired it on 2026-10-15 (plan 129 lists what was discarded and why).

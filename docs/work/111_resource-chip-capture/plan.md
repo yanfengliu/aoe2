@@ -1,9 +1,9 @@
 # Bound resource HUD fixture capture
 
-Status: active
-Owner: root (integration); Codex worker (candidate and local experiment)
+Status: complete
+Owner: Claude coordinator, from Codex /root on 2026-10-15 under the owner's direction of 2026-10-11
 Created: 2026-10-01
-Updated: 2026-10-01
+Updated: 2026-10-15
 
 ## Problem and outcome
 
@@ -28,7 +28,7 @@ Capture the full `.hud-bar` with 32 CSS pixels of padding, and the union of the 
 - [x] Independent integrated source and bounded capture-evidence review accepts the exact four-path candidate; complete report retained in [review 0](reviews/0_integration.md).
 - [x] Root combined full gate accepts the exact four-path candidate on sourceaaf59f33.
 - [x] Main merge/push complete on sourceaaf59f33.
-- [ ] New hosted CI proves the affected timeout no longer fails; do not infer it from the local pair.
+- [x] New hosted CI proves the affected timeout no longer fails; do not infer it from the local pair (work 123 M2's landing CI 38621219631, in the closure paragraph at the end of the Outcome).
 
 ## Implementation steps
 
@@ -55,3 +55,5 @@ The task-specific job wrapper assigned its held worker before release, reported 
 **Published/local acceptance (2026-10-01).** Source aaf59f33e74da2b5113697c71b48d57f2bffecf4 is committed, FF merged and pushed to main/origin, with all original reviewed inputs recoverable there. Root full verify2 passed all six stages, native0 in864.765s:4,378 unit tests/567 files passed with3 tests/1 file skipped;236 browser cases passed and2 skipped of238. All2,972 frozen rows (including376 core and320 voxel inputs) remained unchanged. Job cleanup reported0 leftovers, port4291 free and locks absent. Independent full/focused reviews PASS; [work111 review1](../111_resource-chip-capture/reviews/1_integration.md) retains the complete24,248-byte focused report. Post-publication127 indexed documentation checks passed native0 in3.51s. Corpus36912947148 is SUCCESS and its actual summary-plus-both-report artifact delivery is accepted. CI36912947277 is terminal RED solely on the existing600-tick replay comparison timing out30000ms on Windows (4376PASS/1FAIL/4SKIP,1812.00s). Linux passes4377/4SKIP; all four browser shards pass235/3SKIP of238, including resource1920 at21.9s within unchanged30s. Combined acceptance/cleanup stay OPEN; work112 fifth candidate is rejected after whole-case Node20/24 cost regressions of89.5%/104.9%; the five-route budget is exhausted and further repair needs explicit human extension. First gate1 remains historical RED225.035s, sole rollover failure, with later && stages not run. Local acceptance does not establish a hosted-timeout fix, actual artifact delivery, elapsed/CPU/cost improvement, whole-game replay or full DE parity. M7's human-extension hold,26 absent civilizations/17 missing unique-unit identities/technology backlog and21 engine asks remain OPEN.
 
 **Owned cleanup (2026-10-01).** Root removed resource-chip-capture-1001 and its merged branch through the maintained junction-safe controller after exact raw-evidence retention in ignored primary tmp/replay-cost-handoff-1001/integration-tmp/. Native0; the dependency target lost nothing. [Work112](../112_replay-comparison-cost/plan.md) records the published reviews, checks and retention proof. Combined hosted acceptance remains open on the separate Windows replay timeout.
+
+**Closure (2026-10-15, work 129 M1).** Complete, and superseded for the hosted timeout by work 123 M2. The capture reduction shipped in `aaf59f33` (the spec and `playOpening.ts` changes, with work 110's workflow and test), and on the next hosted run, CI 36912947277, the 1920px case passed at 21.9 s of its unchanged 30 s, while the run went red only on the separate Windows 600-tick replay comparison. Work 123 M2 (`149e5287`, pushed as `e4115b2c..670e07d7`) then took the spec's captures only on request and split the test per amount. Its landing CI, run 38621219631, was green on all six jobs with the 1920px readouts at 30%, 28% and 26% of 30 s, and `45bdc118` closed the register entry on those figures. That run is the hosted proof the last acceptance box asked for. It is attributable to work 123's further cuts as much as to this plan's change, and this plan still makes no speedup claim for its own. The private worktree `resource-chip-capture-1001` was removed on 2026-10-01, as the cleanup paragraph above records.
