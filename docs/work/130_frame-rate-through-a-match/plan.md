@@ -73,6 +73,8 @@ Cost, in the browser, interleaved against the base build (4 rounds; 26-32 of 32 
 
 A late frame now costs less than the base build's opening frame, but still 1.7 times M1's opening frame: the shadow lane (43% of instances at tick 11,700, 1,260 of 2,931) and the memory lane are rewritten on every frame a unit moves, and the units themselves are posed every frame. The acceptance criterion "a late-match frame costs close to an opening frame" is met only in that weaker sense.
 
+Suites on the branch (2026-10-15, under the gate lock, not a landing run): the full unit suite passed (617 files, 4,833 tests, 3 skipped, 721.6 s); the full browser suite passed 268 with 2 skipped and failed 1, `attack-warning.spec.ts:137`, whose Load panel was still open at its 5 s expect while the machine was loaded, with "Game loaded." on screen by the time the failure was captured. Alone it passed three times out of three, and the HUD Load timed click to panel closed was 410-602 ms on the base build and 337-679 ms on this one, interleaved, so the load is no slower; it is reported as a flake, and `npm run verify` at landing reruns it.
+
 The trade for M2, the coordinator's to make:
 
 - (b) A voxel change that exposes single-layer transparency as a public material option. Static and moving shadows then go in separate batches; pixels are expected to be identical except possibly where the shadow depth prepass, which draws before all translucent objects, now precedes the memory lane, to be measured. A cross-repo change with its own gates and review.
