@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
 
+## Unreleased — work 128
+
+The computer plays the relic game.
+
+- **A Monk carrying a relic walks.** A Monk that picked up a relic could not be sent anywhere: a move order was refused ("blocked ground blocks every route out"), and an order to take the relic to a Monastery out of reach was dropped. It now walks where you send it, carries the relic home, and other units can pass through its cell. A relic whose Monk dies lies where the Monk stood.
+- **The computer's Monks bring relics home.** They picked relics up and stood still with them, so the computer never stored one. Now they carry them to its Monastery, and a computer that holds every relic on the map can win by Relic victory.
+- **The computer seeks every relic it has found.** Its Monks went only for a relic in sight at that moment. Now they go for any relic on ground the computer has explored, never for one it has not seen.
+
 ## 0.3.257
 
 Every price the game states is now the price the click takes.

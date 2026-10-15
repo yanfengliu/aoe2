@@ -1,7 +1,7 @@
 # The computer's Monks collect the relics it knows about, as in Definitive Edition
 
-Status: planned
-Owner: Claude coordinator (Game orchestrator todos); worker to be named
+Status: active
+Owner: Claude coordinator (Game orchestrator todos); implementation worker in worktree ai-relics (phase 1 handed off; the landing waits for the coordinator)
 Created: 2026-10-15
 Updated: 2026-10-15
 
@@ -33,7 +33,12 @@ Reproduce first: a fixture where a computer seat with a Monastery and a Monk has
 
 ## Implementation steps
 
-- [ ] Reproduce, source DE's rule, fix, gate, record, land.
+- [x] Reproduce. `scripts/selfplay-audit.mjs` gained a relic ledger (pickups and stores read from the world state every tick, and the tick each seat first saw each relic) and a `--config castle|lab` switch. On main `83b6ffa3` it showed the brief's premise was half wrong: owner 2's Monks did pick relics up (castle match: (24,24) at 26,011, (36,10) at 26,968) and could not walk home with them. A carried relic claimed its Monk's cell (work 126 found the player's move order refused the same way). The visible-only search was the second cause.
+- [x] Source DE's rule. None found: the AI scripting reference (airef) says only that computer players ignore relics on the easiest level, and DE's AI was previewed as one that must scout (E3 2019). The rule is the ground the seat has explored, own or shared, with the present-position bound stated (spec §13.3).
+- [x] Fix both causes and gate them. A carried relic claims no cell (`transformOps`, the pickup, the carrier's death and the follow step's let-go). The AI fetches relics on explored ground, and only a Monk is sent. `monkCarriedRelic.test.ts` (5), `aiMonkKnownRelics.test.ts` (3), and the follow case in `monastery.relic.test.ts` strengthened. Seven mutations, each red.
+- [x] Record: spec §6.9 and §13.3, register (the fixed entry, and the OPEN entry on one Monk taking a relic from another), decisions, changelog under Unreleased, devlog.
+- [ ] Three self-play gates moved (the castle match now ends by Relic victory at 29,650; the lab census changed): the coordinator decides how they are re-derived.
+- [ ] Land: rebase onto main after work 126, reconcile work 126's carried-relic special case and close its Monk move-order entry, take the version, verify, check the receipt, push.
 
 ## Outcome
 
