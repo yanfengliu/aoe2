@@ -37,6 +37,7 @@ import {
 } from './bridgeStateSerialize';
 import { isEnemyOwner } from '../alliances';
 import { readSightOwners } from './humanSight';
+import { relicHolder } from './relicGround';
 
 export interface MonkTaskDeps {
   world: GameWorld;
@@ -95,10 +96,17 @@ export interface MonkTaskOps {
       targetEntityId: number,
       options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
     ) => void,
+    /** Whether this Monk can walk to within its action range of the cell:
+     *  the planner's own answer, so no Monk is sent for a relic it cannot reach. */
+    canReachWithinMonkRange: (unitId: number, target: Position) => boolean,
   ): void;
   // Search helpers used by the AI monk task routing and save/load tests.
   findNearestOwnedMonasteryToDeposit(owner: number, origin: Position): number | null;
-  findNearestKnownNeutralRelic(owner: number, origin: Position): number | null;
+  findNearestKnownNeutralRelic(
+    owner: number,
+    origin: Position,
+    canFetch?: (position: Position) => boolean,
+  ): number | null;
   findNearestWoundedFriendlyMilitary(owner: number, origin: Position): number | null;
   // Task-apply handlers invoked by `prototypeMonkBehavior` once the Monk is
   // within action range of its target.
@@ -162,6 +170,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   function visitAiMonkTaskCandidates(
     owner: number,
     accept: (candidate: AiMonkTaskCandidate) => void,
+    canReachWithinMonkRange: (unitId: number, target: Position) => boolean,
   ): void {
     for (const monkId of world.query('unit')) {
       const unit = world.getComponent<UnitComponent>(monkId, 'unit');
@@ -189,12 +198,17 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       }
 
       // Priority 2: fetch the nearest neutral relic the seat knows of, on
-      // ground it has explored (monkAiSearchHelpers says why). Only a Monk can
-      // carry one: a Missionary sent for a relic is refused, and would stand
-      // there instead of healing.
+      // ground it has explored (monkAiSearchHelpers says why), that this Monk
+      // can walk to within reach of. A relic it cannot reach is passed over,
+      // not chosen and dropped every decision: one in a lake took the Monks
+      // off healing and every other relic for the rest of the match (work 128,
+      // review round 0). Only a Monk can carry a relic: a Missionary sent for
+      // one is refused, and would stand there instead of healing.
       if (canCarryRelics(unit.unitType)) {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
-        const relicId = findNearestKnownNeutralRelic(owner, monkPosition);
+        const relicId = findNearestKnownNeutralRelic(owner, monkPosition, (relicPosition) => (
+          canReachWithinMonkRange(monkId, relicPosition)
+        ));
         if (relicId !== null) {
           accept({ monkId, kind: 'pickup', targetEntityId: relicId });
           continue;
@@ -217,13 +231,14 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       targetEntityId: number,
       options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
     ) => void,
+    canReachWithinMonkRange: (unitId: number, target: Position) => boolean,
   ): void {
     visitAiMonkTaskCandidates(owner, ({ monkId, kind, targetEntityId }) => {
       pushMonkContextAtEntityIntention(monkId, targetEntityId, {
         expectedOwner: owner,
         intendedTaskKind: kind,
       });
-    });
+    }, canReachWithinMonkRange);
   }
 
   // FU4 AI helper. Returns the nearest owned, completed Monastery to a
@@ -360,7 +375,8 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       if (!position || !resource || position.x !== x || position.y !== y) {
         continue;
       }
-      if (resource.resourceType === 'relic') {
+      // A relic in a Monk's hands is not on the ground (relicGround.ts).
+      if (resource.resourceType === 'relic' && relicHolder(accessor, id) === null) {
         return id;
       }
     }

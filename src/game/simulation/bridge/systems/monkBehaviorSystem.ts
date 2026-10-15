@@ -25,10 +25,13 @@ import { civMonkHealRangeMultiplier } from '../../civBuildingBonuses';
 import { monkFaithRegenPerTick, monkConvertRangeBonus } from '../../monasteryTechEffects';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import { MONK_FAITH_MAX } from '../bridgeConstants';
+import { relicHolder } from '../relicGround';
 
 type CivWorld = GameWorld;
 
-const MONK_ACTION_RANGE = 4;
+/** How near a Monk must come to heal, pick up or deposit; the AI asks a route
+ *  to within it before it sends a Monk for a relic (monkTaskOps). */
+export const MONK_ACTION_RANGE = 4;
 // Conversion reaches much farther than the hands-on actions (AoE2: 9 vs 4).
 const MONK_CONVERT_RANGE = 9;
 
@@ -153,6 +156,13 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
 
         const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
         if (!targetPosition) {
+          deleteMonkTask(monkId);
+          continue;
+        }
+
+        // A relic some Monk has picked up is no longer on the ground, so an
+        // errand for it ends rather than chasing the carrier (relicGround.ts).
+        if (task.kind === 'pickup' && relicHolder(accessor, targetId) !== null) {
           deleteMonkTask(monkId);
           continue;
         }

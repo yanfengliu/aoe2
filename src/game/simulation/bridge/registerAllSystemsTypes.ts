@@ -26,6 +26,7 @@ import type { MemoryEntry } from './memoryTypes';
 import type { BridgeState } from './bridgeState';
 import type { MonkTask } from './sharedTypes';
 import type { DropOffWalkFields } from './dropOffWalkField';
+import type { UnitRangeReach } from './unitRangeReach';
 import type { TargetScanIndex } from './targetScanIndex';
 
 type CivWorld = GameWorld;
@@ -140,6 +141,7 @@ export interface RegisterAllSystemsDeps {
       targetEntityId: number,
       options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
     ) => void,
+    canReachWithinMonkRange: (unitId: number, target: Position) => boolean,
   ) => void;
   pushMonkContextAtEntityIntention: (
     monkId: number,
@@ -337,6 +339,9 @@ export interface RegisterAllSystemsDeps {
   /** The walk from every node to the owner's nearest drop-off of a kind —
    *  what gather assignment ranks by (dropOffWalkField.ts). */
   findDropOffWalkField: DropOffWalkFields['fieldFor'];
+  /** The range plan's answer, kept per unit cell and structural revision
+   *  (unitRangeReach.ts): the AI's relic search asks it (work 128). */
+  canUnitReachRange: UnitRangeReach;
   findWildlifeRangePlan: (
     entityId: number,
     target: Position,

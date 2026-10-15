@@ -33,7 +33,7 @@
 // its own work item, so no progression gate should end on it. Everything else
 // is the shipped configuration: standard resources, the standard AI, attacks
 // on. The Standard rules' relic outcome is gated where work 128 put it, in
-// `aiMonkKnownRelics.test.ts`, without the countdown's length.
+// `aiRelicsSelfPlay.test.ts`, without the countdown's length.
 
 import { describe, expect, it } from 'vitest';
 

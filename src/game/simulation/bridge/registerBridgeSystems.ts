@@ -26,6 +26,7 @@ import type { TargetFindingOps } from './targetFindingOps';
 import type { TrebuchetStateOps } from './trebuchetState';
 import type { MovementPlanOps } from './movementPlanOps';
 import type { DropOffWalkFields } from './dropOffWalkField';
+import type { UnitRangeReach } from './unitRangeReach';
 import type { EntityDestroyOps } from './entityDestroyOps';
 import type { EntityCreateOps } from './entityCreateOps';
 import type { MonkTaskOps } from './monkTaskOps';
@@ -67,8 +68,12 @@ export interface RegisterBridgeSystemsDeps {
   aiDecisionOps: AiDecisionOps;
   targetFindingOps: TargetFindingOps;
   trebuchetStateOps: TrebuchetStateOps;
-  // The drop-off walk field rides on the movement-plan ops (wirePreSeedOps).
-  movementPlanOps: MovementPlanOps & { findDropOffWalkField: DropOffWalkFields['fieldFor'] };
+  // The drop-off walk field and the cached reach ask ride on the movement-plan
+  // ops (wirePreSeedOps).
+  movementPlanOps: MovementPlanOps & {
+    findDropOffWalkField: DropOffWalkFields['fieldFor'];
+    canUnitReachRange: UnitRangeReach;
+  };
   entityDestroyOps: EntityDestroyOps;
   entityCreateOps: EntityCreateOps;
   monkOps: MonkTaskOps;

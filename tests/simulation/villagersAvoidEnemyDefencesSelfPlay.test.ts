@@ -54,7 +54,7 @@
 // match now runs with the Wonder and Relic victories off, as the coverage lab
 // does. The relic countdown's own length is in question too (its own work
 // item). The Standard rules' relic outcome is gated in
-// `aiMonkKnownRelics.test.ts`.
+// `aiRelicsSelfPlay.test.ts`.
 //
 // THE BOUND THAT MATTERS MOST IS THE CONFIGURATION, and it is load-bearing
 // rather than theoretical (measured 2026-09-10). This gate plays the default

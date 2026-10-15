@@ -35,6 +35,7 @@ import {
   playerCivilizationsCodec,
 } from '../bridgeStateSerialize';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import { MONK_ACTION_RANGE } from './monkBehaviorSystem';
 
 // Every building the AI researches at, in the order it consults them. Named
 // once because the plan scan and the research loop below MUST walk the same
@@ -66,6 +67,7 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
     getResearchOptions,
     pushAiMonkTaskIntentions,
     pushMonkContextAtEntityIntention,
+    canUnitReachRange,
   } = deps;
   // Civ research discounts (v0.3.147): the AI budgets with ITS OWN prices —
   // a Byzantine AI must not over-save a third for Imperial it will not pay.
@@ -457,6 +459,8 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
   // an AI has Monks. The side map is maintained in entityCreateOps,
   // entityDestroyOps, and monkTaskAppliers.flipConvertedUnit.
   if ((monksByOwner.get(owner)?.size ?? 0) > 0) {
-    pushAiMonkTaskIntentions(owner, pushMonkContextAtEntityIntention);
+    pushAiMonkTaskIntentions(owner, pushMonkContextAtEntityIntention, (unitId, target) => (
+      canUnitReachRange(unitId, target, MONK_ACTION_RANGE, activeWorld)
+    ));
   }
 }

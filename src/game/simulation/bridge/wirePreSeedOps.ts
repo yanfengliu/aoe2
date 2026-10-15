@@ -27,6 +27,7 @@ import { createDebugSnapshotOps } from './debugSnapshotOps';
 import type { PlacementSearchStats } from './placementSearch';
 import { createTransformOps } from './transformOps';
 import { createMovementPlanOps } from './movementPlanOps';
+import { createUnitRangeReach } from './unitRangeReach';
 import { createDropOffWalkFields, type DropOffWalkFieldStats } from './dropOffWalkField';
 import { collectDropOffBuildings, preferSafeDropOffs } from './dropOffBuildings';
 import { createEnemyDefenceLookup } from './enemyDefenceRange';
@@ -273,8 +274,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
   });
   const { fieldFor: findDropOffWalkField } = dropOffWalkFields;
   walkFieldStats = dropOffWalkFields.stats;
-  const movementPlanOps = {
-    ...createMovementPlanOps({
+  const planOps = createMovementPlanOps({
       world,
       mapWidth: world.grid.width,
       mapHeight: world.grid.height,
@@ -285,8 +285,12 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
       // What is in the way, in the placement validator's own words, so the
       // "cannot reach that cell" toast names it (moveDestinationSearch.ts).
       describeBlockedCell: (x, y) => placementOccupancy.describePlacementBlockers(x, y, 1, 1)?.cause ?? null,
-    }),
+  });
+  const movementPlanOps = {
+    ...planOps,
     findDropOffWalkField,
+    // The computer's Monks ask it of every relic they know of (work 128).
+    canUnitReachRange: createUnitRangeReach(planOps.findUnitRangePlan, () => worldOccupancy.structuralRevision()),
   };
   const {
     uniquePositions,

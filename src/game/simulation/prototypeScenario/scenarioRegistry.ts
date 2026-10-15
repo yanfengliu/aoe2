@@ -38,11 +38,19 @@ import {
 import { createMinimumRangeCensusFixture, minimumRangeCensusSeeds } from '../fixtures/minimumRangeCensus';
 import {
   AI_MISSIONARY_KNOWN_RELIC_SEED,
+  AI_MONK_ALLY_SIGHT_RELIC_SEED,
   AI_MONK_KNOWN_RELIC_SEED,
+  AI_MONK_UNREACHABLE_RELIC_HEAL_SEED,
+  AI_MONK_UNREACHABLE_RELIC_SEED,
   createAiMissionaryKnownRelicFixture,
+  createAiMonkAllySightRelicFixture,
   createAiMonkKnownRelicFixture,
+  createAiMonkUnreachableRelicFixture,
+  createAiMonkUnreachableRelicHealFixture,
   createMonkCarriedRelicFixture,
+  createMonkRelicCrossOwnerFixture,
   MONK_CARRIED_RELIC_SEED,
+  MONK_RELIC_CROSS_OWNER_SEED,
 } from '../fixtures/monkRelics';
 import { createProjectileLookShowcaseFixture } from '../fixtures/projectileLookShowcase';
 import { createRaidWarningFixture } from '../fixtures/raidWarning';
@@ -263,6 +271,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['garrison-heal-herbal-fixture', fixtures.createGarrisonHealHerbalFixture],
   ['monk-relic-fixture', fixtures.createMonkRelicFixture],
   [MONK_CARRIED_RELIC_SEED, createMonkCarriedRelicFixture],
+  [MONK_RELIC_CROSS_OWNER_SEED, createMonkRelicCrossOwnerFixture],
   ['wonder-imperial-fixture', fixtures.createWonderImperialFixture],
   ['wonder-existing-fixture', fixtures.createWonderExistingFixture],
   ['wonder-short-countdown-fixture', fixtures.createWonderShortCountdownFixture],
@@ -305,6 +314,9 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['ai-monk-relic-fixture', fixtures.createAiMonkRelicFixture],
   [AI_MONK_KNOWN_RELIC_SEED, createAiMonkKnownRelicFixture],
   [AI_MISSIONARY_KNOWN_RELIC_SEED, createAiMissionaryKnownRelicFixture],
+  [AI_MONK_UNREACHABLE_RELIC_SEED, createAiMonkUnreachableRelicFixture],
+  [AI_MONK_UNREACHABLE_RELIC_HEAL_SEED, createAiMonkUnreachableRelicHealFixture],
+  [AI_MONK_ALLY_SIGHT_RELIC_SEED, createAiMonkAllySightRelicFixture],
   ['ai-wonder-fixture', fixtures.createAiWonderFixture],
   ['feudal-market-fixture', fixtures.createFeudalMarketFixture],
   ['town-center-defense-fixture', fixtures.createTownCenterDefenseFixture],

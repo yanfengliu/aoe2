@@ -45,6 +45,7 @@ import { readSightOwners } from './humanSight';
 import { createMonkBuildingConversion } from './monkBuildingConversion';
 import { monkTasksCodec } from './bridgeStateSerialize';
 import { EMPTY_TECH_SET } from '../economyTechEffects';
+import { relicHolder } from './relicGround';
 
 export interface MonkTaskAppliersDeps {
   world: GameWorld;
@@ -410,16 +411,19 @@ export function createMonkTaskAppliers(deps: MonkTaskAppliersDeps): MonkTaskAppl
       clearMonkTask(monkId);
       return;
     }
-    accessor.mutate(monkCarriedRelicCodec, (m) => {
-      for (const [otherMonkId, carriedId] of m.entries()) {
-        if (carriedId === relicId && otherMonkId !== monkId) {
-          m.delete(otherMonkId);
-        }
-      }
-      m.set(monkId, relicId);
-    });
-    // In the Monk's hands the relic claims no cell (work 128), even when the
-    // Monk picks it up from the cell it stands on, where no follow step runs.
+    // A relic in another Monk's hands is not on the ground, whoever owns that
+    // Monk: Definitive Edition drops it only when its carrier dies, so the
+    // errand ends here (work 128, review round 0). Until then this took the
+    // relic out of the other Monk's hands.
+    const holder = relicHolder(accessor, relicId);
+    if (holder !== null && holder !== monkId) {
+      clearMonkTask(monkId);
+      return;
+    }
+    accessor.mutate(monkCarriedRelicCodec, (m) => m.set(monkId, relicId));
+    // In the Monk's hands the relic claims no cell, even when the Monk picks it
+    // up from the cell it stands on, where no follow step runs: a save made
+    // before work 128 can hold a relic under a unit.
     syncOccupancyForEntity(relicId);
     clearMonkTask(monkId);
     markOutOfBandRenderChange();

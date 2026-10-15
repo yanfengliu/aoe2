@@ -14,6 +14,13 @@
 // on, every victory condition on. The loop stops the moment a countdown
 // starts, so it plays about 28,000 ticks, not 45,000.
 //
+// WHAT THIS GATES: the claim rule, that a Monk carrying a relic can walk it
+// home. It does not gate what the computer knows of relics: with the search
+// put back to relics in sight now, this case stays green (measured on work
+// 128's `d5d46364`: owner 2 stores at ticks 26,439 and 27,552, against 26,381
+// and 27,651 with the rule). `aiMonkKnownRelics.test.ts` gates the knowledge
+// rule.
+//
 // WHAT IS NOT ASSERTED: when the countdown ends or who wins. Its length, 2,000
 // ticks for "200 years", is in question (Definitive Edition's community table
 // gives 200 years as 1,000 seconds, and makes the years depend on map size),

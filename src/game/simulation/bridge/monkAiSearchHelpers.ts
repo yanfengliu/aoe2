@@ -46,7 +46,11 @@ export interface MonkAiSearchDeps {
 
 export interface MonkAiSearchHelpers {
   findNearestOwnedMonasteryToDeposit(owner: number, origin: Position): number | null;
-  findNearestKnownNeutralRelic(owner: number, origin: Position): number | null;
+  findNearestKnownNeutralRelic(
+    owner: number,
+    origin: Position,
+    canFetch?: (position: Position) => boolean,
+  ): number | null;
   findNearestWoundedFriendlyMilitary(owner: number, origin: Position): number | null;
 }
 
@@ -81,13 +85,18 @@ export function createMonkAiSearchHelpers(deps: MonkAiSearchDeps): MonkAiSearchH
   }
 
   // Returns the nearest neutral relic on ground the owner's sight has
-  // explored (the header says why); carried relics are excluded because their
-  // position tracks the carrying Monk.
-  function findNearestKnownNeutralRelic(owner: number, origin: Position): number | null {
+  // explored (the header says why) that `canFetch` accepts; carried relics are
+  // excluded because they are not on the ground. Candidates are tried nearest
+  // first, ties in the world's own order, and `canFetch` (a route ask, which
+  // costs a path search) runs only until one passes.
+  function findNearestKnownNeutralRelic(
+    owner: number,
+    origin: Position,
+    canFetch: (position: Position) => boolean = () => true,
+  ): number | null {
     const carriedRelicIds = new Set<number>(accessor.get(monkCarriedRelicCodec).values());
     const sight = readSightOwners(accessor, owner);
-    let bestId: number | null = null;
-    let bestDistance = Number.POSITIVE_INFINITY;
+    const candidates: Array<{ id: number; position: Position; distance: number }> = [];
     for (const id of world.query('resource', 'position')) {
       const resource = world.getComponent<ResourceComponent>(id, 'resource');
       const position = world.getComponent<Position>(id, 'position');
@@ -105,13 +114,14 @@ export function createMonkAiSearchHelpers(deps: MonkAiSearchDeps): MonkAiSearchH
       if (!sight.some((viewer) => isExploredByOwner(viewer, position.x, position.y))) {
         continue;
       }
-      const distance = manhattanDistance(origin, position);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestId = id;
-      }
+      candidates.push({ id, position, distance: manhattanDistance(origin, position) });
     }
-    return bestId;
+    // Array.prototype.sort is stable, so equal distances keep the query order.
+    candidates.sort((a, b) => a.distance - b.distance);
+    for (const candidate of candidates) {
+      if (canFetch(candidate.position)) return candidate.id;
+    }
+    return null;
   }
 
   // Returns the nearest owned military unit below aiMonkHealHpFraction of

@@ -204,7 +204,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerAiSystem({
     world,
     humanPlayerId, attacksDisabled: deps.disableAiAttacks, // the coverage lab, spec §15.8
-    isLandCell, findBuildingApproachPlan, // the crew phase's reachability ask
+    isLandCell, findBuildingApproachPlan, canUnitReachRange: deps.canUnitReachRange, // reachability: the crew phase's, the Monks' (work 128)
     visibility,
     accessor,
     monksByOwner,
