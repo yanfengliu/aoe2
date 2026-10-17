@@ -29,6 +29,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { playerScoreCountersCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
 
 /** Past the measured Feudal transition on both corpus seeds, with margin:
  *  `aoe2-prototype` 14,100 / 13,800 and `default-seed` 10,100 / 10,400 at
@@ -47,20 +48,34 @@ describe('the AI economy', () => {
         ?? { food: 0, wood: 0, gold: 0, stone: 0 };
       return (res.food ?? 0) + (res.wood ?? 0) + (res.gold ?? 0) + (res.stone ?? 0);
     };
+    // Everything owner 2's villagers have carried home, from the score
+    // counters the deposit adds to: what "gathering" means, read directly.
+    const banked = (): number => playerScoreCountersCodec
+      .deserialize(bridge.world.getState(playerScoreCountersCodec.slot) as Parameters<typeof playerScoreCountersCodec.deserialize>[0])
+      .get(2)?.resourcesGathered ?? 0;
 
     for (let tick = 0; tick < 6_000; tick += 1) bridge.step(100);
-    const before = stockpile();
+    const before = { stockpile: stockpile(), banked: banked() };
     for (let tick = 0; tick < 6_000; tick += 1) bridge.step(100);
-    const after = stockpile();
+    const after = { stockpile: stockpile(), banked: banked() };
 
-    // A working economy SPENDS as well as gathers, so the stockpile is not a
-    // straight line up — but a frozen one does neither. The deadlocked run
-    // moved by 162 across these 6,000 ticks (10 minutes of game time) while
-    // gathering nothing at all; a live one moves by hundreds.
+    // A frozen economy banks nothing. The deadlocked run moved its stockpile
+    // by 162 across these 6,000 ticks (10 minutes of game time) while
+    // gathering nothing at all; a live one banks well over a thousand.
+    //
+    // Until work 131 this read the stockpile's net movement (> 200), and that
+    // proxy cannot tell a frozen economy from one that spent what it gathered:
+    // with the carry-on (spec §6.4) owner 2 reaches the Feudal Age inside this
+    // window, before tick 12,000 rather than at about 13,800, and the age-up's
+    // 500 food left its stockpile 170 up while it banked 1,650 — 1,645 on
+    // 5b6838df, the base, where it had not yet advanced. Reintroducing the
+    // nearest-first resource approach (see approachOrdering.ts) still turns
+    // this red, on the banked total.
     expect(
-      Math.abs(after - before),
-      `owner 2's stockpile moved by ${String(after - before)} over 6,000 ticks — it is frozen`,
-    ).toBeGreaterThan(200);
+      after.banked - before.banked,
+      `owner 2 banked ${String(after.banked - before.banked)} over 6,000 ticks `
+        + `(stockpile moved by ${String(after.stockpile - before.stockpile)}) — it is frozen`,
+    ).toBeGreaterThan(500);
   }, 300_000);
 
   it('gets EVERY owner out of the Dark Age on the boot map', () => {

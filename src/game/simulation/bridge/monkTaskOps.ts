@@ -16,7 +16,7 @@
 // factories; the shape is named (`MonkTaskDeps`) so readers can navigate it
 // in one jump.
 
-import { isMonasticUnit } from '../monasticUnits';
+import { canCarryRelics, isMonasticUnit } from '../monasticUnits';
 import type { EntityRef, Position } from 'civ-engine';
 
 import type {
@@ -37,6 +37,7 @@ import {
 } from './bridgeStateSerialize';
 import { isEnemyOwner } from '../alliances';
 import { readSightOwners } from './humanSight';
+import { relicHolder } from './relicGround';
 
 export interface MonkTaskDeps {
   world: GameWorld;
@@ -60,6 +61,10 @@ export interface MonkTaskDeps {
   ) => boolean;
   isAiMilitaryUnit: (unitType: UnitType) => boolean;
   isVisibleToOwner: (owner: number, x: number, y: number) => boolean;
+  /** The VisibilityMap's explored record: what the computer knows of relics. */
+  isExploredByOwner: (owner: number, x: number, y: number) => boolean;
+  /** transformOps' occupancy sync, for the relic a Monk picks up (work 128). */
+  syncOccupancyForEntity: (entity: number) => void;
   currentEntityId: (
     activeWorld: GameWorld,
     ref: EntityRef | undefined | null,
@@ -91,10 +96,18 @@ export interface MonkTaskOps {
       targetEntityId: number,
       options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
     ) => void,
+    /** Whether this Monk can walk to within its action range of the cell:
+     *  the planner's own answer, so no Monk is sent for a relic it cannot reach. */
+    canReachWithinMonkRange: (unitId: number, target: Position) => boolean,
+    canReachMonastery: (unitId: number, buildingId: number) => boolean,
   ): void;
   // Search helpers used by the AI monk task routing and save/load tests.
-  findNearestOwnedMonasteryToDeposit(owner: number, origin: Position): number | null;
-  findNearestVisibleNeutralRelic(owner: number, origin: Position): number | null;
+  findNearestOwnedMonasteryToDeposit(owner: number, origin: Position, canDeposit?: (buildingId: number) => boolean): number | null;
+  findNearestKnownNeutralRelic(
+    owner: number,
+    origin: Position,
+    canFetch?: (position: Position) => boolean,
+  ): number | null;
   findNearestWoundedFriendlyMilitary(owner: number, origin: Position): number | null;
   // Task-apply handlers invoked by `prototypeMonkBehavior` once the Monk is
   // within action range of its target.
@@ -138,6 +151,8 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     buildingOccupiesCell,
     isAiMilitaryUnit,
     isVisibleToOwner,
+    isExploredByOwner,
+    syncOccupancyForEntity,
     currentEntityId,
     unitTint,
     notePassabilityChange,
@@ -156,6 +171,8 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   function visitAiMonkTaskCandidates(
     owner: number,
     accept: (candidate: AiMonkTaskCandidate) => void,
+    canReachWithinMonkRange: (unitId: number, target: Position) => boolean,
+    canReachMonastery: (unitId: number, buildingId: number) => boolean,
   ): void {
     for (const monkId of world.query('unit')) {
       const unit = world.getComponent<UnitComponent>(monkId, 'unit');
@@ -175,19 +192,31 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       // Priority 1: deposit a carried relic.
       if (accessor.get(monkCarriedRelicCodec).has(monkId)) {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
-        const monasteryId = findNearestOwnedMonasteryToDeposit(owner, monkPosition);
+        const monasteryId = findNearestOwnedMonasteryToDeposit(owner, monkPosition, (buildingId) => (
+          canReachMonastery(monkId, buildingId)
+        ));
         if (monasteryId !== null) {
           accept({ monkId, kind: 'deposit', targetEntityId: monasteryId });
         }
         continue;
       }
 
-      // Priority 2: pick up the nearest visible neutral relic.
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
-      const relicId = findNearestVisibleNeutralRelic(owner, monkPosition);
-      if (relicId !== null) {
-        accept({ monkId, kind: 'pickup', targetEntityId: relicId });
-        continue;
+      // Priority 2: fetch the nearest neutral relic the seat knows of, on
+      // ground it has explored (monkAiSearchHelpers says why), that this Monk
+      // can walk to within reach of. A relic it cannot reach is passed over,
+      // not chosen and dropped every decision: one in a lake took the Monks
+      // off healing and every other relic for the rest of the match (work 128,
+      // review round 0). Current DE permits Monks and Missionaries to carry
+      // relics (update 169123), so either may fetch one before healing.
+      if (canCarryRelics(unit.unitType)) {
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define -- pre-existing; see defect register 2026-08-31
+        const relicId = findNearestKnownNeutralRelic(owner, monkPosition, (relicPosition) => (
+          canReachWithinMonkRange(monkId, relicPosition)
+        ));
+        if (relicId !== null) {
+          accept({ monkId, kind: 'pickup', targetEntityId: relicId });
+          continue;
+        }
       }
 
       // Priority 3: heal the nearest wounded friendly military unit.
@@ -206,31 +235,32 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       targetEntityId: number,
       options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
     ) => void,
+    canReachWithinMonkRange: (unitId: number, target: Position) => boolean,
+    canReachMonastery: (unitId: number, buildingId: number) => boolean,
   ): void {
     visitAiMonkTaskCandidates(owner, ({ monkId, kind, targetEntityId }) => {
       pushMonkContextAtEntityIntention(monkId, targetEntityId, {
         expectedOwner: owner,
         intendedTaskKind: kind,
       });
-    });
+    }, canReachWithinMonkRange, canReachMonastery);
   }
 
   // FU4 AI helper. Returns the nearest owned, completed Monastery to a
-  // Monk that needs to deposit a carried relic. Manhattan distance is
-  // good enough — the deposit walk uses the building-approach planner
-  // so the actual route is computed when the task is consumed. Returns
-  // null if the owner has no completed Monastery (the Monk waits with
-  // the relic until one is built).
+  // Monk that needs to deposit a carried relic, accepting only targets its
+  // building-approach planner can reach. An unreachable nearest Monastery
+  // must not prevent a carrier returning to another one. With none reachable
+  // the Monk waits with its relic until the route or the buildings change.
   const aiSearch = createMonkAiSearchHelpers({
     world,
     accessor,
     isAiMilitaryUnit,
-    isVisibleToOwner,
+    isExploredByOwner,
     aiMonkHealHpFraction,
   });
   const {
     findNearestOwnedMonasteryToDeposit,
-    findNearestVisibleNeutralRelic,
+    findNearestKnownNeutralRelic,
     findNearestWoundedFriendlyMilitary,
   } = aiSearch;
 
@@ -248,6 +278,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
     unitTint,
     clearMonkTask,
     notePassabilityChange,
+    syncOccupancyForEntity,
     monkHealTickInterval,
     monkHealHpPerInterval,
     monkConvertProgressPerTick,
@@ -348,7 +379,8 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
       if (!position || !resource || position.x !== x || position.y !== y) {
         continue;
       }
-      if (resource.resourceType === 'relic') {
+      // A relic in a Monk's hands is not on the ground (relicGround.ts).
+      if (resource.resourceType === 'relic' && relicHolder(accessor, id) === null) {
         return id;
       }
     }
@@ -373,7 +405,7 @@ export function createMonkTaskOps(deps: MonkTaskDeps): MonkTaskOps {
   return {
     pushAiMonkTaskIntentions,
     findNearestOwnedMonasteryToDeposit,
-    findNearestVisibleNeutralRelic,
+    findNearestKnownNeutralRelic,
     findNearestWoundedFriendlyMilitary,
     applyMonkHeal,
     applyMonkConvert,

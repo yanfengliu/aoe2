@@ -432,7 +432,7 @@ describe('AoE voxel terrain surface detail', () => {
 
     expect(terrainKeys).toEqual([]);
     expect(snapshot.batches.find((batch) => (
-      batch.key === 'aoe2:batch:water-animated-parts'
+      batch.key === 'aoe2:batch:terrain-water-animated-parts'
     ))?.instanceKeys).toEqual([]);
   });
 });

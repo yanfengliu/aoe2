@@ -13,6 +13,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import type { GathererComponent } from '../../src/game/simulation/types';
 import {
   placeBuildingNearTownCenter,
   selectOwnedUnitDirect,
@@ -84,6 +85,13 @@ describe('a gate built during the match', () => {
   // foundation would keep refusing the route after the gate opened. This is
   // the test for that bump: order the gather while the way is sealed, then
   // finish the gate and require the food to arrive anyway.
+  //
+  // Work 131 (spec §6.4): a human player's villager whose node cannot be
+  // reached, with nothing of its kind within reach of it, ends its order and
+  // stands idle, as DE's does — it no longer waits at the wall for the gate.
+  // So the player sends it again once the gate stands, and the route its cache
+  // wrote off must be taken then; without the bump the cache still says no
+  // path, the second order ends the same way, and no food arrives.
   it('reopens a route that was cached as unreachable while it was a foundation', () => {
     const bridge = createSimulationBridge('gate-built-in-match-fixture');
 
@@ -123,9 +131,21 @@ describe('a gate built during the match', () => {
     expect(sealedGate?.isComplete, 'the gate finished before the route was sealed').toBe(false);
     const foodWhileSealed = bridge.getEconomyState().playerResources[1]?.food ?? 0;
     expect(foodWhileSealed, 'the gatherer got through while the wall was sealed').toBe(0);
+    const gathererState = () => bridge.world.getComponent<GathererComponent>(gatherer!.id, 'gatherer');
+    expect(gathererState()?.task, 'the sealed-off gatherer did not give its order up').toBe('idle');
 
-    // Now let the builder finish. The gate opens for its owner, and the
-    // gatherer must take the route it had already written off.
+    // Now let the builder finish. The gate opens for its owner, the player
+    // sends the gatherer again, and it must take the route its cache had
+    // already written off.
+    expect(stepBridgeUntil(
+      bridge,
+      () => bridge.getEconomyState().buildings.some((building) => (
+        building.buildingType === 'stone-gate' && building.x === GATE_CELL.x && building.isComplete
+      )),
+      { maxSteps: 2000 },
+    ), 'the builder never finished the gate').toBe(true);
+    expect(bridge.selectEntityById(gatherer!.id)).toBe(true);
+    expect(bridge.issueContextCommandAtEntity(berries!.id)).toBe(true);
     const gathered = stepBridgeUntil(
       bridge,
       () => (bridge.getEconomyState().playerResources[1]?.food ?? 0) > foodWhileSealed,

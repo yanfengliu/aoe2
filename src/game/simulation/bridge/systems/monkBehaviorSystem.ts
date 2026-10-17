@@ -25,10 +25,13 @@ import { civMonkHealRangeMultiplier } from '../../civBuildingBonuses';
 import { monkFaithRegenPerTick, monkConvertRangeBonus } from '../../monasteryTechEffects';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import { MONK_FAITH_MAX } from '../bridgeConstants';
+import { relicHolder } from '../relicGround';
 
 type CivWorld = GameWorld;
 
-const MONK_ACTION_RANGE = 4;
+/** How near a Monk must come to heal, pick up or deposit; the AI asks a route
+ *  to within it before it sends a Monk for a relic (monkTaskOps). */
+export const MONK_ACTION_RANGE = 4;
 // Conversion reaches much farther than the hands-on actions (AoE2: 9 vs 4).
 const MONK_CONVERT_RANGE = 9;
 
@@ -157,6 +160,13 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
           continue;
         }
 
+        // A relic some Monk has picked up is no longer on the ground, so an
+        // errand for it ends rather than chasing the carrier (relicGround.ts).
+        if (task.kind === 'pickup' && relicHolder(accessor, targetId) !== null) {
+          deleteMonkTask(monkId);
+          continue;
+        }
+
         // A BUILDING target (deposit — or a Redemption building convert)
         // measures to the footprint and approaches with the building planner.
         const targetIsBuilding =
@@ -218,7 +228,8 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
 
       // Carried-relic follow: every Monk carrying a relic this tick moves the
       // relic entity to the Monk's current cell so the rendered position
-      // tracks.
+      // tracks. A relic in a Monk's hands claims no cell (transformOps, work
+      // 128), so the sync only moves it.
       const monkCarriedRelic = accessor.get(monkCarriedRelicCodec);
       let carriedDirty = false;
       for (const [monkId, relicId] of [...monkCarriedRelic.entries()]) {
@@ -227,6 +238,9 @@ export function registerMonkBehaviorSystem(deps: MonkBehaviorSystemDeps): void {
         if (!monkPosition || !relicPosition) {
           monkCarriedRelic.delete(monkId);
           carriedDirty = true;
+          // A Monk that left the map (into a building) lets the relic go: it
+          // lies where it was last carried and claims that cell again.
+          if (relicPosition) setPositionAndSyncOccupancy(relicId, relicPosition, activeWorld);
           continue;
         }
         if (relicPosition.x !== monkPosition.x || relicPosition.y !== monkPosition.y) {

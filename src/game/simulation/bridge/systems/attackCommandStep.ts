@@ -9,12 +9,14 @@ import type { EntityRef, Position } from 'civ-engine';
 type CivWorld = GameWorld;
 import type {
   BuildingComponent,
+  GathererComponent,
   ResourceComponent,
   UnitComponent,
 } from '../../types';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import type { UnitCommand } from '../sharedTypes';
 import {
+  aiStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
   playerAgesCodec,
@@ -38,6 +40,7 @@ import { unitMinAttackRange } from '../../prototypeUnitRules';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { RecordPlayerHit } from '../playerHitFeed';
 import { isHiddenUnstartedFoundation } from '../unstartedFoundations';
+import { isPlayerTaskedVillager } from '../gatherCarryOn';
 
 export interface AttackStepDeps {
   activeWorld: CivWorld;
@@ -67,6 +70,10 @@ export interface AttackStepDeps {
   destroyUnitEntity: (id: number) => void;
   killWildlifeEntity: (id: number) => void;
   destroyBuildingEntity: (id: number) => void;
+  /** A hunter whose animal is dead gathers its carcass: the gather order a
+   *  right-click gives (setUnitGatherCommandDirect), false for a unit that
+   *  cannot gather or an animal that left nothing to gather (work 131). */
+  gatherKilledAnimal: (unitId: number, resourceId: number) => boolean;
 }
 
 export function runAttackCommandStep(deps: AttackStepDeps): boolean {
@@ -79,7 +86,7 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
     beginTrebuchetUnpack,
     recordUnitAttack, recordPlayerHit, markOutOfBandRenderChange,
     ensurePlayerScoreCounters, destroyUnitEntity, killWildlifeEntity,
-    destroyBuildingEntity,
+    destroyBuildingEntity, gatherKilledAnimal,
   } = deps;
   {
 
@@ -193,7 +200,21 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
             const targetPosition = activeWorld.getComponent<Position>(targetId, 'position');
             const targetResource = activeWorld.getComponent<ResourceComponent>(targetId, 'resource');
             const targetWildlife = accessor.get(wildlifeStatesCodec).get(targetId);
+            // A hunter whose animal is dead gathers its carcass, as DE's do
+            // (spec §6.4). The computer's does so without the player's
+            // standing order: what it does after that is the computer's.
+            const gatherCarcass = (): boolean => {
+              if (!gatherKilledAnimal(id, targetId)) return false;
+              if (!isPlayerTaskedVillager(unit.owner, unit.unitType, accessor.get(aiStatesCodec).has(unit.owner))) {
+                const gatherer = activeWorld.getComponent<GathererComponent>(id, 'gatherer');
+                if (gatherer) gatherer.hasExplicitGatherOrder = false;
+              }
+              return true;
+            };
             if (!targetPosition || !targetResource || !targetWildlife?.isAlive) {
+              // Its animal died to someone else's blow — another hunter's, a
+              // Town Center's arrow. Anyone but a villager stands down.
+              if (!targetWildlife?.isAlive && gatherCarcass()) return true;
               clearUnitCommand(id);
               return true;
             }
@@ -254,7 +275,8 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
               animals,
               recordPlayerHit,
             });
-            if (animalDied) clearUnitCommand(id);
+            // The blow that killed it: the hunter gathers what it killed.
+            if (animalDied && !gatherCarcass()) clearUnitCommand(id);
             return true;
           }
 

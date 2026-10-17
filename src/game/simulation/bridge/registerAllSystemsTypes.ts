@@ -26,6 +26,7 @@ import type { MemoryEntry } from './memoryTypes';
 import type { BridgeState } from './bridgeState';
 import type { MonkTask } from './sharedTypes';
 import type { DropOffWalkFields } from './dropOffWalkField';
+import type { UnitRangeReach } from './unitRangeReach';
 import type { TargetScanIndex } from './targetScanIndex';
 
 type CivWorld = GameWorld;
@@ -42,11 +43,12 @@ export interface RegisterAllSystemsDeps {
   world: GameWorld;
   // Shift-queued entity orders (v0.3.141): fired when a gatherer idles in-pass.
   popQueuedEntityOrder: (unitId: number) => boolean;
+  /** Work 131: a hunter gathers the animal it killed — the right-click gather order. */
+  gatherKilledAnimal: (unitId: number, resourceId: number) => boolean;
   hasQueuedEntityOrders: (unitId: number) => boolean;
   systemMode?: 'live' | 'replay';
   humanPlayerId: number;
   visibility: VisibilityMap;
-  defaultRelicCountdownTicks: number;
   state: BridgeState;
   // Phase 2D — accessor for migrated slots. Threaded into systems that
   // mutate Tier-1 slots flowing through `world.state.aoe2.*`.
@@ -140,6 +142,8 @@ export interface RegisterAllSystemsDeps {
       targetEntityId: number,
       options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
     ) => void,
+    canReachWithinMonkRange: (unitId: number, target: Position) => boolean,
+    canReachMonastery: (unitId: number, buildingId: number) => boolean,
   ) => void;
   pushMonkContextAtEntityIntention: (
     monkId: number,
@@ -337,6 +341,9 @@ export interface RegisterAllSystemsDeps {
   /** The walk from every node to the owner's nearest drop-off of a kind —
    *  what gather assignment ranks by (dropOffWalkField.ts). */
   findDropOffWalkField: DropOffWalkFields['fieldFor'];
+  /** The range plan's answer, kept per unit cell and structural revision
+   *  (unitRangeReach.ts): the AI's relic search asks it (work 128). */
+  canUnitReachRange: UnitRangeReach;
   findWildlifeRangePlan: (
     entityId: number,
     target: Position,

@@ -242,6 +242,7 @@ export function registerCommandHandlers(
     setUnitAttackGroundCommandDirect: wipeThen(deps.setUnitAttackGroundCommandDirect),
   }));
   world.registerHandler('entity.delete', makeEntityDeleteHandler({
+    accessor: deps.accessor,
     destroyUnitEntity: deps.destroyUnitEntity,
     destroyBuildingEntity: deps.destroyBuildingEntity,
   }));

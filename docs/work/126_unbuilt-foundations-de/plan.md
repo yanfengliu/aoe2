@@ -1,9 +1,9 @@
 # Unbuilt foundations behave as in Definitive Edition
 
-Status: planned
+Status: active
 Owner: Coordinator worker w126-unbuilt-foundations (coordinator: AOE2 repo coordinator setup)
 Created: 2026-10-14
-Updated: 2026-10-14
+Updated: 2026-10-17
 
 ## Problem and outcome
 
@@ -63,9 +63,14 @@ Two milestones, each reproduced first, gated, independently reviewed and landed 
 
 ## Implementation steps
 
-- [ ] M1
-- [ ] M2
+- [x] M1 — reviewed branch implementation, historically recorded as `034481a3` (v0.3.258) on 2026-10-15; that revision is absent from current main's ancestry, so recovery integration is pending. The sources and the coordinator's rule choices are in [design.md](design.md).
+  - [x] Independent read-only review of `b4ca7f01`, round 0 (record `reviews/0_implementation.md`): one blocking finding (two seats' builders waiting on each other forever), four should-fix with five gate gaps, four nits and a second-seed census. All repaired or answered on the coordinator's rules, with 13 new mutations; the second seed showed the AI on another path and nothing stalled, so the census re-recorded in phase 1 stands.
+  - [x] Focused re-review of `491931c6`, round 1 (record `reviews/1_implementation.md`): nothing blocking, every round-0 repair confirmed. One should-fix, the builders' exception too wide (a villager passing through a pass was put on its far side), narrowed to a builder beside its own site, and three nits, all repaired.
+  - [x] Historical branch gate under the lock: `npm run verify` exited 0, and `node scripts/verify-receipt.mjs check` printed OK with Vitest 4,881 passed and 3 skipped and Playwright 267 passed and 2 skipped, the suites' own summaries. This does not certify the recovered integration tree.
+- [x] M2 implemented on 2026-10-17: a zero-progress foundation's voluntary Delete credits the current effective owner price, with no new save field. Tests first: five of eight cases red, then the final eleven refund cases green, including schema-1 load and exact recorded replay.
+- [x] Integration review IR1 repaired: footprint exits reserve animal cells and unit slots before any relocation. Six of seven new contention/capacity cases turn red with the old planner restored.
+- [ ] Independent review of M2 and IR1 on the combined tree; all relevant placement/AI checks, final self-play census, full gate and receipt; merge main, push, remote verification and worktree cleanup.
 
 ## Outcome
 
-Pending.
+M1's historical record names `034481a3` (v0.3.258) and two independent review rounds (`reviews/0_implementation.md`, `reviews/1_implementation.md`); current main `af328ae6` does not contain it. The recovered branch implementation is pending the integration owner's final acceptance. M2's current-price Delete refund and IR1's atomic exit occupancy reservations are implemented and pass three focused files with 47 cases, TypeScript and scoped eslint. The original dirty corrections from `59980f93` to `034481a3` in this plan and the detailed devlog are preserved as provenance. [Recovery evidence, source bounds and canonical record proposals](snapshots/recovery-2026-10-17.md) distinguish current checks from the historical gate. No main merge or shipping claim is made by this recovery worker.

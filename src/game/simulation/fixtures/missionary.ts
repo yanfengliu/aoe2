@@ -7,9 +7,8 @@ import { createGrassFixtureTerrain, gaiaSpawn, ownedSpawn } from './common';
 
 /**
  * A Spanish Monastery with everything a Missionary test needs in reach: an
- * enemy militia to convert, and a relic on the ground it must REFUSE to pick
- * up — the horse is the whole difference from a Monk, and both halves of it
- * (rides faster, carries nothing) want the same stage.
+ * enemy militia to convert and a relic on the ground. DE update 169123 lets
+ * Missionaries transport relics, with a slower base speed while carrying.
  */
 export function createMissionaryFixture(seed: string): PrototypeScenario {
   return {

@@ -44,6 +44,7 @@ import type { InstanceBatchV1, MaterialResourceV1, RenderSnapshotV1 } from 'voxe
 
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
 import { AoeVoxelAdapter } from '../../src/rendering/voxel/aoeVoxelAdapter';
+import { STANDING_BATCH_COUNT } from '../../src/rendering/voxel/aoeVoxelLaneBatches';
 import { occlusionSilhouetteTint } from '../../src/rendering/voxel/aoeVoxelOcclusionSilhouettes';
 import { VOXEL_COLORS } from '../../src/rendering/voxel/aoeVoxelRecipeTypes';
 
@@ -208,11 +209,11 @@ describe('a hidden unit is drawn as a see-through cue, not a solid figure', () =
   });
 
   it('costs no extra instance batch', () => {
-    // Nine is what the snapshot declares and what the browser occlusion proof
-    // holds; buying opacity with a tenth lane would break both.
+    // The snapshot carries exactly its standing lanes (aoeVoxelLaneBatches.ts) and the browser occlusion proof
+    // holds that count; buying opacity with a lane of its own would break both.
     const snapshot = snapshotWithHiddenVillager();
-    expect(snapshot.batches.length).toBeLessThanOrEqual(9);
-    expect(snapshot.descriptor.limits.maxBatches).toBe(9);
+    expect(snapshot.batches.length).toBe(STANDING_BATCH_COUNT);
+    expect(snapshot.descriptor.limits.maxBatches).toBeGreaterThanOrEqual(STANDING_BATCH_COUNT);
   });
 
   it('lays every pass of a part in exactly the same place and colour', () => {

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { canCarryRelics, isMonasticUnit } from '../../src/game/simulation/monasticUnits';
-import { monkCarriedRelicCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import { monkCarriedRelicCodec, relicsInMonasteryCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import { MISSIONARY_CARRIED_RELIC_SEED } from '../../src/game/simulation/fixtures/monkRelics';
 import { asSchema2Blob, worldStateOf } from './saveBlobTestUtils';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { trainingCost, trainingTimeTicks } from '../../src/game/simulation/prototypeEconomyRules';
@@ -14,8 +15,9 @@ import {
 } from './createSimulationBridge.helpers';
 
 // The Spanish Missionary (units.csv): a monk on horseback — HP 30, speed 1.1,
-// 100 gold at the Monastery — that heals, converts and rests like a Monk but
-// CANNOT carry relics. The last implementable unit of the roster.
+// 30 food and 100 gold at the Monastery. DE update 169123 (2026-02-17)
+// permits carrying relics, at base speed 0.9 while carrying and 1.1 otherwise.
+// https://www.ageofempires.com/news/age-of-empires-ii-definitive-edition-update-169123/
 
 describe('the Missionary — data', () => {
   it('costs what units.csv says and belongs to the monastic line', () => {
@@ -36,9 +38,10 @@ describe('the Missionary — data', () => {
       .toBeGreaterThan(movementSpeedPercent(none, 'missionary', undefined, 'dark-age'));
   });
 
-  it('cannot carry relics — the monk can', () => {
+  it('carries relics as the Monk does since DE update 169123', () => {
     expect(canCarryRelics('monk')).toBe(true);
-    expect(canCarryRelics('missionary')).toBe(false);
+    expect(canCarryRelics('missionary')).toBe(true);
+    expect(canCarryRelics('knight')).toBe(false);
   });
 });
 
@@ -80,15 +83,8 @@ describe('the Missionary in a real match', () => {
     )).toBe(true);
   }, 90_000);
 
-  it('refuses to pick up a relic', () => {
-    const bridge = createSimulationBridge('missionary-fixture');
-    expect(selectOwnedBuildingDirect(bridge, 1, 'monastery')).toBe(true);
-    expect(bridge.queueTrainUnit('missionary')).toBe(true);
-    expect(stepBridgeUntil(
-      bridge,
-      () => bridge.getEconomyState().units.some((unit) => unit.unitType === 'missionary'),
-      { maxSteps: 700 },
-    )).toBe(true);
+  it('picks up a relic and carries it to its Monastery through the player controls', () => {
+    const bridge = createSimulationBridge(MISSIONARY_CARRIED_RELIC_SEED);
     const missionary = bridge.getEconomyState().units.find(
       (unit) => unit.unitType === 'missionary',
     )!;
@@ -96,17 +92,17 @@ describe('the Missionary in a real match', () => {
       (resource) => resource.resourceType === 'relic',
     );
     expect(relic, 'the fixture should ground a relic').toBeDefined();
-    const relicHome = { x: relic!.x, y: relic!.y };
     expect(bridge.selectEntityById(missionary.id)).toBe(true);
-    bridge.issueContextCommandAtEntity(relic!.id);
-    for (let step = 0; step < 600; step += 1) bridge.step(100);
-    // A PICKED-UP relic stays alive and rides its carrier, so "still exists"
-    // proves nothing. The refusal is: nobody carries it, and it never moved.
+    expect(bridge.issueContextCommandAtEntity(relic!.id)).toBe(true);
+    expect(stepBridgeUntil(bridge, () => (
+      monkCarriedRelicCodec.deserialize(bridge.world.getState(monkCarriedRelicCodec.slot) as Array<[number, number]> | undefined)
+        .get(missionary.id) === relic!.id
+    ), { maxSteps: 100 })).toBe(true);
+    const monastery = bridge.getEconomyState().buildings.find((building) => building.owner === 1 && building.buildingType === 'monastery')!;
+    expect(bridge.issueContextCommandAtEntity(monastery.id)).toBe(true);
+    expect(stepBridgeUntil(bridge, () => !bridge.getEconomyState().resources.some((resource) => resource.id === relic!.id), { maxSteps: 900 })).toBe(true);
     const blob = asSchema2Blob(bridge.saveGame());
     expect(worldStateOf(blob)[monkCarriedRelicCodec.slot] ?? []).toEqual([]);
-    const grounded = bridge.getEconomyState().resources.find(
-      (resource) => resource.id === relic!.id,
-    );
-    expect(grounded).toMatchObject(relicHome);
+    expect(relicsInMonasteryCodec.deserialize(worldStateOf(blob)[relicsInMonasteryCodec.slot] as Array<[number, number]> | undefined).get(monastery.id)).toBe(1);
   }, 60_000);
 });

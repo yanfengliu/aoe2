@@ -19,7 +19,10 @@ import type {
 } from '../../types';
 import type { GameWorld } from '../pureHelpers';
 import { unitVisionRadius } from '../../prototypeUnitRules';
-import { resourceKindToEconomyResource } from '../../prototypeEconomyRules';
+import { canGatherResource, resourceKindToEconomyResource } from '../../prototypeEconomyRules';
+import { canGathererHarvest } from '../../gatherDomain';
+import { isShoreFish } from '../../shoreFishing';
+import { setResourceOccupation } from '../../resourceWorkerCounts';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
 import { playerCivilizationsCodec, playerTeamsCodec,
   inFlightTechByOwnerCodec,
@@ -30,20 +33,22 @@ import { playerCivilizationsCodec, playerTeamsCodec,
 } from '../bridgeStateSerialize';
 
 // AoE2 rally-on-resource: if a harvestable resource sits on the rally cell,
-// return its economy kind so a freshly-trained villager can auto-gather it.
+// return it and its economy kind so a freshly-trained villager can gather it.
 // Fog-agnostic on purpose — a deterministic system must not depend on
 // per-player visibility, and the human sets the rally on a cell they can see,
 // so a resource there is real. Uses the canonical `isHarvestableResource`
-// predicate (not merely amount > 0) so a LIVE boar/sheep (huntable wildlife
-// maps to 'food' but cannot be gathered until killed) and relics are NOT
+// predicate (not merely amount > 0) so live boars/wolves and relics are NOT
 // treated as gatherable — rallying onto those falls through to a plain MOVE
 // instead of handing the villager a generic food intent that sends it off to
 // some other node.
-function rallyResourceKind(
+function rallyResource(
   world: GameWorld,
   position: Position,
+  owner: number,
+  unitType: TrainableUnitType,
   isHarvestableResource: (resourceId: number, resource: ResourceComponent) => boolean,
-): EconomyResourceKind | null {
+  isLandCell: (x: number, y: number) => boolean,
+): { id: number; kind: EconomyResourceKind } | null {
   for (const id of world.query('position', 'resource')) {
     const resourcePosition = world.getComponent<Position>(id, 'position');
     if (
@@ -55,7 +60,14 @@ function rallyResourceKind(
     }
     const resource = world.getComponent<ResourceComponent>(id, 'resource');
     if (!resource || !isHarvestableResource(id, resource)) continue;
-    return resourceKindToEconomyResource(resource.resourceType);
+    // Exact-node assignment keeps the same eligibility as ordinary gathering:
+    // another player's Farm is owner-only, and deep fish need a water unit.
+    if (!canGatherResource(owner, world.getComponent<BuildingComponent>(id, 'building') !== undefined, resource.baseOwner)) continue;
+    if (!canGathererHarvest(unitType, resource.resourceType, {
+      onShore: resource.resourceType === 'fish' && isShoreFish(resourcePosition, isLandCell),
+    })) continue;
+    const kind = resourceKindToEconomyResource(resource.resourceType);
+    return kind === null ? null : { id, kind };
   }
   return null;
 }
@@ -80,6 +92,7 @@ export interface ProductionQueueSystemDeps {
   ) => number;
   issueUnitMoveCommand: (unitId: number, target: Position) => boolean;
   isHarvestableResource: (resourceId: number, resource: ResourceComponent) => boolean;
+  isLandCell: (x: number, y: number) => boolean;
   applyTechnology: (owner: number, technologyType: ResearchableTechnologyType) => void;
 }
 
@@ -106,6 +119,7 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
     addUnitEntity,
     issueUnitMoveCommand,
     isHarvestableResource,
+    isLandCell,
     applyTechnology,
   } = deps;
 
@@ -209,25 +223,25 @@ export function registerProductionQueueSystem(deps: ProductionQueueSystemDeps): 
           const rallyPoint = accessor.get(rallyPointsCodec).get(buildingId);
           if (rallyPoint) {
             // AoE2 rally-on-resource: a villager rallied onto a harvestable
-            // resource auto-gathers it instead of idling at the rally cell.
-            // Set the gather INTENT (desiredResource + the explicit-order
-            // flag) and let prototypeVillagerEconomy route it to the nearest
-            // matching resource — human villagers are auto-assigned only when
-            // hasExplicitGatherOrder is set (shouldMaintainGatheringOrder),
-            // which is exactly why an un-tasked new villager would otherwise
-            // stand idle. Direct mutation only (no mid-system submitWithResult)
-            // to preserve determinism, matching the issueUnitMoveCommand note.
-            const gatherKind = entry.unitType === 'villager'
-              ? rallyResourceKind(world, rallyPoint, isHarvestableResource)
+            // resource gathers it instead of idling at the rally cell — THAT
+            // node, as DE's does, and from it the carry-on of any gatherer
+            // (gatherCarryOn.ts). Until work 131 it took only the node's kind
+            // and was routed to whatever node of the kind ranked best.
+            // Direct mutation only (no mid-system submitWithResult) to
+            // preserve determinism, matching the issueUnitMoveCommand note.
+            const rallied = entry.unitType === 'villager'
+              ? rallyResource(world, rallyPoint, building.owner, entry.unitType, isHarvestableResource, isLandCell)
               : null;
-            const gatherer = gatherKind === null
+            const gatherer = rallied === null
               ? null
               : world.getComponent<GathererComponent>(unitId, 'gatherer');
-            if (gatherKind !== null && gatherer) {
-              gatherer.desiredResource = gatherKind;
+            if (rallied !== null && gatherer) {
+              gatherer.desiredResource = rallied.kind;
               gatherer.hasExplicitGatherOrder = true;
-              gatherer.task = 'idle';
-              gatherer.targetResourceId = null;
+              gatherer.task = 'to-resource';
+              gatherer.targetResourceId = rallied.id;
+              gatherer.gatherProgressTicks = 0;
+              setResourceOccupation(world, unitId, rallied.kind);
             } else {
               issueUnitMoveCommand(unitId, rallyPoint);
             }

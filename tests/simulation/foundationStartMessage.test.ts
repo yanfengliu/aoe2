@@ -92,11 +92,11 @@ function makeSite(options: { gold: boolean }) {
     tiles,
     accessor,
   });
-  return { world, accessor, passability, site };
+  return { world, accessor, occupancy, passability, site };
 }
 
 function cancelMessage(gold: boolean, isCellSeen: (x: number, y: number) => boolean) {
-  const { world, accessor, passability, site } = makeSite({ gold });
+  const { world, accessor, occupancy, passability, site } = makeSite({ gold });
   const messages: string[] = [];
   const destroyed: number[] = [];
   const start = createFoundationStart({
@@ -105,13 +105,17 @@ function cancelMessage(gold: boolean, isCellSeen: (x: number, y: number) => bool
     humanPlayerId: 1,
     isPlacementBlocked: passability.isPlacementBlocked,
     describePlacementBlockers: passability.describePlacementBlockers,
+    getCellStatus: (x, y) => occupancy.getCellStatus(x, y),
     isCellSeen: (owner, x, y) => owner === 1 && isCellSeen(x, y),
     isEntityDrawn: () => true,
+    // Nobody stands on the site here (work 126 has its own cases).
+    clearing: { occupantsOf: () => ({ units: [], animals: [] }), moveOff: () => true },
+    syncBuildingClaim: () => {},
     enqueueRejection: (message) => messages.push(message),
   });
-  const allowed = start.mayBegin(site, (id) => destroyed.push(id));
+  const verdict = start.tryBegin(site, (id) => destroyed.push(id));
   return {
-    allowed,
+    verdict,
     destroyed,
     message: messages.join(' | '),
     wood: accessor.get(playerResourcesCodec).get(1)?.wood,
@@ -123,7 +127,7 @@ describe('the start check\'s message names only what the player sees (work 122)'
   it('a hidden cell the player still cannot see is not named, kind or place', () => {
     // The builder at the north-west corner sees all but the far row and column.
     const result = cancelMessage(false, (x, y) => x < HIDDEN_WATER.x && y < HIDDEN_WATER.y);
-    expect(result.allowed).toBe(false);
+    expect(result.verdict).toBe('cancelled');
     expect(result.destroyed).toEqual([result.site]);
     expect(result.wood, 'the Barracks was not refunded').toBe(175);
     expect(result.message).toContain('Your barracks at (4,4) was cancelled');
@@ -134,7 +138,7 @@ describe('the start check\'s message names only what the player sees (work 122)'
 
   it('a hidden cell the player now sees is named, kind and place', () => {
     const result = cancelMessage(false, () => true);
-    expect(result.allowed).toBe(false);
+    expect(result.verdict).toBe('cancelled');
     expect(result.message).toContain(`its builders found water at (${HIDDEN_WATER.x},${HIDDEN_WATER.y}), hidden under the fog of war`);
   });
 

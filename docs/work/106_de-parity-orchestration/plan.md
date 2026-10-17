@@ -3,7 +3,11 @@
 Status: active
 Owner: Claude coordinator, from Codex orchestrator (/root) on 2026-10-14 under the owner's direction of 2026-10-11
 Created: 2026-09-30
-Updated: 2026-10-15
+Updated: 2026-10-17
+
+## Current branch integration checkpoint, 2026-10-17
+
+Work 133 integrates performance M1/B, gatherer continuation, known reachable relic collection and current-DE Missionary transport, walkable foundations with safe start/refund behavior, and player-count victory clocks. Independent reviews resolve three foundation/rally findings and accept the measured combined census snapshot. Owner 2's lost Workshop-research sample is explained by existing advisory purchase batching; thirteen exact coverage set differences are retained in work 133's census diagnosis, without a broad AI-improvement claim. Six actual control flows pass. Full post-repair verification and main publication remain pending. The stronger software-frame target and broader DE parity stay open; current installed engine is 2.6.1. Historical checkpoints below retain their original time bounds.
 
 ## Problem and outcome
 
@@ -16,6 +20,8 @@ Work 106 is the first bounded milestone: correct damage families, projectile acc
 2026-10-02 documentation acceptance: root inspected this bounded publication and verified both promoted authored bodies byte-for-byte. Maintained work-document content/attribute validation passed114 units. A fresh independent review of the publication itself was unavailable after thread-limit dispatch failures; the two original independent investigations remain complete and separately attributed. This docs-only checkpoint adds no executable verification or runtime budget.
 
 **Update 2026-10-15 (work 129 M1).** Works 109, 110 and 111 are complete: their sources are on main (`0d290ab5`, `9848ec2d`, `06efe6c0`, `aaf59f33`), the two timeouts that kept CI red after them were fixed by work 123, and main's CI is GREEN on eight consecutive runs (latest `83b6ffa3`) with the playtest corpus GREEN on 20+. Work 98 (the concurrency review) is closed and its thread is in `docs/threads/done/`. Five of the ten Codex checkouts are retired through the controller (`replay-parity-1001`, `corpus-evidence-1001`, `engine-coverage-adoption-1001`, `replay-parity-250`, `siege-content-1001`), which settles the 2026-10-01 cleanup defect about the dirty `corpus-evidence-1001` below; the other five wait for [work 129](../129_codex-lane-retirement/plan.md) M2. The dated paragraphs and rows below keep their own dates.
+
+**Update 2026-10-17 (work 133, integration pending).** The owner authorized finishing performance, gatherer, AI, foundation and countdown branches. Their preserved histories and recovery overlays are combined for final review and gates. Current DE comparison corrected Missionary carrying and records approximation bounds; an ignored visual gallery provides informational milestone updates. The combined 45,000-tick lab found owner 2’s Siege Workshop researching nothing, so its producer invariant remains a blocker, not a census refresh. The stronger software late/opening target remains open. Main is still af328ae6 until acceptance. This bounded recovery does not close the remaining full-DE queue.
 
 ## Scope
 

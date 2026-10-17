@@ -124,8 +124,9 @@ export function createMatchResultOverlay(
       // next result announces itself even if the last one was dismissed.
       renderedKey = null;
       dismissed = false;
-      root.hidden = true;
-      root.innerHTML = '';
+      // Every frame of a running match comes here, so it writes only what differs (hudDomWrites.ts says why).
+      if (!root.hidden) root.hidden = true;
+      if (root.firstChild) root.replaceChildren();
       return;
     }
     const key = `${matchState.outcome}|${String(matchState.winCondition)}|${matchState.summary}`;
@@ -139,7 +140,7 @@ export function createMatchResultOverlay(
         ?.focus({ preventScroll: true });
       return;
     }
-    root.hidden = dismissed;
+    if (root.hidden !== dismissed) root.hidden = dismissed;
   }
 
   return {

@@ -17,6 +17,7 @@ import type {
 } from '../../types';
 import type { GameWorld } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
+import type { UnitRangeReach } from '../unitRangeReach';
 import type { MonkTask, UnitCommand } from '../sharedTypes';
 import type { AiState } from '../../ai';
 
@@ -63,6 +64,11 @@ export interface AiSystemDeps {
     activeWorld?: CivWorld,
     nearestFirst?: boolean,
   ) => UnitMovementPlan | null;
+  /** Can this unit walk to within `range` of that cell? The range plan's own
+   *  answer, the one `monkBehaviorSystem` walks a Monk's pickup by, kept per
+   *  unit cell and structural revision (unitRangeReach.ts), so the AI never
+   *  sends a Monk for a relic it cannot reach (work 128). */
+  canUnitReachRange: UnitRangeReach;
   pickWatchTowerPlacement: (
     townCenterPosition: Position,
     enemyPosition: Position,
@@ -122,6 +128,8 @@ export interface AiSystemDeps {
   pushAiMonkTaskIntentions: (
     owner: number,
     pushMonkContextAtEntityIntention: PushMonkContextAtEntityIntention,
+    canReachWithinMonkRange: (unitId: number, target: Position) => boolean,
+    canReachMonastery: (unitId: number, buildingId: number) => boolean,
   ) => void;
   pushMonkContextAtEntityIntention: PushMonkContextAtEntityIntention;
   findPreferredVisibleEnemyUnit: (owner: number, position: Position, minimumRange?: number) => number | null;

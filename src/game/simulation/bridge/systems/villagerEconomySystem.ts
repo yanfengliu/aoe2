@@ -7,21 +7,16 @@
 
 import { runDropOffStep } from './dropOffStep';
 import { runToResourceStep } from './toResourceStep';
+import { runGatheringStep } from './gatheringStep';
 import { assignIdleGatherer } from '../idleGatherAssignment';
 import type { Position } from 'civ-engine';
 import type {
   GathererComponent,
-  ResearchableTechnologyType,
   ResourceComponent,
   UnitComponent, EconomyResourceKind,
 } from '../../types';
 import { type GameWorld } from '../pureHelpers';
 import { gathersResources } from '../../unitDomain';
-import {
-  gatherAmountFor,
-  gatherTicksFor,
-  resourceKindToEconomyResource,
-} from '../../prototypeEconomyRules';
 import {
   assignNearestResource,
   type AssignmentOutcome,
@@ -29,26 +24,20 @@ import {
   type GatherAssignmentDeps,
 } from '../villagerGatherAssignment';
 import { createEnemyDefenceLookup } from '../enemyDefenceRange';
-import { retargetOutOfEnemyDefence } from '../enemyDefenceRetarget';
 import {
   type DropOffAssignmentDeps,
 } from '../villagerDropOffAssignment';
 import {
-  effectiveCarryCapacity,
-  heavyPlowFarmCarryBonus,
-  gatherRateMultiplierForKind,
-} from '../../economyTechEffects';
-import { civCarryBonus, civFishingShipRateMultiplier,
-  civGatherRateMultiplier, civResourceDurationMultiplier } from '../../civBonusEffects';
-import { tryReseedFarm } from '../farmReseed';
-import { payGatherSwing } from './gatherCredit';
+  carryOnFromUnworkable,
+  isPlayerTaskedVillager,
+  resumePlayerGatherOrder,
+} from '../gatherCarryOn';
 import {
   aiStatesCodec,
   gathererDropOffStuckSinceTickCodec,
   playerCivilizationsCodec,
   researchedTechnologiesCodec,
   unitCommandsCodec,
-  playerAgesCodec,
 } from '../bridgeStateSerialize';
 import type { UnitMovementPlan } from '../movementTypes';
 
@@ -63,10 +52,6 @@ type CivWorld = GameWorld;
 // clustering is below this, so its tuned economy is unchanged (a cap of 2
 // here over-spread the AI and broke its age-up; 4 clears normal clustering).
 export const IDLE_ASSIGN_SPREAD_CAP = 4;
-
-// Stable empty-set sentinel for owners with no researched techs, so the
-// per-gather-tick gatherRateMultiplierForKind lookup never allocates.
-const NO_RESEARCHED_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set();
 
 interface PlayerScoreCountersLike {
   resourcesGathered: number;
@@ -259,7 +244,20 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
           continue;
         }
 
-        if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer, aiStates.has(unit.owner))) {
+        // The human player's villager is re-tasked by the player alone: between
+        // trips it goes back to its node, and the carry-on (gatherCarryOn.ts)
+        // is all it does by itself. The computer's are re-tasked at once.
+        const playerTasked = isPlayerTaskedVillager(unit.owner, unit.unitType, aiStates.has(unit.owner));
+        const maintainIdle = (): void => {
+          if (gatherer.task !== 'idle' || !shouldMaintainGatheringOrder(unit.owner, gatherer, aiStates.has(unit.owner))) {
+            return;
+          }
+          if (playerTasked) {
+            resumePlayerGatherOrder(
+              assignmentDeps, activeWorld, id, unit.owner, gatherer, gatherTargetCounts, IDLE_ASSIGN_SPREAD_CAP,
+            );
+            return;
+          }
           assignIdleGatherer(gatherer, (safeOnly) => (
             assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
               preferUnsaturated: true,
@@ -267,7 +265,8 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
               requireSafe: safeOnly,
             })
           ));
-        }
+        };
+        maintainIdle();
         if (gatherer.task === 'idle') {
           popQueuedEntityOrder(id);
         }
@@ -287,145 +286,20 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             moveUnitOneSubgridStep,
             assignResource,
             enemyStaticDefences,
+            playerCarryOn: playerTasked
+              ? (from, spreadCap) => carryOnFromUnworkable(assignmentDeps, activeWorld, id, unit.owner, gatherer, from, gatherTargetCounts, spreadCap)
+              : null,
           });
         }
 
-        if (gatherer.task === 'gathering') {
-          if (gatherer.targetResourceId === null) {
-            gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
-            endExplicitOrderIfChained(id, gatherer);
-          } else {
-            const targetPosition = activeWorld.getComponent<Position>(
-              gatherer.targetResourceId,
-              'position',
-            );
-            // A node that came under enemy arrows since this villager
-            // started on it — a tower or Castle completed beside it — is
-            // left for a safe one now, not after the load that would get
-            // it killed. Any partial carry goes home with it.
-            if (targetPosition && retargetOutOfEnemyDefence({
-              activeWorld, id, owner: unit.owner, gatherer, gatherTargetCounts,
-              targetPosition, enemyDefences: enemyStaticDefences(activeWorld, unit.owner),
-              spreadCap: IDLE_ASSIGN_SPREAD_CAP, assignResource,
-            })) {
-              continue;
-            }
-            const targetResource = activeWorld.getComponent<ResourceComponent>(
-              gatherer.targetResourceId,
-              'resource',
-            );
-            const resourceApproachPlan = findResourceApproachPlan(
-              id,
-              gatherer.targetResourceId,
-              activeWorld,
-            );
-
-            if (
-              !targetPosition
-              || !targetResource
-              || !isHarvestableResource(gatherer.targetResourceId, targetResource)
-              || !resourceApproachPlan
-              || !isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)
-            ) {
-              gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
-              gatherer.targetResourceId = null;
-              gatherer.gatherProgressTicks = 0;
-              endExplicitOrderIfChained(id, gatherer);
-            } else {
-              // Rate accumulation: add the owner's gather-rate multiplier each
-              // tick and complete a gather cycle when it crosses the base
-              // cadence, carrying the remainder so stacked gather-rate techs
-              // raise throughput faithfully even at tiny base cadences
-              // (mirrors ticksToGatherCarry).
-              const ownerTechs =
-                researchedTechnologies.get(unit.owner) ?? NO_RESEARCHED_TECHS;
-              // Tech gather-rate × civ gather bonus (Britons shepherds +25% on
-              // sheep). Both DERIVED from persisted per-owner state; a non-bonus
-              // civ multiplies by 1 so every other owner is byte-identical.
-              gatherer.gatherProgressTicks += gatherRateMultiplierForKind(
-                ownerTechs,
-                targetResource.resourceType,
-              ) * civGatherRateMultiplier(
-                playerCivilizations.get(unit.owner),
-                targetResource.resourceType,
-              ) * civFishingShipRateMultiplier(
-                playerCivilizations.get(unit.owner),
-                unit.unitType,
-                accessor.get(playerAgesCodec).get(unit.owner) ?? 'dark-age',
-              );
-              const cycleGatherTicks = gatherTicksFor(targetResource.resourceType);
-              if (gatherer.gatherProgressTicks >= cycleGatherTicks) {
-                gatherer.gatherProgressTicks -= cycleGatherTicks;
-                const carriedResource = resourceKindToEconomyResource(targetResource.resourceType);
-                if (carriedResource === null) {
-                  gatherer.task = 'idle';
-                  gatherer.targetResourceId = null;
-                  continue;
-                }
-                // Carry techs (Wheelbarrow / Hand Cart) multiply; civilization
-                // carry bonuses (Aztecs +3, Goth hunters +15) add to the BASE
-                // first, AoE2's own order.
-                const carryCapacity = effectiveCarryCapacity(
-                  ownerTechs,
-                  gatherer.carryCapacity
-                    + civCarryBonus(playerCivilizations.get(unit.owner), targetResource.resourceType)
-                    // Heavy Plow's "+1 food" carry clause, farms only.
-                    + heavyPlowFarmCarryBonus(ownerTechs, targetResource.resourceType),
-                );
-                // "Resources last longer" (Mayans, Goth hunted animals): the
-                // swing yields a full load and the node loses the load divided
-                // by the bonus, so a node yields its amount times the bonus.
-                // The swing that takes the last of that yield empties the node;
-                // capping it at the bare amount instead left a node below one
-                // swing losing a fixed fraction per swing, and a Mayan villager
-                // stood at an empty bush for twenty minutes (until v0.3.248).
-                const duration = civResourceDurationMultiplier(
-                  playerCivilizations.get(unit.owner),
-                  targetResource.resourceType,
-                );
-                const yieldLeft = targetResource.amount * duration;
-                // Never below 0: hands fuller than this resource's carry (11
-                // food from a Heavy Plow farm, sent to a 10-food bush) took a
-                // negative swing that grew the node (work 120 M4 review).
-                const gatherAmount = Math.max(0, Math.min(
-                  gatherAmountFor(targetResource.resourceType),
-                  yieldLeft,
-                  carryCapacity - gatherer.carriedAmount,
-                ));
-                targetResource.amount = gatherAmount >= yieldLeft
-                  ? 0
-                  : targetResource.amount - gatherAmount / duration;
-                // A Khmer farmer pays its food in where it stands, and a
-                // Portuguese forager earns wood beside its food (gatherCredit.ts).
-                if (!payGatherSwing(creditDeps, unit.owner, gatherer, targetResource.resourceType, gatherAmount)) {
-                  gatherer.carriedResource = carriedResource;
-                  gatherer.carriedAmount += gatherAmount;
-                }
-
-                // Capture depletion BEFORE a reseed refills `amount` (so the
-                // villager still drops off its carry this cycle either way).
-                // M1 Farms (slice 2): a depleted FARM whose owner affords the
-                // 60-wood reseed is refilled in place (same entity, target kept)
-                // so gathering continues; everything else is removed as before.
-                const depleted = targetResource.amount <= 0;
-                const depletedId = gatherer.targetResourceId; // non-null here
-                if (depleted && !tryReseedFarm(activeWorld, accessor, depletedId, targetResource)) {
-                  gatherer.targetResourceId = null;
-                  destroyResourceEntity(depletedId);
-                  // Only a target that actually ENDED ends the order — a farm
-                  // reseeded in place keeps both the flag and the farmer.
-                  endExplicitOrderIfChained(id, gatherer);
-                }
-                if (gatherer.carriedAmount <= 0) {
-                  // Empty hands (a Khmer farmer's) take nothing home: it farms a
-                  // reseeded Farm on, and looks for work when its Farm is gone.
-                  if (gatherer.targetResourceId === null) gatherer.task = 'idle';
-                } else if (depleted || gatherer.carriedAmount >= carryCapacity) {
-                  gatherer.task = 'to-dropoff';
-                }
-              }
-            }
-          }
+        if (gatherer.task === 'gathering' && runGatheringStep({
+          activeWorld, accessor, id, unit, gatherer, playerTasked, gatherTargetCounts,
+          spreadCap: IDLE_ASSIGN_SPREAD_CAP, researchedTechnologies, playerCivilizations, creditDeps,
+          carryOnDeps: assignmentDeps, enemyStaticDefences, assignResource,
+          findResourceApproachPlan, isHarvestableResource, isUnitAtTarget,
+          destroyResourceEntity, endExplicitOrderIfChained, hasQueuedEntityOrders,
+        }) === 'skip') {
+          continue;
         }
 
         if (gatherer.task === 'to-dropoff') {
@@ -459,16 +333,9 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
         // on every delivery. That was ALL NINE of the deaths still inside
         // enemy reach on the boot map at 45,000 ticks (t=38,793-39,191, every
         // one `desired=gold`, target a mine three cells from owner 1's Town
-        // Centre). It takes the same walk as the first site now.
-        if (gatherer.task === 'idle' && shouldMaintainGatheringOrder(unit.owner, gatherer, aiStates.has(unit.owner))) {
-          assignIdleGatherer(gatherer, (safeOnly) => (
-            assignResource(activeWorld, id, gatherer, unit.owner, gatherTargetCounts, {
-              preferUnsaturated: true,
-              spreadCap: IDLE_ASSIGN_SPREAD_CAP,
-              requireSafe: safeOnly,
-            })
-          ));
-        }
+        // Centre). It takes the same walk as the first site now. The human
+        // player's villager goes back to the node it carried the load from.
+        maintainIdle();
         if (gatherer.task === 'idle') {
           popQueuedEntityOrder(id);
         }

@@ -41,10 +41,8 @@ export function deriveCap(rawSupply: number, hardCap: number = POP_HARD_CAP): nu
   return Math.min(hardCap, Math.max(0, rawSupply));
 }
 
-export const WONDER_COUNTDOWN_TICKS = 2000;
-// Slice 8: Relic victory requires holding every relic on the map in one
-// player's Monasteries for the full countdown. Mirrors Wonder countdown.
-export const RELIC_COUNTDOWN_TICKS = 2000;
+// Wonder and Relic countdown lengths: `victoryCountdown.ts` (work 132), read
+// where a countdown opens through `bridge/countdownLengths.ts`.
 // Deterministic per-tick increments for Monk conversion and heal (Slice 5).
 // Conversion flips target ownership at 50 progress; heal restores 1 HP per
 // 10 ticks. These values are intentionally v1 "easy-to-observe" rates — real

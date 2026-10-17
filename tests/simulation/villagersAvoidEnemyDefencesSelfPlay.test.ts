@@ -45,9 +45,22 @@
 // a horizon short of ~40,000 scores the half of the match where the economy
 // was still working its own resources and sees nothing.
 //
+// CONQUEST ONLY (work 128, 2026-10-15; the coordinator's decision). This gate
+// is about the late game, armies at each other's bases, and the Standard
+// rules stopped reaching it: once the computer's Monks could carry relics home
+// (work 128), owner 2 stored both relics on this map and, with the 2,000-tick
+// countdown of the time, won by Relic victory at tick 29,650, ten thousand
+// ticks before the endgame this bar was measured over, so the census stopped
+// short and the gate went red on coverage. Work 132's DE-length countdown,
+// 10,000 ticks, would move that victory near tick 37,650, still short of the
+// deaths above. The match now runs with the Wonder and Relic victories off, as
+// the coverage lab does. The Standard rules' relic outcome is gated in
+// `aiRelicsSelfPlay.test.ts`.
+//
 // THE BOUND THAT MATTERS MOST IS THE CONFIGURATION, and it is load-bearing
-// rather than theoretical (measured 2026-09-10). This gate plays the DEFAULT
-// bridge options — `{ forceAiForOwners }` and nothing else. The COVERAGE LAB
+// rather than theoretical (measured 2026-09-10). This gate plays the default
+// bridge options but for the victory rule — `{ forceAiForOwners }` with
+// `victory: 'conquest-only'` since work 128, and nothing else. The COVERAGE LAB
 // plays the same seed with `resourcePreset: 'high'`, `difficulty: 'hard'`,
 // `victory: 'conquest-only'` and `disableAiAttacks`, and in that configuration
 // this defect is LIVE while this gate is green: owner 2 loses 34 villagers,
@@ -117,6 +130,8 @@ interface Census {
 function playAndCensus(seed: string): Census {
   const bridge = createSimulationBridge(seed, {
     forceAiForOwners: new Set([HUMAN_PLAYER_ID]),
+    // The header's CONQUEST ONLY paragraph says why.
+    victory: 'conquest-only',
   });
   const deaths: Record<number, VillagerDeath[]> = { 1: [], 2: [] };
   const seen = new Set<string>();

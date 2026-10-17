@@ -26,13 +26,13 @@ import type { TargetFindingOps } from './targetFindingOps';
 import type { TrebuchetStateOps } from './trebuchetState';
 import type { MovementPlanOps } from './movementPlanOps';
 import type { DropOffWalkFields } from './dropOffWalkField';
+import type { UnitRangeReach } from './unitRangeReach';
 import type { EntityDestroyOps } from './entityDestroyOps';
 import type { EntityCreateOps } from './entityCreateOps';
 import type { MonkTaskOps } from './monkTaskOps';
 import type { TransformOps } from './transformOps';
 import type { MatchEndOps } from './matchEndOps';
 import { HUMAN_PLAYER_ID } from '../prototypeScenario';
-import { RELIC_COUNTDOWN_TICKS } from './bridgeConstants';
 
 type RegisterAllSystemsArg = Parameters<typeof registerAllSystems>[0];
 
@@ -67,8 +67,12 @@ export interface RegisterBridgeSystemsDeps {
   aiDecisionOps: AiDecisionOps;
   targetFindingOps: TargetFindingOps;
   trebuchetStateOps: TrebuchetStateOps;
-  // The drop-off walk field rides on the movement-plan ops (wirePreSeedOps).
-  movementPlanOps: MovementPlanOps & { findDropOffWalkField: DropOffWalkFields['fieldFor'] };
+  // The drop-off walk field and the cached reach ask ride on the movement-plan
+  // ops (wirePreSeedOps).
+  movementPlanOps: MovementPlanOps & {
+    findDropOffWalkField: DropOffWalkFields['fieldFor'];
+    canUnitReachRange: UnitRangeReach;
+  };
   entityDestroyOps: EntityDestroyOps;
   entityCreateOps: EntityCreateOps;
   monkOps: MonkTaskOps;
@@ -126,6 +130,7 @@ export interface RegisterBridgeSystemsDeps {
   selectUnitsByIds: (ids: number[]) => boolean;
   // Shift-queued entity orders (v0.3.141): villager in-pass pop hook.
   popQueuedEntityOrder: (unitId: number) => boolean;
+  gatherKilledAnimal: (unitId: number, resourceId: number) => boolean;
   hasQueuedEntityOrders: (unitId: number) => boolean;
   getSelectedEntityIds: () => number[];
   getSelectedOwnedSheepIds: () => number[];
@@ -258,6 +263,7 @@ export function registerBridgeSystems(
   registerAllSystems({
     isLandCell,
     popQueuedEntityOrder: deps.popQueuedEntityOrder,
+    gatherKilledAnimal: deps.gatherKilledAnimal,
     hasQueuedEntityOrders: deps.hasQueuedEntityOrders,
     ...playerQueries,
     ...aiDecisionOps,
@@ -275,7 +281,6 @@ export function registerBridgeSystems(
     gameLength,
     disableAiAttacks,
     visibility,
-    defaultRelicCountdownTicks: RELIC_COUNTDOWN_TICKS,
     accessor,
     visibilityCell,
     visibilityFingerprints,

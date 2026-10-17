@@ -17,7 +17,6 @@ export function registerMatchResolutionSystems(deps: {
   isMatchRunning: RegisterAllSystemsDeps['isMatchRunning'];
   finalizeMatchEnd: RegisterAllSystemsDeps['finalizeMatchEnd'];
   currentRelicHoldingOwner: RegisterAllSystemsDeps['currentRelicHoldingOwner'];
-  defaultRelicCountdownTicks: number;
   computePlayerScore: RegisterAllSystemsDeps['computePlayerScore'];
   gameLength: RegisterAllSystemsDeps['gameLength'];
 }): void {
@@ -28,7 +27,6 @@ export function registerMatchResolutionSystems(deps: {
     isMatchRunning,
     finalizeMatchEnd,
     currentRelicHoldingOwner,
-    defaultRelicCountdownTicks,
     computePlayerScore,
     gameLength,
   } = deps;
@@ -39,7 +37,6 @@ export function registerMatchResolutionSystems(deps: {
     world,
     accessor,
     currentRelicHoldingOwner,
-    defaultRelicCountdownTicks,
     isMatchRunning,
   });
 

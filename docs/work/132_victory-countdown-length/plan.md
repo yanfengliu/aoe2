@@ -1,9 +1,9 @@
 # Wonder and relic countdowns last as long as Definitive Edition's
 
-Status: planned
-Owner: Claude coordinator (Game orchestrator todos); worker to be named
+Status: active
+Owner: branch completion coordinator; recovery worker in worktree `countdowns`
 Created: 2026-10-15
-Updated: 2026-10-15
+Updated: 2026-10-17
 
 ## Problem and outcome
 
@@ -32,7 +32,21 @@ Source before changing: DE's in-game help or patch notes first, then well-docume
 
 ## Implementation steps
 
-- [ ] Source DE's countdown, fix it, gate it, record it, land it.
+- [x] Source DE's countdown, implement it, gate the rule and record phase 1.
+- [x] Recover the checkpoint, audit the countdown/save/replay/HUD mechanism and run focused checks.
+- [ ] Review and verify the integrated revision, merge/push main and retire the worktree.
+
+## Recovered implementation and evidence (2026-10-17)
+
+Recovered clean at `595df917`, based on `ea11292a`. The detailed devlog's [work 132 entry](../../devlog/detailed/2026-10-13_2026-10-13.md#2026-10-15--work-132-a-wonder-or-relic-victory-takes-definitive-editions-time) contains the completed phase-1 handoff that this plan had failed to reflect. No version was taken; the changelog remains under "Unreleased — work 132". That entry records the wiki table, the installed DE lobby-size and Atheism strings, the old-length and nine other mutations, the exact visual comparison bounds and three 45,000-tick all-AI seeds whose before/after outputs were byte-identical. These are retained historical results, not fresh final-integration evidence.
+
+The rule is now one seat-count table in `victoryCountdown.ts`: 50 ticks per year; 2-4 seats 10,000 ticks, 5-6 seats 15,000, 7-8 seats 17,500. `countdownLengths.ts` reads the world's population rows, preserving the original seat count after elimination, so a replay or a loaded match can derive a newly opened countdown without live bridge options. Both completed-Wonder and all-relics creation sites read it. Scenario overrides remain explicit. Atheism's extension is derived from 100 years, 5,000 ticks. The existing countdown save fields and deadlines are retained unchanged; no migration or new persisted field was added. The HUD view derives both the MM:SS and tooltip years from remaining ticks, and its tooltip observer follows changed copy while ignoring identical rewrites.
+
+The recovery audit found no further code defect in that bounded length contract. The community table remains a stated single-source bound; larger named maps and speed presets remain excluded. DE update 185872's newer Atheism targeting and stacking still differ from the existing global-once behavior, as already stated in the spec and OPEN register entry; this length change does not claim to close that separate rule.
+
+Fresh focused verification, one worker per run: `victoryCountdownLength` 18/18, `victoryCountdownReplay` 2/2, `countdownChip` 6/6, `tooltipFollowsCopy` 5/5 and `spiesAndAtheism` 7/7, together 38/38 in 7.14 seconds. The replay cases called `SessionReplayer.selfCheck()`, required a nonzero checked-segment count and no skipped segments, then compared live/replayed countdown state. Save cases include schema 1, schema 2 and deadlines made at the former 2,000-tick length. Focused ESLint passed on the countdown rule, opening logic, fixtures, HUD view/observer and all new countdown test files. No code changes, browser, GUI, server or scratch probe were needed by this recovery worker.
+
+Required `ci:status` ran first with a process-local safe-directory override; GitHub was unavailable from that sandbox, so it reported UNKNOWN rather than red. The integration owner independently checked main's remote gates. The integration owner also owns the combined `writeData`/`countdownChipView` HUD merge, fresh full gate and receipt, real-control browser/visual checks, exact-revision independent persistence review, shared version/register/devlog closure and main merge/push. The three-seed phase-1 result cannot establish the final combined AI outcome after work 128 and work 131.
 
 ## Outcome
 

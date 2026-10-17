@@ -1,5 +1,5 @@
 // Atheism delays every victory clock in the MATCH, not just its researcher's:
-// any owner holding it adds +100 years (1000 ticks) to each Wonder/Relic
+// any owner holding it adds +100 years (5,000 ticks, work 132) to each Wonder/Relic
 // countdown that starts, and the research application extends the ones already
 // running. Both creation sites read this one rule.
 

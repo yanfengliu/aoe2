@@ -8,7 +8,6 @@ import type { SyncUnitResult, WorldOccupancy } from '../worldOccupancy';
 import type {
   BuildingComponent,
   ResourceComponent,
-  TerrainComponent,
   UnitComponent,
   UnitTransformComponent,
 } from '../types';
@@ -20,11 +19,12 @@ import {
   isAtTarget,
   isUnitTransformAtTarget,
   stepUnitTransformToward,
-  UNIT_SUBGRID_RESOLUTION, UNIT_SUBGRID_STEP_PER_TICK,
+  UNIT_SUBGRID_STEP_PER_TICK,
   type GameWorld,
 } from './pureHelpers';
 import { structureClaimKind } from '../passableStructures';
-import { constructionStatesCodec, playerAgesCodec, playerCivilizationsCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
+import { isConstructionStarted } from './unstartedFoundations';
+import { constructionStatesCodec, monkCarriedRelicCodec, playerAgesCodec, playerCivilizationsCodec, researchedTechnologiesCodec } from './bridgeStateSerialize';
 import {
   movementEntitlement,
   movementSpeedPercent,
@@ -32,6 +32,8 @@ import {
 } from '../movementTechEffects';
 import type { UnitAttackFeedRuntime } from './bridgeState';
 import { markUnitAttackMovementStartedForEntity } from './unitAttackAnimationFeed';
+import { rebuildWorldOccupancy } from './occupancyRebuild';
+import { relicHolder } from './relicGround';
 
 type CivWorld = GameWorld;
 
@@ -162,11 +164,20 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     if (building) {
       const construction = accessor.get(constructionStatesCodec).get(entity);
       const footprint = construction ?? buildingFootprint(building.buildingType);
-      worldOccupancy.syncBuilding(entity, position, footprint, structureClaimKind(building.buildingType));
+      const kind = structureClaimKind(building.buildingType, isConstructionStarted(construction));
+      worldOccupancy.syncBuilding(entity, position, footprint, kind);
       return;
     }
 
     if (activeWorld.getComponent<ResourceComponent>(entity, 'resource')) {
+      // A relic in a Monk's hands stands on no ground (work 128, relicGround.ts):
+      // it claims no cell, or its carrier would stand on blocked ground, and
+      // every path search refuses a blocked start. Whoever ends the carry syncs
+      // the relic again, which claims the cell it lands on.
+      if (relicHolder(accessor, entity) !== null) {
+        worldOccupancy.release(entity);
+        return;
+      }
       worldOccupancy.syncResource(entity, position);
       return;
     }
@@ -306,7 +317,8 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
         : undefined;
       const speedPercent = unit && researched
         ? movementSpeedPercent(researched, unit.unitType,
-            accessor.get(playerCivilizationsCodec).get(unit.owner), accessor.get(playerAgesCodec).get(unit.owner) ?? 'dark-age')
+            accessor.get(playerCivilizationsCodec).get(unit.owner), accessor.get(playerAgesCodec).get(unit.owner) ?? 'dark-age',
+            accessor.get(monkCarriedRelicCodec).has(id))
         : 100;
       const entitlement = movementEntitlement(
         transform.moveCarryHundredths ?? 0,
@@ -406,80 +418,6 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     return freeCell;
   }
 
-  function rebuildWorldOccupancyFromWorld(): void {
-    worldOccupancy.reset();
-
-    const blockedTerrainCells: Position[] = [];
-    for (let y = 0; y < mapHeight; y += 1) {
-      for (let x = 0; x < mapWidth; x += 1) {
-        const tile = tiles[y]?.[x];
-        const terrain = tile === undefined ? null : world.getComponent<TerrainComponent>(tile, 'terrain');
-        if (!terrain || (terrain.kind !== 'water' && terrain.kind !== 'forest')) {
-          continue;
-        }
-        blockedTerrainCells.push({ x, y });
-      }
-    }
-    worldOccupancy.blockTerrain(blockedTerrainCells);
-
-    for (const entity of world.query('position', 'building')) {
-      syncOccupancyForEntity(entity);
-    }
-    for (const entity of world.query('position', 'resource')) {
-      syncOccupancyForEntity(entity);
-    }
-    const unitEntities = [...world.query('position', 'unit')];
-    const savedSlotFor = (entity: number): SubcellSlotOffset | null => {
-      const position = world.getComponent<Position>(entity, 'position');
-      const transform = getUnitTransform(entity);
-      const hasSavedSlot = transform
-        && Number.isFinite(transform.occupancySlotX)
-        && Number.isFinite(transform.occupancySlotY);
-      return position && hasSavedSlot
-        ? { x: transform.occupancySlotX!, y: transform.occupancySlotY! }
-        : null;
-    };
-
-    // Restore every authoritative numeric assignment before legacy or
-    // explicit-overflow units. Otherwise entity-id query order can promote a
-    // low-id overflow unit and displace a peer that owned the slot at save.
-    for (const entity of unitEntities) {
-      const savedSlot = savedSlotFor(entity);
-      if (savedSlot) syncOccupancyForEntity(entity, world, savedSlot);
-    }
-    for (const entity of unitEntities) {
-      const position = world.getComponent<Position>(entity, 'position');
-      const transform = getUnitTransform(entity);
-      if (savedSlotFor(entity) || transform?.occupancySlotOverflow === true) continue;
-      const legacyOffset = position && transform
-        ? {
-            x: transform.fineX / UNIT_SUBGRID_RESOLUTION - position.x,
-            y: transform.fineY / UNIT_SUBGRID_RESOLUTION - position.y,
-          }
-        : undefined;
-
-      // Current saves persist the assigned slot separately because a moving
-      // fine root may not have reached it yet. Legacy schema-v2 saves lack
-      // that additive datum, so use their serialized root as the closest safe
-      // one-time preference. Rebuild never snaps fineX/fineY: live loads and
-      // replay materialization both preserve the serialized presentation root.
-      syncOccupancyForEntity(entity, world, legacyOffset);
-    }
-    for (const entity of unitEntities) {
-      const transform = getUnitTransform(entity);
-      if (transform?.occupancySlotOverflow === true) {
-        const position = world.getComponent<Position>(entity, 'position');
-        if (position) {
-          // Recreate the authoritative no-slot claim exactly. Normal sync is
-          // intentionally not used: a peer may have freed a slot after this
-          // unit overflowed, but load/replay cannot promote it earlier than
-          // uninterrupted play would.
-          worldOccupancy.syncUnit(entity, position, undefined, true);
-        }
-      }
-    }
-  }
-
   return {
     getUnitTransform,
     getUnitTargetTransformForPosition,
@@ -493,6 +431,8 @@ export function createTransformOps(deps: TransformOpsDeps): TransformOps {
     placeFreshSpawnUnit,
     clearPositionAndSyncOccupancy,
     syncSpawnedEntityOccupancy,
-    rebuildWorldOccupancyFromWorld,
+    rebuildWorldOccupancyFromWorld: () => rebuildWorldOccupancy({
+      world, mapWidth, mapHeight, worldOccupancy, tiles, getUnitTransform, syncOccupancyForEntity,
+    }),
   };
 }

@@ -1,9 +1,9 @@
 # The frame rate holds through a match
 
-Status: planned
-Owner: Claude coordinator (Game orchestrator todos); worker to be named
+Status: active
+Owner: branch-completion integration owner; performance worker (worktree `aoe2-worktrees/frame-rate`, branch `frame-rate`)
 Created: 2026-10-15
-Updated: 2026-10-15
+Updated: 2026-10-17
 
 ## Problem and outcome
 
@@ -32,8 +32,93 @@ Separate the two candidate causes before anything else: a fresh page that loads 
 
 ## Implementation steps
 
-- [ ] Separate state from age, find the growing quantity, fix it, gate it, record it, land it.
+- [x] Separate state from age (2026-10-15): match state drives it, page age does not. A fresh page that loads a save of a late match is slow at once (31-34 fps against 57 for the opening in the same page); a page kept 20.6 minutes at Normal speed with an idle human, and three replay round trips, leave the frame cost and every leak count flat.
+- [x] Find the growing quantity (2026-10-15): the voxel instances the presentation rebuilds and resubmits on every drawn frame, one per part of everything the human sees or remembers. 1,513 at the opening, about 2,450 at tick 1,700, 3,000 at 11,700 and 3,625 at 18,000 in a match where the AI plays the human seat, at about 4.8 µs each per frame on this machine. Evidence, profiles and counts: `docs/debugging/2026-10-15-frame-rate-through-a-match.md`.
+- [x] Fix, M1 (2026-10-15): the coordinator chose option A. A still entity keeps its parts while its projected view is equal field by field, the ground's detail is kept while the visible ground is unchanged, and the opaque surfaces come in terrain, still and moving lanes that keep their revision while unchanged, so the runtime keeps them; the shadow and memory lanes stay one batch each (below). The HUD writes a value only when it differs, which was the cost the audio loop's rect reads showed. Folded in: the Natural ground packs once per frame object. Branch `frame-rate`, no version bump.
+- [x] Gate and record (2026-10-15): `tests/rendering/presentationFrameWork.test.ts`, `tests/browser/presentation-keeps-still-world.spec.ts`, `tests/rendering/aoeVoxelLaneEquivalence.test.ts` and `tests/browser/hud-frame-dom-writes.spec.ts`, each red with its defect put back (`docs/learning/gate-proofs.md`); the register entry of 2026-10-14 (OPEN for the part below), the spec's §14.5 rule, the changelog under Unreleased, the devlog, `ARCHITECTURE.md`, the drift log and `decisions.md`. `captureMapScreenshot.mjs` gained `LOAD=<save.json>` for the late-state captures.
+- [ ] M1 review and landing (phase 2 on the coordinator's word).
+- [x] M2 authorized 2026-10-17 by the branch-completion integration owner under the user's request to finish the performance branch: use the existing public delta API within aoe2, with unchanged pixels and no sibling source changes.
+- [x] M2 B browser evidence: sparse writes and quiet HUD gates green, 8 final maintained before/after pixel pairs unchanged.
+- [ ] Independent integrated review, final gate and landing; broader software frame-rate acceptance below remains open.
+
+## Diagnosis and options (2026-10-15, for the coordinator)
+
+What happens: `AoeVoxelPresentationCoordinator.syncFromBridge` presents whenever the interpolation alpha moved, which is every frame while the match runs. Each present runs every entity's recipe and cast shadow (`AoeVoxelAdapter.createSnapshot`), sorts and packs every part into new batches with a new revision (`makePartBatches`), and hands `ThreeRenderRuntime` a whole snapshot, which it validates, pages and writes into the instance buffers in full. Counted through the runtime's own metrics: one new revision per drawn frame, and instance matrices written per frame equal to all instances. Of a late frame's main-thread time, the snapshot build is 51%, the runtime's ingest and buffer writes 19%, and the simulation 3.4%. Nothing depends on the camera, which is why the base and an empty corner cost the same.
+
+Options, largest gain first:
+
+- A. Incremental presentation (recommended). Keep each entity's parts and cast shadow while its projected view is unchanged, build the static batches (buildings, resources, remembered entities, terrain detail) only when one of their entities changed and keep their revision otherwise, so the runtime reuses them (it already skips a batch whose version is unchanged and writes only changed pages), and rebuild units, projectiles and per-frame overlays every frame in batches of their own. Gain: in Node the adapter's late frame falls from 13.2 ms to 3.9 ms; static content is about half of the late frame's main thread, so a late frame would cost about what an opening frame costs today. Risks: the shadow lane resolves every caster's level in one pass (`resolveShadowLevels`), so split lanes need a rule that keeps overlapping unit and tree shadows blending once, or those pixels change; the descriptor's 9-batch limit rises; the hit state stays per presented revision; `aoeVoxelAdapter.ts` (471 lines) has to split. Size: one or two milestones of several hundred lines in `src/rendering/voxel/`, with unit tests that every field of the projected view invalidates the cache, and pixel diffs at several framings in both styles.
+- B. A with runtime deltas: frames between ticks go through `acceptDelta` with `patch-batch-instances`, so even validation scales with what moved. Larger, and the delta contract is new to this repo; worth it only if A leaves the whole-snapshot validation significant.
+- C. A recipe cache alone: reuse an entity's parts while its projected view is equal field by field. Under 100 lines and pixel-identical by construction, but it saves only the static recipes (about 14% of a late frame); batching, ingest and buffer writes stay proportional to the whole world, so the slowdown remains at a gentler slope.
+- D. Present only what is near the camera, with a margin for tall buildings and shadows. On this 60x36 map at the opening zoom the view and a 3-tile margin hold 46% of the cells, and over the base it kept 94 of 122 non-tile entities at tick 11,700: it fixes the empty corner, not the base. Test-API picks outside the view would find nothing.
+
+Independent of the choice: the audio loop's `stackAboveBell` forces layout three times a frame (3.5-6.2% of the main thread at any match state).
+
+The gate for A, B or C: instances written per drawn frame between ticks (`instancePresentationMatrixWrites` over `framesDrawn`, from `getWorldRendererState()`), at a saved late match against the opening in the same page. Today it reads 1,513 at the opening and about 3,000 at tick 11,700, and it does not move with machine load. Its fixture is a late save (590 KB, over the 256 KiB promotion threshold, so it needs a stated reason) or a state the test builds; a Node test over the adapter at tick 1,700 (6 s to simulate) is the cheap half.
+
+## M1 result (2026-10-15)
+
+The shadow lane could not be split without changing pixels. Overlapping shadows blend once only because the lane draws its highest pieces first inside one batch; three.js orders separate translucent batches by the depth of each one's bounding-sphere centre, the voxel runtime gives aoe2 no render order, and voxel's order-independent single-layer transparency is internal to the package. The same holds for the memory lane (fog ghosts, then the behind-building silhouettes). So both stay one batch each, rebuilt from kept parts on any frame a unit moves, and M1 changes no pixel there.
+
+Picture: the new adapter and the old one draw the same instances (`tests/rendering/aoeVoxelLaneEquivalence.test.ts`). Captures on SwiftShader at 1280x800, before and after, Natural and Moebius, the opening and a loaded tick-11,700 save, zoom 1.2 and 2.4: 0 changed pixels in 6 of 8 framings, 1 pixel in the two late zoomed ones; the same build captured twice differs by 0 in all 8. On the GPU, the late default view: Natural 2 edge pixels, Moebius 0. The instances being equal, the differing pixels are depth ties between opaque surfaces in different lanes, which the draw order decides.
+
+Cost, in the browser, interleaved against the base build (4 rounds; 26-32 of 32 CPUs busy with other work and the GPU shared with a game, so the timings are inflated for both arms):
+
+| | base 976c7c3f | M1 |
+|---|---|---|
+| Opening, frame callbacks p50 | 14.6 ms (14.0-14.8) | 7.2 ms (7.1-7.2) |
+| Opening, fps | 56.7 (53.1-58.2) | 58.9 (55.7-58.9) |
+| Tick-11,700 save, callbacks p50 | 27.3 ms (25.5-30.1) | 12.5 ms (11.6-13.7) |
+| Tick-11,700 save, callbacks p90 | 37.9 ms | 18.8 ms |
+| Tick-11,700 save, fps | 32.6 (24.5-36.4) | 58.7 (51.4-59.7) |
+| Matrix writes per drawn frame, opening / late | 1,513 / about 3,010 | 876 / about 2,070 |
+
+A late frame now costs less than the base build's opening frame, but still 1.7 times M1's opening frame: the shadow lane (43% of instances at tick 11,700, 1,260 of 2,931) and the memory lane are rewritten on every frame a unit moves, and the units themselves are posed every frame. The acceptance criterion "a late-match frame costs close to an opening frame" is met only in that weaker sense.
+
+Suites on the branch (2026-10-15, under the gate lock, not a landing run): the full unit suite passed (617 files, 4,833 tests, 3 skipped, 721.6 s); the full browser suite passed 268 with 2 skipped and failed 1, `attack-warning.spec.ts:137`, whose Load panel was still open at its 5 s expect while the machine was loaded, with "Game loaded." on screen by the time the failure was captured. Alone it passed three times out of three, and the HUD Load timed click to panel closed was 410-602 ms on the base build and 337-679 ms on this one, interleaved, so the load is no slower; it is reported as a flake, and `npm run verify` at landing reruns it.
+
+The trade for M2, the coordinator's to make:
+
+- (b) A voxel change that exposes single-layer transparency as a public material option. Static and moving shadows then go in separate batches; pixels are expected to be identical except possibly where the shadow depth prepass, which draws before all translucent objects, now precedes the memory lane, to be measured. A cross-repo change with its own gates and review.
+- (c) A look change: unit shadows in a band above every still shadow, drawn first. Blending stays exactly once; unit shadows float 0.04-0.1 world units, a few pixels at the closest zoom. Still one batch rebuilt per frame, so it gains less than (b).
+- B, the runtime's deltas between ticks, would also stop each frame validating and comparing the kept batches in full (the runtime parses every snapshot twice).
 
 ## Outcome
 
 Pending. Record the verified revision, checks and limitations at closure.
+
+## M2 recovery and implementation (2026-10-17)
+
+Recovery baseline: branch `frame-rate`, clean at `6ff29963`, based on main `af328ae6`. The M1 measurements and captures above are retained historical evidence, not a fresh claim that the original cost criterion was met. No prior authored independent review was found. The integration owner owns review and the final combined gate.
+
+The missing single-layer transparency contract does not block an in-repo improvement. The pinned public `voxel/three` runtime already exposes `acceptDelta`, and `voxel/core` exposes `patch-batch-instances`. `aoeVoxelSnapshotDelta.ts` compares each new snapshot with the last accepted one, omits unchanged resources/chunks/batches, and sends only changed instance slots when a batch's key order and layout are unchanged. A key insertion, removal, reordering or layout change sends a complete batch; shadow order remains highest-first and fog ghosts still precede silhouettes. A fresh epoch or descriptor uses the full snapshot. A delta rejected for budget or needing resync falls back to the complete snapshot, so incremental ingestion cannot make a snapshot that previously fitted become unusable. Custom test runtimes without deltas retain the full-snapshot path.
+
+The renderer keeps its existing accepted full snapshot for rollback and hit-state watermarks. The new delta test drives actual `RenderWorld` and `ThreeRenderRuntime` through sparse motion, ordered translucent data, fog memory, terrain and palette changes, births/removals, art-style round trips, animation/color changes, epochs, rejection/resync and bridge rollback. Its CPU-only renderer omits only the GPU draw, not the real ingestion/presenter work.
+
+A further real-presenter check found a non-pixel-data contract that matters: sparse patches retain conservative bounds, whereas a full put resets them, and Three sorts transparent meshes by their bounding-sphere centres. Moving an edge caster inward left a shadow batch's maximum X at 15.6626 instead of the full frame's 14.1522. `aoeVoxelTranslucentBounds.ts` now requires unchanged full-frame bounds before patching a translucent lane; a changed bound sends the full batch. The check went red first and now compares the real presenter's complete box and sphere against a full-ingest control. A guarded repeat keeps the late-match matrix count at 302 per frame; CPU time on that later, busier run was 13.23–15.61 ms for full snapshots and 8.98–10.33 ms for guarded deltas.
+
+Tests-first control: `aoeVoxelSnapshotDelta` initially returned no delta. Both new tests failed: the same epoch could not produce an update, and the real presenter wrote 5,968 matrices across four frames against the required fewer than 1,492. The implementation passes those checks. The browser runtime-write bound is strengthened from 85% to 25% of live instances, so M1's 58% cannot pass as M2.
+
+Bounded Node A/B, 48 exact frames per arm from the opening and the existing tick-11,700 save, four alternating rounds (8 arms per state): late matrix writes per frame fall from 2,018 to 302, full-snapshot copied bytes from 142,382 to 4,278, and complete adapter/ingest/presenter CPU time from 8.48–9.36 to 5.50–6.58 ms. Opening time falls from 4.75–8.29 to 1.81–2.60 ms. Timing includes warm-up and shared-machine noise; the matrix-write count is the useful regression evidence. The synthetic tree/moving-unit test and this one saved late match bound the result; no claim about arbitrary maximum-population crowds is made. Evidence is ignored under `tmp/frame-rate/m2/` and the browser sweep uses `tmp/captures/work130-m2/`.
+
+Pin verification: `.github/voxel-commit` is `08398b573ad54bcb5c764ad0c2ef3cedc3cce33f`, package 1.2.0. The local linked package is also 1.2.0 at `5d6d4c911c6d05b62a5a81ad62f05993cf44e9de`. The exact pin has public `acceptDelta`, `patch-batch-instances` and the same contracts, reducer, pager, ordinary ingest, geometry and bounds paths. A read-only archive of the pin was built under ignored task evidence and the new tests were aliased to its actual compiled entry points: 2 files/10 tests pass, including the bounds and rollback checks. Its first archive compile hit an unrelated installed Vite/Rollup declaration conflict; archive-only `--skipLibCheck` permits the runtime proof. The game's own unmodified `tsc --noEmit` passes, and no sibling or dependency pin was changed.
+
+Verification so far: recovered M1 rendering tests, 3 files/20 tests, pass; the new reducer/runtime/lifecycle tests, 2 files/10 tests, pass both locally and against the archived exact pin; direct `tsc --noEmit` and scoped ESLint pass. The strengthened browser write gate goes red at 0.57898 against 0.25 when M1's full-snapshot route is restored, and passes with B. The paused-HUD DOM gate passes. Final guarded after captures match all 8 before images with 0 changed pixels at 1280×800 (GPU and SwiftShader, both styles, opening and saved tick 11,700); each image was inspected at native resolution. Full `npm run verify`, independent integrated review, main merge and push remain the integration owner's required final work. No code commit is made in the worker tree.
+
+The original software-renderer criterion remains unmet. At the browser suite's 800×600 viewport, four alternating guarded-B/M1/M1/guarded-B runs measured opening 25.4–26.8 fps, late base 4.6–6.2 fps and late empty corner 11.0–13.5 fps. B reduces buffer writes (late base 647–973 against M1's 2,111–2,151 per frame) but does not resolve the software wall-frame cost. The CPU count includes SwiftShader's own worker activity, so it does not establish foreign load. At the original player-report viewport, 1600×900 on the RTX 4090, B held 59.6 fps at the opening and 60 late, over both base and corner; M1 held the same on this less-loaded sample. The earlier main-to-M1 result above establishes the original GPU gain, and this new B comparison establishes fewer writes, not another claimed GPU fps increase. A bounded compositor counterfactual is authorized next; the B overlay and its evidence are preserved before it. See [m2-handoff.md](snapshots/m2-handoff.md).
+
+## Bounded compositor diagnosis (2026-10-17, after the B handoff)
+
+The 4.6–6.2 fps late-base windows above overlapped the last part of the load toast (272 DOM nodes instead of the settled 271), so they are not a clean steady-match verdict. A follow-up used the maintained `de-ground-frame-cost.spec.ts` two-sided `readPixels` instrument and wall-frame timestamps on the same final B build. Temporary CDP emulation selected the existing `prefers-reduced-transparency` CSS; no product source changed. Computed styles confirmed glass blur `20px` versus none and the existing solid background, while a paused world's tick and projected-state digest stayed identical in every arm.
+
+Paused, 800×600 on SwiftShader, glass/opaque/opaque/glass: the opening rose from 17.9–22.1 fps to 30.3–31.3; the late save rose from 9.8–17.2 to 18.2–21.8. The synchronized late world draw itself still took a 46.5–57.8 ms lower quartile in both modes (opening 29.3–33.7 ms), so composition is a partial cost, not the whole late-frame cost. The synchronized instrument deliberately changes pacing; its fps is not compared with the ordinary uninstrumented windows.
+
+A settled-live control reloaded the identical save before each glass/opaque/opaque/glass arm, waited until the load toast vanished, and began at tick 11,700 with projected-state digest `1080764759` every time. Glass read 17.24/14.82 fps, opaque 19.77/16.94 fps, about a 15% gain with overlapping spread; the frames advanced to ticks 11,714–11,715, and callback medians stayed 10.8–12.1 ms. This corrects any interpretation of the earlier transient 4–6 fps reading as steady gameplay, but does not prove the original software parity target. The evidence supports retaining the existing reduced-transparency option; it does not by itself justify a new automatic HUD look for software rendering. The integration owner receives this result before deciding scope. Raw evidence remains ignored in `tmp/frame-rate/m2/hud-compositor-counterfactual.json` and `hud-compositor-counterfactual-live.json`; both browser/preview pairs closed in `finally`.
+
+## Corrected performance evidence, 2026-10-17
+
+Independent review found that the compositor follow-up omitted speed and ran Slow, while the original cost800 probe used Normal. Its 14–15 ticks and the original's 22–23 ticks per window confirm the difference. The Slow glass/opaque comparison supports only its within-experiment partial composition effect; it is not a replacement Normal-speed late/opening measurement. Render-only digests did not bind the whole world, actual camera, speed or graphics preferences. Work 133 keeps both raw observations and requires an explicit Normal, settled, repeated opening/late comparison with actual inputs and delivered simulation work before scoring the next bounded candidate. The predeclared operational closeness threshold is late median frame cost at most 1.25 times opening, with no Normal tick work lost; GPU 1600×900 must retain at least 55 median fps. The original stronger software criterion remains open until that comparison passes.
+
+## Final B measurement, 2026-10-17
+
+The exact final build has 48/48 valid Normal-speed rows. GPU passes all three views (group medians 59.75–59.88 FPS, individual minimum 59.50); software base and held-out views fail the predeclared median-interval bound at 1.5015× versus 1.25. Software corner has equal median intervals but only 78.45% of opening FPS and doubled p90 intervals, so it does not establish steady-rate parity. [The complete authored result](../133_branch-completion/snapshots/performance-results-2026-10-17.md) and independent review 4 retain the hashes, work-validity checks and bounds. M1/B may ship as a bounded reduction in repeated presentation work; the stronger original software acceptance remains UNMET. No rejected ground-order code ships and no candidate-attributed FPS improvement is claimed.

@@ -1,7 +1,9 @@
 // The Delete key (spec §9, v0.3.114): AoE2 lets a player remove their own
 // unit or building — freeing population at the cap, clearing a misplaced
 // house. One entity per press (the primary selection), own things only, no
-// refund, and it flows through a recorded command so replays reproduce it.
+// refund for units or started buildings, and it flows through a recorded
+// command so replays reproduce it. Unstarted foundations refund their cost
+// (deleteFoundationRefund.test.ts, work 126 M2).
 
 import { describe, expect, it } from 'vitest';
 

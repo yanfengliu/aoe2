@@ -44,7 +44,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     systemMode = 'live',
     humanPlayerId,
     visibility,
-    defaultRelicCountdownTicks,
     state,
     accessor,
     visibilityCell,
@@ -204,7 +203,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerAiSystem({
     world,
     humanPlayerId, attacksDisabled: deps.disableAiAttacks, // the coverage lab, spec §15.8
-    isLandCell, findBuildingApproachPlan, // the crew phase's reachability ask
+    isLandCell, findBuildingApproachPlan, canUnitReachRange: deps.canUnitReachRange, // reachability: the crew phase's, the Monks' (work 128)
     visibility,
     accessor,
     monksByOwner,
@@ -292,6 +291,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
         destroyUnitEntity(...args);
       });
     },
+    gatherKilledAnimal: deps.gatherKilledAnimal,
     killWildlifeEntity: (...args) => {
       playerCommandVisibilityRevision.runEntityMutation(args[0], () => {
         killWildlifeEntity(...args);
@@ -367,6 +367,7 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     // gates which rally targets a new villager auto-gathers (excludes live
     // wildlife + relics).
     isHarvestableResource,
+    isLandCell,
     applyTechnology,
   });
 
@@ -491,7 +492,6 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
     isMatchRunning,
     finalizeMatchEnd,
     currentRelicHoldingOwner,
-    defaultRelicCountdownTicks,
     computePlayerScore,
     gameLength,
   });

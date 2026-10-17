@@ -15,16 +15,18 @@
 //
 // The per-owner records stay per-owner: attack and death witness lists, and the
 // VisibilityMap itself, are written for each owner separately, and most rules
-// of play (a tower's target, a unit's automatic target, the AI's searches)
-// still ask the acting owner's own vision. What DOES follow the sight, in world
-// state: the human's fog memory (`aoe2.lastSeenStatic`, saved and replayed),
-// the target a ground right-click picks, and whether a Monk's conversion
-// progresses (a Monk may be sent at an enemy only an ally sees, so it must be
-// able to finish). All of it reads teams and technologies from world state, so
-// a replay re-simulates it exactly. A recording of a team game (or of one where
-// player 1 had Spies) made before v0.3.230 was made under the old rules: its
-// fog memory differs, and its right-clicks and conversions are re-decided, so
-// it may not re-simulate to its recorded state at all.
+// of play (a tower's target, a unit's automatic target, most of the AI's
+// searches) still ask the acting owner's own vision. What DOES follow the
+// sight, in world state: the human's fog memory (`aoe2.lastSeenStatic`, saved
+// and replayed), the target a ground right-click picks, whether a Monk's
+// conversion progresses (a Monk may be sent at an enemy only an ally sees, so
+// it must be able to finish), and which relics the computer knows of: those on
+// ground any owner of its sight has explored (`monkAiSearchHelpers.ts`, work
+// 128). All of it reads teams, technologies and the explored record from world
+// state, so a replay re-simulates it exactly. A recording of a team game (or of
+// one where player 1 had Spies) made before v0.3.230 was made under the old
+// rules: its fog memory differs, and its right-clicks and conversions are
+// re-decided, so it may not re-simulate to its recorded state at all.
 
 import type { VisibilityMap } from 'civ-engine';
 

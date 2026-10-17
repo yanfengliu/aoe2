@@ -91,7 +91,10 @@ export interface PlayerCommandsSystemDeps {
   destroyUnitEntity: (id: number) => void;
   killWildlifeEntity: (id: number) => void;
   destroyBuildingEntity: (id: number) => void;
-  // Update 46295: checked before a builder's first work on a foundation.
+  /** A hunter gathers the animal it killed (work 131; attackCommandStep). */
+  gatherKilledAnimal: (unitId: number, resourceId: number) => boolean;
+  // Update 46295 and work 126: checked before a builder's first work on a
+  // foundation, and told when that work lands.
   foundationStart: import('../foundationStart').FoundationStart;
   getEntityRef: (id: number) => EntityRef | null;
   recordUnitAttack: (attackerId: number, targetId: number) => void;
@@ -130,7 +133,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
     ensurePlayerScoreCounters,
     destroyUnitEntity,
     killWildlifeEntity,
-    destroyBuildingEntity,
+    destroyBuildingEntity, gatherKilledAnimal,
     getEntityRef, recordUnitAttack, recordPlayerHit,
     onBuildingConstructionComplete,
   } = deps;
@@ -165,7 +168,7 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
             beginTrebuchetUnpack,
             recordUnitAttack, recordPlayerHit, markOutOfBandRenderChange,
             ensurePlayerScoreCounters, destroyUnitEntity, killWildlifeEntity,
-            destroyBuildingEntity,
+            destroyBuildingEntity, gatherKilledAnimal,
           });
           void handled;
           continue;
@@ -310,7 +313,8 @@ export function registerPlayerCommandsSystem(deps: PlayerCommandsSystemDeps): vo
           moveUnitOneSubgridStep,
           clearUnitCommand,
           buildersCreditedThisTick,
-          mayBeginConstruction: (siteId) => deps.foundationStart.mayBegin(siteId, destroyBuildingEntity),
+          beginConstruction: (siteId) => deps.foundationStart.tryBegin(siteId, destroyBuildingEntity),
+          onConstructionStarted: (siteId) => deps.foundationStart.noteStarted(siteId),
         });
         if (!advanced) continue;
 

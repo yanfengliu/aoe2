@@ -79,6 +79,7 @@ import { isLiveEntityDrawn, readSightOwners } from './humanSight';
 import { isBuildingHiddenFrom } from './unstartedFoundations';
 import type { GameWorld } from './pureHelpers';
 import { unitDomain } from '../unitDomain';
+import { componentsReachedFrom, reachesFromEvery, type ClaimTest } from './foundationClaims';
 
 /** Blocked, unexplored, or off the map. Never equal to a component id. */
 const NO_COMPONENT = -1;
@@ -139,6 +140,12 @@ export interface PlacementKnowledgeDeps {
    *  with no live ids, so its rules (an explored cell of the footprint, never
    *  another player's unstarted foundation) are the frame's by construction. */
   fogMemoryViews: () => readonly ProjectedEntityView[];
+  /** Which claims stand aside for a placer: an enemy's unstarted foundation,
+   *  which the frame never draws for it (foundationClaims.ts, work 126). */
+  standsAsideFor?: (placer: number) => ClaimTest;
+  /** The cells of the unstarted foundations of `owner`'s and its allies',
+   *  walls once started, as a map-sized mask: a route does not cross them. */
+  futureWallsOf?: (owner: number) => Uint8Array | null;
 }
 
 export interface PlayerKnowledgePlacement extends PlacementReachabilityOps {
@@ -235,6 +242,7 @@ export function withPlayerKnowledge(
     const isClaimShown = (claim: OccupancyCellClaim): boolean => claim.entity !== null && isDrawnLive(claim.entity);
     const knowledge: Knowledge = { owner, sight, sightKey, isCellKnown, isDrawnLive, view: {} };
     knowledge.view = {
+      ...(deps.standsAsideFor ? { standsAside: deps.standsAsideFor(owner) } : {}),
       isCellKnown,
       isClaimShown,
       rememberedAt: (x, y) => rememberedCells(knowledge).get(y * mapWidth + x) ?? null,
@@ -311,10 +319,12 @@ export function withPlayerKnowledge(
     if (floodQueue.length !== size) floodQueue = new Int32Array(size);
     const queue = floodQueue;
     // One pass asks each cell once whether it is explored and walkable.
+    const walls = deps.futureWallsOf?.(unit.owner) ?? null;
     for (let index = 0; index < size; index += 1) {
       const x = index % mapWidth;
       const y = (index - x) / mapWidth;
       labels[index] = knowledge.isCellKnown(x, y) && deps.isCellPassableForUnit(probeId, x, y, world)
+        && walls?.[index] !== 1
         ? UNLABELLED
         : NO_COMPONENT;
     }
@@ -370,8 +380,20 @@ export function withPlayerKnowledge(
       if (!unit || !position || !inMap(position.x, position.y)) continue;
       const labels = knownLabels(id, unit, knowledge);
       const from = labels[position.y * mapWidth + position.x];
-      if (from === undefined || from === NO_COMPONENT) continue;
-      if (ring.some((cell) => labels[cell.y * mapWidth + cell.x] === from)) return true;
+      if (from === undefined) continue;
+      // A builder on a future wall may still walk off it, and the site must be
+      // reachable from every side it could stand on when the wall goes up
+      // (work 126).
+      const walls = from === NO_COMPONENT ? deps.futureWallsOf?.(unit.owner) ?? null : null;
+      const reached = walls === null
+        ? new Set([from])
+        : componentsReachedFrom(position, mapWidth, mapHeight, labels, (x, y) => (
+          knowledge.isCellKnown(x, y) && walls[y * mapWidth + x] === 1 && deps.isCellPassableForUnit(id, x, y, world)
+        ));
+      // A builder on a cell nothing labels, with no future wall to walk off,
+      // reaches nothing: never NO_COMPONENT === NO_COMPONENT by accident.
+      reached.delete(NO_COMPONENT);
+      if (reachesFromEvery(reached, ring.map((cell) => labels[cell.y * mapWidth + cell.x]!))) return true;
     }
     return false;
   }
@@ -429,6 +451,7 @@ export function withPlayerKnowledge(
       const knowledge = knowledgeOf(owner);
       const candidates = occupancy.findOpenPlacementAnchors(centerX, centerY, width, height, {
         ...opts,
+        standsAside: knowledge.view.standsAside,
         max: Math.max(opts.max * 8, 64),
       });
       const out: Position[] = [];

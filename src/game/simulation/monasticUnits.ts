@@ -1,7 +1,7 @@
-// The monastic line: units that heal, convert, and rest their faith. Age of
-// Empires II has exactly two — the Monk and the Spanish MISSIONARY, a monk on
-// horseback (units.csv: HP 30, speed 1.1, LOS 9) — and the Missionary CANNOT
-// carry relics, which is the price of the horse.
+// This roster's monastic line: the Monk and Spanish mounted Missionary heal,
+// convert, and carry relics. DE update 169123 (2026-02-17) enabled Missionary
+// relic transport, at base speed 0.9 while carrying and 1.1 otherwise.
+// https://www.ageofempires.com/news/age-of-empires-ii-definitive-edition-update-169123/
 //
 // Both convert at this build's 4-cell monastic action range (spec §12's
 // deliberate deviation from AoE2's 9; AoE2 gives the Missionary 7 there, and
@@ -14,7 +14,7 @@ export function isMonasticUnit(unitType: UnitType): boolean {
   return unitType === 'monk' || unitType === 'missionary';
 }
 
-/** Whether this unit may pick up and deposit relics. The horse says no. */
+/** Current DE permits relic pickup and deposit by either monastic unit. */
 export function canCarryRelics(unitType: UnitType): boolean {
-  return unitType === 'monk';
+  return isMonasticUnit(unitType);
 }

@@ -19,6 +19,8 @@ import { blastCensusSeed } from '../fixtures/blastCensusLayout';
 import { createBuildingShotLandingFixture } from '../fixtures/buildingShotLanding';
 import { createBuildingVisionBuildFixture, createBuildingVisionFixture } from '../fixtures/buildingVision';
 import { createCivFarmerFixture, createCivFarmToBerriesFixture, createCivForagerFixture } from '../fixtures/civGatherBonuses';
+import { carryOnSeeds, createCarryOnDeerFixture, createCarryOnFixture, createCarryOnHuntFixture, createCarryOnRadiusFixture } from '../fixtures/economyBasics/carryOn';
+import { createRallyGatherEligibilityFixture } from '../fixtures/economyBasics/rallyGatherEligibility';
 import { createCorridorSealFixture } from '../fixtures/corridorSeal';
 import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from '../fixtures/farmsAreWalkable';
 import {
@@ -36,11 +38,45 @@ import {
   createHiddenFoundationViewFixture,
 } from '../fixtures/hiddenFoundation';
 import { createMinimumRangeCensusFixture, minimumRangeCensusSeeds } from '../fixtures/minimumRangeCensus';
+import {
+  AI_MISSIONARY_KNOWN_RELIC_SEED,
+  AI_MONK_ALLY_SIGHT_RELIC_SEED,
+  AI_MONK_BLOCKED_MONASTERY_SEED,
+  AI_MONK_KNOWN_RELIC_SEED,
+  AI_MONK_UNREACHABLE_RELIC_HEAL_SEED,
+  AI_MONK_UNREACHABLE_RELIC_SEED,
+  createAiMissionaryKnownRelicFixture,
+  createAiMonkAllySightRelicFixture,
+  createAiMonkBlockedMonasteryFixture,
+  createAiMonkKnownRelicFixture,
+  createAiMonkUnreachableRelicFixture,
+  createAiMonkUnreachableRelicHealFixture,
+  createMonkCarriedRelicFixture,
+  createMonkRelicCrossOwnerFixture,
+  MONK_CARRIED_RELIC_SEED,
+  MISSIONARY_CARRIED_RELIC_SEED,
+  MONK_RELIC_CROSS_OWNER_SEED,
+} from '../fixtures/monkRelics';
 import { createProjectileLookShowcaseFixture } from '../fixtures/projectileLookShowcase';
 import { createRaidWarningFixture } from '../fixtures/raidWarning';
+import { createVictoryClockFixture, victoryClockSeeds } from '../fixtures/victoryClocks';
 import { createRelicGoldFixture } from '../fixtures/relicGold';
 import { createSiegeBaseStatsFixture } from '../fixtures/siegeBaseStats';
 import { createTrafficContestFixture } from '../fixtures/trafficContest';
+import {
+  createUnbuiltFoundationsAiFixture,
+  createUnbuiltFoundationsAiGuardFixture,
+  createUnbuiltFoundationsAnimalFixture,
+  createUnbuiltFoundationsFixture,
+  createUnbuiltFoundationsPassFixture,
+  createUnbuiltFoundationsRelicFixture,
+  UNBUILT_FOUNDATIONS_AI_GUARD_SEED,
+  UNBUILT_FOUNDATIONS_AI_SEED,
+  UNBUILT_FOUNDATIONS_ANIMAL_SEED,
+  UNBUILT_FOUNDATIONS_PASS_SEED,
+  UNBUILT_FOUNDATIONS_RELIC_SEED,
+  UNBUILT_FOUNDATIONS_SEED,
+} from '../fixtures/unbuiltFoundations';
 import { createUnexploredPlacementFixture } from '../fixtures/unexploredPlacement';
 import {
   createUpgradeKeepsLineBonusesFixture,
@@ -254,6 +290,9 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['garrison-heal-fixture', fixtures.createGarrisonHealFixture],
   ['garrison-heal-herbal-fixture', fixtures.createGarrisonHealHerbalFixture],
   ['monk-relic-fixture', fixtures.createMonkRelicFixture],
+  [MONK_CARRIED_RELIC_SEED, createMonkCarriedRelicFixture],
+  [MISSIONARY_CARRIED_RELIC_SEED, createMonkCarriedRelicFixture],
+  [MONK_RELIC_CROSS_OWNER_SEED, createMonkRelicCrossOwnerFixture],
   ['wonder-imperial-fixture', fixtures.createWonderImperialFixture],
   ['wonder-existing-fixture', fixtures.createWonderExistingFixture],
   ['wonder-short-countdown-fixture', fixtures.createWonderShortCountdownFixture],
@@ -294,6 +333,12 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['ai-monk-fixture', fixtures.createAiMonkFixture],
   ['ai-monk-heal-fixture', fixtures.createAiMonkHealFixture],
   ['ai-monk-relic-fixture', fixtures.createAiMonkRelicFixture],
+  [AI_MONK_KNOWN_RELIC_SEED, createAiMonkKnownRelicFixture],
+  [AI_MONK_BLOCKED_MONASTERY_SEED, createAiMonkBlockedMonasteryFixture],
+  [AI_MISSIONARY_KNOWN_RELIC_SEED, createAiMissionaryKnownRelicFixture],
+  [AI_MONK_UNREACHABLE_RELIC_SEED, createAiMonkUnreachableRelicFixture],
+  [AI_MONK_UNREACHABLE_RELIC_HEAL_SEED, createAiMonkUnreachableRelicHealFixture],
+  [AI_MONK_ALLY_SIGHT_RELIC_SEED, createAiMonkAllySightRelicFixture],
   ['ai-wonder-fixture', fixtures.createAiWonderFixture],
   ['feudal-market-fixture', fixtures.createFeudalMarketFixture],
   ['town-center-defense-fixture', fixtures.createTownCenterDefenseFixture],
@@ -426,4 +471,21 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['civ-farmer-fixture', createCivFarmerFixture],
   ['civ-farmer-reseed-fixture', createCivFarmerFixture],
   ['civ-farm-to-berries-fixture', createCivFarmToBerriesFixture],
+  // Work 131: a gatherer carries on to the same kind close by, or stands idle.
+  ...carryOnSeeds().map((seed) => [seed, createCarryOnFixture] as const),
+  ['carry-on-hunt-fixture', createCarryOnHuntFixture],
+  ['carry-on-deer-fixture', createCarryOnDeerFixture],
+  ['carry-on-radius-fixture', createCarryOnRadiusFixture],
+
+  [UNBUILT_FOUNDATIONS_SEED, createUnbuiltFoundationsFixture],
+  [UNBUILT_FOUNDATIONS_ANIMAL_SEED, createUnbuiltFoundationsAnimalFixture],
+  [UNBUILT_FOUNDATIONS_AI_SEED, createUnbuiltFoundationsAiFixture],
+  [UNBUILT_FOUNDATIONS_AI_GUARD_SEED, createUnbuiltFoundationsAiGuardFixture],
+  [UNBUILT_FOUNDATIONS_RELIC_SEED, createUnbuiltFoundationsRelicFixture],
+  [UNBUILT_FOUNDATIONS_PASS_SEED, createUnbuiltFoundationsPassFixture],
+
+  // Work 132: a Wonder or every relic with NO countdown override, for 2-8 players,
+  // so a victory clock runs the length the rule gives the players seated.
+  ...victoryClockSeeds().map((seed) => [seed, createVictoryClockFixture] as const),
+  ['rally-gather-eligibility-fixture', createRallyGatherEligibilityFixture],
 ]);

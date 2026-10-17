@@ -2,6 +2,21 @@
 // world once and picks the closest viable target by Manhattan distance.
 // Extracted from monkTaskOps so the Monk module's apply / context layers
 // stay focused on their own concerns.
+//
+// What the computer knows about relics (work 128; spec §13.3). Its Monks go
+// for a relic lying on ground its seat has EXPLORED: its own exploration, or
+// that of any player whose vision it shares, which is the ground a person in
+// that seat sees as explored rather than black. Until work 128 they went only
+// for a relic in sight at that moment, so a relic the seat had found and then
+// lost sight of was never sought. No Definitive Edition source states what
+// DE's computer knows about where relics lie: DE's own AI scripts leave the
+// gathering to the engine's relic order and only count the map's relics,
+// through the fog, to decide on a Monastery (spec §13.3 cites the lines). Its
+// AI was previewed as one that does not see through the fog and must scout
+// (E3 2019), so it may not use ground its seat has never seen. BOUND: the
+// search reads where a relic lies NOW, not where the seat last saw it, so a
+// relic moved on explored ground out of sight (dropped by a dying carrier, or
+// taken away) is known at its new place.
 
 import type { Position } from 'civ-engine';
 
@@ -13,6 +28,7 @@ import type {
 } from '../types';
 import { manhattanDistance, type GameWorld } from './pureHelpers';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { readSightOwners } from './humanSight';
 import {
   combatStatesCodec,
   constructionStatesCodec,
@@ -26,22 +42,30 @@ export interface MonkAiSearchDeps {
   // removed when the last raw-map read was migrated.
   accessor: BridgeStateAccessor;
   isAiMilitaryUnit: (unitType: UnitType) => boolean;
-  isVisibleToOwner: (owner: number, x: number, y: number) => boolean;
+  /** Whether `owner` has ever explored the cell (the VisibilityMap's own record). */
+  isExploredByOwner: (owner: number, x: number, y: number) => boolean;
   aiMonkHealHpFraction: number;
 }
 
 export interface MonkAiSearchHelpers {
-  findNearestOwnedMonasteryToDeposit(owner: number, origin: Position): number | null;
-  findNearestVisibleNeutralRelic(owner: number, origin: Position): number | null;
+  findNearestOwnedMonasteryToDeposit(owner: number, origin: Position, canDeposit?: (buildingId: number) => boolean): number | null;
+  findNearestKnownNeutralRelic(
+    owner: number,
+    origin: Position,
+    canFetch?: (position: Position) => boolean,
+  ): number | null;
   findNearestWoundedFriendlyMilitary(owner: number, origin: Position): number | null;
 }
 
 export function createMonkAiSearchHelpers(deps: MonkAiSearchDeps): MonkAiSearchHelpers {
-  const { world, accessor, isAiMilitaryUnit, isVisibleToOwner, aiMonkHealHpFraction } = deps;
+  const { world, accessor, isAiMilitaryUnit, isExploredByOwner, aiMonkHealHpFraction } = deps;
 
-  function findNearestOwnedMonasteryToDeposit(owner: number, origin: Position): number | null {
-    let bestId: number | null = null;
-    let bestDistance = Number.POSITIVE_INFINITY;
+  function findNearestOwnedMonasteryToDeposit(
+    owner: number,
+    origin: Position,
+    canDeposit: (buildingId: number) => boolean = () => true,
+  ): number | null {
+    const candidates: Array<{ id: number; distance: number }> = [];
     for (const id of world.query('building', 'position')) {
       const building = world.getComponent<BuildingComponent>(id, 'building');
       const position = world.getComponent<Position>(id, 'position');
@@ -57,21 +81,28 @@ export function createMonkAiSearchHelpers(deps: MonkAiSearchDeps): MonkAiSearchH
       if (construction && !construction.isComplete) {
         continue;
       }
-      const distance = manhattanDistance(origin, position);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestId = id;
-      }
+      candidates.push({ id, distance: manhattanDistance(origin, position) });
     }
-    return bestId;
+    candidates.sort((a, b) => a.distance - b.distance);
+    for (const candidate of candidates) {
+      if (canDeposit(candidate.id)) return candidate.id;
+    }
+    return null;
   }
 
-  // Returns the nearest neutral relic visible to the Monk's owner; carried
-  // relics are excluded because their position tracks the carrying Monk.
-  function findNearestVisibleNeutralRelic(owner: number, origin: Position): number | null {
+  // Returns the nearest neutral relic on ground the owner's sight has
+  // explored (the header says why) that `canFetch` accepts; carried relics are
+  // excluded because they are not on the ground. Candidates are tried nearest
+  // first, ties in the world's own order, and `canFetch` (a route ask, which
+  // costs a path search) runs only until one passes.
+  function findNearestKnownNeutralRelic(
+    owner: number,
+    origin: Position,
+    canFetch: (position: Position) => boolean = () => true,
+  ): number | null {
     const carriedRelicIds = new Set<number>(accessor.get(monkCarriedRelicCodec).values());
-    let bestId: number | null = null;
-    let bestDistance = Number.POSITIVE_INFINITY;
+    const sight = readSightOwners(accessor, owner);
+    const candidates: Array<{ id: number; position: Position; distance: number }> = [];
     for (const id of world.query('resource', 'position')) {
       const resource = world.getComponent<ResourceComponent>(id, 'resource');
       const position = world.getComponent<Position>(id, 'position');
@@ -86,16 +117,17 @@ export function createMonkAiSearchHelpers(deps: MonkAiSearchDeps): MonkAiSearchH
       if (carriedRelicIds.has(id)) {
         continue;
       }
-      if (!isVisibleToOwner(owner, position.x, position.y)) {
+      if (!sight.some((viewer) => isExploredByOwner(viewer, position.x, position.y))) {
         continue;
       }
-      const distance = manhattanDistance(origin, position);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestId = id;
-      }
+      candidates.push({ id, position, distance: manhattanDistance(origin, position) });
     }
-    return bestId;
+    // Array.prototype.sort is stable, so equal distances keep the query order.
+    candidates.sort((a, b) => a.distance - b.distance);
+    for (const candidate of candidates) {
+      if (canFetch(candidate.position)) return candidate.id;
+    }
+    return null;
   }
 
   // Returns the nearest owned military unit below aiMonkHealHpFraction of
@@ -133,7 +165,7 @@ export function createMonkAiSearchHelpers(deps: MonkAiSearchDeps): MonkAiSearchH
 
   return {
     findNearestOwnedMonasteryToDeposit,
-    findNearestVisibleNeutralRelic,
+    findNearestKnownNeutralRelic,
     findNearestWoundedFriendlyMilitary,
   };
 }

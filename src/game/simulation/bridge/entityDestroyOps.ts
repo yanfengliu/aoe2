@@ -4,8 +4,7 @@
 // is the dependency surface is explicit instead of closure-captured.
 
 import { isMonasticUnit } from '../monasticUnits';
-import { structureClaimKind } from '../passableStructures';
-import type { EntityRef, Position } from 'civ-engine';
+import type { EntityRef, OccupancyCellStatus, Position } from 'civ-engine';
 import type {
   BuildingComponent,
   RenderableComponent,
@@ -49,6 +48,7 @@ import {
   wonderCountdownsCodec,
 } from './bridgeStateSerialize';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
+import { findRelicLandingCells, type RelicLandingDeps } from './relicGround';
 
 export interface EntityDestroyOpsDeps {
   world: GameWorld;
@@ -70,8 +70,9 @@ export interface EntityDestroyOpsDeps {
     range?: number,
   ) => Position[];
   isTerrainPassableForUnit: (x: number, y: number) => boolean;
-  isCellBlockedByBuilding: (x: number, y: number) => boolean;
-  isCellBlockedByResource: (x: number, y: number) => boolean;
+  /** The occupancy's claims on a cell: a relic lands only where there are none
+   *  (relicGround.ts). */
+  getCellStatus: (x: number, y: number) => OccupancyCellStatus;
   addResourceEntity: (
     resourceType: ResourceKind,
     position: Position,
@@ -83,6 +84,8 @@ export interface EntityDestroyOpsDeps {
   // on a forest tile left the tile impassable forever, and everything behind
   // the rim of a woodline could never be reached.
   clearForestTerrainAt: (position: Position) => void;
+  /** transformOps' occupancy sync: a relic dropped by a dead carrier claims the cell it lands on. */
+  syncOccupancyForEntity: (entity: number) => void;
   markOutOfBandRenderChange: () => void;
 }
 
@@ -105,13 +108,14 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     clearUnitCommand,
     getApproachCellsForFootprint,
     isTerrainPassableForUnit,
-    isCellBlockedByBuilding,
-    isCellBlockedByResource,
+    getCellStatus,
     addResourceEntity,
     clearForestTerrainAt,
+    syncOccupancyForEntity,
     markOutOfBandRenderChange,
   } = deps;
   const { monksByOwner } = state;
+  const landing: RelicLandingDeps = { mapWidth, mapHeight, getApproachCellsForFootprint, isTerrainPassableForUnit, getCellStatus };
 
   // v0.1.129 death feedback: every unit destruction is a death in current
   // call paths (combat kill, Heresy conversion, garrisoned units in a razed
@@ -220,12 +224,26 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
     accessor.mutate(combatStatesCodec, (m) => m.delete(id));
     const monkTasks = accessor.get(monkTasksCodec);
     if (monkTasks.delete(id)) accessor.markDirty(monkTasksCodec);
+    const droppedRelicId = accessor.get(monkCarriedRelicCodec).get(id);
+    const carrierCell = world.getComponent<Position>(id, 'position');
     accessor.mutate(monkCarriedRelicCodec, (m) => m.delete(id));
     accessor.mutate(conversionStateCodec, (m) => m.delete(id));
     accessor.mutate(monkHealCountersCodec, (m) => m.delete(id));
     accessor.mutate(trebuchetPackStatesCodec, (m) => m.delete(id));
     accessor.mutate(gathererDropOffStuckSinceTickCodec, (m) => m.delete(id));
     world.destroyEntity(id);
+    // A relic in the dead unit's hands falls to the ground: on the cell where
+    // the unit stood if nothing else claims it, or the nearest that nothing
+    // does (relicGround.ts), and it claims that cell like any relic on the
+    // ground. Carried, it held no claim (work 128).
+    if (droppedRelicId !== undefined) {
+      const from = carrierCell ?? world.getComponent<Position>(droppedRelicId, 'position');
+      if (from) {
+        const [cell] = findRelicLandingCells(landing, from, { width: 1, height: 1 }, 1, 0);
+        world.setPosition(droppedRelicId, cell ?? { x: from.x, y: from.y });
+      }
+      syncOccupancyForEntity(droppedRelicId);
+    }
     markOutOfBandRenderChange();
   }
 
@@ -308,66 +326,18 @@ export function createEntityDestroyOps(deps: EntityDestroyOpsDeps): EntityDestro
       m.delete(id);
     });
 
-    // Stored relics on a destroyed Monastery spill back onto the map.
-    // Search outward until enough free cells are collected, capped at
-    // mapWidth + mapHeight; on failure stack remaining relics on the
-    // anchor cell (relics have no unit-occupancy, so visual overlap is
-    // tolerated).
+    // Stored relics on a destroyed Monastery spill back onto the map, each on
+    // a cell nothing claims, nearest first (relicGround.ts, which a Monk's
+    // dropped relic shares); past the map's last free cell they stack on the
+    // anchor.
     const storedRelicCount = accessor.get(relicsInMonasteryCodec).get(id) ?? 0;
     const relicDropPositions: Position[] = [];
     if (storedRelicCount > 0 && building) {
       const position = world.getComponent<Position>(id, 'position');
       if (position) {
         const footprint = buildingFootprint(building.buildingType);
-        // A farm is walkable ground, so `isCellBlockedByBuilding` is false on
-        // it — but a relic dropped there would claim the cell as a 'resource'
-        // and wall it (passableStructures.ts). Farm cells are excluded by hand.
-        const farmCells = new Set<string>();
-        for (const structureId of world.query('position', 'building')) {
-          const structure = world.getComponent<BuildingComponent>(structureId, 'building');
-          const anchor = world.getComponent<Position>(structureId, 'position');
-          if (!structure || !anchor || structureClaimKind(structure.buildingType) !== 'farm') continue;
-          const size = buildingFootprint(structure.buildingType);
-          for (let dy = 0; dy < size.height; dy += 1) {
-            for (let dx = 0; dx < size.width; dx += 1) {
-              farmCells.add(`${String(anchor.x + dx)},${String(anchor.y + dy)}`);
-            }
-          }
-        }
-        const maxSearchRange = mapWidth + mapHeight;
-        for (
-          let searchRange = Math.max(2, Math.max(footprint.width, footprint.height));
-          searchRange <= maxSearchRange && relicDropPositions.length < storedRelicCount;
-          searchRange += 1
-        ) {
-          const candidates = getApproachCellsForFootprint(
-            position,
-            footprint.width,
-            footprint.height,
-            searchRange,
-          );
-          for (const candidate of candidates) {
-            if (relicDropPositions.length >= storedRelicCount) {
-              break;
-            }
-            if (!isTerrainPassableForUnit(candidate.x, candidate.y)) {
-              continue;
-            }
-            if (isCellBlockedByBuilding(candidate.x, candidate.y)) {
-              continue;
-            }
-            if (isCellBlockedByResource(candidate.x, candidate.y)) {
-              continue;
-            }
-            if (farmCells.has(`${String(candidate.x)},${String(candidate.y)}`)) {
-              continue;
-            }
-            if (relicDropPositions.some((p) => p.x === candidate.x && p.y === candidate.y)) {
-              continue;
-            }
-            relicDropPositions.push(candidate);
-          }
-        }
+        const firstRange = Math.max(2, Math.max(footprint.width, footprint.height));
+        relicDropPositions.push(...findRelicLandingCells(landing, position, footprint, storedRelicCount, firstRange));
         while (relicDropPositions.length < storedRelicCount) {
           relicDropPositions.push({ x: position.x, y: position.y });
         }

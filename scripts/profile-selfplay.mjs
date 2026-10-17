@@ -30,8 +30,10 @@
 // `VisibilityMap.getState` costs about a quarter of what it costs in a world
 // that grew live (0.9% of CPU against 3.8%, same world).
 //
-// --config castle (the default) plays the shipped configuration, as
-// `tests/simulation/aiReachesCastleAge.test.ts` does; --config lab plays the
+// --config castle (the default) plays the match
+// `tests/simulation/aiReachesCastleAge.test.ts` plays: the shipped
+// configuration with the Wonder and Relic victories off (work 128; that test's
+// header says why); --config lab plays the
 // no-attack coverage lab of `tests/simulation/selfPlayContentCoverage.test.ts`
 // (attacks off, conquest only, high resources, hard AI). Sampling stops early
 // if the match resolves. --interval is the sampling interval in microseconds;
@@ -67,7 +69,7 @@ assertTickCount(INTERVAL_US, '--interval', false);
 assertTickCount(TOP, '--top', false);
 
 const CONFIGS = {
-  castle: { forceAiForOwners: new Set([HUMAN_PLAYER_ID]) },
+  castle: { forceAiForOwners: new Set([HUMAN_PLAYER_ID]), victory: 'conquest-only' },
   lab: {
     forceAiForOwners: new Set([HUMAN_PLAYER_ID]),
     disableAiAttacks: true,

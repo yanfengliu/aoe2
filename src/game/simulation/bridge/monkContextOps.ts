@@ -21,6 +21,7 @@ import {
 } from './bridgeStateSerialize';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { isHiddenUnstartedFoundation } from './unstartedFoundations';
+import { relicHolder } from './relicGround';
 
 type CivWorld = GameWorld;
 
@@ -105,6 +106,9 @@ export function createMonkContextOps(deps: MonkContextOpsDeps): MonkContextOps {
       // Missionary), so a mounted monastic right-clicking one just rides over.
       && canCarryRelics(monkUnit.unitType)
       && accessor.get(monkCarriedRelicCodec).get(monkId) === undefined
+      // A relic in another Monk's hands is not on the ground (relicGround.ts):
+      // the click is a walk to where it is, as on any unit.
+      && relicHolder(accessor, targetEntityId) === null
     ) {
       return matchesIntendedTask('pickup') ? setMonkTask(monkId, 'pickup', targetEntityRef) : false;
     }

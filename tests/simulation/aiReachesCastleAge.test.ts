@@ -21,6 +21,20 @@
 // Two changes fix it and they only work as a PAIR — measured separately, more
 // wood villagers changed nothing (the spearman ate each 25 as it landed) and
 // the reserve alone halved the army to buy buildings.
+//
+// CONQUEST ONLY (work 128, 2026-10-15; the coordinator's decision). This gate
+// measures the AI's progression and its army, not the victory conditions, so
+// its match runs with the Wonder and Relic victories off, as the coverage lab
+// does. Once the computer's Monks could carry relics home (work 128), owner 2
+// stored both relics on this map and, under the Standard rules with the
+// 2,000-tick countdown of the time, won by Relic victory at tick 29,650,
+// before the late game this gate scores: no Crossbowman was ever trained, and
+// the shipped union floor below went red. Work 132 makes the countdown DE's
+// 10,000 ticks, which would move that victory near tick 37,650; either way a
+// relic clock, not the AI's progression, would end the match. Everything else
+// is the shipped configuration: standard resources, the standard AI, attacks
+// on. The Standard rules' relic outcome is gated where work 128 put it, in
+// `aiRelicsSelfPlay.test.ts`, without the countdown's length.
 
 import { describe, expect, it } from 'vitest';
 
@@ -159,6 +173,8 @@ interface SelfPlayResult {
 function playSelfPlay(seed: string): SelfPlayResult {
   const bridge = createSimulationBridge(seed, {
     forceAiForOwners: new Set([HUMAN_PLAYER_ID]),
+    // The header's CONQUEST ONLY paragraph says why.
+    victory: 'conquest-only',
     // Nothing here draws, and the per-tick render projection was 27% of this
     // match's CPU (2026-09-25); it never writes the world, so the match is the
     // same (renderProjectionOnRead.test.ts).

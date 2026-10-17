@@ -54,7 +54,7 @@ export function finalizeBuildingConstruction(params: {
   // unreachable-plan cache keys on — would not otherwise move, and a unit that
   // found no path before the gate stood would keep refusing after it opened.
   // Only gates change passability on completion: every other building already
-  // blocked its footprint as a foundation.
+  // blocked its footprint from its first build progress (work 126).
   if (isGateBuilding(building.buildingType)) params.notePassabilityChange();
 
   const buildingHealth = accessor.get(buildingHealthStatesCodec).get(buildingId);

@@ -39,13 +39,11 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import { buildingFootprint } from '../../src/game/simulation/bridge/pureHelpers';
 import {
   ENEMY_HOUSE,
-  ENEMY_MILITIA_CELL,
   HIDDEN_TREE_CELL,
   HIDDEN_WATER_CELL,
   HOUSE_ON_UNEXPLORED_GRASS,
   HOUSE_OVER_HIDDEN_FOREST,
   HOUSE_OVER_HIDDEN_HOUSE,
-  HOUSE_OVER_HIDDEN_UNIT,
   HOUSE_OVER_HIDDEN_WATER,
   HOUSE_OVER_KNOWN_STONE,
   KNOWN_STONE_CELL,
@@ -225,12 +223,16 @@ describe('placement over unexplored ground (work 122)', () => {
   });
 
   // 46295, one case per kind of hidden obstacle, each against the open variant,
-  // where the same placement must start and grow.
+  // where the same placement must start and grow. A hidden unit is no longer
+  // one of them (work 126): units walk over a foundation nobody has started,
+  // and a unit never cancels the start. The Militia under HOUSE_OVER_HIDDEN_UNIT
+  // leaves when ordered and the House starts once it has gone
+  // (hiddenUnderFoundation.test.ts); an enemy's unit on a site holds the start
+  // until it has gone (foundationStartUnits.test.ts).
   const cancelCases: Array<{ name: string; anchor: Cell; cell: Cell; cause: string }> = [
     { name: 'water', anchor: HOUSE_OVER_HIDDEN_WATER, cell: HIDDEN_WATER_CELL, cause: 'water' },
     { name: 'forest', anchor: HOUSE_OVER_HIDDEN_FOREST, cell: HIDDEN_TREE_CELL, cause: 'forest' },
     { name: 'an enemy house', anchor: HOUSE_OVER_HIDDEN_HOUSE, cell: ENEMY_HOUSE, cause: 'a house (building)' },
-    { name: 'an enemy unit', anchor: HOUSE_OVER_HIDDEN_UNIT, cell: ENEMY_MILITIA_CELL, cause: 'a unit standing there' },
   ];
   for (const { name, anchor, cell, cause } of cancelCases) {
     it(`cancels a house over hidden ${name} when the villager comes to start it, refunds it and says why`, () => {

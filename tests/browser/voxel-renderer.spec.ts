@@ -67,7 +67,9 @@ test.describe('voxel world renderer', () => {
       // triangle the shadow lane draws its silhouettes on (v0.3.194 — a
       // silhouette is a polygon and a box can only be a parallelogram).
       geometryResources: 2,
-      instanceBatches: 9,
+      // The standing lanes (aoeVoxelLaneBatches.ts, work 130): ten opaque lanes by source and surface, the
+      // shadow lane and the see-through memory lane.
+      instanceBatches: 12,
       animatedBatches: 3,
       contextLosses: 0,
       contextRestorations: 0,

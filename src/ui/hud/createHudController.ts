@@ -24,10 +24,11 @@ import {
   type DebugOverlayMode,
 } from './debugOverlay';
 import { createPostGameSummary } from './postGameSummary';
+import { writeAttribute, writeData, writeText } from './hudDomWrites';
 import { createSaveLoadPanel } from './saveLoadPanel';
+import { countdownChipView } from './countdownChip';
 import {
   formatAgeName,
-  formatCountdownTicks,
   formatMatchTime,
 } from './displayNames';
 import {
@@ -365,47 +366,41 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
       const kind = value.dataset.hud as 'food' | 'wood' | 'gold' | 'stone';
       const amount = String(hudState.playerResources[kind]);
       const label = `${kind[0].toUpperCase()}${kind.slice(1)} stockpile: ${amount}`;
-      value.textContent = amount;
-      value.setAttribute('aria-label', label);
-      value.dataset.tooltip = label;
+      writeText(value, amount);
+      writeAttribute(value, 'aria-label', label);
+      writeData(value, 'tooltip', label);
     }
     for (const workers of resourceWorkers) {
       const kind = workers.dataset.resourceWorkers as 'food' | 'wood' | 'gold' | 'stone';
       const count = hudState.resourceWorkers[kind];
-      workers.querySelector('[data-resource-worker-count]')!.textContent = String(count);
+      writeText(workers.querySelector('[data-resource-worker-count]')!, String(count));
       const label = `${kind[0].toUpperCase()}${kind.slice(1)} workers: ${count}`;
-      workers.setAttribute('aria-label', label);
-      workers.dataset.tooltip = `${label}. Includes gathering, drop-off, and former gathering occupation while walking; fishing ships work food and active trade units work gold.`;
+      writeAttribute(workers, 'aria-label', label);
+      writeData(workers, 'tooltip', `${label}. Includes gathering, drop-off, and former gathering occupation while walking; fishing ships work food and active trade units work gold.`);
     }
-    if (age) age.textContent = formatAgeName(hudState.currentAge);
-    if (pop) pop.textContent = `${hudState.population.current}/${hudState.population.cap}`;
-    if (time) time.textContent = formatMatchTime(hudState.tick, hudState.fpsTarget);
+    if (age) writeText(age, formatAgeName(hudState.currentAge));
+    if (pop) writeText(pop, `${hudState.population.current}/${hudState.population.cap}`);
+    if (time) writeText(time, formatMatchTime(hudState.tick, hudState.fpsTarget));
 
     postGameSummary.update(hudState);
 
     if (countdownChip && countdownLabel && countdownValue) {
       // Slice 8: surface the human player's active countdown (Wonder or
-      // Relic) in the top bar so the player sees the timer drop live.
-      // Wonder takes precedence when both are active (rare; the first
-      // countdown to start wins per the deterministic tie-break rule).
-      const wonderTicks = hudState.matchState.wonderCountdownTicks;
-      const relicTicks = hudState.matchState.relicCountdownTicks;
-      const activeKind: 'wonder' | 'relic' | null =
-        wonderTicks !== null
-          ? 'wonder'
-          : relicTicks !== null
-            ? 'relic'
-            : null;
-      if (activeKind === null) {
+      // Relic) in the top bar so the player sees the timer drop live. The
+      // view (countdownChip.ts) picks the kind, states the time and the years
+      // the same ticks are, and writes the tooltip.
+      const chip = countdownChipView(hudState.matchState, hudState.fpsTarget);
+      if (!chip.active) {
         // v0.1.95: reserve the slot (keep its box) so the countdown appearing
         // never reflows the bar — toggle content visibility via the attribute,
         // not `hidden` (display:none, which would remove the box).
-        countdownChip.dataset.hudCountdownActive = 'false';
+        writeData(countdownChip, 'hudCountdownActive', 'false');
       } else {
-        countdownChip.dataset.hudCountdownActive = 'true';
-        const ticks = activeKind === 'wonder' ? wonderTicks! : relicTicks!;
-        countdownLabel.textContent = activeKind === 'wonder' ? 'Wonder' : 'Relic';
-        countdownValue.textContent = formatCountdownTicks(ticks, hudState.fpsTarget);
+        writeData(countdownChip, 'hudCountdownActive', 'true');
+        writeData(countdownChip, 'hudCountdownYears', String(chip.yearsLeft));
+        writeData(countdownChip, 'tooltip', chip.tooltip);
+        writeText(countdownLabel, chip.label);
+        writeText(countdownValue, chip.value);
       }
     }
     selectionPanelHandle.update(selectionState, hudState.playerResources);

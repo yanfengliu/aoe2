@@ -11,7 +11,7 @@ import { isMonasticUnit } from '../monasticUnits';
 import { initialResourceOccupation } from '../resourceWorkerCounts';
 import { civBuildingHpMultiplier, civPopulationProvidedBonus } from '../civBonusEffects';
 import { playerTeamsCodec, playerAgesCodec, playerCivilizationsCodec } from './bridgeStateSerialize';
-import { atheismCountdownExtension } from './atheismCountdowns';
+import { countdownTotalTicks } from './countdownLengths';
 import { buildingMaxHpWithTechnologies } from '../buildingTechEffects';
 import type { EntityRef, Position } from 'civ-engine';
 import type {
@@ -52,7 +52,6 @@ import {
   trebuchetPackStatesCodec,
   villagerOrdinalsCodec,
   wildlifeStatesCodec,
-  wonderCountdownOverridesCodec,
   wonderCountdownsCodec,
 } from './bridgeStateSerialize';
 import {
@@ -93,7 +92,6 @@ const RESOURCE_SIZES: Record<ResourceComponent['resourceType'], number> = {
 
 export interface EntityCreateOpsDeps {
   world: GameWorld;
-  wonderCountdownTicks: number;
   state: import('./bridgeState').BridgeState;
   // Phase 2D — bridge-state migration. Slots that have been migrated to
   // `world.state.aoe2.*` flow through the accessor; the corresponding
@@ -138,7 +136,6 @@ export interface EntityCreateOps {
 export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOps {
   const {
     world,
-    wonderCountdownTicks,
     state,
     accessor,
     ensurePlayerScoreCounters,
@@ -255,8 +252,7 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
     counters.buildingsProduced += 1;
     if (buildingType === 'wonder') {
       counters.wonderCompleted = true;
-      const totalTicks = (accessor.get(wonderCountdownOverridesCodec).get(owner) ?? wonderCountdownTicks)
-        + atheismCountdownExtension(accessor);
+      const totalTicks = countdownTotalTicks(accessor, owner, 'wonder');
       accessor.mutate(wonderCountdownsCodec, (m) => {
         m.set(buildingId, {
           remainingTicks: totalTicks,

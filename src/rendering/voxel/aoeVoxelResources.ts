@@ -145,10 +145,6 @@ export function copyAoeVoxelResources(): readonly (
   return [...MATERIALS.map(copyMaterial), copyGeometry(), shadowWedgeGeometry()];
 }
 
-function tintToBytes(tint: number): readonly [number, number, number, number] {
-  return [(tint >>> 16) & 0xff, (tint >>> 8) & 0xff, tint & 0xff, 255];
-}
-
 function packedAnimation(parts: readonly VoxelPart[]): InstanceTransformAnimationV1 | undefined {
   if (!parts.some((part) => part.animation !== undefined)) return undefined;
   return {
@@ -174,13 +170,17 @@ function identityOf(part: VoxelPart): string {
   return part.key.slice(0, part.key.lastIndexOf(':'));
 }
 
-function enabledAnimationKeys(parts: readonly VoxelPart[]): ReadonlySet<string> {
+/** Whether a part can take an engine-side animation at all: the lit opaque lanes carry it, the others never do. */
+export function animatableSurface(surface: VoxelSurface): boolean {
+  return surface === 'matte' || surface === 'metal' || surface === 'water';
+}
+
+/** The parts whose animation the engine runs this frame: every animatable one while the budget holds, otherwise
+ *  whole identities in key order until it runs out. */
+export function enabledAnimationKeys(parts: readonly VoxelPart[]): ReadonlySet<string> {
   const groups = new Map<string, VoxelPart[]>();
   for (const part of parts) {
-    if (
-      !part.animation
-      || (part.surface !== 'matte' && part.surface !== 'metal' && part.surface !== 'water')
-    ) continue;
+    if (!part.animation || !animatableSurface(part.surface)) continue;
     const identity = identityOf(part);
     const group = groups.get(identity) ?? [];
     group.push(part);
@@ -196,28 +196,55 @@ function enabledAnimationKeys(parts: readonly VoxelPart[]): ReadonlySet<string> 
   return enabled;
 }
 
+/** One instance batch of `surface` parts, in the order given. An animated batch carries the parts' animation
+ *  tuples; any other drops them. */
+export function makeInstanceBatch(
+  key: string,
+  surface: VoxelSurface,
+  animated: boolean,
+  parts: readonly VoxelPart[],
+  revision: number,
+): InstanceBatchV1 {
+  const matrices = new Float32Array(parts.length * 16);
+  const colors = new Uint8Array(parts.length * 4);
+  const instanceKeys: string[] = new Array<string>(parts.length);
+  for (let index = 0; index < parts.length; index += 1) {
+    const part = parts[index]!;
+    matrices.set(matrixForPart(part), index * 16);
+    const tint = part.tint;
+    colors[index * 4] = (tint >>> 16) & 0xff;
+    colors[index * 4 + 1] = (tint >>> 8) & 0xff;
+    colors[index * 4 + 2] = tint & 0xff;
+    colors[index * 4 + 3] = 255;
+    instanceKeys[index] = part.key;
+  }
+  const animation = animated ? packedAnimation(parts) : undefined;
+  return {
+    key,
+    incarnation: 1,
+    revision,
+    geometryKey: GEOMETRY_KEYS[surface],
+    materialKey: MATERIAL_KEYS[surface],
+    instanceKeys,
+    matrices,
+    colors,
+    ...(animation ? { animation } : {}),
+  };
+}
+
 function makeBatch(
   surface: VoxelSurface,
   lane: 'static' | 'animated',
   parts: readonly VoxelPart[],
   revision: number,
 ): InstanceBatchV1 {
-  const matrices = new Float32Array(parts.flatMap((part) => matrixForPart(part)));
-  const colors = new Uint8Array(parts.flatMap((part) => tintToBytes(part.tint)));
-  const animation = lane === 'animated' ? packedAnimation(parts) : undefined;
-  return {
-    key: lane === 'static'
-      ? `aoe2:batch:${surface}-parts`
-      : `aoe2:batch:${surface}-animated-parts`,
-    incarnation: 1,
+  return makeInstanceBatch(
+    lane === 'static' ? `aoe2:batch:${surface}-parts` : `aoe2:batch:${surface}-animated-parts`,
+    surface,
+    lane === 'animated',
+    parts,
     revision,
-    geometryKey: GEOMETRY_KEYS[surface],
-    materialKey: MATERIAL_KEYS[surface],
-    instanceKeys: parts.map((part) => part.key),
-    matrices,
-    colors,
-    ...(animation ? { animation } : {}),
-  };
+  );
 }
 
 export function makePartBatches(
@@ -243,7 +270,7 @@ export function makePartBatches(
       .filter((part) => !enabled.has(part.key))
       .map((part) => part.animation ? { ...part, animation: undefined } : part);
     batches.push(makeBatch(surface, 'static', staticParts, revision));
-    if (surface === 'matte' || surface === 'metal' || surface === 'water') {
+    if (animatableSurface(surface)) {
       batches.push(makeBatch(
         surface,
         'animated',

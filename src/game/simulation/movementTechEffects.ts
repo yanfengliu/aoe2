@@ -82,11 +82,16 @@ export function movementSpeedPercent(
    *  it (civBonusTable.ts). Required, so a caller that drops it fails to
    *  compile rather than walking every civilization at its Dark-Age rate. */
   age: AgeType,
+  /** Saved carried-relic state, read at the movement executor. */
+  carryingRelic = false,
 ): number {
   // The unit's own rate is the STARTING point, not a special case: a Mangonel
   // is slow whether or not anyone researched anything, and Husbandry makes a
   // knight 10% faster than a KNIGHT rather than 10% faster than a villager.
-  let percent = unitBaseSpeedPercent(unitType);
+  // DE update 169123: only a Missionary WITH a relic uses base 0.9;
+  // unloaded remains 1.1. 112% of the 0.8 reference uses this table's
+  // existing whole-percent precision, before civilization and tech modifiers.
+  let percent = unitType === 'missionary' && carryingRelic ? 112 : unitBaseSpeedPercent(unitType);
   // Civilization speed bonuses (Celtic infantry and Berber villagers by age,
   // Berber ships, Slav monks) multiply first, so the tech ladder stacks on top
   // of a civ's own rate exactly as it stacks on a unit's own rate.

@@ -1,9 +1,9 @@
 # Gatherers carry on as in Definitive Edition when their target runs out
 
-Status: planned
-Owner: Claude coordinator (Game orchestrator todos); worker to be named
+Status: active
+Owner: branch completion coordinator; implementation worker in worktree `gatherers`
 Created: 2026-10-15
-Updated: 2026-10-15
+Updated: 2026-10-17
 
 ## Problem and outcome
 
@@ -36,6 +36,90 @@ Reproduce both in the real game first, through the player's own commands. Source
 
 - [ ] Reproduce, source DE's rules, fix, gate, record, land.
 
+## Phase 1 record (worker, 2026-10-15)
+
+Branch `gatherers`, from main `5b6838df`. No version taken; the changelog sits under "Unreleased — work 131" and the devlog line says vNEXT. The step log is the worktree's `tmp/gatherers-steps.log`.
+
+### Definitive Edition's rule, and where it comes from
+
+- Patch notes for Update 108769 and its hotfix 109739 (ageofempires.com, 2024): "After depleting a Sheep, Shepherds will automatically go to another Sheep even if 'Drop Off' command was used"; "After depleting a Boar, Hunters will no longer automatically hunt another live Boar if the 'Drop Off' resources command was used"; "After using the 'Drop Off' or 'Back to Work' commands, villagers will go back to the same target they were previously working on, instead of picking a new one". Its known issue that hunters "may turn into lumberjacks and begin cutting trees, after all deer are depleted" was the defect it fixed.
+- Patch notes for Update 111772 (ageofempires.com, 2024): it "prevented hunters from attacking nearby violent huntable animals upon depleting the one they are currently working on" when Drop Off had been used.
+- The AoE2 DE bug forum, whose reports state the expected result: "Villagers find next gold tile to mine" (thread 283435, 2026); "Villager is suppose to continue to the nearest forage bush" (288852, 2026); villagers go "to the next deer in their LOS", and "villager next hunt search radius is really small" (67431, 2020); villagers stand idle once the boar meat is gone (243424, 2023).
+- The DE data: a villager's line of sight is 4 tiles (HSZemi/aoe2dat's dump of the DE `.dat`).
+- DE's own strings, read from the installed copy (`resources\en\strings\key-value\key-value-strings-utf8.txt`, per the local rule of 2026-10-15): 3760, on a live animal, "You cannot gather food from it unless you hunt it with a villager"; the tutorial's 44433, "Build 4 Farms near your Mill when your forage bushes are depleted"; 43020, villagers "are shown as foragers, hunters, etc., depending on their current task"; and the game option 30806, which makes villagers "lose resources when being retasked to a different type of resource node". None of them gives a radius, and `_common\dat\dropsites.json` and `AIConsts.json` hold none either.
+
+### Decisions, each a reversible default
+
+- **Same kind is the same resource type.** A forager stays a forager, a lumberjack a lumberjack, gold stays gold and stone stone, a shepherd moves between sheep, a shore fisher between shore fish. A hunter carries on to a boar's carcass or a deer and never to a live boar. An expired Farm has its reseed, and with none its farmer stands idle.
+- **The radius is 5 cells from the node that ran out.** DE states no number. At 4, one shipped base patch (Arabia, owner 1's berries) is two groups at tick 0; at 5 none of the shipped base patches of berries, gold, stone or sheep is (measured with a scratch probe over all nine maps). DE's own patches are tighter; 5 is what lets a villager finish its patch here.
+- **What it carries goes with it**, and every gatherer of the node carries on at the swing that empties it, including one walking home with a load.
+- **The human player's villager goes back to its node after a delivery** (109739's "go back to the same target"), and its automatic recoveries (unreachable, crowded, walked at too long) stay inside the carry-on. A rally point on a resource gathers that node.
+- **The computer** follows the same unit rule and keeps re-tasking its own idle villagers as before; nothing in its strategy was retuned. Its hunters gather their kill without the player's standing order, so the enemy-defence retarget and auto-aggression treat them as before (`0f1b1570`, after the measurements below, which ran on `2ae0220c`).
+
+### What was measured, before and after
+
+Self-play audit, `npx tsx scripts/selfplay-audit.mjs --seeds aoe2-prototype,default-seed,corpus-seed-b,arabia --ticks 45000`, the two arms run side by side: before is `5b6838df`, after is `2ae0220c`. Ticks for the ages; a dash means not reached.
+
+| Seed | Owner | Feudal | Qualified | Castle | Imperial | Building types | Unit types | Peak army | Villagers lost |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| aoe2-prototype | 1 | 10,250 → 11,000 | – | – | – | 9 → 9 | 4 → 4 | 4 → 5 | 23 → 22 |
+| aoe2-prototype | 2 | 12,500 → 12,000 | 13,500 → 13,000 | 23,250 → 23,750 | 35,750 → 36,000 | 13 → 13 | 12 → 11 | 14 → 14 | 0 → 0 |
+| default-seed | 1 | 12,000 → 12,750 | 37,500 → – | – | – | 10 → 8 | 4 → 4 | 4 → 5 | 35 → 37 |
+| default-seed | 2 | 12,500 → 14,500 | 20,000 → 23,000 | 23,500 → 27,000 | 37,500 → 40,750 | 14 → 14 | 11 → 12 | 18 → 14 | 0 → 1 |
+| corpus-seed-b | 1 | 12,000 → 11,500 | – | – | – | 8 → 8 | 4 → 4 | 5 → 5 | 32 → 58 |
+| corpus-seed-b | 2 | 12,750 → 13,750 | 17,750 → 14,500 | 23,500 → 24,750 | 35,250 → 37,250 | 13 → 13 | 11 → 11 | 13 → 13 | 1 → 1 |
+| arabia | 1 | 14,500 → 15,000 | 23,250 → 16,000 | 25,000 → 24,250 | – | 10 → 12 | 7 → 9 | 7 → 10 | 35 → 56 |
+| arabia | 2 | 11,750 → 12,750 | 18,750 → 13,750 | 24,000 → 24,250 | 39,750 → – | 15 → 14 | 12 → 6 | 12 → 11 | 22 → 20 |
+
+Totals: Castle 5 → 5 owner-slots, Imperial 4 → 3, building types 92 → 91, unit types 65 → 61, peak army 77 → 77, villagers lost 148 → 195, none under enemy defences in either arm. On default-seed the base ended early by defeat; the branch ran to 45,000.
+
+The economy under those numbers, from a scratch probe (`ai-econ-ab.mts`: both owners AI, resources banked from the score counters, and villager-ticks spent idle with no order), at tick 20,000:
+
+| Seed | Owner | Banked | Idle villager-ticks |
+| --- | --- | --- | --- |
+| aoe2-prototype | 1 | 6,030 → 5,764 | 2,000 → 2,040 |
+| aoe2-prototype | 2 | 5,094 → 5,013 | 3,970 → 3,770 |
+| corpus-seed-b | 1 | 4,807 → 5,503 | 5,130 → 1,780 |
+| corpus-seed-b | 2 | 5,501 → 4,739 | 2,740 → 3,450 |
+| arabia | 1 | 4,912 → 4,595 | 2,100 → 2,030 |
+| arabia | 2 | 4,843 → 4,529 | 5,930 → 5,990 |
+
+After tick 20,000 each match diverges with raids: an owner's villager count drops at a different time in each arm, and idle villager-ticks pile up around the raids in both (corpus-seed-b's owner 1 reached 110,600 on the base and 66,020 on the branch by 45,000). The computer is not leaving villagers idle that it never re-tasks: at tick 20,000, before the raids, the branch's idle villager-ticks are at most 710 above the base's (corpus-seed-b, owner 2) and lower for three of the six owners, and `gatherCarryOn.test.ts`'s guard holds the class.
+
+Gates that moved:
+
+- `aiEconomyKeepsMoving.test.ts`, "keeps gathering": on aoe2-prototype from tick 6,000 to 12,000, owner 2 banked 1,645 → 1,650, but its stockpile moved 870 → 170, because its Feudal age-up moved from about 13,800 to before 12,000. The gate now reads the banked total.
+- `selfPlayContentCoverage.test.ts`, the lab's two-way census: buildings gained the Watch Tower; units gained the Battering Ram, Capped Ram, Elite Skirmisher and Mangonel and lost the Cavalier and Two-Handed Swordsman; technologies gained the Elite Skirmisher upgrade, the Heavy Scorpion upgrade and Ring Archer Armor and lost the Cavalier and Two-Handed Swordsman upgrades. By owner: owner 1 lost the Cavalier, the Two-Handed Swordsman, their upgrades and Sappers, and gained Ring Archer Armor; owner 2 gained the Watch Tower, a Siege Workshop that trains, the rams, the Mangonel, the Elite Skirmisher and their upgrades. The expectation file is not re-recorded on the branch, because work 128 re-derives this gate; whichever lands second re-records it.
+- `villagerGatherSpread.test.ts` and `gateBuiltInMatch.test.ts`: revised to the rule (the register entry says how), each proven red again.
+
+### Not checked in phase 1
+
+Fishing Ships (excluded); deer on a shipped map (none places them); the radius against patches as they thin mid-match; the browser suite and `npm run verify` (phase 2); whether the 2026-09-02 resource-approach deadlock still reproduces on main (on the branch, reintroducing it leaves the economy moving, while `approachOrdering.ts` says it fails `aiEconomyKeepsMoving`).
+
 ## Outcome
 
 Pending. Record the verified revision, checks and limitations at closure.
+
+## Recovery and completion checks (2026-10-17)
+
+Recovered clean at `4d68b3ca`, with phase 1's source, implementation and mutation records intact. Main's integration owner owns the final combined gate, AI/self-play census, review, version and merge. This worker makes no further economy or AI policy change: the existing same-kind/radius/idle rule and killed-boar gathering already satisfy the inspected mechanism.
+
+An initial review suspicion that passive deer were excluded was disproved by reading `entityCreateOps.ts`: only boars and wolves have combat wildlife state, and deer are gathered directly. A combat-state assertion in the first draft of the deer case therefore failed on its invalid premise. It was corrected before interpreting the result. The maintained `bridge.getDebugSnapshot()` answers live commands; the economy snapshot and `ResourceComponent` answer this fixture's target, carried food and banked food, with no scratch simulation probe.
+
+Added `carry-on-deer-fixture` and two cases in `huntDeerCarryOn.test.ts`: a real player boar hunt continues into a nearby passive deer, banks all 70 food from the two animals, leaves the sheep untouched, then idles; a save made during that continuation retains the deer target and carried food and reaches the same complete economy state after 4,000 ticks. Five trees behind the deer keep its reactive flight inside the five-cell radius while the boar is gathered. The exact bounded fixture replaces the earlier kind-table-only deer claim in the spec.
+
+Focused fresh verification on the recovered branch, one worker per run: `gatherCarryOn`, `huntCarryOn`, `villagerGatherSpread` and `gateBuiltInMatch`, 18/18 passed in 12.61 seconds; `huntDeerCarryOn`, `queuedEntityOrders`, `gatherCarryPreservation`, `createSimulationBridge.darkAge` and `createSimulationBridge.gatheringAndDropoff`, 21/21 passed in 14.34 seconds. These cover queued-order precedence, a queued order through a save, a co-gatherer's depleting swing, rally gathering and retained loads with no drop-off. A requested `rallyPoint.test.ts` path did not exist; the real rally case is in `createSimulationBridge.darkAge.test.ts` and passed in the second run.
+
+The deer gate was proven red by changing only `carryOnKinds`' hunted-kind return from `['boar', 'deer']` to `['boar']`: both cases failed, respectively "no hunter continued to the deer" and "the automatic continuation never began". A `finally` block restored the original source bytes. This is a new guard over behavior phase 1 already implemented, not a claimed product fix. No browser, GUI or server was launched by this worker. The first sandboxed test launch could not load Vitest's config; the same command ran with approved sandbox escalation for the existing worktree path. Required `ci:status` initially could not resolve Git's safe directory, then resolved with a process-local override but could not reach GitHub from the sandbox; the integration owner checked main's remote status independently.
+
+After restoring the mutation, both deer cases and both file-size architecture cases passed, 4/4 in 4.18 seconds. Focused lint first exposed an existing false positive in the phase-1 hunter helper: the rule prohibiting `World.isAlive(id)` also matched the wildlife combat field with the same property name. The helper now destructures that combat flag and documents the distinction. Lint passed on all four changed TypeScript files, then both hunter files passed again, 5/5 in 5.20 seconds. No code commit was made by this worker; the six recovery files are staged for the integration owner's exact patch.
+
+Remaining integration acceptance: full combined `npm run verify` and certified receipt, exact-revision independent review, the combined AI/self-play census and actual controls playtest, spec/version/register/devlog closure, main merge/push and retirement of the worktree and its control/mutation trees. Phase 1's four-seed AI divergence and the radius's tick-zero-only map measurement remain explicit bounds; no new self-play result is claimed here.
+
+## Integrated-review repair IR2 (2026-10-17)
+
+The independent review found that the new exact-node rally route bypassed the ordinary gather filters: a trained villager could harvest another player's Farm, including an ally's, or receive a gather order for deep-water fish. This was a defect introduced by replacing the generic gather assignment with a direct target. The maintained `bridge.getDebugSnapshot()` reads the resulting movement command, and the economy snapshot plus resource/gatherer components read the target and delivered load; no scratch probe was needed.
+
+Tests were added before the repair in `rallyGatherEligibility.test.ts`, using the player's Town Center selection, resource rally and paid villager training. The corrected test helper reads ids from `getEconomyState().units`; the villager summaries carry no id. Before the product change, enemy Farm, allied Farm and deep fish each failed "an ineligible rally became a gather order" with a non-null forbidden target. Own Farm, land tree and shore fish controls already passed. The fixture includes another own Farm to ensure a legal rally still names the requested node rather than re-ranking all food.
+
+`rallyResource` now applies the existing `canGatherResource` ownership and `canGathererHarvest` domain rules, with `isShoreFish` and the existing `isLandCell` dependency. An ineligible target falls through to the ordinary rally movement order. The exact-node continuation for eligible targets is retained. After the repair, all six eligibility cases and the seven existing Dark Age cases passed, 13/13 in 9.12 seconds. Each eligible case gathers and delivers a load; each forbidden case starts with a movement command, keeps no gather target and leaves the node untouched for 1,200 ticks. Focused lint passed on the five changed TypeScript files, and `tsc --noEmit` passed. The spec now states these existing eligibility boundaries explicitly. No version, shared devlog or register edit was made by this worker; the integration owner closes those with the reviewed landing.

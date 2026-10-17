@@ -84,8 +84,6 @@ export interface WirePostSeedDeps {
   // Tile-entity lookup grid, so felling a tree can open its forest tile.
   tiles: number[][];
   worldOccupancy: import('../worldOccupancy').WorldOccupancy;
-  isCellBlockedByBuilding: (x: number, y: number) => boolean;
-  isCellBlockedByResource: (x: number, y: number) => boolean;
   isPlacementBlocked: (x: number, y: number, w: number, h: number) => boolean;
   isCellPassableForUnit: (unitId: number, x: number, y: number) => boolean;
   /** Hands the AI site search's counters to the debug snapshot, which is wired
@@ -97,6 +95,7 @@ export interface WirePostSeedDeps {
   getApproachCellsForFootprint: Parameters<typeof createEntityDestroyOps>[0]['getApproachCellsForFootprint'];
   placeFreshSpawnUnit: Parameters<typeof createTrainingMarketOps>[0]['placeFreshSpawnUnit'];
   clearPositionAndSyncOccupancy: Parameters<typeof createTrainingMarketOps>[0]['clearPositionAndSyncOccupancy'];
+  syncOccupancyForEntity: Parameters<typeof createEntityDestroyOps>[0]['syncOccupancyForEntity'];
   addBuildingEntity: Parameters<typeof createTrainingMarketOps>[0]['addBuildingEntity'];
   addResourceEntity: Parameters<typeof createEntityDestroyOps>[0]['addResourceEntity'];
   findScenarioSpawnPosition: (origin: Position) => Position | null;
@@ -171,8 +170,6 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     createCombatState,
     buildingOccupiesCell,
     isTerrainPassableForUnit,
-    isCellBlockedByBuilding,
-    isCellBlockedByResource,
     isPlacementBlocked,
     isGarrisonedUnit,
     isHarvestableResource,
@@ -180,6 +177,7 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     getApproachCellsForFootprint,
     placeFreshSpawnUnit,
     clearPositionAndSyncOccupancy,
+    syncOccupancyForEntity,
     addBuildingEntity,
     addResourceEntity,
     tiles,
@@ -261,10 +259,10 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     clearUnitCommand,
     getApproachCellsForFootprint,
     isTerrainPassableForUnit,
-    isCellBlockedByBuilding,
-    isCellBlockedByResource,
+    getCellStatus: (x, y) => worldOccupancy.getCellStatus(x, y),
     addResourceEntity,
     clearForestTerrainAt,
+    syncOccupancyForEntity,
     markOutOfBandRenderChange,
   });
 
@@ -371,6 +369,8 @@ export function wirePostSeedOps(deps: WirePostSeedDeps): WirePostSeedResult {
     buildingOccupiesCell,
     isAiMilitaryUnit,
     isVisibleToOwner: (owner, x, y) => visibility.isVisible(owner, x, y),
+    isExploredByOwner: (owner, x, y) => visibility.isExplored(owner, x, y),
+    syncOccupancyForEntity,
     currentEntityId,
     unitTint,
     notePassabilityChange: () => { worldOccupancy.notePassabilityChange(); },

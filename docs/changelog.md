@@ -1,6 +1,24 @@
 # Changelog
 
-This changelog lists user-visible behavior changes only. Pure refactors, doc sweeps, type-safety hardening, and efficiency wins are recorded in `docs/devlog/`.
+This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
+
+## 0.3.258
+
+Gatherers continue their work, the computer brings relics home, and rendering sends less unchanged work through a match.
+
+- **Rendering keeps unchanged world parts and updates changed instances.** Buildings, trees, mines and remembered objects retain their prepared parts; sparse updates avoid rewriting whole batches, and the HUD writes only changed values. The measured development GPU held about 60 fps in the saved late match. Software rendering still has a late-game cost gap; this release does not claim that gap resolved.
+- **Hunters gather the animal they killed**, including hunters whose blow did not kill it. Once it is eaten they continue to a nearby carcass or deer, never an uncommanded live boar.
+- **A gatherer whose node runs out continues to the same kind within five tiles**, carrying its load. Without one nearby, it delivers its load and becomes idle. Foragers no longer switch to distant pond fishing, miners keep their resource kind, and a farmer unable to reseed becomes idle.
+- **After delivery, a villager returns to its assigned node.** A new villager rallied onto a legal resource gathers that exact node. Another player's Farm and deep-water fish are not valid villager gather rallies. The computer can reassign idle workers through its own decisions.
+- **Relic carriers walk and deposit at a reachable Monastery.** Carried relics occupy no ground cell, cannot be stolen from another carrier, and fall on free ground if the carrier dies. An unstarted foundation is open ground for that landing. A unit already trapped on a ground relic in an older save still needs a Monk to pick it up.
+- **The computer collects reachable relics on explored ground**, including shared exploration. It passes over an unreachable relic or Monastery and heals when no collection task is available. It knows the current position of a relic on explored ground; exact DE computer knowledge is not established.
+- **Missionaries can carry relics**, matching DE update 169123. They slow to approximately 0.9 movement speed while carrying, from approximately 1.1 without a relic, and the computer can use them as carriers.
+- **An unstarted foundation is open ground for units and animals.** Enemy unstarted foundations allow placement over them; an owner's and allies' known foundations still block placement. The first overlapping site started wins, and a losing site is cancelled and refunded when its builders arrive.
+- **Foundation starts clear occupants safely.** Own and allied units and animals move to jointly reserved nearby destinations; enemies hold the start until they leave, with the documented building-worker deadlock exception. This game relocates occupants immediately; DE walks them off. A ground relic or other blocking resource cancels and refunds the site.
+- **Deleting a foundation with no build progress refunds its owner's current effective construction price.** Started or completed buildings keep their existing no-refund behavior. Saves have no original paid-price receipt, so a changed civilization or age discount can change this refund.
+- **Wonder and Relic countdowns use five seconds per year** and the map-size table represented by seated players: 200 years for 2–4 players (16:40), 300 for 5–6 (25:00), and 350 for 7–8 (29:10). The length table is community-sourced; the HUD tooltip shows years and game time.
+- **Atheism adds 100 years (8:20).** Its existing all-player targeting and lack of DE stacking remain known gaps. A loaded countdown keeps its saved deadline; only a new countdown uses the new length.
+- Saves retain their format. Re-executing older recordings can change movement at foundations, relic walks and drops, gatherer continuation, Missionary speed and newly opened victory clocks.
 
 ## 0.3.257
 
