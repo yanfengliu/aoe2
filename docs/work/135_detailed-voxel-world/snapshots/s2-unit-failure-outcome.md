@@ -1,0 +1,3 @@
+# S2 actual unit failure — stopped
+
+2026-10-18. The retained finite-result-handoff.json SHA-256 `36091d61001b38270f0c04ea6ad5d62084a2131637bc7f4f27a77fb4bd01c1d8` records S1 baseline 3 passes/2 meaningful failures, native exit 1; S2 candidate 11 passes/3 failures of 14, zero skips, actual native exit 1 and reserved foreground tool outcome 97. The two projected macro-cleft checks fail; only 15,793 of 15,794 occupied cells connect. All 48 S2 source pins restore exactly, 52 owned identities have zero survivors. Typecheck, Variation, build and capture are NOT RUN. Root authorizes a distinct S3 construction SOURCE ONLY; its runtime and art outcome are unknown. No threshold/cap relaxation or visual-quality claim follows from this failure. Raw JSON/logs remain ignored.

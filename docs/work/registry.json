@@ -2889,6 +2889,18 @@
     {
       "id": 133,
       "theme": "branch-completion"
+    },
+    {
+      "id": 134,
+      "theme": "refined-voxel-art"
+    },
+    {
+      "id": 135,
+      "theme": "detailed-voxel-world"
+    },
+    {
+      "id": 136,
+      "theme": "lean-icon-ui"
     }
   ]
 }

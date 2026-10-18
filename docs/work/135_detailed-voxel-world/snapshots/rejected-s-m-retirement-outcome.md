@@ -1,0 +1,5 @@
+# Rejected S/M retirement — authored conclusion
+
+2026-10-18. S and M were safely retired at11:20:51 UTC with verified retained ZIPs under P/tmp/work135-retired-2026-10-18/. Both source/evidence histories are recoverable, original P captures retained, protected2299 files and18 other worktrees unchanged; retirement reports zero loss. Closeout tool0, four helper exits0, typed14 identities/0survivors and controls1/0/0. This closes owned checkout resources, not art or game acceptance.
+
+Provenance: P/tmp/work135-retired-2026-10-18/retirement-closeout.json, SHA-256 `936ef8f54ddcc0fd2be1f2fdf06dd38b10af0953f042a4e2164b3b1c5997bb7d`. ZIP sculpted-conifer-1018.zip SHA-256 `c7888e475739c826a90c505aa4aa0ea3bd39468dbafcc1b5612d5aaefa9e0f4a`; mixed-corner-1018.zip `8d8cf38a3faa5590aa8302a00e45631eff51f273db4e5edace61b15d5c9efac0`. Exact inventories/restore proofs/raw closeout remain ignored alongside them. Failed initial aggregate-archive instrument remains invalid history; the separate successful literal-path proof is retained. This docs phase reads the closeout and performs no new archive/cleanup audit.

@@ -1,0 +1,3 @@
+# S3 unit result — root-reported failure
+
+2026-10-18 09:44 UTC. Root reports the S3 unit attempt at 13/14 passes: only the unchanged filled-depth ratio fails at y=2.54642857, measured 0.5312499963 against >0.55. Both projected contour facings, connectivity and caps pass. Typecheck, ResourceVariation, build and capture are NOT RUN. Root is choosing one diagnostic first Normal look before another source adjustment, with a new grant/result still pending. Keep the 13/14 RED explicit; no threshold relaxation, art-quality or shipping acceptance follows. This authored conclusion records root’s explicit current outcome and decision; this docs worker did not run or independently reexecute the unit suite.

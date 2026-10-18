@@ -1,0 +1,11 @@
+# Root verdict — direct sculpture at Normal view
+
+2026-10-18. REJECT. Root inspected the original uncropped 1600×900 BEFORE, AFTER and raw diff, then the retained Teardown Z02, Town to City T03 and Voxelnauts Z12 originals. No reference-quality or engine-readiness acceptance is claimed.
+
+The new conifer changes the regular radial fans into uneven solid tiers. Foreground and right-hand crowns still read as stacked cones or folded layers. Strong horizontal green contour bands dominate the surface; foliage masses lack convincing branch-supported subdivision, smaller branch tips and open space. The foreground silhouette is less regular, but that alone does not establish improvement in botanical form or craft. D's prior tree remains an unaccepted control, not a quality target. The rest of the scene was not changed by this conifer-only trial and remains below the requested references.
+
+BEFORE SHA256 882a421c136a9f1abd9a4c72702f9d8e67eb1274647f1d45bf8dfdbd6036e865; AFTER d6da05c975dfc287fd45cf230e25a1e7667b11a523bac3a3268d4be9874ce063; DIFF 4343115adeebaf1968e10a63471fc5bf3ef37ce0b6c36c2bed7472ace4268e49. Natural, Normal zoom 1.5, camera (-500,75), tick 0, target 2352:0 yaw 144.39695390872657°, NVIDIA RTX4090. Reference scenes/cameras differ and support a qualitative craft comparison only.
+
+Actual capture, maintained diff and host tool exit 0. Inherited PowerShell numeric receipt is null and preview numeric exit remains UNKNOWN; neither is silently converted to 0. Raw diff changes 30,359/1,440,000 pixels (2.11%), bounds x284..1174/y12..588. Formal pixel confinement is unproved. All 3,708 held input pins stayed exact. Fresh worker typed closure found 0 survivors among 27 owned identities, controls 1/0/0 and port 4889 clear; the matching gate was released before its deadline.
+
+The affected unit stage remains 16/18 RED, with two unchanged outline guards failing. Typecheck and build passed as diagnostic stages. This first-view rejection stops further views, repairs and parity export of this candidate. Five distinct conifer construction routes have now failed to establish the requested quality; independent scrutiny must reassess the approach before any new implementation. Existing literal drawing and decoder, test history, captures and failed candidates remain preserved. No automatic sixth repair is authorized by this verdict.

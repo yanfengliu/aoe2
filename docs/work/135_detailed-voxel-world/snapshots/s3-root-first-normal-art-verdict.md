@@ -1,0 +1,7 @@
+# Root S3 first-Normal art verdict
+
+2026-10-18. REJECT. Root inspected the original1600x900 D BEFORE, S3 AFTER and maintained DIFF, then re-viewed original TeardownZ02 and Town to CityT03 references. The complete isolated2352:0 tree at bottomcenter has broad rectangular foliage plates and stacked block steps. Contour breaks are visible, but they read as shelves and bulky slabs rather than connected finer boughs. D retains stronger foliage craft in this respect. The source author independently observed the same limitation after capture. This is root art rejection, not a new third-party native review.
+
+S3 remains13/14 RED on its unchanged depth guard (.53125 versus>.55); connectivity and both contour checks pass within their test bounds. Diagnostic typecheck/build/capture/diff exit0 do not override that failure. The other7views were not run. No source repair or further conifer tuning is accepted. Next is the already planned coherent mixed art study with named forms/voids and quiet materials, then exact-same-art engine/game comparison.
+
+Actual target2352:0/yaw144.3969539; camera(-500,75),zoom1.5,Natural1600x900,tick0,GPU4090. Rawdiff38032/1440000=2.64%; exhaustive pixelconfinement is not established. Capture finally and2739heldinput checks pass; worker13identities/0survivors. Rootfresh typed audit751completed historical identities/0survivors with1/0/0controls includesS3unit/build/capture and excludes active source-onlyworkers.
