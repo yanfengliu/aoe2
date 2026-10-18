@@ -1,6 +1,6 @@
 # Wonder and relic countdowns last as long as Definitive Edition's
 
-Status: active
+Status: complete
 Owner: branch completion coordinator; recovery worker in worktree `countdowns`
 Created: 2026-10-15
 Updated: 2026-10-17
@@ -34,7 +34,7 @@ Source before changing: DE's in-game help or patch notes first, then well-docume
 
 - [x] Source DE's countdown, implement it, gate the rule and record phase 1.
 - [x] Recover the checkpoint, audit the countdown/save/replay/HUD mechanism and run focused checks.
-- [ ] Review and verify the integrated revision, merge/push main and retire the worktree.
+- [x] Review and verify the integrated revision, merge/push main and retire the worktree.
 
 ## Recovered implementation and evidence (2026-10-17)
 
@@ -50,4 +50,4 @@ Required `ci:status` ran first with a process-local safe-directory override; Git
 
 ## Outcome
 
-Pending. Record the verified revision, checks and limitations at closure.
+Merged and pushed to main as 63443d0dfe9eaefe900be02b10f0e46e94235dbc (v0.3.258), including five-branch merge ec69a1e0. Independent reviews 0–7 accept the integrated implementation and repairs. Both full local gates pass natively (5,010 unit/271 browser passes; three unit/two browser skips); the clean certified receipt binds tree 661cf37ec42d514c09a976bc167e6e7dce6491c1 and verify-receipt check accepts it. Hosted CI 39079461802 and playtest-corpus 39079461875 are GREEN. All eight recovered/control worktrees and branches were safely retired after overlay, ancestry and evidence audits; former shared link targets lost nothing. This bounded delivery is complete; the previously stated approximation, source and out-of-scope DE differences remain explicit.

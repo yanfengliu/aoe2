@@ -418,3 +418,5 @@ Frame measurement (`tmp/de-look/frameStats.mjs`):
 3. Over that same mask, report each frame's mean R, G, B and luma, and its mean saturation, (max - min) / max.
 
 Fixing the mask keeps every variant measured over the same pixels, so unexplored black does not dilute them. Promote the script to `scripts/` if later lanes tune against it.
+
+2026-10-17 publication checkpoint: v0.3.258 is on main at 63443d0d; eight maintained renderer pairs remain pixel-identical and the six actual-control flows pass. Hosted CI and corpus are green. The modern HUD, simplified art/animation and stronger software frame-cost gap remain open; the ignored installed-runtime culling proof passes 16 cases but has no host, pixel or FPS acceptance.

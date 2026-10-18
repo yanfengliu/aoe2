@@ -1,6 +1,6 @@
 # Gatherers carry on as in Definitive Edition when their target runs out
 
-Status: active
+Status: complete
 Owner: branch completion coordinator; implementation worker in worktree `gatherers`
 Created: 2026-10-15
 Updated: 2026-10-17
@@ -34,7 +34,7 @@ Reproduce both in the real game first, through the player's own commands. Source
 
 ## Implementation steps
 
-- [ ] Reproduce, source DE's rules, fix, gate, record, land.
+- [x] Reproduce, source DE's rules, fix, gate, record, land.
 
 ## Phase 1 record (worker, 2026-10-15)
 
@@ -98,7 +98,7 @@ Fishing Ships (excluded); deer on a shipped map (none places them); the radius a
 
 ## Outcome
 
-Pending. Record the verified revision, checks and limitations at closure.
+Merged and pushed to main as 63443d0dfe9eaefe900be02b10f0e46e94235dbc (v0.3.258), including five-branch merge ec69a1e0. Independent reviews 0–7 accept the integrated implementation and repairs. Both full local gates pass natively (5,010 unit/271 browser passes; three unit/two browser skips); the clean certified receipt binds tree 661cf37ec42d514c09a976bc167e6e7dce6491c1 and verify-receipt check accepts it. Hosted CI 39079461802 and playtest-corpus 39079461875 are GREEN. All eight recovered/control worktrees and branches were safely retired after overlay, ancestry and evidence audits; former shared link targets lost nothing. This bounded delivery is complete; the previously stated approximation, source and out-of-scope DE differences remain explicit.
 
 ## Recovery and completion checks (2026-10-17)
 
