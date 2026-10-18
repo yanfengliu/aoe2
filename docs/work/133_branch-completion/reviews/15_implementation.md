@@ -1,0 +1,57 @@
+## Target
+
+Round 15 independently reviews the single executed static full-world transparent-compactor diagnostic, not a product implementation. Target directory P is C:/Users/38909/Documents/github/aoe2-worktrees/software-ground-proof-1017/tmp/probes/work130-full-render/. Product base is 63443d0dfe9eaefe900be02b10f0e46e94235dbc. Reviewer output is isolated in software-culling-proof-1017/tmp/review-runs/work130-full-render/.
+
+Exact target SHA256: P/actual-report.md 72bf770624cf8c760239e491e61cfc44214b2b0617b5d016a04045c3692257d5; P/actual-analysis.json 25e2d54dae3c2bf6f425e9c6537d99429a850d87f9da07df58bf9d3988a88239; P/artifact-index.json 2d2771d80003f599b17e38944e6aab1185adb384575c3b73f4d96ab479045bb1; P/output-swiftshader/steps.jsonl 6adeacf0665dd091dd3854332a37c43e35c7f2c5c6264ec8bb58fca95b3c4f44.
+
+Predeclared acceptance is the original review14 retained at C:/Users/38909/Documents/github/aoe2/tmp/work133-retained/final-review/14_plan-original.md, SHA256 243c9f5efb0bb8113c0356cb14ffcbb47e0d122f91099c6f2dd77a96f2444b83. This review uses its unchanged continuation rule, not a threshold inferred after seeing measurements.
+
+## Reviewers and coverage
+
+Independent Codex collaboration reviewer final_acceptance_review, under the assigned Fleet Astra/xhigh review controls. Read the multi-cli-review skill and canonical runbook. No external CLI or source export occurred; the unavailable Claude lane is not counted as review approval.
+
+Read the diagnostic source, controller, original review14, actual report/analysis, all raw draw records, six setup records, all checkpoint records, build manifest, retained input identities, capture inventory and cleanup evidence. Corroborating code outside the diagnostic includes actual B admission at src/rendering/voxel/aoeVoxelSnapshotDelta.ts:45-65 and installed ThreeRenderRuntime.js:315-331, where prepare/render/commit are separate and frame success follows the real draw. Inspected all six final baseline PNGs at original 800x480 resolution, and independently verified each corresponding candidate/repeat file is byte-identical. This is narrower than claiming I separately opened all 18 filenames; the worker's individually authored inspection inventory is retained separately.
+
+No product, helper, test, configuration, Git, build, browser, profile or benchmark change or rerun occurred. Read-only hash calculations and raw-record analysis are verification of retained evidence. The only authored output is this review.
+
+## Reports
+
+The unchanged prepared inputs match review14: client.ts f6dd85466267f0be4d9bedd1949753817a7c6a478431818ca7a22ef24e8d3f65; run.mjs 4736cb898d9fb5c8910cfa41cb9ad5a5363d1db0bf41b57336806b606d8e7815; README.md b779df3ea9afced31375d089bb8aba962879a231fd96eaae8827fea8c0c35444; prepared-pins.json 3b27b352071d1d742cf93ee45d06a271f736de7ff7b2e07b510f00916d21fcc7. The imported helper remains c56cbf5647f5e8e9e08f6f95496f9243d9edbc9a943a9924fbfaee0faa11e5f5.
+
+The outer controller uses a finite 300000 ms deadline and captures the actual native process exit after WaitForExit. native-exit.json e9f9d45127f169ad63b20e5d1ff85dfc8fbdbb74f7932da0d3baa8c6100ea6ff records Node PID 26588, creation 2026-10-18T00:26:38.1669290Z, native exit 0, elapsed 33619 ms, no timeout. The zero-length stdout/stderr are not used as a success oracle; complete draw/checkpoint artifacts substantiate execution. Native 0 means diagnostic execution completed, not continuation passed.
+
+Actual build.json a9ccdf2804783f4efd76704df443f2bbaad7f4cd27313420b91942962fe20179 binds Node v24.12.0 and 678 compiled inputs. Browser-loaded bundle 40fe2897d2f7466865ce7f795d2193e4a543f25a3021d4ca095763cef3f33794 matches the retained bundle. run.mjs:65-67 checks the actual response bytes before starting. All six setups report SwiftShader, single-sample ground, DPR 1 and an 800x480 drawing buffer. This uses the installed voxel dist bytes through the local dependency resolution; it is not a rerun of the shipping-pin build reviewed in round13, nor proof of CI artifact equivalence.
+
+All six retained projected/full-world/camera identities independently match the original valid round-zero final-B inputs. All 228 rows are present: 38 per input, including initial full, first compact, four warm and 32 scored steps. They contain 684 actual arm draws, of which 576 are scored. Every recorded frame advances by one with running status and matching source, accepted and presented identities; all 228 helper watermarks match. Each input has one static body digest and 38 distinct canonical revision digests. These records agree with the shared-source and post-use mutation guards in client.ts:129-145.
+
+Camera matrices and actual presenter box/sphere/capacity match baseline throughout. Every first draw is full. Source-order subsequences remain ordered, both unchanged controls remain full, and the actual compacted count matches each mesh count. Program counts stay fixed during scoring. The report records no page errors or scoring resource requests, with only owned HTML and bundle responses. Slot removal is nonvacuous: late maxima are 1255 shadow and 461 memory slots; actual triangles fall from 22582 to 18076 at late base and 22534 to 16750 at late held-out. Capacities remain 2048/512 for those late lanes.
+
+## Findings and disposition
+
+R15-1 — the predeclared continuation criterion fails. Location: output-swiftshader/steps.jsonl, late-base score-0-* through score-3-*, and actual-analysis.json groups[input=late-base]. Independently recomputing sorted sample index 2 of eight per round, then the median of four arm costs, gives B 39.34999999962747 ms, C 38.600000001490116 ms and repeat 39.600000001490116 ms. C exceeds the required 0.8 * faster-control limit of 31.479999999701977 ms. The roughly 1.906% observed improvement does not meet 20%.
+
+The same view independently fails the all-four-wins condition: round index 2 has B 39.399999998509884 ms, C 40.099999997764826 ms and repeat 39.5 ms. The symmetric control median ratio is 1.0063532401998732, within 1.05; this is not a failed noise guard that excuses the negative result. Disposition: STOP continuation to the planned host compactor implementation on this evidence. Do not optimize this candidate, adjust thresholds, discard the failed view or repeat automatically.
+
+The other required outcomes do not rescue R15-1. Late held-out C 17.649999998509884 ms passes its 26.559999999403956 ms threshold, beats both controls in all four rounds, and has control ratio 1.0060240964193397. Opening-base C 25.25 ms passes its 26.145000000391157 ms limit. The rule explicitly requires both late views. All six reported arm medians reproduce exactly from raw rows; the report correctly avoids the separately emitted median-of-ratios statistic.
+
+No additional material evidence or reporting defect was found that requires repairing or rerunning this diagnostic. The accepted static experiment is capable of returning a valid negative result. Fixed arm/context identities, repeat always third, favorable lower quartiles, excluded allocations between timers and absence of sustained host load remain limitations from review14. They prevent stronger causal or throughput claims; they do not justify proceeding after the agreed conservative discriminator fails.
+
+The report's causal and acceptance language is appropriately bounded. Preparation, actual B admission, synchronized real drawing and commit audit are included; simulation, adapter snapshot production, ground packing, full image encoding, HUD and compositor are excluded. Independently selected sub-time quartiles are not additive causal decomposition. The unchanged fixed helper margin establishes no general camera/AA conservatism. Failure here does not establish that every different dynamic-ingest strategy is impossible.
+
+## Verification
+
+Independently rehashed all 1631 prepared file bindings, all 678 actual compiled-input bindings, and all 65 indexed artifacts, including byte lengths where recorded: zero mismatches. The compiled inventory is a separate actual-build inventory, not a claim that every transitive dependency was among the original 1631 prepared paths. Retained inputs, compiled bytes, the actual loaded bundle and the runner's before/after checks together establish this run's bounded origin. Both target and reviewer worktrees have clean tracked Git status.
+
+All 18 pixel-checkpoint records (initial/full, first/compact and final across six inputs) report zero candidate/control and repeat/control RGBA differences and stable raw hashes. Each input's three final PNG hashes independently match. Original-size inspection corroborates the town centre and units at opening base, expanded settlement at late base, and transparent remembered objects at late held-out. Both corners and opening held-out are black unexplored pictures; their reported non-black count is zero, so they are weak positive visual witnesses. Opening/late base counts are 307325/377988 and late held-out is 340587.
+
+Inspection byte bindings for each baseline/candidate/repeat trio: opening-base d5a2d44c7c2607e1088e29fe02e4127d0bcee9cdb163f22547d22fbb95918c28; opening-corner and late-corner 4e6ea3ef139b0804e2234aa39c2383c3699524732e9ba057d53c3d106c533ec1; opening-heldout 8ef76bbfb8d712f184b5d1b19115613f6ab4406f2453237f7dc1ad78461a0351; late-base f4433a167dac8608838a5730de746178d861ef03167c54eccc43b98681d2ff12; late-heldout dd6b19e29dd2f9cfd31951b7b5f1b6f03be15673296df8f83cdac76a90a726bb. Full per-file inventory is capture-sheet.json e50720ff2fc699c8b32e5a0a9f8fba6508e586fdb4e11b04b4ae2d74bc9a8bc8.
+
+Inner finally reports eight owned identities, zero remaining, audit available, no cleanup error and no listening server. Outer cleanup reports seven identities including the root, with zero remaining/tagged/listeners and no controller error; different sampling is not an equal-count requirement. final-process-audit.json is 593348ccbc8a5adf2b39e14c15e7149a3253aa2720a9d91845782612a515b9b9. The later union contains nine distinct recorded PIDs (some creation times have different serialized precision). My fresh read-only elevated check at 2026-10-18T00:38:37.5317555Z finds none of those PIDs, no tagged browser and no port4834 listener. The first sandboxed process query was denied and was not treated as evidence of absence; the managed read-only retry succeeded.
+
+No test/build/browser rerun, real-host lifecycle, live controls, bridge clock/rollback, WebGL context recovery, broader views or viewport sizes, maintained product screenshot comparison, live simulation work, Normal FPS, GPU timing, CI timing or whole-product acceptance was performed by this review. Earlier no-GL and shipping-source results retain their separate bounds. No reviewer-owned background process was launched; this report and underlying evidence remain intentionally retained for root handoff.
+
+## Round outcome
+
+Accept the actual report as valid bounded negative evidence. The single static SwiftShader experiment completed and preserved its controls; the candidate fails the original continuation rule, so stop host/product compactor implementation on this route. This is neither a product acceptance nor permission for another static proof round.
+
+The original equal-work software late/opening interval limit <=1.25, GPU floor >=55 FPS, preserved pixels and unchanged simulation work remain unchanged. The recorded software ratio 1.5015 remains UNMET. Root owns reassessment of the broader objective; no stronger-goal closure is supported here.
