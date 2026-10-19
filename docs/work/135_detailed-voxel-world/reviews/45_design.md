@@ -1,0 +1,49 @@
+# Review 45: design
+
+## Target
+
+2026-10-18, main `a83c7d0cbe49dd0c8690f827f86ac512292e094e`. Independently adjudicate M21's direct N4/skull occupied-overlap promise before root selects any further action. Source `4ea140e64a4c0bb5b2967eae2ac8ec3e456381a421420652c0457fe5bacff94c` remains frozen, structurally red and unrendered. No geometry correction, instrument amendment, runtime or capture is granted by this review.
+
+## Reviewers and coverage
+
+`/root/m21_contract_adjudication` read the frozen contract, worksheet, worksheet integration observation, first-full source and both source-check instruments, corrected-neck pins, report 41, report 43 and its fixed reproduction/probe. The review distinguishes the human/spec requirement, the selected construction hypothesis and the check's stronger predicate. An owned read-only probe independently recomputed connectivity, attachment contacts and protected mouth occupancy from the exact retained sampled cells. It did not execute the authoring source or the external writing instruments, and did not repeat report 43's all-center containment classification.
+
+No native imagery was inspected this round, and no M21 native image exists. This is contract and structural judgment only. Source artistic form, full mesh embeddedness, engine verification, flame/pad fidelity and the actual Normal-view game baseline remain outside this review's demonstrated bounds.
+
+## Reports
+
+Spec §2.1 requires four unequal connected neck volumes with tilt, taper and overlap, including the shorter partly hidden upper transition and three joints. It requires mapped head/neck connections and actual native inspection. It does not separately require shared occupied cells between N4 and skull, nor establish unseen anatomical relationships.
+
+The selected M21 contract asks for internal overlap sockets and limited junctions. The frozen worksheet says N4's upper interior directly joins skull and cheek. Its neighboring-neck paragraph explicitly requires actual broad occupied overlap for the three neck pairs. The full-stage instrument goes further: `eachDeclaredConnectionHasOccupiedOverlap` interprets every declared `touches` edge as at least one shared cell, including skull's declaration of N4. Direct face contact and occupied overlap are distinct predicates. The earlier plan/report's “direct-overlap promise” describes this stronger experiment/check contract; it is not a new quotation of the human requirement.
+
+Independent retained-cell calculations reproduce zero N4/skull shared cells and exactly five direct occupied face contacts. All run upward from N4 Y79 to skull Y80: X16 with Z−3, −2, −1 and 0, plus X17/Z0. None of these ten endpoint cells belongs to a third component. Thus direct six-neighbor contact is real; the connection is not solely a metadata label or a cheek-mediated path. Separately, N4/cheek and cheek/skull share 187 and 1,130 cells. These prove attachment within the recorded memberships, not a broad direct socket or satisfactory visible anatomy.
+
+The same retained memberships reproduce jaw groups 2,784/1, main crest 1,060/2/2 and near crest 469/2/1/1/1. The final union is one 57,178-cell grounded group and three singletons at jaw `[44,59,-2]` and near crest `[5,93,-1]` / `[1,101,4]`. All 1,020 protected mouth cells remain empty. Report 43's independently agreeing containment result remains pertinent and hash-guarded; this round provides no new evidence for a sampler change.
+
+## Findings and disposition
+
+Recommend retaining direct N4/skull occupied overlap as a source-stage precondition for this selected experiment, and satisfying it through localized skull-root authorship while preserving every checked neck. This retains an intentional internal socket relationship in the frozen hypothesis and avoids converting a failed construction check into success by declaration. It does not make direct overlap a universal art or human requirement, and it does not imply that five face contacts are visually inadequate; no native evidence settles that question yet.
+
+A versioned instrument amendment could truthfully distinguish “direct face attachment” from “occupied overlap”; it could not truthfully report the original overlap predicate as passed. That route is not preferred here. Neither the raw contacts nor the indirect path explains why abandoning the chosen socket relationship improves the construction. Preserve the original zero/FAIL observation and all original declarations in retained history under either decision. No declaration change can repair the real islands.
+
+The finite next proposal should contain exactly four editable solids: skull's local lower root, jaw's grazing boundary, and main/near crest caps or root transitions. Preserve the four neck source definitions and membership/color hashes, all other head solids, component priorities, sampler/grid pitch and rendering/effect controls. The skull-side edit must be a restricted closed transition into fixed N4, not a new neck part, connector post, broad cheek wall, global backing volume or general head redraw. Its intended overlap must coexist with the upper transition's exposed shoulder after union. Do not choose an arbitrary minimum cell count and call it anatomical quality.
+
+Before root selects that batch, the sole source owner should freeze the exact editable vertices/facets, bounded edit regions, intended occupied root-to-tip paths, overlap target and forbidden mouth/shoulder regions. These are authoring intentions to test, not permission for repeated coordinate searches. Replace grazing terminal geometry with deliberate finite faces and connected roots rather than filtering islands or adding single cells after sampling. If a proposed edit exceeds those four solids or changes a protected control, return it for scope adjudication before implementation.
+
+After any selected batch, require each complete component independently six-connected, the original declared-overlap predicate satisfied, one grounded six-connected full union, unchanged protected neck/control hashes, deterministic ownership and every protected mouth cell empty. Inspect actual overlap bounds, occupied paths and surviving shoulder membership; counts and exposed role names remain corroboration only. Independently classify every bounded center of each changed solid using the preserved alternative instrument, with its existing controls. Retain the old failed memberships and every check result. A qualified mesh-topology pass still does not certify coplanar overlap, adjacent foldovers or all embeddedness cases.
+
+This recommendation is one predeclared batch, if root chooses it, followed by a source freeze and inspection; it is not a fresh five-pass allowance or an automatic retry loop. On another red source result, preserve it and return to root without a further correction. If the source gate closes, root must separately predeclare the M20 comparison and select the unchanged eleven-view capture. Actual matched/detail, side, opposite, rear, overhead and low views must still establish the four-section rhythm, three joints and coherent cranial hierarchy. Reject lost shoulders, broad backing, horizontal ledges, parallel crest rails, disconnected form or dependence on one projection there.
+
+## Verification
+
+Key input SHA256 pins: source `4ea140e64a4c0bb5b2967eae2ac8ec3e456381a421420652c0457fe5bacff94c`; contract `b035d2a3ba98e34d690226fcb4499caa3fdbd1e92419b9a6a070b797fcaf2ee7`; worksheet `d70a9ed5e0289e15219b8a6e11c0582cca69aa8923bb69769d99c274dfa594ff`; retained samples `763c3e663d13b5a5970c9c736684a945d1484d79077ab0ecf63b26b76bb2e841`; original full checks `9f452c9103818d623263ec66c53aa2efacfb0e2d3cfab6e7eacd1d0050cb7d0a`; report 43 `6878cb7d528192375cc7ed72f3a7c8c95147b0cfc084261dfac56c57b7668956`; report 43 independent evidence `225bf502c266d10bb04ff9e568ea5c5a5b328a10001dd76500677af452ad71da`.
+
+Owned ignored evidence is `tmp/work135-m21-contract-review/` in the assigned `work135-m21-continuation-1018` checkout. All 20 guarded inputs remained byte-identical. All twelve independently rebuilt retained component hashes and the resolved union/owner hashes match the frozen sample record. `contacts.json` SHA256 is `89de66ac18b4d98e07e03378c77a7bf096f5c0b223ff85a065bcba5719867486`; `inputs-before.json` and identical `inputs-after.json` SHA256 is `a48afa6f419714035ce82e66e2f35d09764cced2aa8551cfb5b41621508c3dec`. Exact paths and hashes are in those manifests. This verifies the retained data graph, not a fresh execution of sampling or rendering.
+
+Session-start `npm run ci:status` first exited 1 because sandbox network access was unavailable. The command-scoped escalated read then exited 0: a83c7d0c CI run 39185556972 was still running and its playtest-corpus run 39185557116 was green. That observation is not a current-tip full-CI pass. Runtime/full verify, new captures and expensive gates were not run for this documentation-only review. Probe exit was 0. Compute and total elapsed cost are unmeasured.
+
+## Round outcome
+
+The direct-overlap issue is independently adjudicated as a retained experiment precondition with a localized skull-side correction recommendation; root owns the actual decision and any dispatch. The proposed jaw/crest/root batch remains unselected by this report. M21 remains source-red and visually untested. The existing proof chat remains sole implementer; all prior repair counts and human overrides remain carried across agents and milestone names. No engine limitation is established.
+
+Only this report and its owned ignored evidence were written. No product/spec/plan/gallery/source, civ-engine, voxel, Git history or unrelated primary file was changed. No subagent, browser, GUI, server or persistent process was launched. Root owns integration, retained evidence custody and managed worktree cleanup.
