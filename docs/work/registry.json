@@ -2901,6 +2901,10 @@
     {
       "id": 136,
       "theme": "lean-icon-ui"
+    },
+    {
+      "id": 137,
+      "theme": "resource-worker-ci"
     }
   ]
 }
