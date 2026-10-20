@@ -3,7 +3,7 @@
 Status: planned
 Owner: Codex resource-worker CI worker; root integration owner
 Created: 2026-10-19
-Updated: 2026-10-19
+Updated: 2026-10-20
 
 ## Problem and outcome
 
@@ -58,3 +58,5 @@ The retained Playwright trace is the first debugging instrument. It observes rea
 Pending. Root cause, fix, runtime checks, review and integration remain open. The artifact proves the observed failure, not its causal mechanism. No product or test fix has been made. One forensic retrieval and two bounded diagnostic browser cases were completed.
 
 2026-10-19 current priority: deferred under the human’s “I just want the art to be good” and “What are you even verifying” steering. The original authored investigation remains above; both local diagnostic cases passed, behavioral repair attempts remain 0, the hosted cause is unproved, and no product or test fix exists. Root retains ownership of the unchanged CI worktree and ignored evidence. Original tmp/ plus this plan and debugging record are copied byte-for-byte to primary tmp/work137-deferred-retained-20261019/ with source/destination bytes and digests; no cleanup or next runtime is selected.
+
+2026-10-20 custody update: the original CI checkout and branch were safely retired using controlWorktree, exit0, after retaining83files/9,193,416bytes under primary tmp/work137-cleanup-20261020/manifest.json SHA256 a534fef8a9ffe3f2ca09f4d5c2be7264b44406590d7c1737ba5baf2cf7ad701b. Original71-file custody remains exact; source/build/ignored evidence and authored dirty bytes remain recoverable. Root owns retained custody and any future reassessment; no active CI worker, next runtime, source fix or causal clearance is selected. Protected policy/voxel instructions and parked UI content were unchanged;19other worktrees including active art documentation/review trees remained registered at that cleanup.
