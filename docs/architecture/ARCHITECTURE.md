@@ -5,9 +5,28 @@ structural changes (new modules, shifted boundaries, new build or data pipelines
 not update it for UI tweaks, bug fixes, refactors, or test-only work. When it does
 change, also append a row to `drift-log.md` and mention the update in the devlog.
 
+## Section map
+
+Read this map first, then only the sections the work needs.
+
+- [Repository layout](#repository-layout): what each folder holds, one entry per module.
+  - [`src/app/`](#srcapp): app startup, the sole browser world host and the hand-over between live and replay bridges.
+  - [`src/game/`](#srcgame), the largest: content tables, `playtest/`, `replay/`, `recording/` and `simulation/` (the bridge, scenarios and command handlers). Find a sub-entry by searching for its opening words, such as ``- `simulation/` —``.
+  - [`src/input/`](#srcinput): hit testing, unit classification, camera control and command dispatch.
+  - [`src/rendering/`](#srcrendering): projection, interpolation, view contracts, art styles and the voxel render treatments.
+  - [`src/ui/`](#srcui): the DOM HUD.
+  - [Other folders](#other-folders): `tests/`, `scripts/`, `design/`, `generated/` and `docs/`.
+- [Runtime layers](#runtime-layers): who owns what at run time, from `civ-engine` through the simulation bridge and the voxel view to the HUD, and how content flows.
+- [Determinism contract](#determinism-contract): what may change state, seeds, render interpolation, unit domains and counter-based randomness.
+- [Test boundaries](#test-boundaries): what Vitest, Playwright, `tsc` and the build each cover.
+- [Where new work belongs](#where-new-work-belongs): where a new rule, art style, render treatment, input control, HUD element or content goes.
+
 ## Repository layout
 
 - `src/` — game code (TypeScript)
+
+### `src/app/`
+
   - `app/bootstrap/` — app startup. `createApp.ts` owns the live/replay bridge
     cell, mounts the DOM HUD and replay timeline panel, binds replay hotkeys,
     and calls `replaceBridgeForLoad.ts` so save-load exits replay before
@@ -38,6 +57,9 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     first failure stops the simulation and keeps drawing, second stops the loop
     — and `onFrameHalt` publishes it.
   - `app/replacePresentedBridge.ts` — synchronous bridge-presentation ownership transfer. The view retains outgoing coordinator/renderer state while presenting a candidate, restores it on ordinary preparation/admission failure, and resets input only after success. The app publishes its shared bridge reference afterward. The renderer retains the outgoing snapshot and adapter; its ground lease delays superseded resource disposal and restores modified texture bytes on rollback. This boundary does not recover a terminal failed/disposed rendering runtime or device.
+
+### `src/game/`
+
   - `game/` — gameplay rules, scenarios, content
     - `content/` — shared content tables (e.g., building footprints)
     - `playtest/` — headless playtest infrastructure. `runPlaytest.ts`
@@ -233,6 +255,9 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
         selection, sheep, scenario validation). The `fixtures/index.ts`
         barrel is the single place the `prototypeScenario.ts` dispatcher
         imports from.
+
+### `src/input/`
+
   - `input/` — renderer-neutral hit testing, unit classification, standalone
     isometric camera control, DOM pointer normalization, drag/middle pan state,
     click selection, and context-command dispatch. Raised entity clicks consume
@@ -240,6 +265,9 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     epoch/revision; context loss or stale presentation fences interaction. Exact
     click history can reorder only the current target set. Input imports neither
     Three.js nor DOM/GPU renderer objects.
+
+### `src/rendering/`
+
   - `rendering/` — pure isometric projection/interpolation/view contracts and
     AoE visual-role tables. `artStyles.ts` and `artStylePreference.ts` own the
     display-only art-style layer (Moebius and the DE style): which resolve
@@ -323,7 +351,13 @@ change, also append a row to `drift-log.md` and mention the update in the devlog
     display deltas, freezes on pause, and rebases without decrement on a bridge
     swap or replay rewind. AoE semantics remain here rather than entering the
     reusable package.
+
+### `src/ui/`
+
   - `ui/` — DOM HUD controller. `ui/hud/` hosts `createHudController.ts` (top-bar + side panels), `hudTemplate.ts` (extracted HTML template), `saveLoadPanel.ts`, `selectionPanel/` (render helpers, command buttons, and — v0.3.187 — `buildPages.ts`/`buildPalette.ts` for DE's two-page command card), `minimap.ts`, `minimapInput.ts` (NEW v0.3.223 — both minimap mouse buttons, split out of `createHudController.ts` at 498 of the 500-line ceiling: left pans, right issues the selection's context order at that cell, both through the SAME diamond inversion so neither can act on a cell the other would reject, plus the `contextmenu` suppression the canvas's own `preventDefault` does not reach), etc. `ui/annotation/` hosts the annotation form + marker-list panel (Spec 2 v0.1.5 + replay-mode flips from v0.1.8). `ui/replay/` (NEW v0.1.12) hosts `replayLoadDialog.ts`, the unified `ReplayLoadDialog` modal that consolidates the three replay-load sources (live session, prior session, file import) under a single HUD entry point.
+
+### Other folders
+
 - `tests/` — Vitest unit/integration tests and Playwright browser tests
 - `scripts/` — content and build scripts
 - `design/` — game design spec, stat CSVs, implementation plan

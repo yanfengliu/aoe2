@@ -1,0 +1,11 @@
+# Every feature is playtested the way a human plays (2026-08-23, owner)
+
+One of [this repo's local rules](../local-rules.md), where "above" and "below" mean earlier and later in its list.
+
+A feature is not done when its tests pass — it is done when a full match has been played with it. Use the playtest infrastructure the engine and this repo already ship (`npm run playtest:llm`, `playtest:findings`, `replay:inspect`, `run-oracles`); do not hand-write a synthetic probe where the harness would answer the question.
+
+**Why:** owner directive, and the standing evidence is the whole v0.3.29–v0.3.30 arc — siege production shipped green and could not fire in a real match, and the AI's economy had been frozen since roughly tick 6000 for versions on end with every unit test passing. "Adding to a system does not prove it RUNS" is the standing form of it.
+
+**How to apply:** the agent plays the HUMAN slot (player 1) against the in-game AI, reads the rendered screen, and plays a match long enough to reach the mechanic under test — a Castle-Age technology is not exercised by a 3000-tick run. Orders may ride the JSON command bridge (owner decision, 2026-08-23: it is the reliable surface), but **anything a human is supposed to be able to do must also be reachable with the mouse and keyboard**, and that half is proved by the Playwright browser suite, not assumed. `playtest:findings` turns each run into the objective backlog; the harness only ever observes and reports (§15.7).
+
+**Amended 2026-09-25 (owner): no scheduled LLM playtest.** The owner: *"no API key, no nightly playtest"*. An LLM playtest runs only where a person or a session starts it, with `npm run playtest:llm`, as the summer campaigns did; no workflow runs one. The nightly `playtest-llm.yml` is deleted, with the corpus runner, dashboard, modules, scripts and tests that existed only for it. It came from an agent's own plan (`675771e5`, 2026-05-08), not from the owner, and it could play only with an `ANTHROPIC_API_KEY` secret the repository never had: 138 scheduled nights, no game played (the count is in spec §15.7). Bringing back a scheduled or CI LLM playtest, or adding a provider secret for one, is the owner's call. The remote playtest gate is the deterministic corpus, `playtest.yml`.
