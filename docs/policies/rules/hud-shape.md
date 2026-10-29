@@ -1,8 +1,10 @@
-# The HUD holds its shape, and nothing floats over the minimap (2026-09-02, owner)
+# The HUD holds its shape, and live-game chrome stays clear of the minimap (2026-09-02, owner)
 
 One of [this repo's local rules](../local-rules.md), where "above" and "below" mean earlier and later in its list.
 
-Entering a mode — placement, a menu, a queue filling up — must not move, shrink, or hide the controls the player was just using (a label may make room for the mode's own pill; a button may not move), and no floating element (tooltip, toast, badge) may cover the minimap.
+Entering a mode — placement, a menu, a queue filling up — must not move, shrink, or hide the controls the player was just using (a label may make room for the mode's own pill; a button may not move), and no floating element (tooltip, toast, badge) on the live gameplay HUD may cover the minimap. A tooltip belonging to an open modal may occupy the background minimap region only while that modal's backdrop covers the minimap and makes it inert to input. The tooltip must remain within the viewport and its active top layer; existing foreground-panel and interactive-host avoidance requirements still apply, including §14.1's game-menu-panel exclusion. Pausing alone creates no exception, and native-dialog placement contracts are unchanged.
+
+(This title and paragraph were found uncommitted in the primary checkout's local-rules.md, written 2026-10-18.)
 
 **Why:** the owner asked for the UI to be "elegant" the day they found, by playing, that clicking a build card collapsed the build palette to a sliver and put its tooltip on the minimap. The bar is a flex row with exactly one member that absorbs width changes, so a status rendered as a sibling took its width from the palette; and a positioner that clamps to the viewport does not clamp to the HUD. Both are the kind of defect a boot screenshot never shows and a player finds in the first minute.
 
