@@ -25,7 +25,7 @@
 // branch.
 
 import type { ExecFileSyncOptions } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -86,9 +86,14 @@ export interface Scenario {
   sandbox?: { root: string; checkout: string };
 }
 
+// Containment by real path where the path exists, so a link inside the sandbox cannot lead out of it.
 const inside = (child: string, parent: string): boolean => {
   const norm = (path: string) => {
-    const s = resolve(path).replace(/\\/g, '/').replace(/\/+$/, '');
+    let s = resolve(path);
+    try {
+      s = realpathSync.native(s);
+    } catch { /* not there: compared as written */ }
+    s = s.replace(/\\/g, '/').replace(/\/+$/, '');
     return process.platform === 'win32' ? s.toLowerCase() : s;
   };
   return norm(child) === norm(parent) || norm(child).startsWith(`${norm(parent)}/`);
@@ -102,6 +107,15 @@ const isLeftoverGit = (args: string[]): boolean => {
   return first === '-C' || (first === 'rev-parse' && second === '--show-toplevel');
 };
 
+// What a sandbox may run after `-C <dir>`: read-only subcommands, and no option that points git at another folder
+// or repository, sets config or writes a file (review F1 of work 138: `-C <in> -C <out>` and `--git-dir=<out>` passed).
+const READ_ONLY = new Set(['ls-files', 'rev-parse', 'status', 'merge-base', 'for-each-ref']);
+const ELSEWHERE = /^(-C|-c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env|--output)(=|$)/;
+const sandboxForm = ([command, ...rest]: string[]): boolean => (READ_ONLY.has(command)
+  || (command === 'worktree' && rest[0] === 'list')) && !rest.some((arg) => ELSEWHERE.test(arg));
+
+const sameArgs = (a: string[], b: string[]): boolean => a.length === b.length && a.every((arg, i) => arg === b[i]);
+
 function leftoverGit(scenario: Scenario, args: string[], options: ExecFileSyncOptions | undefined,
   refuse: (bin: string, args: string[]) => never): string {
   const [first, dir, ...rest] = optionless(args);
@@ -110,15 +124,15 @@ function leftoverGit(scenario: Scenario, args: string[], options: ExecFileSyncOp
   }
   if (first !== '-C' || !dir) return refuse('git', args);
   if (scenario.sandbox) {
-    if (!inside(dir, scenario.sandbox.root)) return refuse('git', args);
+    if (!inside(dir, scenario.sandbox.root) || !sandboxForm(rest)) return refuse('git', args);
     if (!realExecFileSync) throw new Error('the real execFileSync was not loaded; run the scenario through runScript');
     return String(realExecFileSync('git', args, { ...options, env: sandboxGitEnv(scenario.sandbox.root) }));
   }
   if (!inside(dir, NO_SANDBOX_CHECKOUT) || existsSync(dirname(NO_SANDBOX_CHECKOUT))) return refuse('git', args);
-  if (rest[0] === 'worktree' && rest[1] === 'list') {
+  if (sameArgs(rest, ['worktree', 'list', '--porcelain', '-z'])) {
     return `worktree ${NO_SANDBOX_CHECKOUT.replace(/\\/g, '/')}\0HEAD ${'0'.repeat(40)}\0branch refs/heads/main\0\0`;
   }
-  if (rest[0] === 'for-each-ref') return '';
+  if (sameArgs(rest, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/retained/'])) return '';
   return refuse('git', args);
 }
 

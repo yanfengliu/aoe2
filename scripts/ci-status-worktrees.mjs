@@ -7,8 +7,8 @@
 // session hears of it.
 //
 // A LEFTOVER is a registered worktree, other than the primary checkout and the caller's own, whose HEAD main contains
-// and that has had no activity for 24 hours. Activity is the newest mtime among its non-ignored files and the folders
-// that hold them (a deletion or a rename shows only on the folder), its index, its HEAD, its HEAD reflog and its
+// and that has had no activity for 24 hours. Activity is the newest mtime among its non-ignored files and folders,
+// empty ones included (a deletion or a rename shows only on its folder), its index, its HEAD, its HEAD reflog and its
 // branch's reflog. ci-status.mjs exits 2 when there is one and the remote gates are not red; a red remote gate keeps
 // exit 1 and the leftovers are still printed. A check that cannot finish says UNKNOWN and fails the same way.
 //
@@ -25,8 +25,10 @@
 // BOUND. Mtimes are the evidence. A write that keeps an old mtime, or a clock set back, reads as idle; any index
 // write, including someone else's plain `git status`, reads as activity for 24 hours; a process that works in a
 // worktree without writing a non-ignored file (a dev server, a reader) is not seen. Ignored files are not read, except
-// where creating one changes the mtime of a folder that holds a non-ignored file. "Main" is the local
-// refs/heads/main, as scripts/controlWorktree.mjs judges a removal.
+// where creating one changes the mtime of a non-ignored folder, and an ignored folder inside a wholly untracked one is
+// read as one of its folders; both err toward activity. A branch counts as named by a plan where its whole name
+// stands as a word of the plan's text. "Main" is the local refs/heads/main, as scripts/controlWorktree.mjs judges a
+// removal.
 
 import { execFileSync } from 'node:child_process';
 import { lstatSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
@@ -36,6 +38,9 @@ export const IDLE_HOURS = 24;
 const IDLE_MS = IDLE_HOURS * 3_600_000;
 const MAIN = 'refs/heads/main';
 const OPEN_PLAN = new Set(['planned', 'active', 'blocked']);
+// Where a branch name ends in prose: whitespace, markdown and sentence punctuation, or a character git forbids in a
+// ref name. Anything else (a letter, `-`, `+`, `/`, `.` before a letter) continues the name.
+const EDGE = '[\\s`\'"()[\\]<>,;:|*?~^\\\\]';
 const WIN = process.platform === 'win32';
 
 const git = (args) => execFileSync('git', ['--no-optional-locks', ...args], {
@@ -102,13 +107,38 @@ const mtime = (path) => {
   }
 };
 
-// The newest change among everything that counts as activity, in ms since the epoch.
+// Every folder from `rel` down, a wholly untracked one, read on disk without entering a link. An ignored folder in it
+// counts too, which errs toward activity.
+function subfolders(base, rel, into) {
+  const stack = [rel];
+  while (stack.length > 0) {
+    const dir = stack.pop();
+    into.add(dir);
+    let entries = [];
+    try {
+      entries = readdirSync(join(base, dir), { withFileTypes: true });
+    } catch (error) {
+      if (error?.code !== 'ENOENT' && error?.code !== 'ENOTDIR') throw error;
+    }
+    for (const entry of entries) if (entry.isDirectory() && !entry.isSymbolicLink()) stack.push(`${dir}/${entry.name}`);
+  }
+}
+
+// The newest change among everything that counts as activity, in ms since the epoch. A deletion shows only on its
+// folder, so every non-ignored folder is read: those that hold a listed file, the empty ones and the wholly untracked
+// ones, which `--directory` lists with a trailing slash, and every folder inside the latter.
 function lastActivity(wt) {
   const listed = gitIn(wt.path, ['ls-files', '-z', '--cached', '--others', '--exclude-standard']);
   const files = new Set(listed.split('\0').filter(Boolean));
   const folders = new Set(['.']);
-  for (const file of files) {
-    for (let dir = dirname(file); dir !== '.' && !folders.has(dir); dir = dirname(dir)) folders.add(dir);
+  const withParents = (start) => {
+    for (let dir = start; dir !== '.' && dir !== '' && !folders.has(dir); dir = dirname(dir)) folders.add(dir);
+  };
+  for (const file of files) withParents(dirname(file));
+  for (const entry of gitIn(wt.path, ['ls-files', '-z', '--others', '--exclude-standard', '--directory']).split('\0')) {
+    if (!entry.endsWith('/')) continue;
+    withParents(dirname(entry.slice(0, -1)));
+    subfolders(wt.path, entry.slice(0, -1), folders);
   }
   let newest = 0;
   for (const rel of [...files, ...folders]) newest = Math.max(newest, mtime(join(wt.path, rel)));
@@ -177,9 +207,11 @@ function retainedLines(own) {
   const named = [];
   const unnamed = [];
   for (const name of names) {
-    // The whole name: not the start of a longer one (`retained/x-v2`, `retained/x.y`). A branch name never ends in a
-    // dot, so a dot that ends a sentence still counts.
-    const exact = new RegExp(`${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w/-]|\\.[\\w/-])`);
+    // The whole name, as a word of prose or markdown: not inside a longer one (`other/retained/x`, `retained/x-v2`,
+    // `retained/x+next`, `retained/x.y`), though `refs/heads/retained/x` names it. A branch name never ends in a dot,
+    // so a dot that ends a sentence still counts.
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const exact = new RegExp(`(?<=^|${EDGE}|refs/heads/)${escaped}(?=$|${EDGE}|\\.(?:$|${EDGE}))`, 'm');
     const by = plans.filter((plan) => exact.test(plan.text)).map((plan) => plan.folder);
     if (by.length > 0) named.push(`${name} (${by.join(', ')})`);
     else unnamed.push(name);

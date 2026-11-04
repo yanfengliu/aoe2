@@ -4,8 +4,8 @@
 // work 138). The command now reports them, through scripts/ci-status-worktrees.mjs, and this holds it to that.
 //
 // The contract. A LEFTOVER is a registered worktree, other than the primary checkout and the caller's own, whose HEAD
-// main contains and that has had no activity for 24 hours. Activity is a change to a non-ignored file or a folder that
-// holds one, to the worktree's index or HEAD, or to its HEAD or branch reflog. A leftover makes the command exit 2
+// main contains and that has had no activity for 24 hours. Activity is a change to a non-ignored file or folder, empty
+// ones included, to the worktree's index or HEAD, or to its HEAD or branch reflog. A leftover makes the command exit 2
 // when the remote gates are not red, and the remote verdict keeps exit 1 when they are; either way the leftover is
 // named with its path, branch, idle age and uncommitted counts, with the retirement step. Reported and never failing:
 // an idle worktree whose HEAD main lacks, a worktree locked with a reason, a registered worktree whose folder is gone,
@@ -15,7 +15,8 @@
 //
 // How. Each case plants worktrees in a sandbox repository under the OS temp directory (helpers/worktreeSandbox.ts) and
 // runs the whole script through the harness: `gh` is the captured green or red fixtures of ciStatus.test.ts, and the
-// check's own git calls run for real inside the sandbox. Idle means mtimes set 50 or 72 hours back.
+// check's own git calls run for real inside the sandbox. Idle means mtimes set 50 or 72 hours back. The last describe
+// holds the harness to running only read-only git inside the sandbox.
 //
 // BOUND. The sandbox is a small repository with one commit; the real repo's 2,700 files and its node_modules junction
 // are met only by running the command on this machine (work 138's plan records that run). Mtimes are the evidence, so
@@ -27,7 +28,7 @@ import { mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { fixture, runScript, type Scenario } from './helpers/ciStatusHarness';
+import { fixture, makeHandler, runScript, type Scenario } from './helpers/ciStatusHarness';
 import { disposeTemplate, makeTemplate, openSandbox, type RealExec, type Sandbox } from './helpers/worktreeSandbox';
 
 vi.mock('node:child_process', async () => {
@@ -168,7 +169,9 @@ describe('ci:status names a worktree left behind after its work merged', () => {
 });
 
 describe('activity is a change to a non-ignored file, the index, HEAD or a reflog in the last 24 hours', () => {
-  // Each case changes exactly one of them on an otherwise idle worktree. `planted.txt` is untracked from the start.
+  // Each case changes exactly one of them on an otherwise idle worktree. Untracked from the start: `planted.txt`,
+  // `docs/scratch/s.md` (in a tracked folder) and `scratch/inner/s.md` beside `scratch/keep.md` (in a wholly untracked
+  // folder, which git lists collapsed as `scratch/`). Deleting a folder's last file shows only on that folder.
   const SIGNALS: Array<[string, (box: Sandbox, wt: string) => void]> = [
     ['a tracked file written', (_, wt) => writeFileSync(join(wt, 'docs', 'notes.md'), 'edited\n')],
     ['an untracked file created', (box, wt) => {
@@ -176,6 +179,8 @@ describe('activity is a change to a non-ignored file, the index, HEAD or a reflo
       box.setTime(join(wt, 'docs'), 72); // only the file itself says so
     }],
     ['a tracked file deleted', (_, wt) => unlinkSync(join(wt, 'docs', 'notes.md'))], // only its folder says so
+    ['a deletion that empties a folder', (_, wt) => unlinkSync(join(wt, 'docs', 'scratch', 's.md'))],
+    ['a deletion that empties a folder inside an untracked one', (_, wt) => unlinkSync(join(wt, 'scratch', 'inner', 's.md'))],
     ['the index, by staging', (box, wt) => box.git(wt, 'add', 'planted.txt')],
     ['HEAD', (box, wt) => box.setTime(join(box.adminDir(wt), 'HEAD'), 0)],
     ['the HEAD reflog', (box, wt) => box.setTime(join(box.adminDir(wt), 'logs', 'HEAD'), 0)],
@@ -186,6 +191,11 @@ describe('activity is a change to a non-ignored file, the index, HEAD or a reflo
     const box = sandbox();
     const wt = box.worktree('stale-1104');
     writeFileSync(join(wt, 'planted.txt'), 'planted\n');
+    mkdirSync(join(wt, 'docs', 'scratch'));
+    writeFileSync(join(wt, 'docs', 'scratch', 's.md'), 'scratch\n');
+    mkdirSync(join(wt, 'scratch', 'inner'), { recursive: true });
+    writeFileSync(join(wt, 'scratch', 'inner', 's.md'), 'inner\n');
+    writeFileSync(join(wt, 'scratch', 'keep.md'), 'keep\n');
     box.backdate(wt, 72);
     act(box, wt);
     const { out, exitCode } = await check(box);
@@ -270,22 +280,57 @@ describe('what it reports without failing', () => {
 
   it('lists every retained/* branch with the open plans that name it', async () => {
     const box = sandbox();
-    for (const name of ['retained/named-1104', 'retained/named-1104-v2', 'retained/period-1104', 'retained/orphan-1104']) {
-      box.git(box.primary, 'branch', name, 'main');
-    }
+    const branches = ['retained/named-1104', 'retained/named-1104-v2', 'retained/period-1104', 'retained/ref-1104',
+      'retained/plus-1104', 'retained/nested-1104', 'retained/orphan-1104'];
+    for (const name of branches) box.git(box.primary, 'branch', name, 'main');
     const plan = (folder: string, text: string) => {
       mkdirSync(join(box.primary, 'docs', 'work', folder), { recursive: true });
       writeFileSync(join(box.primary, 'docs', 'work', folder, 'plan.md'), text);
     };
-    plan('7_demo', '# Demo\n\nStatus: active\n\nKeeps `retained/named-1104-v2` until the owner decides, and retained/period-1104.\n');
+    plan('7_demo', '# Demo\n\nStatus: active\n\nKeeps `retained/named-1104-v2` until the owner decides, and retained/period-1104.'
+      + ' Delete with `git update-ref -d refs/heads/retained/ref-1104`. Not these: retained/plus-1104+next,'
+      + ' other/retained/nested-1104.\n');
     plan('8_done', '# Done\n\nStatus: complete\n\nOnce kept retained/orphan-1104.\n');
     const { out, exitCode } = await check(box);
     expect(exitCode, out).toBe(0);
     const named = lineFor(out, 'named by an open plan');
     expect(named).toContain('retained/named-1104-v2 (7_demo)');
     expect(named, 'a sentence that ends with the name names it').toContain('retained/period-1104 (7_demo)');
+    expect(named, 'the full ref name names it').toContain('retained/ref-1104 (7_demo)');
     const unnamed = lineFor(out, 'no open plan names');
     expect(unnamed, 'a complete plan is not an open one').toContain('retained/orphan-1104');
     expect(unnamed, 'a plan naming retained/x-v2 does not name retained/x').toMatch(/retained\/named-1104(?!-)/);
+    expect(unnamed, 'nor does retained/x+next').toContain('retained/plus-1104');
+    expect(unnamed, 'nor does other/retained/x').toContain('retained/nested-1104');
+  });
+});
+
+// The harness runs the check's git for real, so it must refuse anything that would reach past the sandbox: a second
+// -C, a git or work-tree option, a writing subcommand, or a folder outside it (review F1, 2026-11-04).
+describe('the harness keeps the check inside its sandbox', () => {
+  it('refuses a git call that would leave the sandbox or write', () => {
+    const box = sandbox();
+    const outside = join(box.root, '..');
+    const strict = makeHandler({ ...GREEN, sandbox: { root: box.root, checkout: box.primary } });
+    const forms = [
+      ['-C', outside, 'status'],
+      ['-C', box.primary, '-C', outside, 'status'],
+      ['-C', box.primary, `--git-dir=${join(outside, '.git')}`, 'status'],
+      ['-C', box.primary, 'status', `--work-tree=${outside}`],
+      ['-C', box.primary, 'worktree', 'remove', '--force', join(box.home, 'x')],
+      ['-C', box.primary, 'update-ref', '-d', 'refs/heads/main'],
+      ['-C', box.primary, 'commit', '-m', 'x'],
+    ];
+    for (const form of forms) {
+      expect(() => strict('git', ['--no-optional-locks', ...form]), form.join(' ')).toThrow('unstubbed');
+    }
+    const plain = makeHandler(GREEN);
+    expect(() => plain('git', ['--no-optional-locks', '-C', box.primary, 'worktree', 'list', '--porcelain', '-z']),
+      'without a sandbox, only the harness checkout answers').toThrow('unstubbed');
+    const harnessCheckout = plain('git', ['--no-optional-locks', 'rev-parse', '--show-toplevel']).trim();
+    for (const form of [['worktree', 'remove', 'x'], ['worktree', 'list'], ['for-each-ref', 'refs/heads/']]) {
+      expect(() => plain('git', ['--no-optional-locks', '-C', harnessCheckout, ...form]),
+        `the harness checkout answers only the check's own two forms, not ${form.join(' ')}`).toThrow('unstubbed');
+    }
   });
 });

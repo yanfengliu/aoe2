@@ -102,7 +102,7 @@ export interface Sandbox {
   backdate(worktree: string, hours: number): void;
   /** Sets one path's mtime. */
   setTime(path: string, hoursAgo: number): void;
-  /** Size and mtime of everything `backdate` touches, plus the index's SHA-256. */
+  /** Each path `backdate` touches with its mtime, and each file's size and SHA-256. */
   stamps(worktree: string): string[];
   removeFolder(path: string): void;
   dispose(): void;
@@ -166,13 +166,12 @@ export function openSandbox(exec: RealExec, template: string): Sandbox {
     },
     setTime,
     stamps(worktree) {
-      const { admin, paths } = touched(worktree);
-      const lines = paths.map((path) => {
+      return touched(worktree).paths.map((path) => {
         const stat = lstatSync(path);
-        return `${relative(root, path).replace(/\\/g, '/')} ${stat.isDirectory() ? 'dir' : stat.size} ${stat.mtimeMs}`;
-      });
-      lines.push(`index sha256 ${createHash('sha256').update(readFileSync(join(admin, 'index'))).digest('hex')}`);
-      return lines.sort();
+        const what = stat.isDirectory() ? 'dir'
+          : `${stat.size} ${createHash('sha256').update(readFileSync(path)).digest('hex')}`;
+        return `${relative(root, path).replace(/\\/g, '/')} ${what} ${stat.mtimeMs}`;
+      }).sort();
     },
     removeFolder: deleteTree,
     dispose: () => deleteTree(root),
