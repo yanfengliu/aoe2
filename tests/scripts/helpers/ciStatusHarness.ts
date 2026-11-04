@@ -107,12 +107,32 @@ const isLeftoverGit = (args: string[]): boolean => {
   return first === '-C' || (first === 'rev-parse' && second === '--show-toplevel');
 };
 
-// What a sandbox may run after `-C <dir>`: read-only subcommands, and no option that points git at another folder
-// or repository, sets config or writes a file (review F1 of work 138: `-C <in> -C <out>` and `--git-dir=<out>` passed).
-const READ_ONLY = new Set(['ls-files', 'rev-parse', 'status', 'merge-base', 'for-each-ref']);
-const ELSEWHERE = /^(-C|-c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env|--output)(=|$)/;
-const sandboxForm = ([command, ...rest]: string[]): boolean => (READ_ONLY.has(command)
-  || (command === 'worktree' && rest[0] === 'list')) && !rest.some((arg) => ELSEWHERE.test(arg));
+// What a sandbox may run after `-C <dir>`: the check's own subcommands, each with only options the check passes (any
+// of them, so a mutant that drops one still runs) and positional arguments of the check's own shapes. None of these
+// options names a path, so git cannot be pointed at anything outside the sandbox. Work 138's review found a deny-list
+// of redirecting options leaking twice: `-C <in> -C <out>` and `--git-dir=<out>` in round 0, then path-bearing options
+// of the read-only subcommands, `rev-parse --resolve-git-dir <out>` and `ls-files --exclude-from=<out>`, in round 1.
+const SHA = /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/;
+const FORMS: Record<string, { options: string[]; positional: (args: string[]) => boolean }> = {
+  'ls-files': { options: ['-z', '--cached', '--others', '--exclude-standard', '--directory'], positional: (a) => a.length === 0 },
+  'rev-parse': { options: ['--absolute-git-dir', '--git-common-dir'], positional: (a) => a.length === 0 },
+  status: { options: ['--porcelain=v1', '-z', '--untracked-files=all', '--no-renames'], positional: (a) => a.length === 0 },
+  'merge-base': {
+    options: ['--is-ancestor'],
+    positional: (a) => a.length === 2 && SHA.test(a[0]) && a[1] === 'refs/heads/main',
+  },
+  'for-each-ref': {
+    options: ['--format=%(refname:short)'],
+    positional: (a) => a.length === 1 && a[0] === 'refs/heads/retained/',
+  },
+  worktree: { options: ['--porcelain', '-z'], positional: (a) => a.length === 1 && a[0] === 'list' },
+};
+const sandboxForm = ([command, ...rest]: string[]): boolean => {
+  const form = Object.hasOwn(FORMS, command) ? FORMS[command] : undefined;
+  if (!form) return false;
+  const options = rest.filter((arg) => arg.startsWith('-'));
+  return options.every((arg) => form.options.includes(arg)) && form.positional(rest.filter((arg) => !arg.startsWith('-')));
+};
 
 const sameArgs = (a: string[], b: string[]): boolean => a.length === b.length && a.every((arg, i) => arg === b[i]);
 
@@ -128,7 +148,8 @@ function leftoverGit(scenario: Scenario, args: string[], options: ExecFileSyncOp
     if (!realExecFileSync) throw new Error('the real execFileSync was not loaded; run the scenario through runScript');
     return String(realExecFileSync('git', args, { ...options, env: sandboxGitEnv(scenario.sandbox.root) }));
   }
-  if (!inside(dir, NO_SANDBOX_CHECKOUT) || existsSync(dirname(NO_SANDBOX_CHECKOUT))) return refuse('git', args);
+  const harnessCheckout = (path: string) => inside(path, NO_SANDBOX_CHECKOUT) && inside(NO_SANDBOX_CHECKOUT, path);
+  if (!harnessCheckout(dir) || existsSync(dirname(NO_SANDBOX_CHECKOUT))) return refuse('git', args);
   if (sameArgs(rest, ['worktree', 'list', '--porcelain', '-z'])) {
     return `worktree ${NO_SANDBOX_CHECKOUT.replace(/\\/g, '/')}\0HEAD ${'0'.repeat(40)}\0branch refs/heads/main\0\0`;
   }

@@ -107,9 +107,17 @@ const mtime = (path) => {
   }
 };
 
-// Every folder from `rel` down, a wholly untracked one, read on disk without entering a link. An ignored folder in it
-// counts too, which errs toward activity.
+// Every folder from `rel` down, a wholly untracked one, read on disk without entering a link: `rel` itself can be one,
+// since git on Windows lists an unignored junction as a folder (review of work 138, round 1). A link's own mtime is
+// still read. An ignored folder inside counts too, which errs toward activity.
 function subfolders(base, rel, into) {
+  into.add(rel);
+  try {
+    if (lstatSync(join(base, rel)).isSymbolicLink()) return;
+  } catch (error) {
+    if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') return;
+    throw error;
+  }
   const stack = [rel];
   while (stack.length > 0) {
     const dir = stack.pop();
@@ -208,10 +216,10 @@ function retainedLines(own) {
   const unnamed = [];
   for (const name of names) {
     // The whole name, as a word of prose or markdown: not inside a longer one (`other/retained/x`, `retained/x-v2`,
-    // `retained/x+next`, `retained/x.y`), though `refs/heads/retained/x` names it. A branch name never ends in a dot,
-    // so a dot that ends a sentence still counts.
+    // `retained/x+next`, `retained/x.y`). `refs/heads/retained/x` names it, with the same edge before `refs/`, so
+    // `other/refs/heads/retained/x` does not. A branch name never ends in a dot, so a dot that ends a sentence counts.
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const exact = new RegExp(`(?<=^|${EDGE}|refs/heads/)${escaped}(?=$|${EDGE}|\\.(?:$|${EDGE}))`, 'm');
+    const exact = new RegExp(`(?:^|(?<=${EDGE}))(?:refs/heads/)?${escaped}(?=$|${EDGE}|\\.(?:$|${EDGE}))`, 'm');
     const by = plans.filter((plan) => exact.test(plan.text)).map((plan) => plan.folder);
     if (by.length > 0) named.push(`${name} (${by.join(', ')})`);
     else unnamed.push(name);

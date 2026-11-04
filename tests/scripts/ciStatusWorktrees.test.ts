@@ -281,7 +281,7 @@ describe('what it reports without failing', () => {
   it('lists every retained/* branch with the open plans that name it', async () => {
     const box = sandbox();
     const branches = ['retained/named-1104', 'retained/named-1104-v2', 'retained/period-1104', 'retained/ref-1104',
-      'retained/plus-1104', 'retained/nested-1104', 'retained/orphan-1104'];
+      'retained/plus-1104', 'retained/nested-1104', 'retained/prefixed-1104', 'retained/orphan-1104'];
     for (const name of branches) box.git(box.primary, 'branch', name, 'main');
     const plan = (folder: string, text: string) => {
       mkdirSync(join(box.primary, 'docs', 'work', folder), { recursive: true });
@@ -289,7 +289,7 @@ describe('what it reports without failing', () => {
     };
     plan('7_demo', '# Demo\n\nStatus: active\n\nKeeps `retained/named-1104-v2` until the owner decides, and retained/period-1104.'
       + ' Delete with `git update-ref -d refs/heads/retained/ref-1104`. Not these: retained/plus-1104+next,'
-      + ' other/retained/nested-1104.\n');
+      + ' other/retained/nested-1104, other/refs/heads/retained/prefixed-1104, otherrefs/heads/retained/prefixed-1104.\n');
     plan('8_done', '# Done\n\nStatus: complete\n\nOnce kept retained/orphan-1104.\n');
     const { out, exitCode } = await check(box);
     expect(exitCode, out).toBe(0);
@@ -302,11 +302,13 @@ describe('what it reports without failing', () => {
     expect(unnamed, 'a plan naming retained/x-v2 does not name retained/x').toMatch(/retained\/named-1104(?!-)/);
     expect(unnamed, 'nor does retained/x+next').toContain('retained/plus-1104');
     expect(unnamed, 'nor does other/retained/x').toContain('retained/nested-1104');
+    expect(unnamed, 'nor does other/refs/heads/retained/x').toContain('retained/prefixed-1104');
   });
 });
 
-// The harness runs the check's git for real, so it must refuse anything that would reach past the sandbox: a second
-// -C, a git or work-tree option, a writing subcommand, or a folder outside it (review F1, 2026-11-04).
+// The harness runs the check's git for real, so it must refuse anything that could reach past the sandbox: a second
+// -C, a git or work-tree option, a path-bearing option or pathspec, a writing subcommand, or a folder outside it
+// (review F1, rounds 0 and 1, 2026-11-04). It allows only the check's own options and argument shapes.
 describe('the harness keeps the check inside its sandbox', () => {
   it('refuses a git call that would leave the sandbox or write', () => {
     const box = sandbox();
@@ -317,6 +319,11 @@ describe('the harness keeps the check inside its sandbox', () => {
       ['-C', box.primary, '-C', outside, 'status'],
       ['-C', box.primary, `--git-dir=${join(outside, '.git')}`, 'status'],
       ['-C', box.primary, 'status', `--work-tree=${outside}`],
+      ['-C', box.primary, 'status', '--porcelain=v1', '-z', outside],
+      ['-C', box.primary, 'rev-parse', '--resolve-git-dir', join(outside, '.git')],
+      ['-C', box.primary, 'ls-files', '-z', `--exclude-from=${join(outside, 'x')}`],
+      ['-C', box.primary, 'merge-base', '--is-ancestor', '0'.repeat(40), 'refs/heads/other'],
+      ['-C', box.primary, 'for-each-ref', '--format=%(refname:short)', 'refs/'],
       ['-C', box.primary, 'worktree', 'remove', '--force', join(box.home, 'x')],
       ['-C', box.primary, 'update-ref', '-d', 'refs/heads/main'],
       ['-C', box.primary, 'commit', '-m', 'x'],
@@ -328,6 +335,8 @@ describe('the harness keeps the check inside its sandbox', () => {
     expect(() => plain('git', ['--no-optional-locks', '-C', box.primary, 'worktree', 'list', '--porcelain', '-z']),
       'without a sandbox, only the harness checkout answers').toThrow('unstubbed');
     const harnessCheckout = plain('git', ['--no-optional-locks', 'rev-parse', '--show-toplevel']).trim();
+    expect(() => plain('git', ['--no-optional-locks', '-C', join(harnessCheckout, 'wrong-child'), 'worktree', 'list',
+      '--porcelain', '-z']), 'not a folder inside it either').toThrow('unstubbed');
     for (const form of [['worktree', 'remove', 'x'], ['worktree', 'list'], ['for-each-ref', 'refs/heads/']]) {
       expect(() => plain('git', ['--no-optional-locks', '-C', harnessCheckout, ...form]),
         `the harness checkout answers only the check's own two forms, not ${form.join(' ')}`).toThrow('unstubbed');
