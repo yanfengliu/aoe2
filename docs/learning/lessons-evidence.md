@@ -19,3 +19,11 @@ The absolute-only canonical migration missed six relative hrefs. Its zero-missin
 Anchor: primary ignored `tmp/work135-docs-primary-custody/canonical-relative-href-correction.json` and `tmp/work135-multiview-control/gallery-integration.json`; the initial receipt and exact before-index copies remain retained. The old relative M13 report href is a known broken-relative control after alias retirement.
 
 Retiring gate (queued, not built or proved): normalize both href forms and recheck after retirement; go RED with that retired-relative-href control and GREEN after its correction. Record the red/green proof before deleting this evidence and its lesson line. No gate implementation or gate-proof claim lands here.
+
+## Eighteen leftover worktrees (2026-11-04)
+
+On 2026-11-04 the coordinator's repo review found 18 worktrees on disk besides the primary checkout. Every HEAD was in main, and they had sat for 4 to 34 days. Fifteen held uncommitted work that main's history lacked: 629 changed files, including a parked UI release and reviewed candidates. Work 129 had retired five on 2026-10-15 and left five for an M2 that nobody was assigned; thirteen more piled up meanwhile. No session had listed them, because the session-start command reads only the remote gates.
+
+Anchor: the 2026-11-04 entry in [the defect register](defect-register.md) and [work 138's plan](../work/138_worktree-retirement/plan.md), whose decision table lists the 15 `retained/<name>` branches the work was moved to.
+
+Retiring gate (queued, not built or proved): work 138 M2. `npm run ci:status` reports a registered worktree whose HEAD main contains and that shows no activity for 24 hours. It goes RED on a planted leftover and GREEN once that leftover is removed. Record that proof in [gate-proofs.md](gate-proofs.md) before deleting this entry and its lesson line.

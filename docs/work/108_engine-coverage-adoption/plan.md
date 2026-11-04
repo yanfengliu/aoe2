@@ -3,7 +3,7 @@
 Status: active
 Owner: Codex orchestrator (/root), implementation worker /root/game_engine_coverage_adoption
 Created: 2026-10-01
-Updated: 2026-10-15
+Updated: 2026-11-04
 
 ## Problem and outcome
 
@@ -50,6 +50,8 @@ The recovered final sources passed all ten focused cases on Node 20.20.2 and Nod
 ## Outcome
 
 Pending. Coverage implementation remains paused for the required work-106 shipping blocker. No adapter implementation or shipped coverage claim follows from this plan. The test-only priority repair has three rejected routes, a bounded native-binding phase-cost reduction and ten passing focused cases on both Node versions. Removing the exact cache guard fails the native-120 control at tick 2 and the original nested-mutation control. Frozen source is independently accepted, and root's full gate passes on unmerged candidate `846652ab659bc82b1f5d588a1cef8c74470a55bb`, exact tree `407af4aa36b5a86f2bb853ab051f098e6a0ff2a5`. [Work106 review 9](../106_de-parity-orchestration/reviews/9_integration.md) records provisional integration review and local gate; final focused acceptance, main merge/push and new hosted CI/corpus remain pending. Main remains `c4024020`; its original Windows hosted failure is still RED. All consumer criteria above stay unchecked until separately implemented and verified. Engine `2.5.0` runtime readiness is observed; whole-game replay determinism is not established here.
+
+2026-11-04 ([work 138](../138_worktree-retirement/plan.md)): `coverage-consumer-1001` and `parity-integration-0930` were removed through `scripts/controlWorktree.mjs`. The frozen source that round 0 reviewed is in `retained/coverage-consumer-1001`. The copy integrated with work 107, with the staged plan 108 that work 107's round 1 names, is the index commit `retained/parity-integration-0930~1`. Landing or cancelling is the owner's call, with a recommendation in work 138's decision table.
 
 ## Preserved review record (work 129 M1)
 

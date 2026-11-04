@@ -3,7 +3,7 @@
 Status: active
 Owner: Codex integration owner
 Created: 2026-10-18
-Updated: 2026-10-18
+Updated: 2026-11-04
 
 ## Problem and outcome
 
@@ -30,3 +30,5 @@ Retain the allocator's ID/theme and existing integration ownership. Import no im
 ## Outcome
 
 Active and unmerged. The refined-art implementation remains unmerged with its existing owner. No implementation, gate result or release is promoted here. This scoped documentation landing grants no art, UI or game acceptance.
+
+2026-11-04 ([work 138](../138_worktree-retirement/plan.md)): the refined-art implementation's checkouts were removed through `scripts/controlWorktree.mjs`. The integrated draft and a newer draft of this plan are in `retained/branch-completion-1017`. Earlier lanes are in `retained/refined-voxel-art-1017`, `retained/refined-buildings-preview-1017` and `retained/villager-form-search-1017`. Whether the art lands, continues or is dropped is the owner's call, with a recommendation in work 138's decision table.

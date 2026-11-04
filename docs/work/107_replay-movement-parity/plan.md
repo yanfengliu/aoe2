@@ -3,7 +3,7 @@
 Status: active
 Owner: Codex orchestrator (/root)
 Created: 2026-10-01
-Updated: 2026-10-15
+Updated: 2026-11-04
 
 ## Problem and outcome
 
@@ -36,6 +36,8 @@ Reproduce the exact recorded one-gather/280-move case. Triage with `bundleHotspo
 Implementation prepared on c4024020 under frozen engine 2.4.2. Warm live and cold checkpoint worlds first differ at tick89 because their route suffixes differ; clearing only the warm route map at tick70 makes their complete serialized worlds equal through140. Seven new tests produced five RED failures and two passing controls before production changes. The approved slot preserves the full chosen path, original requested target, resolved destination and entity generation; cursor progress stays runtime-only and route updates use the existing dirty accessor flush. Exact reproduction now self-checks five intervals with zero skips. Focused eight-file tests pass 87/87; the later schema-1/2 legacy migration lane passes 2/2, and direct typecheck passes. Four restored-source mutation controls fail by assertion. See `gate-proof.md` for exact bounds and counters.
 
 Required remote status initially exited 0 with c4024020 CI running and corpus green. Root later observed the sole Windows CI failure: the existing 600-tick occupation comparison timed out, with no product assertion failure. Its separate owner repairs that priority test cost; work107 does not edit its test or helpers. Work107 expensive gates, fresh engine 2.5 replay checks, independent review, commit, integration and hosted acceptance remain pending. The dependency junction still consumes the retained frozen work106 mirror. The temporary c402 comparison checkout and branch were retired through `controlWorktree.mjs`, with link targets verified intact. The separately observed unrecorded mutable Gatherer progress remains OPEN; this route repair does not establish whole-game recording fidelity.
+
+2026-11-04 ([work 138](../138_worktree-retirement/plan.md)): `parity-integration-0930` and `replay-real-controls-1001` were removed through `scripts/controlWorktree.mjs`. The staged candidate is the index commit `retained/parity-integration-0930~1`: its eleven source and test files, and the staged `design/spec-final.md`, plan 107 and plan 108 that round 1 names as its published-after files. `retained/replay-real-controls-1001` holds another copy of the candidate and the unfinished `tests/browser/movement-save-replay-controls.spec.ts`. The frozen work 106 dependency mirror went with `parity-gameplay-0930`; only its cited lockfile is kept, in the primary's `tmp/worktree-retirement-20261104/`. Landing or cancelling the candidate is the owner's call, with a recommendation in work 138's decision table.
 
 ## Review handoff
 

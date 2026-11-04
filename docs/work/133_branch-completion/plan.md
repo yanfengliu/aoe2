@@ -3,7 +3,7 @@
 Status: active
 Owner: Codex integration owner
 Created: 2026-10-17
-Updated: 2026-10-17
+Updated: 2026-11-04
 
 ## Problem and outcome
 
@@ -37,6 +37,8 @@ Main af328ae6 and both hosted gates are green. Recover each original branch in p
 ## Outcome
 
 Milestone 1 complete: Merged and pushed to main as 63443d0dfe9eaefe900be02b10f0e46e94235dbc (v0.3.258), including five-branch merge ec69a1e0. Independent reviews 0–7 accept the integrated implementation and repairs. Both full local gates pass natively (5,010 unit/271 browser passes; three unit/two browser skips); the clean certified receipt binds tree 661cf37ec42d514c09a976bc167e6e7dce6491c1 and verify-receipt check accepts it. Hosted CI 39079461802 and playtest-corpus 39079461875 are GREEN. All eight recovered/control worktrees and branches were safely retired after overlay, ancestry and evidence audits; former shared link targets lost nothing. The original stronger software criterion remains UNMET at 1.5015 versus 1.25; work 130 and this overall effort remain active.
+
+2026-11-04 ([work 138](../138_worktree-retirement/plan.md)): the integration checkout `branch-completion-1017` and the 1017 lane checkouts were removed through `scripts/controlWorktree.mjs`. Their uncommitted state is in `retained/<name>` branches. `retained/branch-completion-1017` holds work 134's integrated art draft, work 130's shadow candidate, and newer drafts of plans 130 and 133 to 136, including this plan's review rounds 16 to 24, which main lacks. The checkouts' ignored run evidence is gone. The copies work 133 kept in the primary's `tmp/work133-retained/` were not touched.
 
 ## Recovery findings and resource state
 

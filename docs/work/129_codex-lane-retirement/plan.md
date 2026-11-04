@@ -3,7 +3,7 @@
 Status: active
 Owner: Claude coordinator (Game orchestrator todos); M1 worker codex-retire-m1 (done 2026-10-15); M2 worker to be named
 Created: 2026-10-15
-Updated: 2026-10-15
+Updated: 2026-11-04
 
 ## Problem and outcome
 
@@ -38,7 +38,7 @@ Every claim that a file is superseded is checked before anything is discarded: b
 ## Implementation steps
 
 - [x] M1: docs closures, preserved reviews and evidence, five checkouts retired (2026-10-15; the record is in the Outcome and the next section).
-- [ ] M2: 108, 97 and 113 decided; the other five checkouts retired; the primary `tmp/` cleaned.
+- [x] M2: replaced on 2026-11-04 by [work 138](../138_worktree-retirement/plan.md), which retired the five checkouts. The 107 and 108 decisions are in its decision table; 97, 113 and the primary `tmp/` stay with the coordinator.
 
 ## Outcome
 
@@ -51,6 +51,8 @@ Every claim that a file is superseded is checked before anything is discarded: b
 - Not checked: the ignored `tmp/`, `dist/`, `generated/` and `test-results/` that went with the four trees were looked at by name and size, not file by file; the cited ones are accounted for below. The statements that main's CI is green rest on `npm run ci:status` at the time of writing, not on a hosted run of these doc commits.
 
 M2 is pending: land or cancel 108, re-baseline 97, fix or cancel 113, retire the other five checkouts, and clean the primary `tmp/`.
+
+2026-11-04: M2 is replaced by [work 138](../138_worktree-retirement/plan.md). That work removed all five of M2's checkouts through `scripts/controlWorktree.mjs`, with the rest of the 18 leftover worktrees. Each one's uncommitted state is a `retained/<name>` branch, and the ignored files that open plans and OPEN register entries cite are copied to the primary's `tmp/worktree-retirement-20261104/`. The 107 and 108 decisions are in work 138's decision table, for the owner. Work 138 does not take over re-baselining 97, fixing or cancelling 113, or cleaning the primary's `tmp/`; those stay with the coordinator.
 
 ## Discarded in M1 (2026-10-15)
 

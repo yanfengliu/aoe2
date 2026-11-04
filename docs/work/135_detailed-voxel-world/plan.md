@@ -3,7 +3,7 @@
 Status: active
 Owner: Codex integration owner
 Created: 2026-10-18
-Updated: 2026-10-20
+Updated: 2026-11-04
 
 ## M30 bounded sample accepted — 2026-10-20
 
@@ -299,3 +299,5 @@ Five original procedural conifer routes remain rejected and STOP. Independent na
 
 
 2026-10-18 documentation refresh: Native binding source, ten-view technical acceptance and fresh visual direction retain exact final reports. Five original procedural conifer routes remain rejected and STOP. Independent native review accepts ten actual public-renderer pine views as a bounded fine-geometry/opaque base-color technical proof. The unchanged third-party128-voxel pine has133,620vertices/66,810triangles, exceeding the unchanged16,384-vertex game cap. It remains below requested quality; original game art, author optics, game camera/light/material/shadow parity, readiness and performance are unaccepted. No engine code change or proved missing engine feature follows. Next visual milestone starts AFTER the coherent UI release: one original open-sided timber quarry shelter, authored as fixed palette-indexed occupancy/slices through the existing public mesher. Town to City T03 is the primary45-degree elevated construction reference. Freeze actual existing game footprint and Normal projected box before authoring; reject the first Normal/close pair for coarse shells, close-only structure, changed framing, cap excess or renamed procedural recipes before broader coverage. No courtyard-family expansion or sixth conifer search is authorized by this direction. Root-verified ignored Gallery57 SHA2569de764073246a098f74c7e616865842607e42f12a3b62bcfc1ac315838c81745 has622local links/0missing,57strict reverse/newest-first updates and vertical images. Root and independent review viewed ten pine originals. Markdown render QA is NOT RUN; root alone writes the gallery. Approved source/world/saves, f5/original f77 spec proposals, refresh4, CURRENT and six release-metadata proposals remain UNAPPLIED and unchanged by this docs update. Historical expected hashes are retained; no stale packet repin or global hygiene acceptance.
+
+2026-11-04 ([work 138](../138_worktree-retirement/plan.md)): `detailed-world-1017`, `living-art-1018`, `head-jaw-m30-1020`, `lean-ui-1017` and `work136-ui-baseline` were removed through `scripts/controlWorktree.mjs`. Their uncommitted state is in `retained/detailed-world-1017`, `retained/living-art-1018`, `retained/head-jaw-m30-1020` and `retained/lean-ui-1017`; the baseline checkout was clean at `1dc71788`. `retained/head-jaw-m30-1020` holds the staged M30 head and jaw outcome with review rounds 86 to 89, which main lacks. The gallery's 15 links into the first two checkouts now point at copies in the primary's `tmp/worktree-retirement-20261104/`. Nothing outside the repo was touched, including the art source under `C:/Users/38909/Documents/Codex/2026-10-18/voxel-art-reference-proof/outputs`.

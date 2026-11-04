@@ -10,6 +10,8 @@ When the gate lands, prove it red by reintroducing the defect, record that in [g
 
 ## Rules
 
+- A session that stops or parks its work leaves its worktree on disk, and nothing reports it afterwards. A worktree that is still needed keeps its uncommitted state on a commit, not only on disk. Retiring gate: work 138 M2's leftover-worktree check in `npm run ci:status`, proven red on a planted leftover. [Evidence](lessons-evidence.md#eighteen-leftover-worktrees-2026-11-04).
+
 - Normalize absolute and relative gallery hrefs, then recheck after alias retirement; pre-retirement zero missing proves no post-retirement validity. Retiring gate: the future gallery-link-retirement check, with a known broken-relative-href RED control and corrected GREEN proof before this lesson retires. [Evidence](lessons-evidence.md#relative-gallery-hrefs-survived-alias-retirement-2026-10-18).
 
 - A browser spec selects a unit by clicking where the page draws it, never the centre of the unit's cell. A unit is drawn on the sub-cell slot its id picks (id mod 16, `worldOccupancy.ts`), up to three quarters of a cell off its cell's centre on each axis, so a click on the centre passes or fails on the unit's id, and a fixture that gains an entity can move it. Gate it will retire with: a `game.clickUnit(page, id)` helper that clicks the drawn body, and `clickCell` refusing a left click on a cell a unit stands on, naming that helper; two such clicks remain, in `new-tech-reach.spec.ts`. [Evidence](lessons-evidence.md#a-click-on-a-units-cell-centre-selected-nothing-2026-09-26).

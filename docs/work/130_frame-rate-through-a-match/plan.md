@@ -3,7 +3,7 @@
 Status: active
 Owner: branch-completion integration owner; original frame-rate worktree safely retired after main integration
 Created: 2026-10-15
-Updated: 2026-10-17
+Updated: 2026-11-04
 
 ## Problem and outcome
 
@@ -86,6 +86,8 @@ The trade for M2, the coordinator's to make:
 ## Outcome
 
 Pending. Record the verified revision, checks and limitations at closure.
+
+2026-11-04 ([work 138](../138_worktree-retirement/plan.md)): `shadow-normal-1017`, `software-ground-proof-1017` and `software-culling-proof-1017` were removed through `scripts/controlWorktree.mjs`. The shadow tests and the `aoeVoxelResources.ts` edit are in `retained/software-ground-proof-1017`, and the shadow tests also in `retained/shadow-normal-1017`; the third checkout was clean. This plan's newer draft and its later snapshots are in `retained/branch-completion-1017`. The checkouts' ignored run evidence is gone.
 
 ## M2 recovery and implementation (2026-10-17)
 

@@ -3,7 +3,7 @@
 Status: active
 Owner: Claude coordinator, from Codex orchestrator (/root) on 2026-10-14 under the owner's direction of 2026-10-11
 Created: 2026-09-30
-Updated: 2026-10-17
+Updated: 2026-11-04
 
 ## Current branch integration checkpoint, 2026-10-17
 
@@ -256,3 +256,5 @@ Root released the heavy slot to the separately owned engineM1 private gate only.
 **Parallel reader milestone (2026-10-02 UTC).** Root assigned engine_reader_contract_audit to implement M8 from engine57de5ce in a fresh controlled worktree; engine_m2_acceptance owns independent read-only acceptance and engine_feedback_resume owns M2 docs closure/cleanup. Shared contracts are fixed64KiB reads, prefix yield before later parse, physical final-tail tolerance, UTF8 compatibility and descriptor/error precedence; public signatures and persistent format stay unchanged. Tests and meaningful defect controls precede the one final full gate, and the real native string-limit proof awaits root's heavy-slot release. M8 runtime and source results are not yet claimed. Fresh ci:status still reports gameCI36936991772 RED and corpus36936991809 GREEN; the route7 budget and provider-export questions remain unanswered.
 
 2026-10-17 main checkpoint: v0.3.258 at 63443d0d integrates the five recovered branches with certified full local gates and safely retired source/control trees. Hosted CI and corpus are green. Work 130 retains the unmet stronger software target; its installed-runtime proof passes 16 cases, while shipping/host/pixel/FPS evidence remains open. Full DE visual/gameplay parity is not claimed; the ignored gallery carries dated comparisons.
+
+2026-11-04 ([work 138](../138_worktree-retirement/plan.md)): `parity-gameplay-0930` and `parity-integration-0930`, the checkouts this plan names, were removed through `scripts/controlWorktree.mjs`. Their uncommitted state is in the branches `retained/parity-gameplay-0930` and `retained/parity-integration-0930`. The ignored files this plan cites by SHA-256 are copied, with manifests, to the primary's `tmp/worktree-retirement-20261104/`: the dependency mirror's `package-lock.json` and 18 `tmp/parity-106` files. The rest of both checkouts' `tmp/` is gone, the frozen dependency mirror included. The worktree copy behind the CI Node card is `retained/replay-timeout-route6-1001`.
