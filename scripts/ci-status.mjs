@@ -4,7 +4,9 @@
 // zero green — while every local gate passed, and nobody looked. See the
 // 2026-08-29 entry in docs/learning/defect-register.md.
 //
-// Exit code is the answer: 0 green, 1 red or unknown. `--limit N` widens the
+// Exit code is the answer: 0 green, 1 red or unknown, 2 not red but a worktree
+// of this repo is left on this machine after its work merged, or could not be
+// checked (ci-status-worktrees.mjs; register, 2026-11-04). `--limit N` widens the
 // history scan; `--sha <ref>` judges one named commit instead of the default
 // pair. The streak matters more than the last run, because a gate that is
 // uniformly one colour is the shape that defect had.
@@ -50,6 +52,7 @@ import { execFileSync } from 'node:child_process';
 
 import { attemptsForWorkflow, describeEarlierAttempts, laterRunVerdict } from './ci-status-attempts.mjs';
 import { globToRegExp, matchesFilter, parsePushTrigger } from './ci-status-triggers.mjs';
+import { worktreeCheck } from './ci-status-worktrees.mjs';
 import { runDirectly } from './run-directly.mjs';
 
 export { globToRegExp, matchesFilter, parsePushTrigger };
@@ -470,11 +473,14 @@ export function report(argv = []) {
     if (verdict.red) anyRed = true;
   }
 
+  // The local check runs whatever the remote said, so a red gate still shows the leftovers.
+  const local = worktreeCheck();
+  lines.push('', ...local.lines);
   if (anyRed) {
     lines.push('');
     lines.push('A red or ungated remote gate is the next task, ahead of whatever was planned.');
-  }
-  return { lines, exitCode: anyRed ? 1 : 0 };
+  } else if (local.failing) lines.push('', local.closing);
+  return { lines, exitCode: anyRed ? 1 : (local.failing ? 2 : 0) };
 }
 
 export function main(argv = process.argv.slice(2)) {

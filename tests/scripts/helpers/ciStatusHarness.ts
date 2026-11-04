@@ -13,18 +13,38 @@
 // The fake refuses any command it does not recognise. That is deliberate: a
 // missing fixture must fail loudly, because a stub that silently returns ""
 // is exactly how a check reports "did not run" as "passed".
+//
+// The leftover-worktree check (scripts/ci-status-worktrees.mjs, 2026-11-04)
+// runs `git rev-parse --show-toplevel` and then `git -C <dir> ...`, each after
+// `--no-optional-locks`, and nothing else in the script runs either form. They
+// are routed by their form, not by that flag, so a check that dropped the flag
+// would still run, and ciStatusWorktrees.test.ts's read-only case is what sees
+// it rewrite an index. A scenario with a `sandbox` runs them for real, inside
+// that sandbox repository only. A scenario without one gets the checkout below:
+// the primary checkout alone, which is the caller's own, and no retained/*
+// branch.
 
-import { readFileSync } from 'node:fs';
+import type { ExecFileSyncOptions } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { vi } from 'vitest';
 
-export type Exec = (bin: string, args: string[]) => string;
+import { type RealExec, sandboxGitEnv } from './worktreeSandbox';
+
+export type Exec = (bin: string, args: string[], options?: ExecFileSyncOptions) => string;
 
 let handler: Exec = () => {
   throw new Error('ci-status called a subprocess before a scenario was installed');
 };
 
-export const exec: Exec = (bin, args) => handler(bin, args);
+export const exec: Exec = (bin, args, options) => handler(bin, args, options);
+
+// Must not exist: the check lists `<its parent>/aoe2-worktrees`, and a missing folder is what says "none".
+const NO_SANDBOX_CHECKOUT = join(tmpdir(), 'ci-status-harness-has-no-such-folder', 'aoe2');
+
+let realExecFileSync: RealExec | null = null;
 
 const SCRIPT = new URL('../../../scripts/ci-status.mjs', import.meta.url).href;
 
@@ -62,6 +82,44 @@ export interface Scenario {
   attempts?: Record<string, string>;
   /** `actions/runs/<id>/attempts/<n>/jobs`, keyed `<id>-<n>`. */
   attemptJobs?: Record<string, string>;
+  /** A real repository for the leftover-worktree check: its git calls run inside `root`, from `checkout`. */
+  sandbox?: { root: string; checkout: string };
+}
+
+const inside = (child: string, parent: string): boolean => {
+  const norm = (path: string) => {
+    const s = resolve(path).replace(/\\/g, '/').replace(/\/+$/, '');
+    return process.platform === 'win32' ? s.toLowerCase() : s;
+  };
+  return norm(child) === norm(parent) || norm(child).startsWith(`${norm(parent)}/`);
+};
+
+// The leftover-worktree check's git: `rev-parse --show-toplevel` from the caller's directory, then `-C <dir> ...`.
+const optionless = (args: string[]): string[] => (args[0] === '--no-optional-locks' ? args.slice(1) : args);
+
+const isLeftoverGit = (args: string[]): boolean => {
+  const [first, second] = optionless(args);
+  return first === '-C' || (first === 'rev-parse' && second === '--show-toplevel');
+};
+
+function leftoverGit(scenario: Scenario, args: string[], options: ExecFileSyncOptions | undefined,
+  refuse: (bin: string, args: string[]) => never): string {
+  const [first, dir, ...rest] = optionless(args);
+  if (first === 'rev-parse' && dir === '--show-toplevel' && rest.length === 0) {
+    return `${(scenario.sandbox?.checkout ?? NO_SANDBOX_CHECKOUT).replace(/\\/g, '/')}\n`;
+  }
+  if (first !== '-C' || !dir) return refuse('git', args);
+  if (scenario.sandbox) {
+    if (!inside(dir, scenario.sandbox.root)) return refuse('git', args);
+    if (!realExecFileSync) throw new Error('the real execFileSync was not loaded; run the scenario through runScript');
+    return String(realExecFileSync('git', args, { ...options, env: sandboxGitEnv(scenario.sandbox.root) }));
+  }
+  if (!inside(dir, NO_SANDBOX_CHECKOUT) || existsSync(dirname(NO_SANDBOX_CHECKOUT))) return refuse('git', args);
+  if (rest[0] === 'worktree' && rest[1] === 'list') {
+    return `worktree ${NO_SANDBOX_CHECKOUT.replace(/\\/g, '/')}\0HEAD ${'0'.repeat(40)}\0branch refs/heads/main\0\0`;
+  }
+  if (rest[0] === 'for-each-ref') return '';
+  return refuse('git', args);
 }
 
 // A fixture is the projection the script's own `--jq` (or `--json` field list)
@@ -96,7 +154,8 @@ export function makeHandler(scenario: Scenario): Exec {
     return at === -1 ? '' : String(args[at + 1]);
   };
   const workflowFiles = scenario.workflows ?? FILTERED_WORKFLOWS;
-  return (bin, args) => {
+  return (bin, args, options) => {
+    if (bin === 'git' && isLeftoverGit(args)) return leftoverGit(scenario, args, options, refuse);
     if (bin === 'git') {
       // Every ref resolves to the commit under test: these scenarios put HEAD
       // and origin/main on the same commit, so the script reports one target.
@@ -151,6 +210,11 @@ export function makeHandler(scenario: Scenario): Exec {
 let caseId = 0;
 
 export async function runScript(scenario: Scenario): Promise<{ out: string; exitCode: number }> {
+  if (scenario.sandbox && !realExecFileSync) {
+    // The test file routes node:child_process here, so the real one is reached around that mock.
+    const real = await vi.importActual<typeof import('node:child_process')>('node:child_process');
+    realExecFileSync = real.execFileSync as RealExec;
+  }
   handler = makeHandler(scenario);
   const logged: string[] = [];
   const log = vi.spyOn(console, 'log').mockImplementation((...parts: unknown[]) => {
