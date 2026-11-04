@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
-## Unreleased — work 140
+## 0.3.259
 
 Buildings defend with Definitive Edition's armor, and the selection panel shows total armor.
 

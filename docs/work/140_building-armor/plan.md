@@ -1,6 +1,6 @@
 # Buildings take Definitive Edition's armor in combat, and the panel shows total armor
 
-Status: active
+Status: complete
 Owner: building-armor worker for the Claude coordinator
 Created: 2026-11-04
 Updated: 2026-11-04
@@ -43,9 +43,11 @@ One milestone, not two: DE's formula needs the attacks split by class for the ba
 - [x] The armor seam and the per-class attack table; every path reads it; the panel rows.
 - [x] Captures and pixel diff; self-play before and after; the lab census.
 - [x] Spec, CSVs, changelog, devlog, register, architecture records.
-- [ ] Full gate, independent review, handoff; landing (phase 2): rebase onto `origin/main` under the gate lock, take the next patch version and give the changelog's `Unreleased — work 140` heading that number, replace `vNEXT` in the devlog, rerun the gate, mark work 106's two cards for this defect shipped (its plan's 2026-10-14 HUD card and 2026-11-04 Combat card), push, follow `npm run ci:status`, close this plan and retire the worktree.
+- [x] Full gate, independent review, handoff; landing (phase 2): rebase onto `origin/main` under the gate lock, take the next patch version and give the changelog's `Unreleased — work 140` heading that number, replace `vNEXT` in the devlog, rerun the gate, mark work 106's two cards for this defect shipped (its plan's 2026-10-14 HUD card and 2026-11-04 Combat card), push, follow `npm run ci:status`, close this plan and retire the worktree.
 
 ## Findings outside this scope
+
+Each has a card in work 106's queue, tagged (work 140), since this plan closes.
 
 - 26 roster units' base attack differs from the pinned dataset: Camel 5 (DE 6), Scorpion 12 (11), Champion 13 (14), Two-Handed Swordsman 11 (12), Galleon 8 (9), Fire Ship 2 (3), Fast Fire Ship 3 (4), Demolition Ship 110 (95), Heavy Demolition Ship 140 (120), Cannon Galleon 35 (50), Elite Cannon Galleon 45 (60), Jaguar Warrior 10 (15), Woad Raider 8 (11), Tarkan 7 (8), Samurai 8 (10), Mameluke 7 (8), Teutonic Knight 12 (14), Berserk 9 (12), Turtle Ship 50 (9), Longboat 7 (5), Elite Jaguar Warrior 12 (19), Elite Woad Raider 13 (15), Elite Chu Ko Nu 8 (10), Elite Conquistador 18 (19), Elite Turtle Ship 50 (13), Elite Longboat 8 (7).
 - Building hit points differ from DE (pinned dataset and the 147949 age units): the House 550/750/900/900 by age (900 here), the Mill and camps 600/800/1000/1000 (1000), the Blacksmith 1800 in Feudal (2100), the Market 1800 in Feudal (2100), the Siege Workshop 1500/1750 (2100), the Watch Tower 850 in Feudal (1020), the Stone Wall 1080 (1800), the Gate 1650 and 4000 fortified (2750), the Palisade Wall 150 (250), the Palisade Gate 240 (250), the Fish Trap 250 (50).
@@ -58,4 +60,4 @@ One milestone, not two: DE's formula needs the attacks split by class for the ba
 
 ## Outcome
 
-Phase 1 handed off on 2026-11-04: branch `building-armor-1104`, rebased on main `a37deeee`. The full gate passed on `38a6c7b4`, the last commit to change anything outside `docs/`, and `node scripts/verify-receipt.mjs check` certified it: vitest 5,190 passed and 3 skipped, Playwright 273 passed and 2 skipped. Three review rounds are recorded under `reviews/`: round 0's one major and eight minor findings, round 1's nine minor findings and two notes, and round 2's two minor findings, each repaired or given its disposition. Landing (phase 2) waits for the coordinator's acceptance; the version bump, the changelog heading and work 106's cards change then.
+Shipped as v0.3.259 on 2026-11-04. Phase 1 was handed off at `02e3108d` and accepted by the coordinator, who checked the receipt, the damage function, every changed test and the census move. Phase 2 took the gate lock, rebased onto `origin/main` (`a37deeee`, so nothing moved), took the version, gave every finding outside this scope a card in work 106's queue and marked work 106's two cards for this defect shipped, and ran the full gate on the landing commit before the push. Before landing, the full gate passed on `86ba7290`, `16f2ffa4` and `38a6c7b4`, each certified by `node scripts/verify-receipt.mjs check` (vitest 5,190 passed and 3 skipped, Playwright 273 passed and 2 skipped). Three review rounds are recorded under `reviews/`: round 0's one major and eight minor findings, round 1's nine minor findings and two notes, and round 2's two minor findings, each repaired or given its disposition. The worktree and its branch are removed after the push.
