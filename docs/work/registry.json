@@ -2921,6 +2921,10 @@
     {
       "id": 141,
       "theme": "ai-economy"
+    },
+    {
+      "id": 142,
+      "theme": "selection-controls"
     }
   ]
 }
