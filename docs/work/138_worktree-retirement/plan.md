@@ -34,14 +34,14 @@ All reads were read-only, and every git call into a foreign worktree used `--no-
 - [x] Every ignored file that an open plan, an OPEN register entry or the gallery cites is copied and verified against a manifest. Every local link in `tmp/visual-gallery/index.md` resolves after the removals.
 - [x] Every removal ran through `controlWorktree.mjs` after a dry run, and the census of the protected trees was unchanged after each one.
 - [x] The stash entry recorded as landed was dropped only after its content was shown to be in main. The other two stash entries and both remote branches are reported and left in place.
-- [ ] M2: `npm run ci:status` (or a check it runs) reports leftover worktrees, with exemptions named, and a planted leftover turns it red.
+- [x] M2: `npm run ci:status` (or a check it runs) reports leftover worktrees, with exemptions named, and a planted leftover turns it red.
 
 ## Implementation steps
 
 - [x] M1, 2026-11-04: inventory, classification, 15 retained branches, 73 evidence files copied, 18 worktrees and 17 branches removed, the gallery's 15 links repointed, one stash entry dropped, and these records.
-- [ ] M2: the leftover-worktree check (design note below), assigned separately.
+- [x] M2, 2026-11-04: the leftover-worktree check (design note below), assigned separately.
   - [x] M2a, 2026-11-04: work 135's M30 records landed from `retained/head-jaw-m30-1020`, which was then deleted, and plan 97 got its status audit.
-  - [ ] M2b: the check in `npm run ci:status`.
+  - [x] M2b, 2026-11-04: the check in `npm run ci:status`, its gate, three review rounds and the full gate.
 
 ## Outcome
 
@@ -65,6 +65,22 @@ The proof, by a read-only script run against main at `180e894c`, exit 0:
 The branch was then deleted with `git update-ref -d refs/heads/retained/head-jaw-m30-1020 57f50d79f481df4853e1708f9111e25bbd461691`, exit 0. Fourteen `retained/*` branches remain for the owner. The script and its two logs are in the primary's `tmp/worktree-retirement-20261104/m2a/`.
 
 Plan 97 is still open. Nothing landed or was retried since its 2026-10-10 audit, while releases v0.3.244 to v0.3.258 changed the game under it. Its 2026-11-04 audit and its thread's status line say what is left: the owner-1 boot-map reading and the decision to retry or close.
+
+**M2b, done 2026-11-04.** `npm run ci:status` now ends with a report of this machine's worktrees, from `scripts/ci-status-worktrees.mjs`, which `report()` calls whatever the remote gates said. It exits 2 when the remote gates are not red and a registered worktree other than the primary checkout and the caller's own has its HEAD in the local `refs/heads/main` and no activity for 24 hours, or when the check cannot finish. Exit 1 still means a red or ungated remote gate, and the leftovers print then too. Activity is the newest mtime among the worktree's non-ignored files and folders, empty ones included, its index, HEAD, HEAD reflog and branch reflog. Every git call passes `--no-optional-locks`, so the check rewrites no index. Each leftover line gives the path, branch, idle age and staged, modified and untracked counts, then the retirement step, and the last line says remote CI is not what failed. Reported without failing: an idle worktree whose HEAD main lacks, a lock with a reason (a lock without one exempts nothing), a registered worktree whose folder is gone, a folder under `../aoe2-worktrees` that git does not list, and each `retained/*` branch with the open plans that name it as a whole word.
+
+Two calls against the design note below. Leftovers get exit 2 rather than a flag, as the brief set, so a session can tell them from a red remote gate. The note said an index's mtime alone does not show activity; the brief counts an index change as activity, and the check follows the brief. So someone else's plain `git status` makes a worktree read active for 24 hours, which errs toward not naming a worktree that may still be in use.
+
+The gate is `tests/scripts/ciStatusWorktrees.test.ts`, 24 cases. All but one run the whole script through `ciStatusHarness.ts` with ciStatus.test.ts's captured green and red `gh` fixtures, while the check's git calls run for real in sandbox repositories (`helpers/worktreeSandbox.ts`); the last holds the harness to the check's own read-only git forms inside the sandbox. The first 21 cases were red before the module existed. Main's pre-change `ci-status.mjs` turns 23 of the 24 red (the 24th does not run the script), and 35 mutations of the parts each turn their own cases red ([gate-proofs.md](../../learning/gate-proofs.md), "A worktree left behind after its work merged"). The retired lesson and its evidence are deleted, the register entry records the gate and stays OPEN for the retained branches, and the worktree rule's Finishing bullet says `ci:status` enforces it.
+
+Review: Codex `gpt-6-astra`, read-only, three rounds. [Round 0](reviews/0_implementation.md) on `bfa78d28` found three blocking defects: a deletion that empties a folder went unseen, the harness let a second `-C` or `--git-dir` out of its sandbox, and a longer branch name counted as naming a shorter one. It also found three faults in the docs. [Round 1](reviews/1_implementation.md) on `ac31349f` found the harness and the name boundary still open, a second failure each, and two minor faults. The harness then moved from a deny-list of options to an allowlist per subcommand. [Round 2](reviews/2_implementation.md) on `84164dad` found every finding resolved and none new.
+
+Full gate: `npm run verify` on `84164dad` (tree `3eeccd2089ce`) exited 0 under the machine-wide lock, and `node scripts/verify-receipt.mjs check` accepted it: Vitest 5,035 passed and 3 skipped, Playwright 271 passed and 2 skipped. The new file ran its 24 cases in 9.3 s under full-suite load. Also passed: `npx vitest run tests/architecture` before each commit, `npx tsc --noEmit`, and `npx eslint tests/scripts`.
+
+The real repo, 2026-11-04, on `84164dad`, run from the primary and from this worktree with the peer's `ci-flakes-1104` live: exit 0, "no leftover among 3 registered", the peer's worktree active, and all 14 `retained/*` branches named by an open plan.
+
+Bounds: mtimes are the evidence, so a write that keeps an old mtime reads as idle, and a session working only in ignored files is not seen. Creating an ignored file in a non-ignored folder counts as activity, and so does any change inside a wholly untracked folder. The sandbox is a one-commit repository, and the real repo's files and its node_modules junction were met only in the real runs. The harness's containment by real path, and the walk's refusal to enter a link it starts at, were not exercised with a link. One of the 33 mutation runs of an earlier pass crashed at startup (exit `0xC0000005`, no report) and was red when run again alone. Hosted CI runs on the pushed tip after this record was written.
+
+Left for the owner, through the coordinator: the 14 `retained/*` branches, the stash entries `54bb3a0e` and `4a25cf10`, and the two `origin/test-time-headroom-*` branches, per the decision table. `AGENTS.md` is generated by the fleet's sync script, so its session-start paragraph is not edited here; a wording that names exit 2 went to the coordinator.
 
 ## Inventory, 2026-11-04 08:12 UTC
 
