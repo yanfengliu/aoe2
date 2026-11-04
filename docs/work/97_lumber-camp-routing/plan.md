@@ -3,7 +3,7 @@
 Status: active
 Owner: Unknown (historical record; original ownership remains in the imported records)
 Created: Unknown (historical record; the allocated ID records migration order)
-Updated: 2026-10-10
+Updated: 2026-11-04
 
 ## Problem and outcome
 
@@ -39,3 +39,7 @@ The current legacy thread remains the live owner record during consolidation; th
 ## Status audit 2026-10-10
 
 Read-only audit at `861d7a1a`: the retained owner review (last changed in `bc0a0bf1`) records no retry through September 22; its September 10 addenda require a new baseline after placement and economy changes. The register still retains the September 5 owner-1 observation (freeze 0.4 -> 0.7; longest 1,430 -> 4,201 ticks). Shipped walk-field work is recorded, but this audit ran no simulation and establishes neither current regression nor resolution. Keep active; next acceptance step is to re-baseline the protected map and characterise the owner-1 carriers with the maintained live/replay instruments before deciding retry or closure.
+
+## Status audit 2026-11-04
+
+Read-only record audit at `180e894c` for [work 138](../138_worktree-retirement/plan.md) M2a. Still open, and nothing was retried. No commit since the 2026-10-10 audit (`4bc8b2c1`) touched this plan or its thread, and the devlog, changelog and register record no camp-siting retry and no re-baseline of the boot map. What moved under it: fifteen releases shipped since that audit's v0.3.243 (v0.3.244 to v0.3.258). They include changes to gathering (v0.3.258: a gatherer whose node runs out continues to the same kind within five tiles, and returns to its assigned node after delivery), to foundations and placement (v0.3.252, v0.3.254, v0.3.258) and to civilization bonuses (v0.3.248, v0.3.253, v0.3.255). The September 5 owner-1 reading (`frozen` 0.4 to 0.7 per sample; longest freeze 1,430 to 4,201 ticks) was taken on v0.3.205. Still open: that reading and the decision to retry or close the camp-siting candidate. The next step is unchanged and now has to run on current main: re-baseline the boot map with `npm run ai:gather-walk` (45,000 ticks), characterise the owner-1 carriers, then decide retry or closure against the original disqualifiers. This audit ran no simulation, so it establishes neither a regression nor a resolution.

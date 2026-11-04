@@ -40,6 +40,8 @@ All reads were read-only, and every git call into a foreign worktree used `--no-
 
 - [x] M1, 2026-11-04: inventory, classification, 15 retained branches, 73 evidence files copied, 18 worktrees and 17 branches removed, the gallery's 15 links repointed, one stash entry dropped, and these records.
 - [ ] M2: the leftover-worktree check (design note below), assigned separately.
+  - [x] M2a, 2026-11-04: work 135's M30 records landed from `retained/head-jaw-m30-1020`, which was then deleted, and plan 97 got its status audit.
+  - [ ] M2b: the check in `npm run ci:status`.
 
 ## Outcome
 
@@ -50,6 +52,19 @@ Removals: all 18 ran through the controller after dry runs, and every protected-
 Checks: the scripts above (exit 0), `controlWorktree.mjs` exit codes (all 0 except the explained `parity-gameplay-0930` STOP), the census after each removal, and the gallery link check. Documentation checks are in the devlog entry. No product code changed, so no full gate ran.
 
 Not checked: process working directories, because `Win32_Process` has no current-directory property and reading it from process memory was refused. The ignored files that went with the trees were matched only by digest, path or name against open plans, OPEN register sections and the gallery, not read file by file. A citation in other words would have been missed.
+
+**M2a, done 2026-11-04.** `180e894c` landed what `retained/head-jaw-m30-1020` held: plan 135's M30 head and jaw outcome, review rounds 86 to 89, the devlog rows, and the spec sentence that records the owner's grant of the three unspent M30 attempts and its limits. That sentence records what work 135 decided and adds no game rule, so it landed. The devlog and plan 135 were merged with main's later lines, keeping both sides. Reviews 86 to 88 each ended in one CRLF, which the line-ending gate refuses in new text, and are now LF. `npx vitest run tests/architecture` passed before the commit (rc 0, 16 files, 152 tests).
+
+The proof, by a read-only script run against main at `180e894c`, exit 0:
+- The branch changes 8 of its 2,681 files against its base `3eaf656e`, which main contains, so the other 2,673 are in main's history.
+- Its working-tree commit `57f50d79` differs from its index commit `4d3b36bf` in one file, the detailed devlog, and only by line endings. The staged LF copy superseded it.
+- The spec and review 89 are byte-equal in main. Reviews 86 to 88 are equal once their CRLF is LF.
+- In the summary, the detailed devlog and plan 135, every line the branch added is in main (1, 2 and 5 lines), and the one line it replaced, the summary's older M30 row, is gone.
+- Control: the same script run against the pre-landing main `e3838338` exits 1 and names all 8 files.
+
+The branch was then deleted with `git update-ref -d refs/heads/retained/head-jaw-m30-1020 57f50d79f481df4853e1708f9111e25bbd461691`, exit 0. Fourteen `retained/*` branches remain for the owner. The script and its two logs are in the primary's `tmp/worktree-retirement-20261104/m2a/`.
+
+Plan 97 is still open. Nothing landed or was retried since its 2026-10-10 audit, while releases v0.3.244 to v0.3.258 changed the game under it. Its 2026-11-04 audit and its thread's status line say what is left: the owner-1 boot-map reading and the decision to retry or close.
 
 ## Inventory, 2026-11-04 08:12 UTC
 
