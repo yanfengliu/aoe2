@@ -1,6 +1,6 @@
 # Restore resource-worker movement CI
 
-Status: active
+Status: complete
 Owner: ci-flakes-1104 worker (took over 2026-11-04); coordinator integration owner
 Created: 2026-10-19
 Updated: 2026-11-04
@@ -20,10 +20,10 @@ The retained Playwright trace is the first debugging instrument. It observes rea
 ## Acceptance criteria
 
 - [x] Explain the retained failure with evidence and a meaningful regression contract (2026-11-04, Investigation below).
-- [x] Real right-click movement keeps the food occupation at 1, then real House placement changes it to 0 at all three original viewport widths (now with the worker proven still walking when the House order lands).
+- [x] Real right-click movement keeps the food occupation at 1, then real House placement changes it to 0 at all three original viewport widths (now with the worker checked still walking just before the House click, and the order's own "Building House" required after it).
 - [x] Preserve the Moving assertion, real controls and timeout; no direct state or command shortcut.
-- [ ] Pass affected headless checks, independent exact-revision review, integrated full verify and remote gates before completion.
-- [ ] Root merges and pushes main; task-owned processes and unneeded temporary resources are cleaned safely.
+- [x] Pass affected headless checks, independent exact-revision review, integrated full verify and remote gates before completion (Outcome, 2026-11-04 landing).
+- [x] Root merges and pushes main; task-owned processes and unneeded temporary resources are cleaned safely. The worker landed under the coordinator's delegation and removes its worktree once this record is on main; the evidence it kept is listed in work 139's plan.
 
 ## Implementation steps
 
@@ -33,7 +33,7 @@ The retained Playwright trace is the first debugging instrument. It observes rea
 - [x] Run the approved bounded instrumented original-contract control; it passed, so the hosted cause remains open.
 - [x] Take over (2026-11-04): read the third failure's trace (run 40960398985) and count every hosted run since 2026-10-01.
 - [x] Repair the spec: force CI's geometry on every host, order a walk of at least 8 cells and check it is still under way at the House order, and require the House order's own effect; prove each check red.
-- [ ] Review, full gate, landing and hosted CI (the integration steps above).
+- [x] Review, full gate, landing and hosted CI (the integration steps above).
 
 ## Investigation
 
@@ -70,6 +70,8 @@ The retained Playwright trace is the first debugging instrument. It observes rea
 2026-11-04: Red proof and counts. Reverting the anchor to the old first-ring choice turns the premise assertion red at all three widths ("Received: 1.2747548783981963", expected >= 8); the file was restored byte-identical. A one-cell walk (`MIN_WALK_CELLS = 1`) failed "still walking as the House is placed" in 6 of 6 runs with 100-600 ms long tasks per frame; the 8-cell walk passed 9 of 9 under the same model. On this machine the fixed order cases passed 3 of 3 widths on SwiftShader and on the GPU, and the whole spec 12 of 12 on both.
 
 ## Outcome
+
+2026-11-04 landing: Landed on main at `c120bf9c`, pushed 2026-11-04 11:58 UTC under the gate lock. That commit merges this branch's `cae06026`, `945ec5e5`, `39edde7b` and `f272154d` with work 138 M2 (`27061591`), so the commits the review records name stay on main. The merge renamed the detailed devlog `2026-10-13_2026-11-04.md` and started `2026-11-04_2026-11-04.md`. `npm run verify` ran on that commit's tree `b07ae170`, and `node scripts/verify-receipt.mjs check` accepted its receipt: vitest 5,035 passed and 3 skipped, Playwright 272 passed and 2 skipped. Review: three rounds in work 139's `reviews/`, Codex and Claude in rounds 0 and 1 and Codex in round 2; every finding was repaired or written down as a bound. Hosted CI run 41825258036: success; playtest-corpus run 41825258079: success. Bound: one hosted run cannot show a flake is gone. In that run the 1920px order case took about 16 s of its 60 s on shard 4/4, its 800px and 1280px cases about 12 and 14 s, and art-style case 174 12.6 s (42%) on shard 1/4; no test passed two thirds of its limit.
 
 2026-11-04: The cause is explained and fixed in the spec, and each new check is proven red (see above): the setup guard on the walk's length, the "still walking" timing check and the "Building House" causal check. Review, the full gate, landing and the hosted run are recorded below as they happen. Bound: the walk's length is fixed, the checks' time is not. A host slow enough to outlast an 8-cell walk fails the timing check rather than passing. A walk that ended inside the House click's own three round trips, whose length was not measured, would still pass. None of this shows the hosted rate is zero: one hosted run cannot, and the old failure did not reproduce locally at a measurable rate.
 

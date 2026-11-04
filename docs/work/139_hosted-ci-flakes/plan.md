@@ -1,6 +1,6 @@
 # Hosted CI flakes: the boar-strike presentation wait and the live-Moebius fog test's time
 
-Status: active
+Status: complete
 Owner: ci-flakes-1104 worker; coordinator integration owner
 Created: 2026-11-04
 Updated: 2026-11-04
@@ -27,7 +27,7 @@ Each failure's own Playwright trace came first; no failing run recorded a bundle
 - [x] The boar flake is explained from its trace and reproduced locally.
 - [x] Its fix keeps every assertion, and a new gate fails on the old wait under forced timing.
 - [x] The art-style case is cheaper, or split into cases with the same checks, under two thirds of its limit with margin, every check kept; otherwise it is reported with evidence that the test cannot reduce its own work. Met by the second branch: reported, not fixed (Outcome).
-- [ ] Independent review of the exact revision, the full gate, landing on main and the hosted run.
+- [x] Independent review of the exact revision, the full gate, landing on main and the hosted run (Outcome, 2026-11-04 landing).
 
 ## Implementation steps
 
@@ -36,7 +36,7 @@ Each failure's own Playwright trace came first; no failing run recorded a bundle
 - [x] Review round 0 ([reviews/0_implementation.md](reviews/0_implementation.md)), Codex and Claude on `cae06026`: three major and eleven smaller findings, F0-F13. All were repaired, except F12, accepted as a note with no change, and the rejected parts of F6 and F11.
 - [x] Review round 1 ([reviews/1_implementation.md](reviews/1_implementation.md)) on `945ec5e5`: no blocker or major finding; F10 (the evidence copy, now made and checked), F1, F2, F5, F14 and F15 repaired or written down as bounds.
 - [x] Review round 2 ([reviews/2_implementation.md](reviews/2_implementation.md)), Codex on `39edde7b`: F14 sound; four nits, F16-F19, written down as bounds.
-- [ ] Gate, land and follow hosted CI.
+- [x] Gate, land and follow hosted CI.
 
 ## Investigation
 
@@ -60,6 +60,8 @@ Each failure's own Playwright trace came first; no failing run recorded a bundle
 The levers that remain are outside the test. The game redraws an unchanged paused frame every animation frame. `getWorldCapture` draws twice per capture, `renderer.frame` and then `runtime.capture`'s `renderCurrent`, and the annotation feature uses it too. And the limit itself, which the owner's contract keeps out of a worker's hands.
 
 ## Outcome
+
+2026-11-04 landing: Landed on main at `c120bf9c`, pushed 2026-11-04 11:58 UTC under the gate lock. That commit merges this branch's `cae06026`, `945ec5e5`, `39edde7b` and `f272154d` with work 138 M2 (`27061591`), so the commits the review records name stay on main. The merge renamed the detailed devlog `2026-10-13_2026-11-04.md` and started `2026-11-04_2026-11-04.md`. `npm run verify` ran on that commit's tree `b07ae170`, and `node scripts/verify-receipt.mjs check` accepted its receipt: vitest 5,035 passed and 3 skipped, Playwright 272 passed and 2 skipped. Review: three rounds in work 139's `reviews/`, Codex and Claude in rounds 0 and 1 and Codex in round 2; every finding was repaired or written down as a bound. Hosted CI run 41825258036: success; playtest-corpus run 41825258079: success. Bound: one hosted run cannot show a flake is gone. In that run the 1920px order case took about 16 s of its 60 s on shard 4/4, its 800px and 1280px cases about 12 and 14 s, and art-style case 174 12.6 s (42%) on shard 1/4; no test passed two thirds of its limit. The evidence behind the OPEN art-style entry, its probes and measurements, is kept under `tmp/ci-flakes-1104-evidence-20261104/` in the primary checkout (101 files, manifest SHA-256 `ee4d8a57…`); the failure traces stay in `tmp/ci-flake-artifacts-20261104/`.
 
 2026-11-04: M2 is fixed and gated in the spec and its new helper; landing and the hosted run are recorded here as they happen. M3 is not fixed. The test has no cheaper path to the same checks: its time is the first Moebius draw at zoom 0.7 and the GPU work the live loop keeps queuing, as measured above. It is reported to the coordinator with this evidence and an OPEN defect-register entry. The limit is unchanged.
 
