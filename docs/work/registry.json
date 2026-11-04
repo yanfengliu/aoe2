@@ -2913,6 +2913,14 @@
     {
       "id": 139,
       "theme": "hosted-ci-flakes"
+    },
+    {
+      "id": 140,
+      "theme": "building-armor"
+    },
+    {
+      "id": 141,
+      "theme": "ai-economy"
     }
   ]
 }
