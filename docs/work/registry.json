@@ -2909,6 +2909,10 @@
     {
       "id": 138,
       "theme": "worktree-retirement"
+    },
+    {
+      "id": 139,
+      "theme": "hosted-ci-flakes"
     }
   ]
 }

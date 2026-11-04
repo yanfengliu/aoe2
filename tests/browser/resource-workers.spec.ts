@@ -1,8 +1,41 @@
 // Bound: real lobby, canvas selection/context clicks and House placement at
 // three HUD widths. No direct command, pause or synthetic simulation stepping.
+// The walk the order test reads is long by construction (MIN_WALK_CELLS); it
+// claims nothing about a walk shorter than its own checks.
 import { expect, test, type Page } from '@playwright/test';
 import * as game from './helpers/gameTestHelpers';
 import * as play from './helpers/playOpening';
+
+// "Moving" and the walking food occupation last only as long as the walk. The
+// House anchor used to be the first valid cell near the Town Center, (8,6),
+// beside the sheep, so a worker that had reached the sheep walked about one
+// cell. CI's runners order the move 3.3 s after the gather, when it has, and
+// three runs saw the walk end between Playwright's polls: "Gathering food" then
+// "Idle" twice, and once "Moving" with food 1 and food 0 45 ms later (work
+// 137). So the move waits for the worker to gather on every host, and its
+// anchor is at least this many cells away. Normal speed runs at most 1.5 game
+// seconds per wall second (the frame delta is capped) and a villager walks 0.8
+// cells a game second, so the walk lasts at least 6.7 s. On CI the Moving
+// check took up to 0.9 s, and a Build House click during a walk 2.2 s.
+const MIN_WALK_CELLS = 8;
+
+/** The activity line and the food worker count in one read, so a check of both
+ *  cannot straddle the frame in which the walk ends. */
+async function readOrderHud(page: Page): Promise<{ activity: string; food: string }> {
+  return page.evaluate(() => ({
+    activity: document.querySelector('[data-selection-activity]')?.textContent?.trim() ?? '',
+    food: document.querySelector('[data-resource-worker-count="food"]')?.textContent?.trim() ?? '',
+  }));
+}
+
+async function workerState(page: Page, id: number): Promise<{ task: string; x: number; y: number }> {
+  return page.evaluate((unitId) => {
+    const api = window.__AOE2_TEST__!;
+    const unit = api.getRenderState().entities.find((entity) => entity.id === unitId);
+    const task = api.getEconomyState().units.find((entry) => entry.id === unitId)?.task ?? 'gone';
+    return { task, x: unit?.x ?? Number.NaN, y: unit?.y ?? Number.NaN };
+  }, id);
+}
 
 async function readResourceLayout(page: Page) {
   return page.locator('.hud-resource-readout').evaluateAll((readouts) => readouts.map((readout) => {
@@ -117,14 +150,26 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
     await expect(page.locator('[data-resource-worker-count="food"]')).toHaveText('1');
     await evidenceScreenshot(page, `h4-${viewport.width}-gather.png`);
 
+    // Every host orders the walk from where CI's runners did: the sheep.
+    await expect.poll(async () => (await workerState(page, villager!.id)).task, { timeout: 20_000 })
+      .toBe('gathering');
     await page.locator('[data-command="build-house"]').click();
-    const anchor = await game.findValidPlacementNearTownCenter(page, 'house');
+    const gathering = await workerState(page, villager!.id);
+    const anchor = await game.findValidPlacementNearTownCenter(page, 'house', 1, [],
+      { x: gathering.x, y: gathering.y, distance: MIN_WALK_CELLS });
     await page.keyboard.press('Escape');
+    const start = await workerState(page, villager!.id);
+    expect(Math.hypot(anchor.x + 0.5 - start.x, anchor.y + 0.5 - start.y),
+      `cells from the worker at (${start.x},${start.y}) to the centre of House anchor (${anchor.x},${anchor.y})`)
+      .toBeGreaterThanOrEqual(MIN_WALK_CELLS);
     await game.clickCell(page, anchor.x, anchor.y, 'right');
-    await expect(page.locator('[data-selection-activity]')).toHaveText('Moving');
-    await expect(page.locator('[data-resource-worker-count="food"]')).toHaveText('1');
+    await expect.poll(() => readOrderHud(page)).toEqual({ activity: 'Moving', food: '1' });
     await evidenceScreenshot(page, `h4-${viewport.width}-walk.png`);
     await page.locator('[data-command="build-house"]').click();
+    // The House order has to reach a worker that is still walking: had the
+    // walk ended, the count would read 0 without the order having done it.
+    expect(await readOrderHud(page), 'the worker is still walking as the House is placed')
+      .toEqual({ activity: 'Moving', food: '1' });
     await game.clickCell(page, anchor.x, anchor.y);
     await expect(page.locator('[data-resource-worker-count="food"]')).toHaveText('0');
     await evidenceScreenshot(page, `h4-${viewport.width}-build.png`);

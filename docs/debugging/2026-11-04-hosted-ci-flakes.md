@@ -1,0 +1,68 @@
+# Debugging session — three hosted CI flakes (resource workers, boar strikes, art-style headroom)
+
+## Symptom
+
+Main's hosted CI (ubuntu-latest browser shards, SwiftShader) failed at random on commits that changed only `.md` files:
+
+- `tests/browser/resource-workers.spec.ts:100` at 1920px, 3 of 101 runs since 2026-10-01, all after work 123 sped the test up on 2026-10-14 (3 of about 49 since): runs 38675522945 and 39193369383 expected "Moving" and read "Gathering food" 4 times, then "Idle" 5 times; run 40960398985 read "Moving", then food workers 0 on all 9 retries.
+- `tests/browser/voxel-unit-attack-animation.spec.ts:36`, 1 of 101 runs: run 40983419097 failed `expect(frozenPresentationAfter.parts).toEqual(frozenPresentationBefore.parts)`, where "before" held `null` parts and "after" held revision-13 parts.
+- `tests/browser/art-style-setting.spec.ts:174` used 69% (20.8 s) and 67% (20.1 s) of its 30 s limit on shard 1/4 in runs 39383478029 and 39810774781; `scripts/test-time-headroom.mjs` fails a test past two thirds. Across 51 runs its time was 8.6 to 20.8 s, median 14.2 s.
+
+## Expected vs actual
+
+- Expected: each test's verdict is the same on every host.
+- Actual: each verdict, or its time, depended on how fast the runner drew frames.
+
+## Reproduction
+
+- Instruments, named first. The recorded-world tools (`bundleHotspots`, `snapshotAtTick`, `replay:inspect`, `diffBundles`) answer nothing here: no failing run recorded a bundle, and both flakes live in live-page timing (HUD writes, Playwright's poll schedule, the renderer's hit-state handover), not in simulation state. The first instrument was each failure's own Playwright trace, read with a snapshot resolver (`tmp/evidence/snapshotHud.cjs` in the worktree, ignored) that rebuilds the DOM at every action. `bridge.getDebugSnapshot()` was the named live instrument for positions; the probes read the same positions from `getRenderState()` per frame, because the question was a time series. Every probe carried a `// harness:` line.
+- Hosted rates came from all 404 browser-shard job logs of main's CI runs since 2026-10-01 (101 runs), fetched once with `gh api .../jobs/<id>/logs`.
+- Local runs: `PREVIEW_PORT=4311 BROWSER_RASTERISER=swiftshader npx playwright test <spec> --repeat-each N` on a built worktree, plus scratch probes under `tmp/probes/` with their own config. Frame models for a slow host: CDP `Emulation.setCPUThrottlingRate` 4x and 8x; a 300 ms frame-starvation shim; one frame scheduler whose every frame starts with a long task (a fixed 250 ms, or 100-600 ms at random).
+
+## Hypotheses
+
+- [x] Resource workers: the House anchor sits next to where the worker stands, so the walk the test reads is about one cell and ends inside the checks on a slow host. Confirmed (below).
+- [x] Resource workers, work 137's other candidate: a raised entity intercepts the anchor click. Ruled out: the trace's "Moving" proves the move landed, and work 137's click-stack read at (8,6) was empty.
+- [x] Boar strikes: the spec's wait (`presentedRevision === acceptedRevision`) passes before the renderer's hit state, which `inspectPresentedVoxelPartMatrix` reads, has caught up. Confirmed (below).
+- [ ] Boar strikes, alternative: a WebGL context loss put the runtime in `restoring`. Not supported: the trace has no console line, and the revision arithmetic below accounts for the failure exactly.
+- [x] Art-style case 174: some of the test's own steps (its capture, its waits, its order) can be made cheaper without changing a check. Refuted by measurement (below): the cost is GPU work the test cannot avoid.
+
+## Investigation log
+
+- 2026-11-04 — Resource workers, run 40960398985 trace. Villager 2205 selected at (6.25,8.75), sheep 2164 at (7,5), House anchor (8,6), the first valid ring cell around the Town Center (8,8). Gather click to move click 3.37 s (work 137's run: 3.29 s). After the move click at 155475: polls read "Gathering food" at +24, +27, +130 and +387 ms, "Moving" at +891 ms; the DOM snapshot at +900 ms holds "Moving" with food 1, and the first food poll at +949 ms reads 0, which held to the end with "Idle". So the walk ended within about 0.9 s of the click, and the HUD showed it moving once to Playwright.
+- 2026-11-04 — Local geometry. A per-frame probe of the real gather order: the worker walks (6.25,8.75) → (6.25,7.75) → (7.25,7.75) → (7.25,6.75) and gathers there from tick 41. With the move ordered once it gathers, the 1920px flow measured gather-to-move 3.26-3.40 s, anchor (8,6), worker at (7.25,6.75), 1.06 cells to the anchor cell (1.27 to its centre), and a "Moving with food 1" window of 720-760 ms (10-13 frames). Unthrottled, the worker was still 2.6 cells away at 0.34 s and the anchor was (7,6). CPU throttling at 4x produced the CI geometry on its own (gather-to-move 3.05-3.71 s, anchor (8,6), 1.06 cells).
+- 2026-11-04 — The old assertions did not fail locally: 6 of 6 at 4x throttle, 4 of 4 under 300 ms starved frames, 4 of 4 with a 250 ms long task per frame, and 10 of 10 with 100-600 ms long tasks, the last three with the move forced to wait for gathering. Under those models the HUD still showed "Moving" for about three frames, so a poll landed in it. CI's walk window was narrower than any model reproduced; the trace bounds it at under about 0.9 s from click to idle.
+- 2026-11-04 — What the old spec did not check: under the 100-600 ms model, the old one-cell walk had ended before the House order in 6 of 6 runs (the new spec's premise check, below, with the old walk length). So on a slow host the old House check ("food 0 after the House order") passed without the order having caused it.
+- 2026-11-04 — Boar strikes, run 40983419097 trace. Revisions read by the spec: resting parts at 3, first strike at 5, then `inspectVoxelUnitMotion` six times and twice more, the frozen "before" read at presented revision 13 with both parts `null`, two animation frames, the "after" read at revision 13 with parts. Eight reads, eight revisions.
+- 2026-11-04 — Boar strikes, mechanism. `inspectVoxelUnitMotion` forces `view.syncFromBridge(true)`, which accepts a new snapshot. In the paused fixture it changes nothing visible, and voxel's `render-world.ts` marks such a delta presented at once when its base was presented (`!hasVisualChanges && baseWasPresented`). So the watermark the spec waited on (`presentedRevision === acceptedRevision`) agreed at once, while `AoeVoxelWorldRenderer` promotes its pending hit state only inside `frame()`. Until the next frame, `isInteractionReady()` is false and `inspectPresentedVoxelPartMatrix` returns null. The spec passed whenever a frame landed between its last forced sync and its read.
+- 2026-11-04 — Boar strikes, local rate. Unchanged spec on SwiftShader: 2 of 20 failed with CI's exact diff ("before" parts null). Interleaved repeat counts are in Verification.
+- 2026-11-04 — Real input is not affected: the click path's `hitTestPoint` draws a frame whenever the renderer is not interaction-ready. The window costs a click a frame drawn for nothing after such a sync, which is a cost, not a wrong answer.
+- 2026-11-04 — Art-style case 174, CI. Across 51 runs it took 8.6-20.8 s (median 14.2 s), always the slowest of its file's four cases: 138 (Natural only) 3.1-6.9 s, 146 (live switch) 7.3-16.9 s, 185 (boot in Moebius) 7.5-14.6 s.
+- 2026-11-04 — Art-style, local. On SwiftShader the four cases took 1.3, 3.2-3.4, 3.4-3.8 and 3.1-3.5 s, so CI is about 2.5-5.5 times slower. Step timing of case 174: boot 0.41 s, the switch 0.19 s, the sample 1.71 s, of which the world capture was 1.69 s. Back-to-back captures put the capture's cost in the first draw of each style: Natural 586 ms then 90 ms, Moebius 1.24 s then 0.20 s.
+- 2026-11-04 — Art-style, a CI model. Pinning the Playwright worker and every browser process under it to 4 logical CPUs (`tmp/pin-tree.ps1`, which touches only that tree) gives case 174/138 a ratio of 3.2, against 2.4-3.5 on CI. Pinned, case 174 took 4.9-5.5 s first in a worker and 5.7-7.6 s after another case, and its capture 3.1-3.5 s of 4.2-4.6 s of steps. Process CPU sampling: while a paused Moebius page is open, the GPU process keeps about 2 of the 4 CPUs busy, because the live loop redraws the unchanged frame; after the page closes it still works for up to about 2 s. A 3 s idle gap after case 146 brought case 174 back to its first-in-worker time, so that tail is what a following case inherits.
+- 2026-11-04 — Art-style, rejected candidates, each measured on the pinned model. (1) Read the live canvas in a frame callback instead of capturing: pixels byte-identical to the capture in both styles, but no faster (first read 3.1-3.5 s either way; warm 2.0-2.5 s against 1.7-1.8 s). Read outside a frame callback it returned an all-zero canvas, which would have passed both styles' "one colour" checks vacuously. (2) Hold the live loop's frames during the read: four interleaved pairs, 4.96-5.29 s against 4.98-5.35 s. (3) Run case 138 between 146 and 174: four interleaved pairs, mean 6.94 to 6.66 s, inside both arms' spread. Splitting, a smaller viewport, another zoom or another order of switch and zoom either repeats the expensive part or changes the bound's cells and camera.
+
+## Root cause
+
+- Resource workers: the test asserted states that end when a one-cell walk ends ("Moving", the walking food occupation, and the House order's effect), and on CI's slow runners the walk ended inside Playwright's polls.
+- Boar strikes: the spec waited on the voxel runtime's watermark, which a forced sync with no visual change moves at once, while the presented parts it then read come from the renderer's hit state, which follows only at the next frame.
+- Art-style case 174: its time is the first Moebius draw at zoom 0.7 on SwiftShader and the GPU work the live loop keeps queuing for a paused, unchanged frame, plus the previous case's tail. No check-preserving change to the test reduces it measurably.
+
+## Fix
+
+- `tests/browser/resource-workers.spec.ts`: the move is ordered once the worker gathers at the sheep, on every host; the House anchor is at least `MIN_WALK_CELLS` = 8 cells from the worker (a new keep-away option of `findValidPlacementNearTownCenter`), asserted before the click; "Moving" and food 1 are read together in one evaluate; and the spec asserts the worker is still walking just before the House order. Every original assertion stays.
+- `tests/browser/helpers/gameTestHelpers/presentation.ts`: `waitForPresentedHitState` waits for a world frame drawn after it began, with the watermark equal. `voxel-unit-attack-animation.spec.ts` uses it at all five waits.
+- `tests/browser/voxel-presented-hit-state.spec.ts`: the gate for the wait. It holds frames with a gate on `requestAnimationFrame`, forces two syncs, checks the window is open, releases frames from the page a second later, and requires the parts after the wait.
+
+## Verification
+
+- Resource workers: the old anchor under the forced geometry turns the premise assertion red at all three widths (1.27 cells, expected at least 8). A one-cell walk failed "still walking as the House is placed" 6 of 6 times with 100-600 ms long tasks per frame, where the 8-cell walk passed 9 of 9. The whole spec passed 12 of 12 on SwiftShader and on the GPU.
+- Boar strikes: three interleaved rounds of 20 on SwiftShader, unchanged spec 9 of 60 failed (CI's diff each time), fixed spec 0 of 60. The new gate passed 5 of 5, and failed 10 of 10 with its wait reverted to the watermark alone.
+- The full gate, review and the hosted run are recorded in work 137's and work 139's plans.
+
+## Follow-ups
+
+- No engine gap. The hit-state handover lag lives in this repo's renderer; the window it opens is harmless for real input, so nothing in the product changes.
+- `voxel-wildlife-feedback.spec.ts` keeps its own watermark-only wait, but reads presented parts only in a live loop with no forced sync before the read, so it does not open the window today.
+- Art-style case 174 stays OPEN (defect register, 2026-11-04). The levers left are product-side: the live loop redraws an unchanged paused frame, and `getWorldCapture` draws twice per capture (`renderer.frame`, then `runtime.capture`'s `renderCurrent`). Or the owner raises its limit with the reason written where it is set.
+- The selection panel rebuilds its whole markup whenever the selection state changes, and that state carries the selected unit's position. Playwright's Build House click while the worker walked retried twice on CI ("element was detached from the DOM", 2.2 s). Whether a real player's click can land across such a rebuild was not checked.

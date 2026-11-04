@@ -78,3 +78,5 @@ export {
   clickBuildCommand,
   findValidPlacementNearTownCenter,
 } from './gameTestHelpers/placement';
+
+export { waitForPresentedHitState } from './gameTestHelpers/presentation';

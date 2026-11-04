@@ -5,13 +5,12 @@ import * as game from './helpers/gameTestHelpers';
 const TOOL_PART = 'villager-tool-head';
 const ANCHOR_PART = 'villager-boot-left';
 
-async function waitForPresentedSnapshot(page: Page): Promise<void> {
-  await expect.poll(() => page.evaluate(() => {
-    const metrics = window.__AOE2_TEST__!.getWorldRendererState().metrics;
-    return metrics.acceptedRevision !== null
-      && metrics.presentedRevision === metrics.acceptedRevision;
-  })).toBe(true);
-}
+// Every presented-part read below waits with game.waitForPresentedHitState, not
+// on the runtime's watermark alone: inspectVoxelUnitMotion forces a view sync,
+// and in this paused world the sync's snapshot changes nothing visible, so the
+// runtime marks it presented at once while the renderer's hit state waits for
+// the next frame. The frozen-pose read below came after eight such syncs and
+// read no parts on CI run 40983419097 (work 139).
 
 async function waitForTwoAnimationFrames(page: Page): Promise<void> {
   await page.evaluate(() => new Promise<void>((resolve) => {
@@ -69,7 +68,7 @@ test.describe('voxel unit attack animation', () => {
     });
 
     expect(hunters).toHaveLength(6);
-    await waitForPresentedSnapshot(page);
+    await game.waitForPresentedHitState(page);
     const restingParts = await page.evaluate(({ identities, toolPart, anchorPart }) => (
       identities.map(({ id, identity }) => ({
         id,
@@ -84,7 +83,7 @@ test.describe('voxel unit attack animation', () => {
     );
 
     await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 100); });
-    await waitForPresentedSnapshot(page);
+    await game.waitForPresentedHitState(page);
     const firstStrikePresentation = await page.evaluate(({
       identities,
       toolPart,
@@ -156,7 +155,7 @@ test.describe('voxel unit attack animation', () => {
     const frozenHistoriesBefore = await page.evaluate((attackers) => (
       attackers.map(({ identity }) => window.__AOE2_TEST__!.inspectVoxelUnitMotion(identity))
     ), immediateAttackers);
-    await waitForPresentedSnapshot(page);
+    await game.waitForPresentedHitState(page);
     const frozenPresentationBefore = await page.evaluate(({
       attackers,
       toolPart,
@@ -200,7 +199,7 @@ test.describe('voxel unit attack animation', () => {
     expect(frozenHistoriesAfter).toEqual(frozenHistoriesBefore);
 
     await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 150); });
-    await waitForPresentedSnapshot(page);
+    await game.waitForPresentedHitState(page);
     const progressedPresentation = await page.evaluate(({
       attackers,
       toolPart,
@@ -255,7 +254,7 @@ test.describe('voxel unit attack animation', () => {
     let laterMotions: Array<{ mode: string; attackWeight: number } | null> = [];
     for (let round = 0; round < 40; round += 1) {
       await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(2, 150); });
-      await waitForPresentedSnapshot(page);
+      await game.waitForPresentedHitState(page);
       laterMotions = await page.evaluate((approachers) => approachers.map(
         ({ identity }) => window.__AOE2_TEST__!.inspectVoxelUnitMotion(identity),
       ), approachingHunters);

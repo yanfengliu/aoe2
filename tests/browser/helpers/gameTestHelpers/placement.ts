@@ -24,24 +24,36 @@ export async function clickBuildCommand(
   await card.click();
 }
 
+/** A point the anchor must keep its distance from, in cells: the distance runs
+ *  from `x`,`y` to the anchor cell's centre. */
+export interface PlacementKeepAway {
+  readonly x: number;
+  readonly y: number;
+  readonly distance: number;
+}
+
 export async function findValidPlacementNearTownCenter(
   page: Page,
   buildingType: string,
   owner = 1,
   preferredAnchors: Array<{ x: number; y: number }> = [],
+  keepAway: PlacementKeepAway | null = null,
 ): Promise<{ x: number; y: number }> {
   // The whole search runs in the page, in one round trip. It used to ask for
   // each candidate's preview, screen point and hit element with three
   // evaluate calls apiece, and on CI's SwiftShader runners those round trips
   // were seconds of a 1920px test (work 123). The candidates, their order and
   // the checks are the same.
-  const found = await page.evaluate(({ playerOwner, preferred }) => {
+  const found = await page.evaluate(({ playerOwner, preferred, away }) => {
     const api = window.__AOE2_TEST__!;
     const townCenter = api.getEconomyState().buildings.find(
       (building) => building.owner === playerOwner && building.buildingType === 'town-center',
     );
     if (!townCenter) return { townCenter: false as const, anchor: null };
     const isValidAnchor = (x: number, y: number): boolean => {
+      // Distance first: it is arithmetic, while the projection below forces a
+      // view sync per call.
+      if (away !== null && Math.hypot(x + 0.5 - away.x, y + 0.5 - away.y) < away.distance) return false;
       if (api.getPlacementPreviewAt(x, y)?.isValid !== true) return false;
       // The anchor also has to be REACHABLE BY THE MOUSE. A cell whose screen
       // point sits under a HUD panel gets no pointermove on the canvas, so the
@@ -70,13 +82,19 @@ export async function findValidPlacementNearTownCenter(
       }
     }
     return { townCenter: true as const, anchor: null };
-  }, { playerOwner: owner, preferred: preferredAnchors });
+  }, { playerOwner: owner, preferred: preferredAnchors, away: keepAway });
 
   if (!found.townCenter) {
     throw new Error(`Expected Town Center for player ${owner}.`);
   }
   if (!found.anchor) {
-    throw new Error(`Expected a valid ${buildingType} placement near player ${owner}'s Town Center.`);
+    const away = keepAway === null
+      ? ''
+      : ` at least ${String(keepAway.distance)} cells from (${String(keepAway.x)},${String(keepAway.y)})`;
+    throw new Error(
+      `Expected a valid, mouse-reachable ${buildingType} placement within 12 cells of player ${owner}'s Town Center${away}; `
+      + 'none of the candidates qualified.',
+    );
   }
   return found.anchor;
 }

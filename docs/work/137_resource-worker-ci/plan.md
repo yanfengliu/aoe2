@@ -1,9 +1,9 @@
 # Restore resource-worker movement CI
 
-Status: planned
-Owner: Codex resource-worker CI worker; root integration owner
+Status: active
+Owner: ci-flakes-1104 worker (took over 2026-11-04); coordinator integration owner
 Created: 2026-10-19
-Updated: 2026-10-20
+Updated: 2026-11-04
 
 ## Problem and outcome
 
@@ -19,9 +19,9 @@ The retained Playwright trace is the first debugging instrument. It observes rea
 
 ## Acceptance criteria
 
-- [ ] Explain the retained failure with evidence and a meaningful regression contract.
-- [ ] Real right-click movement keeps the food occupation at 1, then real House placement changes it to 0 at all three original viewport widths.
-- [ ] Preserve the Moving assertion, real controls and timeout; no direct state or command shortcut.
+- [x] Explain the retained failure with evidence and a meaningful regression contract (2026-11-04, Investigation below).
+- [x] Real right-click movement keeps the food occupation at 1, then real House placement changes it to 0 at all three original viewport widths (now with the worker proven still walking when the House order lands).
+- [x] Preserve the Moving assertion, real controls and timeout; no direct state or command shortcut.
 - [ ] Pass affected headless checks, independent exact-revision review, integrated full verify and remote gates before completion.
 - [ ] Root merges and pushes main; task-owned processes and unneeded temporary resources are cleaned safely.
 
@@ -31,7 +31,9 @@ The retained Playwright trace is the first debugging instrument. It observes rea
 - [x] Retrieve only the exact failed artifact and verify its uploaded ZIP digest.
 - [x] Hand initial trace facts, candidate mechanism and proposed control contract to root.
 - [x] Run the approved bounded instrumented original-contract control; it passed, so the hosted cause remains open.
-- [ ] Repair, verify and hand inspected changes to root for integration.
+- [x] Take over (2026-11-04): read the third failure's trace (run 40960398985) and count every hosted run since 2026-10-01.
+- [x] Repair the spec: force CI's geometry on every host, keep the walk long by construction and assert that premise; prove the premise check red with the old anchor.
+- [ ] Review, full gate, landing and hosted CI (the integration steps above).
 
 ## Investigation
 
@@ -53,9 +55,25 @@ The retained Playwright trace is the first debugging instrument. It observes rea
 
 2026-10-19: Diagnostic 2 root PID 27904 and its 13 observed owned processes were closed in finally; port 4287 was closed and original test bytes restored to the same SHA256. Its trace/log/process receipts remain under diagnostic2-results and diagnostic2.* in the task evidence folder. Both approved diagnostic attempts are spent; behavioral repair attempts remain 0. Root received the result and must reassess before any next runtime or source fix. Minimal proposed fixture improvement is a legal canvas-reachable anchor at least four tiles from the current worker, retaining every original assertion; the measured walking interval at the hosted anchor is short, but the hosted causal mechanism remains unknown.
 
+2026-11-04: Taken over by the ci-flakes-1104 worker in its own worktree, from main 61758598 and later c783b710. The full account, with every instrument and probe, is `docs/debugging/2026-11-04-hosted-ci-flakes.md`.
+
+2026-11-04: Hosted rate. Of 101 main CI runs since 2026-10-01 (404 browser-shard job logs), the 1920px case failed 3 times: runs 38675522945 (2026-10-15), 39193369383 (2026-10-19) and 40960398985 (2026-10-29). All three came after work 123 cut the case from about 32 s to 9-16 s on 2026-10-14, about 49 runs, and none before. The 800px and 1280px cases never failed.
+
+2026-11-04: Third failure, run 40960398985. Same villager 2205, sheep 2164 at (7,5), anchor (8,6), gather-to-move 3.37 s. After the move click, Playwright read "Gathering food" at +24, +27, +130 and +387 ms and "Moving" at +891 ms; the DOM snapshot at +900 ms holds "Moving" with food 1, and the first food poll at +949 ms read 0, then "Idle". So the walk ended about 0.9 s after the click, and the HUD showed it once.
+
+2026-11-04: Geometry. A per-frame probe shows the worker walking from (6.25,8.75) and gathering at (7.25,6.75) from tick 41. Ordered once it gathers, the move to (8,6) is 1.06 cells (1.27 to the cell's centre) and showed "Moving" with food 1 for 720-760 ms, 10-13 SwiftShader frames. CPU throttling at 4x produced that geometry on its own (gather-to-move 3.05-3.71 s, anchor (8,6)). Unthrottled, the worker is still 2.6 cells away at 0.34 s and the anchor is (7,6), which is why every local control passed.
+
+2026-11-04: Root cause. The spec asserted states that last only as long as the walk: "Moving", the walking food occupation, and the House order's effect. Its anchor, the first valid cell near the Town Center, sits beside the sheep, so a worker that had reached the sheep, as on CI, walked about one cell, and on CI's slow frames the walk ended between Playwright's polls. The old assertions never failed locally under four slow-host models (0 of 24 runs). Under the slowest model, with 100-600 ms long tasks per frame, the one-cell walk ended before the House order in 6 of 6 runs. So on slow hosts the old House check passed without the order having caused it.
+
+2026-11-04: Fix, in `tests/browser/resource-workers.spec.ts`. Every host orders the move once the worker is gathering at the sheep. The anchor is the first valid, mouse-reachable cell at least 8 cells from the worker, through a new keep-away option of `findValidPlacementNearTownCenter`. The spec asserts that distance before the click. It reads "Moving" and food 1 together in one evaluate, and asserts both again just before the House order. Every original assertion stays, and so do the real controls and the 60 s limit. At Normal speed a walk of 8 cells lasts at least 6.7 s, since the game runs at most 1.5 game seconds per wall second. The anchors chosen were (15,7) at 800px, (14,10) at 1280px and (13,12) at 1920px, 8.16-8.49 cells away.
+
+2026-11-04: Red proof and counts. Reverting the anchor to the old first-ring choice turns the premise assertion red at all three widths ("Received: 1.2747548783981963", expected >= 8); the file was restored byte-identical. A one-cell walk (`MIN_WALK_CELLS = 1`) failed "still walking as the House is placed" in 6 of 6 runs with 100-600 ms long tasks per frame; the 8-cell walk passed 9 of 9 under the same model. On this machine the fixed order cases passed 3 of 3 widths on SwiftShader and on the GPU, and the whole spec 12 of 12 on both.
+
 ## Outcome
 
-Pending. Root cause, fix, runtime checks, review and integration remain open. The artifact proves the observed failure, not its causal mechanism. No product or test fix has been made. One forensic retrieval and two bounded diagnostic browser cases were completed.
+2026-11-04: The cause is explained and fixed in the spec, with the premise gated (see above). Review, the full gate, landing and the hosted run are recorded below as they happen. Bound: the fix makes the walk outlast the checks by construction; it does not show the hosted rate is zero. One hosted run cannot show that, and the old failure did not reproduce locally at a measurable rate.
+
+Earlier status, kept as history: "Pending. Root cause, fix, runtime checks, review and integration remain open. The artifact proves the observed failure, not its causal mechanism. No product or test fix has been made. One forensic retrieval and two bounded diagnostic browser cases were completed."
 
 2026-10-19 current priority: deferred under the human’s “I just want the art to be good” and “What are you even verifying” steering. The original authored investigation remains above; both local diagnostic cases passed, behavioral repair attempts remain 0, the hosted cause is unproved, and no product or test fix exists. Root retains ownership of the unchanged CI worktree and ignored evidence. Original tmp/ plus this plan and debugging record are copied byte-for-byte to primary tmp/work137-deferred-retained-20261019/ with source/destination bytes and digests; no cleanup or next runtime is selected.
 
