@@ -71,7 +71,7 @@ The retained Playwright trace is the first debugging instrument. It observes rea
 
 ## Outcome
 
-2026-11-04: The cause is explained and fixed in the spec, with the premise gated (see above). Review, the full gate, landing and the hosted run are recorded below as they happen. Bound: the fix makes the walk outlast the checks by construction; it does not show the hosted rate is zero. One hosted run cannot show that, and the old failure did not reproduce locally at a measurable rate.
+2026-11-04: The cause is explained and fixed in the spec, and each new check is proven red (see above): the setup guard on the walk's length, the "still walking" timing check and the "Building House" causal check. Review, the full gate, landing and the hosted run are recorded below as they happen. Bound: the walk's length is fixed, the checks' time is not. A host slow enough to outlast an 8-cell walk fails the timing check rather than passing. A walk that ended inside the House click's own three round trips, its last few hundred ms, would still pass. None of this shows the hosted rate is zero: one hosted run cannot, and the old failure did not reproduce locally at a measurable rate.
 
 Earlier status, kept as history: "Pending. Root cause, fix, runtime checks, review and integration remain open. The artifact proves the observed failure, not its causal mechanism. No product or test fix has been made. One forensic retrieval and two bounded diagnostic browser cases were completed."
 

@@ -33,8 +33,9 @@ Each failure's own Playwright trace came first; no failing run recorded a bundle
 
 - [x] M2, boar strikes: diagnose, fix the wait, gate it, count before and after.
 - [x] M3, art-style headroom: measure where the time goes, try every check-preserving reduction found, report.
-- [x] Review round 0 ([reviews/0_implementation.md](reviews/0_implementation.md)), Codex and Claude on `cae06026`: three major and eleven smaller findings, F0-F13, repaired except two rejected parts.
-- [ ] Round 1 on the repairs, then gate, land and follow hosted CI.
+- [x] Review round 0 ([reviews/0_implementation.md](reviews/0_implementation.md)), Codex and Claude on `cae06026`: three major and eleven smaller findings, F0-F13. All were repaired, except F12, accepted as a note with no change, and the rejected parts of F6 and F11.
+- [x] Review round 1 ([reviews/1_implementation.md](reviews/1_implementation.md)) on `945ec5e5`: no blocker or major finding; F10 (the evidence copy, now made and checked), F1, F2, F5, F14 and F15 repaired or written down as bounds.
+- [ ] A focused round 2 on F14's repair, then gate, land and follow hosted CI.
 
 ## Investigation
 
@@ -42,7 +43,7 @@ Each failure's own Playwright trace came first; no failing run recorded a bundle
 
 2026-11-04, M2 fix. `waitForPresentedHitState` (`tests/browser/helpers/gameTestHelpers/presentation.ts`) waits for a world frame drawn after it began, with the runtime running and the accepted epoch and revision presented, which is `isInteractionReady()` read from outside. The boar spec uses it at all five of its waits, changes no assertion, and adds one: its frozen pose's parts must be non-null before they are compared, because null before and after would also be equal. `tests/browser/voxel-presented-hit-state.spec.ts` is the gate. It holds frames with a gate on `requestAnimationFrame`, forces two syncs, and checks a round trip later that the window is open: no frame drawn, the watermark moved by 2, no part. It then starts the wait and lets frames through only after seeing the wait read the renderer's state four times without returning, and requires the wait to be pending at that point and the part, at the presented revision, after it. The first version released frames on a 1 s timer; review round 0 (F1) showed a slow enough host could let the old wait pass it.
 
-2026-11-04, M2 counts, SwiftShader on this machine, unchanged spec against fixed spec in three interleaved rounds of 20: unchanged 9 of 60 failed (3 per round, every one CI's diff), fixed 0 of 60, and after review round 0's repairs 0 of 60 again in three more rounds of 20. A first batch of the unchanged spec failed 2 of 20 the same way. The handshake gate passed 5 of 5. It failed 10 of 10 with the wait's frame requirement removed, and 10 of 10 with the spec's original wait put back verbatim, each at "the wait returned while frames were held"; the helper was restored byte-identical each time.
+2026-11-04, M2 counts, SwiftShader on this machine, unchanged spec against fixed spec in three interleaved rounds of 20: unchanged 9 of 60 failed (3 per round, every one CI's diff), fixed 0 of 60, and after review round 0's repairs 0 of 60 again in three more rounds of 20. A first batch of the unchanged spec failed 2 of 20 the same way. The handshake gate passed 5 of 5. It failed 10 of 10 with the wait's frame requirement removed, and 10 of 10 with the spec's original wait put back verbatim, each at the check that the wait is still pending after polling with frames held, which read "returned"; the helper was restored byte-identical each time.
 
 2026-11-04, M3, CI. Over 51 runs since the case was split out on 2026-10-14 it took 8.6-20.8 s, median 14.2 s, and its neighbours moved with it: 138 (Natural only) 3.1-6.9 s, 146 (the live switch) 7.3-16.9 s, 185 (boot in Moebius) 7.5-14.6 s.
 
@@ -61,4 +62,4 @@ The levers that remain are outside the test. The game redraws an unchanged pause
 
 2026-11-04: M2 is fixed and gated in the spec and its new helper; landing and the hosted run are recorded here as they happen. M3 is not fixed. The test has no cheaper path to the same checks: its time is the first Moebius draw at zoom 0.7 and the GPU work the live loop keeps queuing, as measured above. It is reported to the coordinator with this evidence and an OPEN defect-register entry. The limit is unchanged.
 
-Bounds: M2's gate needs its read to return within 1 s of arming the release, which took about 10-30 ms here; it covers one fixture, one forced-sync source and one part. The before and after counts come from one Windows machine on SwiftShader. Hosted runs have not been repeated.
+Bounds: M2's gate releases frames only after it has seen the wait poll without returning, so its verdict does not depend on the host's speed; a host so slow that the wait's own 5 s budget runs out while frames are held fails it, and says the wait threw. It covers one fixture, one forced-sync source and one part, and context loss is read from the code, not forced. The before and after counts come from one Windows machine on SwiftShader. Hosted runs have not been repeated.

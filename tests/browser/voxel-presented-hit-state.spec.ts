@@ -141,16 +141,24 @@ test('a presented-part read after a forced sync waits for the frame that hands t
 
   // The handshake: the wait must still be waiting after it has polled with
   // frames held, whatever the host's speed. Only then are frames let through.
+  // The outcome is recorded rather than thrown, so a wait that returns is told
+  // apart from one that throws, and neither leaves a rejection unhandled.
   await countRendererStateReads(page);
-  let settled = false;
-  const waiting = game.waitForPresentedHitState(page).finally(() => { settled = true; });
-  await expect.poll(async () => settled || await page.evaluate(() => (
+  let outcome: 'pending' | 'returned' | Error = 'pending';
+  const waiting = game.waitForPresentedHitState(page).then(
+    () => { outcome = 'returned'; },
+    (error: unknown) => { outcome = error instanceof Error ? error : new Error(String(error)); },
+  );
+  const outcomeText = (): string => (outcome === 'pending' ? 'pending'
+    : outcome === 'returned' ? 'returned' : `threw: ${outcome.message}`);
+  await expect.poll(async () => outcome !== 'pending' || await page.evaluate(() => (
     (window as unknown as Instrumented).aoe2RendererStateReads
   )) >= READS_BEFORE_RELEASE).toBe(true);
-  expect(settled, 'the wait returned while frames were held, before any frame could hand the hit state over')
-    .toBe(false);
+  expect(outcomeText(), 'the wait, after polling with frames held: it must not return before a frame hands the hit state over')
+    .toBe('pending');
   await page.evaluate(() => { (window as unknown as Instrumented).aoe2FrameGate.release(); });
   await waiting;
+  expect(outcomeText(), 'the wait, once frames ran again').toBe('returned');
 
   const read = await readPart(page, identity);
   expect(read.part, 'the part after waitForPresentedHitState').not.toBeNull();

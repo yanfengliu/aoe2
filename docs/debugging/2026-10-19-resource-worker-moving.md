@@ -37,7 +37,7 @@ Superseded 2026-11-04; the earlier text read "Unknown. Both approved local contr
 
 ## Fix
 
-2026-11-04, in `tests/browser/resource-workers.spec.ts`: the move is ordered once the worker gathers, on every host; the anchor is at least 8 cells from it, asserted before the click; "Moving" and food 1 are read together, and again just before the House order. The four-cell separation proposed above became eight, because on CI the Moving check took up to 0.9 s and a Build House click 2.2 s, about 3.1 s together.
+2026-11-04, in `tests/browser/resource-workers.spec.ts`: the match must have started at Normal speed; the move is ordered once the worker gathers, on every host; the anchor is at least 8 cells from it, asserted before the click; "Moving" and food 1 are read together, and again just before the House order; and after the order the spec requires "Building House" with food 0, which only the order produces. The four-cell separation proposed above became eight, because on CI the Moving check took up to 0.9 s and a Build House click 2.2 s, about 3.1 s together.
 
 ## Verification
 
