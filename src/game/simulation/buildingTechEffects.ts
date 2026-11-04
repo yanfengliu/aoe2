@@ -4,6 +4,7 @@
 // movementTechEffects — so nothing new is persisted and a save carries the
 // tech set it already carried.
 
+import { takesMasonry } from './buildingArmor';
 import { isWaterUnit } from './unitDomain';
 import { INCAS_TEAM_FARM_BUILD_MULTIPLIER } from './teamBonuses';
 import type { BuildingType } from './types';
@@ -11,10 +12,11 @@ import type { ResearchableTechnologyType } from './technologyTypes';
 import type { UnitType } from './unitTypes';
 
 // Masonry (Castle) and Architecture (Imperial) each read "Hit points * 1.1"
-// in technologies.csv, and they STACK, so both is x1.21. Their +1/+1 unit
-// armour and +3 building armour halves are pending: buildings have no armour
-// field at all (BuildingCombatState is attack/range/reload only), and adding
-// one is a combat-model change rather than a technology.
+// in technologies.csv, and they STACK, so both is x1.21. DE gives both to its
+// unit classes 3 (Building) and 52 (Tower) only, so walls, gates, the Farm and
+// the Fish Trap take neither (`takesMasonry`, work 140). Their armour halves,
+// +1 melee, +1 pierce and +3 Building armour each, are derived at the damage
+// site with the rest of a building's armour (buildingArmor.ts).
 export const MASONRY_HP_MULTIPLIER = 1.1;
 export const ARCHITECTURE_HP_MULTIPLIER = 1.1;
 
@@ -48,8 +50,9 @@ export function buildingHitPointMultiplier(
   buildingType?: BuildingType,
 ): number {
   let multiplier = 1;
-  if (researchedTechnologies.has('masonry')) multiplier *= MASONRY_HP_MULTIPLIER;
-  if (researchedTechnologies.has('architecture')) multiplier *= ARCHITECTURE_HP_MULTIPLIER;
+  const masonryReaches = buildingType === undefined || takesMasonry(buildingType);
+  if (masonryReaches && researchedTechnologies.has('masonry')) multiplier *= MASONRY_HP_MULTIPLIER;
+  if (masonryReaches && researchedTechnologies.has('architecture')) multiplier *= ARCHITECTURE_HP_MULTIPLIER;
   if (buildingType === undefined) return multiplier;
   for (const entry of PER_BUILDING_HP) {
     if (entry.buildingType !== buildingType) continue;
@@ -57,17 +60,6 @@ export function buildingHitPointMultiplier(
     multiplier *= entry.multiplier;
   }
   return multiplier;
-}
-
-/** The multiplier ONE technology contributes to ONE building type. */
-export function singleBuildingHpMultiplier(
-  technology: ResearchableTechnologyType,
-  buildingType: BuildingType,
-): number {
-  const entry = PER_BUILDING_HP.find(
-    (candidate) => candidate.technology === technology && candidate.buildingType === buildingType,
-  );
-  return entry?.multiplier ?? 1;
 }
 
 /** A building's hit points under this owner's technologies. */

@@ -166,7 +166,7 @@ describe('Parthian Tactics — landed damage at the projectile impact site', () 
       targetId: 2, targetGeneration: 0, targetKind: 'unit',
       originX: 0, originY: 10, aimX: 10, aimY: 10,
       launchTick: 0, impactTick: 5,
-      baseDamage: 6, buildingDamage: null, attackType: 'pierce',
+      baseDamage: 6, attackType: 'pierce',
       willHit: true, isArea: false,
     });
     const world = {

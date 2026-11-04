@@ -288,7 +288,8 @@ describe('Imperial-Age Blacksmith upgrades', () => {
     const bridge = createSimulationBridge('imperial-blacksmith-fixture');
 
     expect(selectOwnedUnitDirect(bridge, 1, 'cavalier')).toBe(true);
-    expect(bridge.getSelectionState().armor).toBe(0);
+    // The panel shows total armor (work 140): the Cavalier's own 2 melee.
+    expect(bridge.getSelectionState().armor).toBe(2);
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
     expect(bridge.queueResearch('plate-barding')).toBe(true);
@@ -304,6 +305,6 @@ describe('Imperial-Age Blacksmith upgrades', () => {
     ).toBe(true);
 
     expect(selectOwnedUnitDirect(bridge, 1, 'cavalier')).toBe(true);
-    expect(bridge.getSelectionState().armor).toBe(1);
+    expect(bridge.getSelectionState().armor).toBe(3);
   }, 90_000); // 90s: 30.7-31.1s observed under full-suite contention vs the old 30s cap (2026-06-11); vitest-timeout-headroom precedent
 });

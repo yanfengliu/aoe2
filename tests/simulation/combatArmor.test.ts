@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  attackBonusAgainstBuilding,
   attackBonusAgainstUnit,
   combatDamageAfterArmor,
   effectiveMeleeArmor,
@@ -11,6 +10,7 @@ import {
   unitMeleeArmor,
   unitPierceArmor,
 } from '../../src/game/simulation/prototypeUnitRules';
+import { UNIT_BUILDING_ATTACKS } from '../../src/game/simulation/buildingAttack';
 
 // Data-driven combat Slice 1: melee/pierce armor split. Pierce attackers
 // (archers, skirmishers, towers) are reduced by the target's PIERCE armor;
@@ -111,15 +111,17 @@ describe('attackBonusAgainstUnit — AoE2 armor-class bonuses', () => {
     expect(attackBonusAgainstUnit('spearman', 'militia')).toBe(0); // infantry isn't a spear target
   });
 
-  it('applies the AoE2-accurate siege anti-building bonuses', () => {
-    expect(attackBonusAgainstBuilding('battering-ram')).toBe(125);
-    expect(attackBonusAgainstBuilding('siege-ram')).toBe(200);
-    expect(attackBonusAgainstBuilding('bombard-cannon')).toBe(200);
-    expect(attackBonusAgainstBuilding('trebuchet')).toBe(250);
-    expect(attackBonusAgainstBuilding('mangonel')).toBe(35);
-    expect(attackBonusAgainstBuilding('onager')).toBe(45);
-    expect(attackBonusAgainstBuilding('scorpion')).toBe(2);
-    expect(attackBonusAgainstBuilding('knight')).toBe(0);
+  it("applies DE's siege attacks against the Building class (work 140)", () => {
+    // The pinned DE dataset's class-11 attacks; the rams and Scorpions were
+    // 125/150 and 2/4 here before work 140 re-sourced them.
+    expect(UNIT_BUILDING_ATTACKS['battering-ram']).toEqual({ building: 150 });
+    expect(UNIT_BUILDING_ATTACKS['siege-ram']).toEqual({ building: 200 });
+    expect(UNIT_BUILDING_ATTACKS['bombard-cannon']).toEqual({ building: 200, 'stone-defense': 40 });
+    expect(UNIT_BUILDING_ATTACKS.trebuchet).toEqual({ building: 250 });
+    expect(UNIT_BUILDING_ATTACKS.mangonel).toEqual({ building: 35 });
+    expect(UNIT_BUILDING_ATTACKS.onager).toEqual({ building: 45 });
+    expect(UNIT_BUILDING_ATTACKS.scorpion).toEqual({ building: 3 });
+    expect(UNIT_BUILDING_ATTACKS.knight).toBeUndefined();
   });
 });
 

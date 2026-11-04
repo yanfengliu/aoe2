@@ -11,9 +11,13 @@ type Civs = ReadonlyMap<number, string>;
 
 const KNIGHT_LINE = new Set<UnitType>(['knight', 'cavalier', 'paladin']);
 const SCOUT_LINE = new Set<UnitType>(['scout', 'light-cavalry', 'hussar']);
+// The Saracen team bonus's "Foot Archers and Skirmishers": DE gives it to
+// unit class 0, Archer (effect 409), which holds the foot-archer unique units
+// as well as the Archer and Skirmisher lines (work 140).
 const FOOT_ARCHERS = new Set<UnitType>([
   'archer', 'crossbowman', 'arbalest', 'skirmisher', 'elite-skirmisher',
-  'longbowman', 'elite-longbowman',
+  'longbowman', 'elite-longbowman', 'chu-ko-nu', 'elite-chu-ko-nu',
+  'plumed-archer', 'elite-plumed-archer',
 ]);
 const GALLEY_LINE = new Set<UnitType>(['galley', 'war-galley', 'galleon']);
 const SCORPION_LINE = new Set<UnitType>(['scorpion', 'heavy-scorpion']);
@@ -64,8 +68,10 @@ export function bonusAttackRange(
 }
 
 /** Extra attack against BUILDINGS from TEAM lines (Saracen foot archers, the
- *  Hindustani Scout line and Camel Units). A side includes its own owner, so
- *  these lines have no copy in CIV_BONUSES: a copy there counts twice. */
+ *  Hindustani Scout line and Camel Units), which DE puts on Standard Building
+ *  (effects 409 and 2; buildingAttack.ts adds it there). A side includes its
+ *  own owner, so these lines have no copy in CIV_BONUSES: a copy there counts
+ *  twice. */
 export function teamBuildingAttackBonus(
   teams: Teams,
   civilizations: Civs,

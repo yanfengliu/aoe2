@@ -6,64 +6,70 @@
 # The dataset holds one value per structure, so every age row carries it. The Outpost's "+2 Line of sight per age" (special) is not in the dataset;
 #   the SiegeEngineers Aoe2Sheet knowledge base says the same ("Outpost LoS increases by 2 with every age").
 # Every other column is the earlier transcription. tests/content/structureLineOfSight.test.ts holds the game to this column row by row.
-name, expansion, age, cost, build_time, hit_points, line_of_sight, armor, range, reload_time, attack, special
-Barracks, Age of Kings, Dark, {"Wood": 175}, 50, 1200,6,0/7,,,,Garrison: 10 created units
-Dock, Age of Kings, Dark, {"Wood": 150}, 35, 1800,8,0/7,,,,Garrison: 10 created units
-Farm, Age of Kings, Dark, {"Wood": 60},15, 480,1, 0/0,,,,Standard = 175 Food;Horse Collar = 250 Food;Heavy Plow = 375 Food;Crop Rotation = 550 Food
-Fish Trap, Age of Kings, Dark, {"Wood": 100},53, 50,1, 0/0,,,,Gives 715 Food
-House, Age of Kings, Dark, {"Wood": 25}, 25, 900,2, 0/7,,,,Supports 5 population
-Lumber Camp, Age of Kings, Dark, {"Wood": 100}, 35, 1000,6, 0/7,,,,
-Mill, Age of Kings, Dark, {"Wood": 100}, 35, 1000,6, 0/7,,,,Max 40 farms queued
-Mining Camp, Age of Kings, Dark, {"Wood": 100}, 35, 1000,6, 0/7,,,,
-Town Center, Age of Kings, Dark, {"Wood": 275;"Stone": 100}, 150, 2400,8, 3/5,6,2.0,5,15 units (supports 5 population);max 10 arrows;+5 vs all buildings;+5 vs ships/camels
-Archery Range, Age of Kings, Feudal, {"Wood": 175}, 50, 1500,6, 1/8,,,,Garrison: 10 created units
-Barracks, Age of Kings, Feudal, {"Wood": 175}, 50, 1500,6, 1/8,,,,Garrison: 10 created units
-Blacksmith, Age of Kings, Feudal, {"Wood": 150}, 40, 2100,6, 1/8,,,,
-Dock, Age of Kings, Feudal, {"Wood": 150}, 35, 1800,8, 1/8,,,,Garrison: 10 created units
-House, Age of Kings, Feudal, {"Wood": 25}, 25, 900,2, 1/8,,,,Supports 5 population
-Lumber Camp, Age of Kings, Feudal, {"Wood": 100}, 35, 1000,6, 1/8,,,,
-Market, Age of Kings, Feudal, {"Wood": 175}, 60, 2100,6, 1/8,,,,
-Mill, Age of Kings, Feudal, {"Wood": 100}, 35, 1000, 6, 1/8,,,,Max 40 farms queued
-Mining Camp, Age of Kings, Feudal, {"Wood": 100}, 35, 1000,6, 1/8,,,,
-Stable, Age of Kings, Feudal, {"Wood": 175}, 50, 1500,6, 1/8,,,,Garrison: 10 created units
-Town Center, Age of Kings, Feudal, {"Wood": 275; "Stone": 100}, 150, 2400,8, 4/6,6,2.0,5,15 units (supports 5 population);max 10 arrows;+5 vs all buildings;+5 vs ships/camels
-Archery Range, Age of Kings, Castle, {"Wood": 175}, 50, 1800,6, 2/9,,,,Garrison: 10 created units
-Barracks, Age of Kings, Castle, {"Wood": 175}, 50, 1800,6, 2/9,,,,Garrison: 10 created units
-Blacksmith, Age of Kings, Castle, {"Wood": 150}, 40, 2100,6, 2/9,,,,
-Castle, Age of Kings, Castle, {"Stone": 650}, 200, 4800,11, 8/11,1-8,2.0,11,20 units (support 20 population);max 21 arrows;1st arrow +2 against spearmen;From 2nd arrow +11 damage vs ships/camels;+11 vs stone defense
-Dock, Age of Kings, Castle, {"Wood": 150}, 35, 1800,8, 2/9,,,,Garrison: 10 created units
-House, Age of Kings, Castle, {"Wood": 25}, 25, 900,2, 2/9,,,,Supports 5 population
-Lumber Camp, Age of Kings, Castle, {"Wood": 100}, 35, 1000,6, 2/9,,,,
-Market, Age of Kings, Castle, {"Wood": 175}, 60, 2100,6, 2/9,,,,
-Mill, Age of Kings, Castle, {"Wood": 100}, 35, 1000,6, 2/9,,,,Max 40 farms queued
-Mining Camp, Age of Kings, Castle, {"Wood": 100}, 35, 1000,6, 2/9,,,,
-Monastery, Age of Kings, Castle, {"Wood": 175}, 40, 2100,6, 2/9,,,,Garrison: 10 created units
-Siege Workshop, Age of Kings, Castle, {"Wood": 200}, 40, 2100,6, 2/9,,,,Garrison: 10 created units
-Stable, Age of Kings, Castle, {"Wood": 175}, 50, 1800,6, 2/9,,,,Garrison: 10 created units
-Town Center, Age of Kings, Castle, {"Wood": 275; "Stone": 100}, 150, 2400,8, 5/7,6,2.0,5,15 units (supports 5 population);max 10 arrows;+5 vs all buildings;+5 vs ships/camels
-University, Age of Kings, Castle, {"Wood": 200}, 60, 2100,6, 2/9,,,,
-Archery Range, Age of Kings, Imperial, {"Wood": 175}, 50, 2100,6, 3/10,,,,Garrison: 10 created units
-Barracks, Age of Kings, Imperial, {"Wood": 175}, 50, 2100,6, 3/10,,,,Garrison: 10 created units
-Blacksmith, Age of Kings, Imperial, {"Wood": 150}, 40, 2100,6, 3/10,,,,
-Dock, Age of Kings, Imperial, {"Wood": 150}, 35, 1800, 8, 3/10,,,,Garrison: 10 created units
-House, Age of Kings, Imperial, {"Wood": 25}, 25, 900, 2, 3/10,,,,Supports 5 population
-Lumber Camp, Age of Kings, Imperial, {"Wood": 100}, 35, 1000, 6, 3/10,,,,
-Market, Age of Kings, Imperial, {"Wood": 175}, 60, 2100, 6, 3/10,,,,
-Mill, Age of Kings, Imperial, {"Wood": 100}, 35, 1000, 6, 3/10,,,,Max 40 farms queued
-Mining Camp, Age of Kings, Imperial, {"Wood": 100}, 35, 1000, 6, 3/10,,,,
-Monastery, Age of Kings, Imperial, {"Wood": 175}, 40, 2100, 6, 3/10,,,,Garrison: 10 created units
-Siege Workshop, Age of Kings, Imperial, {"Wood": 200}, 40, 2100, 6, 3/10,,,,Garrison: 10 created units
-Stable, Age of Kings, Imperial, {"Wood": 175}, 50, 2100, 6, 3/10,,,,Garrison: 10 created units
-Town Center, Age of Kings, Imperial, {"Wood": 275; "Stone": 100}, 150, 2400, 8, 6/8,6,2.0,5,15 units (supports 5 population);Max 10 arrows;+5 vs all buildings;+5 vs ships/camels
-University, Age of Kings, Imperial, {"Wood": 200}, 60, 2100, 6, 3/10,,,,
-Wonder, Age of Kings, Imperial, {"Wood": 1000; "Stone": 1000; "Gold": 1000}, 3503 ,4800, 8, 3/10,,,,
-Outpost, Age of Kings, Dark, {"Wood": 25; "Stone": 5}, 15, 500, 6, 0/0,,,,+2 Line of sight per age
-Palisade Wall, Age of Kings, Dark, {"Wood": 2}, 5, 250, 2, 2/5,,,,
-Palisade Gate, Age of Kings, Dark, {"Wood": 30}, 20, 250, 6, 2/5,,,,Opens for its owner; blocks everyone else
-Gate, Age of Kings, Feudal,  {"Stone": 30}, 70, 2750, 6, 6/6,,,,+1250 HP with Fortified Wall (Gates parallel to the bottom right edge have 0:30 bt)
-Stone Wall, Age of Kings, Feudal,  {"Stone": 5}, 8, 1800,2,  8/10,,,,
-Watch Tower, Age of Kings, Feudal,  {"Wood": 25; "Stone": 125}, 80, 1020, 10, 1/7,1-8,2.0,5,Garrison 5 units;+2 vs spearmen line;+7 damage vs ships/camels;Max 5 arrows
-Fortified Wall, Age of Kings, Castle, {"Stone": 5}, 8, 3000, 2, 12/12,,,,
-Guard Tower, Age of Kings, Castle, {"Wood": 25; "Stone": 125}, 80, 1500, 10, 2/8,1-8,2.0,6,Garrison 5 units;+2 vs spearmen line;+9 damage vs ships/camels;Max 5 arrows
-Bombard Tower, Age of Kings, Imperial, {"Wood": 25; "Stone": 125}, 80, 2220, 10, 3/9,1-8,6.0,120,Garrison 5 units;+40 damage vs ships/camels;Pierce attack
-Keep, Age of Kings, Imperial,  {"Wood": 25; "Stone": 125},80, 2250, 10, 3/9,1-8,2.0,7,Garrison 5 units;+2 vs spearmen line;+10 damage vs ships/camels;Max 5 arrows
+# Armor (the armor and armor_classes columns) SOURCED 2026-11-04 (work 140). armor is the building's own melee/pierce in that age, before Masonry and Architecture
+#   (each +1/+1 and +3 building armor on every building but walls, gates, the Farm and the Fish Trap, DE effects 50 and 51). DE upgrades each building to its next age's
+#   unit at every age-up; those units' armor is read from DE's dat at update 147949 (HSZemi/aoe2dat c0cec9ba, data/full.json.xz), and every Dark Age row equals the pinned
+#   185872 dataset above. armor_classes is DE's armor in the classes only attacks on buildings reach (building 11, stone defense 13, standard building 21, walls & gates 22,
+#   castle 26); a class a row lacks is one DE does not give it. DE differs from the earlier transcription on the House (-2/7, -1/8, 1/9), the Siege Workshop (1/8, 2/9),
+#   the Gate and Palisade Gate (0/0) and the Fish Trap (1/1). tests/content/buildingCombatStats.test.ts holds this file to tests/content/fixtures/deBuildingCombat.json.
+name, expansion, age, cost, build_time, hit_points, line_of_sight, armor, range, reload_time, attack, special, armor_classes
+Barracks, Age of Kings, Dark, {"Wood": 175}, 50, 1200,6,0/7,,,,Garrison: 10 created units,building 0;standard building 0
+Dock, Age of Kings, Dark, {"Wood": 150}, 35, 1800,8,0/7,,,,Garrison: 10 created units,building 0;standard building 0
+Farm, Age of Kings, Dark, {"Wood": 60},15, 480,1, 0/0,,,,Standard = 175 Food;Horse Collar = 250 Food;Heavy Plow = 375 Food;Crop Rotation = 550 Food,building 0;standard building 0
+Fish Trap, Age of Kings, Dark, {"Wood": 100},53, 50,1, 1/1,,,,Gives 715 Food,building 10;standard building 0
+House, Age of Kings, Dark, {"Wood": 25}, 25, 900,2, -2/7,,,,Supports 5 population,building 0;standard building 0
+Lumber Camp, Age of Kings, Dark, {"Wood": 100}, 35, 1000,6, 0/7,,,,,building 0;standard building 0
+Mill, Age of Kings, Dark, {"Wood": 100}, 35, 1000,6, 0/7,,,,Max 40 farms queued,building 0;standard building 0
+Mining Camp, Age of Kings, Dark, {"Wood": 100}, 35, 1000,6, 0/7,,,,,building 0;standard building 0
+Town Center, Age of Kings, Dark, {"Wood": 275;"Stone": 100}, 150, 2400,8, 3/5,6,2.0,5,15 units (supports 5 population);max 10 arrows;+5 vs all buildings;+5 vs ships/camels,building 0;standard building 0
+Archery Range, Age of Kings, Feudal, {"Wood": 175}, 50, 1500,6, 1/8,,,,Garrison: 10 created units,building 0;standard building 0
+Barracks, Age of Kings, Feudal, {"Wood": 175}, 50, 1500,6, 1/8,,,,Garrison: 10 created units,building 0;standard building 0
+Blacksmith, Age of Kings, Feudal, {"Wood": 150}, 40, 2100,6, 1/8,,,,,building 0;standard building 0
+Dock, Age of Kings, Feudal, {"Wood": 150}, 35, 1800,8, 1/8,,,,Garrison: 10 created units,building 0;standard building 0
+House, Age of Kings, Feudal, {"Wood": 25}, 25, 900,2, -1/8,,,,Supports 5 population,building 0;standard building 0
+Lumber Camp, Age of Kings, Feudal, {"Wood": 100}, 35, 1000,6, 1/8,,,,,building 0;standard building 0
+Market, Age of Kings, Feudal, {"Wood": 175}, 60, 2100,6, 1/8,,,,,building 0;standard building 0
+Mill, Age of Kings, Feudal, {"Wood": 100}, 35, 1000, 6, 1/8,,,,Max 40 farms queued,building 0;standard building 0
+Mining Camp, Age of Kings, Feudal, {"Wood": 100}, 35, 1000,6, 1/8,,,,,building 0;standard building 0
+Stable, Age of Kings, Feudal, {"Wood": 175}, 50, 1500,6, 1/8,,,,Garrison: 10 created units,building 0;standard building 0
+Town Center, Age of Kings, Feudal, {"Wood": 275; "Stone": 100}, 150, 2400,8, 4/6,6,2.0,5,15 units (supports 5 population);max 10 arrows;+5 vs all buildings;+5 vs ships/camels,building 0;standard building 0
+Archery Range, Age of Kings, Castle, {"Wood": 175}, 50, 1800,6, 2/9,,,,Garrison: 10 created units,building 0;standard building 0
+Barracks, Age of Kings, Castle, {"Wood": 175}, 50, 1800,6, 2/9,,,,Garrison: 10 created units,building 0;standard building 0
+Blacksmith, Age of Kings, Castle, {"Wood": 150}, 40, 2100,6, 2/9,,,,,building 0;standard building 0
+Castle, Age of Kings, Castle, {"Stone": 650}, 200, 4800,11, 8/11,1-8,2.0,11,20 units (support 20 population);max 21 arrows;1st arrow +2 against spearmen;From 2nd arrow +11 damage vs ships/camels;+11 vs stone defense,building 8;standard building 0;castle 0
+Dock, Age of Kings, Castle, {"Wood": 150}, 35, 1800,8, 2/9,,,,Garrison: 10 created units,building 0;standard building 0
+House, Age of Kings, Castle, {"Wood": 25}, 25, 900,2, 1/9,,,,Supports 5 population,building 0;standard building 0
+Lumber Camp, Age of Kings, Castle, {"Wood": 100}, 35, 1000,6, 2/9,,,,,building 0;standard building 0
+Market, Age of Kings, Castle, {"Wood": 175}, 60, 2100,6, 2/9,,,,,building 0;standard building 0
+Mill, Age of Kings, Castle, {"Wood": 100}, 35, 1000,6, 2/9,,,,Max 40 farms queued,building 0;standard building 0
+Mining Camp, Age of Kings, Castle, {"Wood": 100}, 35, 1000,6, 2/9,,,,,building 0;standard building 0
+Monastery, Age of Kings, Castle, {"Wood": 175}, 40, 2100,6, 2/9,,,,Garrison: 10 created units,building 0;standard building 0
+Siege Workshop, Age of Kings, Castle, {"Wood": 200}, 40, 2100,6, 1/8,,,,Garrison: 10 created units,building 0;standard building 0
+Stable, Age of Kings, Castle, {"Wood": 175}, 50, 1800,6, 2/9,,,,Garrison: 10 created units,building 0;standard building 0
+Town Center, Age of Kings, Castle, {"Wood": 275; "Stone": 100}, 150, 2400,8, 5/7,6,2.0,5,15 units (supports 5 population);max 10 arrows;+5 vs all buildings;+5 vs ships/camels,building 0;standard building 0
+University, Age of Kings, Castle, {"Wood": 200}, 60, 2100,6, 2/9,,,,,building 0;standard building 0
+Archery Range, Age of Kings, Imperial, {"Wood": 175}, 50, 2100,6, 3/10,,,,Garrison: 10 created units,building 0;standard building 0
+Barracks, Age of Kings, Imperial, {"Wood": 175}, 50, 2100,6, 3/10,,,,Garrison: 10 created units,building 0;standard building 0
+Blacksmith, Age of Kings, Imperial, {"Wood": 150}, 40, 2100,6, 3/10,,,,,building 0;standard building 0
+Dock, Age of Kings, Imperial, {"Wood": 150}, 35, 1800, 8, 3/10,,,,Garrison: 10 created units,building 0;standard building 0
+House, Age of Kings, Imperial, {"Wood": 25}, 25, 900, 2, 3/10,,,,Supports 5 population,building 0;standard building 0
+Lumber Camp, Age of Kings, Imperial, {"Wood": 100}, 35, 1000, 6, 3/10,,,,,building 0;standard building 0
+Market, Age of Kings, Imperial, {"Wood": 175}, 60, 2100, 6, 3/10,,,,,building 0;standard building 0
+Mill, Age of Kings, Imperial, {"Wood": 100}, 35, 1000, 6, 3/10,,,,Max 40 farms queued,building 0;standard building 0
+Mining Camp, Age of Kings, Imperial, {"Wood": 100}, 35, 1000, 6, 3/10,,,,,building 0;standard building 0
+Monastery, Age of Kings, Imperial, {"Wood": 175}, 40, 2100, 6, 3/10,,,,Garrison: 10 created units,building 0;standard building 0
+Siege Workshop, Age of Kings, Imperial, {"Wood": 200}, 40, 2100, 6, 2/9,,,,Garrison: 10 created units,building 0;standard building 0
+Stable, Age of Kings, Imperial, {"Wood": 175}, 50, 2100, 6, 3/10,,,,Garrison: 10 created units,building 0;standard building 0
+Town Center, Age of Kings, Imperial, {"Wood": 275; "Stone": 100}, 150, 2400, 8, 6/8,6,2.0,5,15 units (supports 5 population);Max 10 arrows;+5 vs all buildings;+5 vs ships/camels,building 0;standard building 0
+University, Age of Kings, Imperial, {"Wood": 200}, 60, 2100, 6, 3/10,,,,,building 0;standard building 0
+Wonder, Age of Kings, Imperial, {"Wood": 1000; "Stone": 1000; "Gold": 1000}, 3503 ,4800, 8, 3/10,,,,,building 0
+Outpost, Age of Kings, Dark, {"Wood": 25; "Stone": 5}, 15, 500, 6, 0/0,,,,+2 Line of sight per age,building 0;standard building 0
+Palisade Wall, Age of Kings, Dark, {"Wood": 2}, 5, 250, 2, 2/5,,,,,building 0;standard building 0;walls & gates 0
+Palisade Gate, Age of Kings, Dark, {"Wood": 30}, 20, 250, 6, 0/0,,,,Opens for its owner; blocks everyone else,building 0;standard building 0;walls & gates 0
+Gate, Age of Kings, Feudal,  {"Stone": 30}, 70, 2750, 6, 0/0,,,,+1250 HP with Fortified Wall (Gates parallel to the bottom right edge have 0:30 bt),building 20;stone defense 0;standard building 0;walls & gates 0
+Stone Wall, Age of Kings, Feudal,  {"Stone": 5}, 8, 1800,2,  8/10,,,,,building 16;stone defense 0;standard building 0;walls & gates 0
+Watch Tower, Age of Kings, Feudal,  {"Wood": 25; "Stone": 125}, 80, 1020, 10, 1/7,1-8,2.0,5,Garrison 5 units;+2 vs spearmen line;+7 damage vs ships/camels;Max 5 arrows,building 0;stone defense 0;standard building 0
+Fortified Wall, Age of Kings, Castle, {"Stone": 5}, 8, 3000, 2, 12/12,,,,,building 24;stone defense 0;standard building 0;walls & gates 0
+Guard Tower, Age of Kings, Castle, {"Wood": 25; "Stone": 125}, 80, 1500, 10, 2/8,1-8,2.0,6,Garrison 5 units;+2 vs spearmen line;+9 damage vs ships/camels;Max 5 arrows,building 0;stone defense 0;standard building 0
+Bombard Tower, Age of Kings, Imperial, {"Wood": 25; "Stone": 125}, 80, 2220, 10, 3/9,1-8,6.0,120,Garrison 5 units;+40 damage vs ships/camels;Pierce attack,building 0;stone defense 0;standard building 0
+Keep, Age of Kings, Imperial,  {"Wood": 25; "Stone": 125},80, 2250, 10, 3/9,1-8,2.0,7,Garrison 5 units;+2 vs spearmen line;+10 damage vs ships/camels;Max 5 arrows,building 0;stone defense 0;standard building 0

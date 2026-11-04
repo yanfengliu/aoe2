@@ -14,6 +14,8 @@ import * as fixtures from '../fixtures';
 // 500-line budget.
 import { createAiIdleSurplusFixture } from '../fixtures/aiIdleSurplus';
 import { attackDamageTypesSeeds, createAttackDamageTypesFixture } from '../fixtures/attackDamageTypes';
+import { buildingArmorCensusSeeds, createBuildingArmorCensusFixture } from '../fixtures/buildingArmorCensus';
+import { armorPanelSeeds, createArmorPanelCensusFixture } from '../fixtures/armorPanelCensus';
 import { createBlastCensusFixture } from '../fixtures/blastCensus';
 import { blastCensusSeed } from '../fixtures/blastCensusLayout';
 import { createBuildingShotLandingFixture } from '../fixtures/buildingShotLanding';
@@ -440,6 +442,8 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['wildlife-shots-fixture', createWildlifeShotsFixture],
   ['projectile-look-showcase-fixture', createProjectileLookShowcaseFixture],
   ...attackDamageTypesSeeds().map((seed) => [seed, createAttackDamageTypesFixture] as const),
+  ...buildingArmorCensusSeeds().map((seed) => [seed, createBuildingArmorCensusFixture] as const),
+  ...armorPanelSeeds().map((seed) => [seed, createArmorPanelCensusFixture] as const),
   ...UPGRADE_KEEPS_LINE_BONUSES_SEEDS.map((seed) => [seed, createUpgradeKeepsLineBonusesFixture] as const),
   // The blast census: one fixture per unit with a blast radius, generated
   // from the blast table, so a unit that gains a radius is censused too.

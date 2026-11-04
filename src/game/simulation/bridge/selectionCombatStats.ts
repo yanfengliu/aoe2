@@ -1,10 +1,21 @@
-// The three combat numbers the selection panel shows: attack, melee armor, and
-// the pierce-armor tech bonus. Extracted from ./selectionStateOps.ts for the
-// 500-LOC budget; each reads the same three component shapes and answers null
-// for anything that has no such number, so they group naturally.
+// The three combat numbers the selection panel shows: attack, melee armor and
+// pierce armor. Extracted from ./selectionStateOps.ts for the 500-LOC budget;
+// each reads the same three component shapes and answers null for anything
+// that has no such number, so they group naturally.
+//
+// The armor rows are the TOTAL armor, base plus upgrades, as DE's panel shows
+// it (work 140): a unit's base melee and pierce armor and its armor-technology
+// accumulators, exactly what its damage path subtracts, and a building's armor
+// under its owner's age and technologies, from the same seam every hit on a
+// building reads. Until work 140 they showed only the armor-technology bonus,
+// and 0/0 for every building.
 
 import { pierceArmorTechBonus } from '../armorTechBonuses';
-import { unitAttackDamage } from '../prototypeUnitRules';
+import {
+  effectiveMeleeArmor,
+  effectivePierceArmor,
+  unitAttackDamage,
+} from '../prototypeUnitRules';
 import type {
   BuildingComponent,
   ResourceComponent,
@@ -16,6 +27,7 @@ import {
   combatStatesCodec,
   wildlifeStatesCodec,
 } from './bridgeStateSerialize';
+import { currentBuildingArmor } from './buildingHitDamage';
 
 export function getSelectionAttack(
   accessor: BridgeStateAccessor,
@@ -45,21 +57,20 @@ export function getSelectionArmor(
   id: number,
 ): number | null {
   if (unit) {
-    return accessor.get(combatStatesCodec).get(id)?.armor ?? 0;
+    return effectiveMeleeArmor(unit.unitType, accessor.get(combatStatesCodec).get(id)?.armor ?? 0);
   }
   if (building) {
-    return 0;
+    return currentBuildingArmor(accessor, building).melee;
   }
   if (resource) {
+    // An animal carries no armor here: a blow on one lands whole (spec §10.7).
     return accessor.get(wildlifeStatesCodec).get(id)?.isAlive ? 0 : null;
   }
   return null;
 }
 
-// Pierce armor-tech bonus (= melee `armor` + the asymmetric pierce-only
-// bonus). Mirrors getSelectionArmor so the panel can show the melee/pierce
-// split (spec §11.8) — same value semantics as the melee side (tech bonus,
-// not base+bonus effective armor).
+// Pierce armor: base pierce plus the symmetric armor-tech bonus plus the
+// asymmetric pierce-only one (spec §11.8), the figure a pierce hit meets.
 export function getSelectionPierceArmor(
   accessor: BridgeStateAccessor,
   unit: UnitComponent | undefined,
@@ -69,10 +80,10 @@ export function getSelectionPierceArmor(
 ): number | null {
   if (unit) {
     const combat = accessor.get(combatStatesCodec).get(id);
-    return combat ? pierceArmorTechBonus(combat) : 0;
+    return effectivePierceArmor(unit.unitType, combat ? pierceArmorTechBonus(combat) : 0);
   }
   if (building) {
-    return 0;
+    return currentBuildingArmor(accessor, building).pierce;
   }
   if (resource) {
     return accessor.get(wildlifeStatesCodec).get(id)?.isAlive ? 0 : null;

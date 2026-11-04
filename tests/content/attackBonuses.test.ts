@@ -1,6 +1,8 @@
 // Attack-bonus gate (v0.3.134): every units.csv attack_bonus entry must be
-// modeled — as an armor-class bonus in UNIT_ATTACK_BONUSES or, for
-// '+N buildings', in the building table. Born from the audit that found the
+// modeled — as an armor-class bonus in UNIT_ATTACK_BONUSES or, for an attack
+// against a building class, in buildingAttack.ts's table, which
+// buildingCombatStats.test.ts holds to the pinned DE fixture and to this same
+// column (work 140). Born from the audit that found the
 // ENTIRE naval bonus fabric missing (the galley line's +8/+9/+11 vs ships is
 // naval combat's identity), plus petard, camels, four eagle rows, and ram
 // building values. Deferred token groups and the one documented ambiguity
@@ -12,7 +14,6 @@ import { describe, expect, it } from 'vitest';
 
 import { UNIT_ARMOR_CLASSES, UNIT_ATTACK_BONUSES, UNIT_CLASS_ARMOR } from '../../src/game/simulation/prototypeUnitRules/armorClasses';
 import { unitMeleeArmor } from '../../src/game/simulation/prototypeUnitRules';
-import { attackBonusAgainstBuilding } from '../../src/game/simulation/prototypeUnitRules';
 
 const TOKEN_TO_CLASS: Record<string, string | string[]> = {
   eagles: 'eagle', spearmen: 'spearman', siege: 'siege', rams: 'ram', ram: 'ram',
@@ -25,11 +26,13 @@ const TOKEN_TO_CLASS: Record<string, string | string[]> = {
   'against cavalry': 'cavalry', 'against cavalry archers': 'cavalry-archer',
 };
 
+// Attacks against the building classes: buildingCombatStats.test.ts's.
+const BUILDING_TOKENS = new Set([
+  'buildings', 'standard buildings', 'stone defense', 'castle', 'castles', 'walls and gates', 'walls & gates',
+]);
+
 // Token groups deliberately not modeled, each with its reason.
 const DEFERRED_TOKENS = new Set([
-  // Building-KIND bonuses (castle, stone defense, walls & gates): the
-  // building table is one number per attacker — spec §10.6 documents it.
-  'stone defense', 'castle', 'walls and gates', 'walls & gates',
   // '+N melee' modifiers are attack-type notes, not class bonuses.
   'melee',
   // Bombard Cannon's ambiguous 'siege/camels' grouping — see EXCEPTIONS.
@@ -65,21 +68,14 @@ describe('units.csv attack-bonus differential', () => {
     const problems: string[] = [];
     for (const [unit, bonusText] of perUnit) {
       const expected = new Map<string, number>();
-      let expectedBuilding = 0;
       for (const part of bonusText.split(';')) {
         const match = /^\+?(\d+)\s+(.*)$/.exec(part.trim());
         if (!match) continue;
         const value = Number(match[1]);
         const token = match[2]!.trim().toLowerCase();
-        if (token.includes('buildings')) {
-          // Ram rows carry three figures: "+125 (+165 full) buildings" is
-          // plain + fully-garrisoned; "+150 ... with siege engineers" is the
-          // ×1.2 tech applied. The PLAIN figure is the base we model; the
-          // tech is a multiplier (siegeEngineersBuildingMultiplier) and
-          // garrison-adds-damage is deferred.
-          if (!token.includes('with siege engineers')) expectedBuilding = value;
-          continue;
-        }
+        // A ram row's "+180 with siege engineers buildings" restates its
+        // Building attack under Siege Engineers.
+        if (BUILDING_TOKENS.has(token) || token.includes('with siege engineers')) continue;
         if (DEFERRED_TOKENS.has(token)) continue;
         const mapped = TOKEN_TO_CLASS[token];
         if (!mapped) { problems.push(`${unit}: unmapped token "${token}"`); continue; }
@@ -99,11 +95,6 @@ describe('units.csv attack-bonus differential', () => {
       }
       for (const [cls, value] of ours) {
         if (!expected.has(cls)) problems.push(`${unit}: models +${String(value)} ${cls} the CSV row lacks`);
-      }
-      // Building bonus (only where the CSV value is substantial — small
-      // non-siege +1-3s are the documented §10.6 deferral).
-      if (expectedBuilding >= 20 && attackBonusAgainstBuilding(unit as never) !== expectedBuilding) {
-        problems.push(`${unit}: building bonus ${String(attackBonusAgainstBuilding(unit as never))} vs csv ${String(expectedBuilding)}`);
       }
     }
     expect(problems, problems.join('\n')).toEqual([]);

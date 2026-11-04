@@ -22,7 +22,7 @@ function passAgainstABuilding(destroys: boolean): boolean {
     targetId: 9, targetGeneration: 0, targetKind: 'building',
     originX: 0, originY: 10, aimX: 10, aimY: 10,
     launchTick: 0, impactTick: 5,
-    baseDamage: 4, buildingDamage: 4, attackType: 'pierce',
+    baseDamage: 4, attackType: 'pierce',
     willHit: true, isArea: false,
   });
   const world = {

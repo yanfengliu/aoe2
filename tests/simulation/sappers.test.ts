@@ -7,21 +7,18 @@ import {
 } from '../../src/game/simulation/prototypeEconomyRules';
 import { canResearchAt } from '../../src/game/simulation/prototypeBuildingRules';
 import { isInfantryUnit } from '../../src/game/simulation/prototypeUnitRules';
-import {
-  SAPPERS_BUILDING_ATTACK_BONUS,
-  sappersBuildingAttackBonus,
-} from '../../src/game/simulation/sappersTechEffects';
+import { attackOnBuilding, SAPPERS_BUILDING_ATTACK } from '../../src/game/simulation/buildingAttack';
 import type { ResearchableTechnologyType, UnitType } from '../../src/game/simulation/types';
 import {
   selectOwnedBuildingDirect,
   stepBridgeUntil,
 } from './createSimulationBridge.helpers';
 
-// Sappers (v0.1.64): a researchable Blacksmith tech (AoE2 University; hosted at
-// the Blacksmith here, same divergence as Siege Engineers at the Siege
-// Workshop) granting the owner's INFANTRY units +15 attack against buildings.
-// It is DERIVED at the unit->building damage site (playerCommandsSystem), which
-// applies no armor reduction, so the +15 lands raw. No per-unit state, no
+// Sappers (v0.1.64; villagers since v0.3.132, DE's classes since work 140): a
+// Castle technology giving the owner's VILLAGERS +15 attack against the
+// Building and Stone Defense classes (DE effect 321). It is DERIVED where a hit
+// on a building is resolved (buildingAttack.ts), and the building's armor in
+// those classes takes its share like any attack's. No per-unit state, no
 // save-format change. See spec §10.7.2.
 
 type Bridge = ReturnType<typeof createSimulationBridge>;
@@ -41,12 +38,12 @@ function unitsToDestroyEnemyHouse(fixtureName: string): number {
   expect(house).toBeDefined();
   const houseId = house!.id;
 
-  // The militia sits at (13, 8), adjacent to the house at (14, 8).
+  // The villager sits at (13, 8), adjacent to the house at (14, 8).
   expect(bridge.selectEntityAtCell(13, 8)).toBe(true);
   expect(bridge.issueContextCommandAtEntity(houseId)).toBe(true);
 
   let ticks = 0;
-  const MAX = 1500; // 7500 sim ticks — ample for base militia (~4/hit) to fell 75 HP.
+  const MAX = 1500; // 7500 sim ticks — ample for a villager's 5 a blow to fell the 900-HP House.
   while (ticks < MAX) {
     bridge.step(500); // 5 ticks per iteration.
     ticks += 1;
@@ -81,23 +78,25 @@ describe('isInfantryUnit — the infantry classification', () => {
   });
 });
 
-describe('sappersBuildingAttackBonus — the derived +15 vs buildings', () => {
-  it('is 0 for every unit without the Sappers tech', () => {
-    expect(sappersBuildingAttackBonus(NO_TECHS, 'militia')).toBe(0);
-    expect(sappersBuildingAttackBonus(NO_TECHS, 'spearman')).toBe(0);
-    expect(sappersBuildingAttackBonus(NO_TECHS, 'archer')).toBe(0);
+describe('Sappers — villagers +15 against the Building and Stone Defense classes', () => {
+  const owner = (technologies: ReadonlySet<ResearchableTechnologyType>) => (
+    { technologies, civilization: undefined, age: 'imperial-age' as const, teamBonus: 0 }
+  );
+
+  it('adds nothing without the tech', () => {
+    expect(attackOnBuilding('villager', 3, owner(NO_TECHS)).classes).toEqual({ building: 3, 'stone-defense': 6 });
+    expect(attackOnBuilding('militia', 4, owner(NO_TECHS)).classes).toEqual({});
   });
 
-  it('grants +15 to VILLAGERS with the tech (technologies.csv), nobody else', () => {
+  it('arms VILLAGERS with the tech (DE effect 321), nobody else', () => {
     // v0.3.132: the CSV applies Sappers to Villagers — the siege-crew
     // reading — not to infantry, which an earlier slice had assumed.
-    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'villager')).toBe(
-      SAPPERS_BUILDING_ATTACK_BONUS,
-    );
-    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'militia')).toBe(0);
-    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'champion')).toBe(0);
-    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'archer')).toBe(0);
-    expect(sappersBuildingAttackBonus(WITH_SAPPERS, 'knight')).toBe(0);
+    expect(SAPPERS_BUILDING_ATTACK).toEqual({ building: 15, 'stone-defense': 15 });
+    expect(attackOnBuilding('villager', 3, owner(WITH_SAPPERS)).classes).toEqual({ building: 18, 'stone-defense': 21 });
+    for (const unitType of ['militia', 'champion', 'archer', 'knight'] as UnitType[]) {
+      expect(attackOnBuilding(unitType, 4, owner(WITH_SAPPERS)).classes, unitType)
+        .toEqual(attackOnBuilding(unitType, 4, owner(NO_TECHS)).classes);
+    }
   });
 });
 
@@ -143,13 +142,14 @@ describe('Sappers — gating at the Castle (v0.3.132)', () => {
 });
 
 describe('Sappers — derived +15 vs buildings in live combat', () => {
-  it('a militia with Sappers razes an enemy house in strictly fewer ticks', () => {
+  it('a villager with Sappers razes an enemy house in strictly fewer ticks', () => {
     const baseline = unitsToDestroyEnemyHouse('sappers-baseline-fixture');
     const researched = unitsToDestroyEnemyHouse('sappers-researched-fixture');
 
-    // Baseline militia (no bonus) still fells the 75-HP house eventually.
+    // A villager without the tech still fells the Castle Age House (1/9):
+    // 2 melee + 3 Building a blow, DE's.
     expect(baseline).toBeLessThan(1500);
-    // Sappers (+15/hit) razes it markedly faster.
+    // Sappers (+15 Building a blow, 20 in all) razes it markedly faster.
     expect(researched).toBeLessThan(baseline);
   }, 30_000);
 });

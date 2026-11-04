@@ -43,6 +43,7 @@ import {
 } from '../projectileRules';
 import { damageAnimal } from './animalDamage';
 import { applyUnitBlast, type BlastAnimals } from './blastDamage';
+import type { BuildingHitAttacker } from './buildingHitDamage';
 import {
   UNIT_SUBGRID_RESOLUTION,
   UNIT_SUBGRID_STEP_PER_TICK,
@@ -81,9 +82,9 @@ export interface LaunchProjectileParams {
     /** `null` for a building's arrow. */
     unitType: UnitType | null;
     position: Position;
+    /** The attack stat at launch. Against a building, the shot's attacks in
+     *  the building classes and the building's armor are read when it lands. */
     baseDamage: number;
-    /** Anti-building total; only used when the target is a building. */
-    buildingDamage?: number;
   };
   target: {
     id: number;
@@ -172,7 +173,6 @@ export function launchProjectile(params: LaunchProjectileParams): ProjectileStat
     launchTick: tick + windup,
     impactTick: tick + windup + flightTicks,
     baseDamage: attacker.baseDamage,
-    buildingDamage: attacker.buildingDamage ?? null,
     attackType: unitType === null ? 'pierce' : unitAttackType(unitType),
     willHit,
     isArea,
@@ -186,8 +186,10 @@ export interface ResolveProjectilesDeps {
   slot: ProjectileSlotState;
   tick: number;
   combatStates: Map<number, CombatState>;
-  /** Applies damage to a building and destroys it at zero HP. Returns true if it died. */
-  damageBuilding: (buildingId: number, damage: number, attackerUnitType: UnitType | null, attackerOwner: number) => boolean;
+  /** Lands a hit on a building, its damage from the one building seam
+   *  (`buildingHitDamage`) against the building as it is now, and destroys it
+   *  at zero HP. Returns true if it died. */
+  damageBuilding: (buildingId: number, attacker: BuildingHitAttacker) => boolean;
   destroyUnit: (id: number) => void;
   addKill: (owner: number) => void;
   markCombatDirty: () => void;
@@ -322,12 +324,16 @@ function landOnTarget(deps: ResolveProjectilesDeps, shot: ProjectileState, targe
     if (world.getComponent<BuildingComponent>(targetId, 'building')) {
       deps.recordPlayerHit(shot.attackerId, shot.attackerOwner, targetId);
     }
-    return deps.damageBuilding(
-      targetId,
-      shot.buildingDamage ?? shot.baseDamage,
-      shot.attackerUnitType,
-      shot.attackerOwner,
-    );
+    // The shot's attack stat is its launch-time one; its attacks against the
+    // building classes and the building's armor are read now, as a unit
+    // target's armor is (spec §10.4). A shot saved before work 140 carries an
+    // anti-building total as well, which nothing reads any more.
+    return deps.damageBuilding(targetId, {
+      unitType: shot.attackerUnitType,
+      attackDamage: shot.baseDamage,
+      owner: shot.attackerOwner,
+      family: shot.attackType,
+    });
   }
   if (shot.targetKind === 'wildlife') {
     // A shot at an animal connects as one at a unit does: on an animal still

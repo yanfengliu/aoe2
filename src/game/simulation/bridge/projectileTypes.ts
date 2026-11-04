@@ -49,17 +49,13 @@ export interface ProjectileState {
   readonly launchTick: number;
   readonly impactTick: number;
   /**
-   * Attacker's raw attack stat, snapshotted at launch. Drives unit hits and
-   * blast; target armor is applied on impact.
+   * Attacker's raw attack stat, snapshotted at launch. Drives unit hits,
+   * building hits and blast; the target's armor, and against a building the
+   * shooter's attacks in the building classes, are applied on impact (work
+   * 140). A shot saved before work 140 also carries `buildingDamage`, its old
+   * anti-building total, which nothing reads.
    */
   readonly baseDamage: number;
-  /**
-   * Total damage for a BUILDING hit — base plus the anti-building bonuses,
-   * which must never reach units. `null` for a unit-targeted shot. (A siege
-   * weapon's +35 vs buildings would otherwise one-shot infantry through its
-   * own blast.)
-   */
-  readonly buildingDamage: number | null;
   readonly attackType: AttackType;
   /** Result of the accuracy roll, decided at launch. */
   readonly willHit: boolean;

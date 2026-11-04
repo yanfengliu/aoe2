@@ -18,10 +18,8 @@ import type { Position } from 'civ-engine';
 
 import { getBuildingFootprint } from '../../content/buildingFootprints';
 import type { BuildingComponent, ResearchableTechnologyType, UnitType } from '../types';
-import { attackBonusAgainstBuilding, siegeEngineersBuildingMultiplier } from '../prototypeUnitRules';
-import { sappersBuildingAttackBonus } from '../sappersTechEffects';
 import { detonatesOnAttack } from '../prototypeUnitRules';
-import { civBuildingAttackLadder } from '../civBonusEffects';
+import type { BuildingHitAttacker } from './buildingHitDamage';
 import {
   ballisticsLeadsShots,
   thumbRingAccuracy,
@@ -123,36 +121,23 @@ export function deliverUnitAttackOnUnit(params: DeliverUnitAttackParams): boolea
 
 export interface DeliverBuildingAttackParams extends DeliverAttackShared {
   attacker: { id: number; unitType: UnitType; owner: number; combat: CombatState };
+  /** The attacker owner's researched set, for Ballistics' leading. */
   attackerTechs: ReadonlySet<ResearchableTechnologyType>;
-  attackerCivilization: string | undefined;
-  /** v0.3.152: the Goth per-age building-attack ladder reads the OWNER's age. */
-  attackerAge?: import('../types').AgeType;
-  /** Team-bonus extra vs buildings (Saracen foot archers, the Hindustani
-   *  Scout line and Camel Units), the owner's own side included. */
-  teamBuildingBonus?: number;
   target: { id: number; position: Position };
-  applyBuildingDamage: (buildingId: number, damage: number) => void;
+  /** Lands a blow delivered in person: the caller takes its damage from the
+   *  one building seam (`buildingHitDamage`), against the building as it is. */
+  landBlowOnBuilding: (attacker: BuildingHitAttacker, buildingId: number) => void;
 }
 
 /**
  * Deliver one unit's attack against a building. Buildings do not dodge, so a
- * projectile aimed at one always connects — it just arrives later.
+ * projectile aimed at one always connects — it just arrives later. The hit's
+ * damage is not decided here: a blow in person is DE's per-class damage the
+ * moment it lands, and a shot's is decided when it lands (work 140, spec
+ * §10.1), both through `buildingHitDamage`.
  */
 export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams): void {
   const { attacker, target } = params;
-  // Siege Engineers (v0.3.135): ×1.2 on a SIEGE attacker's whole per-hit
-  // building damage — the CSV's "+150 with siege engineers" figures are this
-  // multiplier over the plain +125, not a bigger base.
-  const damage = Math.max(
-    0,
-    Math.round((attacker.combat.attackDamage
-      + attackBonusAgainstBuilding(attacker.unitType)
-      + sappersBuildingAttackBonus(params.attackerTechs, attacker.unitType)
-      + civBuildingAttackLadder(params.attackerCivilization, attacker.unitType, params.attackerAge ?? 'dark-age')
-      + (params.teamBuildingBonus ?? 0))
-      * siegeEngineersBuildingMultiplier(params.attackerTechs, attacker.unitType)),
-  );
-
   attacker.combat.cooldownTicks = attacker.combat.reloadTicks;
   params.markCombatDirty();
   params.markRender();
@@ -174,10 +159,10 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
         owner: attacker.owner,
         unitType: attacker.unitType,
         position: attackerPosition ?? centre,
-        // Blast rides the raw attack stat; only the building takes the
-        // anti-building total.
+        // The attack stat at launch. Its attacks against the building classes
+        // and the building's armor are read when it lands, and the blast
+        // rides this stat alone, so no anti-building figure reaches a unit.
         baseDamage: attacker.combat.attackDamage,
-        buildingDamage: damage,
       },
       target: { id: target.id, kind: 'building', position: centre },
       leads: ballisticsLeadsShots(params.attackerTechs ?? EMPTY_TECH_SET),
@@ -186,7 +171,10 @@ export function deliverUnitAttackOnBuilding(params: DeliverBuildingAttackParams)
     return;
   }
 
-  params.applyBuildingDamage(target.id, damage);
+  params.landBlowOnBuilding(
+    { unitType: attacker.unitType, attackDamage: attacker.combat.attackDamage, owner: attacker.owner },
+    target.id,
+  );
   params.recordPlayerHit(attacker.id, attacker.owner, target.id);
   // Blast/splash (spec §10.7): a blast delivered in person on a building also
   // catches units clustered around it, a detonation around the unit that goes

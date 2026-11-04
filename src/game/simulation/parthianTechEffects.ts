@@ -1,5 +1,5 @@
 // Parthian Tactics' ATTACK half, DERIVED (pure) from an owner's researched-tech
-// set at the damage site — the Sappers pattern (sappersTechEffects), for the
+// set at the damage site — the Sappers pattern (buildingAttack.ts), for the
 // same reason: the bonus depends on the TARGET's armor class, which only the
 // damage site knows, so it cannot be baked into the attacker's combat state.
 // The technology's ARMOR half (+1 melee / +2 pierce) is per-unit state instead

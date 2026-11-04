@@ -194,16 +194,20 @@ describe('projectiles fly instead of landing instantly', () => {
       { maxSteps: 30 },
     )).toBe(true);
     const shot = bridge.getInFlightProjectiles()[0]!;
-    // The two damage numbers travel separately on the shot.
-    expect(shot.buildingDamage).toBe(75); // 40 base + 35 vs buildings
-    expect(shot.baseDamage).toBe(40); // what the blast is allowed to use
+    // The shot carries the attack stat alone, which is all the blast uses;
+    // its +35 against the Building class is read when it lands (work 140).
+    expect(shot.baseDamage).toBe(40);
+    expect('buildingDamage' in shot).toBe(false);
+    const outpostBefore = bridge.getEntityHealth(outpost!.id)!.currentHp;
 
-    // And the Spearman beside the Outpost survives the blast on 5 HP.
+    // The Spearman beside the Outpost survives the blast on 5 HP, and the
+    // Outpost (0/0, Building 0) takes DE's 40 + 35.
     expect(stepBridgeUntil(
       bridge,
       () => !bridge.getInFlightProjectiles().some((p) => p.id === shot.id),
       { maxSteps: 60 },
     )).toBe(true);
     expect(bridge.getEntityHealth(spearman!.id)?.currentHp).toBe(5);
+    expect(outpostBefore - bridge.getEntityHealth(outpost!.id)!.currentHp).toBe(75);
   });
 });

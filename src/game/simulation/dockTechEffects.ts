@@ -2,7 +2,7 @@
 // them acting on SHIPS rather than on one line: Careening armours them, Dry
 // Dock makes them faster, Shipwright makes them cheaper and quicker to build.
 // Each is DERIVED (pure) from an owner's researched set at the site that needs
-// it, the sappersTechEffects pattern — except Careening's armour, which is
+// it, the pattern Sappers follows (buildingAttack.ts) — except Careening's armour, which is
 // per-unit combat state like every other armour technology.
 //
 // The scope is the WATER domain (`isWaterUnit`), not a hand-written ship list,

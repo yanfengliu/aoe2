@@ -24,12 +24,16 @@
 // from the table under test.
 //
 // BOUNDS: pure functions only; civBonusDeParityInMatch.test.ts shows the bridge
-// applies them. Which units DE's "Foot Archers", "Infantry" and "Camel Units"
-// cover is taken from the team seam and isInfantryUnit, so a line scoped wrong
-// there is not caught here; what is caught is a line counted twice or applied
-// to the owner alone. DE's "Military Units" is read as every unit but the five
+// applies them. Which units DE's "Foot Archers" and "Camel Units" cover is
+// taken from the team seam, so a line scoped wrong there is not caught here
+// (buildingDamageCensus.test.ts holds the scopes to DE's unit classes); the
+// Goths' "Infantry" is DE's unit class 6 from the pinned fixture. What is
+// caught is a line counted twice or applied to the owner alone. DE's
+// "Military Units" is read as every unit but the five
 // civilian ones, Monks included. Whether DE's Mayan bonus covers farms is not
 // checked; this build excludes them.
+
+import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
@@ -43,7 +47,6 @@ import {
 } from '../../src/game/simulation/civBonusEffects';
 import { CIVILIZATION_NAMES } from '../../src/game/simulation/civilizationNames';
 import { trainingCost } from '../../src/game/simulation/prototypeEconomyRules';
-import { isInfantryUnit } from '../../src/game/simulation/prototypeUnitRules';
 import { teamBuildingAttackBonus } from '../../src/game/simulation/teamCombatBonuses';
 import { TRAINABLE_UNIT_TYPES } from '../../src/game/simulation/trainingCosts';
 import type { AgeType, ResearchableTechnologyType, ResourceKind, UnitType } from '../../src/game/simulation/types';
@@ -59,8 +62,15 @@ function buildingAttackTotal(civilizations: Map<number, string>, teams: Map<numb
 }
 
 /** DE's owner-only anti-building lines in this roster: the Goth ladder alone. */
+// DE's "Infantry" for the Goth ladder is its unit class 6 (effects 326-328),
+// read from the pinned fixture; the Petard, which this game's armor classes
+// call infantry, is DE's class 35 (work 140).
+const DE_INFANTRY = new Set((JSON.parse(readFileSync('tests/content/fixtures/deBuildingCombat.json', 'utf8')) as {
+  units: Array<{ id: UnitType; deUnitClass: number }>;
+}).units.filter((u) => u.deUnitClass === 6).map((u) => u.id));
+
 function deOwnerOnlyBuildingAttack(civilization: string, unit: UnitType, age: AgeType): number {
-  if (civilization !== 'Goths' || !isInfantryUnit(unit)) return 0;
+  if (civilization !== 'Goths' || !DE_INFANTRY.has(unit)) return 0;
   return { 'dark-age': 0, 'feudal-age': 1, 'castle-age': 2, 'imperial-age': 3 }[age];
 }
 

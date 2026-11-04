@@ -1,0 +1,1900 @@
+{
+  "source": "SiegeEngineers/aoe2techtree data/data.json at 3bb43b14 (DE update 185872) for every armour and attack value; DE dat at update 147949 (HSZemi/aoe2dat c0cec9ba data/full.json.xz) for the age-up units and the technology effects the dataset does not carry",
+  "dataUrl": "https://raw.githubusercontent.com/SiegeEngineers/aoe2techtree/3bb43b14/data/data.json",
+  "dataSha256": "66a439979afe62f71541cff05280837abfb04e7732e364e2eae2f318862ade6d",
+  "datUrl": "https://github.com/HSZemi/aoe2dat/blob/c0cec9ba/data/full.json.xz",
+  "datSha256": "52e1118ef14692dbc37d4ef1746c8113da1276ff1e4c183bc78ce57d99c20b83",
+  "datUpdate": "DE update 147949 (https://www.ageofempires.com/news/age-of-empires-ii-definitive-edition-update-147949/)",
+  "classes": {
+    "3": "pierce",
+    "4": "melee",
+    "11": "building",
+    "13": "stone-defense",
+    "21": "standard-building",
+    "22": "wall-and-gate",
+    "26": "castle"
+  },
+  "formula": "damage = max(1, sum over the attack classes the target has armour in of max(0, attack - armour)); an attack class the target lacks does nothing",
+  "versionBound": "Base armour and every attack are 185872. The per-age melee/pierce rows come from 147949; their Dark Age rows equal 185872 for every building here, and the Fish Trap, the one building 185872 changed (0/0 to 1/1), has no age variant.",
+  "technologies": {
+    "masonry": {
+      "effect": 50,
+      "unitClasses": [
+        3,
+        52
+      ],
+      "melee": 1,
+      "pierce": 1,
+      "classArmor": {
+        "11": 3
+      },
+      "hitPointMultiplier": 1.1
+    },
+    "architecture": {
+      "effect": 51,
+      "unitClasses": [
+        3,
+        52
+      ],
+      "melee": 1,
+      "pierce": 1,
+      "classArmor": {
+        "11": 3
+      },
+      "hitPointMultiplier": 1.1
+    },
+    "sappers": {
+      "effect": 321,
+      "unitClasses": [
+        4
+      ],
+      "classAttack": {
+        "11": 15,
+        "13": 15
+      }
+    },
+    "siegeEngineers": {
+      "effect": 375,
+      "times12": {
+        "unitClasses": [
+          13,
+          54,
+          55,
+          51
+        ],
+        "sourceIds": [
+          420,
+          691
+        ],
+        "classes": [
+          11
+        ]
+      },
+      "times14": [
+        {
+          "sourceIds": [
+            440
+          ],
+          "classes": [
+            11,
+            22,
+            26
+          ]
+        },
+        {
+          "sourceIds": [
+            527,
+            528
+          ],
+          "classes": [
+            11
+          ]
+        }
+      ]
+    }
+  },
+  "bonuses": {
+    "goths": {
+      "effects": [
+        326,
+        327,
+        328
+      ],
+      "unitClasses": [
+        6
+      ],
+      "classAttackPerAge": {
+        "21": [
+          0,
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    "saracensTeam": {
+      "effect": 409,
+      "unitClasses": [
+        0
+      ],
+      "class": 21,
+      "amount185872": 2,
+      "text185872": "Foot Archers and Skirmishers +2 attack vs. buildings (strings 120158)"
+    },
+    "hindustanisTeam": {
+      "effect": 2,
+      "class": 21,
+      "amount": 2,
+      "sourceIds": [
+        448,
+        546,
+        441,
+        329,
+        330,
+        282,
+        556
+      ],
+      "text185872": "Scout Cavalry-line and Camel Units +2 attack vs. buildings (strings 120169)"
+    }
+  },
+  "buildings": [
+    {
+      "id": "town-center",
+      "sourceIds": [
+        109,
+        71,
+        141,
+        142
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        3,
+        5
+      ],
+      "meleePierceByAge": [
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          8
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 3
+      }
+    },
+    {
+      "id": "barracks",
+      "sourceIds": [
+        12,
+        498,
+        132,
+        20
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        0,
+        7
+      ],
+      "meleePierceByAge": [
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0
+      }
+    },
+    {
+      "id": "house",
+      "sourceIds": [
+        70,
+        463,
+        464,
+        465
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        -2,
+        7
+      ],
+      "meleePierceByAge": [
+        [
+          -2,
+          7
+        ],
+        [
+          -1,
+          8
+        ],
+        [
+          1,
+          9
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0,
+        "40": 0
+      }
+    },
+    {
+      "id": "mill",
+      "sourceIds": [
+        68,
+        129,
+        130,
+        131
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        0,
+        7
+      ],
+      "meleePierceByAge": [
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0
+      }
+    },
+    {
+      "id": "dock",
+      "sourceIds": [
+        45,
+        133,
+        47,
+        51
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        0,
+        7
+      ],
+      "meleePierceByAge": [
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0
+      }
+    },
+    {
+      "id": "lumber-camp",
+      "sourceIds": [
+        562,
+        563,
+        564,
+        565
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        0,
+        7
+      ],
+      "meleePierceByAge": [
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0
+      }
+    },
+    {
+      "id": "mining-camp",
+      "sourceIds": [
+        584,
+        585,
+        586,
+        587
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        0,
+        7
+      ],
+      "meleePierceByAge": [
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0
+      }
+    },
+    {
+      "id": "blacksmith",
+      "sourceIds": [
+        103,
+        105,
+        18,
+        19
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        0,
+        7
+      ],
+      "meleePierceByAge": [
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0
+      }
+    },
+    {
+      "id": "monastery",
+      "sourceIds": [
+        104,
+        30,
+        31,
+        32
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        0,
+        7
+      ],
+      "meleePierceByAge": [
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0
+      }
+    },
+    {
+      "id": "archery-range",
+      "sourceIds": [
+        87,
+        87,
+        10,
+        14
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        1,
+        8
+      ],
+      "meleePierceByAge": [
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 1
+      }
+    },
+    {
+      "id": "stable",
+      "sourceIds": [
+        101,
+        101,
+        86,
+        153
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        1,
+        8
+      ],
+      "meleePierceByAge": [
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 1
+      }
+    },
+    {
+      "id": "market",
+      "sourceIds": [
+        84,
+        84,
+        116,
+        137
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        1,
+        8
+      ],
+      "meleePierceByAge": [
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 1
+      }
+    },
+    {
+      "id": "university",
+      "sourceIds": [
+        209,
+        209,
+        209,
+        210
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        2,
+        9
+      ],
+      "meleePierceByAge": [
+        [
+          2,
+          9
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 2
+      }
+    },
+    {
+      "id": "siege-workshop",
+      "sourceIds": [
+        49,
+        49,
+        49,
+        49
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        1,
+        8
+      ],
+      "meleePierceByAge": [
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          9
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 1
+      }
+    },
+    {
+      "id": "castle",
+      "sourceIds": [
+        82
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        8,
+        11
+      ],
+      "meleePierceByAge": [
+        [
+          8,
+          11
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          8,
+          11
+        ]
+      ],
+      "classArmor": {
+        "11": 8,
+        "21": 0,
+        "26": 0
+      },
+      "ignoredClassArmor": {
+        "31": 8
+      }
+    },
+    {
+      "id": "wonder",
+      "sourceIds": [
+        276
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        3,
+        10
+      ],
+      "meleePierceByAge": [
+        [
+          3,
+          10
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          3,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 0
+      },
+      "ignoredClassArmor": {
+        "0": 0,
+        "31": 3
+      }
+    },
+    {
+      "id": "outpost",
+      "sourceIds": [
+        598
+      ],
+      "deUnitClass": 3,
+      "baseMeleePierce185872": [
+        0,
+        0
+      ],
+      "meleePierceByAge": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0
+      }
+    },
+    {
+      "id": "watch-tower",
+      "sourceIds": [
+        79
+      ],
+      "deUnitClass": 52,
+      "baseMeleePierce185872": [
+        1,
+        7
+      ],
+      "meleePierceByAge": [
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          7
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "13": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 1
+      }
+    },
+    {
+      "id": "bombard-tower",
+      "sourceIds": [
+        236
+      ],
+      "deUnitClass": 52,
+      "baseMeleePierce185872": [
+        3,
+        9
+      ],
+      "meleePierceByAge": [
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          9
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "13": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "23": 0,
+        "31": 3
+      }
+    },
+    {
+      "id": "palisade-wall",
+      "sourceIds": [
+        72
+      ],
+      "deUnitClass": 27,
+      "baseMeleePierce185872": [
+        2,
+        5
+      ],
+      "meleePierceByAge": [
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0,
+        "22": 0
+      },
+      "ignoredClassArmor": {
+        "31": 2,
+        "40": 0
+      }
+    },
+    {
+      "id": "stone-wall",
+      "sourceIds": [
+        117
+      ],
+      "deUnitClass": 27,
+      "baseMeleePierce185872": [
+        8,
+        10
+      ],
+      "meleePierceByAge": [
+        [
+          8,
+          10
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          8,
+          10
+        ]
+      ],
+      "classArmor": {
+        "11": 16,
+        "13": 0,
+        "21": 0,
+        "22": 0
+      },
+      "ignoredClassArmor": {
+        "31": 8
+      }
+    },
+    {
+      "id": "stone-gate",
+      "sourceIds": [
+        487
+      ],
+      "deUnitClass": 39,
+      "baseMeleePierce185872": [
+        0,
+        0
+      ],
+      "meleePierceByAge": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "classArmor": {
+        "11": 20,
+        "13": 0,
+        "21": 0,
+        "22": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0
+      }
+    },
+    {
+      "id": "palisade-gate",
+      "sourceIds": [
+        792
+      ],
+      "deUnitClass": 39,
+      "baseMeleePierce185872": [
+        0,
+        0
+      ],
+      "meleePierceByAge": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0,
+        "22": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0
+      }
+    },
+    {
+      "id": "farm",
+      "sourceIds": [
+        50
+      ],
+      "deUnitClass": 49,
+      "baseMeleePierce185872": [
+        0,
+        0
+      ],
+      "meleePierceByAge": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "classArmor": {
+        "11": 0,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0
+      }
+    },
+    {
+      "id": "fish-trap",
+      "sourceIds": [
+        199
+      ],
+      "deUnitClass": 49,
+      "baseMeleePierce185872": [
+        1,
+        1
+      ],
+      "meleePierceByAge": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "classArmor": {
+        "11": 10,
+        "21": 0
+      },
+      "ignoredClassArmor": {
+        "31": 0
+      }
+    }
+  ],
+  "upgrades": [
+    {
+      "building": "watch-tower",
+      "technology": "guard-tower",
+      "sourceId": 234,
+      "meleePierce": [
+        2,
+        8
+      ],
+      "classArmor": {
+        "11": 0,
+        "13": 0,
+        "21": 0
+      }
+    },
+    {
+      "building": "watch-tower",
+      "technology": "keep",
+      "sourceId": 235,
+      "meleePierce": [
+        3,
+        9
+      ],
+      "classArmor": {
+        "11": 0,
+        "13": 0,
+        "21": 0
+      }
+    },
+    {
+      "building": "stone-wall",
+      "technology": "fortified-wall",
+      "sourceId": 155,
+      "meleePierce": [
+        12,
+        12
+      ],
+      "classArmor": {
+        "11": 24,
+        "13": 0,
+        "21": 0,
+        "22": 0
+      }
+    }
+  ],
+  "units": [
+    {
+      "id": "villager",
+      "sourceId": 83,
+      "deUnitClass": 4,
+      "classAttack": {
+        "11": 3,
+        "13": 6
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "scout",
+      "sourceId": 448,
+      "deUnitClass": 47,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "militia",
+      "sourceId": 74,
+      "deUnitClass": 6,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "spearman",
+      "sourceId": 93,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 1
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "archer",
+      "sourceId": 4,
+      "deUnitClass": 0,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "skirmisher",
+      "sourceId": 7,
+      "deUnitClass": 0,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-skirmisher",
+      "sourceId": 6,
+      "deUnitClass": 0,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "eagle-warrior",
+      "sourceId": 753,
+      "deUnitClass": 6,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-eagle-warrior",
+      "sourceId": 752,
+      "deUnitClass": 6,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "hand-cannoneer",
+      "sourceId": 5,
+      "deUnitClass": 44,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "knight",
+      "sourceId": 38,
+      "deUnitClass": 12,
+      "classAttack": {},
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "crossbowman",
+      "sourceId": 24,
+      "deUnitClass": 0,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "pikeman",
+      "sourceId": 358,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 1
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "light-cavalry",
+      "sourceId": 546,
+      "deUnitClass": 12,
+      "classAttack": {},
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "camel",
+      "sourceId": 329,
+      "deUnitClass": 12,
+      "classAttack": {},
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "cavalry-archer",
+      "sourceId": 39,
+      "deUnitClass": 36,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "mangonel",
+      "sourceId": 280,
+      "deUnitClass": 13,
+      "classAttack": {
+        "11": 35
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "scorpion",
+      "sourceId": 279,
+      "deUnitClass": 55,
+      "classAttack": {
+        "11": 3
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "battering-ram",
+      "sourceId": 1258,
+      "deUnitClass": 13,
+      "classAttack": {
+        "11": 150
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "longbowman",
+      "sourceId": 8,
+      "deUnitClass": 0,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "arbalest",
+      "sourceId": 492,
+      "deUnitClass": 0,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "halberdier",
+      "sourceId": 359,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 1
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "hussar",
+      "sourceId": 441,
+      "deUnitClass": 12,
+      "classAttack": {},
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "heavy-cavalry-archer",
+      "sourceId": 474,
+      "deUnitClass": 36,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "cavalier",
+      "sourceId": 283,
+      "deUnitClass": 12,
+      "classAttack": {},
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "champion",
+      "sourceId": 567,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 4
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-longbowman",
+      "sourceId": 530,
+      "deUnitClass": 0,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "onager",
+      "sourceId": 550,
+      "deUnitClass": 13,
+      "classAttack": {
+        "11": 45
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "siege-onager",
+      "sourceId": 588,
+      "deUnitClass": 13,
+      "classAttack": {
+        "11": 60
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "heavy-scorpion",
+      "sourceId": 542,
+      "deUnitClass": 55,
+      "classAttack": {
+        "11": 6
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "siege-ram",
+      "sourceId": 548,
+      "deUnitClass": 13,
+      "classAttack": {
+        "11": 200
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "capped-ram",
+      "sourceId": 422,
+      "deUnitClass": 13,
+      "classAttack": {
+        "11": 160
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "bombard-cannon",
+      "sourceId": 36,
+      "deUnitClass": 13,
+      "classAttack": {
+        "11": 200,
+        "13": 40
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "trebuchet",
+      "sourceId": 42,
+      "deUnitClass": 54,
+      "classAttack": {
+        "11": 250
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "petard",
+      "sourceId": 440,
+      "deUnitClass": 35,
+      "classAttack": {
+        "11": 500,
+        "22": 900,
+        "26": 100
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "man-at-arms",
+      "sourceId": 75,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 2
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "long-swordsman",
+      "sourceId": 77,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 3
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "two-handed-swordsman",
+      "sourceId": 473,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 4
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "paladin",
+      "sourceId": 569,
+      "deUnitClass": 12,
+      "classAttack": {},
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "heavy-camel",
+      "sourceId": 330,
+      "deUnitClass": 12,
+      "classAttack": {},
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "galley",
+      "sourceId": 539,
+      "deUnitClass": 22,
+      "classAttack": {
+        "11": 6
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "war-galley",
+      "sourceId": 21,
+      "deUnitClass": 22,
+      "classAttack": {
+        "11": 6
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "galleon",
+      "sourceId": 442,
+      "deUnitClass": 22,
+      "classAttack": {
+        "11": 6
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "fire-ship",
+      "sourceId": 529,
+      "deUnitClass": 22,
+      "classAttack": {
+        "11": 2
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "fast-fire-ship",
+      "sourceId": 532,
+      "deUnitClass": 22,
+      "classAttack": {
+        "11": 3
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "demolition-ship",
+      "sourceId": 527,
+      "deUnitClass": 22,
+      "classAttack": {
+        "11": 220
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "heavy-demolition-ship",
+      "sourceId": 528,
+      "deUnitClass": 22,
+      "classAttack": {
+        "11": 280
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "cannon-galleon",
+      "sourceId": 420,
+      "deUnitClass": 22,
+      "classAttack": {
+        "11": 200
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-cannon-galleon",
+      "sourceId": 691,
+      "deUnitClass": 22,
+      "classAttack": {
+        "11": 275
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "jaguar-warrior",
+      "sourceId": 725,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 2
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "cataphract",
+      "sourceId": 40,
+      "deUnitClass": 12,
+      "classAttack": {},
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "woad-raider",
+      "sourceId": 232,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 2
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "chu-ko-nu",
+      "sourceId": 73,
+      "deUnitClass": 0,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "throwing-axeman",
+      "sourceId": 281,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 1
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "huskarl",
+      "sourceId": 41,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 2
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "tarkan",
+      "sourceId": 755,
+      "deUnitClass": 12,
+      "classAttack": {
+        "11": 8,
+        "13": 12,
+        "22": 8,
+        "26": 10
+      },
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "samurai",
+      "sourceId": 291,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 2
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "war-wagon",
+      "sourceId": 827,
+      "deUnitClass": 36,
+      "classAttack": {
+        "21": 2
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "plumed-archer",
+      "sourceId": 763,
+      "deUnitClass": 0,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "mangudai",
+      "sourceId": 11,
+      "deUnitClass": 36,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "war-elephant",
+      "sourceId": 239,
+      "deUnitClass": 12,
+      "classAttack": {
+        "11": 30,
+        "13": 30
+      },
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "mameluke",
+      "sourceId": 282,
+      "deUnitClass": 12,
+      "classAttack": {},
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "conquistador",
+      "sourceId": 771,
+      "deUnitClass": 23,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "teutonic-knight",
+      "sourceId": 25,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 4
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "janissary",
+      "sourceId": 46,
+      "deUnitClass": 44,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "berserk",
+      "sourceId": 692,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 2
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "turtle-ship",
+      "sourceId": 831,
+      "deUnitClass": 22,
+      "classAttack": {
+        "11": 7,
+        "22": 6,
+        "26": 7
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "longboat",
+      "sourceId": 250,
+      "deUnitClass": 22,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-jaguar-warrior",
+      "sourceId": 726,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 2
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-cataphract",
+      "sourceId": 553,
+      "deUnitClass": 12,
+      "classAttack": {},
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "elite-woad-raider",
+      "sourceId": 534,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 3
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-chu-ko-nu",
+      "sourceId": 559,
+      "deUnitClass": 0,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-throwing-axeman",
+      "sourceId": 531,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 2
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-huskarl",
+      "sourceId": 555,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 3
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-tarkan",
+      "sourceId": 757,
+      "deUnitClass": 12,
+      "classAttack": {
+        "11": 10,
+        "13": 12,
+        "22": 10,
+        "26": 10
+      },
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "elite-samurai",
+      "sourceId": 560,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 3
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-war-wagon",
+      "sourceId": 829,
+      "deUnitClass": 36,
+      "classAttack": {
+        "21": 2
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-plumed-archer",
+      "sourceId": 765,
+      "deUnitClass": 0,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-mangudai",
+      "sourceId": 561,
+      "deUnitClass": 36,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-war-elephant",
+      "sourceId": 558,
+      "deUnitClass": 12,
+      "classAttack": {
+        "11": 30,
+        "13": 30
+      },
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "elite-mameluke",
+      "sourceId": 556,
+      "deUnitClass": 12,
+      "classAttack": {},
+      "ignoredClassAttack": {
+        "31": 0
+      }
+    },
+    {
+      "id": "elite-conquistador",
+      "sourceId": 773,
+      "deUnitClass": 23,
+      "classAttack": {
+        "11": 2
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-teutonic-knight",
+      "sourceId": 554,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 4
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-janissary",
+      "sourceId": 557,
+      "deUnitClass": 44,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-berserk",
+      "sourceId": 694,
+      "deUnitClass": 6,
+      "classAttack": {
+        "21": 3
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-turtle-ship",
+      "sourceId": 832,
+      "deUnitClass": 22,
+      "classAttack": {
+        "11": 7,
+        "22": 6,
+        "26": 7
+      },
+      "ignoredClassAttack": {}
+    },
+    {
+      "id": "elite-longboat",
+      "sourceId": 533,
+      "deUnitClass": 22,
+      "classAttack": {},
+      "ignoredClassAttack": {}
+    }
+  ]
+}

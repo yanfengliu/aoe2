@@ -6,8 +6,9 @@
 // this tick is never resolved on the same tick it was launched — flight time
 // is always observable, and a point-blank shot still spends a tick in the air.
 
-import type { ResearchableTechnologyType, UnitType } from '../../types';
+import type { ResearchableTechnologyType } from '../../types';
 import type { BridgeStateAccessor } from '../bridgeStateAccessor';
+import type { BuildingHitAttacker } from '../buildingHitDamage';
 import {
   combatStatesCodec,
   playerTeamsCodec,
@@ -28,12 +29,8 @@ interface PlayerScoreCountersLike {
 export interface ProjectileSystemDeps {
   world: GameWorld;
   accessor: BridgeStateAccessor;
-  damageBuilding: (
-    buildingId: number,
-    damage: number,
-    attackerUnitType: UnitType | null,
-    attackerOwner: number,
-  ) => boolean;
+  /** Lands a shot on a building through the one building seam. */
+  damageBuilding: (buildingId: number, attacker: BuildingHitAttacker) => boolean;
   destroyUnitEntity: (id: number) => void;
   /** An animal a shot or its blast kills becomes its carcass. */
   killWildlifeEntity: (id: number) => void;

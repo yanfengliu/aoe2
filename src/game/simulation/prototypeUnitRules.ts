@@ -249,52 +249,10 @@ export function attackBonusAgainstUnit(attackerType: UnitType, targetType: UnitT
   return armorClassBonus(attackerType, targetType);
 }
 
-// Anti-building bonus by attacker (siege family), AoE2-accurate base values
-// from design/stats/units.csv. Data, not a switch. (Non-siege units' tiny +1-3
-// vs-building bonuses — spearman/villager/infantry — are deferred; see the
-// armorClasses.ts header.)
-const BUILDING_ATTACK_BONUS: Partial<Record<UnitType, number>> = {
-  // Ram-line PLAIN values from units.csv (125/150/200). The rows' larger
-  // figures are the WITH-Siege-Engineers and fully-garrisoned variants:
-  // Siege Engineers is the ×1.2 multiplier applied at the building-damage
-  // site (siegeEngineersBuildingMultiplier), and garrison-adds-damage is a
-  // separate deferred mechanic — v0.3.134's first cut baked the teched
-  // figures into the base until the gate's parser learned the row grammar.
-  'battering-ram': 125,
-  'capped-ram': 150,
-  'siege-ram': 200,
-  'siege-onager': 60,
-  'demolition-ship': 220,
-  'heavy-demolition-ship': 280,
-  'cannon-galleon': 200,
-  'elite-cannon-galleon': 275,
-  'bombard-cannon': 200,
-  trebuchet: 250,
-  // units.csv: "+500 buildings;+100 castle;+60 siege;+900 walls & gates". The
-  // per-building-KIND halves (castle, walls) are off this table's shape, which
-  // is one number per attacker, so the base +500 is what lands — the whole
-  // point of the unit, and enough to take a gate down in one detonation.
-  petard: 500,
-  mangonel: 35,
-  onager: 45,
-  scorpion: 2,
-  'heavy-scorpion': 4,
-};
-
-export function attackBonusAgainstBuilding(attackerType: UnitType): number {
-  return BUILDING_ATTACK_BONUS[attackerType] ?? 0;
-}
-
-// Siege Engineers (technologies.csv): "Siege weapons do 1.2 * damage vs
-// buildings" — applied to the whole per-hit building damage of a SIEGE
-// attacker at the damage site (v0.3.135), alongside its +1 range.
-export function siegeEngineersBuildingMultiplier(
-  researchedTechnologies: ReadonlySet<import('./technologyTypes').ResearchableTechnologyType>,
-  attackerType: UnitType,
-): number {
-  if (!researchedTechnologies.has('siege-engineers')) return 1;
-  return UNIT_ARMOR_CLASSES[attackerType].has('siege') ? 1.2 : 1;
-}
+// A unit's attack against BUILDINGS is not here: Definitive Edition's attacks
+// in the building classes, and what Sappers, Siege Engineers and the
+// civilization bonuses do to them, live in buildingAttack.ts with the damage
+// formula every hit on a building reads (work 140).
 
 // Blast/splash radius (spec §10.7), from design/stats/units.csv `blast_radius`,
 // measured with Euclidean distance on the grid: mangonel 1 and onager 1.25

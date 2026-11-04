@@ -149,8 +149,17 @@ describe('Fortified Wall and the tower hit-point upgrades', () => {
   });
 
   it('stack with Masonry rather than replacing it', () => {
-    expect(buildingHitPointMultiplier(set('masonry', 'fortified-wall'), 'stone-wall'))
-      .toBeCloseTo(1.1 * (3000 / 1800), 5);
+    expect(buildingHitPointMultiplier(set('masonry', 'guard-tower'), 'watch-tower'))
+      .toBeCloseTo(1.1 * (1500 / 1020), 5);
+  });
+
+  it('leave the walls to Fortified Wall alone: Masonry does not reach them in DE', () => {
+    // DE's Masonry and Architecture act on unit classes 3 (Building) and 52
+    // (Tower), not 27 (Wall) or 39 (Gate) (work 140).
+    expect(buildingHitPointMultiplier(set('masonry', 'architecture', 'fortified-wall'), 'stone-wall'))
+      .toBeCloseTo(3000 / 1800, 5);
+    expect(buildingHitPointMultiplier(set('masonry', 'architecture'), 'stone-gate')).toBe(1);
+    expect(buildingHitPointMultiplier(set('masonry', 'architecture'), 'farm')).toBe(1);
   });
 
   it('raises a Stone Wall that is already standing', () => {

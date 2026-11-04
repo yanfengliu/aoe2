@@ -7,6 +7,7 @@ import type { RegisterAllSystemsDeps } from './registerAllSystemsTypes';
 import {
   playerCivilizationsCodec, buildingHealthStatesCodec } from './bridgeStateSerialize';
 import { queuePostConstructionAutoGather } from './postConstructionAutoGather';
+import { buildingHitDamage } from './buildingHitDamage';
 export type { RegisterAllSystemsDeps } from './registerAllSystemsTypes';
 
 import { registerAiSystem } from './systems/aiSystem';
@@ -462,9 +463,10 @@ export function registerAllSystems(deps: RegisterAllSystemsDeps): void {
   registerProjectileSystem({
     world,
     accessor,
-    damageBuilding: (buildingId, damage) => {
+    damageBuilding: (buildingId, attacker) => {
       const health = accessor.get(buildingHealthStatesCodec).get(buildingId);
-      if (!health) return false;
+      const damage = buildingHitDamage(world, accessor, attacker, buildingId);
+      if (!health || damage === null) return false;
       health.currentHp -= damage;
       accessor.markDirty(buildingHealthStatesCodec);
       if (health.currentHp > 0) return false;

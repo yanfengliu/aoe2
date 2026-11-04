@@ -478,16 +478,18 @@ export function civMeleeArmorBonus(
   return 0;
 }
 
-// Goths (sourced v0.3.152): the +1 became "+1/+2/+3 attack vs. buildings in
-// Feudal/Castle/Imperial" — the flat table entry stays as the Feudal rung's
-// source of truth for tests that predate ages here; this ladder REPLACES it
-// at the delivery site.
+// Goths (sourced v0.3.152): "Infantry +1/+2/+3 attack vs. buildings in
+// Feudal/Castle/Imperial Age". DE puts it on Standard Building, the class
+// buildingAttack.ts adds it to (DE effects 326-328), and on DE's infantry,
+// unit class 6, which the Petard is not (its class is 35, Petard): this
+// game's armor classes call the Petard infantry so anti-infantry bonuses
+// reach it, and that must not hand it the Goths' bonus (work 140).
 export function civBuildingAttackLadder(
   civilization: string | undefined,
   unitType: UnitType,
   age: AgeType,
 ): number {
-  if (civilization !== 'Goths' || !isInfantryUnit(unitType)) return 0;
+  if (civilization !== 'Goths' || !isInfantryUnit(unitType) || unitType === 'petard') return 0;
   if (age === 'imperial-age') return 3;
   if (age === 'castle-age') return 2;
   if (age === 'feudal-age') return 1;

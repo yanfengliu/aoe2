@@ -91,7 +91,7 @@ describe('the projection never asks about a cell off the map', () => {
       targetId: 2, targetKind: 'unit',
       originX: x, originY: y, aimX: x, aimY: y,
       launchTick: 0, impactTick: 10,
-      baseDamage: 4, buildingDamage: null, attackType: 'pierce',
+      baseDamage: 4, attackType: 'pierce',
       willHit: false, isArea: false,
     };
   }

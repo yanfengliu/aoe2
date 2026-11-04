@@ -1,0 +1,76 @@
+// Every damage path into a building reads the one armor seam (work 140): each
+// case of fixtures/buildingArmorCensus.ts gives the real order a player gives,
+// an attack on an enemy building, and reads the first hit off the building's
+// hit points, delivered in person or by a shot that lands, against the DE
+// oracle (./buildingCombatOracle.ts) over the attack stat the unit carries.
+//
+// Every unit with an attack is a case once, against a building whose type,
+// age and armor technologies rotate, and the named cases add the four DE
+// values the brief named and every technology and civilization that changes
+// an attack on a building. Until work 140 an Archer took 4 off a House with
+// each arrow, a Militia 4 off a Town Center and a Battering Ram 127.
+//
+// BOUND: the first hit of each case, as ordered; auto-attack, attack-move and
+// patrol deliver through the same `deliverUnitAttackOnBuilding`, but no case
+// drives them. The values over every attacker, building, age and technology
+// are buildingDamageCensus.test.ts's; this file holds the wiring.
+
+import { describe, expect, it } from 'vitest';
+
+import { createSimulationBridge, type SimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import {
+  BUILDING_ARMOR_CENSUS_CASES,
+  buildingArmorCensusAnchor,
+  buildingArmorCensusSeed,
+  type BuildingArmorCensusCase,
+} from '../../src/game/simulation/fixtures/buildingArmorCensus';
+import { firesProjectile } from '../../src/game/simulation/prototypeUnitRules';
+import { oracleBuildingDamage } from './buildingCombatOracle';
+
+function firstHit(bridge: SimulationBridge, entry: BuildingArmorCensusCase) {
+  const economy = bridge.getEconomyState();
+  const attacker = economy.units.find((u) => u.owner === 1 && u.unitType === entry.attacker);
+  // By its cell: owner 2 also has its starting Town Center, out of sight.
+  const anchor = buildingArmorCensusAnchor(entry.building);
+  const target = economy.buildings.find((b) => b.owner === 2 && b.buildingType === entry.building && b.x === anchor.x && b.y === anchor.y);
+  expect(attacker, `${entry.name}: attacker`).toBeDefined();
+  expect(target, `${entry.name}: target`).toBeDefined();
+  expect(bridge.selectEntityById(attacker!.id), `${entry.name}: select`).toBe(true);
+  expect(bridge.issueContextCommandAtEntity(target!.id), `${entry.name}: order`).toBe(true);
+  let sawShot = false;
+  for (let n = 0; n < 1500; n += 1) {
+    const before = bridge.getEntityHealth(target!.id)?.currentHp;
+    bridge.step(100);
+    sawShot ||= bridge.getInFlightProjectiles().some((p) => p.attackerId === attacker!.id);
+    if (bridge.getRecentPlayerHits().some((h) => h.tick === bridge.world.tick
+      && h.attackerId === attacker!.id && h.targetId === target!.id)) {
+      const after = bridge.getEntityHealth(target!.id)?.currentHp ?? 0;
+      return { damage: before! - after, attackDamage: attacker!.attackDamage, sawShot };
+    }
+  }
+  throw new Error(`${entry.name}: no hit on the ${entry.building} within 1500 ticks`);
+}
+
+describe('every hit on a building, delivered for real, is DE\'s per-class damage', () => {
+  for (const entry of BUILDING_ARMOR_CENSUS_CASES) {
+    it(`${entry.name} (${entry.age}; building [${entry.buildingTechnologies.join(', ')}]; attacker [${[...entry.attackerTechnologies, entry.attackerCivilization ?? ''].filter(Boolean).join(', ')}])`, () => {
+      const bridge = createSimulationBridge(buildingArmorCensusSeed(entry));
+      const hit = firstHit(bridge, entry);
+      const expected = oracleBuildingDamage(
+        entry.attacker, hit.attackDamage, entry.building, entry.age, new Set(entry.buildingTechnologies), entry.age,
+        { techs: entry.attackerTechnologies, ...(entry.attackerCivilization ? { civilization: entry.attackerCivilization } : {}) },
+      );
+      expect(hit.damage, `${entry.name}: first hit`).toBe(expected);
+      expect(hit.sawShot, `${entry.name}: delivered by a shot exactly when the unit fires one`).toBe(firesProjectile(entry.attacker));
+    });
+  }
+
+  it('lands the four DE values the brief named', () => {
+    const named = new Map(BUILDING_ARMOR_CENSUS_CASES.map((entry) => [entry.name, entry]));
+    const damage = (name: string) => firstHit(createSimulationBridge(buildingArmorCensusSeed(named.get(name)!)), named.get(name)!).damage;
+    expect(damage('de-archer-on-house')).toBe(1);
+    expect(damage('de-militia-on-town-center')).toBe(1);
+    expect(damage('de-ram-on-town-center')).toBe(150);
+    expect(damage('de-villager-on-palisade')).toBe(4);
+  });
+});

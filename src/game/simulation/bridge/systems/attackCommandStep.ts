@@ -19,7 +19,6 @@ import {
   aiStatesCodec,
   buildingHealthStatesCodec,
   combatStatesCodec,
-  playerAgesCodec,
   playerCivilizationsCodec,
   playerTeamsCodec,
   projectilesCodec,
@@ -33,7 +32,8 @@ import {
   deliverUnitAttackOnUnit,
 } from '../attackDelivery';
 import type { BlastAnimals } from '../blastDamage';
-import { teamAntiArcherBonus, teamBuildingAttackBonus } from '../../teamCombatBonuses';
+import { teamAntiArcherBonus } from '../../teamCombatBonuses';
+import { buildingHitDamage } from '../buildingHitDamage';
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import { manhattanDistance, type GameWorld } from '../pureHelpers';
 import { unitMinAttackRange } from '../../prototypeUnitRules';
@@ -328,11 +328,11 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
             return true;
           }
 
-          // DERIVED vs-building bonuses: Sappers, Goths, and team lines,
-          // read fresh from owner state — no per-unit copy.
+          // The hit's damage is the one building seam's (work 140): the
+          // attacker's DE attacks and the building's DE armor, both read
+          // fresh from their owners' state when the blow lands.
           const attackerTechs =
             accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET;
-          const attackerCiv = accessor.get(playerCivilizationsCodec).get(unit.owner);
           recordUnitAttack(id, targetId);
           deliverUnitAttackOnBuilding({
             world: activeWorld,
@@ -341,17 +341,9 @@ export function runAttackCommandStep(deps: AttackStepDeps): boolean {
             tick: activeWorld.tick,
             attacker: { id, unitType: unit.unitType, owner: unit.owner, combat: attackerCombat },
             attackerTechs,
-            attackerCivilization: attackerCiv,
-            attackerAge: accessor.get(playerAgesCodec).get(unit.owner) ?? 'dark-age',
-            teamBuildingBonus: teamBuildingAttackBonus(
-              accessor.get(playerTeamsCodec),
-              accessor.get(playerCivilizationsCodec),
-              unit.owner,
-              unit.unitType,
-            ),
             target: { id: targetId, position: targetPosition },
-            applyBuildingDamage: (_buildingId, damage) => {
-              targetHealth.currentHp -= damage;
+            landBlowOnBuilding: (blow, buildingId) => {
+              targetHealth.currentHp -= buildingHitDamage(activeWorld, accessor, blow, buildingId) ?? 0;
               accessor.markDirty(buildingHealthStatesCodec);
             },
             destroyUnit: destroyUnitEntity,

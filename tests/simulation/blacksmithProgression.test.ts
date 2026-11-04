@@ -133,7 +133,8 @@ describe('Blacksmith cavalry armor progression (Scale / Chain / Plate Barding)',
     const bridge = createSimulationBridge('blacksmith-progression-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     expect(selectOwnedUnitDirect(bridge, 1, 'knight')).toBe(true);
-    expect(bridge.getSelectionState().armor).toBe(0);
+    // The panel shows total armor (work 140): the Knight's own 2 melee.
+    expect(bridge.getSelectionState().armor).toBe(2);
 
     expect(selectOwnedBuildingDirect(bridge, 1, 'blacksmith')).toBe(true);
     expect(bridge.queueResearch('scale-barding-armor')).toBe(true);

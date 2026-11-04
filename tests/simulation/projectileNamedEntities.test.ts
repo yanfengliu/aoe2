@@ -34,6 +34,7 @@
 import { World, type Position } from 'civ-engine';
 import { describe, expect, it } from 'vitest';
 
+import type { BuildingHitAttacker } from '../../src/game/simulation/bridge/buildingHitDamage';
 import { launchProjectile, resolveDueProjectiles } from '../../src/game/simulation/bridge/projectileOps';
 import { createEmptyProjectileSlot, type ProjectileState } from '../../src/game/simulation/bridge/projectileTypes';
 import type { GameCommands, GameComponents, GameEvents, GameWorld } from '../../src/game/simulation/bridge/pureHelpers';
@@ -53,7 +54,8 @@ class Field {
   readonly world: GameWorld = new World<GameEvents, GameCommands, GameComponents>({ gridWidth: MAP.width, gridHeight: MAP.height, tps: 10 });
   readonly combat = new Map<number, CombatState>();
   readonly animals = new Map<number, WildlifeState>();
-  readonly buildingDamage: Array<{ id: number; damage: number }> = [];
+  /** Every hit a shot landed on a building, with the attack it carried in. */
+  readonly buildingHits: Array<{ id: number; attacker: BuildingHitAttacker }> = [];
   readonly blows: Array<{ attackerId: number; targetId: number }> = [];
   readonly slot = createEmptyProjectileSlot();
 
@@ -122,7 +124,7 @@ class Field {
       tick: 0,
       attacker: {
         id: shooter.id, owner: shooter.owner, unitType: shooter.unitType, position: shooter.at,
-        baseDamage: 10, ...(target.kind === 'building' ? { buildingDamage: 20 } : {}),
+        baseDamage: 10,
       },
       target: { id: target.id, kind: target.kind, position: target.at, destination: null },
       leads: false,
@@ -138,8 +140,8 @@ class Field {
       tick: shot.impactTick,
       combatStates: this.combat,
       technologiesFor: () => new Set(),
-      damageBuilding: (id, damage) => {
-        this.buildingDamage.push({ id, damage });
+      damageBuilding: (id, attacker) => {
+        this.buildingHits.push({ id, attacker });
         return false;
       },
       destroyUnit: (id) => this.destroy(id),
@@ -196,7 +198,7 @@ describe('a shot\'s target is acted on only while it is the entity the shot was 
       const shot = field.shoot({ id: archer, owner: 1, unitType: 'archer', at: ARCHER_AT }, { id: house, kind: 'building', at: TARGET_AT });
       if (mode === 'replaced') house = field.replace(house, () => field.building(1, 'house', TARGET_AT));
       field.land(shot);
-      expect(field.buildingDamage).toEqual(mode === 'replaced' ? [] : [{ id: house, damage: 20 }]);
+      expect(field.buildingHits).toEqual(mode === 'replaced' ? [] : [{ id: house, attacker: { unitType: 'archer', attackDamage: 10, owner: 1, family: 'pierce' } }]);
       expect(field.blows).toEqual(mode === 'replaced' ? [] : [{ attackerId: archer, targetId: house }]);
     });
   }

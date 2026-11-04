@@ -34,7 +34,6 @@ import {
   isInfantryUnit,
   isCavalryUnit,
   takesMeleeAttackTechs,
-  attackBonusAgainstBuilding,
   attackBonusAgainstUnit,
   createWildlifeState,
   isArcherLineUnit,
@@ -44,6 +43,7 @@ import {
   unitTint,
   unitVisionRadius,
 } from '../../src/game/simulation/prototypeUnitRules';
+import { UNIT_BUILDING_ATTACKS } from '../../src/game/simulation/buildingAttack';
 
 describe('prototype economy rules', () => {
   it('keeps market commodity and buy or sell mappings explicit', () => {
@@ -192,7 +192,7 @@ describe('prototype unit rules', () => {
     }
     expect(unitVisionRadius('hussar')).toBe(11);
     expect(attackBonusAgainstUnit('halberdier', 'paladin')).toBe(32);
-    expect(attackBonusAgainstBuilding('bombard-cannon')).toBe(200);
+    expect(UNIT_BUILDING_ATTACKS['bombard-cannon']?.building).toBe(200);
   });
 
   it('keeps wildlife and static-resource classification behavior stable', () => {
