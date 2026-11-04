@@ -38,7 +38,7 @@ Kept as written, except that each markdown link to an absolute path in the workt
 
 ## Verification
 
-The repairs were checked on the repaired tree: `npm run content:validate` passed, and the tests that read the two files passed (the content, attack-bonus, content-library, spec-table and line-ending tests: 5 files, 24 tests).
+The repairs were checked on the repaired tree: `npm run content:validate` passed, and the tests that read the two files passed (the content, attack-bonus, content-library, spec-table and line-ending tests: 5 files, 24 tests). Then the full gate on `38a6c7b4`, the commit that holds them: `PREVIEW_PORT=4321 npm run verify` exited 0 after a fresh build, and `node scripts/verify-receipt.mjs check` exited 0 on that tree (vitest 5,190 passed and 3 skipped, Playwright 273 passed and 2 skipped).
 
 ## Round outcome
 

@@ -33,7 +33,7 @@ One milestone, not two: DE's formula needs the attacks split by class for the ba
 - [x] A real-click browser check: the Dark Age Town Center's panel reads 3/5 and the Scout Cavalry's 0/2 (`tests/browser/building-armor-panel.spec.ts`); red with the old panel.
 - [x] Before and after captures and a pixel diff confined to the panel's armor rows (`tmp/captures/armor-tc-*` and `armor-scout-*`: 105 and 54 pixels, inside the digits), and for the armor rows' hover text (`armor-tooltip-*`: 1,865 pixels, inside the tooltip's text); at the final revision the two panels are pixel-identical to the after-captures.
 - [x] Self-play match resolution measured before and after on the gates' seeds and the register's four maps; the coverage lab's census re-recorded with its reason. Both were run again on the final code, byte for byte the same.
-- [ ] `npm run verify` green with a certified receipt; an independent review recorded under `reviews/`.
+- [x] `npm run verify` green with a certified receipt; an independent review recorded under `reviews/`.
 
 ## Implementation steps
 
@@ -58,4 +58,4 @@ One milestone, not two: DE's formula needs the attacks split by class for the ba
 
 ## Outcome
 
-Pending the full gate, the review and landing.
+Phase 1 handed off on 2026-11-04: branch `building-armor-1104`, rebased on main `a37deeee`. The full gate passed on `38a6c7b4`, the last commit to change anything outside `docs/`, and `node scripts/verify-receipt.mjs check` certified it: vitest 5,190 passed and 3 skipped, Playwright 273 passed and 2 skipped. Three review rounds are recorded under `reviews/`: round 0's one major and eight minor findings, round 1's nine minor findings and two notes, and round 2's two minor findings, each repaired or given its disposition. Landing (phase 2) waits for the coordinator's acceptance; the version bump, the changelog heading and work 106's cards change then.
