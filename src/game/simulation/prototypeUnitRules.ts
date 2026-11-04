@@ -180,9 +180,10 @@ export function isInfantryUnit(unitType: UnitType): boolean {
   // Derived from the armor-class taxonomy (v0.3.93): the militia and spear
   // lines, the Eagle line, and every unique infantry — Berserk, Huskarl,
   // Samurai, Jaguar Warrior, Teutonic Knight, Woad Raider, Throwing Axeman —
-  // so the blacksmith infantry techs, Squires, Tracking, Sappers, and the
-  // infantry civ bonuses reach all of them, as in AoE2. (INFANTRY_UNITS, the
-  // old hand list, covered only the stock lines.)
+  // so the blacksmith infantry techs, Squires, Tracking and the infantry civ
+  // bonuses reach all of them, as in AoE2. (INFANTRY_UNITS, the old hand list,
+  // covered only the stock lines. Sappers was on this list until v0.3.132; it
+  // is a villager technology, spec §10.7.2.)
   // Eagles are 'eagle' to incoming fire (v0.3.129) but INFANTRY to the
   // blacksmith and the infantry civ bonuses, exactly as in AoE2.
   const classes = UNIT_ARMOR_CLASSES[unitType];
