@@ -35,7 +35,8 @@ Each failure's own Playwright trace came first; no failing run recorded a bundle
 - [x] M3, art-style headroom: measure where the time goes, try every check-preserving reduction found, report.
 - [x] Review round 0 ([reviews/0_implementation.md](reviews/0_implementation.md)), Codex and Claude on `cae06026`: three major and eleven smaller findings, F0-F13. All were repaired, except F12, accepted as a note with no change, and the rejected parts of F6 and F11.
 - [x] Review round 1 ([reviews/1_implementation.md](reviews/1_implementation.md)) on `945ec5e5`: no blocker or major finding; F10 (the evidence copy, now made and checked), F1, F2, F5, F14 and F15 repaired or written down as bounds.
-- [ ] A focused round 2 on F14's repair, then gate, land and follow hosted CI.
+- [x] Review round 2 ([reviews/2_implementation.md](reviews/2_implementation.md)), Codex on `39edde7b`: F14 sound; four nits, F16-F19, written down as bounds.
+- [ ] Gate, land and follow hosted CI.
 
 ## Investigation
 
@@ -62,4 +63,4 @@ The levers that remain are outside the test. The game redraws an unchanged pause
 
 2026-11-04: M2 is fixed and gated in the spec and its new helper; landing and the hosted run are recorded here as they happen. M3 is not fixed. The test has no cheaper path to the same checks: its time is the first Moebius draw at zoom 0.7 and the GPU work the live loop keeps queuing, as measured above. It is reported to the coordinator with this evidence and an OPEN defect-register entry. The limit is unchanged.
 
-Bounds: M2's gate releases frames only after it has seen the wait poll without returning, so its verdict does not depend on the host's speed; a host so slow that the wait's own 5 s budget runs out while frames are held fails it, and says the wait threw. It covers one fixture, one forced-sync source and one part, and context loss is read from the code, not forced. The before and after counts come from one Windows machine on SwiftShader. Hosted runs have not been repeated.
+Bounds: M2's gate releases frames only after it has seen the wait poll without returning, so its verdict does not depend on the host's speed; a host whose round trips take over about a second can fail it on the handshake's own 5 s poll ("Expected: true") or on the wait's 5 s budget (the wait "threw"), red either way. A wait that polls blindly four times and then returns, needing no frame, is outside it. It covers one fixture, one forced-sync source and one part, and context loss is read from the code, not forced. The before and after counts come from one Windows machine on SwiftShader. Hosted runs have not been repeated.

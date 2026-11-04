@@ -8,7 +8,8 @@
 // (inspectVoxelUnitMotion) and one part. Frames are held by a gate on
 // requestAnimationFrame, and the test releases them only after it has seen the
 // wait poll three times without returning: a handshake, so no host is fast or
-// slow enough to let a wait that does not need the frame pass.
+// slow enough to let a wait that does not need the frame pass. A wait that
+// polls blindly four times and then returns is outside it.
 import { expect, test, type Page } from '@playwright/test';
 
 import * as game from './helpers/gameTestHelpers';

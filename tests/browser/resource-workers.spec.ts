@@ -176,7 +176,8 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
     // has to be the order's: the end of a walk reads "Idle", and only a build
     // order reads "Building House". One gap is left: this read comes before
     // clickCell's three round trips, so a walk that ended inside them would
-    // still pass. It is the last few hundred ms of a walk of at least 6.7 s.
+    // still pass. That is as long as those round trips, which were not
+    // measured, at the end of a walk of at least 6.7 s.
     expect(await readOrderHud(page), 'the worker is still walking as the House is placed')
       .toEqual({ activity: 'Moving', food: '1' });
     await game.clickCell(page, anchor.x, anchor.y);
