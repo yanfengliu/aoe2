@@ -37,7 +37,7 @@ One milestone, not two: DE's formula needs the attacks split by class for the ba
 
 ## Implementation steps
 
-- [x] Remove work 106's "buildings show 0/0 armor" card, pointing here.
+- [x] Point work 106's "buildings show 0/0 armor" card here. Main marked it scheduled as work 140 (a37deeee); the rebase kept that line over this branch's own edit, which had removed the card.
 - [x] Source the DE tables and record them as a pinned fixture.
 - [x] Tests: content differential, damage census, hand-checked values, path census, panel census, browser check; red proofs.
 - [x] The armor seam and the per-class attack table; every path reads it; the panel rows.
