@@ -26,9 +26,9 @@ type Bridge = ReturnType<typeof createSimulationBridge>;
 const WITH_SAPPERS: ReadonlySet<ResearchableTechnologyType> = new Set(['sappers']);
 const NO_TECHS: ReadonlySet<ResearchableTechnologyType> = new Set();
 
-// Step a militia into destroying the enemy house and return the tick count it
+// Step a villager into destroying the enemy house and return the tick count it
 // took (in 5-tick units). The house does not fire back and AI is disabled, so
-// the only variable is the militia's per-hit building damage — with Sappers the
+// the only variable is the villager's per-hit building damage — with Sappers the
 // house dies in strictly fewer ticks.
 function unitsToDestroyEnemyHouse(fixtureName: string): number {
   const bridge: Bridge = createSimulationBridge(fixtureName);

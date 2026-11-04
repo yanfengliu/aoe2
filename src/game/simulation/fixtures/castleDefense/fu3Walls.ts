@@ -120,9 +120,10 @@ export function createFu3StoneWallCombatFixture(seed: string): PrototypeScenario
     spawns: [
       ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
       ownedSpawn('stone-wall', 1, 20, 20, { startHp: 50 }),
-      // Enemy Battering Ram one cell south of the wall. Ram atk 2 + 75
-      // vs buildings = 77 per hit, so one reload cycle kills the 50-HP
-      // wall segment.
+      // Enemy Battering Ram one cell south of the wall. It takes 134 a hit
+      // off a Stone Wall (150 against the Building class less the wall's 16
+      // there; its 2 melee does nothing against 8 melee armor; work 140), so
+      // one reload cycle kills the 50-HP wall segment.
       ownedSpawn('battering-ram', 2, 20, 21, { vision: 5 }),
       ownedSpawn('town-center', 2, 48, 28, { vision: 7 }),
     ],

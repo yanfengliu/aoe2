@@ -104,7 +104,7 @@ describe('iter-4 V4-3 — fog-memory cleanup uses footprint visibility', () => {
   it('clears the destroyed-castle memory entry when only a non-anchor footprint cell is visible', () => {
     // Setup: scout at (20, 16) sees only (18, 16) of the 4x4 castle anchored at
     // (15, 13). A Siege Ram south of the castle with vision radius 1 destroys
-    // it in a single hit (Ram +250 anti-building, castle startHp 200), but its
+    // it in two hits (192 a hit, castle startHp 200; work 140), but its
     // narrow vision keeps the castle anchor (15, 13) outside player-1 LOS even
     // while the ram is alive. After destruction, the only player-1 visibility
     // over the castle's old footprint is the scout's (18, 16) — a NON-anchor
@@ -126,8 +126,10 @@ describe('iter-4 V4-3 — fog-memory cleanup uses footprint visibility', () => {
     expect(liveCastle).toBeDefined();
     expect(liveCastle!.isMemory).toBe(false);
 
-    // Issue Siege Ram → Castle attack. Ram has +250 anti-building, castle
-    // starts at 200 HP, so a single hit destroys it.
+    // Issue Siege Ram → Castle attack. The Ram takes 192 a hit off a Castle
+    // (200 against the Building class less the Castle's 8 there; its 4 melee
+    // does nothing against 8 melee armor), and the castle starts at 200 HP, so
+    // the second hit destroys it.
     expect(selectOwnedUnitDirect(bridge, 1, 'siege-ram')).toBe(true);
     expect(bridge.issueContextCommandAtEntity(castle!.id)).toBe(true);
 

@@ -253,8 +253,8 @@ describe('FU3 Stone Wall building', () => {
     expect(wall).toBeDefined();
     const wallId = wall!.id;
 
-    // A player-2 Battering Ram nearby (+75 vs buildings, dealing 77 per
-    // hit). Stone wall starts at 50 HP (fixture override) so one shot
+    // A player-2 Battering Ram nearby takes 134 a hit off a Stone Wall
+    // (work 140). Stone wall starts at 50 HP (fixture override) so one hit
     // kills it.
     expect(
       stepBridgeUntil(

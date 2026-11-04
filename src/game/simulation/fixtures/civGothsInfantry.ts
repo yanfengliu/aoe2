@@ -8,7 +8,9 @@ import { createGrassFixtureTerrain, ownedSpawn } from './common';
 // Civ-bonus Goths-infantry fixture (v0.1.83). Player 1 (AI disabled) owns a
 // Militia at (13, 8) adjacent to an enemy (owner 2) House at (14, 8). The only
 // thing that varies between the two variants is owner 1's civilization — Goths
-// (infantry +1 vs buildings) vs a non-Goths control — so a twin race isolates
+// (infantry +1/+2/+3 against Standard Buildings by age, so this Imperial
+// Militia takes 6 a hit off the Castle Age House, not 3) vs a non-Goths
+// control — so a twin race isolates
 // the bonus (mirrors the Sappers baseline-vs-researched raze twins, but the civ
 // bonus needs no research). A test drives the Militia onto the House and
 // compares building HP after a fixed attack window.
@@ -42,7 +44,7 @@ function createCivGothsInfantryScenario(seed: string, civilization: string): Pro
   };
 }
 
-// Goths: the infantry +1-vs-buildings civ under test.
+// Goths: the civ under test, its infantry +1/+2/+3 against Standard Buildings.
 export function createCivGothsInfantryFixture(seed: string): PrototypeScenario {
   return createCivGothsInfantryScenario(seed, 'Goths');
 }

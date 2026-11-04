@@ -24,8 +24,11 @@ import {
   buildingArmorCensusSeed,
   type BuildingArmorCensusCase,
 } from '../../src/game/simulation/fixtures/buildingArmorCensus';
+import { projectilesCodec } from '../../src/game/simulation/bridge/bridgeStateSerialize';
+import type { ProjectileSlotState } from '../../src/game/simulation/bridge/projectileTypes';
 import { firesProjectile } from '../../src/game/simulation/prototypeUnitRules';
 import { oracleBuildingDamage } from './buildingCombatOracle';
+import { stateSlot } from './saveBlobTestUtils';
 
 function firstHit(bridge: SimulationBridge, entry: BuildingArmorCensusCase) {
   const economy = bridge.getEconomyState();
@@ -64,6 +67,35 @@ describe('every hit on a building, delivered for real, is DE\'s per-class damage
       expect(hit.sawShot, `${entry.name}: delivered by a shot exactly when the unit fires one`).toBe(firesProjectile(entry.attacker));
     });
   }
+
+  it('lands a shot saved before work 140, which still carries buildingDamage, by the current rule', () => {
+    // Before work 140 a shot at a building carried its anti-building total as
+    // `buildingDamage`. A save made then loads, and the shot lands DE's hit:
+    // the old field is read by nothing (spec §10.4).
+    const entry = BUILDING_ARMOR_CENSUS_CASES.find((c) => c.name === 'de-archer-on-house')!;
+    const seed = buildingArmorCensusSeed(entry);
+    const live = createSimulationBridge(seed);
+    const economy = live.getEconomyState();
+    const archer = economy.units.find((u) => u.owner === 1 && u.unitType === 'archer')!;
+    const anchor = buildingArmorCensusAnchor('house');
+    const house = economy.buildings.find((b) => b.owner === 2 && b.buildingType === 'house' && b.x === anchor.x && b.y === anchor.y)!;
+    expect(live.selectEntityById(archer.id)).toBe(true);
+    expect(live.issueContextCommandAtEntity(house.id)).toBe(true);
+    for (let n = 0; n < 300 && !live.getInFlightProjectiles().some((p) => p.attackerId === archer.id); n += 1) live.step(100);
+    const saved = structuredClone(live.saveGame());
+    const slot = stateSlot<ProjectileSlotState>(saved, projectilesCodec.slot);
+    const shot = slot.inFlight.find((p) => p.attackerId === archer.id);
+    expect(shot, 'a shot in the air at the save').toBeDefined();
+    // The pre-work-140 shape, carrying a total no rule gives, so any reader of
+    // the old field would show in the House's hit points.
+    slot.inFlight = slot.inFlight.map((p) => (p.attackerId === archer.id ? { ...p, buildingDamage: 999 } : p));
+    const loaded = createSimulationBridge(seed, { savedGame: saved });
+    const before = loaded.getEntityHealth(house.id)!.currentHp;
+    for (let n = 0; n < 300 && loaded.getInFlightProjectiles().some((p) => p.id === shot!.id); n += 1) loaded.step(100);
+    expect(loaded.getInFlightProjectiles().some((p) => p.id === shot!.id), 'the saved shot landed').toBe(false);
+    // DE: pierce 4 against the House's 7, so the minimum, 1.
+    expect(before - loaded.getEntityHealth(house.id)!.currentHp).toBe(1);
+  });
 
   it('lands the four DE values the brief named', () => {
     const named = new Map(BUILDING_ARMOR_CENSUS_CASES.map((entry) => [entry.name, entry]));

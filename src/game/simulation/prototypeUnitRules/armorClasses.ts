@@ -21,9 +21,9 @@
 //
 // The old header deferral list is retired (v0.3.128-130 audit): monk, eagle,
 // war-elephant, ship, and unique-unit classes all exist and their bonuses are
-// live; conquistador rides in MOUNTED_UNITS. Still deferred: stone-defense
-// and wall building-kind bonuses (the building table is one number per
-// attacker), and the tiny +1-3 vs-building bonuses of non-siege units.
+// live; conquistador rides in MOUNTED_UNITS. Attacks against buildings are not
+// here: buildingAttack.ts holds them in Definitive Edition's five building
+// classes, the non-siege +1 to +3 included (work 140).
 
 import type { UnitType } from '../types';
 
@@ -214,13 +214,14 @@ export const UNIT_ATTACK_BONUSES: Partial<Record<UnitType, ReadonlyArray<BonusEn
   'capped-ram': [{ targetClass: 'siege', bonus: 50 }],
   // Bombard Cannon's CSV attack_bonus is ambiguous free-text ("+40
   // siege/camels;+20 siege;+40 stone defense"). We take the clear anti-siege
-  // value; the grouped anti-camel reading, the extra "+20 siege" fragment, and
-  // the off-roster stone-defense bonus are DEFERRED (real AoE2 bombards are not
-  // a notable anti-camel counter). Its +200 vs buildings is in BUILDING_ATTACK_BONUS.
+  // value; the grouped anti-camel reading and the extra "+20 siege" fragment
+  // are DEFERRED (real AoE2 bombards are not a notable anti-camel counter). Its
+  // +200 Building and +40 Stone Defense are attacks on buildings, in
+  // buildingAttack.ts (work 140).
   'bombard-cannon': [{ targetClass: 'siege', bonus: 40 }],
-  // M4 unique units, from units.csv `attack_bonus`. Off-roster target
-  // classes in that column (eagles, buildings, castles, stone defense,
-  // walls) stay deferred with the rest of them.
+  // M4 unique units, from units.csv `attack_bonus`. That column's attacks
+  // against buildings, castles, stone defense and walls are attacks on
+  // buildings, in buildingAttack.ts (work 140).
   'jaguar-warrior': [{ targetClass: 'infantry', bonus: 10 }, { targetClass: 'eagle', bonus: 12 }],
   'cataphract': [{ targetClass: 'infantry', bonus: 9 }],
   'chu-ko-nu': [{ targetClass: 'spearman', bonus: 2 }],

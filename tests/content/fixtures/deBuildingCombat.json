@@ -1280,7 +1280,11 @@
       "classAttack": {
         "11": 3
       },
-      "ignoredClassAttack": {}
+      "ignoredClassAttack": {},
+      "otherFamilyAttack": {
+        "family": "melee",
+        "amount": 0
+      }
     },
     {
       "id": "battering-ram",
@@ -1380,7 +1384,11 @@
       "classAttack": {
         "11": 6
       },
-      "ignoredClassAttack": {}
+      "ignoredClassAttack": {},
+      "otherFamilyAttack": {
+        "family": "melee",
+        "amount": 0
+      }
     },
     {
       "id": "siege-ram",
@@ -1588,7 +1596,11 @@
       "sourceId": 73,
       "deUnitClass": 0,
       "classAttack": {},
-      "ignoredClassAttack": {}
+      "ignoredClassAttack": {},
+      "otherFamilyAttack": {
+        "family": "melee",
+        "amount": 0
+      }
     },
     {
       "id": "throwing-axeman",
@@ -1757,7 +1769,11 @@
       "sourceId": 559,
       "deUnitClass": 0,
       "classAttack": {},
-      "ignoredClassAttack": {}
+      "ignoredClassAttack": {},
+      "otherFamilyAttack": {
+        "family": "melee",
+        "amount": 0
+      }
     },
     {
       "id": "elite-throwing-axeman",

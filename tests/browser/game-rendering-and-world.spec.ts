@@ -115,9 +115,15 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
 
     await game.clickCell(page, 8, 8);
     await game.clickCell(page, 10, 8, 'right');
-    await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(80, 100); });
-
-    const damagedHouseBar = await game.getEntityHealthBarState(page, 2, 'building', 'house');
+    // Step until the first blow lands, and read the bar while the House stands.
+    // DE's Dark Age House has -2 melee armor, so a Militia takes 6 a blow off
+    // it (work 140), and the 40-HP fragile seed falls in seven: after a fixed
+    // 80 ticks, which this read waited before, the House is gone.
+    let damagedHouseBar = await game.getEntityHealthBarState(page, 2, 'building', 'house');
+    for (let tick = 0; tick < 80 && (damagedHouseBar?.currentHp ?? 40) >= 40; tick += 1) {
+      await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1, 100); });
+      damagedHouseBar = await game.getEntityHealthBarState(page, 2, 'building', 'house');
+    }
     expect(damagedHouseBar?.currentHp).toBeLessThan(40); // below the fragile seed
     expect(damagedHouseBar?.fillRatio ?? 1).toBeLessThan(1);
     expect(damagedHouseBar?.barY ?? 0).toBeLessThan(damagedHouseBar?.entityTopPx ?? 0);

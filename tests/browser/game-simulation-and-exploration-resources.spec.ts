@@ -10,7 +10,9 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
     await expect(page.locator('[data-selection-entity-icon="town-center"]')).toHaveText('TC');
     await game.expectSelectionDetail(page, 'health', '2400 / 2400');
     await game.expectSelectionDetail(page, 'attack', '5');
-    await game.expectSelectionDetail(page, 'armor', '0');
+    // DE's Dark Age Town Center, total armor (work 140): it read 0/0 before.
+    await game.expectSelectionDetail(page, 'armor', '3');
+    await game.expectSelectionDetail(page, 'pierce-armor', '5');
     await game.expectSelectionDetail(page, 'faction', 'Player');
     await game.expectSelectionDetail(page, 'civ', 'Britons');
     await game.expectSelectionDetail(page, 'inventory', '0 / 15 garrisoned');

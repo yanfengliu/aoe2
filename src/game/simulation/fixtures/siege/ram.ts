@@ -6,8 +6,9 @@ import {
 import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 // Slice 4 fixture: player-1 Battering Ram next to an enemy House. Used to
-// assert the Ram's +75 anti-building bonus destroys a 75-HP House in one hit
-// (base 2 + 75 = 77 > 75).
+// assert the Ram razes the House: DE's Ram takes 151 a hit off a Castle Age
+// House (150 against the Building class, and 2 melee past its 1 melee armor;
+// work 140), so the 900-HP House falls in six.
 export function createRamVsBuildingFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -36,7 +37,7 @@ export function createRamVsBuildingFixture(seed: string): PrototypeScenario {
 }
 
 // Slice 4 fixture: player-1 Battering Ram next to an enemy villager. Used to
-// assert the Ram does NOT receive the +75 building bonus against unit targets.
+// assert the Ram's attack against buildings does not reach a unit.
 export function createRamVsVillagerFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -123,8 +124,10 @@ export function createCamelVsRamFixture(seed: string): PrototypeScenario {
 }
 
 // Slice 7D fixture: player-1 Siege Ram next to an enemy Town Center. Used
-// to assert the Siege Ram carries a +250 anti-building bonus — a Town Center
-// with a low startHp (200) is destroyed in a single hit. Vision is widened
+// to assert the Siege Ram's attack against buildings: it takes 200 a hit off
+// an Imperial Town Center (200 against the Building class; its 4 melee does
+// nothing against 6 melee armor; work 140), so a Town Center with a low
+// startHp (200) is destroyed in a single hit. Vision is widened
 // from the Ram's canonical 3 so the enemy building is visible for the
 // command to resolve.
 export function createSiegeRamVsBuildingFixture(seed: string): PrototypeScenario {

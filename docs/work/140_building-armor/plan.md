@@ -27,7 +27,7 @@ One milestone, not two: DE's formula needs the attacks split by class for the ba
 
 ## Acceptance criteria
 
-- [x] A damage census over every attacker type against every building type, in every age, with and without the armor technologies, equals DE's formula over the sourced tables (`buildingDamageCensus.test.ts`, 146,160 hits), and every attacker lands a first hit through the real melee or projectile path (`buildingDamagePaths.test.ts`, 110 cases); red with the old formula (11 census mutations; 100 of 110 path cases on the pre-change tree; each path red when it bypasses the seam).
+- [x] A damage census over every attacker type against every building type, in every age, with and without the armor technologies, equals DE's formula over the sourced tables (`buildingDamageCensus.test.ts`, 151,380 hits: 87 attackers, 87 building and technology states, 4 ages, 5 owners), and every attacker lands a first hit through the real melee or projectile path (`buildingDamagePaths.test.ts`, 111 cases, and a shot saved before work 140); red with the old formula (11 census mutations, and review round 0's dropped second attack; 102 of the file's 112 tests on the pre-change tree; each path red when it bypasses the seam).
 - [x] Hand-checked DE values: an Archer on a House 1, a Militia on a Dark Age Town Center 1, a Battering Ram on a Town Center 150, a Villager on a Palisade Wall 4, through the real paths; the old tree gave 4, 4, 127 and 3.
 - [x] A panel census: every unit's and building's panel armor equals the armor its hits meet (`selectionArmorCensus.test.ts`); red with the old panel.
 - [x] A real-click browser check: the Dark Age Town Center's panel reads 3/5 and the Scout Cavalry's 0/2 (`tests/browser/building-armor-panel.spec.ts`); red with the old panel.

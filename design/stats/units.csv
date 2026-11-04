@@ -20,6 +20,7 @@
 # SOURCED 2026-11-04 (work 140) from the same pinned DE revision, data.Unit Attacks. Infantry and the War Wagon attack Standard Buildings (every building but the Wonder),
 # not Buildings; DE's War Galley, Galleon and Longboat lines, rams, Scorpions, War Elephants and War Wagons differed from the earlier transcription.
 # The rams' fully-garrisoned figures were dropped: the pinned dataset has none, and garrisoned-ram damage is not modelled. Siege Engineers multiplies the buildings token only (DE effect 375).
+# A '+N melee' token is a second base attack in the melee family beside a pierce one: DE gives the Scorpion and Chu Ko Nu lines a melee 0 (work 140, review F0); the Fire Ships' '+1 melee' was an older DE revision's and is dropped.
 # tests/content/fixtures/deBuildingCombat.json pins every value; tests/content/buildingCombatStats.test.ts holds the fixture, this file and the runtime table together.
 name, description, expansion, age, created_in, cost, build_time, reload_time, attack_delay, movement_rate, line_of_sight, hit_points, range, attack, armor, attack_bonus, armor_bonus, search_radius, accuracy, blast_radius
 Archer, Quick and light. Weak at close range; excels at battle from distance, Age of Kings, Feudal, Archery Range, {"Wood": 25;"Gold": 45}, 35, 2, 0.35, 0.96, 6, 30, 4, 4, 0/0,,,,80%,
@@ -49,8 +50,8 @@ Cannon Galleon,Long-range warship used to attack targets on shore to establish b
 Elite Cannon Galleon, Upgraded Cannon Galleon, Age of Kings, Imperial, Dock, {"Wood": 200;"Gold": 150}, 46, 10, 0, 1.1, 17, 150, 3-15, 45, 0/8,+275 buildings;+15 infantry;+15 archers;+15 cavalry;+40 siege,,,100%,
 Demolition Ship,Filled with explosives. Self-destructs when used. Pilot near enemy ships and detonate to wrest control of the sea from an entrenched opponent, Age of Kings, Castle, Dock, {"Wood": 45; "Gold": 80}, 31, 0, 0, 1.6, 6, 50, 0, 110, 0/3,+220 buildings,+3 ships/camel,,,2.5
 Heavy Demolition Ship, Upgraded Demolition Ship, Age of Kings, Imperial, Dock, {"Wood": 45; "Gold": 80}, 31, 0, 0, 1.6, 6, 60, 0, 140, 0/3,+280 buildings,+5 ships/camel,5,,3.5
-Fire Ship, Spews fire at other ships. Good at sinking galleys. Its fire deals melee damage, Age of Kings, Castle, Dock, {"Wood": 75;"Gold": 45}, 27, 0.25, 0, 1.35, 5, 100, 2.49, 2, 0/6,+2 buildings;+3 ships/camels;+2 turtle ships;+1 melee,+5 ships/camel,,,
-Fast Fire Ship, Upgraded Fire Ship, Age of Kings, Imperial, Dock, {"Wood": 75;"Gold": 45}, 27, 0.25, 0, 1.43, 6, 120, 2.49, 3, 0/8,+3 buildings;+4 ships/camels;+3 turtle ships;+1 melee,+7 ships/camel,,,
+Fire Ship, Spews fire at other ships. Good at sinking galleys. Its fire deals melee damage, Age of Kings, Castle, Dock, {"Wood": 75;"Gold": 45}, 27, 0.25, 0, 1.35, 5, 100, 2.49, 2, 0/6,+2 buildings;+3 ships/camels;+2 turtle ships,+5 ships/camel,,,
+Fast Fire Ship, Upgraded Fire Ship, Age of Kings, Imperial, Dock, {"Wood": 75;"Gold": 45}, 27, 0.25, 0, 1.43, 6, 120, 2.49, 3, 0/8,+3 buildings;+4 ships/camels;+3 turtle ships,+7 ships/camel,,,
 Galley,Small and fast ship with weak attack. Used to scout the water and for early attacks on enemy fishing fleets, Age of Kings, Feudal, Dock, {"Wood": 90;"Gold": 30}, 45, 3, 0, 1.43, 7, 120, 5, 6, 0/6,+6 buildings;+8 ships/camels;+3 rams,,,100%,
 War Galley,Upgraded Galley, Age of Kings, Castle, Dock, {"Wood": 90;"Gold": 30}, 27, 3, 0, 1.43, 8, 135, 6, 7, 0/6,+6 buildings;+9 ships/camels;+4 rams,,,100%,
 Galleon, Upgraded War Galley, Age of Kings, Imperial, Dock, {"Wood": 90;"Gold": 30}, 27, 3, 0, 1.43, 9, 165, 7, 8, 0/8,+6 buildings;+11 ships/camels;+4 rams,,,100%,
@@ -94,8 +95,8 @@ Berserk,Viking unique unit. Infantry that slowly heals itself, Age of Kings, Cas
 Elite Berserk, Upgraded Berserk, Age of Kings, Imperial, Castle, {"Food": 65; "Gold": 20}, 12, 2, 0, 1.05, 5, 72, 0, 14, 2/1,+3 eagles;+3 standard buildings,,,,
 Cataphract,Byzantine unique unit. Heavily armored cavalry, Age of Kings, Castle, Castle, {"Food": 70;"Gold": 75}, 20, 1.8, 0, 1.35, 4, 110, 0, 9, 2/1,+9 infantry,+12 cavalry,,,
 Elite Cataphract, Upgraded Cataphract, Age of Kings, Imperial, Castle, {"Food": 70;"Gold": 75}, 20, 1.7, 0, 1.35, 5, 150, 0, 12, 2/1,+12 infantry,+16 cavalry,,,
-Chu Ko Nu,Chinese unique unit. Archer with mediocre range. Shoots a volley of 2 extra arrows with 3 attack. Because of the multiple arrows the delay between starts of attacks is more (roughly 3.6), Age of Kings, Castle, Castle, {"Wood": 40;"Gold": 35}, 16, 3.6, 0.221667, 0.96, 6, 45, 4, 8, 0/0,+2 spearmen,,,85%,
-Elite Chu Ko Nu, Upgraded Chu Ko Nu, Age of Kings, Imperial, Castle, {"Wood": 40;"Gold": 35}, 13, 3.75, 0.221667, 0.96, 6, 50, 6, 8, 0/0,+2 spearmen,,,85%,
+Chu Ko Nu,Chinese unique unit. Archer with mediocre range. Shoots a volley of 2 extra arrows with 3 attack. Because of the multiple arrows the delay between starts of attacks is more (roughly 3.6), Age of Kings, Castle, Castle, {"Wood": 40;"Gold": 35}, 16, 3.6, 0.221667, 0.96, 6, 45, 4, 8, 0/0,+2 spearmen;+0 melee,,,85%,
+Elite Chu Ko Nu, Upgraded Chu Ko Nu, Age of Kings, Imperial, Castle, {"Wood": 40;"Gold": 35}, 13, 3.75, 0.221667, 0.96, 6, 50, 6, 8, 0/0,+2 spearmen;+0 melee,,,85%,
 Conquistador,Spanish unique unit. Mounted Hand Cannoneer. Powerful close attack but inaccurate at range. (Only archer armor upgrades apply from blacksmith not range or attack), Age of Kings, Castle, Castle, {"Food": 75; "Gold": 60}, 26, 2.9, 0.404444, 1.3, 8, 55, 6, 16, 2/2,+4 rams,,,65%,
 Elite Conquistador, Upgraded Conquistador, Age of Kings, Imperial, Castle, {"Food": 75; "Gold": 60}, 24, 2.9, 0.404444, 1.3, 8, 70, 6, 18, 2/2,+6 ram;+2 buildings,,,70%,
 Huskarl,Gothic unique unit. Infantry with substantial pierce armor; virtually immune to archer fire. Attack bonus vs. buildings and archers, Age of Kings, Castle, Castle, {"Food": 75; "Gold": 35}, 13, 2, 0, 1.05, 3, 60, 0, 10, 0/6,+2 eagles;+2 standard buildings;+6 archers/hand cannoneers,,,,

@@ -41,8 +41,9 @@ export const SELECTION_DETAIL_TOOLTIPS: Record<
 > = {
   health: 'Current hit points and maximum hit points.',
   attack: 'Attack damage per strike before bonuses and armor.',
-  armor: 'Melee damage reduction (armor-upgrade bonus).',
-  'pierce-armor': 'Pierce damage reduction (armor-upgrade bonus). Top-tier armor and Loom add +2.',
+  // Total armor, base plus upgrades, as Definitive Edition's panel shows it (work 140).
+  armor: 'Melee armor: subtracted from every melee hit, base plus upgrades.',
+  'pierce-armor': 'Pierce armor: subtracted from every pierce hit, base plus upgrades. Top-tier armor and Loom add +2.',
   faction: 'Group the entity belongs to (player, ally, enemy, neutral).',
   civ: 'Civilization bonuses and unique units that apply.',
   inventory: 'Resources currently carried by the unit.',

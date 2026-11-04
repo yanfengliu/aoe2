@@ -37,10 +37,10 @@ export type ResearchableTechnologyType =
   // Imperative HP bump like Loom/Sanctity — combatStateFactory for new units +
   // applyTechnology loop (bloodlinesEffect) for existing ones. Spec §11.9.
   | 'bloodlines'
-  // Sappers (Blacksmith / AoE2 University, Imperial): +15 attack vs BUILDINGS to
-  // every INFANTRY unit. DERIVED (pure) at the unit->building damage site — no
-  // per-unit state, no applyTechnology loop (buildingArrowTechEffects pattern).
-  // Spec §10.7.2.
+  // Sappers (Castle, Imperial; v0.3.132): villagers +15 against the Building
+  // and Stone Defense classes (DE effect 321). DERIVED (pure) at the hit on a
+  // building (`attackOnBuilding`, work 140) — no per-unit state, no
+  // applyTechnology loop. Spec §10.7.2.
   | 'sappers'
   // Husbandry (Stable, Castle): +10% movement speed for MOUNTED units (cavalry
   // + cavalry archers). DERIVED (pure movementTechEffects) inside the single

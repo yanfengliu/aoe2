@@ -24,7 +24,13 @@ interface Fixture {
   };
   buildings: Array<{ id: BuildingType; deUnitClass: number; meleePierceByAge: Array<[number, number]>; classArmor: Record<string, number> }>;
   upgrades: Array<{ building: BuildingType; technology: string; meleePierce: [number, number]; classArmor: Record<string, number> }>;
-  units: Array<{ id: UnitType; sourceId: number; deUnitClass: number; classAttack: Record<string, number> }>;
+  units: Array<{
+    id: UnitType;
+    sourceId: number;
+    deUnitClass: number;
+    classAttack: Record<string, number>;
+    otherFamilyAttack?: { family: 'melee' | 'pierce'; amount: number };
+  }>;
 }
 
 export const DE_BUILDING_COMBAT = JSON.parse(
@@ -119,6 +125,10 @@ export function oracleBuildingDamage(
   const armor = oracleBuildingArmor(buildingId, buildingAge, buildingTechs);
   const family = DE_ATTACK_DAMAGE_REFERENCE[unitId as keyof typeof DE_ATTACK_DAMAGE_REFERENCE].family;
   let total = Math.max(0, baseAttack - (family === 'melee' ? armor.melee : armor.pierce));
+  // DE's attack in the other family, where the unit has one (the Scorpion and
+  // Chu Ko Nu lines' melee 0), meets that family's armor.
+  const other = DE_BUILDING_COMBAT.units.find((u) => u.id === unitId)?.otherFamilyAttack;
+  if (other) total += Math.max(0, other.amount - (other.family === 'melee' ? armor.melee : armor.pierce));
   for (const [cls, attack] of Object.entries(oracleClassAttacks(unitId, attackerAge, owner))) {
     const resisted = armor.classes[cls];
     if (resisted !== undefined) total += Math.max(0, attack - resisted);

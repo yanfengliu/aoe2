@@ -64,8 +64,9 @@ export function createTrebuchetVsBuildingFixture(seed: string): PrototypeScenari
       // Wide vision so the enemy TC is already visible when the
       // attack command lands.
       ownedSpawn('trebuchet', 1, 15, 8, { vision: 18 }),
-      // Low HP so one Trebuchet shot (attack 7 + 200 anti-building
-      // bonus = 207) is guaranteed to kill it.
+      // Low HP so one Trebuchet shot is guaranteed to kill it: 442 off an
+      // Imperial Town Center (its attack of 200 less 8 pierce armor, and 250
+      // against the Building class; work 140).
       ownedSpawn('town-center', 2, 20, 8, { vision: 7, startHp: 200 }),
       // Second player-2 Town Center far from the action so conquest
       // does not fire when the near TC is destroyed.

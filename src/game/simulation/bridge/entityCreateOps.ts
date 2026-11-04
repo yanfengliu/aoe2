@@ -336,9 +336,10 @@ export function createEntityCreateOps(deps: EntityCreateOpsDeps): EntityCreateOp
       footprintHeight: footprint.height,
       visualVariant: isComplete ? 'complete' : 'construction',
     });
-    // Masonry / Architecture raise the hit points of everything this owner
-    // builds; the buildings already standing are bumped at research time
-    // (buildingHpTechEffect). Both halves are needed, exactly like Loom.
+    // Masonry / Architecture raise the hit points of every building this owner
+    // builds but walls, gates, Farms and Fish Traps (DE effects 50/51,
+    // `takesMasonry`); the buildings already standing are bumped at research
+    // time (buildingHpTechEffect). Both halves are needed, exactly like Loom.
     // Persians: Town Centers and Docks at double HP — the civ multiplier
     // applies to the BASE before the tech multipliers, like the unit-HP seam.
     // The Byzantine per-age building ladder multiplies alongside the civ

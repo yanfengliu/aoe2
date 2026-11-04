@@ -33,7 +33,8 @@ const BUILDING_TOKENS = new Set([
 
 // Token groups deliberately not modeled, each with its reason.
 const DEFERRED_TOKENS = new Set([
-  // '+N melee' modifiers are attack-type notes, not class bonuses.
+  // '+N melee' is a second base attack in the melee family (the Scorpion
+  // and Chu Ko Nu lines' melee 0), not a class bonus; buildingCombatStats.test.ts holds it.
   'melee',
   // Bombard Cannon's ambiguous 'siege/camels' grouping — see EXCEPTIONS.
   'siege/camels',

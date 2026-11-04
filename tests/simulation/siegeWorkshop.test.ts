@@ -111,11 +111,10 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     expect(mangonelAfter?.y).toBe(mangonel!.y);
   }, 20_000);
 
-  it('deals +125 bonus damage when a Battering Ram attacks a building', () => {
-    // Ram base attack is 2 + 125 anti-building bonus = 127 damage per hit. A
-    // House has 900 HP (structures.csv, v0.3.97), so eight hits raze it —
-    // ~5s of reload cycles. The v1 combat model has no building-armor
-    // reduction (only unit armor for ranged/melee).
+  it('razes a House when a Battering Ram attacks it', () => {
+    // DE's Battering Ram takes 151 a hit off a Castle Age House: 150 against
+    // the Building class, and 2 melee past its 1 melee armor (work 140). A
+    // House has 900 HP (structures.csv, v0.3.97), so six hits raze it.
     const bridge = createSimulationBridge('ram-vs-building-fixture');
 
     const house = bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'house');
@@ -136,7 +135,7 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     ).toBe(true);
   }, 20_000);
 
-  it('deals only base damage when a Battering Ram attacks a villager (no +75 bonus vs units)', () => {
+  it('deals only base damage when a Battering Ram attacks a villager (its attack against buildings does not reach a unit)', () => {
     const bridge = createSimulationBridge('ram-vs-villager-fixture');
 
     const villager = findFirstOwnedUnit(bridge, 2, 'villager');
@@ -155,9 +154,9 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     const vAfter = bridge.getEconomyState().units.find((u) => u.id === villager!.id);
     expect(vAfter).toBeDefined();
     const villagerHpAfter = getHealthOfUnitAtCell(bridge, vAfter!.x, vAfter!.y);
-    // Ram base attack 2, NO +75 vs unit target. Villager: 25 -> 23. If the
-    // building bonus bled into the unit path the villager would be at -52
-    // (destroyed on tick 1).
+    // Ram base attack 2, and its 150 against the Building class does not
+    // reach a unit. Villager: 25 -> 23. If it bled into the unit path the
+    // villager would be destroyed on tick 1.
     expect(villagerHpAfter).toBe(23);
   }, 10_000);
 

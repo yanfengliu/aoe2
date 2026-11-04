@@ -6,11 +6,12 @@ import {
 import type { ResearchableTechnologyType } from '../types';
 import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
-// Sappers (v0.1.64) fixtures. Player 1 (human, AI disabled) owns a Militia at
+// Sappers (v0.1.64) fixtures. Player 1 (human, AI disabled) owns a Villager at
 // (13, 8) standing adjacent to an enemy (owner 2) House at (14, 8). A test
-// issues the Militia to attack the House and counts how long it takes to raze
-// it: with `startingResearchedTechnologies: ['sappers']` the Militia deals +15
-// per hit vs the building, so the House falls in strictly fewer ticks than the
+// issues the Villager to attack the House and counts how long it takes to raze
+// it: with `startingResearchedTechnologies: ['sappers']` the Villager takes 20
+// a hit off the Castle Age House instead of 5 (DE: +15 against the Building
+// class; work 140), so the House falls in strictly fewer ticks than the
 // no-tech baseline.
 //
 // Sappers is DERIVED at the unit->building damage site (like the building-arrow
@@ -58,13 +59,14 @@ function createSappersScenario(seed: string, options: SappersOptions): Prototype
   };
 }
 
-// Baseline: no Sappers. Militia deals only its base attack to the House.
+// Baseline: no Sappers. The Villager takes 5 a hit off the House: 2 melee past
+// its 1 melee armor and 3 against the Building class (work 140).
 export function createSappersBaselineFixture(seed: string): PrototypeScenario {
   return createSappersScenario(seed, {});
 }
 
-// Sappers researched: the Militia deals +15 per hit vs the House, razing it in
-// strictly fewer ticks than the baseline.
+// Sappers researched: the Villager's Building attack is 18, so it takes 20 a
+// hit off the House, razing it in strictly fewer ticks than the baseline.
 export function createSappersResearchedFixture(seed: string): PrototypeScenario {
   return createSappersScenario(seed, { researched: ['sappers'] });
 }

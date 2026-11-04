@@ -115,6 +115,10 @@ describe('every hit on a building is DE\'s per-class damage', () => {
     ['petard', 'stone-wall', 'castle-age', [], 1401],
     // Teutonic Knight's 4 Standard Building meets nothing on a Wonder (3/10, Building only): 12 - 3.
     ['teutonic-knight', 'wonder', 'imperial-age', [], 9],
+    // Chu Ko Nu 8 pierce and DE's melee 0 on a Dark Age House (-2/7): 1 + 2 (review round 0, F0).
+    ['chu-ko-nu', 'house', 'dark-age', [], 3],
+    // Scorpion 12 pierce, melee 0 and Building 3 on a Feudal House (-1/8): 4 + 1 + 3.
+    ['scorpion', 'house', 'feudal-age', [], 8],
   ] as Array<[UnitType, BuildingType, AgeType, ResearchableTechnologyType[], number]>)('%s on a %s (%s, %j) deals %i', (unit, building, age, techs, expected) => {
     expect(runtimeDamage(unit, building, age, new Set(techs), PLAIN)).toBe(expected);
   });

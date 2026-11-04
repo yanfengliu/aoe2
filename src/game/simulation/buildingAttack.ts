@@ -20,6 +20,10 @@
 //  - The Goths' infantry +1/+2/+3 and the Saracen and Hindustani team bonuses
 //    land on Standard Building (DE effects 326-328, 409 and 2), so a Wonder,
 //    which is no Standard Building, takes none of them.
+// Four units carry a base attack in BOTH families: the Scorpion and Chu Ko Nu
+// lines have a melee 0 beside their pierce attack, which takes
+// max(0, 0 - melee armor) off a building with negative melee armor, 2 off a
+// Dark Age House (work 140 review round 0, finding F0).
 // DE also carries classes 0 (Wonder), 23 (Gunpowder, on the Bombard Tower), 31
 // and 40 on some buildings. No attacker here attacks in 0, 23 or 40, and every
 // class-31 attack here is 0 against armor of at least 0, so each would add
@@ -96,6 +100,15 @@ export const UNIT_BUILDING_ATTACKS: Readonly<Partial<Record<UnitType, BuildingCl
   'elite-conquistador': { building: 2 },
 };
 
+/** A unit's base attack in the family other than its own, where DE gives it
+ *  one: the Scorpion and Chu Ko Nu lines' melee 0 (the pinned dataset). */
+export const UNIT_SECOND_FAMILY_ATTACK: Readonly<Partial<Record<UnitType, { readonly family: AttackType; readonly amount: number }>>> = {
+  scorpion: { family: 'melee', amount: 0 },
+  'heavy-scorpion': { family: 'melee', amount: 0 },
+  'chu-ko-nu': { family: 'melee', amount: 0 },
+  'elite-chu-ko-nu': { family: 'melee', amount: 0 },
+};
+
 /** Sappers: villagers' attack against buildings (DE effect 321). */
 export const SAPPERS_BUILDING_ATTACK: BuildingClassAmounts = { building: 15, 'stone-defense': 15 };
 
@@ -140,6 +153,8 @@ export interface BuildingAttackerOwner {
 export interface AttackOnBuilding {
   readonly family: AttackType;
   readonly base: number;
+  /** A base attack in the other family, which meets that family's armor. */
+  readonly second?: { readonly family: AttackType; readonly amount: number };
   readonly classes: BuildingClassAmounts;
 }
 
@@ -164,7 +179,8 @@ export function attackOnBuilding(
     if (amount === undefined) continue;
     classes[attackClass] = amount * siegeEngineersMultiplier(owner.technologies, attackerType, attackClass);
   }
-  return { family: unitAttackType(attackerType), base: attackDamage, classes };
+  const second = UNIT_SECOND_FAMILY_ATTACK[attackerType];
+  return { family: unitAttackType(attackerType), base: attackDamage, ...(second ? { second } : {}), classes };
 }
 
 /** A building's own arrow, should one ever land on a building: pierce, and no
@@ -176,7 +192,9 @@ export function buildingArrowOnBuilding(attackDamage: number): AttackOnBuilding 
 /** DE's damage of one hit on a building (spec §10.1), whole: the sum over the
  *  classes the building has armor in of max(0, attack - armor), at least 1. */
 export function damageOnBuilding(attack: AttackOnBuilding, armor: BuildingArmor): number {
-  let total = Math.max(0, attack.base - (attack.family === 'pierce' ? armor.pierce : armor.melee));
+  const resist = (family: AttackType): number => (family === 'pierce' ? armor.pierce : armor.melee);
+  let total = Math.max(0, attack.base - resist(attack.family));
+  if (attack.second) total += Math.max(0, attack.second.amount - resist(attack.second.family));
   for (const attackClass of BUILDING_ARMOR_CLASSES) {
     const amount = attack.classes[attackClass];
     const resisted = armor.classes[attackClass];

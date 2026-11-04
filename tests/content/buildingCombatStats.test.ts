@@ -17,7 +17,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { buildingArmor, takesMasonry, type BuildingArmorClass } from '../../src/game/simulation/buildingArmor';
-import { UNIT_BUILDING_ATTACKS } from '../../src/game/simulation/buildingAttack';
+import { UNIT_BUILDING_ATTACKS, UNIT_SECOND_FAMILY_ATTACK } from '../../src/game/simulation/buildingAttack';
 import type { ResearchableTechnologyType } from '../../src/game/simulation/technologyTypes';
 import type { AgeType, BuildingType, UnitType } from '../../src/game/simulation/types';
 
@@ -40,6 +40,7 @@ interface FixtureUnit {
   sourceId: number;
   classAttack: Record<string, number>;
   ignoredClassAttack: Record<string, number>;
+  otherFamilyAttack?: { family: 'melee' | 'pierce'; amount: number };
 }
 const fixture = JSON.parse(readFileSync('tests/content/fixtures/deBuildingCombat.json', 'utf8')) as {
   dataSha256: string;
@@ -148,10 +149,12 @@ describe('structures.csv armor is the fixture\'s', () => {
 describe('units.csv attacks against buildings are the fixture\'s', () => {
   it('holds every roster unit\'s building-class attacks to DE', () => {
     const perUnit = new Map<string, Record<string, number>>();
+    const meleeToken = new Map<string, number>();
     for (const cols of csvRows('design/stats/units.csv')) {
       if (cols.length < 16) continue;
       const raw = cols[0]!.trim().toLowerCase();
       const name = slug(UNIT_NAME_ALIAS[raw] ?? raw);
+      meleeToken.delete(name);
       const attacks: Record<string, number> = {};
       for (const part of cols[15]!.split(';')) {
         const match = /^\+?(\d+)\s+(.*)$/.exec(part.trim());
@@ -160,6 +163,8 @@ describe('units.csv attacks against buildings are the fixture\'s', () => {
         // "+180 with siege engineers buildings" restates a ram's attack under
         // Siege Engineers, which the census checks from the base figure.
         if (token.includes('with siege engineers')) continue;
+        // "+0 melee" is a second base attack in the melee family.
+        if (token === 'melee') { meleeToken.set(name, Number(match[1])); continue; }
         const id = UNIT_TOKEN[token];
         if (id !== undefined) attacks[id] = Number(match[1]);
       }
@@ -171,6 +176,11 @@ describe('units.csv attacks against buildings are the fixture\'s', () => {
       if (!csv) { problems.push(`${unit.id}: no units.csv row`); continue; }
       if (canonical(csv) !== canonical(unit.classAttack)) {
         problems.push(`${unit.id}: units.csv ${JSON.stringify(csv)} vs DE ${JSON.stringify(unit.classAttack)}`);
+      }
+      const csvMelee = meleeToken.get(unit.id);
+      const deMelee = unit.otherFamilyAttack?.family === 'melee' ? unit.otherFamilyAttack.amount : undefined;
+      if (csvMelee !== deMelee) {
+        problems.push(`${unit.id}: units.csv second melee attack ${String(csvMelee)} vs DE ${String(deMelee)}`);
       }
     }
     expect(problems, problems.join('\n')).toEqual([]);
@@ -224,6 +234,20 @@ describe('the runtime tables are the fixture\'s', () => {
     }
     for (const unit of Object.keys(UNIT_BUILDING_ATTACKS)) {
       if (!inFixture.has(unit)) problems.push(`${unit}: a runtime row with no DE row`);
+    }
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
+
+  it("gives every attacker DE's base attack in the other family, where it has one, both ways", () => {
+    const problems: string[] = [];
+    for (const unit of fixture.units) {
+      const ours = UNIT_SECOND_FAMILY_ATTACK[unit.id];
+      if (canonical(ours ?? null) !== canonical(unit.otherFamilyAttack ?? null)) {
+        problems.push(`${unit.id}: runtime ${JSON.stringify(ours)} vs DE ${JSON.stringify(unit.otherFamilyAttack)}`);
+      }
+    }
+    for (const unit of Object.keys(UNIT_SECOND_FAMILY_ATTACK)) {
+      if (!fixture.units.some((u) => u.id === unit)) problems.push(`${unit}: a runtime row with no DE row`);
     }
     expect(problems, problems.join('\n')).toEqual([]);
   });

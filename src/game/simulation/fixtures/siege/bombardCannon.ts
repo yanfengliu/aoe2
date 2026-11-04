@@ -7,8 +7,10 @@ import { createGrassFixtureTerrain, ownedSpawn } from '../common';
 
 // Slice 7D fixture: player-1 Bombard Cannon placed at distance 10 from an
 // enemy Town Center (inside max-range 12, outside min-range 5). Used to
-// assert Bombard Cannon carries a +80 anti-building bonus. A TC with a
-// low startHp (200) dies in two hits of 40 base + 80 bonus = 120 each.
+// assert the Bombard Cannon's attack against buildings. It takes 234 a hit off
+// an Imperial Town Center (its 40 melee less 6 melee armor, and 200 against
+// the Building class; work 140), so a TC with a low startHp (200) dies in one
+// hit.
 // Full-review M12: owner 2 holds TWO Town Centers — TC-A (survivor, spawned
 // first) and TC-B (spawned LAST, so it is owner 2's referenced TC; low startHp
 // so the human bombard razes it in one hit). After TC-B is destroyed the

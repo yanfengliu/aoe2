@@ -96,6 +96,8 @@ const NAMED: BuildingArmorCensusCase[] = [
   { name: 'teutonic-knight-on-wonder', attacker: 'teutonic-knight', building: 'wonder', age: 'imperial-age', buildingTechnologies: ['masonry', 'architecture'], attackerTechnologies: [] },
   { name: 'tarkan-on-gate', attacker: 'elite-tarkan', building: 'stone-gate', age: 'imperial-age', buildingTechnologies: ['fortified-wall'], attackerTechnologies: [] },
   { name: 'keep-takes-a-ram', attacker: 'capped-ram', building: 'watch-tower', age: 'imperial-age', buildingTechnologies: ['guard-tower', 'keep', 'masonry'], attackerTechnologies: [] },
+  // DE's melee 0 beside the Chu Ko Nu's pierce meets a Dark Age House's -2 (review round 0, F0).
+  { name: 'chu-ko-nu-on-dark-house', attacker: 'chu-ko-nu', building: 'house', age: 'dark-age', buildingTechnologies: [], attackerTechnologies: [] },
 ];
 
 export const BUILDING_ARMOR_CENSUS_CASES: readonly BuildingArmorCensusCase[] = [...ROTATION, ...NAMED];

@@ -220,11 +220,12 @@ describe('Imperial-Age Siege Workshop upgrades', () => {
     expect(bridge.getSelectionState().trainOptions).not.toContain('battering-ram');
   }, 30_000);
 
-  it('deals +200 bonus damage when a Siege Ram attacks a building (upgraded from Battering Ram +125)', () => {
-    // Siege Ram base attack 3 + 200 anti-building bonus = 203 per hit.
-    // A Town Center with 200 HP (below its default 2400 max) should drop to
-    // 0 after a single hit — confirming the Siege Ram's huge anti-building
-    // bonus scaled up from the Ram's +125.
+  it("deals +200 bonus damage when a Siege Ram attacks a building (up from the Capped Ram's 160)", () => {
+    // DE's Siege Ram takes 200 a hit off an Imperial Town Center: 200 against
+    // the Building class, and its 4 melee does nothing against 6 melee armor
+    // (work 140). A Town Center with 200 HP (below its default 2400 max) should
+    // drop to 0 after a single hit — the Siege Ram's attack against buildings
+    // scaled up from the Capped Ram's 160.
     const bridge = createSimulationBridge('siege-ram-vs-building-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const tc = bridge.getEconomyState().buildings.find(
@@ -257,8 +258,9 @@ describe('Bombard Cannon', () => {
   });
 
   it('deals +200 bonus damage against buildings at long range', () => {
-    // Bombard Cannon base attack 40 + 200 anti-building bonus = 240 per hit.
-    // A Town Center with 200 HP drops in a single hit.
+    // DE's Bombard Cannon takes 234 a hit off an Imperial Town Center: 40
+    // melee less its 6 melee armor, and 200 against the Building class
+    // (work 140). A Town Center with 200 HP drops in a single hit.
     const bridge = createSimulationBridge('bombard-cannon-vs-building-fixture', { civilizationsByOwner: new Map([[1, 'Saracens'], [2, 'Saracens']]) });
 
     const tc = bridge.getEconomyState().buildings.find(

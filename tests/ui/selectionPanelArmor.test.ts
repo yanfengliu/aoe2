@@ -61,6 +61,17 @@ describe('selection panel — melee/pierce armor rows', () => {
     expect(html).toContain('data-selection-detail-value="pierce-armor">2<');
   });
 
+  it('says on hover that each row is the total armor, base plus upgrades (work 140)', () => {
+    // The rows showed only the armor-upgrade bonus until work 140, and their
+    // hover text said so; a Town Center's 3 is its own armor, not a bonus.
+    const html = renderSelectionDetails(selection({ armor: 3, pierceArmor: 5 }));
+    for (const key of ['armor', 'pierce-armor']) {
+      const row = new RegExp(`data-selection-detail="${key}" data-tooltip="([^"]*)"`).exec(html);
+      expect(row?.[1], key).toContain('base plus upgrades');
+      expect(row?.[1], key).not.toContain('armor-upgrade bonus');
+    }
+  });
+
   it('omits the pierce-armor row when pierceArmor is null (e.g. multi-select)', () => {
     expect(renderSelectionDetails(selection({ armor: null, pierceArmor: null }))).not.toContain(
       'pierce-armor',

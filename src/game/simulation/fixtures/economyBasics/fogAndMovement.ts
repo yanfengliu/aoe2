@@ -74,7 +74,8 @@ export function createFogMemoryCastleDestroyEdgeFixture(seed: string): Prototype
       // visibility on the castle's footprint is the scout's (18, 16) view.
       ownedSpawn('siege-ram', 1, 16, 17, { vision: 1 }),
       // Castle at the same anchor as the existing edge fixture, low HP so
-      // a single Siege Ram hit (3 base + 250 anti-building = 253) kills it.
+      // two Siege Ram hits kill it (192 a hit: 200 against the Building class
+      // less the Castle's 8 there; work 140).
       ownedSpawn('castle', 2, 15, 13, { startHp: 200 }),
       ownedSpawn('town-center', 2, 50, 30, { vision: 7 }),
     ],

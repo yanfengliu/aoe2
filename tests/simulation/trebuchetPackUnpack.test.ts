@@ -79,8 +79,8 @@ describe('FU7 Trebuchet pack/unpack', () => {
 
     // After the 50-tick unpack transition plus one reload cycle, the
     // Town Center should have taken at least one siege hit — a
-    // Trebuchet's base 7 attack + 200 anti-building bonus = 207 damage
-    // per shot, which drops a 200-HP TC in a single hit.
+    // Trebuchet takes 442 a shot off an Imperial Town Center (work 140),
+    // which drops a 200-HP TC in a single hit.
     expect(
       stepBridgeUntil(
         bridge,
