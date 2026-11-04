@@ -316,8 +316,8 @@ export interface SelectionState {
     max: number;
   } | null;
   attack: number | null;
-  armor: number | null; // melee armor-tech bonus
-  pierceArmor: number | null; // pierce armor-tech bonus (incl. asymmetric +); spec §11.8
+  armor: number | null; // total melee armor, base plus upgrades (work 140)
+  pierceArmor: number | null; // total pierce armor, base plus upgrades, asymmetric + included (work 140); spec §11.8
   faction: string | null;
   civ: string | null;
   inventory: string | null;

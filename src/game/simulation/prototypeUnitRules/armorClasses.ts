@@ -23,7 +23,8 @@
 // war-elephant, ship, and unique-unit classes all exist and their bonuses are
 // live; conquistador rides in MOUNTED_UNITS. Attacks against buildings are not
 // here: buildingAttack.ts holds them in Definitive Edition's five building
-// classes, the non-siege +1 to +3 included (work 140).
+// classes, the infantry's +1 to +4 against Standard Buildings and the War
+// Elephants', Tarkans' and ships' attacks included (work 140).
 
 import type { UnitType } from '../types';
 

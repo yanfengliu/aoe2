@@ -17,7 +17,7 @@ import type { UnitType } from '../../src/game/simulation/types';
 const SOLO = new Map<number, number>();
 const ALLIED = new Map([[1, 1], [2, 1]]);
 
-/** What the attack delivery adds for owner 1 from the team seam; the Indians have no ladder. */
+/** What `attackOnBuilding` adds for owner 1 from the team seam; the Indians have no ladder. */
 function total(civilizations: Map<number, string>, teams: Map<number, number>, unit: UnitType): number {
   return teamBuildingAttackBonus(teams, civilizations, 1, unit);
 }

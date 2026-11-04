@@ -1,6 +1,7 @@
 // One tick of an ATTACK command (spec §10): trebuchet gating, wildlife,
 // unit-vs-unit delivery (with blast and the Persian team bonus), and
-// unit-vs-building delivery (Sappers, Goth and team bonuses, capture of
+// unit-vs-building delivery (the hit's damage from `buildingHitDamage`, where
+// `attackOnBuilding` adds Sappers and the Goth and team bonuses; capture of
 // kills, and building destruction). Moved VERBATIM from playerCommandsSystem
 // for the 500-LOC budget — one role, "advance an attack one tick"; the
 // system's loop now reads as a dispatch table.

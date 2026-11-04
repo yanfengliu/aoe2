@@ -92,7 +92,10 @@ describe('every hit on a building is DE\'s per-class damage', () => {
   });
 
   // Hand-checked against DE: the formula worked by hand from the pinned
-  // dataset's numbers, not by the oracle.
+  // dataset's numbers, not by the oracle. Every unit here has DE's own attack
+  // stat in this game, so each figure is DE's (the Scorpion and the Teutonic
+  // Knight are two of the 26 that differ, so the Heavy Scorpion and the Long
+  // Swordsman stand in for them; review round 1).
   it.each([
     // Archer 4 pierce on a House (-2/7): pierce 0, Standard Building 0 - 0; the minimum.
     ['archer', 'house', 'dark-age', [], 1],
@@ -113,12 +116,12 @@ describe('every hit on a building is DE\'s per-class damage', () => {
     ['trebuchet', 'castle', 'imperial-age', [], 431],
     // Petard 25 melee on a Stone Wall (8/10, Building 16, Wall & Gate 0): 17 + 484 + 900.
     ['petard', 'stone-wall', 'castle-age', [], 1401],
-    // Teutonic Knight's 4 Standard Building meets nothing on a Wonder (3/10, Building only): 12 - 3.
-    ['teutonic-knight', 'wonder', 'imperial-age', [], 9],
+    // Long Swordsman 9 melee: its 3 Standard Building meets nothing on a Wonder (3/10, Building only): 9 - 3.
+    ['long-swordsman', 'wonder', 'imperial-age', [], 6],
     // Chu Ko Nu 8 pierce and DE's melee 0 on a Dark Age House (-2/7): 1 + 2 (review round 0, F0).
     ['chu-ko-nu', 'house', 'dark-age', [], 3],
-    // Scorpion 12 pierce, melee 0 and Building 3 on a Feudal House (-1/8): 4 + 1 + 3.
-    ['scorpion', 'house', 'feudal-age', [], 8],
+    // Heavy Scorpion 14 pierce, melee 0 and Building 6 on a Feudal House (-1/8): 6 + 1 + 6.
+    ['heavy-scorpion', 'house', 'feudal-age', [], 13],
   ] as Array<[UnitType, BuildingType, AgeType, ResearchableTechnologyType[], number]>)('%s on a %s (%s, %j) deals %i', (unit, building, age, techs, expected) => {
     expect(runtimeDamage(unit, building, age, new Set(techs), PLAIN)).toBe(expected);
   });

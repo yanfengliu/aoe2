@@ -71,7 +71,7 @@ export const RESEARCH_COSTS: Record<ResearchableTechnologyType, Partial<PlayerRe
   shatagni: { food: 500, gold: 650 },
   'recurve-bow': { wood: 600, gold: 400 },
   farimba: { food: 650, gold: 400 },
-  kasbah: { food: 250, gold: 250 }, // Blacksmith (AoE2 University), Imperial: +15 infantry attack vs buildings.
+  kasbah: { food: 250, gold: 250 }, // Castle, Castle Age: Castles work 25% faster (uniqueTechnologies.ts).
   sultans: { gold: 400 }, // Castle, Castle Age: +10% gold generation. UNVERIFIED (see below).
   carrack: { wood: 200, gold: 200 }, // Castle, Castle Age: all ships +1/+1 armour. UNVERIFIED (see below).
   bracer: { food: 300, gold: 200 },

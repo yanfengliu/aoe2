@@ -6,6 +6,7 @@
 #   Treason (DE merged it into Spies/Treason), Cannon Galleon (no separate DE technology), Bearded Axe, El Dorado, Mahouts, Zealotry,
 #   Berserkergang (Bogsveigar holds its DE slot), and Fast Fire Ship (DE folds it into Galleon, which this game keeps separate).
 # tests/content/trainAndResearchCostsAndTimes.test.ts holds the game to this file row by row.
+# The Masonry, Architecture, Fortified Wall and Siege Engineers descriptions follow the same dataset and DE's dat at update 147949 (work 140; spec §10.3, §10.4 and §10.7.1).
 name, expansion, age, develops_in, cost, build_time, applies_to, description
 Crossbowman, Age of Kings, Castle, Archery Range, {"Food": 175; "Gold": 100}, 35, Archer, Upgrade to Crossbowman
 Thumb Ring, Age of Kings, Castle, Archery Range, {"Food": 300; "Wood": 250}, 45, Archer;Cavalry Archer, Faster reload time (10-20%) and 100% accuracy
@@ -97,17 +98,17 @@ Hand Cart,  Age of Kings, Castle, Town Center, {"Food": 300; "Wood": 200}, 55, V
 Imperial Age, Age of Kings, Castle, Town Center, {"Food": 1000; "Gold": 800}, 190,,Advance to the Imperial Age
 Town Patrol, Age of Kings, Castle, Town Center, {"Food": 300; "Gold": 100}, 40, Buildings;Towers, +4 Line of sight
 Ballistics, Age of Kings, Castle, University, {"Wood": 300; "Gold": 175}, 60, Arrow/Bolt-firing units;Buildings;Bombard Towers, Aim at the spot an enemy unit is moving towards instead of where it currently is
-Fortified Wall, Age of Kings, Castle, University, {"Wood": 100; "Food": 200}, 50, Stone Wall; Gate, Fortified Wall 3000 HP 12/12 armor 24 building armor and Gate 4000 HP 6/6 armor 20 building armor
+Fortified Wall, Age of Kings, Castle, University, {"Wood": 100; "Food": 200}, 50, Stone Wall; Gate, Fortified Wall 3000 HP 12/12 armor 24 building armor and Gate 4000 HP 0/0 armor 20 building armor
 Guard Tower, Age of Kings, Castle, University, {"Food": 100; "Wood": 250}, 30, Watch Tower, Upgrade to Guard Tower
 Heated Shot, Age of Kings, Castle, University, {"Food": 350; "Gold": 100}, 30, Tower;Castle, Towers do 2.25 * attack bonus vs ships/camels and Castles do +4 damage against ships/camels
-Masonry, Age of Kings, Castle, University, {"Food": 150; "Wood": 175}, 50, Buildings;Tower, Hit points * 1.1 and +1/+1 armor and +3 building armor 
+Masonry, Age of Kings, Castle, University, {"Food": 150; "Wood": 175}, 50, Buildings;Tower, Hit points * 1.1 and +1/+1 armor and +3 building armor (not walls or gates or Farms or Fish Traps)
 Murder Holes, Age of Kings, Castle, University, {"Food": 200; "Stone": 100}, 35, Castle;Tower, Towers and Castles minimum range removed
 Treadmill Crane, Age of Kings, Castle, University, {"Wood": 200; "Stone": 50}, 20, Builder, Builders work rate x 1.2 (20% faster builders - building get built 17% faster)
-Architecture, Age of Kings, Imperial, University, {"Food": 300; "Wood": 200}, 70, Buildings;Tower, Hit points * 1.1 and +1/+1 armor and +3 building armor
+Architecture, Age of Kings, Imperial, University, {"Food": 300; "Wood": 200}, 70, Buildings;Tower, Hit points * 1.1 and +1/+1 armor and +3 building armor (not walls or gates or Farms or Fish Traps)
 Bombard Tower, Age of Kings, Imperial, University, {"Food": 800; "Wood": 400}, 60,, Allow creation of Bombard Tower
 Chemistry, Age of Kings, Imperial, University, {"Food": 300; "Gold": 200}, 100, Archer;Skirmisher;Cavalry Archer;Galley;Longboat;Scorpion;Tower, +1 pierce damage and projectile speed reduced from 3.5 MR to 2.9 MR for mangonels
 Keep, Age of Kings, Imperial, University, {"Food": 500; "Wood": 350}, 75, Guard Tower, Upgrade to Keep
-Siege Engineers, Age of Kings, Imperial, University, {"Food":500;"Wood": 600}, 45, Siege Weapons, Siege weapons do 1.2 * damage vs buildings and +1 range for ranged siege
+Siege Engineers, Age of Kings, Imperial, University, {"Food":500;"Wood": 600}, 45, Siege Weapons;Cannon Galleons;Petard;Demolition Ships, Siege weapons and Cannon Galleons x1.2 attack vs buildings and the Petard and Demolition Ships x1.4 (the base attack is not multiplied) and +1 range for ranged siege
 Anarchy, Age of Kings, Castle, Castle, {"Food": 450; "Gold": 250}, 40, Goths, Allow the creation of Huskarls in barracks
 Artillery, Age of Kings, Imperial, Castle, {"Food": 600; "Gold": 650}, 40, Turks;Tower;Galleon;Cannon, Bombard units +2 range
 Atheism, The Conquerors, Imperial, Castle, {"Food": 500; "Wood": 300}, 60, Huns,+100 years Wonder/Relic victory time and -50% Spies/Treason cost

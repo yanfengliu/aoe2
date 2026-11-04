@@ -263,8 +263,9 @@ export const CIV_BONUSES: readonly CivBonusEntry[] = [
     carryBonus: [...HUNTED_KINDS].map((kind) => ({ kind, bonus: 15 })),
     resourceDuration: [{ applies: (kind) => HUNTED_KINDS.has(kind), multiplier: 1.2 }],
     imperialPopulationBonus: 10, // "+10 to population limit in Imperial Age".
-    // The +1 vs buildings became a +1/2/3 age ladder at the delivery site
-    // (civBuildingAttackLadder, sourced v0.3.152).
+    // The +1 vs buildings became a +1/2/3 age ladder (civBuildingAttackLadder,
+    // sourced v0.3.152), which `attackOnBuilding` adds against Standard
+    // Buildings (work 140).
     cost: [{
       applies: (unit) => isInfantryUnit(unit),
       // DE (sourced v0.3.146): -15/20/25/30% in Dark/Feudal/Castle/Imperial.

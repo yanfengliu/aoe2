@@ -43,7 +43,7 @@ One milestone, not two: DE's formula needs the attacks split by class for the ba
 - [x] The armor seam and the per-class attack table; every path reads it; the panel rows.
 - [x] Captures and pixel diff; self-play before and after; the lab census.
 - [x] Spec, CSVs, changelog, devlog, register, architecture records.
-- [ ] Full gate, independent review, handoff; landing (phase 2).
+- [ ] Full gate, independent review, handoff; landing (phase 2): rebase onto `origin/main` under the gate lock, take the next patch version and give the changelog's `Unreleased — work 140` heading that number, replace `vNEXT` in the devlog, rerun the gate, mark work 106's two cards for this defect shipped (its plan's 2026-10-14 HUD card and 2026-11-04 Combat card), push, follow `npm run ci:status`, close this plan and retire the worktree.
 
 ## Findings outside this scope
 
@@ -52,6 +52,9 @@ One milestone, not two: DE's formula needs the attacks split by class for the ba
 - No blast reaches a building here; DE's data gives buildings a blast defense level, so some DE blasts do.
 - Siege Engineers' +1 range reaches rams and the Petard here; DE takes it back from rams. Sappers' "+3 attack vs. rams" is not modelled.
 - In the no-attack coverage lab, owner 2's Scout attacks owner 1's unfinished Market from tick 9,827 (the AI's lane, work 141).
+- Unit combat takes no second base attack. DE's melee 0 on the Scorpion and Chu Ko Nu lines meets a unit's melee armor too, and the rams carry -3 melee armor here (`unitArmorTables.ts`), so a Scorpion takes 1 a bolt off a Battering Ram where the term would make it 4, and a Chu Ko Nu 1 where it would make 3 (review round 1's figures). Spec §10.1 says unit combat leaves it out.
+- The Militia's reload is 10 ticks (`statTables.ts`) against `units.csv`'s 2 s, 20 ticks at 10 ticks a second; not checked against a deliberate rule.
+- Stale research-hosting premises: spec §11.9's Bloodlines paragraph still says the tower, Siege Engineers and Sappers techs are hosted away from their AoE2 homes (§11.11's v0.3.131-133 paragraph says they now follow the CSV), and `bridge/blacksmithTechOptions.ts`'s header still lists Sappers among the Blacksmith's options.
 
 ## Outcome
 

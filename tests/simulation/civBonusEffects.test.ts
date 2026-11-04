@@ -330,7 +330,8 @@ describe('Goths infantry-vs-buildings bonus — live twin-fixture raze race', ()
     }
 
     // Step a fixed window: the militia lands the same number of hits in each
-    // run, and the Goths militia deals +1 vs the building per hit.
+    // run, and the Imperial Goths militia takes 6 a hit off the Castle Age
+    // House against the control's 3 (+3 against Standard Buildings, work 140).
     for (let i = 0; i < 120; i += 1) {
       goths.step(100);
       control.step(100);
@@ -344,7 +345,7 @@ describe('Goths infantry-vs-buildings bonus — live twin-fixture raze race', ()
 
     // The control militia actually damaged the house (guards a no-op fixture).
     expect(cHp).toBeGreaterThan(0);
-    // Goths' +1/hit leaves the house strictly lower after the same window.
+    // The Goths' +3 a hit leaves the house strictly lower after the same window.
     expect(gHp).toBeLessThan(cHp);
   }, 30_000);
 });
