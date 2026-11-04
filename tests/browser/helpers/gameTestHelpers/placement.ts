@@ -39,6 +39,13 @@ export async function findValidPlacementNearTownCenter(
   preferredAnchors: Array<{ x: number; y: number }> = [],
   keepAway: PlacementKeepAway | null = null,
 ): Promise<{ x: number; y: number }> {
+  // A NaN point would keep every candidate, since no comparison with NaN is true.
+  if (keepAway !== null && ![keepAway.x, keepAway.y, keepAway.distance].every(Number.isFinite)) {
+    throw new Error(
+      `The ${buildingType} anchor search was asked to keep away from (${String(keepAway.x)},${String(keepAway.y)}) `
+      + `by ${String(keepAway.distance)} cells; all three must be finite numbers, such as a unit's drawn position.`,
+    );
+  }
   // The whole search runs in the page, in one round trip. It used to ask for
   // each candidate's preview, screen point and hit element with three
   // evaluate calls apiece, and on CI's SwiftShader runners those round trips
@@ -51,8 +58,8 @@ export async function findValidPlacementNearTownCenter(
     );
     if (!townCenter) return { townCenter: false as const, anchor: null };
     const isValidAnchor = (x: number, y: number): boolean => {
-      // Distance first: it is arithmetic, while the projection below forces a
-      // view sync per call.
+      // Distance first: it is arithmetic, while the preview and the projection
+      // below each force a view sync.
       if (away !== null && Math.hypot(x + 0.5 - away.x, y + 0.5 - away.y) < away.distance) return false;
       if (api.getPlacementPreviewAt(x, y)?.isValid !== true) return false;
       // The anchor also has to be REACHABLE BY THE MOUSE. A cell whose screen

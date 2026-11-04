@@ -20,28 +20,29 @@ The two specs, their helpers, one new gate spec and the records. Excluded: civ-e
 
 ## Approach
 
-Each failure's own Playwright trace came first; no failing run recorded a bundle, so the recorded-world instruments do not reach these questions. Live probes under the worktree's ignored `tmp/probes/` name that in their `// harness:` lines. The hosted rates and times come from all 404 browser-shard job logs of those 101 runs. The investigation is `docs/debugging/2026-11-04-hosted-ci-flakes.md`.
+Each failure's own Playwright trace came first; no failing run recorded a bundle, so the recorded-world instruments do not reach these questions. Live probes name that in their `// harness:` lines; they and every measurement are kept, ignored, under `tmp/ci-flakes-1104-evidence-20261104/` in the primary checkout. The hosted rates and times come from all 404 browser-shard job logs of those 101 runs. The investigation is `docs/debugging/2026-11-04-hosted-ci-flakes.md`.
 
 ## Acceptance criteria
 
 - [x] The boar flake is explained from its trace and reproduced locally.
 - [x] Its fix keeps every assertion, and a new gate fails on the old wait under forced timing.
-- [ ] The art-style case is cheaper, or split into cases with the same checks, under two thirds of its limit with margin, every check kept; otherwise it is reported with evidence that the test cannot reduce its own work.
+- [x] The art-style case is cheaper, or split into cases with the same checks, under two thirds of its limit with margin, every check kept; otherwise it is reported with evidence that the test cannot reduce its own work. Met by the second branch: reported, not fixed (Outcome).
 - [ ] Independent review of the exact revision, the full gate, landing on main and the hosted run.
 
 ## Implementation steps
 
 - [x] M2, boar strikes: diagnose, fix the wait, gate it, count before and after.
 - [x] M3, art-style headroom: measure where the time goes, try every check-preserving reduction found, report.
-- [ ] Review, gate, land, follow hosted CI.
+- [x] Review round 0 ([reviews/0_implementation.md](reviews/0_implementation.md)), Codex and Claude on `cae06026`: three major and eleven smaller findings, F0-F13, repaired except two rejected parts.
+- [ ] Round 1 on the repairs, then gate, land and follow hosted CI.
 
 ## Investigation
 
 2026-11-04, M2. The trace's revisions: resting parts at 3 and first strike at 5. Then `inspectVoxelUnitMotion` ran six times and twice more, and the frozen "before" read came at presented revision 13 with both parts `null`. Two animation frames later, the "after" read was at revision 13 with parts. Eight reads, eight revisions. `inspectVoxelUnitMotion` forces a view sync, and in the paused fixture the sync changes nothing visible. voxel's `render-world.ts` marks such a delta presented at once when its base was presented. So the spec's wait, `presentedRevision === acceptedRevision`, agreed immediately. But `AoeVoxelWorldRenderer` hands its pending hit state over only inside `frame()`, and until then `isInteractionReady()` is false and `inspectPresentedVoxelPartMatrix` returns null. The spec passed whenever a frame landed between its last forced sync and its read. Real input is unaffected, because the click path's hit test draws a frame whenever the hit state is behind.
 
-2026-11-04, M2 fix. `waitForPresentedHitState` (`tests/browser/helpers/gameTestHelpers/presentation.ts`) waits for a world frame drawn after it began, with the watermark equal. The boar spec uses it at all five of its waits, and no assertion changed. `tests/browser/voxel-presented-hit-state.spec.ts` is the gate. It holds frames with a gate on `requestAnimationFrame`, forces two syncs, and checks the window is open: no frame drawn, the watermark moved by 2, no part. Then it lets frames run again from the page's own clock a second later, and requires the part, at the presented revision, after the wait.
+2026-11-04, M2 fix. `waitForPresentedHitState` (`tests/browser/helpers/gameTestHelpers/presentation.ts`) waits for a world frame drawn after it began, with the runtime running and the accepted epoch and revision presented, which is `isInteractionReady()` read from outside. The boar spec uses it at all five of its waits, changes no assertion, and adds one: its frozen pose's parts must be non-null before they are compared, because null before and after would also be equal. `tests/browser/voxel-presented-hit-state.spec.ts` is the gate. It holds frames with a gate on `requestAnimationFrame`, forces two syncs, and checks a round trip later that the window is open: no frame drawn, the watermark moved by 2, no part. It then starts the wait and lets frames through only after seeing the wait read the renderer's state four times without returning, and requires the wait to be pending at that point and the part, at the presented revision, after it. The first version released frames on a 1 s timer; review round 0 (F1) showed a slow enough host could let the old wait pass it.
 
-2026-11-04, M2 counts, SwiftShader on this machine, unchanged spec against fixed spec in three interleaved rounds of 20: unchanged 9 of 60 failed (3 per round, every one CI's diff), fixed 0 of 60. A first batch of the unchanged spec failed 2 of 20 the same way. The new gate passed 5 of 5. With its wait reverted to the watermark alone it failed 10 of 10 ("the part after waitForPresentedHitState" was null), and the helper was restored byte-identical.
+2026-11-04, M2 counts, SwiftShader on this machine, unchanged spec against fixed spec in three interleaved rounds of 20: unchanged 9 of 60 failed (3 per round, every one CI's diff), fixed 0 of 60, and after review round 0's repairs 0 of 60 again in three more rounds of 20. A first batch of the unchanged spec failed 2 of 20 the same way. The handshake gate passed 5 of 5. It failed 10 of 10 with the wait's frame requirement removed, and 10 of 10 with the spec's original wait put back verbatim, each at "the wait returned while frames were held"; the helper was restored byte-identical each time.
 
 2026-11-04, M3, CI. Over 51 runs since the case was split out on 2026-10-14 it took 8.6-20.8 s, median 14.2 s, and its neighbours moved with it: 138 (Natural only) 3.1-6.9 s, 146 (the live switch) 7.3-16.9 s, 185 (boot in Moebius) 7.5-14.6 s.
 

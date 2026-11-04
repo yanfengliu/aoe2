@@ -17,7 +17,7 @@ Base 28186cbc49ae2453f8cc05eb40d830bd84cbf551. Failure artifact 12161172956 ZIP 
 
 ## Hypotheses
 
-- [x] The selected worker is already near or at the first legal anchor (8,6) after 3.29 seconds of gathering travel, yielding no observable moving interval. Confirmed 2026-11-04 (`2026-11-04-hosted-ci-flakes.md`): the worker gathers at (7.25,6.75), 1.06 cells from (8,6), and the walk ended inside Playwright's polls in all three hosted failures.
+- [x] The selected worker is already near or at the first legal anchor (8,6) after 3.29 seconds of gathering travel, yielding no observable moving interval. Confirmed 2026-11-04 (`2026-11-04-hosted-ci-flakes.md`): the worker gathers at (7.25,6.75), 1.06 cells from (8,6), and in the two traced failures the walk ended inside Playwright's polls; the first failure, run 38675522945, shows the same symptom in its log, but its trace has expired.
 - [x] A raised entity intercepts the anchor click. Ruled out 2026-11-04: the third failure's trace shows "Moving", so the move landed, and diagnostic 2's click-stack read at (8,6) was empty.
 
 ## Investigation log
@@ -33,7 +33,7 @@ Base 28186cbc49ae2453f8cc05eb40d830bd84cbf551. Failure artifact 12161172956 ZIP 
 
 ## Root cause
 
-Superseded 2026-11-04; the earlier text read "Unknown. Both approved local controls passed; the delayed control used the hosted anchor and showed an accepted move with a several-tick HUD delay." The cause is now known. The spec asserted states that end with the walk ("Moving", the walking food occupation, and the House order's effect). Its anchor (8,6) is beside the sheep, so a worker that had reached it, as on CI, walked about one cell, and on CI's slow frames the walk ended between Playwright's polls. Run 40960398985's trace shows the third form: "Moving" at +891 ms with food 1, then food 0 at +949 ms. The full account is `2026-11-04-hosted-ci-flakes.md`.
+Superseded 2026-11-04; the earlier text read "Unknown. Both approved local controls passed; the delayed control used the hosted anchor and showed an accepted move with a several-tick HUD delay." The cause is now known. The spec asserted states that end with the walk ("Moving", the walking food occupation, and the House order's effect). Its anchor (8,6) is beside the sheep, so a worker that had reached it, as on CI, walked about one cell, and on CI's slow frames the walk ended between Playwright's polls. Run 40960398985's trace shows the third form: "Moving" at +891 ms with food 1, then food 0 at +936 ms. The full account is `2026-11-04-hosted-ci-flakes.md`.
 
 ## Fix
 

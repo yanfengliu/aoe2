@@ -18,20 +18,28 @@ import { expect, type Page } from '@playwright/test';
  * frame had handed over revision 5). The real click path does not need this:
  * its hit test draws a frame first whenever the hit state is behind.
  *
- * So: a world frame drawn after this call began, and the watermark equal after
- * it. The poll reads only the renderer's state, which syncs nothing.
+ * So the wait needs a world frame drawn after it began, with the runtime running
+ * and the accepted epoch and revision presented after it. That is
+ * `isInteractionReady()` read from outside: the renderer hands over in a frame
+ * only while running, and the runtime returns to running only inside a frame.
+ * The poll reads only the renderer's state, which syncs nothing, so nothing may
+ * force a sync while it runs.
  */
 export async function waitForPresentedHitState(page: Page): Promise<void> {
   const drawnBefore = await page.evaluate(() => window.__AOE2_TEST__!.getWorldRendererState().framesDrawn);
   await expect.poll(() => page.evaluate((since) => {
     const state = window.__AOE2_TEST__!.getWorldRendererState();
+    const metrics = state.metrics;
     return {
       frameDrawnSince: state.framesDrawn > since,
-      presented: state.metrics.acceptedRevision !== null
-        && state.metrics.presentedRevision === state.metrics.acceptedRevision,
+      running: metrics.state === 'running',
+      presented: metrics.acceptedRevision !== null
+        && metrics.acceptedEpoch !== null
+        && metrics.presentedRevision === metrics.acceptedRevision
+        && metrics.presentedEpoch === metrics.acceptedEpoch,
     };
   }, drawnBefore), {
-    message: 'a world frame drawn since the wait began, with the accepted revision presented',
+    message: 'a world frame drawn since the wait began, the runtime running, and the accepted revision presented',
     intervals: [50],
-  }).toEqual({ frameDrawnSince: true, presented: true });
+  }).toEqual({ frameDrawnSince: true, running: true, presented: true });
 }

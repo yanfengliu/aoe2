@@ -1,7 +1,8 @@
 // Bound: real lobby, canvas selection/context clicks and House placement at
 // three HUD widths. No direct command, pause or synthetic simulation stepping.
-// The walk the order test reads is long by construction (MIN_WALK_CELLS); it
-// claims nothing about a walk shorter than its own checks.
+// The order test orders a walk of at least MIN_WALK_CELLS; the time its checks
+// take is not fixed, and a host slow enough to outlast the walk fails the
+// "still walking" check rather than passing.
 import { expect, test, type Page } from '@playwright/test';
 import * as game from './helpers/gameTestHelpers';
 import * as play from './helpers/playOpening';
@@ -13,10 +14,11 @@ import * as play from './helpers/playOpening';
 // three runs saw the walk end between Playwright's polls: "Gathering food" then
 // "Idle" twice, and once "Moving" with food 1 and food 0 45 ms later (work
 // 137). So the move waits for the worker to gather on every host, and its
-// anchor is at least this many cells away. Normal speed runs at most 1.5 game
-// seconds per wall second (the frame delta is capped) and a villager walks 0.8
-// cells a game second, so the walk lasts at least 6.7 s. On CI the Moving
-// check took up to 0.9 s, and a Build House click during a walk 2.2 s.
+// anchor is at least this many cells away. At Normal speed each frame advances
+// the game by at most 1.5 times the wall time since the last one, and a
+// villager walks 0.8 cells a game second, so the walk lasts at least 6.7 s. On
+// CI the Moving check took up to 0.9 s, and a Build House click during a walk
+// 2.2 s.
 const MIN_WALK_CELLS = 8;
 
 /** The activity line and the food worker count in one read, so a check of both
@@ -134,7 +136,9 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
     test.setTimeout(60_000);
     await page.setViewportSize(viewport);
     const errors = play.collectPageErrors(page);
-    await play.startMatchFromLobby(page);
+    const matchUrl = await play.startMatchFromLobby(page);
+    // MIN_WALK_CELLS is worked out at Normal speed.
+    expect(new URL(matchUrl).searchParams.get('speed'), 'the lobby started the match at Normal speed').toBe('normal');
     const food = page.locator('[data-resource-workers="food"]');
     for (const kind of ['food', 'wood', 'gold', 'stone']) {
       await expect(page.locator(`[data-resource-worker-count="${kind}"]`)).toHaveText('0');
@@ -158,6 +162,8 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
     const anchor = await game.findValidPlacementNearTownCenter(page, 'house', 1, [],
       { x: gathering.x, y: gathering.y, distance: MIN_WALK_CELLS });
     await page.keyboard.press('Escape');
+    // A guard on the setup, re-reading where the worker stands: the anchor
+    // the search returned keeps the walk long.
     const start = await workerState(page, villager!.id);
     expect(Math.hypot(anchor.x + 0.5 - start.x, anchor.y + 0.5 - start.y),
       `cells from the worker at (${start.x},${start.y}) to the centre of House anchor (${anchor.x},${anchor.y})`)
@@ -166,11 +172,13 @@ for (const viewport of [{ width: 800, height: 600 }, { width: 1280, height: 720 
     await expect.poll(() => readOrderHud(page)).toEqual({ activity: 'Moving', food: '1' });
     await evidenceScreenshot(page, `h4-${viewport.width}-walk.png`);
     await page.locator('[data-command="build-house"]').click();
-    // The House order has to reach a worker that is still walking: had the
-    // walk ended, the count would read 0 without the order having done it.
+    // The House order has to reach a worker that is still walking, and the 0
+    // has to be the order's: the end of a walk reads "Idle", and only a build
+    // order reads "Building House".
     expect(await readOrderHud(page), 'the worker is still walking as the House is placed')
       .toEqual({ activity: 'Moving', food: '1' });
     await game.clickCell(page, anchor.x, anchor.y);
+    await expect.poll(() => readOrderHud(page)).toEqual({ activity: 'Building House', food: '0' });
     await expect(page.locator('[data-resource-worker-count="food"]')).toHaveText('0');
     await evidenceScreenshot(page, `h4-${viewport.width}-build.png`);
 

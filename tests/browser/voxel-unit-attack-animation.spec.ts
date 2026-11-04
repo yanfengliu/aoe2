@@ -193,6 +193,12 @@ test.describe('voxel unit attack animation', () => {
       attackers.map(({ identity }) => window.__AOE2_TEST__!.inspectVoxelUnitMotion(identity))
     ), immediateAttackers);
 
+    // Null before and after would also be equal, and CI's failure read null:
+    // the frozen pose is compared only once it was read from a presented frame.
+    expect(
+      frozenPresentationBefore.parts.every(({ tool, anchor }) => tool !== null && anchor !== null),
+      'the frozen pose was read from the presented hit state',
+    ).toBe(true);
     expect(frozenPresentationAfter.tick).toBe(frozenPresentationBefore.tick);
     expect(frozenPresentationAfter.revision).toBe(frozenPresentationBefore.revision);
     expect(frozenPresentationAfter.parts).toEqual(frozenPresentationBefore.parts);
