@@ -31,8 +31,8 @@ One milestone, not two: DE's formula needs the attacks split by class for the ba
 - [x] Hand-checked DE values: an Archer on a House 1, a Militia on a Dark Age Town Center 1, a Battering Ram on a Town Center 150, a Villager on a Palisade Wall 4, through the real paths; the old tree gave 4, 4, 127 and 3.
 - [x] A panel census: every unit's and building's panel armor equals the armor its hits meet (`selectionArmorCensus.test.ts`); red with the old panel.
 - [x] A real-click browser check: the Dark Age Town Center's panel reads 3/5 and the Scout Cavalry's 0/2 (`tests/browser/building-armor-panel.spec.ts`); red with the old panel.
-- [x] Before and after captures and a pixel diff confined to the panel's armor rows.
-- [x] Self-play match resolution measured before and after on the gates' seeds and the register's four maps; the coverage lab's census re-recorded with its reason.
+- [x] Before and after captures and a pixel diff confined to the panel's armor rows (`tmp/captures/armor-tc-*` and `armor-scout-*`: 105 and 54 pixels, inside the digits), and for the armor rows' hover text (`armor-tooltip-*`: 1,865 pixels, inside the tooltip's text); at the final revision the two panels are pixel-identical to the after-captures.
+- [x] Self-play match resolution measured before and after on the gates' seeds and the register's four maps; the coverage lab's census re-recorded with its reason. Both were run again on the final code, byte for byte the same.
 - [ ] `npm run verify` green with a certified receipt; an independent review recorded under `reviews/`.
 
 ## Implementation steps

@@ -142,7 +142,7 @@ Both are kept as written, except that each markdown link to an absolute path in 
 
 ## Verification
 
-The repairs were checked on the repaired tree: `npm run content:validate` passed; the nine test files they touch (the census, the Goths, de-parity and Indian building-attack tests, the three technology-CSV tests, the file-size budget and the content test) passed, 76 tests; `npx tsc --noEmit` and `eslint` over the changed files exited 0; the work-document gates passed (5 files, 109 tests). Red proofs are in the table. The full gate on the repair commit and a focused re-review of it (round 2) follow.
+The repairs were checked on the repaired tree: `npm run content:validate` passed; the nine test files they touch (the census, the Goths, de-parity and Indian building-attack tests, the three technology-CSV tests, the file-size budget and the content test) passed, 76 tests; `npx tsc --noEmit` and `eslint` over the changed files exited 0; the work-document gates passed (5 files, 109 tests). Red proofs are in the table. The full gate on the repair commit `16f2ffa4`: `PREVIEW_PORT=4321 npm run verify` exited 0 after a fresh build, and `node scripts/verify-receipt.mjs check` exited 0 on that tree: vitest 5,190 passed and 3 skipped, Playwright 273 passed and 2 skipped. Round 2 re-reviewed these repairs.
 
 ## Round outcome
 

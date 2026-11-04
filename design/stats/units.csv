@@ -19,7 +19,7 @@
 # Attacks against buildings (the attack_bonus column's buildings, standard buildings, stone defense, walls & gates and castle tokens: DE classes 11, 21, 13, 22 and 26)
 # SOURCED 2026-11-04 (work 140) from the same pinned DE revision, data.Unit Attacks. Infantry and the War Wagon attack Standard Buildings (every building but the Wonder),
 # not Buildings; DE's War Galley, Galleon and Longboat lines, rams, Scorpions, War Elephants and War Wagons differed from the earlier transcription.
-# The rams' fully-garrisoned figures were dropped: the pinned dataset has none, and garrisoned-ram damage is not modelled. Siege Engineers multiplies the buildings token only (DE effect 375).
+# The rams' fully-garrisoned figures were dropped: the pinned dataset has none, and garrisoned-ram damage is not modelled. Siege Engineers multiplies the buildings token alone, x1.2, but for the Petard's buildings, walls & gates and castle tokens and the Demolition Ships' buildings token, x1.4 (DE effect 375).
 # A '+N melee' token is a second base attack in the melee family beside a pierce one: DE gives the Scorpion and Chu Ko Nu lines a melee 0 (work 140, review F0); the Fire Ships' '+1 melee' was an older DE revision's and is dropped.
 # tests/content/fixtures/deBuildingCombat.json pins every value; tests/content/buildingCombatStats.test.ts holds the fixture, this file and the runtime table together.
 name, description, expansion, age, created_in, cost, build_time, reload_time, attack_delay, movement_rate, line_of_sight, hit_points, range, attack, armor, attack_bonus, armor_bonus, search_radius, accuracy, blast_radius
