@@ -204,18 +204,17 @@ describe('ci.yml: the unit suite is split with nothing left over, on both runner
 });
 
 /**
- * The logical lines of a PowerShell `run:` block (a trailing backtick joins a
- * line to the next) that name npm or npx anywhere and hold a bare `--`. The
- * whole line is read rather than one parsed command, so a quoted `& 'npm'`, a
- * subexpression before the `--`, an npm held in a variable and a string handed
- * to Invoke-Expression are all caught (review rounds 0 and 1, F1). The price is
- * that a bare `--` belonging to another command on such a line fails too; it is
- * quoted the same way.
+ * Whether a PowerShell `run:` block names npm or npx anywhere and holds a bare
+ * `--` anywhere. The whole block is the unit, not a line or a parsed command:
+ * PowerShell lets one command span lines in more ways than a pattern follows
+ * (a backtick, an open `$(` or `(`, a call operator on its own line), and
+ * three rounds of review each found one (rounds 0-2, F1). The price is that a
+ * bare `--` in such a block fails even when it belongs to another command, a
+ * comment or a string: quote it, or give that command a step of its own. An
+ * npm the block never names (an alias, a script that calls it) is not seen.
  */
-function bareDoubleDashNpmLines(run: string): string[] {
-  return run.replace(/`\r?\n/g, ' ').split(/\r?\n/)
-    .filter((line) => /\b(?:npm|npx)\b/i.test(line) && /(?:^|\s)--(?:\s|$)/.test(line))
-    .map((line) => line.trim());
+function holdsBareDoubleDashNpm(run: string): boolean {
+  return /\b(?:npm|npx)\b/i.test(run) && /(?:^|\s)--(?:\s|$)/.test(run);
 }
 
 // Found 2026-11-05, before the split first ran: an npm.ps1 that hands node its
@@ -239,7 +238,7 @@ describe('ci.yml: what follows `--` reaches the npm script on windows-latest too
         const shell = step.shell ?? job.defaults?.run?.shell ?? workflow.defaults?.run?.shell ?? 'pwsh';
         if (step.run === undefined || !/^(?:pwsh|powershell)\b/.test(shell)) continue;
         read += 1;
-        for (const line of bareDoubleDashNpmLines(step.run)) offenders.push(`${key} › ${step.name ?? '(unnamed step)'}: ${line}`);
+        if (holdsBareDoubleDashNpm(step.run)) offenders.push(`${key} › ${step.name ?? '(unnamed step)'}: ${step.run.trim()}`);
       }
     }
     expect(read, 'no Windows step runs under PowerShell, so this check read nothing').toBeGreaterThan(0);
