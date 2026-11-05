@@ -6,7 +6,7 @@ This changelog lists user-visible behavior changes only. Pure refactors and docu
 
 Space, Home, the game-speed and zoom keys and Shift+Delete take Definitive Edition's (DE's) default meanings, from the default key profile in DE's own files.
 
-- **Space goes to the selected object.** It centres the camera on the selected unit, resource or building. In the replay viewer it still plays and pauses.
+- **Space goes to the selected object.** It centres the camera on the selected unit, resource or building, another player's unit only while you or an ally can see it. In the replay viewer it still plays and pauses.
 - **Home goes to the last notification**, the last place your town was attacked, which Space did before. In the replay viewer it still jumps to the start.
 - **The numpad's + and − set the game speed.** The main row's − no longer does.
 - **Ctrl+= and Ctrl+− zoom** in and out by one mouse-wheel notch, and **Ctrl+Backspace** returns to the starting zoom. Outside a text field these keys no longer zoom the browser page; Ctrl with the numpad's + and − still does.
