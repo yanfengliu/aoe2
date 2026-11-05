@@ -228,6 +228,34 @@ describe('voxel selection controller', () => {
         ),
     ).toHaveLength(6);
   });
+
+  // Work 142 named a group of villagers and a sheep by its count, so its
+  // selection type is null; the villager rule above must still hold for it,
+  // since a sheep only walks (review round 0).
+  it('lets villagers grouped with a sheep act through a friendly villager in front of the target', () => {
+    const bridge = createSimulationBridge('selection-controls-fixture');
+    const displayed = bridge.getRenderState().entities;
+    const inFront = displayed.find((entity) => entity.entityType === 'villager' && Math.floor(entity.x) === 3)!;
+    const target = displayed.find((entity) => entity.entityType === 'sheep' && Math.floor(entity.x) === 7)!;
+    const controller = createVoxelSelectionController({
+      isActive: () => true,
+      getBridge: () => bridge,
+      getDisplayedEntities: () => displayed,
+      getVoxelHitEntities: () => [inFront, target],
+      getViewIsoBounds: () => WHOLE_FIXTURE_ON_SCREEN,
+    });
+
+    expect(bridge.selectUnitsInBox(13, 7, 15, 8)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({ selectedCount: 4, selectedEntityType: null });
+    expect(controller.issueContextCommandAtWorldPosition(7.5, 7.5, 0, 0)).toBe(true);
+
+    bridge.step(100);
+    const villagers = bridge.getSelectionState().selectedEntityIds
+      .filter((id) => bridge.world.getComponent(id, 'unit') !== undefined);
+    expect(villagers).toHaveLength(3);
+    expect(villagers.map((id) => bridge.world.getComponent<{ targetResourceId: number | null }>(id, 'gatherer')?.targetResourceId))
+      .toEqual([target.id, target.id, target.id]);
+  });
 });
 
 // Work 142: a double-click is two quick clicks at ONE place, and it takes the
@@ -260,14 +288,14 @@ describe('voxel selection controller: a double-click is two clicks at one place,
   }
 
   it('reads two quick clicks on two villagers in one cell, apart on screen, as two clicks', () => {
-    const shared = (entity: ProjectedEntityView): boolean => Math.floor(entity.x) === 3 && Math.floor(entity.y) === 10;
+    const shared = (entity: ProjectedEntityView): boolean => Math.floor(entity.x) === 3 && Math.floor(entity.y) === 8;
     const pair: ProjectedEntityView[] = [];
     const { bridge, controller, villagers } = controlsFixture((isoX) => [pair[isoX < 10 ? 0 : 1]!]);
     pair.push(...villagers.filter(shared));
     expect(pair).toHaveLength(2);
-    // Both clicks invert to cell (3,10); they are 20 iso px apart.
-    expect(controller.selectEntityAtWorldPosition(3.5, 10.5, 0, 0, 1_000)).toBe(true);
-    expect(controller.selectEntityAtWorldPosition(3.6, 10.6, 20, 0, 1_050)).toBe(true);
+    // Both clicks invert to cell (3,8); they are 20 iso px apart.
+    expect(controller.selectEntityAtWorldPosition(3.5, 8.5, 0, 0, 1_000)).toBe(true);
+    expect(controller.selectEntityAtWorldPosition(3.6, 8.6, 20, 0, 1_050)).toBe(true);
     expect(bridge.getSelectionState()).toMatchObject({ selectedCount: 1, selectedEntityIds: [pair[1]!.id] });
   });
 
@@ -293,6 +321,32 @@ describe('voxel selection controller: a double-click is two clicks at one place,
     const selected = bridge.getSelectionState().selectedEntityIds;
     expect(selected).not.toContain(offScreen.id);
     expect([...selected].sort()).toEqual(villagers.filter((entity) => entity.id !== offScreen.id).map((entity) => entity.id).sort());
+  });
+
+  // Review round 0: "on screen" is the drawn body, not the box's circle at the
+  // feet. A villager whose feet are 15 iso px below the bottom edge shows its
+  // body, which reaches more than 20 px above its feet (selectionMembers.test.ts).
+  it('takes a villager whose feet are below the bottom edge while its body is on screen', () => {
+    const under: ProjectedEntityView[] = [];
+    let view = VIEW;
+    const bridge = createSimulationBridge('selection-controls-fixture');
+    const displayed = bridge.getRenderState().entities;
+    const controller = createVoxelSelectionController({
+      isActive: () => true,
+      getBridge: () => bridge,
+      getDisplayedEntities: () => displayed,
+      getVoxelHitEntities: () => under,
+      getViewIsoBounds: () => view,
+    });
+    const at = (x: number, y: number) => displayed.find((entity) => entity.entityType === 'villager' && Math.floor(entity.x) === x && Math.floor(entity.y) === y)!;
+    const target = at(13, 7);
+    const below = at(14, 7);
+    const belowFeetY = (below.x + 0.5 + below.y + 0.5) * 16;
+    view = { minX: -1000, minY: 0, maxX: 1000, maxY: belowFeetY - 15 };
+    under.push(target);
+    expect(controller.selectEntityAtWorldPosition(target.x + 0.5, target.y + 0.5, 0, 0, 1_000)).toBe(true);
+    expect(controller.selectEntityAtWorldPosition(target.x + 0.5, target.y + 0.5, 0, 0, 1_050)).toBe(true);
+    expect(bridge.getSelectionState().selectedEntityIds).toContain(below.id);
   });
 });
 

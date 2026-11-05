@@ -70,36 +70,47 @@ const carcass = (animal: ProjectedEntityView): ProjectedEntityView => ({
   wildlifeAlive: false,
 });
 
+// Every live animal kind, standing where the fixture's sheep stands: a wild
+// one is nobody's (review round 0 found only the sheep tested).
+function animalAsKind(sheep: ProjectedEntityView, kind: 'sheep' | 'boar' | 'deer' | 'wolf'): ProjectedEntityView {
+  return kind === 'sheep' ? sheep : { ...sheep, entityType: kind, owner: null, wildlifeAlive: true };
+}
+
 describe('a live animal is a unit for the behind-building outline and the hit test', () => {
-  it('draws a sheep the Town Center hides as an outline, and never a carcass there', () => {
-    const { townCenter, sheep } = fixtureViews();
-    const live = computeOcclusionSilhouettes([overlay(townCenter), overlay(sheep)]);
-    expect(live.occluded.map((unit) => unit.id)).toEqual([sheep.id]);
-    expect(live.parts.length).toBeGreaterThan(0);
-    const dead = computeOcclusionSilhouettes([overlay(townCenter), overlay(carcass(sheep))]);
-    expect(dead.occluded).toEqual([]);
-  });
+  for (const kind of ['sheep', 'boar', 'deer', 'wolf'] as const) {
+    it(`draws a live ${kind} the Town Center hides as an outline`, () => {
+      const { townCenter, sheep } = fixtureViews();
+      const animal = animalAsKind(sheep, kind);
+      const live = computeOcclusionSilhouettes([overlay(townCenter), overlay(animal)]);
+      expect(live.occluded.map((unit) => unit.id)).toEqual([animal.id]);
+      expect(live.parts.length).toBeGreaterThan(0);
+    });
 
-  it('lets the sheep\'s drawn body outrank the Town Center in front of it, for a click and a command', () => {
-    const { townCenter, sheep } = fixtureViews();
-    const points = coveredBodyPoints(sheep, townCenter);
-    expect(points.length, 'the fixture no longer hides the sheep behind the Town Center').toBeGreaterThan(0);
-    const prepared = [townCenter, sheep].map((entity) => prepareVoxelHitEntity(
-      entity,
-      staticVoxelPartsForEntity(entity, `${String(entity.id)}:${String(entity.generation)}`),
-    ));
-    for (const purpose of ['selection', 'command'] as const) {
-      for (const point of points) {
-        expect(findVoxelEntitiesAtIsoPoint([townCenter, sheep], point.x, point.y, purpose)[0]?.id).toBe(sheep.id);
-        expect(findPreparedVoxelEntitiesAtIsoPoint(prepared, point.x, point.y, purpose, 0)[0]?.id).toBe(sheep.id);
+    it(`lets a live ${kind}'s drawn body outrank the Town Center in front of it, for a click and a command`, () => {
+      const { townCenter, sheep } = fixtureViews();
+      const animal = animalAsKind(sheep, kind);
+      const points = coveredBodyPoints(animal, townCenter);
+      expect(points.length, `the Town Center no longer hides a ${kind} on the sheep's cell`).toBeGreaterThan(0);
+      const prepared = [townCenter, animal].map((entity) => prepareVoxelHitEntity(
+        entity,
+        staticVoxelPartsForEntity(entity, `${String(entity.id)}:${String(entity.generation)}`),
+      ));
+      for (const purpose of ['selection', 'command'] as const) {
+        for (const point of points) {
+          expect(findVoxelEntitiesAtIsoPoint([townCenter, animal], point.x, point.y, purpose)[0]?.id).toBe(animal.id);
+          expect(findPreparedVoxelEntitiesAtIsoPoint(prepared, point.x, point.y, purpose, 0)[0]?.id).toBe(animal.id);
+        }
       }
-    }
-  });
+    });
+  }
 
-  it('leaves a carcass under the building drawn in front of it', () => {
+  it('neither outlines a carcass nor lets it outrank the building drawn in front of it', () => {
     const { townCenter, sheep } = fixtureViews();
     const dead = carcass(sheep);
-    for (const point of coveredBodyPoints(dead, townCenter)) {
+    expect(computeOcclusionSilhouettes([overlay(townCenter), overlay(dead)]).occluded).toEqual([]);
+    const points = coveredBodyPoints(dead, townCenter);
+    expect(points.length, 'the Town Center no longer hides a carcass on the sheep\'s cell').toBeGreaterThan(0);
+    for (const point of points) {
       expect(findVoxelEntitiesAtIsoPoint([townCenter, dead], point.x, point.y, 'selection')[0]?.id).toBe(townCenter.id);
     }
   });

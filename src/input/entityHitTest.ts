@@ -1,4 +1,4 @@
-import { isUnitLikeView } from '../game/simulation/liveAnimal';
+import { isLiveAnimalView } from '../game/simulation/liveAnimal';
 import { HUMAN_PLAYER_ID } from '../game/simulation/prototypeScenario';
 import type { ProjectedEntityView, RenderState, ResourceKind } from '../game/simulation/types';
 import { worldToIso } from '../rendering/isometricProjection';
@@ -10,10 +10,14 @@ const LAYER_PRIORITY: Record<ProjectedEntityView['kind'], number> = {
   unit: 3,
 };
 
-// The layer a click ranks an entity on. A live animal ranks as the unit it is
-// in DE, above the building drawn in front of it (work 142, liveAnimal.ts).
+// The layer a click ranks an entity on. A live animal is a unit in DE, so it
+// outranks the building drawn in front of it (work 142, liveAnimal.ts). It
+// stays under a unit at the same point, as every animal did before: which of
+// two units drawn at one point DE takes is unsourced, so that order is kept.
+const LIVE_ANIMAL_LAYER = (LAYER_PRIORITY.building + LAYER_PRIORITY.unit) / 2;
+
 export function hitLayer(entity: ProjectedEntityView): number {
-  return isUnitLikeView(entity) ? LAYER_PRIORITY.unit : LAYER_PRIORITY[entity.kind];
+  return isLiveAnimalView(entity) ? LIVE_ANIMAL_LAYER : LAYER_PRIORITY[entity.kind];
 }
 const UNIT_COMMAND_TARGET_PADDING_CELLS = 0.18;
 

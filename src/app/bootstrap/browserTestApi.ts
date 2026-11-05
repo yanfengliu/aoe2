@@ -167,6 +167,8 @@ export interface BrowserTestApi {
    *  optional-chaining at every call site. */
   replay: BrowserTestReplayApi;
   getSelectionBoxState(): SelectionBoxState | null;
+  /** The ground order (A, P, G) the next left click spends, or null. */
+  getArmedGroundOrder(): 'attack-move' | 'patrol' | 'attack-ground' | null;
   getPlacementPreviewState(): PlacementPreviewViewState | null;
   getPlacementPreviewVisualState(): PlacementPreviewVisualState | null;
   getPlacementPreviewAt(cellX: number, cellY: number): PlacementPreviewState | null;
@@ -314,6 +316,7 @@ export function installBrowserTestApi(
     },
     captureWorldFrame: () => view.getWorldCapture(),
     getSelectionBoxState: () => view.getSelectionBoxState(),
+    getArmedGroundOrder: () => view.armedGroundOrder(),
     getPlacementPreviewState: () => {
       view.syncFromBridge(true);
       return view.getPlacementPreviewState();

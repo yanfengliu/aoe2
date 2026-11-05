@@ -18,7 +18,8 @@ import {
 import type { VoxelHitPurpose } from '../rendering/voxel/aoeVoxelHitProxy';
 import { worldToIso } from '../rendering/isometricProjection';
 import { isUnitType } from './unitTypeMap';
-import { isDragSelectableEntity, marqueePreviewEntities } from '../rendering/isoViewHelpers';
+import { isDragSelectableEntity } from '../rendering/isoViewHelpers';
+import { isDrawnInView, isVillagerGroup } from './selectionMembers';
 import {
   CELL_SIZE,
   DOUBLE_CLICK_WINDOW_MS,
@@ -250,7 +251,7 @@ export function createVoxelSelectionController(
       ? []
       : deps.getVoxelHitEntities(isoX, isoY, 'command');
     const displayedTargetEntity = (
-      chooseVillagerContextTarget(voxelTargets, getBridge().getSelectionState())
+      chooseVillagerContextTarget(voxelTargets, getBridge().getSelectionState(), displayed)
     ) ?? findCommandTargetEntityAtWorldPointInEntities(
       displayed,
       worldX * CELL_SIZE,
@@ -292,9 +293,10 @@ export function createVoxelSelectionController(
   // same point uses, not merely in one ground cell — two quick clicks on two
   // villagers standing in one cell are two clicks (work 142; DE's own rule is
   // unsourced, and the platform's double-click rectangle is a few pixels). The
-  // pair takes every unit of the type that a box over the whole view would
-  // take: the units drawn on screen, as DE's double-click does, and not the
-  // cell box of the view's corners, which reaches past every edge.
+  // pair takes every unit of the type with any part of its body drawn inside
+  // the view, as DE's double-click takes the units on screen; not the cell box
+  // of the view's corners, which reaches past every edge, nor the box's circle
+  // at the feet, which misses a body standing over the bottom edge.
   function trySelectSameTypeOnDoubleClick(
     isoX: number,
     isoY: number,
@@ -311,12 +313,10 @@ export function createVoxelSelectionController(
 
     const sameType = (entity: ProjectedEntityView): boolean => entity.entityType === recentClick.unitType
       && (recentClick.unitType === 'sheep' ? entity.kind === 'resource' : entity.kind === 'unit');
-    const onScreen = marqueePreviewEntities(
-      getDisplayedEntities(),
-      deps.getViewIsoBounds(),
-      (entity) => isDragSelectableEntity(entity, HUMAN_PLAYER_ID) && sameType(entity),
-      CELL_SIZE,
-    );
+    const view = deps.getViewIsoBounds();
+    const onScreen = getDisplayedEntities()
+      .filter((entity) => isDragSelectableEntity(entity, HUMAN_PLAYER_ID) && sameType(entity) && isDrawnInView(entity, view))
+      .sort((left, right) => left.y - right.y || left.x - right.x || left.id - right.id);
     return getBridge().selectUnitsByIds(onScreen.map((entity) => entity.id));
   }
 
@@ -402,9 +402,12 @@ function orderCurrentSelectionCycleEntities(
 function chooseVillagerContextTarget(
   rawHits: readonly ProjectedEntityView[],
   selectionState: SelectionState,
+  displayed: readonly ProjectedEntityView[],
 ): ProjectedEntityView | null {
   const firstHit = rawHits[0] ?? null;
-  if (selectionState.selectedEntityType !== 'villager') {
+  // The members, not the group's type: villagers with a sheep among them are
+  // a group with no type since work 142, and still a villager group here.
+  if (!isVillagerGroup(selectionState.selectedEntityIds, displayed)) {
     return firstHit;
   }
 

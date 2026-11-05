@@ -262,6 +262,8 @@ export class AoeVoxelGameView {
   armAttackMove(): void { this.groundOrder.arm('attack-move'); }
   armPatrol(): void { this.groundOrder.arm('patrol'); }
   armAttackGround(): void { this.groundOrder.arm('attack-ground'); }
+  /** What the next left click spends, if anything: a test reads it (work 142). */
+  armedGroundOrder(): ReturnType<ArmedGroundOrder['get']> { return this.groundOrder.get(); }
 
   centerCameraOnWorldPosition(worldX: number, worldY: number): void {
     this.camera.centerOnWorldPosition(worldX, worldY);

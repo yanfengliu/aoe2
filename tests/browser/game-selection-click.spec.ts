@@ -4,6 +4,8 @@ import * as game from './helpers/gameTestHelpers';
 test.describe('browser gameplay smoke tests - selection: click', () => {
   test('selects a town center by clicking its raised voxel tower roof', async ({ page }) => {
     await game.waitForPausedBootWithSeed(page, 'voxel-raised-picking');
+    // The click stack is read off the presented frame, so wait for one.
+    await game.waitForRenderedFrames(page, 2);
     const target = await page.evaluate(() => {
       const api = window.__AOE2_TEST__!;
       const building = api.getRenderState().entities.find((entity) => (
@@ -12,18 +14,28 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
         && entity.entityType === 'town-center'
         && !entity.isMemory
       ));
-      const camera = api.getCameraState();
-      if (!building || !camera) return null;
-      const groundCenter = api.worldToScreen(
-        building.x + building.footprintWidth / 2 - 0.5,
-        building.y + building.footprintHeight / 2 - 0.5,
-      );
+      if (!building) return null;
+      // The roof line 2.61 world units above the footprint's middle. Since
+      // work 142 a live animal is drawn and clicked as the unit it is in DE,
+      // and this map's sheep stands behind the middle of that line, so the
+      // click takes the nearest point of it where only the Town Center is
+      // drawn, read off the click stack (which selects nothing).
       const verticalPixelsPerWorldUnit = 64 / Math.SQRT2 * Math.sqrt(1 - (32 / 64) ** 2);
-      return {
-        id: building.id,
-        x: groundCenter.x,
-        y: groundCenter.y - 2.61 * verticalPixelsPerWorldUnit * camera.zoom,
-      };
+      const middle = { x: building.x + building.footprintWidth / 2, y: building.y + building.footprintHeight / 2 };
+      const roofY = -2.61 * verticalPixelsPerWorldUnit;
+      const worldAt = (isoX: number) => ({
+        x: middle.x + (isoX / 32 + roofY / 16) / 2,
+        y: middle.y + (roofY / 16 - isoX / 32) / 2,
+      });
+      const roofOnly = [0, ...Array.from({ length: 20 }, (_unused, step) => [(step + 1) * 2, -(step + 1) * 2]).flat()]
+        .find((isoX) => {
+          const point = worldAt(isoX);
+          const stack = api.getClickStackAtWorldPosition(point.x, point.y);
+          return stack.length > 0 && stack.every((entity) => entity.id === building.id);
+        });
+      if (roofOnly === undefined) return null;
+      const point = worldAt(roofOnly);
+      return { id: building.id, ...api.worldToScreen(point.x - 0.5, point.y - 0.5) };
     });
     expect(target).not.toBeNull();
     const resolved = target!;
@@ -171,9 +183,10 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
           y: ground.y + (halfSum - halfDifference) / 2,
         };
       };
-      // Four clicks here would read militia, house, sheep, militia exactly
+      // Four clicks here would read militia, sheep, house, militia exactly
       // when the distinct kind, type and owner groups under the point, front
-      // first, are those three:
+      // first, are those three (the sheep ahead of the house since work 142,
+      // which ranks a live animal over a building, as the unit it is in DE):
       // the walk visits each distinct kind, type and owner once, in the order
       // the click stack lists them, and wraps. So this is the four clicks'
       // verdict, read without selecting anything.
@@ -186,7 +199,7 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
           const group = `${entity.kind}:${entity.entityType}:${String(entity.owner ?? 'neutral')}`;
           if (!groups.includes(group)) groups.push(group);
         }
-        return groups.join(',') === 'unit:militia:1,building:house:1,resource:sheep:1';
+        return groups.join(',') === 'unit:militia:1,resource:sheep:1,building:house:1';
       };
 
       // Up the militia's body: its voxels are drawn straight up the screen
@@ -295,10 +308,10 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
     await expectSelected('militia', 'Militia');
 
     expect(await clickStackPoint()).toBe(true);
-    await expectSelected('house', 'House');
+    await expectSelected('sheep', 'Sheep');
 
     expect(await clickStackPoint()).toBe(true);
-    await expectSelected('sheep', 'Sheep');
+    await expectSelected('house', 'House');
 
     expect(await clickStackPoint()).toBe(true);
     await expectSelected('militia', 'Militia');

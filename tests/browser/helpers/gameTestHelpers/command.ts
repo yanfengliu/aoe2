@@ -7,9 +7,12 @@ import type { ScreenPoint } from './types';
 // unit's id: a unit is drawn on the sub-cell slot its id picks (id mod 16,
 // `worldOccupancy.ts`), up to three quarters of a cell off the centre, and a
 // fixture that gains an entity moves it (lessons, 2026-09-26; gate-proofs,
-// work 142). So this refuses a left click on a cell a unit stands on, unless
-// a building placement is armed, when the click places and selects nothing.
-// Click the unit where the page draws it with `clickUnit`.
+// work 142). So this refuses a left click on a cell a unit the page draws
+// stands on, unless the click selects nothing: a building placement or a
+// ground order (A, P, G) armed, when the click places or orders. Click the
+// unit where the page draws it with `clickUnit`. BOUND: the cells are read
+// before the click, so a unit walking into or out of the cell in between is
+// outside this.
 export async function clickCell(
   page: Page,
   cellX: number,
@@ -19,8 +22,10 @@ export async function clickCell(
   if (button === 'left') {
     const standing = await page.evaluate(({ x, y }) => {
       const api = window.__AOE2_TEST__!;
-      if (api.getSelectionState().placementMode !== null) return null;
-      const unit = api.getEconomyState().units.find((candidate) => candidate.x === x && candidate.y === y);
+      if (api.getSelectionState().placementMode !== null || api.getArmedGroundOrder() !== null) return null;
+      const drawn = new Set(api.getDisplayedEntities().filter((entity) => entity.kind === 'unit').map((entity) => entity.id));
+      const unit = api.getEconomyState().units
+        .find((candidate) => candidate.x === x && candidate.y === y && drawn.has(candidate.id));
       return unit === undefined ? null : { id: unit.id, unitType: unit.unitType };
     }, { x: cellX, y: cellY });
     if (standing !== null) {

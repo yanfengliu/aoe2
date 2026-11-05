@@ -14,8 +14,8 @@ import { HUMAN_PLAYER_ID } from '../game/simulation/prototypeScenario';
 import { createGameAudioController } from './gameAudioController';
 import { playProceduralCue } from './proceduralVoices';
 import { startAmbience, type AmbienceHandle } from './proceduralAmbience';
-import { unitRole } from '../rendering/roles/unitRole';
-import type { UnitType } from '../game/simulation/types';
+import { primarySelectionRole } from './primarySelectionRole';
+import type { UnitComponent } from '../game/simulation/types';
 import { IDLE_BELL_BAR_GAP_PX } from '../ui/hud/idleVillagerBell';
 
 export interface MountedGameAudio {
@@ -93,13 +93,11 @@ export function mountGameAudio(
     },
     getTownBellRings: () => bridgeRef().getTownBellRings(),
     getOrderAcks: () => bridgeRef().getOrderAcks(),
-    getPrimarySelection: () => {
-      const selection = bridgeRef().getSelectionState();
-      const id = selection.selectedEntityId;
-      if (id === null || selection.selectedKind !== 'unit') return null;
-      const role = unitRole(selection.selectedEntityType as UnitType);
-      return role ? { id, role } : null;
-    },
+    // The primary unit's own voice, not the group's type (work 142).
+    getPrimarySelection: () => primarySelectionRole(
+      bridgeRef().getSelectionState(),
+      (id) => bridgeRef().world.getComponent<UnitComponent>(id, 'unit')?.unitType,
+    ),
     getCountdownActive: () => {
       const match = bridgeRef().getMatchState();
       return match.wonderCountdownTicks !== null || match.relicCountdownTicks !== null;

@@ -127,8 +127,34 @@ test.describe('selection and targeting as in DE (work 142)', () => {
 
   test('a box never takes another player\'s unit, a wild animal, a tree or a building', async ({ page }) => {
     await game.waitForPausedBootWithSeed(page, SEED);
-    const [villager] = await unitIdAt(page, 1, 'villager', SELECTION_CONTROLS_MIXED_BOX.villager);
-    await game.dragSelectWorldRect(page, 5, 12, 7, 14);
+    const mixed = SELECTION_CONTROLS_MIXED_BOX;
+    const [villager] = await unitIdAt(page, 1, 'villager', mixed.villager);
+    // Each of the others stands where the box would take it if it took its
+    // kind: its centre, the point the marquee tests, is inside the box's
+    // screen rectangle (review round 0 found the building outside it).
+    const box = { x0: 5, y0: 11, x1: 8, y1: 14 };
+    const inside = await page.evaluate(({ box, mixed }) => {
+      const api = window.__AOE2_TEST__!;
+      const corners = [[box.x0, box.y0], [box.x1, box.y0], [box.x0, box.y1], [box.x1, box.y1]]
+        .map(([x, y]) => api.worldToScreen(x! - 0.5, y! - 0.5));
+      const xs = corners.map((corner) => corner.x);
+      const ys = corners.map((corner) => corner.y);
+      const economy = api.getEconomyState();
+      const ids = [
+        economy.units.find((unit) => unit.owner === 2 && unit.x === mixed.enemyVillager.x && unit.y === mixed.enemyVillager.y)?.id,
+        economy.resources.find((resource) => resource.resourceType === 'boar' && resource.x === mixed.boar.x && resource.y === mixed.boar.y)?.id,
+        economy.resources.find((resource) => resource.resourceType === 'tree' && resource.x === mixed.tree.x && resource.y === mixed.tree.y)?.id,
+        economy.buildings.find((building) => building.buildingType === 'house' && building.x === mixed.house.x && building.y === mixed.house.y)?.id,
+      ];
+      return ids.map((id) => {
+        const shown = api.getDisplayedEntities().find((entity) => entity.id === id);
+        if (shown === undefined) return `${String(id)} not drawn`;
+        const point = api.worldToScreen(shown.x, shown.y);
+        return point.x >= Math.min(...xs) && point.x <= Math.max(...xs) && point.y >= Math.min(...ys) && point.y <= Math.max(...ys);
+      });
+    }, { box, mixed });
+    expect(inside, 'the other player\'s villager, the boar, the tree and the House stand inside the box').toEqual([true, true, true, true]);
+    await game.dragSelectWorldRect(page, box.x0, box.y0, box.x1, box.y1);
     await page.mouse.up({ button: 'left' });
 
     await expect(page.locator('[data-selection-name]')).toHaveText('Villager');
