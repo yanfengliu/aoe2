@@ -63,9 +63,10 @@ Not in scope: the AI (work 141), HUD restyling beyond these behaviours, civ-engi
 - [x] Implement; adapt existing tests whose meaning changed, with reasons.
 - [x] The click-unit gate and its red proof.
 - [x] Captures and pixel diffs; full gate; review rounds 0-2; records; phase-1 handoff.
-- [ ] Phase 2, on the coordinator's "accepted, land it": lock, merge main, version, verify, push, CI, close this plan, queue the findings below in plan 106, retire the worktrees.
+- [x] Phase 2 for M1: Moebius and random-view checks, lock, version 0.3.261, verify, push, findings queued in plan 106, worktrees retired.
+- [ ] M2: the villager's command card and DE's default hotkeys, for a fresh worker (starting state below).
 
-### Owner decisions waiting (unsourced rules; each took the closest sourced behaviour)
+### Owner decisions waiting (unsourced rules; each took the closest sourced behaviour; also one line in plan 106's "Owner decisions waiting")
 
 1. Two quick clicks on two different units: does DE read them as a double-click? Here they are two clicks unless the second is within 4 iso pixels (4.8 screen pixels at the boot zoom) of the first, the platform's rule. A short test in DE: two quick clicks on two villagers standing side by side.
 2. A gather point set on a sheep that is then moved: does DE's flag follow the sheep, and what do the next villagers do when that sheep is eaten up? Here the gather point is the cell where it was set; following the sheep would change the saved rally point.
@@ -74,17 +75,24 @@ Not in scope: the AI (work 141), HUD restyling beyond these behaviours, civ-engi
 5. Easy Drag Military and Selection Modifier Hotkeys: off on a fresh install? Inferred from the official lesson, which describes the default game.
 6. The outline colour of a wild animal behind a building: here the not-yours colour, as for any unit nobody owns.
 
-### Found here, not in M1's scope (for plan 106's queue at landing, tagged "(work 142)")
+### Found here, not in M1's scope (queued in plan 106, tagged "(work 142)")
 
 - DE caps a selection at 60 units (forum thread 226116, 2023); this game has no cap, and which units DE keeps when a box holds more is unsourced.
 - DE's Shift+click and Shift+drag add to the selection ("Learn to play", Lesson 1); here neither does, and Ctrl+click does nothing.
 - DE's group panel shows one icon per unit with its hit-point bar; clicking one selects only that unit, Ctrl+click drops it, Shift+click keeps its type and Ctrl+Shift+click drops its type (Lesson 5; strings 43121-43122). Here the panel shows one chip per type with a count and no hit points.
 - A building's gather point is not drawn at all; DE draws a flag (strings 3720 and 4144).
 
-### For M2 (whoever takes it)
+### M2 starting state (for a fresh worker)
+
+The brief's items 6 and 7, unchanged: the villager's command card as DE's (DE villagers have no stance or formation buttons; check every unit and building card against DE and report what differs rather than fixing what is out of scope), and DE's default hotkeys (the command grid, such as Q for a Villager at the Town Center, and the common global keys, each sourced). If hotkeys need saved settings or a settings screen, that is a persistent format: report to the coordinator before adding one.
+
+Seen on main before M1 (2026-11-04, lobby defaults, 1280x720): a selected villager shows STANCE (four buttons) and FORMATION (four) beside BUILD; no key trains a Villager at the Town Center. Where the code is: the options come from `src/game/simulation/bridge/selectionStateOps.ts` (`stanceOptions` and `formationOptions` for any owned unit), the card is drawn by `src/ui/hud/selectionPanel.ts` and `selectionPanel/` (`render.ts` has the stance and formation buttons), and the keys are registered in `src/app/bootstrap/createApp.ts` (A, P, G), `dePlayHotkeys.ts` (H, comma, F3, plus and minus, Space) and `selectionRecallHotkeys.ts` (control groups, period). `createApp.ts` and `AoeVoxelGameView.ts` are within a few lines of the 500-line cap.
+
 
 DE's default hotkeys are in the install's `resources/_common/dat/hotkeys.json`: each shared entry's `defaults_list` holds the `definitive` profile's key, and `name_string_id` names it in `resources/en/strings/key-value/key-value-strings-utf8.txt`. Shared groups include `GAME_COMMAND_HOTKEYS`, `CYCLE_COMMAND_HOTKEYS` (`NEXT_IDLE_VILLAGER` is `VK_OEM_PERIOD`) and `GROUP_COMMAND_HOTKEYS`; `hotkey_group_list` holds 27 per-card groups, among them `VILLAGER_HOTKEYS` (37 entries) and `TOWN_CENTER_HOTKEYS` (18), whose entries are shaped differently from the shared ones. The options screen (`widgetui/screenoptions.json`) lists "Selection Modifier Hotkeys" and "Shift Group Appending" as checkboxes with no default given.
 
 ## Outcome
 
-Phase 1 (2026-11-04): the branch `selection-controls-1104` holds commits `fed8203e` (as reviewed in round 0), `a51123f2` (round-0 repairs), `fd2632ea` (merge of main `496ee0e9`, v0.3.260), `30d551a8` (round-1 repairs), `c508452c` (round-2 repair), `f5bcf254` (merge of main `6880d69e`) and this record. Full gate on `f5bcf254`: vitest 5,230 passed and 3 skipped, Playwright 281 passed and 2 skipped, receipt OK. Reviews: [round 0](reviews/0_implementation.md) one major and five minor, [round 1](reviews/1_implementation.md) four, [round 2](reviews/2_implementation.md) one P3, the renderer accessor had no test of its own, repaired; every finding repaired with a test a mutant turns red. Captures (1280x720, the default view, SwiftShader, before on `ec250733`, after on f5bcf254): the outline diff is 504 pixels in x 629-652, y 219-248, the hidden sheep's outline on the Town Center's roof; the group diff adds 892 pixels in the selection title, x 180-340, y 480-560, and nothing elsewhere. Not checked: the outline on Moebius, a wild animal's outline in a real match (unit tests only), boar, deer and wolf clicks in a browser, the double-click near the screen edges at other zooms, and a full match played with these changes beyond the reproductions. Version bump, landing and the plan 106 cards wait for phase 2.
+Phase 1 (2026-11-04): the branch `selection-controls-1104` holds commits `fed8203e` (as reviewed in round 0), `a51123f2` (round-0 repairs), `fd2632ea` (merge of main `496ee0e9`, v0.3.260), `30d551a8` (round-1 repairs), `c508452c` (round-2 repair), `f5bcf254` (merge of main `6880d69e`) and this record. Full gate on `f5bcf254`: vitest 5,230 passed and 3 skipped, Playwright 281 passed and 2 skipped, receipt OK. Reviews: [round 0](reviews/0_implementation.md) one major and five minor, [round 1](reviews/1_implementation.md) four, [round 2](reviews/2_implementation.md) one P3, the renderer accessor had no test of its own, repaired; every finding repaired with a test a mutant turns red. Captures (1280x720, the default view, SwiftShader, before on `ec250733`, after on f5bcf254): the outline diff is 504 pixels in x 629-652, y 219-248, the hidden sheep's outline on the Town Center's roof; the group diff adds 892 pixels in the selection title, x 180-340, y 480-560, and nothing elsewhere. Not checked: a wild animal's outline in a real match (unit tests only), boar, deer and wolf clicks in a browser, the double-click near the screen edges at other zooms, and a full match played with these changes beyond the reproductions. Version bump, landing and the plan 106 cards wait for phase 2.
+
+M1 landed (2026-11-04) as v0.3.261 on main, after two visual checks the coordinator asked for: the outline in the Moebius style (before on main 6880d69e, after on the branch: 571 pixels changed, all in x 628-653, y 218-249) and one random view (seed w142-random-4067, zoom 1.77, 1440x900, every unit gathered behind the Town Center: a villager and a walking sheep drawn as translucent blue figures over its roof), each looked at at full resolution. Both worktrees and their branches are retired. The plan stays open for M2.

@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
-## Unreleased — work 142
+## 0.3.261
 
 Selecting and targeting with the mouse work as in Definitive Edition.
 
