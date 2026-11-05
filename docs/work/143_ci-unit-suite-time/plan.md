@@ -65,7 +65,7 @@ The `--` before `--shard` is quoted. PowerShell is the default shell on windows-
 
 ## Acceptance criteria
 
-- [x] Each unit-suite job on both runners finishes at or under about half its limit on hosted runners, measured from the job logs of a hosted run of the change, with the bound stated: 10.2-18.0 minutes on windows-latest (30% at most) and 5.6-13.7 on ubuntu-latest (23% at most) over hosted runs 42008973265, 42009011415, 42019409523 and 42023734189.
+- [x] Each unit-suite job on both runners finishes at or under about half its limit on hosted runners, measured from the job logs of a hosted run of the change, with the bound stated: 8.7-18.0 minutes on windows-latest (30% at most) and 5.3-13.7 on ubuntu-latest (23% at most) over hosted runs 42008973265, 42009011415, 42019409523, 42023734189 and 42028399839.
 - [x] `timeout-minutes` stays 60, both headroom gates are unchanged in their rules, no test is skipped, deleted or weakened, and both runners stay in the matrix.
 - [x] The three shards together run every test file exactly once on each runner: 223, 223 and 221 files on both runners in run 42008973265, 667 in all, and 1,874, 1,624 and 1,750 tests, 5,248 in all.
 - [x] The job-headroom step still fails a shard past two thirds, and each shard's per-test step judges its own shard's report, both shown red on hosted runners (run 42009011415).
@@ -109,7 +109,9 @@ Run 42019409523, `b97742da` (after review round 1's repairs), all ten jobs green
 
 Run 42023734189, `4db8bcf1` (after review round 2's repairs), all ten jobs green: Windows shards 17.4, 15.8 and 11.6 minutes (29%, 26%, 19%), Ubuntu 13.7, 7.1 and 5.6 (23%, 12%, 9%).
 
-Over the four hosted runs the Windows shard jobs took 10.2-18.0 minutes (30% of the limit at most) and the Ubuntu ones 5.6-13.7 (23% at most).
+Run 42028399839, `b7249a5c` (the revision handed off), all ten jobs green: Windows shards 17.0, 8.7 and 9.5 minutes (28%, 14%, 16%), Ubuntu 7.7, 11.5 and 5.3 (13%, 19%, 9%).
+
+Over the five hosted runs the Windows shard jobs took 8.7-18.0 minutes (30% of the limit at most) and the Ubuntu ones 5.3-13.7 (23% at most).
 
 ## The bound
 
