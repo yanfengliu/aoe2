@@ -89,6 +89,8 @@ Pending. Record the verified revision, checks and limitations at closure.
 
 2026-11-04 ([work 138](../138_worktree-retirement/plan.md)): `shadow-normal-1017`, `software-ground-proof-1017` and `software-culling-proof-1017` were removed through `scripts/controlWorktree.mjs`. The shadow tests and the `aoeVoxelResources.ts` edit are in `retained/software-ground-proof-1017`, and the shadow tests also in `retained/shadow-normal-1017`; the third checkout was clean. This plan's newer draft and its later snapshots are in `retained/branch-completion-1017`. The checkouts' ignored run evidence is gone.
 
+2026-11-05 ([work 138](../138_worktree-retirement/plan.md), owner decision): `retained/software-ground-proof-1017` (tip `2cf9c2e3`) and `retained/shadow-normal-1017` (tip `5d8234d0`) were deleted with work 138's drop set, since the shadow candidate did not ship. `retained/branch-completion-1017` stays until the owner decides whether work 134 continues.
+
 ## M2 recovery and implementation (2026-10-17)
 
 Recovery baseline: branch `frame-rate`, clean at `6ff29963`, based on main `af328ae6`. The M1 measurements and captures above are retained historical evidence, not a fresh claim that the original cost criterion was met. No prior authored independent review was found. The integration owner owns review and the final combined gate.
