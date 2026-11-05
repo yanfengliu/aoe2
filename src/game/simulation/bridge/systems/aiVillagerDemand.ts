@@ -17,7 +17,7 @@ import { trainingCost } from '../../prototypeEconomyRules';
 import { villagerCapForAge } from '../../ai';
 import type { PlayerResources } from '../../types';
 import { constructionStatesCodec, productionQueuesCodec } from '../bridgeStateSerialize';
-import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 
 export interface TownCenterVillagerDemand {
   townCenterId: number;
@@ -32,7 +32,7 @@ export interface TownCenterVillagerDemand {
 }
 
 export function townCenterVillagerDemand(
-  deps: Pick<AiSystemDeps, 'accessor' | 'countOwnedUnits' | 'countQueuedUnits'>,
+  deps: Pick<AiPhaseDeps, 'accessor' | 'countOwnedUnits' | 'countQueuedUnits'>,
   ctx: Pick<AiOwnerContext, 'owner' | 'ownerTownCenterId' | 'currentAge' | 'populationBlocked'
     | 'pendingTrainsByBuilding' | 'pendingResearchByBuilding'>,
 ): TownCenterVillagerDemand | null {

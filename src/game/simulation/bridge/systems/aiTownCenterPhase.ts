@@ -13,16 +13,14 @@ import {
   constructionStatesCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
-  inFlightTechByOwnerCodec,
   productionQueuesCodec,
 } from '../bridgeStateSerialize';
-import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
-import { chargedTradeCost } from './aiEscrowPhase';
+import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 import { ownerTrainingCost } from '../ownerCosts';
 
 /** Returns whether it asked the Market for a trade (one a decision at most). */
 export function runTownCenterPhase(
-  deps: AiSystemDeps,
+  deps: AiPhaseDeps,
   ctx: AiOwnerContext,
   nextAgeTech: ResearchableTechnologyType | null,
   qualifiesForNextAge: boolean,
@@ -34,9 +32,6 @@ export function runTownCenterPhase(
     canAdvanceToImperialAge,
     countOwnedUnits,
     countQueuedUnits,
-    pushQueueResearchIntention,
-    pushQueueTrainIntention,
-    pushMarketActionIntention,
   } = deps;
   const {
     owner,
@@ -47,13 +42,13 @@ export function runTownCenterPhase(
     pendingTrainsByBuilding,
     pendingResearchByBuilding,
     pendingResearchKeys,
+    purchases,
   } = ctx;
   // While DE's escrow holds or has bought anything, what this phase buys is
   // counted in the decision's budget, so the purchases after it (the Market,
-  // the later Monks, Trade Carts, tribute) see it spent. A hold never stops it:
-  // DE buys its age-ups first, and its villagers may spend escrow (work 141
-  // review round 7).
-  const budget = ctx.decisionBudget;
+  // the later Monks, Trade Carts, tribute) see it spent. A hold never stops it
+  // (`countOnly`): DE buys its age-ups first, and its villagers may spend
+  // escrow (work 141 review round 7).
   if (ownerTownCenterId === null) return false;
   const tcConstruction = accessor.get(constructionStatesCodec).get(ownerTownCenterId);
   if (tcConstruction && !tcConstruction.isComplete) return false;
@@ -97,11 +92,11 @@ export function runTownCenterPhase(
     && !pendingResearchKeys.has(`${owner}:${nextAge}`)
     && tcEffectiveQueueLengthBeforeAgeUp < 3
   ) {
-    pushQueueResearchIntention(ownerTownCenterId, nextAge);
-    // An age-up already in flight is asked for again and refused uncharged.
-    if (!accessor.get(inFlightTechByOwnerCodec).get(owner)?.has(nextAge)) {
-      budget?.ask(effectiveResearchCost(civ, age, nextAge));
-    }
+    // An age-up already in flight is asked for again and refused uncharged, so it is not counted.
+    purchases.buy(
+      { kind: 'research', buildingId: ownerTownCenterId, technology: nextAge, price: effectiveResearchCost(civ, age, nextAge) },
+      { countOnly: true },
+    );
     tcPendingResearch += 1;
     pendingResearchByBuilding.set(ownerTownCenterId, tcPendingResearch);
     pendingResearchKeys.add(`${owner}:${nextAge}`);
@@ -122,9 +117,7 @@ export function runTownCenterPhase(
     const trade = marketActionForAgeUpShortfall(
       stockpile, effectiveResearchCost(civ, age, nextAgeTech), MARKET_TRANSACTION_AMOUNT);
     if (trade !== null) {
-      pushMarketActionIntention(owner, trade);
-      const charged = budget && stockpile ? chargedTradeCost(deps, owner, trade, stockpile) : null;
-      if (charged) budget?.ask(charged);
+      purchases.buy({ kind: 'trade', action: trade }, { countOnly: true });
       marketActionPushed = true;
     }
   }
@@ -155,8 +148,10 @@ export function runTownCenterPhase(
     // villager-poor (corpus: 7 Feudal vil frozen at 339/800). The cap banks the food (work 141).
     && canAfford(stockpile, villagerCost)
   ) {
-    pushQueueTrainIntention(ownerTownCenterId, 'villager');
-    budget?.ask(ownerTrainingCost(accessor, owner, 'villager'));
+    purchases.buy(
+      { kind: 'train', buildingId: ownerTownCenterId, unit: 'villager', price: ownerTrainingCost(accessor, owner, 'villager') },
+      { countOnly: true },
+    );
     // Iter-1 Gemini MINOR: increment so a future multi-TC / multi-pass
     // re-entry can't over-commit (mirrors the military push above).
     pendingTrainsByBuilding.set(

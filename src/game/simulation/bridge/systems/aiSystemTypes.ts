@@ -1,15 +1,14 @@
 // Shared type contracts for the AI planner system (`prototypeAi`). The system
 // entry point lives in `aiSystem.ts`; per-tick decision phases live in the
 // `aiSystem*Phase.ts` siblings. `AiSystemDeps` is the injected dependency
-// surface; `AiOwnerContext` bundles the per-owner, per-tick state the phases
-// read/mutate.
+// surface; the phases get it as `AiPhaseDeps`, without the purchase commands,
+// which only `aiPurchases.ts` holds (work 141 M2a-2a). `AiOwnerContext` bundles
+// the per-owner, per-tick state the phases read/mutate.
 
 import { type EntityRef, type Position, type VisibilityMap } from 'civ-engine';
 import type {
   AgeType,
-  BuildableBuildingType,
   BuildingType,
-  MarketActionType,
   PlayerResources,
   ResearchableTechnologyType,
   TrainableUnitType,
@@ -20,7 +19,7 @@ import type { UnitMovementPlan } from '../movementTypes';
 import type { UnitRangeReach } from '../unitRangeReach';
 import type { MonkTask, UnitCommand } from '../sharedTypes';
 import type { AiState } from '../../ai';
-import type { DecisionBudget } from '../../aiEscrow';
+import type { AiPurchaseCommands, AiPurchases } from './aiPurchases';
 
 export type CivWorld = GameWorld;
 type PushMonkContextAtEntityIntention = (
@@ -29,7 +28,21 @@ type PushMonkContextAtEntityIntention = (
   options: { expectedOwner: number; intendedTaskKind: MonkTask['kind'] },
 ) => void;
 
-export interface AiSystemDeps {
+/** What the bridge hands the AI: its phases' dependencies, the purchase commands and the pending queue. */
+export interface AiSystemDeps extends AiPhaseDeps, AiPurchaseCommands {
+  // Phase 1C — read-only handle to the dispatcher's pending intention
+  // queue. aiSystem inspects it each decision tick to compute "effective"
+  // queue / in-flight counts: an intention pushed this tick won't appear in
+  // `productionQueues` / `inFlightTechByOwner` until the handler runs at
+  // the NEXT tick, so without this gate aiSystem would re-push every
+  // decision tick and over-spend across the silent-no-op B2 surface. The
+  // phases never hold it (work 141 M2a-2a): a queued command can be rewritten
+  // in place, so only `aiSystem.ts` reads it.
+  pendingCommands: ReadonlyArray<{ type: string; data: Record<string, unknown> }>;
+}
+
+/** The AI's dependencies as its phases see them: every purchase goes through `AiOwnerContext.purchases`. */
+export interface AiPhaseDeps {
   world: GameWorld;
   humanPlayerId: number;
   /** Coverage lab: when true neither the attack phase nor the ferry phase
@@ -79,12 +92,8 @@ export interface AiSystemDeps {
   // dispatcher's `drainPendingCommands` between ticks submits each via
   // `world.submitWithResult`; the corresponding handler runs at the start
   // of the NEXT tick's `processCommands`. Pre-1B `startConstruction` lives
-  // on as `startConstructionDirect` for the handler delegate path.
-  pushBuildingPlaceConfirmIntention: (
-    builderId: number,
-    buildingType: BuildableBuildingType,
-    anchor: Position,
-  ) => void;
+  // on as `startConstructionDirect` for the handler delegate path. The
+  // commands that spend are `AiPurchaseCommands` (`aiPurchases.ts`).
   findBuildPlacementNear: (
     nearby: Position,
     buildingType: BuildingType,
@@ -97,30 +106,11 @@ export interface AiSystemDeps {
   canAdvanceToFeudalAge: (owner: number) => boolean;
   canAdvanceToCastleAge: (owner: number) => boolean;
   canAdvanceToImperialAge: (owner: number) => boolean;
-  pushQueueResearchIntention: (
-    buildingId: number,
-    technologyType: ResearchableTechnologyType,
-  ) => void;
-  pushQueueTrainIntention: (buildingId: number, unitType: TrainableUnitType) => void;
-  pushMarketActionIntention: (playerId: number, actionType: MarketActionType) => void;
   pushUnitContextIntention: (
     unitId: number,
     target: { x: number; y: number },
     garrison: boolean,
   ) => void;
-  pushTributeIntention: (
-    playerId: number,
-    toPlayerId: number,
-    resource: import('../../types').EconomyResourceKind,
-    amount: number,
-  ) => void;
-  // Phase 1C — read-only handle to the dispatcher's pending intention
-  // queue. aiSystem inspects it each decision tick to compute "effective"
-  // queue / in-flight counts: an intention pushed this tick won't appear in
-  // `productionQueues` / `inFlightTechByOwner` until the handler runs at
-  // the NEXT tick, so without this gate aiSystem would re-push every
-  // decision tick and over-spend across the silent-no-op B2 surface.
-  pendingCommands: Array<{ type: string; data: Record<string, unknown> }>;
   getTrainOptions: (owner: number, buildingType: BuildingType) => TrainableUnitType[];
   getResearchOptions: (
     owner: number,
@@ -218,11 +208,9 @@ export interface AiOwnerContext {
    */
   blockedBuildCost: Partial<PlayerResources> | null;
   /**
-   * The decision's budget while DE's escrow holds or has bought anything
-   * (`aiEscrow.ts`), else null. WRITTEN by the production phase, READ by the
-   * trade and tribute phases after it, so a Trade Cart and a tribute are checked
-   * and counted against the same budget as every purchase before them (work 141
-   * review rounds 6 and 7).
+   * The one way this decision buys anything (`aiPurchases.ts`, work 141
+   * M2a-2a). Once DE's escrow opens the decision's budget, it checks each
+   * purchase against it and counts it, so no path can forget to.
    */
-  decisionBudget: DecisionBudget | null;
+  purchases: Readonly<AiPurchases>;
 }

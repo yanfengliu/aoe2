@@ -22,7 +22,7 @@ import { attackGroupSize } from '../../ai';
 import { unitMinAttackRange } from '../../prototypeUnitRules';
 import { wildlifeStatesCodec } from '../bridgeStateSerialize';
 import { distanceFromBuildingFootprint, manhattanDistance, type GameWorld } from '../pureHelpers';
-import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 
 type TargetKind = 'unit' | 'building' | 'resource';
 
@@ -48,7 +48,7 @@ function isOutsideMinimumRange(
     || distanceFromBuildingFootprint(targetPosition, getBuildingFootprint(building.buildingType), position) >= minimumRange;
 }
 
-export function runAttackPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
+export function runAttackPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
   const {
     accessor,
     currentEntityId,

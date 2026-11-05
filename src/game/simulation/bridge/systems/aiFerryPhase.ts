@@ -23,7 +23,7 @@ import {
 import { EMPTY_TECH_SET } from '../../economyTechEffects';
 import { canAfford, trainingCost } from '../../prototypeEconomyRules';
 import { ownerConstructionCost } from '../ownerCosts';
-import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 
 /** Land cells 4-connected to `from` — the target island, as a Set of "x,y". */
 function landRegionFrom(
@@ -52,19 +52,17 @@ function landRegionFrom(
 
 /** Returns true when this phase owns the owner's military this tick (the
  *  attack phase then stands down). */
-export function runFerryPhase(deps: AiSystemDeps, ctx: AiOwnerContext): boolean {
+export function runFerryPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): boolean {
   const {
     accessor,
     isLandCell,
     findOwnedMilitaryUnits,
     findOwnedBuilding,
     pushUnitContextIntention,
-    pushQueueTrainIntention,
-    pushBuildingPlaceConfirmIntention,
     findBuildPlacementNear,
     countQueuedUnits,
   } = deps;
-  const { activeWorld, owner, currentAge, stockpile, targetTownCenterPosition, unitCommands } = ctx;
+  const { activeWorld, owner, currentAge, stockpile, targetTownCenterPosition, unitCommands, purchases } = ctx;
 
   if (!targetTownCenterPosition || !stockpile) return false;
 
@@ -113,18 +111,16 @@ export function runFerryPhase(deps: AiSystemDeps, ctx: AiOwnerContext): boolean 
         countQueuedUnits(dockId, 'transport-ship') === 0
         && canAfford(stockpile, trainingCost('transport-ship'))
       ) {
-        pushQueueTrainIntention(dockId, 'transport-ship');
+        purchases.buy({ kind: 'train', buildingId: dockId, unit: 'transport-ship', price: trainingCost('transport-ship') });
       }
       return true;
     }
     // No dock: put one up near the army's shore-most soldier.
     const builder = probe?.id ?? null;
-    if (
-      builder !== null
-      && canAfford(stockpile, ownerConstructionCost(accessor, owner, 'dock'))
-    ) {
+    const dockCost = ownerConstructionCost(accessor, owner, 'dock');
+    if (builder !== null && canAfford(stockpile, dockCost)) {
       const anchor = findBuildPlacementNear(probe!.position!, 'dock', [builder]);
-      if (anchor) pushBuildingPlaceConfirmIntention(builder, 'dock', anchor);
+      if (anchor) purchases.buy({ kind: 'place', builderId: builder, building: 'dock', anchor, price: dockCost });
     }
     return true;
   }

@@ -17,7 +17,7 @@ import type { Position } from 'civ-engine';
 
 import type { BuildingComponent } from '../../types';
 import { constructionStatesCodec } from '../bridgeStateSerialize';
-import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 
 /** How long a crewed building should take, in ticks (60 s at 10 TPS). */
 export const CREW_TARGET_TICKS = 600;
@@ -44,7 +44,7 @@ export function targetCrewSize(
   return Math.min(Math.max(1, needed), cap);
 }
 
-export function runBuildCrewPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
+export function runBuildCrewPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
   const {
     accessor, currentEntityId, countOwnedUnits, pushUnitContextAtEntityIntention,
     findBuildingApproachPlan,

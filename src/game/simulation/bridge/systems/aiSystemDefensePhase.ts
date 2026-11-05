@@ -13,7 +13,7 @@ import type { BuildingComponent, UnitComponent } from '../../types';
 import { buildingGarrisonCapacity } from '../../prototypeBuildingRules';
 import { garrisonedByBuildingCodec } from '../bridgeStateSerialize';
 import { manhattanDistance } from '../pureHelpers';
-import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 
 // How close to the Town Center an enemy has to be before the AI reads it as a
 // raid on the base rather than a skirmish somewhere on the map. Tighter than
@@ -28,7 +28,7 @@ const SHELTER_RADIUS = 10;
 // enough that the economy restarts promptly once it leaves.
 const ALL_CLEAR_INTERVALS = 4;
 
-export function runDefensePhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
+export function runDefensePhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
   const { accessor, pushUnitContextAtEntityIntention, pushBuildingActionIntention } = deps;
   const {
     activeWorld,
