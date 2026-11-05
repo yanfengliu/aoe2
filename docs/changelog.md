@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## Unreleased — work 142 M2b-2b-2b
+
+Definitive Edition's (DE's) twenty control groups, from the default key profile in DE's own files.
+
+- **Groups 1 to 10:** Ctrl and a digit creates a group (Ctrl+0 is group 10), the digit selects it, Shift and the digit adds the selection to it, and Ctrl+Shift and the digit selects it and centres the view on it (Ctrl+Shift+F10 for group 10). Pressing the digit twice still centres.
+- **Groups 11 to 20** are the same keys with Alt: Ctrl+Alt+1 creates group 11, Alt+1 selects it.
+- **U takes the selected units out of their group.** A unit is in one group at a time: putting it in another takes it out of the first.
+- The digits are the keys above the letters; the numpad's digits no longer select groups. Outside a text field Ctrl and a digit no longer switches browser tabs, and Ctrl+0 no longer resets the page zoom.
+- Saved games keep their groups; a group selected while the game is paused now shows its selection at once.
+
 ## Unreleased — work 142 M2b-2b-2a
 
 Definitive Edition's (DE's) "go to" and "select all" building keys, from the default key profile in DE's own files.

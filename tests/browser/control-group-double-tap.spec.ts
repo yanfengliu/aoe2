@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { CONTROL_GROUP_DOUBLE_TAP_MS } from '../../src/app/bootstrap/selectionRecallHotkeys';
+import { CONTROL_GROUP_DOUBLE_TAP_MS } from '../../src/app/bootstrap/controlGroupHotkeys';
 import * as game from './helpers/gameTestHelpers';
 
 // Tapping a control-group key twice quickly centres the camera on the group,

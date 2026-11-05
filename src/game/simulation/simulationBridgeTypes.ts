@@ -114,9 +114,13 @@ export interface SimulationBridge {
   countIdleMilitary(): number;
   selectNextIdleMilitary(): boolean;
   selectNextIdleVillager(): boolean;
-  /** Control groups (v0.3.104): Ctrl+digit binds, digit recalls survivors. */
-  assignControlGroup(digit: number): boolean;
-  recallControlGroup(digit: number): boolean;
+  /** Control groups (v0.3.104; DE's twenty, work 142): a group is an index
+   *  0-19 (`controlGroupIndex`). Ctrl+digit binds, digit recalls survivors,
+   *  Shift+digit appends the selection, U ungroups it. */
+  assignControlGroup(group: number): boolean;
+  appendToControlGroup(group: number): boolean;
+  ungroupSelection(): boolean;
+  recallControlGroup(group: number): boolean;
   getSelectionState(): SelectionState;
   // Spec 2 (annotation-ui v0.1.5) AO-2: parallel selection getters /
   // setters that preserve EntityRef.generation. Used by AnnotationController

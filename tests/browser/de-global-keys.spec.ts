@@ -207,6 +207,20 @@ test.describe("DE's global keys", () => {
     await expect(field, 'a go-to or select-all key took the focus from the field').toBeFocused();
     expect((await game.getSelectionState(page)).selectedEntityIds, 'a key typed into a text field selected buildings').toEqual(selectionBefore);
     expect(await cameraState(page), 'a key typed into a text field moved the camera').toEqual(before.camera);
+
+    // M2b-2b-2b: DE's control-group keys, groups 1-10 and with Alt 11-20, and U.
+    await page.evaluate(() => { (window as unknown as { keyLog: unknown[] }).keyLog.length = 0; });
+    const groupKeys = ['Control+Digit1', 'Control+Digit0', 'Digit1', 'Shift+Digit1', 'Control+Shift+Digit1', 'Control+Shift+F10',
+      'Control+Alt+Digit1', 'Alt+Digit1', 'Alt+Shift+Digit1', 'Control+Alt+Shift+Digit1', 'Control+Alt+Shift+F10', 'u'];
+    for (const key of groupKeys) await page.keyboard.press(key);
+    const groupLog = await page.evaluate(() => (window as unknown as { keyLog: Array<{ code: string; prevented: boolean }> }).keyLog);
+    expect(groupLog.filter((entry) => !['ControlLeft', 'ShiftLeft', 'AltLeft'].includes(entry.code)), 'a control-group key took a key typed into a text field')
+      .toEqual(groupKeys.map((key) => {
+        const last = key.split('+').at(-1)!;
+        return { code: last.length === 1 ? `Key${last.toUpperCase()}` : last, prevented: false };
+      }));
+    await expect(field, 'a control-group key took the focus from the field').toBeFocused();
+    expect((await game.getSelectionState(page)).selectedEntityIds, 'a key typed into a text field changed the selection').toEqual(selectionBefore);
   });
 
   test("the annotation form's buttons keep their keys: Ctrl+= is the page's and Space presses the button", async ({ page }) => {

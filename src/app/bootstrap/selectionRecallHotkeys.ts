@@ -1,19 +1,13 @@
 // Selection-recall hotkeys (extracted from createApp for the 500-line cap):
-// the idle-villager '.' cycle and the v0.3.104 control-group trio — Ctrl+digit
-// binds, digit recalls survivors, a quick second tap centres the camera — with
-// Delete, ',', and H and the other go-to keys (goToBuildingHotkeys.ts).
+// the idle-villager '.' cycle, Delete, ',', DE's control groups
+// (controlGroupHotkeys.ts), and H and the other go-to keys
+// (goToBuildingHotkeys.ts).
 
 import type { HotkeyHandler, HotkeySpec } from '../../game/control/HotkeyRegistry';
 import type { SimulationBridge } from '../../game/simulation/createSimulationBridge';
+import { registerControlGroupHotkeys } from './controlGroupHotkeys';
 import { registerGoToBuildingHotkeys } from './goToBuildingHotkeys';
 import { centreOnObject, type CentringViewLike } from './goToObject';
-
-/** A second tap of the same group key inside this window centres the camera.
- *  Measured between the two keydowns' own `timeStamp`s, never on a clock read
- *  in the handler: a slow frame between two quick taps delays the second one's
- *  handling, and the game used to read that as a slow second tap (2026-09-23,
- *  tests/browser/control-group-double-tap.spec.ts). */
-export const CONTROL_GROUP_DOUBLE_TAP_MS = 450;
 
 interface HotkeyRegistryLike {
   register(spec: HotkeySpec, handler: HotkeyHandler): void;
@@ -37,21 +31,8 @@ export function registerSelectionRecallHotkeys(
     centerOnPrimarySelection(bridgeRef(), view);
   };
   hotkeyRegistry.register({ key: '.' }, selectNextIdleVillagerAndCenter);
-  // Control groups (v0.3.104): AoE2's own three-part gesture.
-  let lastRecall = { digit: -1, atMs: 0 };
-  for (let digit = 1; digit <= 9; digit += 1) {
-    hotkeyRegistry.register({ key: String(digit), ctrl: true }, () => {
-      bridgeRef().assignControlGroup(digit);
-    });
-    hotkeyRegistry.register({ key: String(digit) }, (event) => {
-      if (!bridgeRef().recallControlGroup(digit)) return;
-      const tappedAt = event.timeStamp;
-      if (lastRecall.digit === digit && tappedAt - lastRecall.atMs < CONTROL_GROUP_DOUBLE_TAP_MS) {
-        centerOnPrimarySelection(bridgeRef(), view);
-      }
-      lastRecall = { digit, atMs: tappedAt };
-    });
-  }
+  // Control groups (v0.3.104; DE's twenty and their keys since work 142).
+  registerControlGroupHotkeys(hotkeyRegistry, bridgeRef, view);
   // The Delete key (v0.3.114): remove the primary selected own entity —
   // AoE2's own affordance for freeing population or clearing a misbuild.
   hotkeyRegistry.register({ key: 'Delete' }, () => {
