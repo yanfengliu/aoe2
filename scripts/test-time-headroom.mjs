@@ -41,7 +41,8 @@
 // step after its suite runs
 //   node scripts/test-time-headroom.mjs <report.json> [<report.json> ...]
 // tests/scripts/testTimeHeadroom.test.ts holds the steps, the paths and the
-// verdict together.
+// verdict together. Both suites run in shards, one job each, so a job's report
+// holds its own shard's tests and the job judges those.
 //
 // BOUNDS. It sees what CI's runners measured and nothing else: the local GPU
 // browser run (Windows, ANGLE Direct3D 11) and any development machine are

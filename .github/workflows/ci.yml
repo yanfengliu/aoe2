@@ -46,7 +46,7 @@ permissions:
 
 jobs:
   gates:
-    name: ${{ matrix.os }} — typecheck + lint + test + build
+    name: ${{ matrix.os }} — typecheck + lint + test ${{ matrix.shard }}/3 + build
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -54,16 +54,34 @@ jobs:
         # Linux is the canonical CI target. windows-latest catches the FU8
         # vitest worker RPC quirks documented in vitest.config.ts.
         os: [ubuntu-latest, windows-latest]
-    # The full 1255-test suite (~2800s of sim-heavy test-work) runs ~30m on the
-    # Linux runner and longer on Windows (the vitest worker-RPC overhead). 60m
-    # gives the Windows leg headroom (it timed out the previous 30m cap).
-    # Follow-up to speed this up: shard the suite, or move Windows to nightly.
-    # Measured 2026-09-06..24: Linux 17-25 min, Windows 19-34 min. The last step
-    # fails the job past 40 minutes, two thirds of this limit, and the Windows
-    # leg is the job nearest that line: its slowest run, 33.5 minutes, is 84% of
-    # the way there, and runner speed alone has moved it 1.78x (18.8 to 33.5).
-    # So the first red from that step is likeliest to be this leg on a slow
-    # runner, and the follow-up above is the fix for it, not a raised timeout.
+        # The unit suite in three slices, one job each (2026-11-05, work 143).
+        shard: [1, 2, 3]
+    # SHARDED, because one job per runner no longer fit. Unsharded, this job
+    # took 38.9-40.2 minutes on windows-latest on every run of 2026-11-05 (667
+    # test files, 5,240 tests), 35.2-36.3 of them in the unit-suite step, and
+    # run 41990047794 went red at 40.2, past the headroom step's line at two
+    # thirds of this limit. Runner speed alone moves it 1.9x: the same 649 files
+    # took 19.5 minutes of suite on one Windows runner (run 41806570710) and
+    # 36.6 on another (run 39742886323). ubuntu-latest took 22.7-30.0 minutes.
+    #
+    # `vitest --shard=<k>/<n>` sorts the files by a sha1 of their path and gives
+    # each shard a contiguous run of ceil(files/n) of them (BaseSequencer.shard,
+    # vitest 3.2), so the split is by file COUNT, not time, and a file lands in
+    # the same shard on both runners. It cannot split a file, and time is
+    # concentrated: tests/simulation is 90% of it, and four self-play matches
+    # are 35% (260-429 s each on that Windows run).
+    #
+    # More workers per runner was the other lever, and is not taken.
+    # vitest.config.ts caps them at half the cores because oversubscription
+    # inflated the heaviest tests 3-5x, and the closest tests already run at 45%
+    # of their own limits, which the per-test step below fails past 67%. A shard
+    # runs its tests on the same runner, with the same workers, as the whole
+    # suite did; only the files are fewer.
+    #
+    # Every shard runs typecheck, lint and build too (75 s on that Windows run),
+    # so there is one kind of job and a red one names its own step.
+    # tests/scripts/ciJobHeadroom.test.ts holds the shard list, the `--shard`
+    # count and this name together, and keeps both runners in the matrix.
     timeout-minutes: 60
 
     steps:
@@ -144,9 +162,19 @@ jobs:
       - name: Build
         run: npm run build
 
+      # This job's shard of the files. npm passes what follows `--` to `vitest
+      # run` only, not to the `pretest` voxel build. The `--` is QUOTED for
+      # windows-latest, whose default shell is PowerShell: PowerShell drops a
+      # bare `--` before npm.ps1 sees it (npm 10.8.2's shim hands node its
+      # $args), and npm then keeps `--shard` as a setting of its own and runs
+      # every file. Measured 2026-11-05 under Windows PowerShell 5.1 with that
+      # shim's logic: bare, the script got no arguments and npm_config_shard
+      # was 1/3; quoted, it got --shard=1/3, as it does under bash either way.
+      # tests/scripts/ciJobHeadroom.test.ts fails a bare `--` in any npm or npx
+      # command a Windows job runs under PowerShell.
       - name: Vitest unit suite
         id: unit-suite
-        run: npm test
+        run: npm test '--' --shard=${{ matrix.shard }}/3
         env:
           # Avoid color output in CI logs.
           FORCE_COLOR: '0'
@@ -154,10 +182,11 @@ jobs:
       # Red when any test used more than two thirds of its OWN time limit, so a
       # test creeping towards its timeout fails here with its numbers before a
       # slower runner times it out. It reads the report vitest.config.ts's
-      # reporter writes, and runs after a failed suite too, to print the
-      # ranking beside the failure; not when an earlier step failed and the
-      # suite never ran, where it could only say that no report exists. See
-      # scripts/test-time-headroom.mjs.
+      # reporter writes, which holds this shard's tests and no others (a shard
+      # is a job, on a runner of its own). It runs after a failed suite too, to
+      # print the ranking beside the failure; not when an earlier step failed
+      # and the suite never ran, where it could only say that no report exists.
+      # See scripts/test-time-headroom.mjs.
       - name: Headroom under each test's time limit
         if: ${{ !cancelled() && steps.unit-suite.outcome != 'skipped' }}
         run: node scripts/test-time-headroom.mjs tmp/test-times/vitest.json

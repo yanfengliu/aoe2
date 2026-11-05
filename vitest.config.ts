@@ -29,7 +29,9 @@ export default defineConfig({
     // ageUp/aiPlayer) — a false failure that always passed in isolation. Halving
     // concurrency removes the oversubscription so those tests run near their
     // isolated speed and the full-suite gate is reliable. '50%' adapts to the
-    // machine (8 cores -> 4 workers; a 2-core CI box -> 1).
+    // machine (8 cores -> 4 workers; GitHub's 4-vCPU runners -> 2). CI gets its
+    // speed from sharding the files across jobs instead (.github/workflows/ci.yml,
+    // work 143), so each shard's tests run with the workers this cap gives.
     poolOptions: {
       threads: { maxThreads: '50%', minThreads: 1 },
     },

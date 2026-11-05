@@ -54,7 +54,7 @@ export function judgeHeadroom({ startedAtMs, nowMs, limitMinutes, maxShare = MAX
     elapsedMinutes,
     share,
     message: `This job used ${used}, so a runner 1.5x slower would be cancelled at the limit. `
-      + 'Split the work across more jobs (the browser suite takes another shard in ci.yml) '
+      + 'Split the work across more jobs (the unit and browser suites each take another shard in ci.yml) '
       + 'or make it faster. Raising timeout-minutes hides the same problem until it cancels a run.',
   };
 }

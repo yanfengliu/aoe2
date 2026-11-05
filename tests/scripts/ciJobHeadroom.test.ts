@@ -7,7 +7,7 @@
 // now four shards, and every job ends with scripts/ci-job-headroom.mjs, which
 // fails a job that has used more than two thirds of its own limit.
 //
-// Three parts.
+// Four parts.
 // (1) The verdict: `judgeHeadroom` on the numbers that were measured, both
 //     sides of the ceiling, plus the CLI's exit code, including the case where
 //     the job's start time never arrived (it must fail, not pass unmeasured).
@@ -17,13 +17,18 @@
 //     cannot drift apart.
 // (3) The split: the browser job's shards are exactly 1..N, and the suite step
 //     passes `--shard=<shard>/<strategy.job-total>`, so the matrix and the
-//     split cannot disagree and no shard's specs are silently skipped.
+//     split cannot disagree and no shard's specs are silently skipped. The
+//     unit suite's shards (2026-11-05, work 143) are held the same way on
+//     both runners, against a count written out in the step and the job name.
+// (4) The argument reaches the script: no npm or npx command that a Windows
+//     job runs under PowerShell has a bare `--`, which PowerShell drops.
 //
 // BOUND: this reads ci.yml only, not playtest.yml. It
 // proves the check is wired and judges correctly; whether a real runner stays
 // under the ceiling is only known from real runs (the numbers are in ci.yml's
-// browser-job comment). It does not prove Playwright's `--shard` covers every
-// test exactly once: that is Playwright's contract (runner/testGroups.js).
+// comments on each job). It does not prove that `--shard` covers every test
+// exactly once: that is each runner's contract (Playwright's
+// runner/testGroups.js, vitest's BaseSequencer.shard).
 
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -90,23 +95,32 @@ interface Step {
   readonly name?: string;
   readonly run?: string;
   readonly if?: string;
+  readonly shell?: string;
 }
 
-interface Job {
+interface RunDefaults { readonly defaults?: { readonly run?: { readonly shell?: string } } }
+
+interface Job extends RunDefaults {
   readonly name?: string;
+  readonly 'runs-on'?: string;
   readonly 'timeout-minutes'?: number;
   readonly strategy?: { readonly matrix?: Record<string, unknown> };
   readonly steps?: readonly Step[];
 }
 
-function ciJobs(): Record<string, Job> {
+interface Workflow extends RunDefaults { readonly jobs?: Record<string, Job> }
+
+function ciWorkflow(): Workflow {
   const loadCjs = createRequire(import.meta.url);
   const yaml = loadCjs('js-yaml') as { load(source: string): unknown };
-  const doc = yaml.load(readFileSync(`${ROOT}.github/workflows/ci.yml`, 'utf8')) as { jobs?: Record<string, Job> };
-  const jobs = doc.jobs ?? {};
+  const doc = yaml.load(readFileSync(`${ROOT}.github/workflows/ci.yml`, 'utf8')) as Workflow;
   // A reader that found nothing would make every check below vacuous.
-  expect(Object.keys(jobs).sort(), 'ci.yml no longer has the jobs this gate was written for').toEqual(['browser', 'gates']);
-  return jobs;
+  expect(Object.keys(doc.jobs ?? {}).sort(), 'ci.yml no longer has the jobs this gate was written for').toEqual(['browser', 'gates']);
+  return doc;
+}
+
+function ciJobs(): Record<string, Job> {
+  return ciWorkflow().jobs ?? {};
 }
 
 const CLOCK = /^echo "JOB_STARTED_AT=\$\(date \+%s\)" >> "\$GITHUB_ENV"$/;
@@ -132,19 +146,80 @@ describe('ci.yml: every job measures itself against its own limit', () => {
   });
 });
 
+/** The job's `matrix.shard` list, held to exactly 1..N with N of at least two. */
+function shardList(key: string, job: Job): number[] {
+  const shards = job.strategy?.matrix?.shard;
+  expect(Array.isArray(shards), `the ${key} job has no \`matrix.shard\` list`).toBe(true);
+  const list = shards as number[];
+  expect(list.length, 'one shard is not a split').toBeGreaterThanOrEqual(2);
+  expect(list, 'shard indices must be exactly 1..N, or a slice of the suite never runs').toEqual(
+    Array.from({ length: list.length }, (_, index) => index + 1),
+  );
+  return list;
+}
+
 describe('ci.yml: the browser suite is split with nothing left over', () => {
   it('runs shards 1..N, each passing its own index over strategy.job-total', () => {
     const browser = ciJobs().browser!;
-    const shards = browser.strategy?.matrix?.shard;
-    expect(Array.isArray(shards), 'the browser job has no `matrix.shard` list').toBe(true);
-    const list = shards as unknown[];
-    expect(list.length, 'one shard is not a split').toBeGreaterThanOrEqual(2);
-    expect(list, 'shard indices must be exactly 1..N, or a slice of the suite never runs').toEqual(
-      Array.from({ length: list.length }, (_, index) => index + 1),
-    );
+    shardList('browser', browser);
     const suite = (browser.steps ?? []).filter((step) => /\bnpm run test:browser\b/.test(step.run ?? ''));
     expect(suite.map((step) => step.run?.trim())).toEqual([
       'npm run test:browser -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}',
     ]);
+  });
+});
+
+// The 2026-11-05 entry: unsharded, the unit suite's job reached 40.2 of its 60
+// minutes on windows-latest (run 41990047794). Its matrix crosses the runners
+// with the shards, so `strategy.job-total` counts both and cannot be the
+// count: the count is written out, and held here to the list's length.
+describe('ci.yml: the unit suite is split with nothing left over, on both runners', () => {
+  it('crosses both runners with shards 1..N and nothing else, so no runner and no slice drops out', () => {
+    const matrix = ciJobs().gates!.strategy?.matrix ?? {};
+    // An `include` or `exclude` could add or drop single combinations.
+    expect(Object.keys(matrix).sort(), 'the unit matrix is the runners crossed with the shards').toEqual(['os', 'shard']);
+    expect(matrix.os, 'the unit suite runs on both runners; windows-latest is there for Windows-only defects')
+      .toEqual(['ubuntu-latest', 'windows-latest']);
+  });
+
+  it('passes each job its own index over the list\'s length, and names the slice', () => {
+    const gates = ciJobs().gates!;
+    const total = shardList('gates', gates).length;
+    const suite = (gates.steps ?? []).filter((step) => /\bnpm (?:run )?test\b(?!:)/.test(step.run ?? ''));
+    // The `--` is quoted for PowerShell; the describe below says why.
+    expect(suite.map((step) => step.run?.trim())).toEqual([`npm test '--' --shard=\${{ matrix.shard }}/${String(total)}`]);
+    expect(gates.name, 'the job name says which slice it ran').toContain(`test \${{ matrix.shard }}/${String(total)}`);
+  });
+});
+
+// The 2026-11-05 near miss, caught before the split first ran: PowerShell, the
+// default shell on windows-latest, drops a bare `--` before npm.ps1 sees it
+// (npm 10.8.2's shim hands node its $args), and npm then keeps `--shard` as a
+// setting of its own, so `npm test -- --shard=1/3` would have run every file in
+// every Windows shard. Quoted, it reaches npm under PowerShell and bash alike.
+// The rule covers every npm or npx command a Windows job runs under PowerShell.
+describe('ci.yml: what follows `--` reaches the npm script on windows-latest too', () => {
+  it('quotes the `--` of every npm or npx command that a Windows job runs under PowerShell', () => {
+    const workflow = ciWorkflow();
+    const offenders: string[] = [];
+    let read = 0;
+    for (const [key, job] of Object.entries(workflow.jobs ?? {})) {
+      const os = job.strategy?.matrix?.os;
+      const runners = [job['runs-on'], ...(Array.isArray(os) ? os : [])].map(String);
+      if (!runners.some((runner) => runner.startsWith('windows'))) continue;
+      for (const step of job.steps ?? []) {
+        // GitHub's default shell on Windows is pwsh.
+        const shell = step.shell ?? job.defaults?.run?.shell ?? workflow.defaults?.run?.shell ?? 'pwsh';
+        if (step.run === undefined || !/^(?:pwsh|powershell)\b/.test(shell)) continue;
+        read += 1;
+        for (const line of step.run.split('\n')) {
+          if (/^\s*(?:npm|npx)\b/.test(line) && /(?:^|\s)--(?:\s|$)/.test(line)) {
+            offenders.push(`${key} › ${step.name ?? '(unnamed step)'}: ${line.trim()}`);
+          }
+        }
+      }
+    }
+    expect(read, 'no Windows step runs under PowerShell, so this check read nothing').toBeGreaterThan(0);
+    expect(offenders, 'PowerShell drops a bare `--` before npm.ps1 sees it: write it quoted, as \'--\'').toEqual([]);
   });
 });

@@ -281,7 +281,8 @@ function ciJobs(): Record<string, Job> {
 
 describe('ci.yml: each job judges its own tests against their own limits', () => {
   it.each([
-    ['gates', /^npm test$/, REPORT_PATHS.vitest],
+    // A shard of the suite since 2026-11-05 (ciJobHeadroom.test.ts holds the split).
+    ['gates', /^npm test\b/, REPORT_PATHS.vitest],
     ['browser', /^npm run test:browser\b/, REPORT_PATHS.playwright],
   ] as const)('%s judges %s\'s report after the suite and before the job headroom check, whenever the suite ran', (key, suite, report) => {
     const steps = ciJobs()[key]!.steps ?? [];
