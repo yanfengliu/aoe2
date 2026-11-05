@@ -1,7 +1,10 @@
 // Selection-state assembly. Aggregates the slice of bridge state surfaced to
 // the HUD when the human selects something: entity-kind / health / attack /
 // armor / inventory / option menus / activity. Pure read-only over the
-// bridge's side maps; the bridge owns the maps and passes them in.
+// bridge's side maps; the bridge owns the maps and passes them in. The lines
+// about one entity (faction, civilization, inventory) are in
+// `selectionEntityDetails.ts`, and the stance and formation rows in
+// `selectionUnitOrders.ts`.
 
 import {
   getSelectionArmor as selectionArmor,
@@ -9,20 +12,11 @@ import {
   getSelectionPierceArmor as selectionPierceArmor,
 } from './selectionCombatStats';
 import type { Position } from 'civ-engine';
-import { isDeCivilianUnit } from '../deCivilianUnits';
-import { UNIT_STANCES, defaultStanceFor, type UnitStance } from '../unitStance';
-import {
-  DEFAULT_FORMATION,
-  UNIT_FORMATIONS,
-  type UnitFormation,
-} from '../unitFormation';
-import { playerTeamsCodec, unitFormationsCodec, unitStancesCodec } from './bridgeStateSerialize';
 import { areAllied } from '../alliances';
 import type {
   ActionType,
   BuildableBuildingType,
   BuildingComponent,
-  GathererComponent,
   MarketActionType,
   ResearchableTechnologyType,
   ResourceComponent,
@@ -31,59 +25,31 @@ import type {
   UnitComponent,
   UnitType,
 } from '../types';
-import {
-  cloneQueue,
-  defaultCivilizationName,
-  economyResourceLabel,
-  factionName,
-  inventoryResourceName,
-  type GameWorld,
-} from './pureHelpers';
-import {
-  buildingGarrisonCapacity,
-} from '../prototypeBuildingRules';
-import { civGarrisonCapacityBonus, civHouseGarrisonCapacity } from '../civBuildingBonuses';
+import { cloneQueue, type GameWorld } from './pureHelpers';
 import {
   constructionStatesCodec,
-  garrisonedByBuildingCodec,
   monkCarriedRelicCodec,
   monkFaithCodec,
   monkTasksCodec,
-  playerCivilizationsCodec,
+  playerTeamsCodec,
   productionQueuesCodec,
-  researchedTechnologiesCodec,
   trebuchetPackStatesCodec,
   unitCommandsCodec,
 } from './bridgeStateSerialize';
-import { transportCapacity } from '../transportShip';
 import { createEntityReadProbes } from './entityReadProbes';
-import { EMPTY_TECH_SET } from '../economyTechEffects';
 import {
   computeUnitActivity,
   getBuildingActivity,
   getSelectionActivityBreakdown,
   type SelectionActivitySources,
 } from '../selectionActivity';
-
-const FACTIONLESS_NATURAL_RESOURCES: ReadonlySet<ResourceComponent['resourceType']> = new Set([
-  'berry-bush',
-  'gold-mine',
-  'stone-mine',
-  'tree',
-  'relic',
-]);
-
-// An ally's unit or building reads "Ally", not "Enemy": shared sight puts
-// the ally's whole base on screen, one click away (register 2026-09-24).
-function selectionFactionName(
-  owner: number | null,
-  resource: ResourceComponent | null,
-  isAlly: (owner: number) => boolean,
-): string | null {
-  if (resource && FACTIONLESS_NATURAL_RESOURCES.has(resource.resourceType)) return null;
-  const faction = factionName(owner);
-  return faction === 'Enemy' && owner !== null && isAlly(owner) ? 'Ally' : faction;
-}
+import {
+  emptySelectionState,
+  selectionCiv,
+  selectionFactionName,
+  selectionInventory,
+} from './selectionEntityDetails';
+import { selectionUnitOrders } from './selectionUnitOrders';
 
 export interface SelectionStateOpsDeps {
   world: GameWorld;
@@ -181,116 +147,11 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     id: number,
   ) => selectionPierceArmor(accessor, unit, building, resource, id);
 
-  function getSelectionCiv(
-    owner: number | null,
-    kind: SelectionState['selectedKind'],
-  ): string | null {
-    if (kind === 'resource' || owner === null) {
-      return null;
-    }
-    return accessor.get(playerCivilizationsCodec).get(owner) ?? defaultCivilizationName(owner);
-  }
-
-  function getSelectionInventory(
-    id: number,
-    unit: UnitComponent | undefined,
-    building: BuildingComponent | undefined,
-    resource: ResourceComponent | undefined,
-  ): string | null {
-    if (resource) {
-      if (resource.resourceType === 'wolf') {
-        return null;
-      }
-      if (resource.resourceType === 'relic') {
-        return 'Deposit in a Monastery for gold';
-      }
-      return `${resource.amount} / ${resource.maxAmount} ${inventoryResourceName(resource.resourceType)} remaining`;
-    }
-
-    if (unit) {
-      // A transport's cargo is its inventory. Without this the number is
-      // invisible, which matters more now that Careening and Dry Dock raise the
-      // capacity: a player cannot see what a technology bought them.
-      if (unit.unitType === 'transport-ship') {
-        const aboard = accessor.get(garrisonedByBuildingCodec).get(id)?.length ?? 0;
-        const techs = accessor.get(researchedTechnologiesCodec).get(unit.owner) ?? EMPTY_TECH_SET;
-        return `${aboard} / ${transportCapacity(techs)} aboard`;
-      }
-      const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
-      if (!gatherer) {
-        return null;
-      }
-      if (!gatherer.carriedResource || gatherer.carriedAmount <= 0) {
-        return 'Empty';
-      }
-      return `${gatherer.carriedAmount} ${economyResourceLabel(gatherer.carriedResource)}`;
-    }
-
-    if (building) {
-      // The entry check's own sum (garrisonOps): table capacity plus the flat
-      // civ adds — Khmer houses 5, Teuton Town Centers +10 and towers +5
-      // (v0.3.144) — so the HUD shows the number the garrison command enforces.
-      const capacity = buildingGarrisonCapacity(building.buildingType)
-        + civHouseGarrisonCapacity(
-          accessor.get(playerCivilizationsCodec).get(building.owner),
-          building.buildingType,
-        )
-        + civGarrisonCapacityBonus(
-          accessor.get(playerCivilizationsCodec).get(building.owner),
-          building.buildingType,
-        );
-      if (capacity <= 0) {
-        return null;
-      }
-      return `${accessor.get(garrisonedByBuildingCodec).get(id)?.length ?? 0} / ${capacity} garrisoned`;
-    }
-
-    return null;
-  }
-
   function getSelectionState(): SelectionState {
     const selectedEntityIds = getSelectedEntityIds();
     const selectedEntityId = selectedEntityIds[0] ?? null;
     if (selectedEntityId === null) {
-      return {
-        selectedEntityId: null,
-        selectedEntityIds: [],
-        selectedCount: 0,
-        selectedKind: null,
-        selectedEntityType: null,
-        owner: null,
-        health: null,
-        attack: null,
-        armor: null,
-        pierceArmor: null,
-        faction: null,
-        civ: null,
-        inventory: null,
-        activity: null,
-        activityBreakdown: null,
-        x: null,
-        y: null,
-        tileX: null,
-        tileY: null,
-        tileEntityIndex: null,
-        tileEntityCount: 0,
-        resourceAmount: null,
-        resourceMaxAmount: null,
-        actionOptions: [],
-        stanceOptions: [],
-        formationOptions: [],
-        formation: null,
-        stance: null,
-        buildOptions: [],
-        marketOptions: [],
-        trainOptions: [],
-        visibleResearchOptions: [],
-        researchOptions: [],
-        unavailableCommands: [],
-        commandCosts: [],
-        queue: [],
-        placementMode: placementMode.current,
-      };
+      return emptySelectionState(placementMode.current);
     }
 
     const position = world.getComponent<Position>(selectedEntityId, 'position');
@@ -363,26 +224,8 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     const ownedSelectedUnits = selectedUnits.filter(
       (entry) => entry.unit.owner === humanPlayerId,
     );
-    // A civilian's card has neither stances nor formations: hotkeys.json files
-    // both under "Military Units" (work 142, `deCivilianUnits.ts`). A military
-    // unit in the group keeps them, since which card DE shows for a mix is unsourced.
-    const offersStances = ownedSelectedUnits.some((entry) => !isDeCivilianUnit(entry.unit.unitType));
-    const stanceOptions: UnitStance[] = offersStances ? [...UNIT_STANCES] : [];
-    const stancesInSelection = new Set(ownedSelectedUnits.map((entry) => (
-      accessor.get(unitStancesCodec).get(entry.id) ?? defaultStanceFor(entry.unit.unitType)
-    )));
-    const stance = stancesInSelection.size === 1
-      ? [...stancesInSelection][0] ?? null
-      : null;
-    // Same shape for formations: a single value when the whole selection
-    // agrees, null when it does not, so the panel can show "mixed" honestly.
-    const formationOptions: UnitFormation[] = offersStances ? [...UNIT_FORMATIONS] : [];
-    const formationsInSelection = new Set(ownedSelectedUnits.map((entry) => (
-      accessor.get(unitFormationsCodec).get(entry.id) ?? DEFAULT_FORMATION
-    )));
-    const formation = formationsInSelection.size === 1
-      ? [...formationsInSelection][0] ?? null
-      : null;
+    const { stanceOptions, stance, formationOptions, formation } =
+      selectionUnitOrders(accessor, ownedSelectedUnits);
     const buildOptions: BuildableBuildingType[] =
       allSelectedUnitsAreHumanVillagers
         ? getBuildOptions(humanPlayerId, 'villager')
@@ -442,10 +285,10 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
           ? selectionFactionName(owner, resource ?? null, (other) =>
             areAllied(accessor.get(playerTeamsCodec), humanPlayerId, other))
           : null,
-      civ: selectedEntityIds.length === 1 ? getSelectionCiv(owner, selectedKind) : null,
+      civ: selectedEntityIds.length === 1 ? selectionCiv(accessor, owner, selectedKind) : null,
       inventory:
         selectedEntityIds.length === 1
-          ? getSelectionInventory(selectedEntityId, unit, building, resource)
+          ? selectionInventory(world, accessor, selectedEntityId, unit, building, resource)
           : null,
       activity:
         selectedEntityIds.length === 1 && unit && unit.owner === humanPlayerId
