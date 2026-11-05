@@ -1,6 +1,6 @@
 # The unit suite finishes well inside its CI time limit on both runners
 
-Status: active
+Status: complete
 Owner: ci-unit-suite worker for the Claude coordinator
 Created: 2026-11-05
 Updated: 2026-11-05
@@ -70,7 +70,7 @@ The `--` before `--shard` is quoted. PowerShell is the default shell on windows-
 - [x] The three shards together run every test file exactly once on each runner: 223, 223 and 221 files on both runners in run 42008973265, 667 in all, and 1,874, 1,624 and 1,750 tests, 5,248 in all.
 - [x] The job-headroom step still fails a shard past two thirds, and each shard's per-test step judges its own shard's report, both shown red on hosted runners (run 42009011415).
 - [x] `tests/scripts/ciJobHeadroom.test.ts` holds the split and fails on each way a shard or a runner can drop out, each shown red.
-- [ ] `npm run verify` exits 0 and the receipt check passes on the handed-off revision; independent review of the exact revision; merged to main and pushed; the landing run's logs read.
+- [x] `npm run verify` exits 0 and the receipt check passes on the handed-off revision; independent review of the exact revision; merged to main and pushed; the landing run's logs read: the receipt certifies `b7249a5c` (tree `b971ea4600d1`), reviewed through round 3, landed as `b5e7eb1f..20d0a347`, landing run 42031506225 green.
 
 ## Implementation steps
 
@@ -84,7 +84,7 @@ The `--` before `--shard` is quoted. PowerShell is the default shell on windows-
 - [x] Review round 2 (Codex) on `b97742da`: no blocker or major finding; F1 again (a command spanning lines escaped the line rule), so the rule now reads each run block whole, and a nit on the register's sample wording (F4), both repaired in the next commit ([round 2](reviews/2_implementation.md)).
 - [x] Review round 3 (Codex) on `4db8bcf1`: no blocker or major finding; F1 a fifth time (a bracket also ends a PowerShell token, so whitespace did not delimit every bare `--`) and F4 again (the day's other runs included a failing one), both repaired in the next commit; F1's repair budget of five is now spent ([round 3](reviews/3_implementation.md)).
 - [x] Review coverage, the coordinator's decision of 2026-11-05: the change is reviewed through round 3. Round 3's repair of F1, the fifth (`eae0b820`, a bare `--` found by its characters), had no round 4: its 21 mutations and 5 controls cover it, and the hazard it guards is not live on today's runner.
-- [ ] Hand off, land, follow the landing run.
+- [x] Hand off, land, follow the landing run: the coordinator accepted the handoff, origin/main had not moved (`b5e7eb1f`), and the branch went to main as a fast-forward under the gate lock. Landing run 42031506225 on `20d0a347`, all ten jobs green (from the job logs): windows-latest shards 1/3, 2/3 and 3/3 took 17.6, 12.7 and 12.8 minutes (29%, 21%, 21%), ubuntu-latest 10.0, 7.1 and 8.8 (17%, 12%, 15%), and the four browser shards 13.3, 10.6, 10.7 and 10.2 of their 45 (30% at most); each runner ran 223, 223 and 221 files and 1,874, 1,624 and 1,750 tests, and playtest-corpus run 42031506267 passed.
 
 ## Hosted proof
 
@@ -120,4 +120,10 @@ On the slowest runners seen, the slowest shard's suite step took 14.9 minutes in
 
 ## Outcome
 
-Pending: landing.
+Complete on 2026-11-05. The unit suite runs in three shards per runner, each a job with every step and a third of the files, and no job comes near its headroom line: on the landing run the slowest unit shard job took 17.6 of its 60 minutes on windows-latest, where the unsharded job took 30.1-40.2 that day and failed at 40.2 and 40.1. No limit, gate or test changed, and the Windows run stays.
+
+Verified revision: main `20d0a347` (merged `b5e7eb1f..20d0a347`, no version change). The verify receipt certifies `b7249a5c`, tree `b971ea4600d1` (vitest 5,245 passed and 3 skipped, Playwright 293 passed and 2 skipped), and the landing differs from it only in docs. Landing run 42031506225 on `20d0a347`, all ten jobs green (from the job logs): windows-latest shards 1/3, 2/3 and 3/3 took 17.6, 12.7 and 12.8 minutes (29%, 21%, 21%), ubuntu-latest 10.0, 7.1 and 8.8 (17%, 12%, 15%), and the four browser shards 13.3, 10.6, 10.7 and 10.2 of their 45 (30% at most); each runner ran 223, 223 and 221 files and 1,874, 1,624 and 1,750 tests, and playtest-corpus run 42031506267 passed.
+
+Review: Codex rounds 0-3 in `reviews/`, no blocker or major finding; F0, F2, F3 and F4 repaired, F1 repaired five times and accepted by the coordinator on its 21 mutations without a round 4.
+
+Limitations, carried as two cards in plan 106: no check reads each shard's file count, so a swallowed `--` would run the whole suite in every shard and show only in its time; and two overlapping runs need 22 of the Free plan's 20 concurrent jobs, with the queue time unmeasured. Also not checked: PowerShell 7 locally. The bound is above: the slowest shard can grow 2.5x before its job crosses the line, 1.7x with a 1-in-100 bad split, then a fourth shard.
