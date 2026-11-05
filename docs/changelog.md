@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
-## Unreleased — work 142 M2a
+## 0.3.262
 
 The villager's command card and the Villager and Town Center keys are Definitive Edition's (DE's), from the default key profile in DE's own files.
 
