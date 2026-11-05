@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
-## Unreleased — work 142 M2b-1
+## 0.3.263
 
 The military card's keys are Definitive Edition's (DE's), from the default key profile in DE's own files.
 

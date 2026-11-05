@@ -64,7 +64,7 @@ Not in scope: the AI (work 141), HUD restyling beyond these behaviours, civ-engi
 - [x] The click-unit gate and its red proof.
 - [x] Captures and pixel diffs; full gate; review rounds 0-2; records; phase-1 handoff.
 - [x] Phase 2 for M1: Moebius and random-view checks, lock, version 0.3.261, verify, push, findings queued in plan 106, worktrees retired.
-- [ ] M2: the villager's command card and DE's default hotkeys, for a fresh worker (starting state below). M2a (the villager's card, the Villager and Town Center keys) shipped as v0.3.262; M2b (the other cards' keys and the global keys) is open, its starting state below; M2b-1 (the military card and the unit cards) is at phase 1, M2b-2 (the other buildings' cards and the global keys) not started.
+- [ ] M2: the villager's command card and DE's default hotkeys, for a fresh worker (starting state below). M2a (the villager's card, the Villager and Town Center keys) shipped as v0.3.262; M2b (the other cards' keys and the global keys) is open, its starting state below; M2b-1 (the military card and the unit cards) shipped as v0.3.263; M2b-2 (the other buildings' cards, the global keys, Delete and Shift+Delete) is open for a fresh worker, its starting state below.
 
 ### Owner decisions waiting (unsourced rules; each took the closest sourced behaviour; also one line in plan 106's "Owner decisions waiting")
 
@@ -149,6 +149,18 @@ Split from M2b at its start: M2b-1 is the military card and every unit's card; M
 **Unsourced, the closest sourced behaviour taken.** Formation buttons for one unit alone, and stances for a Transport Ship, which cannot attack: drawn, as before. A sheep's card: no keys, since a sheep is in neither group. A mixed group's card: M2a's. The Monk's Q and W: Patrol and nothing, though `UNIT_COMMAND_HOTKEYS` gives Convert Q and Heal W, which may be Return of Rome's priest; whether DE's Monk card holds them is unseen.
 
 **Found, not in M2b-1's scope (for plan 106, tagged "(work 142)").** DE's military card draws Patrol, Guard, Follow, Attack Move, Garrison or Attack Ground, and Stop as buttons; this game draws none, and has no Guard, Follow, Stop, Garrison button or Auto Scout. A Fishing Ship's Build group draws the villager's Eco and Mil page tabs over its one Fish Trap; DE's card holds the Fish Trap alone. DE's Transport Ship has Unload on Q; here a transport unloads by a right-click on the shore and its Q is patrol.
+
+### M2b-2 starting state (for a fresh worker)
+
+The outcome: the other buildings' cards and the global keys follow DE's `definitive` defaults, each sourced, with the same rules as M2: DE wins where a key we bind disagrees, no game key swallows a browser or test-harness key without a stated reason, saved settings or a settings screen are a persistent format to report to the coordinator first, and a key whose button this game lacks does nothing (queue the missing button in plan 106, tagged "(work 142)").
+
+**What is left.** The cards of every building but the Town Center: dump `BARRACKS_HOTKEYS`, `ARCHERY_RANGE_HOTKEYS`, `STABLE_HOTKEYS`, `SIEGE_WORKSHOP_HOTKEYS`, `MONASTERY_HOTKEYS`, `MARKET_HOTKEYS`, `CASTLE_HOTKEYS`, `MILL_HOTKEYS`, `MINING_CAMP_HOTKEYS`, `LUMBER_CAMP_HOTKEYS`, `BLACKSMITH_HOTKEYS`, `UNIVERSITY_HOTKEYS`, `DOCK_HOTKEYS` and the shared `GATE_HOTKEYS`, with `UNIT_COMMAND_HOTKEYS`' Set Gather Point T and Ungarrison G, which every such building shares. The global keys of "M2b starting state" above: `CYCLE_COMMAND_HOTKEYS`, `GAME_COMMAND_HOTKEYS`, `GROUP_COMMAND_HOTKEYS` and `ZOOM_HOTKEYS`, with the keys we bind that disagree (Space, plus and minus, H, the control groups' double tap). And Delete and Shift+Delete: the shared `UNIT_COMMAND_HOTKEYS` gives `DELETE_UNIT` (VK_DELETE, here the primary selected entity) and `DELETE_UNITS` (Shift+VK_DELETE, every selected unit), which this game does not bind; the registry matches modifiers exactly, so the plain Delete handler does not take Shift+Delete.
+
+**Where the code is.** `src/ui/hud/commandCardKeys.ts`: `BUILDING_CARD_KEYS` maps a building type to its buttons' keys by `data-command` (the Town Center's table is the pattern), and `hasBuildingCardKeys` makes a building's card own the grid. `src/app/bootstrap/commandCardHotkeys.ts` tries the villager's card, then a building with DE keys, then a unit's card (`pressUnitKey`, whose button lookup matches only stance, formation and Fish Trap buttons, so a building's card without keys does nothing). The global keys are in `selectionRecallHotkeys.ts` (period, comma, H, Delete, control groups) and `dePlayHotkeys.ts` (F3, plus, minus, Space).
+
+**File-size budget.** `src/game/simulation/bridge/selectionStateOps.ts` is at 487 of the 500 lines `tests/architecture/fileSizeBudget.test.ts` allows: split it by role before adding anything there. `createApp.ts` (484) and `AoeVoxelGameView.ts` are near the cap too.
+
+**What M2b-1 learned.** Run `tests/app/commandCardHotkeys.test.ts` (the key handler's frame-between harness, whose mock selection must carry every field the handler reads) besides the browser specs while iterating; M2b-1's first full gate failed there. A key that acts on selected units must check that the player owns them: a unit converted while selected stays in the selection (review round 5). Before a Codex review, check that no other lane's `codex exec --sandbox read-only` is running (the runbook forbids two at once on Windows). TaskStop on `npm run preview` leaves vite running; end it by PID. The receipt certifies only a clean, committed tree.
 
 ## Outcome
 
