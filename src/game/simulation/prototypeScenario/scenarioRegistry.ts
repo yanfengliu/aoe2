@@ -280,7 +280,6 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   // Behind-building silhouette cue: one hidden + one control villager
   // (capture target for the unit-occlusion-outline change).
   ['occlusion-showcase-fixture', fixtures.createOcclusionShowcaseFixture],
-  // Work 142: the box, the double-click and a sheep the Town Center hides.
   ['selection-controls-fixture', fixtures.createSelectionControlsFixture],
   // M7 terrain-blending: a visual-only showcase painting adjacent terrain kinds
   // (capture target for the kind-to-kind transition change).
@@ -351,6 +350,9 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['heated-shot-fixture', fixtures.createHeatedShotFixture],
   ['heated-shot-researched-fixture', fixtures.createHeatedShotResearchedFixture],
   ['ai-castle-age-military-fixture', fixtures.createAiCastleAgeMilitaryFixture],
+  ['ai-spies-price-fixture', fixtures.createAiSpiesPriceFixture],
+  ['ai-soldier-budget-fixture', fixtures.createAiSoldierBudgetFixture],
+  ['ai-market-budget-fixture', fixtures.createAiMarketBudgetFixture],
   ['ai-imperial-military-fixture', fixtures.createAiImperialMilitaryFixture],
   ['ai-garrisoned-defender-fixture', fixtures.createAiGarrisonedDefenderFixture],
   ['ai-garrisoned-defender-few-fixture', fixtures.createAiGarrisonedDefenderFixture],

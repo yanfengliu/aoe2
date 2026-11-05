@@ -60,9 +60,7 @@ export {
   createFishTrapFixture,
 } from './economyBasics/fishTrap';
 
-export {
-  createAiUnderRaidFixture,
-} from './ai/underRaid';
+export { createAiUnderRaidFixture } from './ai/underRaid';
 
 export {
   createDropOffUnreachableRerouteFixture,
@@ -489,6 +487,8 @@ export {
   createHeatedShotResearchedFixture,
 } from './heatedShot';
 export { createAiCastleAgeMilitaryFixture } from './aiCastleAgeMilitary';
+export { createAiSpiesPriceFixture } from './aiSpiesPrice';
+export { createAiMarketBudgetFixture, createAiSoldierBudgetFixture } from './aiSoldierBudget';
 export { createAiImperialMilitaryFixture } from './aiImperialMilitary';
 export { createAiGarrisonedDefenderFixture } from './aiGarrisonedDefender';
 export { createQueuedOrdersFixture } from './queuedOrders';

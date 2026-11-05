@@ -126,10 +126,13 @@ describe('Slice 4 Siege Workshop + siege units', () => {
     expect(selectOwnedUnitDirect(bridge, 1, 'battering-ram')).toBe(true);
     expect(bridge.issueContextCommandAtEntity(house!.id)).toBe(true);
 
+    // THIS House, by id. Owner 2 is a computer seat, and since work 141 it
+    // builds a House before it is housed, so "owner 2 has no House" never
+    // came true while the ram razed the one it was sent at.
     expect(
       stepBridgeUntil(
         bridge,
-        () => bridge.getEconomyState().buildings.find((b) => b.owner === 2 && b.buildingType === 'house') === undefined,
+        () => bridge.getEconomyState().buildings.find((b) => b.id === house!.id) === undefined,
         { maxSteps: 1200 },
       ),
     ).toBe(true);

@@ -26,6 +26,26 @@
 // bar sat below even the broken value. Only the far corner moves, so only the
 // far corner gets a discriminating bar; the other two are regression floors
 // and are labelled as such rather than dressed up as detection.
+//
+// THE FAR CORNER IS DECIDED BY WHERE THE AI BUILDS (work 141, 2026-11-04).
+// The same measurement, the far corner, broken bound against fixed:
+//
+//   6b5e9871 (before work 141)            19 → 57
+//   work 141 M1                           19 → 37
+//   owner 2's AI economy off, both trees  42 → 53
+//
+// The broken bound is detected only because the AI's Barracks at (52,19) makes
+// a pocket in the box's corner: the squeezed scout bounces there for the whole
+// window. With the economy off there is no Barracks, and the broken scout gets
+// out (42). With the fixed bound the scout leaves the pocket at about tick 900
+// on both trees. Work 141 M1's House at (47,22), placed by tick 800 under DE's
+// rule of a House before the AI is housed, then hems it beside the Town
+// Center, which is what moved the fixed value from 57 to 37. The scout code is
+// untouched. The coordinator approved recalibrating the bar from 40 to 28 on
+// 2026-11-04 from these M1 measurements: 28 is the midpoint of 19 and 37, as
+// 40 nearly was of 19 and 57. That is the only recalibration. If these numbers
+// move again, the case is to be rebuilt on a pocket the fixture itself places,
+// with owner 2's AI economy off, so it no longer depends on the AI's buildings.
 
 import { describe, expect, it } from 'vitest';
 
@@ -70,12 +90,13 @@ function cellsRoamedFrom(
 
 describe('a scout at the edge of its wander box', () => {
   it('keeps roaming from the far corner, which is where the bound was wrong', () => {
-    // 40 sits above the broken 19 and below the fixed 57, so this fails on the
-    // old conversion and passes on the new one. It red-checks: reverting the
-    // two ceiling expressions in `scoutMovementSystem` drops it to 19.
+    // 28 sits midway between the broken 19 and the fixed 37 (work 141's
+    // recalibration from 40, header), so this fails on the old conversion and
+    // passes on the new one. It red-checks: reverting the two ceiling
+    // expressions in `scoutMovementSystem` drops it to 19.
     const cells = cellsRoamedFrom((bounds) => ({ x: bounds.maxX, y: bounds.maxY }));
     expect(cells, `scout covered only ${cells} cells from the far corner`)
-      .toBeGreaterThanOrEqual(40);
+      .toBeGreaterThanOrEqual(28);
   }, 120_000);
 
   // Floors, NOT detection. These two corners are unmoved by the fix; they are

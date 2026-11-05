@@ -28,6 +28,23 @@ import { createGrassFixtureTerrain, ownedSpawn } from './common';
 // added for "an enemy that still holds a BUILDING is still alive", so an army
 // cut down below the threshold used to idle at its own base against an
 // opponent that had nothing left to be caught by.
+//
+// ONE BATTERING RAM rides with the ten (work 141, approved by the coordinator
+// 2026-11-04), so that razing does not depend on what owner 1 buys later.
+// Under DE's building armor (work 140) a Castle Age Town Center is 5/7: a
+// Man-at-Arms takes 3 off it a hit, a Crossbowman 1 and a Ram 150. The ten
+// Men-at-Arms die to the garrisoned Town Center by tick 500, so before the Ram
+// the case measured what a finite purse buys on a map with nothing to gather,
+// in an order that puts siege last. Main e9369088 (work 140 alone) resolved at
+// tick 4,915 through a Mangonel and a Ram it bought. Work 141's economy,
+// rebased onto it, bought no Mangonel: its Ram died at about tick 4,250, its
+// purse ended at 5 food, 10 wood and 69 gold, and two Crossbowmen were left
+// taking 1 a hit off the Town Center, so nothing resolved in the window. With
+// the Ram seated, that tree resolves at tick 1,197, before owner 1 has bought
+// any soldier (two Rams: 780). With 800ee967's defect put back, the whole army,
+// the Ram included, is idle in every sample to tick 8,000 and nothing resolves,
+// with no Ram, one or two: no siege-specific path razes the Town Center
+// without the attack order. The `-few` arm is unchanged.
 export function createAiGarrisonedDefenderFixture(seed: string): PrototypeScenario {
   const few = seed.includes('-few');
   const attackerCount = few ? 4 : 10;
@@ -37,6 +54,7 @@ export function createAiGarrisonedDefenderFixture(seed: string): PrototypeScenar
   // apart.
   const attackers = Array.from({ length: attackerCount }, (_, index) =>
     ownedSpawn('man-at-arms', 1, 14 + (index % 5), 12 + Math.floor(index / 5), { vision: 5 }));
+  const siege = few ? [] : [ownedSpawn('battering-ram', 1, 14, 14, { vision: 4 })];
   return {
     seed,
     width: MAP_WIDTH,
@@ -70,6 +88,7 @@ export function createAiGarrisonedDefenderFixture(seed: string): PrototypeScenar
       ownedSpawn('town-center', 1, 8, 8, { vision: 7 }),
       ownedSpawn('villager', 1, 13, 10, { vision: 4 }),
       ...attackers,
+      ...siege,
       ownedSpawn('town-center', 2, 30, 20, { vision: 7 }),
       ownedSpawn('house', 2, 26, 18, { vision: 3 }),
       ownedSpawn('barracks', 2, 26, 22, { vision: 5 }),

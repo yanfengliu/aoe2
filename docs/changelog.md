@@ -12,6 +12,18 @@ Selecting and targeting with the mouse work as in Definitive Edition.
 - **A double-click is two quick clicks at one place, and it takes what is drawn on screen.** Two quick clicks on two villagers standing in one cell now select the second villager rather than every villager in view. A double-click takes a unit whose body shows above the bottom edge, and no longer takes units of the type standing beyond the screen's edges.
 - **Selecting a group plays its first unit's voice**, a mixed group's included. Before, a group of different types was selected in silence.
 
+## 0.3.260
+
+The computer opponent builds its Dark Age economy the way Definitive Edition's does.
+
+- **The computer builds Houses before it is housed.** It starts one when its free population drops under 3 in the Dark Age, under 6 in the Feudal Age (8 once it has placed a Blacksmith), under 10 in the Castle Age and under 20 in the Imperial Age. These are thresholds from DE's own AI scripts; the Feudal one is DE's rule for a Feudal-war strategy, used at every difficulty for now. Before, it wanted a House only once its population had reached the cap, and sat housed for over a minute at a time.
+- **Its Dark Age villagers gather mostly food**: three in four on food and one in four on wood below 12 villagers, and nobody on gold, as DE's AI does. Before, two of six gathered food, and the fourth villager mined gold all age that nothing spent.
+- **Its Town Center keeps training villagers.** It no longer pauses them while it saves for the next age, and it no longer spends the next villager's food on a soldier. On the default map it reaches its 10 Dark Age villagers by about 4:00, where it sat at 6 from 2:00 until 5:00 or later. Its first Militia comes once it has them, at about 4:00 to 5:00 rather than 2:00 to 2:30. With both seats played by the computer it reaches the Feudal Age about four minutes sooner. Against an idle player it reaches it about a minute later, because it eats its nearby food sooner and builds no Dark Age farms yet.
+- **At the population limit the computer no longer builds Houses that add nothing**, and its build order carries on with everything else; it used to place a useless House each time the last one finished and build nothing else while full.
+- **The computer no longer stalls its Castle on Spies.** It priced Spies at the base 200 gold rather than 200 per enemy villager, asked for it on every decision and was refused, and its Castle researched nothing behind it. It now asks for a technology only at the price it would really pay.
+- Known regression, to be fixed by work 141's next milestone: never held back by its population now, the computer trains more army in the Castle and Imperial Ages. In long computer-only matches that can leave a Siege Workshop, Monastery or Castle with nothing bought, because it spends in a fixed order and is short of wood.
+- Saves keep their format. Replaying a recording made before this re-runs the computer's new decisions, so its economy and the match play out differently.
+
 ## 0.3.259
 
 Buildings defend with Definitive Edition's armor, and the selection panel shows total armor.

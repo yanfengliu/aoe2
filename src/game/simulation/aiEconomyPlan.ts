@@ -23,7 +23,8 @@ import type { AgeType, EconomyResourceKind } from './types';
 // they are the pair that decides when the AI reaches Feudal and they can only
 // be understood together. `scripts/ai-dark-age-sweep.mjs` sweeps them.
 //
-// THE VALUES ARE UNCHANGED. A 2026-08-29 attempt to tune them for a faster
+// The values below were left alone until work 141 replaced the split with DE's
+// (further down). A 2026-08-29 attempt to tune them for a faster
 // Feudal was measured, adopted, and then withdrawn, and the reason is the
 // useful part: a sixteen-row sweep on `default-seed` said food weight
 // dominates and 6:3 improved both owners there (9,400/12,100 against
@@ -39,10 +40,26 @@ import type { AgeType, EconomyResourceKind } from './types';
 // rather than the best owner on one. Two further traps found the same day —
 // 6:2 (75% food) wins the ranking and starves the AI of the wood for its
 // 60-wood farms, caught by `gatherDomain.test.ts`; and 7:1 starves the
-// Barracks, a Feudal PREREQUISITE, so the extra food cannot be spent.
+// Barracks, a Feudal PREREQUISITE, so the extra food cannot be spent. Both
+// were measured under the old House rule and latch; DE's 3:1, also 75% food,
+// passes `gatherDomain.test.ts` under work 141's.
+//
+// THE SPLIT IS NOW DE'S (work 141). The 4:3 above starved the Town Center:
+// with six villagers two farmed food (the third food slot went unfilled
+// because the no-inversion guard below would not move a wood villager), and
+// the Town Center sat idle 44-60 s a minute from 1:00 to 4:59 on the boot map
+// waiting for 50 food. DE's own AI gathers 75% food and 25% wood, and no gold,
+// while it has fewer than 12 villagers in the Dark Age (Promisory dawn.per
+// 72-78, every level below Hardest). Under this plan's Dark Age cap of 10 it
+// never has more. From 12 villagers to the Feudal click DE's split is
+// dawn.per's: it picks each villager's resource one at a time (80-385) and
+// writes the split from those counts (402-409). Under the usual strategy no
+// gatherers.per rule sets one before the click: 11-20 and 79-87 skip the flush
+// blocks, and the usual block's Dark Age rules (589-662) wait for the Feudal
+// research. Work 141 M2 models it with the per-level villager counts.
 export const DARK_AGE_TUNING = {
   villagerCap: 10,
-  weights: { food: 4, wood: 3, gold: 0, stone: 0 } as Partial<Record<EconomyResourceKind, number>>,
+  weights: { food: 3, wood: 1, gold: 0, stone: 0 } as Partial<Record<EconomyResourceKind, number>>,
 };
 
 export function villagerTargetsForAge(age: AgeType): Partial<Record<EconomyResourceKind, number>> {
@@ -90,9 +107,10 @@ export function villagerTargetsForAge(age: AgeType): Partial<Record<EconomyResou
 // + Castle 14 / Imperial 50) starved the AI's economy: with ~14 villagers
 // through Castle Age it could not fund a real army or age up efficiently and
 // plateaued (found by AI-vs-AI grounding). These scale toward AoE2-realistic
-// counts — still conservative (military trains BEFORE villagers each decision
-// tick and from a reserve above the age-up cost, so a higher cap grows the
-// economy without starving military or age-up). Monotonic increasing across
+// counts — still conservative (military trains first each decision tick, from
+// what is left above the age-up cost and, since work 141, above the next
+// villager's cost, so a higher cap grows the economy without starving the age-up
+// and the soldiers asked for while a villager is due leave its food). Monotonic increasing across
 // ages. Food supply from natural resources bounds this in very long games until
 // the AI builds farms (a separate follow-up).
 export function villagerCapForAge(age: AgeType): number {

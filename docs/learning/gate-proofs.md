@@ -257,11 +257,11 @@ Measured here, all three report 24. The specified gate would also have passed. T
 - **Gate:** `tests/simulation/aiGarrisonedDefender.test.ts`, two cases on `ai-garrisoned-defender-fixture` and `-few-fixture` — run by `npm test`, and so by `npm run verify`.
 - **Claim it carries, half one:** `findOwnedUnitOnMap` queries `('unit', 'position')`. A garrisoned unit is alive and keeps its `unit` component but `garrisonUnit` strips its position, and `setUnitAttackCommandDirect` returns false without a target position — a silent no-op that the validator never sees. The AI's attack phase prefers the target enemy's villager, so one hidden villager pinned an army idle for 30,000 ticks on `gold-rush`.
 - **Mutation:** `for (const id of world.query('unit'))`, the shipped query before this change.
-- **Red:** both cases. `owner 2 still holds 3 building(s) (town-center, house, barracks); 23 of 23 attackers idle` and `closest approach 21 cells; 4 of 4 attackers idle`.
+- **Red:** both cases. `owner 2 still holds 3 building(s) (town-center, house, barracks); 23 of 23 attackers idle` and `closest approach 21 cells; 4 of 4 attackers idle`. Re-taken 2026-11-04 (work 141), after the full arm gained a seated Battering Ram: `25 of 25 attackers idle`, the Ram included, and the same `-few` message.
 - **Claim it carries, half two:** the attack-group threshold does not apply to an enemy with NO UNITS ON THE MAP. `shouldPush` gates every fallback in the attack phase, the v0.3.197 last-resort branch included, so an army below the threshold never marched on an opponent that had nothing left to be caught by.
 - **Mutation:** `const shouldPush = state.attackGroup.length >= threshold;` — the exception removed.
 - **Red:** the `-few` case only: `four attackers against a Castle-age threshold of seven never reached the enemy: closest approach 21 cells; owner 2 still holds 3 building(s); 4 of 4 attackers idle`.
-- **Green after revert:** yes, 2 passed; the full arm resolves by about tick 4,000 against an 8,000-tick window, and the few arm's closest approach is 1 against a bound of 4.
+- **Green after revert:** yes, 2 passed; the full arm resolves by about tick 4,000 against an 8,000-tick window, and the few arm's closest approach is 1 against a bound of 4. Since 2026-11-04 the full arm resolves at tick 1,197 through its seated Ram, before owner 1 buys a soldier; under work 140's armor, without the Ram, it hung on what the purse bought (the fixture's header).
 
 **Bound.** One map, one age, two attacker sizes, 8,000 ticks, three enemy buildings. It proves the attacker does not STALL; not that it wins, picks a good building, breaches a wall, or copes with a defender that shoots back with more than a Town Centre.
 
