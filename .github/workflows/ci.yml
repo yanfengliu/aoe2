@@ -15,7 +15,8 @@ on:
   # Ubuntu, for 31.7 minutes of wall time and about 87 runner-minutes. What a
   # push costs now is queue time, not money: GitHub's Free plan runs 20
   # standard jobs at once (its Actions limits page, read 2026-09-24), and one
-  # run of this workflow takes 6 of them, plus 1 for playtest.yml.
+  # run of this workflow takes 10 of them (6 before the unit suite was sharded
+  # on 2026-11-05), plus 1 for playtest.yml.
   #
   # Do not reintroduce a paths filter to save time. If the repository goes
   # private again, the filter is the owner's call about money, and it has to
@@ -70,6 +71,14 @@ jobs:
     # the same shard on both runners. It cannot split a file, and time is
     # concentrated: tests/simulation is 90% of it, and four self-play matches
     # are 35% (260-429 s each on that Windows run).
+    #
+    # Sharded, on hosted runs 42008973265 and 42009011415 (2026-11-05), the six
+    # Windows shard jobs took 12.1-18.0 minutes, 30% of the limit at most, on
+    # runners that ran each file at 0.76-1.04x run 41990047794's time; the six
+    # Ubuntu ones took 5.9-12.2. The slowest shard's suite step (14.9 minutes)
+    # can grow 2.5x before its job crosses the headroom line, and 1.7x if the
+    # split, which reshuffles as files are added, draws as badly as 1 random
+    # split in 100 does on these per-file times. Add a shard before then.
     #
     # More workers per runner was the other lever, and is not taken.
     # vitest.config.ts caps them at half the cores because oversubscription
@@ -163,13 +172,12 @@ jobs:
         run: npm run build
 
       # This job's shard of the files. npm passes what follows `--` to `vitest
-      # run` only, not to the `pretest` voxel build. The `--` is QUOTED for
-      # windows-latest, whose default shell is PowerShell: PowerShell drops a
-      # bare `--` before npm.ps1 sees it (npm 10.8.2's shim hands node its
-      # $args), and npm then keeps `--shard` as a setting of its own and runs
-      # every file. Measured 2026-11-05 under Windows PowerShell 5.1 with that
-      # shim's logic: bare, the script got no arguments and npm_config_shard
-      # was 1/3; quoted, it got --shard=1/3, as it does under bash either way.
+      # run` only, not to the `pretest` voxel build. The `--` is QUOTED so the
+      # slice reaches vitest whichever npm shim PowerShell, the default shell on
+      # windows-latest, finds. Today it finds npm.cmd and keeps a bare `--` (run
+      # 42009011415). An npm.ps1 that hands node its $args, as npm 10.8.2's
+      # does, gets no bare `--` from PowerShell, and npm then keeps `--shard`
+      # for itself and runs every file (Windows PowerShell 5.1, 2026-11-05).
       # tests/scripts/ciJobHeadroom.test.ts fails a bare `--` in any npm or npx
       # command a Windows job runs under PowerShell.
       - name: Vitest unit suite

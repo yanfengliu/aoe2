@@ -96,12 +96,15 @@ interface Step {
   readonly run?: string;
   readonly if?: string;
   readonly shell?: string;
+  readonly 'continue-on-error'?: unknown;
 }
 
 interface RunDefaults { readonly defaults?: { readonly run?: { readonly shell?: string } } }
 
 interface Job extends RunDefaults {
   readonly name?: string;
+  readonly if?: string;
+  readonly 'continue-on-error'?: unknown;
   readonly 'runs-on'?: string;
   readonly 'timeout-minutes'?: number;
   readonly strategy?: { readonly matrix?: Record<string, unknown> };
@@ -175,29 +178,51 @@ describe('ci.yml: the browser suite is split with nothing left over', () => {
 // count: the count is written out, and held here to the list's length.
 describe('ci.yml: the unit suite is split with nothing left over, on both runners', () => {
   it('crosses both runners with shards 1..N and nothing else, so no runner and no slice drops out', () => {
-    const matrix = ciJobs().gates!.strategy?.matrix ?? {};
+    const gates = ciJobs().gates!;
+    const matrix = gates.strategy?.matrix ?? {};
     // An `include` or `exclude` could add or drop single combinations.
     expect(Object.keys(matrix).sort(), 'the unit matrix is the runners crossed with the shards').toEqual(['os', 'shard']);
     expect(matrix.os, 'the unit suite runs on both runners; windows-latest is there for Windows-only defects')
       .toEqual(['ubuntu-latest', 'windows-latest']);
+    expect(gates['runs-on'], 'each job runs on the runner its matrix entry names').toBe('${{ matrix.os }}');
   });
 
-  it('passes each job its own index over the list\'s length, and names the slice', () => {
+  it('passes each job its own index over the list\'s length, names the slice, and runs it unconditionally', () => {
     const gates = ciJobs().gates!;
     const total = shardList('gates', gates).length;
     const suite = (gates.steps ?? []).filter((step) => /\bnpm (?:run )?test\b(?!:)/.test(step.run ?? ''));
     // The `--` is quoted for PowerShell; the describe below says why.
     expect(suite.map((step) => step.run?.trim())).toEqual([`npm test '--' --shard=\${{ matrix.shard }}/${String(total)}`]);
     expect(gates.name, 'the job name says which slice it ran').toContain(`test \${{ matrix.shard }}/${String(total)}`);
+    // A condition could skip a slice, its per-test check with it, and
+    // continue-on-error could pass a red one (review round 0, F0).
+    for (const [what, holder] of [['the job', gates], ['the suite step', suite[0]!]] as const) {
+      expect(holder.if, `${what} carries a condition, which could skip a slice`).toBeUndefined();
+      expect(holder['continue-on-error'], `${what} may continue on error, which would pass a red slice`).toBeUndefined();
+    }
   });
 });
 
-// The 2026-11-05 near miss, caught before the split first ran: PowerShell, the
-// default shell on windows-latest, drops a bare `--` before npm.ps1 sees it
-// (npm 10.8.2's shim hands node its $args), and npm then keeps `--shard` as a
-// setting of its own, so `npm test -- --shard=1/3` would have run every file in
-// every Windows shard. Quoted, it reaches npm under PowerShell and bash alike.
-// The rule covers every npm or npx command a Windows job runs under PowerShell.
+/**
+ * Each npm or npx command in a PowerShell `run:` block, from its name to the
+ * end of the command: a line a trailing backtick continues is joined to the
+ * next, and a command starts a line or follows `;`, `|`, `&&`, `(`, `$(`, `{` or
+ * the `&` call operator (review round 0, F1). A command built in a string and
+ * run with Invoke-Expression is not read.
+ */
+function npmCommands(run: string): string[] {
+  const joined = run.replace(/`\r?\n/g, ' ');
+  const start = /(?:^|[;|({]|&&|\$\()[ \t]*(?:&[ \t]*)?((?:npm|npx)(?:\.cmd|\.ps1)?\b[^;|)}\n]*)/gim;
+  return [...joined.matchAll(start)].map((match) => match[1]!.trim());
+}
+
+// Found 2026-11-05, before the split first ran: an npm.ps1 that hands node its
+// $args, as npm 10.8.2's does, never sees a bare `--` under PowerShell, the
+// default shell on windows-latest, and npm then keeps `--shard` for itself, so
+// every file would run in every Windows shard. On windows-latest today
+// PowerShell finds npm.cmd instead and keeps a bare `--` (run 42009011415);
+// quoted, the slice reaches vitest through either shim, and under bash. The
+// rule covers every npm or npx command a Windows job runs under PowerShell.
 describe('ci.yml: what follows `--` reaches the npm script on windows-latest too', () => {
   it('quotes the `--` of every npm or npx command that a Windows job runs under PowerShell', () => {
     const workflow = ciWorkflow();
@@ -212,10 +237,8 @@ describe('ci.yml: what follows `--` reaches the npm script on windows-latest too
         const shell = step.shell ?? job.defaults?.run?.shell ?? workflow.defaults?.run?.shell ?? 'pwsh';
         if (step.run === undefined || !/^(?:pwsh|powershell)\b/.test(shell)) continue;
         read += 1;
-        for (const line of step.run.split('\n')) {
-          if (/^\s*(?:npm|npx)\b/.test(line) && /(?:^|\s)--(?:\s|$)/.test(line)) {
-            offenders.push(`${key} › ${step.name ?? '(unnamed step)'}: ${line.trim()}`);
-          }
+        for (const command of npmCommands(step.run)) {
+          if (/(?:^|\s)--(?:\s|$)/.test(command)) offenders.push(`${key} › ${step.name ?? '(unnamed step)'}: ${command}`);
         }
       }
     }
