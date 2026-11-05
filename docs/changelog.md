@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
-## Unreleased — work 142 M2b-2b
+## 0.3.266
 
 Space, Home, the game-speed and zoom keys and Shift+Delete take Definitive Edition's (DE's) default meanings, from the default key profile in DE's own files.
 
