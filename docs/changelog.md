@@ -20,6 +20,12 @@ Definitive Edition's (DE's) "go to" and "select all" building keys, from the def
 - **Ctrl+Shift and the same letter selects every building of that type you own**, without moving the camera. Ctrl+Shift+H selects every Town Center and Ctrl+Shift+Space every military building: Barracks, Archery Ranges, Stables, Siege Workshops, Castles and Monasteries.
 - **The selection panel shows a group of buildings** by type, with a count, as it shows a group of units.
 - Outside a text field these keys no longer do what the browser does with them: Ctrl+S no longer saves the page, and Ctrl+Shift+I no longer opens the developer tools (F12 still does). DE's Ctrl+W and Ctrl+Shift+W, its Wonder keys, are not bound: the browser keeps them to close the tab and the window.
+## 0.3.267
+
+The computer opponent trains rams for its attacks the way Definitive Edition's (DE's) own AI does, at every difficulty.
+
+- **A ram comes before the army.** From the Castle Age, while its attack is out, its army is 33 or more, it leads your army by 7 or more (less your towers and Castles while its army is small), or it is near its population limit, the computer trains a ram at an idle Siege Workshop before its other soldiers spend, up to six rams. It still trains the next villager first, saves for its next age as before, and holds nothing back for a ram it cannot pay for yet.
+- In seven computer-against-computer test matches, the stronger computer now brings siege on five maps, where it did on two.
 
 ## 0.3.266
 

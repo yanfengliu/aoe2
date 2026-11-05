@@ -13,6 +13,7 @@ import {
   settleEscrow,
   type EscrowPurchase,
 } from '../../aiEscrow';
+import type { RamLineUnit } from '../../aiSiege';
 import { isEnemyOwner } from '../../alliances';
 import { ownerResearchCost } from '../ownerCosts';
 import {
@@ -26,6 +27,8 @@ import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 export interface EscrowResult {
   /** Held purchases not bought yet, each as the budget its check used; the Market aims at these. */
   unpaid: Array<Partial<PlayerResources>>;
+  /** A ram was asked for: DE trains one a pass (units.per 12905-12925), so the army loop asks for none. */
+  ramBought: boolean;
 }
 
 export function runEscrowPhase(
@@ -35,6 +38,10 @@ export function runEscrowPhase(
   ageUpReserve: Partial<PlayerResources>,
   /** The age-up latch holds soldiers and research, so it holds these too. */
   savingForAgeUp: boolean,
+  /** The ram DE's ram goal wants now (`aiSiegePhase.ts`), bought ahead of the army and holding nothing. */
+  ram: RamLineUnit | null = null,
+  /** What a soldier leaves behind: the age-up's reserve, the age's prerequisite wood and the next villager. */
+  soldierReserve: Partial<PlayerResources> = ageUpReserve,
 ): EscrowResult | null {
   const { accessor, monksByOwner, countQueuedUnits, getResearchOptions } = deps;
   const {
@@ -86,6 +93,7 @@ export function runEscrowPhase(
       inFlight: accessor.get(inFlightTechByOwnerCodec).get(owner)?.has('conscription') ?? false,
       asked: pendingResearchKeys.has(`${owner}:conscription`),
     }),
+    ram,
   });
 
   const priceOf = (purchase: EscrowPurchase): Partial<PlayerResources> => (
@@ -94,15 +102,17 @@ export function runEscrowPhase(
       : ownerResearchCost(activeWorld, accessor, owner, purchase.technology)
   );
   const settled = settleEscrow(
-    stockpile, flagged, priceOf, (purchase) => findIdleProducerLocal(purchase.producer) !== null, ageUpReserve,
+    stockpile, flagged, priceOf, (purchase) => findIdleProducerLocal(purchase.producer) !== null, ageUpReserve, soldierReserve,
   );
   // Asked for before the budget opens, and so not checked by it: the settlement
   // is their check, and the budget starts with them spent.
+  let ramBought = false;
   for (const purchase of settled.buy) {
     const producerId = findIdleProducerLocal(purchase.producer);
     if (producerId === null) continue;
     if (purchase.kind === 'train') {
       purchases.buy({ kind: 'train', buildingId: producerId, unit: purchase.unit, price: priceOf(purchase) });
+      if (purchase.producer === 'siege-workshop') ramBought = true;
       pendingTrainsByBuilding.set(producerId, (pendingTrainsByBuilding.get(producerId) ?? 0) + 1);
     } else {
       purchases.buy({ kind: 'research', buildingId: producerId, technology: purchase.technology, price: priceOf(purchase) });
@@ -111,5 +121,5 @@ export function runEscrowPhase(
     }
   }
   purchases.openBudget(new DecisionBudget(stockpile, settled.held, settled.bought));
-  return { unpaid: settled.unpaid };
+  return { unpaid: settled.unpaid, ramBought };
 }

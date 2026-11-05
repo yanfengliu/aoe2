@@ -33,6 +33,8 @@ import {
 import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 import { townCenterVillagerDemand, villagerReserve } from './aiVillagerDemand';
 import { runEscrowPhase } from './aiEscrowPhase';
+import { ramToTrain } from './aiSiegePhase';
+import { RAM_LINE } from '../../aiSiege';
 import { runTownCenterPhase } from './aiTownCenterPhase';
 import { MONK_ACTION_RANGE } from './monkBehaviorSystem';
 
@@ -168,7 +170,17 @@ export function runProductionPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void
   // asks more of the same purchase, never less, since it has counted every
   // purchase asked for before it (work 141 M2a-2a). A held purchase it cannot
   // pay for is part of the plan.
-  const escrow = runEscrowPhase(deps, ctx, ageUpReserve, savingForAgeUp);
+  // A soldier leaves the next villager's cost behind (`aiVillagerDemand.ts`).
+  // Read before the escrow, which buys the ram as a soldier; nothing the escrow
+  // asks for is at the Town Center, so the demand reads the same either side.
+  const nextVillager = villagerReserve(townCenterVillagerDemand(deps, ctx));
+  const soldierReserve = addCosts(militaryReserve, nextVillager);
+  // DE's ram goal (`aiSiege.ts`, work 141 M2a-2b): a ram it can pay for is bought
+  // ahead of the army, as DE's train order buys it, unless the army is paused.
+  const armyPaused = savingForAgeUp
+    || militaryGrowthPausedForAgeUp(currentAge, qualifiesForNextAge, ownedMilitaryUnitIds(owner).size);
+  const ram = armyPaused ? null : ramToTrain(deps, ctx);
+  const escrow = runEscrowPhase(deps, ctx, ageUpReserve, savingForAgeUp, ram, soldierReserve);
   // The Castle's list drops only what is researched (`castleTechOptions`), so a
   // technology already queued there is asked for again, refused by the handler
   // and counted as a slot taken (work 141 review round 5). Skipping it moves the
@@ -259,9 +271,6 @@ export function runProductionPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void
   // At most ONE market trade per decision tick, whichever gate asks for it: the
   // age-up shortfall keeps priority, because an age is worth more than a unit.
   let marketActionPushed = false;
-  // A soldier leaves the next villager's cost behind (`aiVillagerDemand.ts`).
-  const nextVillager = villagerReserve(townCenterVillagerDemand(deps, ctx));
-  const soldierReserve = addCosts(militaryReserve, nextVillager);
   // Handlers charge in the order asked and none of these pushes is charged yet,
   // so while a villager is due each soldier is priced on top of those asked
   // before it (work 141 review round 0, F0: a Spearman and a Scout each passed
@@ -290,6 +299,8 @@ export function runProductionPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void
       }
       const offered = trainableInSameLine(unitType, offers);
       if (offered === undefined) continue;
+      // DE trains one ram a pass (units.per 12905-12925): one the escrow bought is this decision's.
+      if (escrow?.ramBought && (RAM_LINE as readonly string[]).includes(offered)) continue;
       // Advisory base cost (gates intention only; the validator and the charge
       // apply the owner's civilization cost rules, such as the Byzantine and
       // Viking seats' discounts, and no rule raises a price). Priced on what will

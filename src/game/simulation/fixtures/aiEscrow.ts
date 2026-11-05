@@ -1,4 +1,5 @@
 import { MAP_HEIGHT, MAP_WIDTH, type PrototypeScenario, type ScenarioSpawnSpec } from '../prototypeScenario';
+import type { ResearchableTechnologyType } from '../types';
 import { createGrassFixtureTerrain, gaiaSpawn, ownedSpawn } from './common';
 
 // Work 141 M2a: what the computer holds back from its army so that a purchase
@@ -142,8 +143,67 @@ export function createAiEscrowConscriptionFixture(seed: string, options: Conscri
   };
 }
 
-/** Work 141's escrow cases, by seed (`tests/simulation/aiEscrow.test.ts`). */
+/**
+ * DE's ram goal (work 141 M2a-2b, `aiSiege.ts`). Owner 2 is a Castle Age AI
+ * with an idle Siege Workshop, Archery Range and Barracks, three villagers (a
+ * villager is due), 200 food, 1,000 wood and 100 gold, and `attackers`
+ * Men-at-Arms at home. Owner 1, its AI off, has a Town Center and one Militia,
+ * so its army is never nothing. With seven, the Castle Age attack group, the
+ * attack is out and DE wants a ram; their lead over the Militia is 6, one short
+ * of superiority 1. With 100 gold it pays for one Ram (160 wood, 75 gold) or
+ * one Archer (25 wood, 45 gold) with 55 left, never both; the army loop asks
+ * the Siege Workshop last, so without the goal the Archer takes the gold. The
+ * Spearman (35 food, 25 wood) costs no gold, so it trains either way. With
+ * `gold` 300 the ram, the Archer and a Mangonel (160 wood, 135 gold) all fit,
+ * and DE trains one ram a pass, so the second Siege Workshop slot takes the
+ * Mangonel.
+ */
+export function createAiSiegeRamFixture(
+  seed: string,
+  attackers: number,
+  gold = 100,
+  /** Owner 2 in the Imperial Age with these researched, and owner 1 with a Castle: superiority's defence test. */
+  imperial?: { researched: ResearchableTechnologyType[] },
+): PrototypeScenario {
+  return {
+    seed,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
+    terrain: createGrassFixtureTerrain(),
+    starts: [
+      { owner: 1, townCenter: { x: 4, y: 4 }, startingAge: 'castle-age', disableAi: true },
+      {
+        owner: 2,
+        townCenter: { x: 34, y: 20 },
+        startingAge: imperial ? 'imperial-age' : 'castle-age',
+        startingResources: { food: 200, wood: 1000, gold, stone: 0 },
+        ...(imperial ? { startingResearchedTechnologies: imperial.researched } : {}),
+      },
+    ],
+    spawns: [
+      ownedSpawn('town-center', 1, 4, 4, { vision: 7 }),
+      ownedSpawn('militia', 1, 8, 8, { vision: 4 }),
+      ...(imperial ? [ownedSpawn('castle', 1, 10, 4, { vision: 8 })] : []),
+      ownedSpawn('town-center', 2, 34, 20, { vision: 7 }),
+      ownedSpawn('siege-workshop', 2, 22, 14, { vision: 5 }),
+      ownedSpawn('archery-range', 2, 28, 24, { vision: 5 }),
+      ownedSpawn('barracks', 2, 22, 24, { vision: 5 }),
+      ...Array.from({ length: attackers }, (_, index) =>
+        ownedSpawn('man-at-arms', 2, 36 + (index % 4), 26 + Math.floor(index / 4), { vision: 4 })),
+      ...houses(),
+      ...villagers(),
+    ],
+  };
+}
+
+/** Work 141's escrow cases, by seed (`tests/simulation/aiEscrow.test.ts`, and the ram's in `aiSiege.test.ts`). */
 export const AI_ESCROW_SCENARIOS: ReadonlyArray<readonly [string, (seed: string) => PrototypeScenario]> = [
+  ['ai-siege-ram-fixture', (seed) => createAiSiegeRamFixture(seed, 7)],
+  ['ai-siege-ram-short-fixture', (seed) => createAiSiegeRamFixture(seed, 6)],
+  ['ai-siege-ram-rich-fixture', (seed) => createAiSiegeRamFixture(seed, 7, 300)],
+  ['ai-siege-ram-army-tech-fixture', (seed) => createAiSiegeRamFixture(seed, 8, 100, { researched: ['cavalier-upgrade'] })],
+  ['ai-siege-ram-no-army-tech-fixture', (seed) => createAiSiegeRamFixture(seed, 8, 100, { researched: [] })],
+  ['ai-siege-ram-queued-fixture', (seed) => createAiSiegeRamFixture(seed, 8, 175, { researched: [] })],
   ['ai-escrow-monk-fixture', (seed) => createAiEscrowMonkFixture(seed, { relics: 2 })],
   ['ai-escrow-monk-one-relic-fixture', (seed) => createAiEscrowMonkFixture(seed, { relics: 1 })],
   ['ai-escrow-monk-enemy-monastery-fixture', (seed) => createAiEscrowMonkFixture(seed, { relics: 0, enemyMonastery: true })],
