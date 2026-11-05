@@ -22,7 +22,7 @@ import type { SimulationBridge } from '../../game/simulation/createSimulationBri
 import { canAttackGround } from '../../game/simulation/projectileRules';
 import { HUMAN_PLAYER_ID } from '../../game/simulation/prototypeScenario';
 import type { BuildableBuildingType } from '../../game/simulation/types';
-import { buildingCardKeyOf, hasBuildingCardKeys } from '../../ui/hud/buildingCardKeys';
+import { buildingCardKeyOf, cardBuildingTypeOf, hasBuildingCardKeys } from '../../ui/hud/buildingCardKeys';
 import {
   BUILD_PAGE_KEYS,
   GRID_KEYS,
@@ -159,7 +159,8 @@ export function registerCommandCardHotkeys(deps: {
         if (panel) pressVillagerKey(panel, key);
         return;
       }
-      const type = state.selectedEntityType;
+      // The card of a group of buildings is its primary's (review round 9).
+      const type = cardBuildingTypeOf(state, bridgeRef().getEconomyState().buildings);
       if (type && hasBuildingCardKeys(type)) {
         if (panel) pressBuildingKey(panel, type, key);
         return;

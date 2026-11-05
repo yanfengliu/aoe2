@@ -230,6 +230,8 @@ export function makeReplayBridge(
     selectNextIdleMilitary: () => false,
     selectNextIdleVillager: () => false,
     assignControlGroup: () => false,
+    appendControlGroupToSelection: () => false,
+    ungroupSelection: () => false,
     recallControlGroup: () => false,
     getPopulationState(playerId: number) {
       return api.getPopulationState(playerId);

@@ -19,7 +19,14 @@ type Selection = {
   selectedEntityType: string | null;
   buildOptions: string[];
   stanceOptions?: string[];
+  /** The primary's building, for a group of buildings with no shared type. */
+  primaryBuilding?: string;
 };
+
+// The cards below that are buildings'; the handler finds the card's building
+// by the primary selected entity, among the economy's buildings.
+const BUILDING_CARDS: ReadonlySet<string> = new Set(['town-center', 'university']);
+const cardOf = (selection: Selection): string => selection.primaryBuilding ?? selection.selectedEntityType ?? '';
 
 // What the HUD would draw for each selection's card.
 const CARDS: Readonly<Record<string, string>> = {
@@ -44,7 +51,7 @@ function harness(initial: Selection, units: Unit[] = []) {
   const pressed = vi.fn();
   // What the HUD would draw for the selection, but only when asked to.
   const draw = (): void => {
-    panel.innerHTML = CARDS[selection.selectedEntityType ?? '']
+    panel.innerHTML = CARDS[cardOf(selection)]
       ?? '<button data-build-page="economic" aria-pressed="true">Eco</button>';
     panel.querySelectorAll<HTMLElement>('[data-command]').forEach((button) => {
       button.addEventListener('click', () => { pressed(button.dataset.command); });
@@ -56,8 +63,18 @@ function harness(initial: Selection, units: Unit[] = []) {
     hotkeyRegistry: { register: (spec, handler) => { handlers.set(spec.key, handler); } },
     view,
     bridgeRef: () => ({
-      getSelectionState: () => ({ stanceOptions: [], ...selection }),
-      getEconomyState: () => ({ units }),
+      getSelectionState: () => ({
+        stanceOptions: [],
+        selectedKind: BUILDING_CARDS.has(cardOf(selection)) ? 'building' : 'unit',
+        selectedEntityId: selection.selectedEntityIds[0] ?? null,
+        ...selection,
+      }),
+      getEconomyState: () => ({
+        units,
+        buildings: BUILDING_CARDS.has(cardOf(selection))
+          ? [{ id: selection.selectedEntityIds[0], owner: 1, buildingType: cardOf(selection) }]
+          : [],
+      }),
     }) as unknown as SimulationBridge,
     hudRoot,
     syncSelectionPanel,
@@ -108,6 +125,15 @@ describe('command-card keys read the card of the selection (work 142)', () => {
     const app = harness({ selectedEntityIds: [11], selectedEntityType: 'university', buildOptions: [] });
     app.press('t');
     expect(app.pressed.mock.calls).toEqual([['research-bombard-tower-unlock']]);
+  });
+
+  // Review round 9 (Codex): a group of buildings of several types, every
+  // military building on Ctrl+Shift+Space, has no shared type; its card is
+  // the primary building's, and its keys press that card's buttons.
+  it('presses the primary building\'s card for a group of buildings with no shared type', () => {
+    const app = harness({ selectedEntityIds: [9, 11], selectedEntityType: null, buildOptions: [], primaryBuilding: 'town-center' });
+    app.press('q');
+    expect(app.pressed.mock.calls).toEqual([['train-villager']]);
   });
 
   // Review round 5 (Codex): a Mangonel converted while selected stays in the

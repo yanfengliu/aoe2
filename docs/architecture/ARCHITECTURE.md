@@ -43,6 +43,12 @@ Read this map first, then only the sections the work needs.
     forgetting to is what this file makes visible; it replaces three cases
     arbitrated inline in `createApp.ts`, which could only see native dialogs and
     so closed the menu underneath an open technology tree.
+    The keys that act without a card are DE's `definitive` defaults (work
+    142): `dePlayHotkeys.ts` (F3, the speed and zoom keys, Space, Home),
+    `selectionRecallHotkeys.ts` ('.', ',', Delete), `controlGroupHotkeys.ts`
+    (DE's twenty control groups and U) and `goToBuildingHotkeys.ts` (H and the
+    Ctrl and Ctrl+Shift building keys, one table of DE's entries), with
+    `goToObject.ts` placing the camera on what a go-to key finds.
   - `app/cancelBuildingPlacement.ts` (NEW v0.3.223) — disarms a pending building
     placement through the selection API that already clears it, by re-selecting
     the CURRENT refs. The bridge exposes no cancel and this is deliberately a

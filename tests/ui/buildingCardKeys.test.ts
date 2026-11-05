@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { RESEARCHES_BY_BUILDING, TRAINABLE_UNITS_BY_BUILDING } from '../../src/game/simulation/buildingProductionTables';
 import type { BuildingType } from '../../src/game/simulation/types';
 import { UNIQUE_TECHNOLOGIES } from '../../src/game/simulation/uniqueTechnologies';
-import { buildingCardKeyOf, hasBuildingCardKeys, inBuildingCardSlotOrder } from '../../src/ui/hud/buildingCardKeys';
+import { buildingCardKeyOf, cardBuildingTypeOf, hasBuildingCardKeys, inBuildingCardSlotOrder } from '../../src/ui/hud/buildingCardKeys';
 import { GRID_KEYS, VILLAGER_BUILD_SLOTS } from '../../src/ui/hud/commandCardKeys';
 
 // What DE's own card for that building has no key for (DE researches these at
@@ -72,54 +72,58 @@ describe('DE building card keys (work 142 M2b-2)', () => {
 
   it('draws a building\'s lists in slot order, a line\'s tiers in their own order, and leaves a unit\'s alone', () => {
     const blacksmith = inBuildingCardSlotOrder({
-      selectedKind: 'building',
-      selectedEntityType: 'blacksmith',
       actionOptions: [],
       trainOptions: [],
       marketOptions: [],
       visibleResearchOptions: ['fletching', 'forging', 'bodkin-arrow', 'scale-mail-armor', 'iron-casting'],
-    });
+    }, 'blacksmith');
     expect(blacksmith.visibleResearchOptions).toEqual(['forging', 'iron-casting', 'scale-mail-armor', 'fletching', 'bodkin-arrow']);
     const townCenter = inBuildingCardSlotOrder({
-      selectedKind: 'building',
-      selectedEntityType: 'town-center',
       actionOptions: ['ungarrison', 'ring-town-bell', 'back-to-work'],
       trainOptions: ['villager'],
       marketOptions: [],
       visibleResearchOptions: ['wheelbarrow', 'town-watch', 'loom', 'feudal-age'],
-    });
+    }, 'town-center');
     // Go Back to Work F (slot 8), Ungarrison G (9), Town Bell B (14).
     expect(townCenter.actionOptions).toEqual(['back-to-work', 'ungarrison', 'ring-town-bell']);
     expect(townCenter.visibleResearchOptions).toEqual(['loom', 'wheelbarrow', 'town-watch', 'feudal-age']);
     const dock = inBuildingCardSlotOrder({
-      selectedKind: 'building',
-      selectedEntityType: 'dock',
       actionOptions: [],
       trainOptions: [],
       marketOptions: [],
       visibleResearchOptions: ['careening', 'war-galley-upgrade', 'fast-fire-ship-upgrade', 'heavy-demolition-ship-upgrade'],
-    });
+    }, 'dock');
     // A button DE gives no key there keeps its place after the keyed ones.
     expect(dock.visibleResearchOptions).toEqual(['war-galley-upgrade', 'heavy-demolition-ship-upgrade', 'careening', 'fast-fire-ship-upgrade']);
     // Buttons that share a key come in DE's tier order, whatever order the
     // bridge lists them in: DE's T shows Chemistry before the Bombard Tower.
     const university = inBuildingCardSlotOrder({
-      selectedKind: 'building',
-      selectedEntityType: 'university',
       actionOptions: [],
       trainOptions: [],
       marketOptions: [],
       visibleResearchOptions: ['keep', 'bombard-tower-unlock', 'chemistry', 'guard-tower'],
-    });
+    }, 'university');
     expect(university.visibleResearchOptions).toEqual(['chemistry', 'bombard-tower-unlock', 'guard-tower', 'keep']);
     const unit = inBuildingCardSlotOrder({
-      selectedKind: 'unit',
-      selectedEntityType: 'villager',
       actionOptions: [],
       trainOptions: [],
       marketOptions: [],
       visibleResearchOptions: ['fletching', 'forging'],
-    });
+    }, cardBuildingTypeOf({ selectedKind: 'unit', selectedEntityId: 5 }, []));
     expect(unit.visibleResearchOptions).toEqual(['fletching', 'forging']);
+  });
+
+  // Review round 9: a group of buildings of several types (Ctrl+Shift+Space)
+  // has no shared type, and its card is the primary building's.
+  it('takes the card\'s building from the primary selected entity, not the group\'s shared type', () => {
+    const buildings = [
+      { id: 4, buildingType: 'castle' as const },
+      { id: 9, buildingType: 'barracks' as const },
+    ];
+    expect(cardBuildingTypeOf({ selectedKind: 'building', selectedEntityId: 4 }, buildings)).toBe('castle');
+    expect(cardBuildingTypeOf({ selectedKind: 'building', selectedEntityId: 9 }, buildings)).toBe('barracks');
+    expect(cardBuildingTypeOf({ selectedKind: 'unit', selectedEntityId: 4 }, buildings)).toBeNull();
+    expect(cardBuildingTypeOf({ selectedKind: 'building', selectedEntityId: 12 }, buildings)).toBeNull();
+    expect(cardBuildingTypeOf({ selectedKind: 'building', selectedEntityId: null }, buildings)).toBeNull();
   });
 });

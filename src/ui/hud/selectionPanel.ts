@@ -65,7 +65,7 @@ import {
   renderTributeButtons,
 } from './selectionPanel/buttons';
 import { commandReasons, renderCommandGroup } from './selectionPanel/commandGroup';
-import { inBuildingCardSlotOrder } from './buildingCardKeys';
+import { cardBuildingTypeOf, inBuildingCardSlotOrder } from './buildingCardKeys';
 
 export interface SelectionPanelDeps {
   getEconomyState(): EconomyState;
@@ -237,7 +237,7 @@ export function createSelectionPanel(
     // the status visible if that ever stops being true.
     const placementOutsideDeck = buildButtons ? '' : placementMarkup;
     // A building's buttons are drawn in DE's slot order (work 142 M2b-2).
-    const card = inBuildingCardSlotOrder(selectionState);
+    const card = inBuildingCardSlotOrder(selectionState, cardBuildingTypeOf(selectionState, economyState.buildings));
     const actionButtons = renderActionButtons(card.actionOptions);
     const trainButtons = renderTrainButtons(card.trainOptions, reasons, costs);
     const marketButtons = renderMarketButtons(card.marketOptions, reasons);

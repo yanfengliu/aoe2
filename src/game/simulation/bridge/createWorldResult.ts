@@ -94,8 +94,10 @@ export interface CreateWorldResult {
   countIdleVillagers: () => number;
   countIdleMilitary: () => number;
   selectNextIdleMilitary: () => boolean;
-  assignControlGroup: (digit: number) => boolean;
-  recallControlGroup: (digit: number) => boolean;
+  assignControlGroup: (group: number) => boolean;
+  appendControlGroupToSelection: (group: number) => boolean;
+  ungroupSelection: () => boolean;
+  recallControlGroup: (group: number) => boolean;
   selectNextIdleVillager: () => boolean;
   issueMoveCommand: (x: number, y: number, options?: { queue?: boolean }) => boolean;
   issueAction: (actionType: ActionType) => boolean;

@@ -5,17 +5,19 @@ import {
 } from '../prototypeScenario';
 import { createGrassFixtureTerrain, gaiaSpawn, ownedSpawn } from './common';
 import { createBuildingCardKeysFixture } from './buildingCardKeys';
+import { createBuildingGoToKeysFixture } from './buildingGoToKeys';
 
 /** Work 142's scenes by seed, which the scenario registry lists as one family.
  *  The registry calls this while it is itself being evaluated, which can be
  *  in the middle of an import cycle through `prototypeScenario` before
- *  `buildingCardKeys.ts` has run, so it reads only literals and its own
- *  functions, and reaches the other module when a scenario is built
- *  (`tests/simulation/selectionControlsScenarios.test.ts`). */
+ *  `buildingCardKeys.ts` and `buildingGoToKeys.ts` have run, so it reads only
+ *  literals and its own functions, and reaches the other modules when a
+ *  scenario is built (`tests/simulation/selectionControlsScenarios.test.ts`). */
 export function selectionControlsScenarios(): ReadonlyArray<readonly [string, (seed: string) => PrototypeScenario]> {
   return [
     ['selection-controls-fixture', createSelectionControlsFixture],
     ['building-card-keys-fixture', (seed) => createBuildingCardKeysFixture(seed)],
+    ['building-go-to-keys-fixture', (seed) => createBuildingGoToKeysFixture(seed)],
   ];
 }
 

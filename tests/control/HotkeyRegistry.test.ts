@@ -26,7 +26,7 @@ describe('HotkeyRegistry', () => {
   });
 
   // The control-group double-tap times its window between two presses' own
-  // `timeStamp`s (selectionRecallHotkeys.ts), so the handler must get the
+  // `timeStamp`s (controlGroupHotkeys.ts), so the handler must get the
   // keydown itself; without it the only clock left is one read in the handler,
   // which a busy page stretches.
   it('hands the handler the keydown that fired it', () => {

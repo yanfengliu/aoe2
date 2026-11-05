@@ -354,7 +354,8 @@ export function registerBridgeSystems(
     issueMarketAction,
   } = createHumanInputOps({
     world,
-    selectUnitsByIds,
+    // A selection these ops make, the idle cycles', reaches a paused frame (work 142 review round 10).
+    selectUnitsByIds: (ids) => { const selected = selectUnitsByIds(ids); markOutOfBandRenderChange(); return selected; },
     isGarrisonedUnit,
     humanPlayerId: HUMAN_PLAYER_ID,
     mapWidth: world.grid.width,

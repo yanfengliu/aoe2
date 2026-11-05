@@ -14,10 +14,11 @@ import { describe, expect, it } from 'vitest';
 import { SCENARIO_FACTORIES } from '../../src/game/simulation/prototypeScenario/scenarioRegistry';
 
 describe('work 142 fixtures register whatever loads first', () => {
-  it('lists the selection-controls and building-card-keys fixtures', () => {
+  it('lists the selection-controls, building-card-keys and building-go-to-keys fixtures', () => {
     expect(selectionControlsScenarios().map(([seed]) => seed))
-      .toEqual(['selection-controls-fixture', 'building-card-keys-fixture']);
+      .toEqual(['selection-controls-fixture', 'building-card-keys-fixture', 'building-go-to-keys-fixture']);
     expect(SCENARIO_FACTORIES.has('selection-controls-fixture')).toBe(true);
     expect(SCENARIO_FACTORIES.has('building-card-keys-fixture')).toBe(true);
+    expect(SCENARIO_FACTORIES.has('building-go-to-keys-fixture')).toBe(true);
   });
 });
