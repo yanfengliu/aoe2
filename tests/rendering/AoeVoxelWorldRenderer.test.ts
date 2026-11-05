@@ -6,6 +6,7 @@ import type { ThreeRenderRuntimeOptions } from 'voxel/three';
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
 import { worldToIso } from '../../src/rendering/isometricProjection';
 import { AoeVoxelWorldRenderer } from '../../src/rendering/voxel/AoeVoxelWorldRenderer';
+import { voxelEntityHitRegions } from '../../src/rendering/voxel/aoeVoxelHitProxy';
 import { FakeRuntime, terrain } from './helpers/fakeVoxelRuntime';
 
 afterEach(() => {
@@ -202,5 +203,45 @@ describe('AoeVoxelWorldRenderer', () => {
       viewCorners: [],
     }, 16);
     expect(renderer.isInteractionReady()).toBe(true);
+  });
+  // Work 142, review round 2: a double-click looks for the bodies this hands
+  // back, so it must hand back the body as presented, a walking villager's
+  // gait and facing included, and not the recipe's still pose.
+  it('hands back the presented polygons of a walking villager, which its still pose does not share', () => {
+    const runtime = new FakeRuntime();
+    const renderer = new AoeVoxelWorldRenderer({
+      host: document.createElement('div'),
+      width: 320,
+      height: 200,
+      createRuntime: () => runtime,
+    });
+    const camera = {
+      scrollX: 0, scrollY: 0, zoom: 1, width: 320, height: 200,
+      viewX: 0, viewY: 0, viewWidth: 320, viewHeight: 200, viewCorners: [],
+    };
+    const villager: ProjectedEntityView = {
+      ...terrain(), id: 7, kind: 'unit', layer: 'unit', entityType: 'villager',
+      owner: 1, x: 2, y: 3, size: 0.7, currentHp: 40, maxHp: 40,
+    };
+    expect(renderer.presentedHitPolygons(new Set([7])).size).toBe(0);
+    renderer.present([villager], 0);
+    renderer.frame(camera, 0);
+    const walking = { ...villager, x: 3 };
+    renderer.present([walking], 400);
+    renderer.frame(camera, 400);
+
+    const presented = renderer.presentedHitPolygons(new Set([7, 99]));
+    expect([...presented.keys()]).toEqual([7]);
+    const polygons = presented.get(7)!;
+    expect(polygons.length).toBeGreaterThan(0);
+    expect(polygons).not.toEqual(voxelEntityHitRegions(walking).map(({ polygon }) => polygon));
+    // They are the body a click sees there.
+    for (const polygon of polygons) {
+      const middle = {
+        x: polygon.reduce((sum, point) => sum + point.x, 0) / polygon.length,
+        y: polygon.reduce((sum, point) => sum + point.y, 0) / polygon.length,
+      };
+      expect(renderer.findPresentedEntitiesAtIsoPoint(middle.x, middle.y, 'selection').map((entity) => entity.id)).toContain(7);
+    }
   });
 });
