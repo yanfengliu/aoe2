@@ -208,13 +208,17 @@ describe('ci.yml: the unit suite is split with nothing left over, on both runner
  * `--` anywhere. The whole block is the unit, not a line or a parsed command:
  * PowerShell lets one command span lines in more ways than a pattern follows
  * (a backtick, an open `$(` or `(`, a call operator on its own line), and
- * three rounds of review each found one (rounds 0-2, F1). The price is that a
- * bare `--` in such a block fails even when it belongs to another command, a
- * comment or a string: quote it, or give that command a step of its own. An
- * npm the block never names (an alias, a script that calls it) is not seen.
+ * three rounds of review each found one (rounds 0-2, F1). And a bare `--` is
+ * found by its characters, not by the whitespace around it, since a bracket
+ * also ends a PowerShell token (`--('...')`, `$(...)--`; round 3): two hyphens
+ * that no word character, hyphen or quote touches. `--shard`, `'--'` and
+ * `$i--` are not bare. The price is that a bare `--` in such a block fails
+ * even when it belongs to another command, a comment or a string: quote it, or
+ * give that command a step of its own. An npm the block never names (an alias,
+ * a script that calls it) is not seen.
  */
 function holdsBareDoubleDashNpm(run: string): boolean {
-  return /\b(?:npm|npx)\b/i.test(run) && /(?:^|\s)--(?:\s|$)/.test(run);
+  return /\b(?:npm|npx)\b/i.test(run) && /(?<![\w'"-])--(?![\w'"-])/.test(run);
 }
 
 // Found 2026-11-05, before the split first ran: an npm.ps1 that hands node its
