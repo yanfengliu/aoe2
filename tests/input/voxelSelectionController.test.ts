@@ -4,6 +4,10 @@ import { createSimulationBridge } from '../../src/game/simulation/createSimulati
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
 import { createVoxelSelectionController } from '../../src/input/voxelSelectionController';
 
+// Cells 0..31 on both axes, in iso pixels: the view these cases had as a cell
+// box before work 142 made the double-click look over the view itself.
+const WHOLE_FIXTURE_ON_SCREEN = { minX: -1024, minY: -64, maxX: 1024, maxY: 1056 };
+
 // The double-click window is measured between the two clicks' OWN input times
 // — the pointerup `timeStamp`s the pointer passes in — and never on a clock
 // read while a click is being handled. On a slow page the handler runs late
@@ -25,7 +29,7 @@ describe('voxel selection controller: the double-click is timed on the input clo
       getBridge: () => bridge,
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: () => [villager],
-      getViewportCellBounds: () => ({ minX: 0, minY: 0, maxX: 31, maxY: 31 }),
+      getViewIsoBounds: () => WHOLE_FIXTURE_ON_SCREEN,
     });
     const click = (pointerTimeMs?: number): boolean => controller.selectEntityAtWorldPosition(
       villager.x + 0.5, villager.y + 0.5, 0, 0, pointerTimeMs,
@@ -84,7 +88,7 @@ describe('voxel selection controller: two quick clicks on a stacked unit that is
       getBridge: () => bridge,
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: (isoX) => (isoX === 0 ? [villager, townCenter] : [townCenter]),
-      getViewportCellBounds: () => ({ minX: 0, minY: 0, maxX: 31, maxY: 31 }),
+      getViewIsoBounds: () => WHOLE_FIXTURE_ON_SCREEN,
     });
     const click = (pointerTimeMs: number): boolean => controller.selectEntityAtWorldPosition(
       villager.x + 0.5, villager.y + 0.5, 0, 0, pointerTimeMs,
@@ -162,7 +166,7 @@ describe('voxel selection controller', () => {
       getBridge: () => bridge,
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: () => hitOrders[Math.min(hitRead++, hitOrders.length - 1)]!,
-      getViewportCellBounds: () => ({ minX: 0, minY: 0, maxX: 31, maxY: 31 }),
+      getViewIsoBounds: () => WHOLE_FIXTURE_ON_SCREEN,
     });
 
     for (const expectedType of ['militia', 'house', 'sheep', 'house']) {
@@ -183,7 +187,7 @@ describe('voxel selection controller', () => {
       getBridge: () => bridge,
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: () => hits,
-      getViewportCellBounds: () => ({ minX: 0, minY: 0, maxX: 31, maxY: 31 }),
+      getViewIsoBounds: () => WHOLE_FIXTURE_ON_SCREEN,
     });
 
     expect(controller.selectEntityAtWorldPosition(0.25, 0.25, 0, 0)).toBe(true);
@@ -205,7 +209,7 @@ describe('voxel selection controller', () => {
       // keep that raw hit order for selection while choosing the actionable
       // boar for a selected villager group's context command.
       getVoxelHitEntities: () => [villager, boar],
-      getViewportCellBounds: () => ({ minX: 0, minY: 0, maxX: 31, maxY: 31 }),
+      getViewIsoBounds: () => WHOLE_FIXTURE_ON_SCREEN,
     });
 
     expect(bridge.selectUnitsInBox(12, 7, 14, 9)).toBe(true);
@@ -223,6 +227,72 @@ describe('voxel selection controller', () => {
           (path) => path.commandType === 'attack' && path.toX === 13 && path.toY === 8,
         ),
     ).toHaveLength(6);
+  });
+});
+
+// Work 142: a double-click is two quick clicks at ONE place, and it takes the
+// units of that type drawn on screen (DE "Learn to play", Lesson 1; the
+// platform's double-click rectangle, since DE's own rule for two clicks on two
+// units is unsourced). The old rule was "the same ground cell" and "the cell
+// box of the view's four corners", which reaches past the screen's edges.
+// BOUND: the controller alone, on the selection-controls fixture, with the
+// stack and the view handed in; tests/browser/selection-controls.spec.ts
+// clicks the real page.
+describe('voxel selection controller: a double-click is two clicks at one place, over the screen', () => {
+  // The boot framing of an 800x600 view at zoom 1.2, in iso pixels.
+  const VIEW = { minX: -333, minY: 70, maxX: 333, maxY: 570 };
+
+  function controlsFixture(hitAt: (isoX: number) => ProjectedEntityView[]) {
+    const bridge = createSimulationBridge('selection-controls-fixture');
+    const displayed = bridge.getRenderState().entities;
+    const controller = createVoxelSelectionController({
+      isActive: () => true,
+      getBridge: () => bridge,
+      getDisplayedEntities: () => displayed,
+      getVoxelHitEntities: (isoX) => hitAt(isoX),
+      getViewIsoBounds: () => VIEW,
+      // The old rule read the cell box of the view's corners; handing it in
+      // lets a revert of the rule fail on what it selects, not on a missing dep.
+      ...({ getViewportCellBounds: () => ({ minX: 0, minY: 0, maxX: 23, maxY: 23 }) } as object),
+    });
+    const villagers = displayed.filter((entity) => entity.kind === 'unit' && entity.owner === 1 && entity.entityType === 'villager');
+    return { bridge, controller, villagers };
+  }
+
+  it('reads two quick clicks on two villagers in one cell, apart on screen, as two clicks', () => {
+    const shared = (entity: ProjectedEntityView): boolean => Math.floor(entity.x) === 3 && Math.floor(entity.y) === 10;
+    const pair: ProjectedEntityView[] = [];
+    const { bridge, controller, villagers } = controlsFixture((isoX) => [pair[isoX < 10 ? 0 : 1]!]);
+    pair.push(...villagers.filter(shared));
+    expect(pair).toHaveLength(2);
+    // Both clicks invert to cell (3,10); they are 20 iso px apart.
+    expect(controller.selectEntityAtWorldPosition(3.5, 10.5, 0, 0, 1_000)).toBe(true);
+    expect(controller.selectEntityAtWorldPosition(3.6, 10.6, 20, 0, 1_050)).toBe(true);
+    expect(bridge.getSelectionState()).toMatchObject({ selectedCount: 1, selectedEntityIds: [pair[1]!.id] });
+  });
+
+  it('still reads two quick clicks at one place as a double-click', () => {
+    const under: ProjectedEntityView[] = [];
+    const { bridge, controller, villagers } = controlsFixture(() => under);
+    const target = villagers.find((entity) => Math.floor(entity.x) === 13 && Math.floor(entity.y) === 7)!;
+    under.push(target);
+    expect(controller.selectEntityAtWorldPosition(target.x + 0.5, target.y + 0.5, 0, 0, 1_000)).toBe(true);
+    expect(controller.selectEntityAtWorldPosition(target.x + 0.5, target.y + 0.5, 2, 1, 1_050)).toBe(true);
+    expect(bridge.getSelectionState().selectedCount).toBeGreaterThan(1);
+  });
+
+  it('takes the villagers drawn on screen, and not one beyond the view\'s top edge inside its corners\' cell box', () => {
+    const under: ProjectedEntityView[] = [];
+    const { bridge, controller, villagers } = controlsFixture(() => under);
+    const target = villagers.find((entity) => Math.floor(entity.x) === 13 && Math.floor(entity.y) === 7);
+    under.push(target!);
+    const offScreen = villagers.find((entity) => entity.x < 1 && entity.y < 1)!;
+    expect(offScreen).toBeDefined();
+    expect(controller.selectEntityAtWorldPosition(target!.x + 0.5, target!.y + 0.5, 0, 0, 1_000)).toBe(true);
+    expect(controller.selectEntityAtWorldPosition(target!.x + 0.5, target!.y + 0.5, 0, 0, 1_050)).toBe(true);
+    const selected = bridge.getSelectionState().selectedEntityIds;
+    expect(selected).not.toContain(offScreen.id);
+    expect([...selected].sort()).toEqual(villagers.filter((entity) => entity.id !== offScreen.id).map((entity) => entity.id).sort());
   });
 });
 

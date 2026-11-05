@@ -1,3 +1,4 @@
+import { isUnitLikeView } from '../game/simulation/liveAnimal';
 import { HUMAN_PLAYER_ID } from '../game/simulation/prototypeScenario';
 import type { ProjectedEntityView, RenderState, ResourceKind } from '../game/simulation/types';
 import { worldToIso } from '../rendering/isometricProjection';
@@ -8,6 +9,12 @@ const LAYER_PRIORITY: Record<ProjectedEntityView['kind'], number> = {
   building: 2,
   unit: 3,
 };
+
+// The layer a click ranks an entity on. A live animal ranks as the unit it is
+// in DE, above the building drawn in front of it (work 142, liveAnimal.ts).
+export function hitLayer(entity: ProjectedEntityView): number {
+  return isUnitLikeView(entity) ? LAYER_PRIORITY.unit : LAYER_PRIORITY[entity.kind];
+}
 const UNIT_COMMAND_TARGET_PADDING_CELLS = 0.18;
 
 function selectableOwnerPriority(owner: number | null): number {
@@ -245,7 +252,7 @@ function topPointHit(
 ): ProjectedEntityView | null {
   return getIndexedPointHitCandidates(entities, worldX, worldY, cellSize, containsPoint)
     .sort((left, right) => {
-      const layerDelta = LAYER_PRIORITY[right.entity.kind] - LAYER_PRIORITY[left.entity.kind];
+      const layerDelta = hitLayer(right.entity) - hitLayer(left.entity);
       if (layerDelta !== 0) {
         return layerDelta;
       }
@@ -280,7 +287,7 @@ export function findEntitiesAtWorldPointInEntities(
 ): ProjectedEntityView[] {
   return getIndexedPointHitCandidates(entities, worldX, worldY, cellSize)
     .sort((left, right) => {
-      const layerDelta = LAYER_PRIORITY[right.entity.kind] - LAYER_PRIORITY[left.entity.kind];
+      const layerDelta = hitLayer(right.entity) - hitLayer(left.entity);
       if (layerDelta !== 0) {
         return layerDelta;
       }

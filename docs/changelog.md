@@ -2,6 +2,15 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## Unreleased — work 142
+
+Selecting and targeting with the mouse work as in Definitive Edition.
+
+- **A sheep, boar, deer or wolf behind a building is drawn as an outline and can be clicked**, as a hidden unit is. A left click on its outline selects it, and a right-click on it gives the order, so villagers right-clicked onto a sheep behind the Town Center go and eat it. Before, the building took the click.
+- **A gather point set on a sheep behind the Town Center lands on the sheep**, so the next villager goes to work on it. Before, it landed on the Town Center and the villager stood idle beside it.
+- **A group is named after a type only when every member is of it.** Three villagers and a sheep read "4 Units Selected" (before, "4 Villagers Selected"), and two sheep read "2 Sheep Selected" (before, "2 Units Selected"). A box still takes your sheep along with your units, as DE's does.
+- **A double-click is two quick clicks at one place, and it takes what is on screen.** Two quick clicks on two villagers standing in one cell now select the second villager rather than every villager in view, and a double-click no longer takes units of the type standing beyond the screen's edges.
+
 ## 0.3.259
 
 Buildings defend with Definitive Edition's armor, and the selection panel shows total armor.

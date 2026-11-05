@@ -280,6 +280,8 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   // Behind-building silhouette cue: one hidden + one control villager
   // (capture target for the unit-occlusion-outline change).
   ['occlusion-showcase-fixture', fixtures.createOcclusionShowcaseFixture],
+  // Work 142: the box, the double-click and a sheep the Town Center hides.
+  ['selection-controls-fixture', fixtures.createSelectionControlsFixture],
   // M7 terrain-blending: a visual-only showcase painting adjacent terrain kinds
   // (capture target for the kind-to-kind transition change).
   ['terrain-showcase-fixture', fixtures.createTerrainShowcaseFixture],

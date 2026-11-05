@@ -464,9 +464,8 @@ export {
   createBuildingShowcaseFixture,
 } from './buildingShowcase';
 
-export {
-  createOcclusionShowcaseFixture,
-} from './occlusionShowcase';
+export { createOcclusionShowcaseFixture } from './occlusionShowcase';
+export { createSelectionControlsFixture } from './selectionControls';
 
 export {
   createTerrainShowcaseFixture,

@@ -43,7 +43,9 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (meta)', () =
   }) => {
     await game.waitForBootWithSeed(page, 'conquest-victory-fixture');
 
-    await game.clickCell(page, 8, 8);
+    // The fixture's Militia, where the page draws it (work 142's click-unit gate).
+    const militia = (await game.getEconomyState(page)).units.find((unit) => unit.owner === 1 && unit.unitType === 'militia')!;
+    await game.clickUnit(page, militia.id);
     await game.clickCell(page, 10, 8, 'right');
 
     const snapshot = await page.evaluate(

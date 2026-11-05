@@ -305,7 +305,8 @@ try {
   // berry-bush, gold-mine, stone-mine) — because the bar's height depended on
   // WHICH of these was selected (2026-09-05), so proving it does not takes a
   // capture of each. SELECT="box" selects every unit the human owns, the
-  // mixed selection a marquee over the base makes.
+  // mixed selection a marquee over the base makes; SELECT="box@x0,y0,x1,y1"
+  // selects what a box over those cells takes (work 142's group captures).
   const select = process.env.SELECT ?? '';
   if (select) {
     const selected = await page.evaluate((type) => {
@@ -315,6 +316,8 @@ try {
         const size = api.getMapSize();
         return api.selectUnitsInBox(0, 0, size.width - 1, size.height - 1) ? 'ok' : 'select failed';
       }
+      const cells = /^box@(\d+),(\d+),(\d+),(\d+)$/.exec(type)?.slice(1).map(Number);
+      if (cells) return api.selectUnitsInBox(...cells) ? 'ok' : `no unit of the human's in cells ${cells.join(',')}`;
       const unit = economy.units.find((u) => u.owner === 1 && u.unitType === type);
       if (unit) return api.selectEntityAtCell(unit.x, unit.y) ? 'ok' : 'select failed';
       const building = economy.buildings.find((b) => b.owner === 1 && b.buildingType === type);
@@ -336,7 +339,7 @@ try {
     if (selected !== 'ok') {
       throw new Error(
         `SELECT must name a unit, building or base-resource type the human owns at boot `
-        + `(e.g. villager, town-center, tree) or "box"; "${select}" failed: ${selected}`,
+        + `(e.g. villager, town-center, tree), "box" or "box@x0,y0,x1,y1"; "${select}" failed: ${selected}`,
       );
     }
   }

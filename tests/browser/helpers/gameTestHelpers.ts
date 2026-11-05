@@ -44,8 +44,10 @@ export {
   clickCanvasAtPoint,
   clickCell,
   clickMinimapAt,
+  clickUnit,
   clickWorldPosition,
   dragMinimapTo,
+  getUnitClickPoint,
   moveMouseToCell,
 } from './gameTestHelpers/command';
 

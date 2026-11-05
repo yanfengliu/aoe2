@@ -113,7 +113,9 @@ test.describe('browser gameplay smoke tests - rendering and world interactions',
     expect(initialMilitiaBar?.barY ?? 0).toBeLessThan(initialMilitiaBar?.entityTopPx ?? 0);
     expect(initialHouseBar?.barY ?? 0).toBeLessThan(initialHouseBar?.entityTopPx ?? 0);
 
-    await game.clickCell(page, 8, 8);
+    // The fixture's Militia, where the page draws it (work 142's click-unit gate).
+    const militia = (await game.getEconomyState(page)).units.find((unit) => unit.owner === 1 && unit.unitType === 'militia')!;
+    await game.clickUnit(page, militia.id);
     await game.clickCell(page, 10, 8, 'right');
     // Step until the first blow lands, and read the bar while the House stands.
     // DE's Dark Age House has -2 melee armor, so a Militia takes 6 a blow off

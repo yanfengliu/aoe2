@@ -335,10 +335,15 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       selectedUnitsAndOwnedSheepCoverSelection
       && selectedUnits.length > 0
       && selectedUnits.every((entry) => entry.unit.owner === humanPlayerId && entry.unit.unitType === 'villager');
-    const allSelectedUnitsShareType =
-      selectedUnitsAndOwnedSheepCoverSelection
-      && selectedUnits.length > 0
-      && selectedUnits.every((entry) => entry.unit.unitType === selectedUnits[0].unit.unitType);
+    // A group is named after a type only when EVERY member is of it, a sheep
+    // included: three villagers and a sheep are four units, not four villagers
+    // (work 142; DE shows a group by its count, "Learn to play", Lesson 5).
+    const memberTypes = new Set(selectedEntityIds.map((id) => (
+      world.getComponent<UnitComponent>(id, 'unit')?.unitType
+      ?? world.getComponent<BuildingComponent>(id, 'building')?.buildingType
+      ?? world.getComponent<ResourceComponent>(id, 'resource')?.resourceType
+    )));
+    const allSelectedUnitsShareType = memberTypes.size === 1;
     const trainOptions: TrainableUnitType[] =
       building?.owner === humanPlayerId
         ? getTrainOptions(building.owner, building.buildingType)

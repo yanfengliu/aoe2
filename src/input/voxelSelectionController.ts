@@ -18,6 +18,7 @@ import {
 import type { VoxelHitPurpose } from '../rendering/voxel/aoeVoxelHitProxy';
 import { worldToIso } from '../rendering/isometricProjection';
 import { isUnitType } from './unitTypeMap';
+import { isDragSelectableEntity, marqueePreviewEntities } from '../rendering/isoViewHelpers';
 import {
   CELL_SIZE,
   DOUBLE_CLICK_WINDOW_MS,
@@ -35,7 +36,8 @@ export interface VoxelSelectionControllerDeps {
     isoY: number,
     purpose: VoxelHitPurpose,
   ) => ProjectedEntityView[];
-  getViewportCellBounds: () => {
+  /** The view on screen, in iso pixels: what a double-click looks over. */
+  getViewIsoBounds: () => {
     minX: number;
     minY: number;
     maxX: number;
@@ -108,9 +110,6 @@ export function createVoxelSelectionController(
       return false;
     }
 
-    const map = deps.getBridge().getMapSize();
-    const clickCellX = clamp(Math.floor(worldX), 0, map.width - 1);
-    const clickCellY = clamp(Math.floor(worldY), 0, map.height - 1);
     const targetEntities = entitiesAtWorldPosition(worldX, worldY, isoX, isoY);
     if (targetEntities.length === 0) {
       clearRecentSelectionClicks();
@@ -136,9 +135,12 @@ export function createVoxelSelectionController(
     // BOUND: the double-click is therefore only exercised through real pointer
     // input, which is where `de-command-surface.spec.ts` and
     // `double-click-busy-page.spec.ts` drive it.
+    const exactPoint = isoX === undefined || isoY === undefined
+      ? worldToIso(worldX, worldY)
+      : { x: isoX, y: isoY };
     if (
       pointerTimeMs !== undefined
-      && trySelectSameTypeOnDoubleClick(clickCellX, clickCellY, pointerTimeMs)
+      && trySelectSameTypeOnDoubleClick(exactPoint.x, exactPoint.y, pointerTimeMs)
     ) {
       clearRecentSelectionClicks();
       return true;
@@ -148,9 +150,6 @@ export function createVoxelSelectionController(
     const currentSelectedId = selectionState.selectedCount === 1
       ? selectionState.selectedEntityId
       : null;
-    const exactPoint = isoX === undefined || isoY === undefined
-      ? worldToIso(worldX, worldY)
-      : { x: isoX, y: isoY };
     const repeatedExactClick = wasRepeatedExactSelectionClick(exactPoint.x, exactPoint.y);
     const exactClickStack = orderCurrentSelectionCycleEntities(
       targetEntities,
@@ -208,7 +207,7 @@ export function createVoxelSelectionController(
     // click with no input time.
     recentFriendlyUnitClick = pointerTimeMs === undefined
       ? null
-      : friendlyUnitClick(targetEntities[0]!, clickCellX, clickCellY, pointerTimeMs);
+      : friendlyUnitClick(targetEntities[0]!, exactPoint.x, exactPoint.y, pointerTimeMs);
     return true;
   }
 
@@ -289,37 +288,44 @@ export function createVoxelSelectionController(
     return getBridge().issueContextCommand(clampedCellX, clampedCellY, garrison);
   }
 
+  // Two quick clicks at ONE place: within the radius a repeated click at the
+  // same point uses, not merely in one ground cell — two quick clicks on two
+  // villagers standing in one cell are two clicks (work 142; DE's own rule is
+  // unsourced, and the platform's double-click rectangle is a few pixels). The
+  // pair takes every unit of the type that a box over the whole view would
+  // take: the units drawn on screen, as DE's double-click does, and not the
+  // cell box of the view's corners, which reaches past every edge.
   function trySelectSameTypeOnDoubleClick(
-    cellX: number,
-    cellY: number,
+    isoX: number,
+    isoY: number,
     pointerTimeMs: number,
   ): boolean {
     const recentClick = recentFriendlyUnitClick;
     if (
       recentClick === null
-      || recentClick.cellX !== cellX
-      || recentClick.cellY !== cellY
+      || !withinSamePlace(recentClick.isoX, recentClick.isoY, isoX, isoY)
       || pointerTimeMs - recentClick.atMs > DOUBLE_CLICK_WINDOW_MS
     ) {
       return false;
     }
 
-    const bounds = getViewportCellBounds();
-    return getBridge().selectOwnedUnitsByTypeInRect(
-      recentClick.unitType,
-      bounds.minX,
-      bounds.minY,
-      bounds.maxX,
-      bounds.maxY,
+    const sameType = (entity: ProjectedEntityView): boolean => entity.entityType === recentClick.unitType
+      && (recentClick.unitType === 'sheep' ? entity.kind === 'resource' : entity.kind === 'unit');
+    const onScreen = marqueePreviewEntities(
+      getDisplayedEntities(),
+      deps.getViewIsoBounds(),
+      (entity) => isDragSelectableEntity(entity, HUMAN_PLAYER_ID) && sameType(entity),
+      CELL_SIZE,
     );
+    return getBridge().selectUnitsByIds(onScreen.map((entity) => entity.id));
   }
 
   // The first half of a double-click, if this entity can be one: one of the
   // player's own units or owned sheep. Anything else answers null.
   function friendlyUnitClick(
     entity: ProjectedEntityView,
-    cellX: number,
-    cellY: number,
+    isoX: number,
+    isoY: number,
     pointerTimeMs: number,
   ): RecentFriendlyUnitClick | null {
     if (entity.owner !== HUMAN_PLAYER_ID) return null;
@@ -328,27 +334,9 @@ export function createVoxelSelectionController(
     if (!isUnit && !isOwnedSheep) return null;
     return {
       atMs: pointerTimeMs,
-      cellX,
-      cellY,
+      isoX,
+      isoY,
       unitType: isOwnedSheep ? 'sheep' : (entity.entityType as UnitType),
-    };
-  }
-
-  function getViewportCellBounds(): {
-    minX: number;
-    minY: number;
-    maxX: number;
-    maxY: number;
-  } {
-    // The isometric camera covers a diamond of cells; its AABB is a safe
-    // conservative viewport for "select all of type on screen".
-    const bounds = deps.getViewportCellBounds();
-    const map = deps.getBridge().getMapSize();
-    return {
-      minX: clamp(Math.floor(bounds.minX), 0, map.width - 1),
-      minY: clamp(Math.floor(bounds.minY), 0, map.height - 1),
-      maxX: clamp(Math.floor(bounds.maxX), 0, map.width - 1),
-      maxY: clamp(Math.floor(bounds.maxY), 0, map.height - 1),
     };
   }
 
@@ -359,12 +347,7 @@ export function createVoxelSelectionController(
 
   function wasRepeatedExactSelectionClick(isoX: number, isoY: number): boolean {
     if (!recentExactSelectionClick) return false;
-    const deltaX = isoX - recentExactSelectionClick.isoX;
-    const deltaY = isoY - recentExactSelectionClick.isoY;
-const EXACT_CLICK_REPEAT_RADIUS_ISO_PX = 4;
-
-    return deltaX * deltaX + deltaY * deltaY
-      <= EXACT_CLICK_REPEAT_RADIUS_ISO_PX * EXACT_CLICK_REPEAT_RADIUS_ISO_PX;
+    return withinSamePlace(recentExactSelectionClick.isoX, recentExactSelectionClick.isoY, isoX, isoY);
   }
 
   return {
@@ -378,6 +361,16 @@ const EXACT_CLICK_REPEAT_RADIUS_ISO_PX = 4;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+// "The same place" for both gestures that repeat a click: the stack walk and
+// the double-click. 4 iso pixels is 4.8 screen pixels at the boot zoom of 1.2.
+const SAME_PLACE_RADIUS_ISO_PX = 4;
+
+function withinSamePlace(fromX: number, fromY: number, toX: number, toY: number): boolean {
+  const deltaX = toX - fromX;
+  const deltaY = toY - fromY;
+  return deltaX * deltaX + deltaY * deltaY <= SAME_PLACE_RADIUS_ISO_PX * SAME_PLACE_RADIUS_ISO_PX;
 }
 
 function uniqueEntities(entities: readonly ProjectedEntityView[]): ProjectedEntityView[] {

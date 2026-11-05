@@ -106,7 +106,7 @@ export class AoeVoxelGameView {
       getVoxelHitEntities: (isoX, isoY, purpose) => (
         this.renderer.findPresentedEntitiesAtIsoPoint(isoX, isoY, purpose)
       ),
-      getViewportCellBounds: () => this.viewportCellBounds(),
+      getViewIsoBounds: () => this.viewIsoBounds(),
     });
       this.pointer = createVoxelPointerInputController({
       canvas: this.renderer.canvas,
@@ -474,14 +474,10 @@ export class AoeVoxelGameView {
     this.camera.resetEdgePanState();
   };
 
-  private viewportCellBounds(): { minX: number; minY: number; maxX: number; maxY: number } {
-    const corners = this.camera.getState().viewCorners;
-    return {
-      minX: Math.min(...corners.map((point) => point.cellX)),
-      minY: Math.min(...corners.map((point) => point.cellY)),
-      maxX: Math.max(...corners.map((point) => point.cellX)),
-      maxY: Math.max(...corners.map((point) => point.cellY)),
-    };
+  /** The view on screen in iso pixels: what a double-click selects over. */
+  private viewIsoBounds(): { minX: number; minY: number; maxX: number; maxY: number } {
+    const { viewX, viewY, viewWidth, viewHeight } = this.camera.getState();
+    return { minX: viewX, minY: viewY, maxX: viewX + viewWidth, maxY: viewY + viewHeight };
   }
 
   private hostSize(): { width: number; height: number } {

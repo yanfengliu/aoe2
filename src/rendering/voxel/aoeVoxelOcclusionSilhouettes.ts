@@ -9,6 +9,7 @@ import {
   SCREEN_LOCKED_DEPTH_OFFSET,
   type VoxelOverlayEntity,
 } from './aoeVoxelOverlayParts';
+import { isUnitLikeView } from '../../game/simulation/liveAnimal';
 import { HUMAN_PLAYER_ID } from '../../game/simulation/prototypeScenario';
 import type { VoxelPart } from './aoeVoxelRecipeTypes';
 
@@ -244,10 +245,11 @@ function mirrorSilhouetteParts(parts: readonly VoxelPart[], tint: number): Voxel
  * its recipe root) is painted over by a non-memory building's projected
  * silhouette gets a translucent, owner-coloured mirror of its posed parts on
  * the see-through lane, pulled toward the camera so it depth-tests in front of
- * the occluder. Inputs are the already
- * fog-filtered presented entities, so a unit hidden by fog can never receive
- * a cue. See spec §14.5 "units behind buildings" for the authored rule,
- * including the deliberate no-cue classes (low walls, palisades, resources).
+ * the occluder. Inputs are the already fog-filtered presented entities, so a
+ * unit hidden by fog can never receive a cue. A live animal is a unit here, as
+ * in DE (work 142). See spec §14.5 "units behind buildings" for the authored
+ * rule, including the deliberate no-cue classes (low walls, palisades,
+ * resources).
  */
 export function computeOcclusionSilhouettes(
   entities: readonly VoxelOverlayEntity[],
@@ -258,7 +260,9 @@ export function computeOcclusionSilhouettes(
   const parts: VoxelPart[] = [];
   for (const candidate of entities) {
     const { entity } = candidate;
-    if (entity.kind !== 'unit' || entity.isMemory) continue;
+    // A live animal is a unit in DE, so a sheep behind a Town Center is drawn
+    // as one (work 142, liveAnimal.ts).
+    if (!isUnitLikeView(entity) || entity.isMemory) continue;
     const anchor = projectVoxelPointToIso({
       x: entity.x + 0.5,
       y: candidate.visualTop * BODY_ANCHOR_HEIGHT_FRACTION,

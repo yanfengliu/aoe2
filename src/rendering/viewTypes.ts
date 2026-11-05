@@ -109,8 +109,10 @@ export interface MiddleDragPanState {
 
 export interface RecentFriendlyUnitClick {
   atMs: number;
-  cellX: number;
-  cellY: number;
+  /** Where the click was, in iso pixels: the second click of a double-click
+   *  comes back to this place (work 142), not merely to its ground cell. */
+  isoX: number;
+  isoY: number;
   unitType: UnitType | 'sheep';
 }
 

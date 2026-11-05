@@ -1,4 +1,5 @@
 import { HUMAN_PLAYER_ID } from '../../game/simulation/prototypeScenario';
+import { hitLayer } from '../../input/entityHitTest';
 import type { ProjectedEntityView } from '../../game/simulation/types';
 import {
   pointInConvexPolygon,
@@ -26,13 +27,6 @@ export interface PreparedVoxelHitState {
   readonly revision: number;
   readonly entities: readonly PreparedVoxelHitEntity[];
 }
-
-const LAYER_PRIORITY: Record<ProjectedEntityView['kind'], number> = {
-  tile: 0,
-  resource: 1,
-  building: 2,
-  unit: 3,
-};
 
 function ownerPriority(entity: ProjectedEntityView): number {
   if (entity.owner === HUMAN_PLAYER_ID) return 0;
@@ -95,7 +89,7 @@ export function findVoxelEntitiesAtIsoPoint(
     .filter(({ entity }) => voxelEntityHitRegions(entity)
       .some(({ polygon }) => pointInConvexPolygon(point, polygon)))
     .sort((left, right) => {
-      const layer = LAYER_PRIORITY[right.entity.kind] - LAYER_PRIORITY[left.entity.kind];
+      const layer = hitLayer(right.entity) - hitLayer(left.entity);
       if (layer !== 0) return layer;
       if (purpose === 'selection') {
         const owner = ownerPriority(left.entity) - ownerPriority(right.entity);
@@ -124,7 +118,7 @@ export function findPreparedVoxelEntitiesAtIsoPoint(
     .filter(({ entity, parts }) => preparedVoxelEntityHitRegions({ entity, parts }, nowMs)
       .some(({ polygon }) => pointInConvexPolygon(point, polygon)))
     .sort((left, right) => {
-      const layer = LAYER_PRIORITY[right.entity.kind] - LAYER_PRIORITY[left.entity.kind];
+      const layer = hitLayer(right.entity) - hitLayer(left.entity);
       if (layer !== 0) return layer;
       if (purpose === 'selection') {
         const owner = ownerPriority(left.entity) - ownerPriority(right.entity);

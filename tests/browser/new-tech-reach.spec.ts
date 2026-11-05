@@ -105,11 +105,8 @@ test.describe('technologies added since v0.3.48 are reachable with a mouse', () 
     );
     expect(converted?.owner).toBe(1);
 
-    // Re-select the monk that did it and read the panel.
-    const monk = (await game.getEconomyState(page)).units.find(
-      (unit) => unit.id === selectedId,
-    )!;
-    await game.clickCell(page, monk.x, monk.y, 'left');
+    // Re-select the monk that did it, where the page draws it, and read the panel.
+    await game.clickUnit(page, selectedId!);
     await expect(page.locator('[data-selection-name]')).toHaveText('Monk');
     await expect(page.locator('[data-selection-activity]')).toContainText('Resting');
   });
@@ -152,7 +149,7 @@ test.describe('technologies added since v0.3.48 are reachable with a mouse', () 
       ([x, y]) => window.__AOE2_TEST__!.centerCameraOnWorldPosition(x!, y!),
       [transport!.x, transport!.y],
     );
-    await game.clickCell(page, transport!.x, transport!.y, 'left');
+    await game.clickUnit(page, transport!.id);
     await expect(page.locator('[data-selection-name]')).toHaveText('Transport Ship');
     // Careening +5 and Dry Dock +10 on the base 5.
     await expect(page.locator('[data-selection-detail-value="inventory"]')).toHaveText('0 / 20 aboard');
