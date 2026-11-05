@@ -2,24 +2,20 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
-## Unreleased — work 142 M2b-2b-2b
+## 0.3.268
 
-Definitive Edition's (DE's) twenty control groups, from the default key profile in DE's own files.
+Definitive Edition's (DE's) "go to" and "select all" building keys and its twenty control groups, from the default key profile in DE's own files.
 
+- **Ctrl and a letter goes to your next building of a type** and selects it: Ctrl+M a Market, Ctrl+B a Barracks, Ctrl+A an Archery Range, Ctrl+L a Stable, Ctrl+K a Siege Workshop, Ctrl+D a Dock, Ctrl+Y a Monastery, Ctrl+S a Blacksmith, Ctrl+I a Mill, Ctrl+U a University, Ctrl+V a Castle, Ctrl+G a Mining Camp, Ctrl+Z a Lumber Camp and Ctrl+J an Outpost. Press it again for the next one, as H does for Town Centers.
+- **Ctrl+Shift and the same letter selects every building of that type you own**, without moving the camera. Ctrl+Shift+H selects every Town Center and Ctrl+Shift+Space every military building: Barracks, Archery Ranges, Stables, Siege Workshops, Castles and Monasteries.
+- **The selection panel shows a group of buildings** by type, with a count, as it shows a group of units.
+- Outside a text field these keys no longer do what the browser does with them: Ctrl+S no longer saves the page, and Ctrl+Shift+I no longer opens the developer tools (F12 still does). DE's Ctrl+W and Ctrl+Shift+W, its Wonder keys, are not bound: the browser keeps them to close the tab and the window.
 - **Groups 1 to 10:** Ctrl and a digit creates a group (Ctrl+0 is group 10), the digit selects it, Shift and the digit adds the group to what you have selected, and Ctrl+Shift and the digit selects it and centres the view on it (Ctrl+Shift+F10 for group 10). Pressing the digit twice still centres.
 - **Groups 11 to 20** are the same keys with Alt: Ctrl+Alt+1 creates group 11, Alt+1 selects it.
 - **U takes the selected units out of their group.** A unit is in one group at a time: putting it in another takes it out of the first.
 - The digits are the keys above the letters; the numpad's digits no longer select groups. Outside a text field Ctrl and a digit no longer switches browser tabs, and Ctrl+0 no longer resets the page zoom.
 - Saved games keep their groups. What a group key, `.` or `,` selects while the game is paused now shows as selected at once.
 
-## Unreleased — work 142 M2b-2b-2a
-
-Definitive Edition's (DE's) "go to" and "select all" building keys, from the default key profile in DE's own files.
-
-- **Ctrl and a letter goes to your next building of a type** and selects it: Ctrl+M a Market, Ctrl+B a Barracks, Ctrl+A an Archery Range, Ctrl+L a Stable, Ctrl+K a Siege Workshop, Ctrl+D a Dock, Ctrl+Y a Monastery, Ctrl+S a Blacksmith, Ctrl+I a Mill, Ctrl+U a University, Ctrl+V a Castle, Ctrl+G a Mining Camp, Ctrl+Z a Lumber Camp and Ctrl+J an Outpost. Press it again for the next one, as H does for Town Centers.
-- **Ctrl+Shift and the same letter selects every building of that type you own**, without moving the camera. Ctrl+Shift+H selects every Town Center and Ctrl+Shift+Space every military building: Barracks, Archery Ranges, Stables, Siege Workshops, Castles and Monasteries.
-- **The selection panel shows a group of buildings** by type, with a count, as it shows a group of units.
-- Outside a text field these keys no longer do what the browser does with them: Ctrl+S no longer saves the page, and Ctrl+Shift+I no longer opens the developer tools (F12 still does). DE's Ctrl+W and Ctrl+Shift+W, its Wonder keys, are not bound: the browser keeps them to close the tab and the window.
 ## 0.3.267
 
 The computer opponent trains rams for its attacks the way Definitive Edition's (DE's) own AI does, at every difficulty.

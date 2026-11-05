@@ -1,6 +1,6 @@
 # Selection and commands work as in Definitive Edition
 
-Status: active
+Status: complete
 Owner: selection-controls worker for the Claude coordinator
 Created: 2026-11-04
 Updated: 2026-11-05
@@ -64,7 +64,7 @@ Not in scope: the AI (work 141), HUD restyling beyond these behaviours, civ-engi
 - [x] The click-unit gate and its red proof.
 - [x] Captures and pixel diffs; full gate; review rounds 0-2; records; phase-1 handoff.
 - [x] Phase 2 for M1: Moebius and random-view checks, lock, version 0.3.261, verify, push, findings queued in plan 106, worktrees retired.
-- [ ] M2: the villager's command card and DE's default hotkeys, for a fresh worker (starting state below). M2a (the villager's card, the Villager and Town Center keys) shipped as v0.3.262; M2b (the other cards' keys and the global keys) is open, its starting state below; M2b-1 (the military card and the unit cards) shipped as v0.3.263; M2b-2 (the other buildings' cards, the global keys, Delete and Shift+Delete) was split in two: M2b-2a (the `selectionStateOps.ts` split and every building's card) shipped as v0.3.265; M2b-2b (the global keys, Delete and Shift+Delete) was split in two at its start: M2b-2b-1 (Space, Home, the speed and zoom keys, Shift+Delete) shipped as v0.3.266; M2b-2b-2 (the go-to and select-all keys and the control groups) was split in two at its start, M2b-2b-2a (the go-to and select-all keys) and M2b-2b-2b (the control groups); both reached phase 1 together and hand off as one.
+- [x] M2: the villager's command card and DE's default hotkeys, for a fresh worker (starting state below). M2a (the villager's card, the Villager and Town Center keys) shipped as v0.3.262; M2b (the other cards' keys and the global keys) is open, its starting state below; M2b-1 (the military card and the unit cards) shipped as v0.3.263; M2b-2 (the other buildings' cards, the global keys, Delete and Shift+Delete) was split in two: M2b-2a (the `selectionStateOps.ts` split and every building's card) shipped as v0.3.265; M2b-2b (the global keys, Delete and Shift+Delete) was split in two at its start: M2b-2b-1 (Space, Home, the speed and zoom keys, Shift+Delete) shipped as v0.3.266; M2b-2b-2 (the go-to and select-all keys and the control groups) was split in two at its start, M2b-2b-2a (the go-to and select-all keys) and M2b-2b-2b (the control groups); both reached phase 1 together and shipped as one, v0.3.268, which closes work 142.
 
 ### Owner decisions waiting (unsourced rules; each took the closest sourced behaviour; also one line in plan 106's "Owner decisions waiting")
 
