@@ -58,12 +58,13 @@ jobs:
         # The unit suite in three slices, one job each (2026-11-05, work 143).
         shard: [1, 2, 3]
     # SHARDED, because one job per runner no longer fit. Unsharded, this job
-    # took 38.9-40.2 minutes on windows-latest on every run of 2026-11-05 (667
-    # test files, 5,240 tests), 35.2-36.3 of them in the unit-suite step, and
-    # run 41990047794 went red at 40.2, past the headroom step's line at two
-    # thirds of this limit. Runner speed alone moves it 1.9x: the same 649 files
-    # took 19.5 minutes of suite on one Windows runner (run 41806570710) and
-    # 36.6 on another (run 39742886323). ubuntu-latest took 22.7-30.0 minutes.
+    # took 30.1-40.2 minutes on windows-latest on the nine runs of 2026-11-05
+    # (660-667 test files), 27.5-36.6 of them in the unit-suite step, and runs
+    # 41990047794 and 42004237120 went red at 40.2 and 40.1, past the headroom
+    # step's line at two thirds of this limit. Runner speed alone moves it
+    # 1.9x: the same 649 files took 19.5 minutes of suite on one Windows runner
+    # (run 41806570710) and 36.6 on another (run 39742886323). ubuntu-latest
+    # took 18.3-30.0 minutes.
     #
     # `vitest --shard=<k>/<n>` sorts the files by a sha1 of their path and gives
     # each shard a contiguous run of ceil(files/n) of them (BaseSequencer.shard,

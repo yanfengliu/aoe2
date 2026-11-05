@@ -204,16 +204,18 @@ describe('ci.yml: the unit suite is split with nothing left over, on both runner
 });
 
 /**
- * Each npm or npx command in a PowerShell `run:` block, from its name to the
- * end of the command: a line a trailing backtick continues is joined to the
- * next, and a command starts a line or follows `;`, `|`, `&&`, `(`, `$(`, `{` or
- * the `&` call operator (review round 0, F1). A command built in a string and
- * run with Invoke-Expression is not read.
+ * The logical lines of a PowerShell `run:` block (a trailing backtick joins a
+ * line to the next) that name npm or npx anywhere and hold a bare `--`. The
+ * whole line is read rather than one parsed command, so a quoted `& 'npm'`, a
+ * subexpression before the `--`, an npm held in a variable and a string handed
+ * to Invoke-Expression are all caught (review rounds 0 and 1, F1). The price is
+ * that a bare `--` belonging to another command on such a line fails too; it is
+ * quoted the same way.
  */
-function npmCommands(run: string): string[] {
-  const joined = run.replace(/`\r?\n/g, ' ');
-  const start = /(?:^|[;|({]|&&|\$\()[ \t]*(?:&[ \t]*)?((?:npm|npx)(?:\.cmd|\.ps1)?\b[^;|)}\n]*)/gim;
-  return [...joined.matchAll(start)].map((match) => match[1]!.trim());
+function bareDoubleDashNpmLines(run: string): string[] {
+  return run.replace(/`\r?\n/g, ' ').split(/\r?\n/)
+    .filter((line) => /\b(?:npm|npx)\b/i.test(line) && /(?:^|\s)--(?:\s|$)/.test(line))
+    .map((line) => line.trim());
 }
 
 // Found 2026-11-05, before the split first ran: an npm.ps1 that hands node its
@@ -237,9 +239,7 @@ describe('ci.yml: what follows `--` reaches the npm script on windows-latest too
         const shell = step.shell ?? job.defaults?.run?.shell ?? workflow.defaults?.run?.shell ?? 'pwsh';
         if (step.run === undefined || !/^(?:pwsh|powershell)\b/.test(shell)) continue;
         read += 1;
-        for (const command of npmCommands(step.run)) {
-          if (/(?:^|\s)--(?:\s|$)/.test(command)) offenders.push(`${key} › ${step.name ?? '(unnamed step)'}: ${command}`);
-        }
+        for (const line of bareDoubleDashNpmLines(step.run)) offenders.push(`${key} › ${step.name ?? '(unnamed step)'}: ${line}`);
       }
     }
     expect(read, 'no Windows step runs under PowerShell, so this check read nothing').toBeGreaterThan(0);
