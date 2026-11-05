@@ -16,6 +16,7 @@ import {
   findEntitiesAtWorldPointInEntities,
 } from './entityHitTest';
 import type { VoxelHitPurpose } from '../rendering/voxel/aoeVoxelHitProxy';
+import type { VoxelIsoPoint } from '../rendering/voxel/aoeVoxelGeometry';
 import { worldToIso } from '../rendering/isometricProjection';
 import { isUnitType } from './unitTypeMap';
 import { isDragSelectableEntity } from '../rendering/isoViewHelpers';
@@ -37,6 +38,10 @@ export interface VoxelSelectionControllerDeps {
     isoY: number,
     purpose: VoxelHitPurpose,
   ) => ProjectedEntityView[];
+  /** The polygons the renderer presented for these entities (pose and
+   *  animation time included), in iso pixels: the bodies a double-click
+   *  looks for on screen. */
+  getDrawnPolygons: (ids: ReadonlySet<number>) => ReadonlyMap<number, readonly (readonly VoxelIsoPoint[])[]>;
   /** The view on screen, in iso pixels: what a double-click looks over. */
   getViewIsoBounds: () => {
     minX: number;
@@ -314,8 +319,11 @@ export function createVoxelSelectionController(
     const sameType = (entity: ProjectedEntityView): boolean => entity.entityType === recentClick.unitType
       && (recentClick.unitType === 'sheep' ? entity.kind === 'resource' : entity.kind === 'unit');
     const view = deps.getViewIsoBounds();
-    const onScreen = getDisplayedEntities()
-      .filter((entity) => isDragSelectableEntity(entity, HUMAN_PLAYER_ID) && sameType(entity) && isDrawnInView(entity, view))
+    const candidates = getDisplayedEntities()
+      .filter((entity) => isDragSelectableEntity(entity, HUMAN_PLAYER_ID) && sameType(entity));
+    const drawn = deps.getDrawnPolygons(new Set(candidates.map((entity) => entity.id)));
+    const onScreen = candidates
+      .filter((entity) => isDrawnInView(drawn.get(entity.id) ?? [], view))
       .sort((left, right) => left.y - right.y || left.x - right.x || left.id - right.id);
     return getBridge().selectUnitsByIds(onScreen.map((entity) => entity.id));
   }

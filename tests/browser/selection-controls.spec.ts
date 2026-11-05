@@ -243,4 +243,24 @@ test.describe('selection and targeting as in DE (work 142)', () => {
     await expect(page.locator('[data-selection-name]')).toHaveText(`${view.onScreen.length} Villagers Selected`);
     expect([...(await game.getSelectionState(page)).selectedEntityIds].sort()).toEqual([...view.onScreen].sort());
   });
+
+  // Review round 1: `clickCell` refuses a plain left click on a unit's cell
+  // and lets an armed ground order through, since that click orders rather
+  // than selects. Each of A, P and G is armed by its real key, and the click
+  // has to spend it.
+  test('clickCell lets an armed A, P or G order onto a unit\'s cell, and refuses a plain left click there', async ({ page }) => {
+    await game.waitForPausedBootWithSeed(page, SEED);
+    const shared = SELECTION_CONTROLS_SHARED_CELL;
+    const [villager] = await unitIdAt(page, 1, 'villager', SELECTION_CONTROLS_BOX_VILLAGERS[0]);
+    await expect(game.clickCell(page, shared.x, shared.y)).rejects.toThrow(
+      new RegExp(`clickCell refuses a left click on cell \\(${shared.x},${shared.y}\\)`),
+    );
+    for (const [key, order] of [['a', 'attack-move'], ['p', 'patrol'], ['g', 'attack-ground']] as const) {
+      await game.clickUnit(page, villager!);
+      await page.keyboard.press(key);
+      expect(await page.evaluate(() => window.__AOE2_TEST__!.getArmedGroundOrder())).toBe(order);
+      await game.clickCell(page, shared.x, shared.y);
+      expect(await page.evaluate(() => window.__AOE2_TEST__!.getArmedGroundOrder()), `the click did not spend the ${order}`).toBeNull();
+    }
+  });
 });

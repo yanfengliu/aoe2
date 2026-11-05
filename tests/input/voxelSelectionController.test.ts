@@ -3,6 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import type { ProjectedEntityView } from '../../src/game/simulation/types';
 import { createVoxelSelectionController } from '../../src/input/voxelSelectionController';
+import { voxelEntityHitRegions } from '../../src/rendering/voxel/aoeVoxelHitProxy';
+
+// The recipe's still polygons, standing in for those the renderer presents.
+function stillPolygons(displayed: readonly ProjectedEntityView[]) {
+  return (ids: ReadonlySet<number>) => new Map(displayed
+    .filter((entity) => ids.has(entity.id))
+    .map((entity) => [entity.id, voxelEntityHitRegions(entity).map(({ polygon }) => polygon)]));
+}
 
 // Cells 0..31 on both axes, in iso pixels: the view these cases had as a cell
 // box before work 142 made the double-click look over the view itself.
@@ -30,6 +38,7 @@ describe('voxel selection controller: the double-click is timed on the input clo
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: () => [villager],
       getViewIsoBounds: () => WHOLE_FIXTURE_ON_SCREEN,
+      getDrawnPolygons: stillPolygons(displayed),
     });
     const click = (pointerTimeMs?: number): boolean => controller.selectEntityAtWorldPosition(
       villager.x + 0.5, villager.y + 0.5, 0, 0, pointerTimeMs,
@@ -89,6 +98,7 @@ describe('voxel selection controller: two quick clicks on a stacked unit that is
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: (isoX) => (isoX === 0 ? [villager, townCenter] : [townCenter]),
       getViewIsoBounds: () => WHOLE_FIXTURE_ON_SCREEN,
+      getDrawnPolygons: stillPolygons(displayed),
     });
     const click = (pointerTimeMs: number): boolean => controller.selectEntityAtWorldPosition(
       villager.x + 0.5, villager.y + 0.5, 0, 0, pointerTimeMs,
@@ -167,6 +177,7 @@ describe('voxel selection controller', () => {
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: () => hitOrders[Math.min(hitRead++, hitOrders.length - 1)]!,
       getViewIsoBounds: () => WHOLE_FIXTURE_ON_SCREEN,
+      getDrawnPolygons: stillPolygons(displayed),
     });
 
     for (const expectedType of ['militia', 'house', 'sheep', 'house']) {
@@ -188,6 +199,7 @@ describe('voxel selection controller', () => {
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: () => hits,
       getViewIsoBounds: () => WHOLE_FIXTURE_ON_SCREEN,
+      getDrawnPolygons: stillPolygons(displayed),
     });
 
     expect(controller.selectEntityAtWorldPosition(0.25, 0.25, 0, 0)).toBe(true);
@@ -210,6 +222,7 @@ describe('voxel selection controller', () => {
       // boar for a selected villager group's context command.
       getVoxelHitEntities: () => [villager, boar],
       getViewIsoBounds: () => WHOLE_FIXTURE_ON_SCREEN,
+      getDrawnPolygons: stillPolygons(displayed),
     });
 
     expect(bridge.selectUnitsInBox(12, 7, 14, 9)).toBe(true);
@@ -243,6 +256,7 @@ describe('voxel selection controller', () => {
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: () => [inFront, target],
       getViewIsoBounds: () => WHOLE_FIXTURE_ON_SCREEN,
+      getDrawnPolygons: stillPolygons(displayed),
     });
 
     expect(bridge.selectUnitsInBox(13, 7, 15, 8)).toBe(true);
@@ -279,6 +293,7 @@ describe('voxel selection controller: a double-click is two clicks at one place,
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: (isoX) => hitAt(isoX),
       getViewIsoBounds: () => VIEW,
+      getDrawnPolygons: stillPolygons(displayed),
       // The old rule read the cell box of the view's corners; handing it in
       // lets a revert of the rule fail on what it selects, not on a missing dep.
       ...({ getViewportCellBounds: () => ({ minX: 0, minY: 0, maxX: 23, maxY: 23 }) } as object),
@@ -337,6 +352,7 @@ describe('voxel selection controller: a double-click is two clicks at one place,
       getDisplayedEntities: () => displayed,
       getVoxelHitEntities: () => under,
       getViewIsoBounds: () => view,
+      getDrawnPolygons: stillPolygons(displayed),
     });
     const at = (x: number, y: number) => displayed.find((entity) => entity.entityType === 'villager' && Math.floor(entity.x) === x && Math.floor(entity.y) === y)!;
     const target = at(13, 7);
@@ -347,6 +363,38 @@ describe('voxel selection controller: a double-click is two clicks at one place,
     expect(controller.selectEntityAtWorldPosition(target.x + 0.5, target.y + 0.5, 0, 0, 1_000)).toBe(true);
     expect(controller.selectEntityAtWorldPosition(target.x + 0.5, target.y + 0.5, 0, 0, 1_050)).toBe(true);
     expect(bridge.getSelectionState().selectedEntityIds).toContain(below.id);
+  });
+
+  // Review round 1: the body is the one the renderer presented, in its pose,
+  // facing and gait, not the recipe's still pose. Here the presented polygons
+  // of one villager lie wholly outside the view while its still body is inside.
+  it('reads the bodies the renderer presented, not the recipe\'s still pose', () => {
+    const under: ProjectedEntityView[] = [];
+    const bridge = createSimulationBridge('selection-controls-fixture');
+    const displayed = bridge.getRenderState().entities;
+    const at = (x: number, y: number) => displayed.find((entity) => entity.entityType === 'villager' && Math.floor(entity.x) === x && Math.floor(entity.y) === y)!;
+    const target = at(13, 7);
+    const presentedElsewhere = at(14, 7);
+    const still = stillPolygons(displayed);
+    const controller = createVoxelSelectionController({
+      isActive: () => true,
+      getBridge: () => bridge,
+      getDisplayedEntities: () => displayed,
+      getVoxelHitEntities: () => under,
+      getViewIsoBounds: () => VIEW,
+      getDrawnPolygons: (ids) => new Map([...still(ids)].map(([id, polygons]) => [
+        id,
+        id === presentedElsewhere.id
+          ? polygons.map((polygon) => polygon.map((point) => ({ x: point.x, y: point.y + 2_000 })))
+          : polygons,
+      ])),
+    });
+    under.push(target);
+    expect(controller.selectEntityAtWorldPosition(target.x + 0.5, target.y + 0.5, 0, 0, 1_000)).toBe(true);
+    expect(controller.selectEntityAtWorldPosition(target.x + 0.5, target.y + 0.5, 0, 0, 1_050)).toBe(true);
+    const selected = bridge.getSelectionState().selectedEntityIds;
+    expect(selected).toContain(target.id);
+    expect(selected).not.toContain(presentedElsewhere.id);
   });
 });
 

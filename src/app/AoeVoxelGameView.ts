@@ -107,6 +107,7 @@ export class AoeVoxelGameView {
         this.renderer.findPresentedEntitiesAtIsoPoint(isoX, isoY, purpose)
       ),
       getViewIsoBounds: () => this.viewIsoBounds(),
+      getDrawnPolygons: (ids) => this.renderer.presentedHitPolygons(ids),
     });
       this.pointer = createVoxelPointerInputController({
       canvas: this.renderer.canvas,

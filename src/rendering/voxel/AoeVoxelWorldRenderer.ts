@@ -39,9 +39,11 @@ import type { AoeUnitMotionHistory } from './aoeVoxelUnitAnimation';
 import { matrixForPart } from './aoeVoxelRecipeTypes';
 import {
   findPreparedVoxelEntitiesAtIsoPoint,
+  preparedVoxelEntityHitRegions,
   type PreparedVoxelHitState,
   type VoxelHitPurpose,
 } from './aoeVoxelHitProxy';
+import type { VoxelIsoPoint } from './aoeVoxelGeometry';
 import type { OccludedUnitState } from './aoeVoxelOcclusionSilhouettes';
 
 export interface AoeVoxelRuntime {
@@ -441,6 +443,18 @@ export class AoeVoxelWorldRenderer {
       purpose,
       this.presentedNowMs,
     );
+  }
+
+  /** The presented hit polygons of these entities, at the presented pose and
+   *  animation time, as a click tests them; none before the state is ready. */
+  presentedHitPolygons(ids: ReadonlySet<number>): Map<number, VoxelIsoPoint[][]> {
+    const polygons = new Map<number, VoxelIsoPoint[][]>();
+    if (!this.isInteractionReady() || !this.presentedHitState) return polygons;
+    for (const prepared of this.presentedHitState.entities) {
+      if (!ids.has(prepared.entity.id)) continue;
+      polygons.set(prepared.entity.id, preparedVoxelEntityHitRegions(prepared, this.presentedNowMs).map(({ polygon }) => [...polygon]));
+    }
+    return polygons;
   }
 
   captureWorld(): ThreeCaptureResult {
