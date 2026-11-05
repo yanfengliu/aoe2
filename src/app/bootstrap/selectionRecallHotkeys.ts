@@ -1,9 +1,11 @@
 // Selection-recall hotkeys (extracted from createApp for the 500-line cap):
 // the idle-villager '.' cycle and the v0.3.104 control-group trio — Ctrl+digit
-// binds, digit recalls survivors, a quick second tap centres the camera.
+// binds, digit recalls survivors, a quick second tap centres the camera — with
+// Delete, ',', and H and the other go-to keys (goToBuildingHotkeys.ts).
 
 import type { HotkeyHandler, HotkeySpec } from '../../game/control/HotkeyRegistry';
 import type { SimulationBridge } from '../../game/simulation/createSimulationBridge';
+import { registerGoToBuildingHotkeys } from './goToBuildingHotkeys';
 import { centreOnObject, type CentringViewLike } from './goToObject';
 
 /** A second tap of the same group key inside this window centres the camera.
@@ -65,18 +67,7 @@ export function registerSelectionRecallHotkeys(
     if (!bridgeRef().selectNextIdleMilitary()) return;
     centerOnPrimarySelection(bridgeRef(), view);
   });
-  // 'H' (v0.3.155): select the Town Center and centre on it — DE's most-used
-  // economy key. Repeated presses cycle multiple TCs round-robin.
-  let lastTownCenterId = -1;
-  hotkeyRegistry.register({ key: 'h' }, () => {
-    const bridge = bridgeRef();
-    const centers = bridge.getEconomyState().buildings
-      .filter((b) => b.owner === 1 && b.buildingType === 'town-center')
-      .sort((a, b) => a.id - b.id);
-    if (centers.length === 0) return;
-    const next = centers.find((c) => c.id > lastTownCenterId) ?? centers[0]!;
-    lastTownCenterId = next.id;
-    if (bridge.selectEntityById(next.id)) centreOnObject(bridge, view, next.id);
-  });
+  // H and DE's go-to and select-all building keys (work 142).
+  registerGoToBuildingHotkeys(hotkeyRegistry, bridgeRef, view);
   return selectNextIdleVillagerAndCenter;
 }

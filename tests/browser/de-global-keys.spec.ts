@@ -187,6 +187,26 @@ test.describe("DE's global keys", () => {
     await expect(field).toHaveValue('alpha  +-');
     expect(await field.evaluate((element: HTMLTextAreaElement) => element.selectionStart), 'Home did not reach the field').toBe(0);
     expect({ zoom: await zoom(page), speed: await speed(page), camera: await cameraState(page) }).toEqual(before);
+
+    // M2b-2b-2: DE's go-to (Ctrl+letter) and select-all (Ctrl+Shift+letter)
+    // building keys reach the field too. A paste the field receives is dropped,
+    // so no clipboard text enters the page.
+    await field.evaluate((element) => element.addEventListener('paste', (event) => event.preventDefault()));
+    const selectionBefore = (await game.getSelectionState(page)).selectedEntityIds;
+    await page.evaluate(() => { (window as unknown as { keyLog: unknown[] }).keyLog.length = 0; });
+    const letters = ['m', 'b', 'a', 'l', 'k', 'd', 'y', 's', 'i', 'u', 'v', 'g', 'z', 'j'];
+    const buildingKeys = [...letters.map((letter) => `Control+${letter}`),
+      ...[...letters, 'h'].map((letter) => `Control+Shift+${letter}`), 'Control+Shift+Space'];
+    for (const key of buildingKeys) await page.keyboard.press(key);
+    const buildingLog = await page.evaluate(() => (window as unknown as { keyLog: Array<{ code: string; prevented: boolean }> }).keyLog);
+    expect(buildingLog.filter((entry) => !['ControlLeft', 'ShiftLeft'].includes(entry.code)), 'a go-to or select-all key took a key typed into a text field')
+      .toEqual(buildingKeys.map((key) => {
+        const last = key.split('+').at(-1)!;
+        return { code: last.length === 1 ? `Key${last.toUpperCase()}` : last, prevented: false };
+      }));
+    await expect(field, 'a go-to or select-all key took the focus from the field').toBeFocused();
+    expect((await game.getSelectionState(page)).selectedEntityIds, 'a key typed into a text field selected buildings').toEqual(selectionBefore);
+    expect(await cameraState(page), 'a key typed into a text field moved the camera').toEqual(before.camera);
   });
 
   test("the annotation form's buttons keep their keys: Ctrl+= is the page's and Space presses the button", async ({ page }) => {

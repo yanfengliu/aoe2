@@ -6,6 +6,7 @@
 import type { UnitStance } from '../../../game/simulation/unitStance';
 import type { UnitFormation } from '../../../game/simulation/unitFormation';
 import type {
+  BuildingType,
   EconomyState,
   ResearchableTechnologyType,
   SelectionState,
@@ -26,8 +27,9 @@ import { SELECTION_DETAIL_TOOLTIPS } from '../tooltips';
 // Types that can appear as first-class entries in the multi-select icon
 // grid. Owned sheep live in `economyState.resources`, not `.units`, but
 // they share the player-commandable multi-selection contract with units,
-// so the icon grid treats them as siblings.
-type MultiSelectionIconKind = UnitType | 'sheep';
+// so the icon grid treats them as siblings. Buildings join them since DE's
+// select-all building keys (work 142) put several buildings in one selection.
+type MultiSelectionIconKind = UnitType | 'sheep' | BuildingType;
 
 function renderSingleSelectionIcon(
   entityType: SelectionState['selectedEntityType'],
@@ -76,6 +78,12 @@ export function renderSelectionIcons(
   }
 
   const unitsById = new Map(economyState.units.map((unit) => [unit.id, unit]));
+  // Built on the first selected id that is not a unit, as the sheep lookup is.
+  let buildingTypesById: Map<number, BuildingType> | null = null;
+  const buildingTypeOf = (id: number): BuildingType | undefined => {
+    buildingTypesById ??= new Map(economyState.buildings.map((building) => [building.id, building.buildingType]));
+    return buildingTypesById.get(id);
+  };
   // Lazy-built lookup of sheep entity ids — only needed when a selected
   // id misses `unitsById`. `economyState.resources` can hold hundreds of
   // entries mid/late game, and this function runs on every HUD-affecting
@@ -101,9 +109,7 @@ export function renderSelectionIcons(
     const unit = unitsById.get(id);
     const kind: MultiSelectionIconKind | null = unit
       ? unit.unitType
-      : sheepIds().has(id)
-        ? 'sheep'
-        : null;
+      : buildingTypeOf(id) ?? (sheepIds().has(id) ? 'sheep' : null);
     if (!kind) {
       continue;
     }
