@@ -2,6 +2,15 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.264
+
+The computer opponent saves for its first Monk and for Conscription the way Definitive Edition's does.
+
+- **The computer trains its first Monk before its army spends the gold.** While two or more relics lie on the map and its Monastery stands, it holds the Monk's 100 gold back from its soldiers and research until the Monk is queued. Once an enemy owns a Monastery or Monks, its first Monk is bought before any soldier, without holding anything back.
+- **In the Imperial Age it researches Conscription at its Castle.** With a Castle standing, it holds Conscription's 150 food and 150 gold back from its soldiers and research until it can pay, and the Imperial Market trades toward it as it does toward a stuck building. DE gives this to its Hard AI and above; here every level has it.
+- What is held stops only the purchases that spend it: holding a Monk's gold stops an Archer, not a Spearman. Villagers are never held back, nothing is held in wood, so its buildings and farms are not delayed, and an age-up it can pay for still comes first. In long computer-only matches its Castle now researches and its Monastery trains, where in some matches they never did.
+- Saves keep their format. Replaying a recording made before this re-runs the computer's new decisions, so a match that reaches a Monastery or a Castle can play out differently.
+
 ## 0.3.263
 
 The military card's keys are Definitive Edition's (DE's), from the default key profile in DE's own files.

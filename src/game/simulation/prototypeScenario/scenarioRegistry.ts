@@ -352,6 +352,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['ai-castle-age-military-fixture', fixtures.createAiCastleAgeMilitaryFixture],
   ['ai-spies-price-fixture', fixtures.createAiSpiesPriceFixture],
   ['ai-soldier-budget-fixture', fixtures.createAiSoldierBudgetFixture],
+  ...fixtures.AI_ESCROW_SCENARIOS,
   ['ai-market-budget-fixture', fixtures.createAiMarketBudgetFixture],
   ['ai-imperial-military-fixture', fixtures.createAiImperialMilitaryFixture],
   ['ai-garrisoned-defender-fixture', fixtures.createAiGarrisonedDefenderFixture],

@@ -32,6 +32,17 @@
 // `aoe2.relicsInMonastery` (Monastery -> count), and only when the slot's
 // object changes, which is once per write.
 //
+// Siege (work 141, 2026-11-04): under DE's building armor (work 140) only siege
+// takes buildings at any pace, so two columns count it per owner — `siege`, the
+// first sample holding a unit in the siege armor class (`isSiegeUnit`: the ram,
+// mangonel and scorpion lines, the Bombard Cannon and the Trebuchet), and
+// `peak siege`, the most it held at one sample. `Castle bldg` is the first
+// sample with a complete Castle building (`castle` is the Castle Age), because
+// the AI's Castle Age split gathers no stone (work 141 M2a). A peak hides an
+// army that stopped growing, so a line per seed also gives each owner's army
+// every 5,000 ticks: the AI's spending rules hold resources back from it (work
+// 141's escrow), and a held army shows there as a flat run.
+//
 // `--config castle` (the default) plays the match
 // `tests/simulation/aiReachesCastleAge.test.ts` plays: the shipped configuration
 // with the Wonder and Relic victories off (work 128; that test's header says
@@ -49,6 +60,7 @@
 import { createSimulationBridge } from '../src/game/simulation/createSimulationBridge.ts';
 import { createBuildingCombatState } from '../src/game/simulation/prototypeBuildingRules.ts';
 import { HUMAN_PLAYER_ID } from '../src/game/simulation/prototypeScenario.ts';
+import { isSiegeUnit } from '../src/game/simulation/prototypeUnitRules.ts';
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -188,8 +200,8 @@ function createRelicLedger(bridge, owners) {
 
 const pad = (s, n) => String(s).padEnd(n);
 console.log(`# AI self-play audit — ${CONFIG} configuration, ${TICKS} ticks (${(TICKS / 600).toFixed(0)} min of game time)\n`);
-console.log(`| ${pad('seed', 16)} | own | feudal | qualified | castle | imperial | bldgs | units | peak army | vill lost | under def | monastery | monk  | relics |`);
-console.log(`| ${'-'.repeat(16)} | --- | ------ | --------- | ------ | -------- | ----- | ----- | --------- | --------- | --------- | --------- | ----- | ------ |`);
+console.log(`| ${pad('seed', 16)} | own | feudal | qualified | castle | imperial | bldgs | units | peak army | vill lost | under def | monastery | monk  | relics | siege  | peak siege | Castle bldg |`);
+console.log(`| ${'-'.repeat(16)} | --- | ------ | --------- | ------ | -------- | ----- | ----- | --------- | --------- | --------- | --------- | ----- | ------ | ------ | ---------- | ----------- |`);
 
 const totals = { castle: 0, imperial: 0, bldg: 0, unit: 0, army: 0, owners: 0, lost: 0, underDefence: 0, relics: 0 };
 for (const seed of SEEDS) {
@@ -203,7 +215,7 @@ for (const seed of SEEDS) {
   });
   const per = {};
   for (const o of [1, 2]) {
-    per[o] = { b: new Set(), u: new Set(), age: {}, q: null, army: 0, lost: 0, underDefence: 0, monastery: null, monk: null };
+    per[o] = { b: new Set(), u: new Set(), age: {}, q: null, army: 0, lost: 0, underDefence: 0, monastery: null, monk: null, siege: null, siegePeak: 0, armyByTick: [], castleBuilding: null };
   }
   const lastTask = new Map();
   const deathsSeen = new Set();
@@ -253,16 +265,22 @@ for (const seed of SEEDS) {
         p.b.add(b.buildingType);
         if (QUALIFYING.includes(b.buildingType)) qualifying += 1;
         if (b.buildingType === 'monastery' && p.monastery === null) p.monastery = tick;
+        if (b.buildingType === 'castle' && p.castleBuilding === null) p.castleBuilding = tick;
       }
       if (qualifying >= 2 && p.q === null) p.q = tick;
       let army = 0;
+      let siege = 0;
       for (const u of st.units) {
         if (u.owner !== o) continue;
         p.u.add(u.unitType);
         if (u.unitType !== 'villager') army += 1;
         if (u.unitType === 'monk' && p.monk === null) p.monk = tick;
+        if (isSiegeUnit(u.unitType)) siege += 1;
       }
       p.army = Math.max(p.army, army);
+      if (tick % 5000 === 0) p.armyByTick.push(army);
+      if (siege > 0 && p.siege === null) p.siege = tick;
+      p.siegePeak = Math.max(p.siegePeak, siege);
       const age = st.ages[o];
       if (age && p.age[age] === undefined) p.age[age] = tick;
     }
@@ -273,7 +291,8 @@ for (const seed of SEEDS) {
     console.log(`| ${pad(seed, 16)} | ${o}   | ${pad(at('feudal-age'), 6)} | ${pad(p.q ?? '-', 9)} `
       + `| ${pad(at('castle-age'), 6)} | ${pad(at('imperial-age'), 8)} | ${pad(p.b.size, 5)} `
       + `| ${pad(p.u.size, 5)} | ${pad(p.army, 9)} | ${pad(p.lost, 9)} | ${pad(p.underDefence, 9)} `
-      + `| ${pad(p.monastery ?? '-', 9)} | ${pad(p.monk ?? '-', 5)} | ${pad(relicLedger.storedBy.get(o), 6)} |`);
+      + `| ${pad(p.monastery ?? '-', 9)} | ${pad(p.monk ?? '-', 5)} | ${pad(relicLedger.storedBy.get(o), 6)} `
+      + `| ${pad(p.siege ?? '-', 6)} | ${pad(p.siegePeak, 10)} | ${pad(p.castleBuilding ?? '-', 11)} |`);
     totals.owners += 1;
     if (p.age['castle-age'] !== undefined) totals.castle += 1;
     if (p.age['imperial-age'] !== undefined) totals.imperial += 1;
@@ -282,6 +301,7 @@ for (const seed of SEEDS) {
     totals.relics += relicLedger.storedBy.get(o);
   }
   if (outcome !== 'running') console.log(`| ${pad(seed, 16)} |     | match ended early: ${outcome} at tick ${endedAt}`);
+  console.log(`| ${pad(seed, 16)} |     | army every 5,000 ticks: ${[1, 2].map((o) => `o${o} ${per[o].armyByTick.join(',') || '-'}`).join('; ')}`);
   for (const [id, r] of relicLedger.relics) {
     const seen = [1, 2].map((o) => `o${o} ${r.seen[o] ?? '-'}`).join(', ');
     const picked = r.picked.map((p) => `o${p.owner} ${p.tick}`).join(', ') || '-';
