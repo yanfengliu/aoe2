@@ -10,10 +10,12 @@
 // for groups 11 to 20, the same keys with Alt. A save written before work 142
 // holds indexes 0-9 only, which mean what they meant (spec §15.3).
 //
-// A unit is in one group at a time, as DE's players report it (an appended unit
-// leaves its old group; "each unit's assigned number"): binding or appending
-// takes the selected entities out of every other group, and a group left empty
-// is forgotten.
+// A unit is in one group at a time, as DE shows it ("Each unit's assigned
+// number", a DE player, 2019): binding a group takes its units out of every
+// other group, and a group left empty is forgotten. Shift with a group's key
+// adds the group to the selection and changes no group: DE's default since
+// update 36202 ("Selecting more than one control group using Shift no longer
+// merges them into one group by default"), its Shift Group Appending off.
 
 import type { EntityRef } from 'civ-engine';
 
@@ -63,18 +65,13 @@ export function createControlGroupOps(deps: {
     return true;
   }
 
-  /** DE's Append Group (Shift with the group's key): the selection joins the
-   *  group, which is made if it has no members; the selection stays. */
-  function appendToControlGroup(group: number): boolean {
+  /** DE's Append Group (Shift with the group's key), Shift Group Appending
+   *  off: the group's survivors join the selection, and no group changes. */
+  function appendControlGroupToSelection(group: number): boolean {
     if (!isGroup(group)) return false;
-    const refs = deps.getSelectedEntityRefs();
-    if (refs.length === 0) return false;
-    const groups = accessor.get(controlGroupsCodec);
-    takeOutOfGroups(groups, refs, group);
-    const members = groups.get(group) ?? [];
-    groups.set(group, [...members, ...refs.filter((ref) => !members.some((member) => sameRef(member, ref)))]);
-    accessor.markDirty(controlGroupsCodec);
-    return true;
+    const members = accessor.get(controlGroupsCodec).get(group);
+    if (!members || members.length === 0) return false;
+    return deps.selectByRefs([...deps.getSelectedEntityRefs(), ...members]);
   }
 
   /** DE's Ungroup Control Group (U): the selection leaves its groups. */
@@ -101,5 +98,5 @@ export function createControlGroupOps(deps: {
     return selected;
   }
 
-  return { assignControlGroup, appendToControlGroup, ungroupSelection, recallControlGroup };
+  return { assignControlGroup, appendControlGroupToSelection, ungroupSelection, recallControlGroup };
 }

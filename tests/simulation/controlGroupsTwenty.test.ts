@@ -5,10 +5,12 @@
 // terms (2026-11-05): a backward-compatible widening of the saved range 0-9 to
 // 0-19, held by three save tests — a save holding groups 0 to 9 loads unchanged,
 // groups 10 to 19 round-trip, a group out of range is still refused. Beside them
-// DE's Append Group (Shift), Ungroup (U), and one group per unit, as DE's
-// players report it (spec §9.4).
+// DE's Append Group (Shift: the group joins the selection, DE's default since
+// update 36202), Ungroup (U), one group per unit, and every selection a key
+// makes drawn on a paused frame (spec §9.4).
 //
-// BOUND: the civ-teutons fixture's own units, the real bridge and its save.
+// BOUND: the civ-teutons fixture's own units and `aoe2-prototype`'s idle ones,
+// the real bridge and its save.
 
 import type { EntityRef } from 'civ-engine';
 import { describe, expect, it } from 'vitest';
@@ -35,6 +37,12 @@ const selected = (bridge: SimulationBridge): number[] => [...bridge.getSelection
 function recall(bridge: SimulationBridge, group: number): number[] | null {
   bridge.clearSelection();
   return bridge.recallControlGroup(group) ? selected(bridge) : null;
+}
+
+/** The groups as the save stores them: group index to member ids. */
+function savedGroups(bridge: SimulationBridge): Record<number, number[]> {
+  const slot = (worldSnapshotState(bridge.saveGame())[CONTROL_GROUPS_SLOT] ?? []) as Array<[number, EntityRef[]]>;
+  return Object.fromEntries(slot.map(([group, refs]) => [group, refs.map((ref) => ref.id)]));
 }
 
 describe("DE's twenty control groups (work 142 M2b-2b-2b)", () => {
@@ -69,64 +77,49 @@ describe("DE's twenty control groups (work 142 M2b-2b-2b)", () => {
     for (const [group, ids] of groups) expect(recall(loaded, group), `group index ${group} after the load`).toEqual(ids);
   });
 
-  it('still refuses a group out of range', () => {
+  it('still refuses a group out of range, even one a save holds', () => {
     const bridge = createSimulationBridge('civ-teutons-fixture');
     const [a] = ownUnits(bridge);
-    select(bridge, [a!]);
+    const refs = select(bridge, [a!]);
     for (const group of [20, -1, 2.5, Number.NaN]) {
       expect(bridge.assignControlGroup(group), `assign ${group}`).toBe(false);
-      expect(bridge.appendToControlGroup(group), `append ${group}`).toBe(false);
-      expect(bridge.recallControlGroup(group), `recall ${group}`).toBe(false);
     }
-    expect(worldSnapshotState(bridge.saveGame())[CONTROL_GROUPS_SLOT] ?? []).toEqual([]);
+    expect(savedGroups(bridge), 'an out-of-range group was stored').toEqual({});
+    // A save written by hand with groups outside 0-19 loads, and no key reaches them.
+    const blob = bridge.saveGame();
+    worldSnapshotState(blob)[CONTROL_GROUPS_SLOT] = [[20, refs.map((ref) => ({ ...ref }))], [-1, refs.map((ref) => ({ ...ref }))]];
+    const loaded = createSimulationBridge(undefined, { savedGame: blob });
+    for (const group of [20, -1]) {
+      expect(recall(loaded, group), `recall ${group}`).toBeNull();
+      expect(loaded.appendControlGroupToSelection(group), `append ${group}`).toBe(false);
+    }
   });
 
-  it('appends the selection to a group, making the group if it has none, and leaves the selection', () => {
+  it('adds a group to the selection on Shift, and changes no group', () => {
     const bridge = createSimulationBridge('civ-teutons-fixture');
     const [a, b, c] = ownUnits(bridge);
-    select(bridge, [a!]);
-    expect(bridge.appendToControlGroup(3), 'append made no group').toBe(true);
-    select(bridge, [b!, c!]);
-    expect(bridge.appendToControlGroup(3)).toBe(true);
-    expect(selected(bridge), 'append changed the selection').toEqual([b, c]);
-    expect(recall(bridge, 3)).toEqual([a, b, c]);
-    select(bridge, [b!]);
-    expect(bridge.appendToControlGroup(3), 'appending a member again').toBe(true);
-    expect(recall(bridge, 3), 'a member appended again is counted once').toEqual([a, b, c]);
-    bridge.clearSelection();
-    expect(bridge.appendToControlGroup(3), 'an empty selection appends nothing').toBe(false);
+    select(bridge, [a!, b!]);
+    expect(bridge.assignControlGroup(3)).toBe(true);
+    select(bridge, [c!]);
+    expect(bridge.appendControlGroupToSelection(3), 'Shift with group 3\'s key added nothing').toBe(true);
+    expect(selected(bridge), 'the group did not join the selection').toEqual([a, b, c]);
+    expect(savedGroups(bridge), 'adding a group to the selection changed a group').toEqual({ 3: [a, b] });
+    expect(bridge.appendControlGroupToSelection(4), 'a group with no members adds nothing').toBe(false);
+    expect(selected(bridge)).toEqual([a, b, c]);
   });
 
-  it('keeps a unit in one group: binding or appending it takes it out of its old group', () => {
+  it('keeps a unit in one group: binding a group takes its units out of their old one', () => {
     const bridge = createSimulationBridge('civ-teutons-fixture');
     const [a, b, c] = ownUnits(bridge);
     select(bridge, [a!, b!]);
     expect(bridge.assignControlGroup(1)).toBe(true);
     select(bridge, [b!]);
     expect(bridge.assignControlGroup(2)).toBe(true);
-    expect(recall(bridge, 1), 'binding group 2 left its unit in group 1').toEqual([a]);
-    select(bridge, [a!]);
-    expect(bridge.appendToControlGroup(2)).toBe(true);
-    expect(recall(bridge, 1), 'a group left empty is forgotten').toBeNull();
-    expect(recall(bridge, 2)).toEqual([a, b]);
-    select(bridge, [c!]);
+    expect(savedGroups(bridge), 'binding group 2 left its unit in group 1').toEqual({ 1: [a], 2: [b] });
+    select(bridge, [a!, c!]);
     expect(bridge.assignControlGroup(12)).toBe(true);
-    expect(recall(bridge, 2), 'a group of 11 to 20 takes a unit like any other').toEqual([a, b]);
-  });
-
-  it('draws a recalled group selected on a paused frame', () => {
-    const bridge = createSimulationBridge('civ-teutons-fixture');
-    const [a] = ownUnits(bridge);
-    select(bridge, [a!]);
-    expect(bridge.assignControlGroup(1)).toBe(true);
-    bridge.setPaused(true);
-    bridge.clearSelection();
-    bridge.step(16);
-    const drawnSelected = (): boolean | undefined => bridge.getRenderState().entities.find((entity) => entity.id === a)?.selected;
-    expect(drawnSelected()).toBe(false);
-    expect(bridge.recallControlGroup(1)).toBe(true);
-    bridge.step(16);
-    expect(drawnSelected(), 'the paused frame did not draw the recalled unit selected').toBe(true);
+    expect(savedGroups(bridge), 'a group left empty is forgotten, and groups 11-20 take units like the rest')
+      .toEqual({ 2: [b], 12: [a, c] });
   });
 
   it('ungroups the selection: it leaves its groups, and a group left empty is forgotten', () => {
@@ -139,9 +132,38 @@ describe("DE's twenty control groups (work 142 M2b-2b-2b)", () => {
     select(bridge, [b!, c!]);
     expect(bridge.ungroupSelection()).toBe(true);
     expect(selected(bridge), 'ungroup changed the selection').toEqual([b, c]);
-    expect(recall(bridge, 1)).toEqual([a]);
-    expect(recall(bridge, 11), 'a group left empty is forgotten').toBeNull();
+    expect(savedGroups(bridge)).toEqual({ 1: [a] });
     select(bridge, [c!]);
     expect(bridge.ungroupSelection(), 'a selection in no group ungroups nothing').toBe(false);
   });
+});
+
+// Review round 10 (Codex): a selection the bridge makes outside its wrapped
+// selectors did not tell the paused renderer, so a paused frame drew the old
+// rings: a group's recall (found here first), and '.' and ',' (the idle cycles).
+describe('a selection made by a key is drawn on a paused frame (work 142)', () => {
+  const drawnSelected = (bridge: SimulationBridge): number[] => bridge.getRenderState().entities
+    .filter((entity) => entity.selected).map((entity) => entity.id).sort((a, b) => a - b);
+
+  const cases: ReadonlyArray<readonly [string, string, (bridge: SimulationBridge) => boolean]> = [
+    ['a recalled group', 'civ-teutons-fixture', (bridge) => bridge.recallControlGroup(1)],
+    ['a group added on Shift', 'civ-teutons-fixture', (bridge) => bridge.appendControlGroupToSelection(1)],
+    ['the next idle villager', 'aoe2-prototype', (bridge) => bridge.selectNextIdleVillager()],
+    ['the next idle soldier', 'aoe2-prototype', (bridge) => bridge.selectNextIdleMilitary()],
+  ];
+  for (const [name, seed, act] of cases) {
+    it(`draws ${name} selected`, () => {
+      const bridge = createSimulationBridge(seed);
+      const first = bridge.getEconomyState().units.filter((unit) => unit.owner === 1).map((unit) => unit.id).sort((a, b) => a - b)[0]!;
+      select(bridge, [first]);
+      expect(bridge.assignControlGroup(1)).toBe(true);
+      bridge.setPaused(true);
+      bridge.clearSelection();
+      bridge.step(16);
+      expect(drawnSelected(bridge)).toEqual([]);
+      expect(act(bridge), `${name}: nothing was selected`).toBe(true);
+      bridge.step(16);
+      expect(drawnSelected(bridge), `the paused frame did not draw ${name} selected`).toEqual(selected(bridge));
+    });
+  }
 });

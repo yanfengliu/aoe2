@@ -3,12 +3,13 @@
 // scripts/dumpDeHotkeys.mjs GROUP_COMMAND_HOTKEYS`), cited in spec §14.2:
 //  - Ctrl with 1-9 and 0 creates groups 1-10 (CREATE_GROUP1 19244 ... 10 181037),
 //    the digit alone selects one (SELECT_GROUP1 19254 ... 10 181048), Shift with
-//    it appends the selection (APPEND_GROUP1 181079 ... 10 181088), and Ctrl+Shift
+//    it adds the group to the selection (APPEND_GROUP1 181079 ... 10 181088;
+//    update 36202 made that DE's default), and Ctrl+Shift
 //    with 1-9 selects and centres (SELECT_CENTER_GROUP1 181059 ...), group 10's
 //    being Ctrl+Shift+F10 (181068);
 //  - groups 11-20 are the same keys with Alt (the entries' `alternate`; a DE
-//    player's report names them "Alt-1 through Alt-0" and "Alt-Shift" for
-//    append), Ctrl+Alt+Shift+F10 centring group 20;
+//    player reads "Alt-1 through Alt-0" for them off DE's menu),
+//    Ctrl+Alt+Shift+F10 centring group 20;
 //  - U ungroups the selection (UNGROUP_CONTROL_GROUP, 19099).
 // A digit is the main row's physical key (`KeyboardEvent.code`, DE's VK_1 ...
 // VK_0): Shift+1 types "!" on a US layout, and the numpad's digits are other
@@ -58,7 +59,7 @@ export function registerControlGroupHotkeys(
       const code = `Digit${digit}`;
       hotkeyRegistry.register({ code, ctrl: true, alt }, () => { bridgeRef().assignControlGroup(group); });
       hotkeyRegistry.register({ code, alt }, (event) => { select(group, event); });
-      hotkeyRegistry.register({ code, shift: true, alt }, () => { bridgeRef().appendToControlGroup(group); });
+      hotkeyRegistry.register({ code, shift: true, alt }, () => { bridgeRef().appendControlGroupToSelection(group); });
       // DE centres groups 10 and 20 on F10, not on 0.
       if (digit !== 0) hotkeyRegistry.register({ code, ctrl: true, shift: true, alt }, () => { selectAndCentre(group); });
     }

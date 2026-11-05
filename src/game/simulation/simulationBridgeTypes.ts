@@ -116,9 +116,9 @@ export interface SimulationBridge {
   selectNextIdleVillager(): boolean;
   /** Control groups (v0.3.104; DE's twenty, work 142): a group is an index
    *  0-19 (`controlGroupIndex`). Ctrl+digit binds, digit recalls survivors,
-   *  Shift+digit appends the selection, U ungroups it. */
+   *  Shift+digit adds the group to the selection, U ungroups the selection. */
   assignControlGroup(group: number): boolean;
-  appendToControlGroup(group: number): boolean;
+  appendControlGroupToSelection(group: number): boolean;
   ungroupSelection(): boolean;
   recallControlGroup(group: number): boolean;
   getSelectionState(): SelectionState;

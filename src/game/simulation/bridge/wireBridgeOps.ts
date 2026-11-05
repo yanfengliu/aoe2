@@ -263,7 +263,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     clearSelection,
   } = unitCommandOps;
 
-  const { assignControlGroup, appendToControlGroup, ungroupSelection, recallControlGroup } = createControlGroupOps({
+  const { assignControlGroup, appendControlGroupToSelection, ungroupSelection, recallControlGroup } = createControlGroupOps({
     accessor,
     getSelectedEntityRefs,
     selectByRefs,
@@ -454,9 +454,9 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
   return {
     ...finalize,
     assignControlGroup,
-    appendToControlGroup,
     ungroupSelection,
-    // A recall selects, so the paused renderer's ring must hear of it (work 142).
+    // These select, so the paused renderer's rings must hear of it (work 142).
+    appendControlGroupToSelection: (group) => selectionMutation(() => appendControlGroupToSelection(group)),
     recallControlGroup: (group) => selectionMutation(() => recallControlGroup(group)),
     ...agentOptionsOps,
     sendTribute: tributeOps.sendTribute,

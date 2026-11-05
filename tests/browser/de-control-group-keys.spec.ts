@@ -2,8 +2,9 @@
 // groups, pressed as a player presses them. Each key is the `definitive`
 // default of GROUP_COMMAND_HOTKEYS in the install's `hotkeys.json` (`node
 // scripts/dumpDeHotkeys.mjs GROUP_COMMAND_HOTKEYS`; spec §14.2 names each):
-// Ctrl with a digit creates a group, the digit selects it, Shift with it appends
-// the selection, Ctrl+Shift with it selects and centres (Ctrl+Shift+F10 for
+// Ctrl with a digit creates a group, the digit selects it, Shift with it adds
+// the group to the selection (DE's default since update 36202, its Shift Group
+// Appending off), Ctrl+Shift with it selects and centres (Ctrl+Shift+F10 for
 // group 10), groups 11-20 are the same keys with Alt, and U ungroups. Until
 // work 142 only 1-9 were bound, Ctrl with a digit and the digit, matched on the
 // character typed, so Shift+1 ("!") did nothing and the numpad's 1 selected
@@ -65,16 +66,15 @@ async function lookAway(page: Page, unit: Unit): Promise<void> {
 }
 
 test.describe("DE's control-group keys", () => {
-  test('Ctrl with a digit creates a group, the digit selects it, Shift appends, and the numpad\'s digits are no group key', async ({ page }) => {
+  test('Ctrl with a digit creates a group, the digit selects it, Shift adds it to the selection, and the numpad\'s digits are no group key', async ({ page }) => {
     await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
     const { villagers: [first, second], scout } = await ownUnits(page);
     await click(page, first!);
     await page.keyboard.press('Control+Digit1');
     await click(page, scout);
     await page.keyboard.press('Shift+Digit1');
-    await game.waitForRenderedFrames(page, 3, 100);
-    expect(await selectedIds(page), 'Shift+1 changed the selection').toEqual([scout.id]);
-    expect(await recalled(page, 'Digit1'), 'Shift+1 did not append the Scout to group 1').toEqual(ids(first!, scout));
+    await expect.poll(() => selectedIds(page), { message: 'Shift+1 did not add group 1 to the selection' }).toEqual(ids(first!, scout));
+    expect(await recalled(page, 'Digit1'), 'Shift+1 changed group 1').toEqual([first!.id]);
     await click(page, second!);
     await page.keyboard.press('Control+Digit0');
     expect(await recalled(page, 'Digit0'), 'Ctrl+0 and 0 are group 10').toEqual([second!.id]);
@@ -88,7 +88,10 @@ test.describe("DE's control-group keys", () => {
     await page.keyboard.press('Control+Alt+Digit1');
     await click(page, second!);
     await page.keyboard.press('Alt+Shift+Digit1');
-    expect(await recalled(page, 'Alt+Digit1'), 'Ctrl+Alt+1, Alt+Shift+1 and Alt+1 are group 11').toEqual(ids(first!, second!));
+    await expect.poll(() => selectedIds(page), { message: 'Alt+Shift+1 did not add group 11 to the selection' })
+      .toEqual(ids(first!, second!));
+    await page.keyboard.press('Control+Alt+Digit1');
+    expect(await recalled(page, 'Alt+Digit1'), 'Ctrl+Alt+1 and Alt+1 are group 11').toEqual(ids(first!, second!));
     expect(await recalled(page, 'Digit1'), 'group 11 is not group 1').toEqual([]);
     await click(page, first!);
     await page.keyboard.press('Control+Digit2');
@@ -124,6 +127,8 @@ test.describe("DE's control-group keys", () => {
     await page.keyboard.press('Control+Digit1');
     await click(page, second!);
     await page.keyboard.press('Shift+Digit1');
+    await expect.poll(() => selectedIds(page)).toEqual(ids(first!, second!));
+    await page.keyboard.press('Control+Digit1');
     await click(page, first!);
     await page.keyboard.press('u');
     await game.waitForRenderedFrames(page, 3, 100);
