@@ -35,6 +35,9 @@ export const SELECTION_CONTROLS_MIXED_BOX = {
 } as const;
 export const SELECTION_CONTROLS_SHARED_CELL = { x: 3, y: 8 } as const;
 export const SELECTION_CONTROLS_OFF_SCREEN_VILLAGER = { x: 0, y: 0 } as const;
+// A Mangonel of the human's arms the three ground orders by DE's keys (R, Q and
+// T are the military card's, work 142 M2b-1). Spawned last, so no other id moves.
+export const SELECTION_CONTROLS_MANGONEL = { x: 11, y: 14 } as const;
 
 export function createSelectionControlsFixture(seed: string): PrototypeScenario {
   const vision = { vision: 30 };
@@ -72,6 +75,7 @@ export function createSelectionControlsFixture(seed: string): PrototypeScenario 
       ownedSpawn('villager', 1, SELECTION_CONTROLS_SHARED_CELL.x, SELECTION_CONTROLS_SHARED_CELL.y, vision),
       ownedSpawn('villager', 1, SELECTION_CONTROLS_OFF_SCREEN_VILLAGER.x, SELECTION_CONTROLS_OFF_SCREEN_VILLAGER.y, vision),
       ownedSpawn('town-center', 2, 40, 24, { vision: 7 }),
+      ownedSpawn('mangonel', 1, SELECTION_CONTROLS_MANGONEL.x, SELECTION_CONTROLS_MANGONEL.y, vision),
     ],
   };
 }

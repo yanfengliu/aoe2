@@ -43,7 +43,7 @@ Orders:
 - Right click to issue a context-sensitive order to the current selection
 - Villagers right-click resources to gather; `Alt`+right-click an owned Town Center, Watch Tower, or Castle to garrison, while ordinary right-click moves to the clicked ground position
 - Villager build cards show each structure's cost and live Ready/Short status; choose a card, then choose a clear map tile
-- DE's default command keys: with a villager selected, `Q` opens the Economic buildings and `W` the Military ones, and the next key builds (`Q` `Q` a House, `W` `Q` a Barracks); with the Town Center selected, `Q` trains a Villager, `A` researches Loom and `B` rings the Town Bell
+- DE's default command keys: with a villager selected, `Q` opens the Economic buildings and `W` the Military ones, and the next key builds (`Q` `Q` a House, `W` `Q` a Barracks); with the Town Center selected, `Q` trains a Villager, `A` researches Loom and `B` rings the Town Bell; with soldiers selected, `R` arms attack-move, `Q` patrol and `T` attack-ground (siege that throws stones), `A` `S` `D` `F` set the stance and `Z` `X` `C` `V` the formation; a Fishing Ship builds a Fish Trap on `Q`
 - Military units right-click enemy units and buildings to attack
 
 Camera:

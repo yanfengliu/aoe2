@@ -3,7 +3,7 @@
 Status: active
 Owner: selection-controls worker for the Claude coordinator
 Created: 2026-11-04
-Updated: 2026-11-04
+Updated: 2026-11-05
 
 ## Problem and outcome
 
@@ -64,7 +64,7 @@ Not in scope: the AI (work 141), HUD restyling beyond these behaviours, civ-engi
 - [x] The click-unit gate and its red proof.
 - [x] Captures and pixel diffs; full gate; review rounds 0-2; records; phase-1 handoff.
 - [x] Phase 2 for M1: Moebius and random-view checks, lock, version 0.3.261, verify, push, findings queued in plan 106, worktrees retired.
-- [ ] M2: the villager's command card and DE's default hotkeys, for a fresh worker (starting state below). M2a (the villager's card, the Villager and Town Center keys) shipped as v0.3.262; M2b (the other cards' keys and the global keys) is open, its starting state below.
+- [ ] M2: the villager's command card and DE's default hotkeys, for a fresh worker (starting state below). M2a (the villager's card, the Villager and Town Center keys) shipped as v0.3.262; M2b (the other cards' keys and the global keys) is open, its starting state below; M2b-1 (the military card and the unit cards) is at phase 1, M2b-2 (the other buildings' cards and the global keys) not started.
 
 ### Owner decisions waiting (unsourced rules; each took the closest sourced behaviour; also one line in plan 106's "Owner decisions waiting")
 
@@ -131,6 +131,22 @@ The outcome: every other card's keys and the global keys are DE's `definitive` d
 **The other cards.** Dump `BARRACKS_HOTKEYS`, `ARCHERY_RANGE_HOTKEYS`, `STABLE_HOTKEYS`, `SIEGE_WORKSHOP_HOTKEYS`, `MONASTERY_HOTKEYS`, `MARKET_HOTKEYS`, `CASTLE_HOTKEYS`, `MILL_HOTKEYS`, `MINING_CAMP_HOTKEYS`, `LUMBER_CAMP_HOTKEYS`, `BLACKSMITH_HOTKEYS`, `UNIVERSITY_HOTKEYS` and `DOCK_HOTKEYS`; the Fishing Ship's Fish Trap is `VILLAGER_BUILD_FISH_TRAP`, Q, with no page, and the Fishing Ship keeps the older keys until M2b decides whether it builds on Q directly.
 
 **What M2a learned.** A key must act on the card of the selection now: the HUD redraws the panel a frame after a click, so the handler calls `syncSelectionPanel()` first, and a browser test waits for the click's selection before pressing a key. The villager's open page is the panel's chosen page (`data-build-page-chosen`). The registry skips text fields and dropdowns. A verify receipt needs a committed tree that nothing touches while it runs, and a mutation script must restore its file even when its output is cut (never pipe it into `head`).
+
+### M2b-1: the military card and the unit cards (2026-11-04 to 11-05)
+
+Split from M2b at its start: M2b-1 is the military card and every unit's card; M2b-2 is the other buildings' cards and the global keys (H, comma, period, Space, Home, F3, numpad plus and minus, Ctrl+= and Ctrl+−, the go-to and select-all keys, control groups 1–20, Delete and Shift+Delete).
+
+**Sources.** `node scripts/dumpDeHotkeys.mjs MILITARY_UNITS_HOTKEYS UNIT_COMMAND_HOTKEYS`, DE never launched. `MILITARY_UNITS_HOTKEYS` (string 20014): Patrol Q (19312), Guard W (19313), Follow E (19314), Attack Move R (200008), Aggressive A (19315), Defensive S (19316), Stand Ground D (19317), No Attack F (19318), Auto Scout G (19350), Build B (19352), Line Z (19304), Box X (19303), Staggered C (19305), Flank V (19306), Special Ability B (19234). `UNIT_COMMAND_HOTKEYS`: Stop G (19216), Garrison T (19012), Attack Ground T (19220), Ungarrison G, Repair E, Unload Q, Pack W, Unpack Q, Heal W, Convert Q, Drop Relic Q. The install's `buttons.json` holds only fourteen building buttons, so a unit card's slot is its key's. Who is a civilian: the "civilians" group of the install's `resources/_common/dat/selection_group_def.json` (CIVILIAN 4, FISHING_BOAT 21, TRADERS 19, TRADING_BOAT 2); its "all_military" group holds every other class this game has, the Transport Ship (TRANSPORT_BOAT 20) and the Monk (PRIEST 18) included. A Fishing Ship builds the Fish Trap on `VILLAGER_BUILD_FISH_TRAP`'s Q, which has no build page.
+
+**Changes.** `src/ui/hud/commandCardKeys.ts`: `UNIT_CARD_KEYS` (the stances, the formations and the Fish Trap, by `data-command`), `MILITARY_ORDER_KEYS` (Q patrol, R attack-move, T attack-ground) and `inUnitCardSlotOrder`, which the card's stance and formation rows are drawn in (`render.ts`). `src/app/bootstrap/commandCardHotkeys.ts`: a unit's card presses the button that holds the key; on the military card, the card of a selection with stances, Q, R and T arm their orders, T only when a selected unit may attack the ground; the older A, G and P are gone. `src/game/simulation/deCivilianUnits.ts`: a civilian's card has no stance or formation (`selectionStateOps.ts`). The selection-controls fixture gains a Mangonel of the human's, spawned last.
+
+**Keys that moved.** Attack-move from A to R, patrol from P to Q, attack-ground from G to T. With soldiers selected A is the Aggressive stance and G does nothing (DE's Stop, not in this game). P does nothing anywhere. With a sheep, a civilian or a building without DE keys selected, A, G and P no longer arm orders. S, D, F, Z, X, C and V were unbound before.
+
+**Tests adapted, and why.** `attack-move-hotkey.spec.ts` presses R where it pressed A, DE's Attack Move. `attack-ground-hotkey.spec.ts` presses T where it pressed G, DE's Attack Ground. `patrol-interaction.spec.ts` presses Q with the Scout where it pressed P with a villager: DE's Patrol is the military card's Q, and a DE villager's card has no Patrol. M1's armed-order case in `selection-controls.spec.ts` arms R, Q and T with the fixture's new Mangonel where it armed A and G with a sheep and P with a villager, none of which arms anything now. Same assertions otherwise.
+
+**Unsourced, the closest sourced behaviour taken.** Formation buttons for one unit alone, and stances for a Transport Ship, which cannot attack: drawn, as before. A sheep's card: no keys, since a sheep is in neither group. A mixed group's card: M2a's. The Monk's Q and W: Patrol and nothing, though `UNIT_COMMAND_HOTKEYS` gives Convert Q and Heal W, which may be Return of Rome's priest; whether DE's Monk card holds them is unseen.
+
+**Found, not in M2b-1's scope (for plan 106, tagged "(work 142)").** DE's military card draws Patrol, Guard, Follow, Attack Move, Garrison or Attack Ground, and Stop as buttons; this game draws none, and has no Guard, Follow, Stop, Garrison button or Auto Scout. A Fishing Ship's Build group draws the villager's Eco and Mil page tabs over its one Fish Trap; DE's card holds the Fish Trap alone. DE's Transport Ship has Unload on Q; here a transport unloads by a right-click on the shore and its Q is patrol.
 
 ## Outcome
 

@@ -2,6 +2,15 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## Unreleased — work 142 M2b-1
+
+The military card's keys are Definitive Edition's (DE's), from the default key profile in DE's own files.
+
+- **DE's military keys.** With soldiers selected, A, S, D and F set the Aggressive, Defensive, Stand Ground and No Attack stances, and Z, X, C and V the Line, Box, Staggered and Flank formations. R arms attack-move, Q patrol and T attack-ground (for a unit that can attack the ground, such as a Mangonel).
+- **The formation buttons are in DE's order**: Line, Box, Staggered, Flank.
+- **Civilians have no stance or formation buttons**, as in DE: Fishing Ships, Trade Carts and Trade Cogs, beside the villagers. A Fishing Ship builds a Fish Trap on Q.
+- **Keys that moved.** Attack-move moved from A to R, patrol from P to Q and attack-ground from G to T. A is now the Aggressive stance and G does nothing yet (DE's Stop), P does nothing, and none of these keys arms an order with a sheep, a civilian or a building selected.
+
 ## 0.3.262
 
 The villager's command card and the Villager and Town Center keys are Definitive Edition's (DE's), from the default key profile in DE's own files.

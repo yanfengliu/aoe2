@@ -9,6 +9,7 @@ import {
   getSelectionPierceArmor as selectionPierceArmor,
 } from './selectionCombatStats';
 import type { Position } from 'civ-engine';
+import { isDeCivilianUnit } from '../deCivilianUnits';
 import { UNIT_STANCES, defaultStanceFor, type UnitStance } from '../unitStance';
 import {
   DEFAULT_FORMATION,
@@ -362,10 +363,10 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     const ownedSelectedUnits = selectedUnits.filter(
       (entry) => entry.unit.owner === humanPlayerId,
     );
-    // DE's villager card has neither stances nor formations: its hotkeys.json
-    // files both under "Military Units" (work 142). Any other unit in the
-    // group keeps them, since which card DE shows for a mix is unsourced.
-    const offersStances = ownedSelectedUnits.some((entry) => entry.unit.unitType !== 'villager');
+    // A civilian's card has neither stances nor formations: hotkeys.json files
+    // both under "Military Units" (work 142, `deCivilianUnits.ts`). A military
+    // unit in the group keeps them, since which card DE shows for a mix is unsourced.
+    const offersStances = ownedSelectedUnits.some((entry) => !isDeCivilianUnit(entry.unit.unitType));
     const stanceOptions: UnitStance[] = offersStances ? [...UNIT_STANCES] : [];
     const stancesInSelection = new Set(ownedSelectedUnits.map((entry) => (
       accessor.get(unitStancesCodec).get(entry.id) ?? defaultStanceFor(entry.unit.unitType)

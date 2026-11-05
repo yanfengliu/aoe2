@@ -2,17 +2,18 @@ import { expect, test } from '@playwright/test';
 
 import * as game from './helpers/gameTestHelpers';
 
-// M6 control: attack-move is only reachable through the A-then-click
+// M6 control: attack-move is only reachable through the R-then-click
 // interaction, so a unit test proving the simulation works says nothing about
 // whether a player can actually issue one.
 test.describe('attack-move interaction', () => {
-  test('arms on A and turns the next left click into an attack-move order', async ({ page }) => {
+  test('arms on R and turns the next left click into an attack-move order', async ({ page }) => {
     await game.waitForBoot(page);
 
     // Select the Scout Cavalry so there is something to command. Until work
     // 142 M2a this was a villager; DE gives a villager no attack-move (Attack
     // Move is in hotkeys.json's "Military Units" group) and its A is now its
-    // card's key.
+    // card's key. Until work 142 M2b-1 the key was A; DE's ATTACK_MOVE is R,
+    // and a soldier's A is its Aggressive stance.
     const selected = await page.evaluate(() => {
       const api = window.__AOE2_TEST__!;
       const unit = api.getEconomyState().units.find(
@@ -24,7 +25,7 @@ test.describe('attack-move interaction', () => {
     });
     expect(selected).not.toBeNull();
 
-    await page.keyboard.press('a');
+    await page.keyboard.press('r');
     // Click somewhere on the world canvas; the armed order consumes it.
     const canvas = page.locator('#game-root > canvas').first();
     const box = await canvas.boundingBox();

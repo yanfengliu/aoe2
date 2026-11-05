@@ -9,18 +9,26 @@
 // Choosing a building, or another selection, returns the card to its first
 // page. A key on a card with DE keys that holds no button there does nothing.
 //
-// Cards without DE keys yet (work 142 M2b) keep this game's older keys: A arms
-// attack-move, G attack-ground, and P (not a grid key) patrol everywhere.
+// A unit's card (work 142 M2b-1): a key presses the stance, formation or Fish
+// Trap button that holds it, and the military card, the card of a unit with
+// stances, arms its three ground orders by key: Q patrol, R attack-move and T
+// attack-ground, T only when a selected unit may attack the ground. The
+// buildings' cards other than the Town Center's have no keys yet (M2b-2), and
+// a key on a card without DE keys does nothing.
 
 import type { SimulationBridge } from '../../game/simulation/createSimulationBridge';
+import { canAttackGround } from '../../game/simulation/projectileRules';
 import type { BuildableBuildingType } from '../../game/simulation/types';
 import {
   BUILD_PAGE_KEYS,
   buildingCardKeyOf,
   GRID_KEYS,
   hasBuildingCardKeys,
+  MILITARY_ORDER_KEYS,
+  unitCardKeyOf,
   VILLAGER_BUILD_SLOTS,
   type GridKey,
+  type MilitaryOrder,
 } from '../../ui/hud/commandCardKeys';
 import { isBuildPageId, type BuildPageId } from '../../ui/hud/selectionPanel/buildPages';
 
@@ -98,9 +106,32 @@ export function registerCommandCardHotkeys(deps: {
       ?.click();
   };
 
-  const legacyKeys: Partial<Record<GridKey, () => void>> = {
-    a: () => view.armAttackMove(),
-    g: () => view.armAttackGround(),
+  const armOrder: Readonly<Record<MilitaryOrder, () => void>> = {
+    patrol: () => view.armPatrol(),
+    'attack-move': () => view.armAttackMove(),
+    'attack-ground': () => view.armAttackGround(),
+  };
+  const orderOnKey = (key: GridKey): MilitaryOrder | undefined => (
+    (Object.keys(MILITARY_ORDER_KEYS) as MilitaryOrder[]).find((order) => MILITARY_ORDER_KEYS[order] === key)
+  );
+  // DE's card holds Attack Ground only for a unit that may attack the ground.
+  const selectionMayAttackGround = (selectedIds: readonly number[]): boolean => {
+    const ids = new Set(selectedIds);
+    return bridgeRef().getEconomyState().units.some((unit) => ids.has(unit.id) && canAttackGround(unit.unitType));
+  };
+
+  const pressUnitKey = (panel: Element | null, key: GridKey, militaryCard: boolean, selectedIds: readonly number[]): void => {
+    const button = panel
+      ? [...panel.querySelectorAll<HTMLButtonElement>('[data-command]')]
+        .find((candidate) => unitCardKeyOf(candidate.dataset.command ?? '') === key)
+      : undefined;
+    if (button) {
+      button.click();
+      return;
+    }
+    const order = militaryCard ? orderOnKey(key) : undefined;
+    if (!order || (order === 'attack-ground' && !selectionMayAttackGround(selectedIds))) return;
+    armOrder[order]();
   };
 
   for (const key of GRID_KEYS) {
@@ -112,7 +143,7 @@ export function registerCommandCardHotkeys(deps: {
       const state = bridgeRef().getSelectionState();
       const panel = hudRoot.querySelector(SELECTION_PANEL);
       // A villager's card: villagers, alone or with their sheep (no shared
-      // type then). A Fishing Ship's palette is not a villager's card (M2b).
+      // type then). A Fishing Ship's palette is a unit's card, below.
       const villagerCard = state.buildOptions.length > 0
         && (state.selectedEntityType === 'villager' || state.selectedEntityType === null);
       if (villagerCard) {
@@ -124,11 +155,12 @@ export function registerCommandCardHotkeys(deps: {
         if (panel) pressBuildingKey(panel, type, key);
         return;
       }
-      legacyKeys[key]?.();
+      // A unit's card, the military card among them: a stance is drawn only
+      // for an own military unit (`selectionStateOps.ts`).
+      pressUnitKey(panel, key, state.stanceOptions.length > 0, state.selectedEntityIds);
     });
   }
-  // M6 control: P arms patrol; the next left click is the far end of the route.
-  hotkeyRegistry.register({ key: 'p' }, () => { view.armPatrol(); });
+  // P armed patrol until work 142 M2b-1; DE's PATROL is the military card's Q.
   // The registry's own dispose drops the keys; this drops the tab listener.
   return () => { hudRoot.removeEventListener('click', onPanelClick, true); };
 }

@@ -7,8 +7,9 @@
 // slot 4, T, and "Ungarrison All Units" at slot 9, G).
 //
 // A pressed key presses the button of the selected card that holds it, so a
-// key does exactly what a click on that button does. Only the cards this table
-// names have DE keys yet; the other cards' keys are work 142 M2b.
+// key does exactly what a click on that button does. Only the cards this file
+// names have DE keys yet: the villager's, the Town Center's and the units'
+// (M2a and M2b-1); the other buildings' cards are work 142 M2b-2.
 
 import type { BuildableBuildingType } from '../../game/simulation/types';
 import type { BuildPageId } from './selectionPanel/buildPages';
@@ -94,4 +95,49 @@ export function hasBuildingCardKeys(buildingType: string): boolean {
 /** The DE key of a button on a building's card, or null when DE gives it none here. */
 export function buildingCardKeyOf(buildingType: string, command: string): GridKey | null {
   return BUILDING_CARD_KEYS[buildingType]?.[command] ?? null;
+}
+
+/** A unit's card (work 142 M2b-1), keyed by the button's `data-command`:
+ *  MILITARY_UNITS_HOTKEYS (string 20014, "Military Units") holds the stances
+ *  and formations, and a Fishing Ship builds the Fish Trap on
+ *  VILLAGER_BUILD_FISH_TRAP's Q, which has no build page (no `context`). */
+const UNIT_CARD_KEYS: BuildingCardKeys = {
+  'stance-aggressive': 'a', // AGGRESSIVE, 19315
+  'stance-defensive': 's', // DEFENSIVE, 19316
+  'stance-stand-ground': 'd', // STAND_GROUND, 19317
+  'stance-no-attack': 'f', // NO_ATTACK, 19318
+  'formation-line': 'z', // FORMATION_LINE, 19304
+  'formation-box': 'x', // FORMATION_BOX, 19303
+  'formation-staggered': 'c', // FORMATION_STAGGARD, 19305
+  'formation-flank': 'v', // FORMATION_FLANK, 19306
+  'build-fish-trap': 'q', // VILLAGER_BUILD_FISH_TRAP, 19202
+};
+
+/** The DE key of a button on a unit's card, or null when DE gives it none here. */
+export function unitCardKeyOf(command: string): GridKey | null {
+  return UNIT_CARD_KEYS[command] ?? null;
+}
+
+/** The military card's orders, which this game gives by key alone (DE draws a
+ *  button for each, at its key's slot): PATROL (19312) Q and ATTACK_MOVE
+ *  (200008) R, and UNIT_COMMAND_HOTKEYS' ATTACK_GROUND (19220) T, which DE's
+ *  card holds only for a unit that may attack the ground; T is GARRISON
+ *  (19012) on the others. Not in this game, so their keys do nothing: GUARD
+ *  (19313) W, FOLLOW (19314) E, STOP (19216) G or AUTO_SCOUT (19350) G on a
+ *  Scout, and BUILD_MENU (19352) or SPECIAL_ABILITY (19234) B. */
+export type MilitaryOrder = 'patrol' | 'attack-move' | 'attack-ground';
+export const MILITARY_ORDER_KEYS: Readonly<Record<MilitaryOrder, GridKey>> = {
+  patrol: 'q',
+  'attack-move': 'r',
+  'attack-ground': 't',
+};
+
+/** Orders a card's buttons by their DE slots, as DE's grid draws them; a
+ *  button DE gives no key keeps its place after the keyed ones. */
+export function inUnitCardSlotOrder<T>(options: readonly T[], commandOf: (option: T) => string): T[] {
+  const slot = (option: T): number => {
+    const key = unitCardKeyOf(commandOf(option));
+    return key === null ? GRID_KEYS.length : gridSlotOf(key);
+  };
+  return [...options].sort((a, b) => slot(a) - slot(b));
 }

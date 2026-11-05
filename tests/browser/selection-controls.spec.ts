@@ -4,6 +4,7 @@ import {
   SELECTION_CONTROLS_BOX_SHEEP,
   SELECTION_CONTROLS_BOX_VILLAGERS,
   SELECTION_CONTROLS_HIDDEN_SHEEP,
+  SELECTION_CONTROLS_MANGONEL,
   SELECTION_CONTROLS_MIXED_BOX,
   SELECTION_CONTROLS_OFF_SCREEN_VILLAGER,
   SELECTION_CONTROLS_SHARED_CELL,
@@ -246,27 +247,21 @@ test.describe('selection and targeting as in DE (work 142)', () => {
 
   // Review round 1: `clickCell` refuses a plain left click on a unit's cell
   // and lets an armed ground order through, since that click orders rather
-  // than selects. Each of A, P and G is armed by its real key, and the click
-  // has to spend it.
-  test('clickCell lets an armed A, P or G order onto a unit\'s cell, and refuses a plain left click there', async ({ page }) => {
+  // than selects. Each of the three is armed by its real key, and the click
+  // has to spend it. Work 142 M2b-1 moved them to DE's military card, R
+  // attack-move, Q patrol and T attack-ground, where M1 pressed A, P and G with
+  // a sheep or a villager selected; a Mangonel takes all three.
+  test('clickCell lets an armed R, Q or T order onto a unit\'s cell, and refuses a plain left click there', async ({ page }) => {
     await game.waitForPausedBootWithSeed(page, SEED);
     const shared = SELECTION_CONTROLS_SHARED_CELL;
-    const [villager] = await unitIdAt(page, 1, 'villager', SELECTION_CONTROLS_BOX_VILLAGERS[0]);
     await expect(game.clickCell(page, shared.x, shared.y)).rejects.toThrow(
       new RegExp(`clickCell refuses a left click on cell \\(${shared.x},${shared.y}\\)`),
     );
-    // Work 142 M2a gave a villager's A and G to its DE card, so those two are
-    // armed with a sheep selected, whose card has no DE keys yet: two sheep,
-    // since a second click at one place walks the stack under it.
-    const selectFor = {
-      a: await sheepAt(page, SELECTION_CONTROLS_BOX_SHEEP),
-      p: villager!,
-      g: await sheepAt(page, SELECTION_CONTROLS_HIDDEN_SHEEP),
-    };
-    for (const [key, order] of [['a', 'attack-move'], ['p', 'patrol'], ['g', 'attack-ground']] as const) {
-      await game.clickUnit(page, selectFor[key]);
-      // The key reads the card now on screen, so it waits for the click's selection.
-      await expect.poll(async () => (await game.getSelectionState(page)).selectedEntityIds).toEqual([selectFor[key]]);
+    const [mangonel] = await unitIdAt(page, 1, 'mangonel', SELECTION_CONTROLS_MANGONEL);
+    await game.clickUnit(page, mangonel!);
+    // The key reads the card now on screen, so it waits for the click's selection.
+    await expect.poll(async () => (await game.getSelectionState(page)).selectedEntityIds).toEqual([mangonel]);
+    for (const [key, order] of [['r', 'attack-move'], ['q', 'patrol'], ['t', 'attack-ground']] as const) {
       await page.keyboard.press(key);
       expect(await page.evaluate(() => window.__AOE2_TEST__!.getArmedGroundOrder())).toBe(order);
       await game.clickCell(page, shared.x, shared.y);

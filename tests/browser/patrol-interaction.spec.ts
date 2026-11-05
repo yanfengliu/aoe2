@@ -7,13 +7,16 @@ import * as game from './helpers/gameTestHelpers';
 // simulation tests call the bridge directly; only driving the actual key and
 // click proves the interaction. Patrol reuses that path, so it gets the same
 // treatment — including capturing `pageerror`, which is what found the bug.
+// Until work 142 M2b-1 the key was P and the unit a villager; DE's PATROL is Q
+// on the military card (hotkeys.json's "Military Units"), and a DE villager's
+// card has no Patrol, its Q opening the Economic Buildings page.
 test.describe('patrol interaction', () => {
-  test('P then a left click sets a standing route, and nothing throws', async ({ page }) => {
+  test('Q then a left click sets a standing route, and nothing throws', async ({ page }) => {
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => { pageErrors.push(error.message); });
 
     await game.waitForBoot(page);
-    expect(await game.selectOwnedUnitDirect(page, 1, 'villager')).toBe(true);
+    expect(await game.selectOwnedUnitDirect(page, 1, 'scout')).toBe(true);
     const selected = await page.evaluate(
       () => window.__AOE2_TEST__!.getSelectionState().selectedEntityIds[0] ?? null,
     );
@@ -27,7 +30,7 @@ test.describe('patrol interaction', () => {
     const start = await cellOf(selected!);
     expect(start).not.toBeNull();
 
-    await page.keyboard.press('p');
+    await page.keyboard.press('q');
 
     // Click well clear of the HUD panels: a click at 60%/55% lands on the
     // SELECTION panel and produces no order at all, which looks exactly like a

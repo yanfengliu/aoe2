@@ -19,6 +19,7 @@ import {
   isUnitType,
 } from '../displayNames';
 import { selectionGlyph } from '../icons/unitGlyphs';
+import { inUnitCardSlotOrder } from '../commandCardKeys';
 import { formationGlyph, stanceGlyph } from '../icons/commandGlyphs';
 import { SELECTION_DETAIL_TOOLTIPS } from '../tooltips';
 
@@ -338,7 +339,8 @@ export function renderFormationButtons(
   formationOptions: UnitFormation[],
   current: UnitFormation | null,
 ): string {
-  return formationOptions
+  // DE's grid row Z X C V: Line, Box, Staggered, Flank (work 142 M2b-1).
+  return inUnitCardSlotOrder(formationOptions, (formation) => `formation-${formation}`)
     .map(
       (formation) => `
           <button
@@ -360,7 +362,8 @@ export function renderStanceButtons(
   stanceOptions: UnitStance[],
   current: UnitStance | null,
 ): string {
-  return stanceOptions
+  // DE's grid row A S D F (work 142 M2b-1).
+  return inUnitCardSlotOrder(stanceOptions, (stance) => `stance-${stance}`)
     .map(
       (stance) => `
           <button
