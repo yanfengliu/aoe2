@@ -21,6 +21,7 @@ import {
   unitCommandsCodec,
 } from '../bridgeStateSerialize';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import { AiPurchases, splitPurchaseCommands } from './aiPurchases';
 import { buildPendingIntentionMaps, createOwnerProducerHelpers } from './aiSystemGating';
 import { runBuildCrewPhase } from './aiBuildCrewPhase';
 import { runBuildingPhase } from './aiSystemBuildingPhase';
@@ -37,7 +38,10 @@ import { isUnstartedFoundation } from '../unstartedFoundations';
 
 export type { AiSystemDeps } from './aiSystemTypes';
 
-export function registerAiSystem(deps: AiSystemDeps): void {
+export function registerAiSystem(bridgeDeps: AiSystemDeps): void {
+  // The phases never hold a purchase command or the pending queue: each
+  // decision buys through its own `AiPurchases` (work 141 M2a-2a).
+  const { commands, pendingCommands, deps } = splitPurchaseCommands(bridgeDeps);
   const {
     world,
     humanPlayerId,
@@ -46,7 +50,6 @@ export function registerAiSystem(deps: AiSystemDeps): void {
     currentEntityId,
     getPlayerAge,
     villagerRebalance,
-    pendingCommands,
   } = deps;
 
   world.registerSystem({
@@ -198,7 +201,7 @@ export function registerAiSystem(deps: AiSystemDeps): void {
           pendingResearchKeys,
           pendingBuildsByOwner,
           blockedBuildCost: null,
-          decisionBudget: null,
+          purchases: new AiPurchases(commands, deps, owner, stockpile),
         };
 
         // Islands (v0.3.95): when the target is across open water, the ferry

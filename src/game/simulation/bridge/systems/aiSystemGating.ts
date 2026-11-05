@@ -35,7 +35,7 @@ export interface OwnerProducerHelpers {
 // ≥15 ticks far exceeds the 1-2 tick handler delay, so that never happens).
 export function buildPendingIntentionMaps(
   activeWorld: CivWorld,
-  pendingCommands: Array<{ type: string; data: Record<string, unknown> }>,
+  pendingCommands: ReadonlyArray<{ type: string; data: Record<string, unknown> }>,
 ): PendingIntentionMaps {
   const pendingTrainsByBuilding = new Map<number, number>();
   // Per-building research push count. The production queue mixes train +

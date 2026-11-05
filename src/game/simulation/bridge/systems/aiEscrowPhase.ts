@@ -1,7 +1,8 @@
 // The AI's escrow, run first in the production phase (work 141 M2a; DE's rules
 // and their citations are in `aiEscrow.ts`). It gathers what DE's flags read,
-// settles the escrow (`settleEscrow`), asks for what it can buy now, and hands
-// the rest of the decision a `DecisionBudget` that keeps the held prices whole.
+// settles the escrow (`settleEscrow`), asks for what it can buy now, and opens
+// the decision's budget (`DecisionBudget`, through `AiPurchases`), which keeps
+// the held prices whole.
 
 import type { BuildingComponent, PlayerResources, ResourceComponent } from '../../types';
 import { trainingCost } from '../../prototypeEconomyRules';
@@ -13,77 +14,31 @@ import {
   type EscrowPurchase,
 } from '../../aiEscrow';
 import { isEnemyOwner } from '../../alliances';
-import { ownerMarketBuyCost, ownerResearchCost } from '../ownerCosts';
-import type { MarketActionType } from '../../types';
-import { isBuyMarketAction, marketCommodityForAction } from '../../prototypeEconomyRules';
-import { MARKET_TRANSACTION_AMOUNT } from '../bridgeConstants';
+import { ownerResearchCost } from '../ownerCosts';
 import {
   constructionStatesCodec,
   inFlightTechByOwnerCodec,
   monkCarriedRelicCodec,
   playerTeamsCodec,
 } from '../bridgeStateSerialize';
-import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
-
-/** What a Market trade spends, as the decision's budget counts it: a buy, the
- *  owner's price in gold when the AI decides; a sell, one batch of the commodity. */
-export function marketTradeCost(
-  accessor: AiSystemDeps['accessor'],
-  owner: number,
-  trade: MarketActionType,
-): Partial<PlayerResources> {
-  const commodity = marketCommodityForAction(trade);
-  return isBuyMarketAction(trade)
-    ? { gold: ownerMarketBuyCost(accessor, owner, commodity) }
-    : { [commodity]: MARKET_TRANSACTION_AMOUNT };
-}
-
-/**
- * The trade's cost, when its handler will charge it: the owner has a completed
- * Market and the stockpile covers the cost (`trainingMarketOps.ts`). Otherwise
- * null, and the budget counts nothing, as the handler refuses the trade.
- */
-export function chargedTradeCost(
-  deps: AiSystemDeps,
-  owner: number,
-  trade: MarketActionType,
-  stockpile: PlayerResources,
-): Partial<PlayerResources> | null {
-  const constructions = deps.accessor.get(constructionStatesCodec);
-  let market = false;
-  for (const id of deps.world.query('building')) {
-    const building = deps.world.getComponent<BuildingComponent>(id, 'building');
-    if (building?.owner !== owner || building.buildingType !== 'market') continue;
-    const construction = constructions.get(id);
-    if (!construction || construction.isComplete) { market = true; break; }
-  }
-  if (!market) return null;
-  const cost = marketTradeCost(deps.accessor, owner, trade);
-  const kinds = ['food', 'wood', 'gold', 'stone'] as const;
-  return kinds.every((kind) => stockpile[kind] >= (cost[kind] ?? 0)) ? cost : null;
-}
+import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 
 export interface EscrowResult {
-  /** What the rest of the decision may spend: the stockpile less every hold. */
-  budget: DecisionBudget;
   /** Held purchases not bought yet, each as the budget its check used; the Market aims at these. */
   unpaid: Array<Partial<PlayerResources>>;
 }
 
 export function runEscrowPhase(
-  deps: AiSystemDeps,
+  deps: AiPhaseDeps,
   ctx: AiOwnerContext,
   /** What the next age-up needs; DE buys its age-ups ahead of its flags. */
   ageUpReserve: Partial<PlayerResources>,
   /** The age-up latch holds soldiers and research, so it holds these too. */
   savingForAgeUp: boolean,
 ): EscrowResult | null {
+  const { accessor, monksByOwner, countQueuedUnits, getResearchOptions } = deps;
   const {
-    accessor, monksByOwner, countQueuedUnits, getResearchOptions,
-    pushQueueTrainIntention, pushQueueResearchIntention,
-  } = deps;
-  const {
-    activeWorld, owner, currentAge, stockpile, populationBlocked,
+    activeWorld, owner, currentAge, stockpile, populationBlocked, purchases,
     findIdleProducerLocal, pendingTrainsByBuilding, pendingResearchByBuilding, pendingResearchKeys,
   } = ctx;
   if (!stockpile || savingForAgeUp || (currentAge !== 'castle-age' && currentAge !== 'imperial-age')) return null;
@@ -141,17 +96,20 @@ export function runEscrowPhase(
   const settled = settleEscrow(
     stockpile, flagged, priceOf, (purchase) => findIdleProducerLocal(purchase.producer) !== null, ageUpReserve,
   );
+  // Asked for before the budget opens, and so not checked by it: the settlement
+  // is their check, and the budget starts with them spent.
   for (const purchase of settled.buy) {
     const producerId = findIdleProducerLocal(purchase.producer);
     if (producerId === null) continue;
     if (purchase.kind === 'train') {
-      pushQueueTrainIntention(producerId, purchase.unit);
+      purchases.buy({ kind: 'train', buildingId: producerId, unit: purchase.unit, price: priceOf(purchase) });
       pendingTrainsByBuilding.set(producerId, (pendingTrainsByBuilding.get(producerId) ?? 0) + 1);
     } else {
-      pushQueueResearchIntention(producerId, purchase.technology);
+      purchases.buy({ kind: 'research', buildingId: producerId, technology: purchase.technology, price: priceOf(purchase) });
       pendingResearchByBuilding.set(producerId, (pendingResearchByBuilding.get(producerId) ?? 0) + 1);
       pendingResearchKeys.add(`${owner}:${purchase.technology}`);
     }
   }
-  return { budget: new DecisionBudget(stockpile, settled.held, settled.bought), unpaid: settled.unpaid };
+  purchases.openBudget(new DecisionBudget(stockpile, settled.held, settled.bought));
+  return { unpaid: settled.unpaid };
 }

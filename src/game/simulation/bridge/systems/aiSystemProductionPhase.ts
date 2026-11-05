@@ -26,14 +26,13 @@ import {
 import { MARKET_TRANSACTION_AMOUNT } from '../bridgeConstants';
 import {
   constructionStatesCodec,
-  inFlightTechByOwnerCodec,
   playerResourcesCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
 } from '../bridgeStateSerialize';
-import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 import { townCenterVillagerDemand, villagerReserve } from './aiVillagerDemand';
-import { chargedTradeCost, runEscrowPhase } from './aiEscrowPhase';
+import { runEscrowPhase } from './aiEscrowPhase';
 import { runTownCenterPhase } from './aiTownCenterPhase';
 import { MONK_ACTION_RANGE } from './monkBehaviorSystem';
 
@@ -57,7 +56,7 @@ const RESEARCH_PRODUCERS = [
   'castle',
 ] as const;
 
-export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
+export function runProductionPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
   const {
     accessor,
     monksByOwner,
@@ -66,9 +65,6 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
     canAdvanceToImperialAge,
     ownedMilitaryUnitIds,
     countQueuedUnits,
-    pushQueueResearchIntention,
-    pushQueueTrainIntention,
-    pushMarketActionIntention,
     getTrainOptions,
     getResearchOptions,
     pushAiMonkTaskIntentions,
@@ -85,6 +81,7 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
     activeWorld,
     currentAge,
     stockpile,
+    purchases,
     findIdleProducerLocal,
     pendingTrainsByBuilding,
     pendingResearchByBuilding,
@@ -164,21 +161,20 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
   // and holds the price of what it cannot pay for yet, after the age-up as DE
   // buys its age-ups first. While it holds or has bought anything, every
   // purchase below is checked once against a budget of what the decision has
-  // not spent (`DecisionBudget`): the purchase's own reserves as before, and
-  // the holds resource by resource, as DE's plain `can-research` and
-  // `can-train` read them. Otherwise every check is as it was. A held purchase
-  // it cannot pay for is part of the plan.
+  // not spent (`DecisionBudget`, applied by `purchases.buy`): the purchase's
+  // own reserves as before, and the holds resource by resource, as DE's plain
+  // `can-research` and `can-train` read them. Each check below is the path's
+  // own, against the stockpile, as it always was; the budget, when it binds,
+  // asks more of the same purchase, never less, since it has counted every
+  // purchase asked for before it (work 141 M2a-2a). A held purchase it cannot
+  // pay for is part of the plan.
   const escrow = runEscrowPhase(deps, ctx, ageUpReserve, savingForAgeUp);
-  const budget = escrow !== null && escrow.budget.holding ? escrow.budget : null;
-  ctx.decisionBudget = budget; // the trade phase's Trade Carts use it too
-  const spend = (cost: Partial<PlayerResources>): void => { budget?.ask(cost); };
   // The Castle's list drops only what is researched (`castleTechOptions`), so a
   // technology already queued there is asked for again, refused by the handler
   // and counted as a slot taken (work 141 review round 5). Skipping it moves the
   // coverage lab's match a long way (owner 1 then builds no Monastery or Siege
-  // Workshop), so that fix is plan 106's card; here a refused request is only
-  // kept out of the escrow's budget.
-  const inFlight = accessor.get(inFlightTechByOwnerCodec).get(owner);
+  // Workshop), so that fix is plan 106's card; `purchases.buy` only keeps a
+  // refused request out of the escrow's budget.
   const planCosts: Array<Partial<PlayerResources>> = [...(escrow?.unpaid ?? [])];
   if (ctx.blockedBuildCost) planCosts.push(ctx.blockedBuildCost);
   for (const buildingType of RESEARCH_PRODUCERS) {
@@ -219,9 +215,10 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
         // already pending (handler hasn't flipped inFlightTechByOwner).
         if (pendingResearchKeys.has(`${owner}:${tech}`)) continue;
         const cost = ownerResearchCost(activeWorld, accessor, owner, tech);
-        if (budget ? budget.affords(cost) : canAfford(stockpile, cost)) {
-          pushQueueResearchIntention(buildingId, tech);
-          if (!inFlight?.has(tech)) spend(cost);
+        if (
+          canAfford(stockpile, cost)
+          && purchases.buy({ kind: 'research', buildingId, technology: tech, price: cost })
+        ) {
           // Update per-tick gating maps so subsequent same-tick
           // findIdleProducerLocal calls see this slot consumed.
           pendingResearchByBuilding.set(
@@ -303,9 +300,8 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
       // names the Skirmisher only in Feudal and its upgrade is Castle. If any
       // tier is ever repriced, this is already right.
       const cost = trainingCost(offered);
-      const soldierFits = budget
-        ? budget.affords(cost, soldierReserve)
-        : canAffordWithReserve(stockpile, cost, addCosts(soldierReserve, soldiersAsked));
+      const soldierFits = canAffordWithReserve(stockpile, cost, addCosts(soldierReserve, soldiersAsked))
+        && purchases.buy({ kind: 'train', buildingId: producerId, unit: offered, price: cost }, { reserve: soldierReserve });
       if (!soldierFits) {
         // The Market sees the budget this check used (work 141 review round 1):
         // the unit plus what this decision already holds for the villager and
@@ -313,8 +309,6 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
         unaffordableWants.push(addCosts(cost, addCosts(nextVillager, soldiersAsked)));
         continue;
       }
-      pushQueueTrainIntention(producerId, offered);
-      spend(cost);
       if (nextVillager.food !== undefined) soldiersAsked = addCosts(soldiersAsked, cost);
       // Phase 1C — increment so subsequent same-producer pushes (feudal+
       // pickUnitMix returns multiple unit types per producer) see this
@@ -342,12 +336,12 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
         .find((option) => option !== 'trebuchet');
       if (
         castleUnit !== undefined
-        && (budget
-          ? budget.affords(trainingCost(castleUnit), addCosts(ageUpReserve, nextVillager))
-          : canAffordWithReserve(stockpile, trainingCost(castleUnit), addCosts(addCosts(ageUpReserve, nextVillager), soldiersAsked)))
+        && canAffordWithReserve(stockpile, trainingCost(castleUnit), addCosts(addCosts(ageUpReserve, nextVillager), soldiersAsked))
+        && purchases.buy(
+          { kind: 'train', buildingId: castleId, unit: castleUnit, price: trainingCost(castleUnit) },
+          { reserve: addCosts(ageUpReserve, nextVillager) },
+        )
       ) {
-        pushQueueTrainIntention(castleId, castleUnit);
-        spend(trainingCost(castleUnit));
         pendingTrainsByBuilding.set(
           castleId,
           (pendingTrainsByBuilding.get(castleId) ?? 0) + 1,
@@ -389,12 +383,8 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
     // Counted only when its handler will charge it (review round 8). While the
     // budget is active a trade the AI cannot pay for now is not asked for at all:
     // income arriving before its handler runs, the next tick, would let it
-    // through uncounted (review round 9).
-    const tradeCost = trade === null ? null : chargedTradeCost(deps, owner, trade, stockpile);
-    if (trade !== null && (!budget || (tradeCost !== null && budget.affords(tradeCost)))) {
-      pushMarketActionIntention(owner, trade);
-      if (tradeCost !== null) spend(tradeCost);
-    }
+    // through uncounted (review round 9). `purchases.buy` prices a trade so.
+    if (trade !== null) purchases.buy({ kind: 'trade', action: trade });
   }
 
   if (!researchOutranksQueue(currentAge)) runResearchPhase();
@@ -411,11 +401,10 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
       if (
         ownedMonks < AI_MONK_COUNT_CAP
         && stockpile
-        && (budget ? budget.affords(trainingCost('monk')) : canAfford(stockpile, trainingCost('monk')))
+        && canAfford(stockpile, trainingCost('monk'))
         && getTrainOptions(owner, 'monastery').includes('monk')
       ) {
-        pushQueueTrainIntention(monasteryId, 'monk');
-        spend(trainingCost('monk'));
+        purchases.buy({ kind: 'train', buildingId: monasteryId, unit: 'monk', price: trainingCost('monk') });
       }
     }
   }

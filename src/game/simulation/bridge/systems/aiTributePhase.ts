@@ -9,7 +9,7 @@ import { areAllied } from '../../alliances';
 import { constructionStatesCodec, playerResourcesCodec, playerTeamsCodec, researchedTechnologiesCodec } from '../bridgeStateSerialize';
 import type { BuildingComponent } from '../../types';
 import { tributeCost, tributeFeeRateFor } from '../../tributeRules';
-import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 
 // Presence-over-optimum scale, like the trade-cart cap: a 100 chunk when the
 // ally is under 150 and the sender would still hold ~1000 before the fee.
@@ -19,9 +19,9 @@ export const AI_TRIBUTE_SENDER_RESERVE = 1000;
 
 const TRIBUTE_RESOURCES: readonly EconomyResourceKind[] = ['food', 'wood', 'gold', 'stone'];
 
-export function runTributePhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
-  const { world, accessor, pushTributeIntention } = deps;
-  const { owner, stockpile } = ctx;
+export function runTributePhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
+  const { world, accessor } = deps;
+  const { owner, stockpile, purchases } = ctx;
   if (!stockpile) return;
 
   // A completed Market is the tribute prerequisite — cheap scan, same shape
@@ -49,12 +49,9 @@ export function runTributePhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
       // go through the decision's budget like every purchase before it, so a
       // tribute cannot send what is held for a Monk or Conscription (work 141
       // review round 7: Conscription holds food too).
-      const budget = ctx.decisionBudget;
       const researched = accessor.get(researchedTechnologiesCodec).get(owner) ?? new Set();
-      const cost = { [resource]: tributeCost(AI_TRIBUTE_CHUNK, tributeFeeRateFor(researched)) };
-      if (budget && !budget.affords(cost)) continue;
-      pushTributeIntention(owner, other, resource, AI_TRIBUTE_CHUNK);
-      budget?.ask(cost);
+      const price = { [resource]: tributeCost(AI_TRIBUTE_CHUNK, tributeFeeRateFor(researched)) };
+      if (!purchases.buy({ kind: 'tribute', to: other, resource, amount: AI_TRIBUTE_CHUNK, price })) continue;
       // One chunk per decision tick: generosity with a metering valve.
       return;
     }

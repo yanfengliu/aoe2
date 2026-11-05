@@ -9,15 +9,15 @@ import type { Position } from 'civ-engine';
 import type { BuildingComponent, UnitComponent } from '../../types';
 import { canAfford, trainingCost } from '../../prototypeEconomyRules';
 import { constructionStatesCodec, unitCommandsCodec } from '../bridgeStateSerialize';
-import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 
 // Two carts keep a route visibly alive without starving military spending —
 // the same "presence over optimum" scale as the monk cap.
 export const AI_TRADE_CART_CAP = 2;
 
-export function runTradePhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
-  const { world, accessor, pushQueueTrainIntention, pushUnitContextAtEntityIntention, getTrainOptions, countQueuedUnits } = deps;
-  const { owner, stockpile, findIdleProducerLocal } = ctx;
+export function runTradePhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
+  const { world, accessor, pushUnitContextAtEntityIntention, getTrainOptions, countQueuedUnits } = deps;
+  const { owner, stockpile, findIdleProducerLocal, purchases } = ctx;
 
   // The far end must exist before anything is worth training.
   const constructions = accessor.get(constructionStatesCodec);
@@ -67,9 +67,7 @@ export function runTradePhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
   // decision's budget like every purchase before it, so it cannot spend the
   // gold held for a Monk or Conscription (work 141 review round 6).
   const cost = trainingCost('trade-cart');
-  const budget = ctx.decisionBudget;
-  if (!stockpile || !(budget ? budget.affords(cost) : canAfford(stockpile, cost))) return;
+  if (!stockpile || !canAfford(stockpile, cost)) return;
   if (!getTrainOptions(owner, 'market').includes('trade-cart')) return;
-  pushQueueTrainIntention(marketId, 'trade-cart');
-  budget?.ask(cost);
+  purchases.buy({ kind: 'train', buildingId: marketId, unit: 'trade-cart', price: cost });
 }

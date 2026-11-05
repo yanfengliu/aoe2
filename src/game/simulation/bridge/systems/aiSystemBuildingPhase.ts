@@ -16,16 +16,15 @@ import {
 } from '../bridgeStateSerialize';
 import { ownerHardPopCap } from '../ownerPopCap';
 import { dropOffAnchorFor } from './dropOffAnchor';
-import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 
-export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
+export function runBuildingPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
   const {
     accessor,
     currentEntityId,
     findOwnedBuilding,
     isConstructingBuilding,
     pickWatchTowerPlacement,
-    pushBuildingPlaceConfirmIntention,
     findBuildPlacementNear,
     countOwnedUnits,
     hasOwnedWonder,
@@ -45,6 +44,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
     pendingBuildsByOwner,
     unitCommands,
     ownerTownCenterId,
+    purchases,
   } = ctx;
 
   // Nomad opening (§5.4): with no Town Center at all, everything else waits.
@@ -65,16 +65,17 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
     if (stockpile && canAfford(stockpile, townCenterCost)) {
       const anchor = findBuildPlacementNear(builderPosition, 'town-center', [builderId]);
       if (anchor) {
-        pushBuildingPlaceConfirmIntention(builderId, 'town-center', anchor);
+        purchases.buy({ kind: 'place', builderId, building: 'town-center', anchor, price: townCenterCost });
         pendingBuildsByOwner.set(owner, (pendingBuildsByOwner.get(owner) ?? 0) + 1);
       }
       return;
     }
+    const lumberCampCost = ownerConstructionCost(accessor, owner, 'lumber-camp');
     if (
       !findOwnedBuilding(owner, 'lumber-camp')
       && !isConstructingBuilding(owner, 'lumber-camp')
       && stockpile
-      && canAfford(stockpile, ownerConstructionCost(accessor, owner, 'lumber-camp'))
+      && canAfford(stockpile, lumberCampCost)
     ) {
       // AoE2 plants the camp ON the woodline; the builder's own feet are
       // wherever it happened to be standing. Fall back to that only when no
@@ -84,7 +85,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
         : null;
       const anchor = findBuildPlacementNear(woodline ?? builderPosition, 'lumber-camp', [builderId]);
       if (anchor) {
-        pushBuildingPlaceConfirmIntention(builderId, 'lumber-camp', anchor);
+        purchases.buy({ kind: 'place', builderId, building: 'lumber-camp', anchor, price: lumberCampCost });
         pendingBuildsByOwner.set(owner, (pendingBuildsByOwner.get(owner) ?? 0) + 1);
       }
     }
@@ -115,7 +116,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
         && stockpile
         && canAfford(stockpile, watchTowerCost)
       ) {
-        pushBuildingPlaceConfirmIntention(builderId, 'watch-tower', anchor);
+        purchases.buy({ kind: 'place', builderId, building: 'watch-tower', anchor, price: watchTowerCost });
         claimedVillagers.add(builderId);
         // Phase 1C: watch tower push happens BEFORE the ongoingBuilds
         // calculation below, so we must update pendingBuildsByOwner so
@@ -208,7 +209,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
         && stockpile
         && canAfford(stockpile, wonderCost)
       ) {
-        pushBuildingPlaceConfirmIntention(builderId, 'wonder', anchor);
+        purchases.buy({ kind: 'place', builderId, building: 'wonder', anchor, price: wonderCost });
         claimedVillagers.add(builderId);
         ongoingBuilds += 1;
       }
@@ -261,7 +262,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
         && stockpile
         && canAfford(stockpile, buildCost)
       ) {
-        pushBuildingPlaceConfirmIntention(builderId, nextBuild, anchor);
+        purchases.buy({ kind: 'place', builderId, building: nextBuild, anchor, price: buildCost });
         claimedVillagers.add(builderId);
         ongoingBuilds += 1;
       }

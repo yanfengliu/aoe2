@@ -30,7 +30,7 @@ import {
   enemyStaticDefencesOf,
   isInsideDefenceReach,
 } from '../enemyDefenceRange';
-import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 
 /** How many villagers go, and the fewest that make it worth starting. A boar
  *  fights back hard enough to kill one villager, so a party under three is a
@@ -41,7 +41,7 @@ export const MIN_HUNT_PARTY = 3;
  *  costs more than the carcass is worth. */
 export const HUNT_RADIUS = 20;
 
-export function runHuntPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
+export function runHuntPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
   const { accessor, pushUnitContextAtEntityIntention } = deps;
   const { activeWorld, owner, ownerTownCenterPosition } = ctx;
   if (!ownerTownCenterPosition) return;
