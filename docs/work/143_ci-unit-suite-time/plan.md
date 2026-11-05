@@ -76,12 +76,13 @@ The `--` before `--shard` is quoted. PowerShell is the default shell on windows-
 
 - [x] Measure the unit jobs from their logs (28 jobs from 14 runs, 2026-09-24 to 2026-11-05), rank the files and model the split.
 - [x] Shard the unit suite three ways per runner, the `--` quoted; hold the split and the `--` rule in `ciJobHeadroom.test.ts` (`807692a4`).
-- [x] Prove the test red: 17 mutations of ci.yml, each red, and three controls green (`docs/learning/gate-proofs.md`).
+- [x] Prove the test red: 19 mutations of ci.yml, each red, and four controls green (`docs/learning/gate-proofs.md`).
 - [x] Prove the partition with vitest's own sequencer: 223, 223 and 221 of 667 files, each in exactly one shard.
 - [x] Prove on hosted runners: a clean run (42008973265, `807692a4`) and a red-proof run (42009011415, `568f3a5d`, never landed, its branch deleted).
 - [x] Review round 0 (Codex) on `807692a4`: no blocker or major finding; its two minor findings repaired in `5a56aed9` ([round 0](reviews/0_implementation.md)).
 - [x] Review round 1 (Codex) on `e185cbef`: no blocker or major finding; F0 confirmed, F1 (continued), F2 and F3 repaired in the next commit ([round 1](reviews/1_implementation.md)).
-- [ ] Review the repairs (round 2), hand off, land, follow the landing run.
+- [x] Review round 2 (Codex) on `b97742da`: no blocker or major finding; F1 again (a command spanning lines escaped the line rule), so the rule now reads each run block whole, and a nit on the register's sample wording (F4), both repaired in the next commit ([round 2](reviews/2_implementation.md)).
+- [ ] Hand off, land, follow the landing run.
 
 ## Hosted proof
 
@@ -102,6 +103,8 @@ Run 42009011415, `568f3a5d` (never landed): the red proof. It added a test that 
 - shard 1: both headroom steps green (Windows 18.0 minutes, 30%, the slowest shard job seen, on a runner at 1.04x);
 - shard 2: the per-test step red, "1 of 1612 tests used more than 67% of their own time limit … 80% of 3s (2.4s) tests/scripts/headroomRedProof.test.ts", and its job-headroom step green;
 - shard 3: the per-test step green, "1759 tests measured", and its job-headroom step red, "This job used 53.0 of its 60-minute limit (88% …)" on Windows and 49.4 (82%) on Ubuntu.
+
+Run 42019409523, `b97742da` (after review round 1's repairs), all ten jobs green: Windows shards 16.9, 16.1 and 10.2 minutes (28%, 27%, 17%), Ubuntu 12.6, 6.3 and 8.2 (21%, 11%, 14%), and 223, 223 and 221 files on each runner.
 
 ## The bound
 
