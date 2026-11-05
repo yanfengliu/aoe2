@@ -41,7 +41,7 @@ Validation: 28 baseline tests and typechecking passed; mutations were entirely i
 | ID | Finding | Disposition and reason | Repair or follow-up |
 |---|---|---|---|
 | F10 | Codex: no test reaches `presentedHitPolygons` itself; a still-pose accessor would pass | Accepted | `tests/rendering/AoeVoxelWorldRenderer.test.ts` "hands back the presented polygons of a walking villager, which its still pose does not share": the accessor's polygons for a villager presented walking differ from its still pose, each is a click on that villager, and an id not presented gets nothing; red when the accessor hands back the still pose ("expected … to not deeply equal"), restored byte-identical |
-| — | Codex: the F9 case shows the click is let through and spends the order, not that the order is carried out | Not a defect of the helper: whether an armed order is carried out is the pointer's and the simulation's, tested by `attack-ground-hotkey.spec.ts` and the A and P specs; the case's claim is the helper's exemption, as its title says | None |
+| F11 | Codex: the F9 case shows the click is let through and spends the order, not that the order is carried out | Rejected, not a defect of the helper: whether an armed order is carried out is the pointer's and the simulation's, tested by `attack-ground-hotkey.spec.ts` and the A and P specs; the case's claim is the helper's exemption, as its title says | None |
 
 The accessor's cost, 7.0 ms for 200 villagers against 17.4 ms rebuilding recipes, is paid once per double-click, not per frame.
 
@@ -51,4 +51,4 @@ The full gate on `30d551a8`, the round-1 repairs, before this round's test: vite
 
 ## Round outcome
 
-One P3 finding, accepted and repaired; no P0-P2. The review rounds end here: the round-2 repair is a test only.
+One P3 finding (F10), accepted and repaired, and one observation (F11), rejected as outside the case's claim; no P0-P2. The review rounds end here: the round-2 repair is a test only.

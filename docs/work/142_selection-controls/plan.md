@@ -35,28 +35,56 @@ Not in scope: the AI (work 141), HUD restyling beyond these behaviours, civ-engi
 
 ### Changes
 
-- A live animal counts as a unit for the behind-building outline and for hit priority, in the voxel hit proxy and in the ground hit test, so its drawn body outranks the building in front of it for both left and right clicks.
-- The selection state names a group's type only when every member shares it, sheep included.
-- The double-click needs the second click within the same-place radius of the first, and takes the units a box over the whole view would take.
-- Browser helper `game.clickUnit(page, id, button)` clicks a point of the unit's drawn body, found by reading the click stack; `game.clickCell` refuses a left click on a cell a unit stands on and names `clickUnit`.
+- A live animal is outlined behind a building as a unit is, and in both hit tests it ranks between the units and the buildings (`liveAnimal.ts`, `hitLayer`): its drawn body outranks the building in front of it for left and right clicks, and a unit drawn at the same point still outranks it, as before, since which of two units drawn at one point DE takes is unsourced.
+- The selection state names a group's type only when every member shares it, sheep included. Rules that served "a villager group" read the members instead (`isVillagerGroup`), and the selection voice is the primary unit's own (`primarySelectionRole`), so neither changed for a group of villagers and a sheep.
+- The double-click needs the second click within the same-place radius of the first, and takes the units of the type with any polygon of the body the renderer presented inside the view (`presentedHitPolygons`, `convexPolygonIntersectsRect`).
+- Browser helper `game.clickUnit(page, id, button)` clicks a point of the unit's drawn body, found by reading the click stack; `game.clickCell` refuses a left click on a cell a unit the page draws stands on, unless a placement or a ground order (A, P, G) is armed, and names `clickUnit`. Test seam `getArmedGroundOrder`.
+
+### Tests adapted, and why
+
+- `game-combat-and-meta-meta.spec.ts`, `game-rendering-and-world.spec.ts` (the conquest fixture's Militia) and `new-tech-reach.spec.ts` (the Monk, the Transport Ship): each left-clicked a unit's cell centre and passed by the unit's id; each now clicks the drawn body with `clickUnit`. Same assertions.
+- `game-selection-click.spec.ts`, raised-roof click: the map's sheep stands behind the middle of the roof line, and its drawn body now takes a click there; the click moves along the same roof line to the nearest point where only the Town Center is drawn. The point's ground inverse is still outside the footprint (round 1 checked), so the test still proves the raised roof is clickable.
+- `game-selection-click.spec.ts`, stack walk: a live animal now ranks over a building, so the walk visits militia, sheep, house; the expected order and the click sequence follow. Same four clicks, same margin checks.
+- `voxelSelectionController.test.ts`: the controller's view dep changed from a cell box to iso bounds and gained the presented polygons; the existing cases get the whole fixture as their view and the recipe's still polygons, which is the meaning they had.
 
 ## Acceptance criteria
 
-- [ ] A sheep hidden by the Town Center is drawn as an outline; a left click on it selects it; a right-click on it puts a selected villager to work on it; a gather point set on it puts the next trained villager to work on it. Real-click browser tests, red on the old code.
-- [ ] A box over villagers and an own sheep selects all of them and the panel says "4 Units Selected"; the box never takes buildings, resources or other players' units. Browser test, red on the old title.
-- [ ] Two quick clicks on two villagers in one cell select only the second; a double-click takes the villagers on screen and none beyond its edge. Browser and unit tests, red on the old code.
-- [ ] `clickCell` refuses a left click on a unit's cell; the gate goes red when a centre click is put back; proof in `docs/learning/gate-proofs.md`; both halves of the lesson deleted.
-- [ ] Before/after captures with pixel diffs confined to the changed region; `npm run verify` green with a passing receipt; independent review recorded under `reviews/`.
-- [ ] Spec §9.3 (gather point), §9.4 and §14.5 state these rules; devlog, changelog, defect register updated.
+- [x] A sheep hidden by the Town Center is drawn as an outline; a left click on it selects it; a right-click on it puts a selected villager to work on it; a gather point set on it puts the next trained villager to work on it. Real-click browser tests, red on the old code.
+- [x] A box over villagers and an own sheep selects all of them and the panel says "4 Units Selected"; the box never takes buildings, resources or other players' units. Browser test, red on the old title; the never-takes case is green on both, as an unchanged rule should be, with all four others proven inside the box.
+- [x] Two quick clicks on two villagers in one cell select only the second; a double-click takes the villagers on screen and none beyond its edge. Browser and unit tests, red on the old code.
+- [x] `clickCell` refuses a left click on a unit's cell; the gate goes red when a centre click is put back; proof in `docs/learning/gate-proofs.md`; both halves of the lesson deleted.
+- [x] Before/after captures with pixel diffs confined to the changed region; `npm run verify` green with a passing receipt; independent review recorded under `reviews/`.
+- [x] Spec §9.3 (gather point), §9.4 and §14.5 state these rules; devlog, changelog, defect register updated.
 
 ## Implementation steps
 
 - [x] Source the DE rules (above) and reproduce in the real game.
-- [ ] Tests first: unit and browser tests for rules 2-5, red on the old code.
-- [ ] Implement; adapt existing tests whose meaning changed, with reasons.
-- [ ] The click-unit gate and its red proof.
-- [ ] Captures and pixel diffs; full gate; review; records; phase-1 handoff.
+- [x] Tests first: unit and browser tests for rules 2-5, red on the old code.
+- [x] Implement; adapt existing tests whose meaning changed, with reasons.
+- [x] The click-unit gate and its red proof.
+- [x] Captures and pixel diffs; full gate; review rounds 0-2; records; phase-1 handoff.
+- [ ] Phase 2, on the coordinator's "accepted, land it": lock, merge main, version, verify, push, CI, close this plan, queue the findings below in plan 106, retire the worktrees.
+
+### Owner decisions waiting (unsourced rules; each took the closest sourced behaviour)
+
+1. Two quick clicks on two different units: does DE read them as a double-click? Here they are two clicks unless the second is within 4 iso pixels (4.8 screen pixels at the boot zoom) of the first, the platform's rule. A short test in DE: two quick clicks on two villagers standing side by side.
+2. A gather point set on a sheep that is then moved: does DE's flag follow the sheep, and what do the next villagers do when that sheep is eaten up? Here the gather point is the cell where it was set; following the sheep would change the saved rally point.
+3. A double-click on a Militia beside a Man-at-Arms: does DE take the type or the whole line? Here the type; the reverse-engineered AoK/HD rule takes the line.
+4. A sheep drawn in front of a villager: which does DE's click take? Here the villager, as before work 142.
+5. Easy Drag Military and Selection Modifier Hotkeys: off on a fresh install? Inferred from the official lesson, which describes the default game.
+6. The outline colour of a wild animal behind a building: here the not-yours colour, as for any unit nobody owns.
+
+### Found here, not in M1's scope (for plan 106's queue at landing, tagged "(work 142)")
+
+- DE caps a selection at 60 units (forum thread 226116, 2023); this game has no cap, and which units DE keeps when a box holds more is unsourced.
+- DE's Shift+click and Shift+drag add to the selection ("Learn to play", Lesson 1); here neither does, and Ctrl+click does nothing.
+- DE's group panel shows one icon per unit with its hit-point bar; clicking one selects only that unit, Ctrl+click drops it, Shift+click keeps its type and Ctrl+Shift+click drops its type (Lesson 5; strings 43121-43122). Here the panel shows one chip per type with a count and no hit points.
+- A building's gather point is not drawn at all; DE draws a flag (strings 3720 and 4144).
+
+### For M2 (whoever takes it)
+
+DE's default hotkeys are in the install's `resources/_common/dat/hotkeys.json`: each shared entry's `defaults_list` holds the `definitive` profile's key, and `name_string_id` names it in `resources/en/strings/key-value/key-value-strings-utf8.txt`. Shared groups include `GAME_COMMAND_HOTKEYS`, `CYCLE_COMMAND_HOTKEYS` (`NEXT_IDLE_VILLAGER` is `VK_OEM_PERIOD`) and `GROUP_COMMAND_HOTKEYS`; `hotkey_group_list` holds 27 per-card groups, among them `VILLAGER_HOTKEYS` (37 entries) and `TOWN_CENTER_HOTKEYS` (18), whose entries are shaped differently from the shared ones. The options screen (`widgetui/screenoptions.json`) lists "Selection Modifier Hotkeys" and "Shift Group Appending" as checkboxes with no default given.
 
 ## Outcome
 
-Pending. Record the verified revision, checks and limitations at closure.
+Phase 1 (2026-11-04): the branch `selection-controls-1104` holds commits `fed8203e` (as reviewed in round 0), `a51123f2` (round-0 repairs), `fd2632ea` (merge of main `496ee0e9`, v0.3.260), `30d551a8` (round-1 repairs), `c508452c` (round-2 repair), `f5bcf254` (merge of main `6880d69e`) and this record. Full gate on `f5bcf254`: vitest 5,230 passed and 3 skipped, Playwright 281 passed and 2 skipped, receipt OK. Reviews: [round 0](reviews/0_implementation.md) one major and five minor, [round 1](reviews/1_implementation.md) four, [round 2](reviews/2_implementation.md) one P3, the renderer accessor had no test of its own, repaired; every finding repaired with a test a mutant turns red. Captures (1280x720, the default view, SwiftShader, before on `ec250733`, after on f5bcf254): the outline diff is 504 pixels in x 629-652, y 219-248, the hidden sheep's outline on the Town Center's roof; the group diff adds 892 pixels in the selection title, x 180-340, y 480-560, and nothing elsewhere. Not checked: the outline on Moebius, a wild animal's outline in a real match (unit tests only), boar, deer and wolf clicks in a browser, the double-click near the screen edges at other zooms, and a full match played with these changes beyond the reproductions. Version bump, landing and the plan 106 cards wait for phase 2.
