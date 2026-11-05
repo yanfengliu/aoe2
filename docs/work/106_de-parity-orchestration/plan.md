@@ -117,7 +117,7 @@ From the coordinator's play session of 2026-11-04 (v0.3.258, the lobby's default
 - Placement: the House ghost is a flat green footprint, where DE draws the building itself, translucent and tinted by whether it can be placed (check DE).
 - Map: the default 1v1 map gives player 2 a forward outpost, a free House and Scout (`mapGeneration/defaultMap.ts` lines 61-87), so the computer opens with two Scouts and a House it never built; DE starts every player alike. Spec §13.3 names the forward scout, so the spec changes with it (work 141).
 - Lobby: computer seats always play the same civilization, seat 2 the Franks (`pureHelpers.ts` `defaultCivilizationName`); check what DE's lobby gives a computer seat by default.
-- Difficulty: DE has six computer levels (Easiest, Standard, Moderate, Hard, Hardest, Extreme) and this game three. Once work 141 M2 maps easy, standard and hard to DE's Easiest, Standard and Hard, no level reaches DE's Hardest, where spec §13.1 asks for a ladder up to strong play (work 141).
+- Difficulty: dropped on 2026-11-04 by owner decision. Asked whether Standard should copy DE's deliberately weak Standard, the owner answered "Keep current AI". So the three levels keep this game's own behaviour, no level is mapped to DE's, and work 141 M2b is dropped (spec §13.1). DE's six-level ladder is not adopted.
 
 M2, combat depth:
 - Trebuchet and Cannon Galleon accuracy from DE effect data, with the Hun trebuchet accuracy and the Saracen Transport Ship capacity on §11.11's open list; re-source the Transport Ship and the Careening and Dry Dock capacity (work 120 M3).
