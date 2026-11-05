@@ -250,14 +250,25 @@ function tierRankOf(buildingType: BuildingType, command: string): number {
 
 type CardLists = Pick<SelectionState, 'actionOptions' | 'trainOptions' | 'marketOptions' | 'visibleResearchOptions'>;
 
-/** The selected building's card lists in the order of DE's slots, as DE's grid
- *  draws them; any other selection's as they come. */
-export function inBuildingCardSlotOrder(
-  state: CardLists & Pick<SelectionState, 'selectedKind' | 'selectedEntityType'>,
-): CardLists {
-  const type = state.selectedEntityType;
-  if (state.selectedKind !== 'building' || type === null || !hasBuildingCardKeys(type)) return state;
-  const building = type as BuildingType;
+/** The building whose card the selection shows, or null. A group of buildings
+ *  shows its primary's card (M2b-2a), so this is the primary selected entity's
+ *  type, found by `selectedEntityId`. The group's shared type cannot say it: a
+ *  group of several types, every military building on Ctrl+Shift+Space, has
+ *  none, and its card then took no keys and lost its slot order (review round 9). */
+export function cardBuildingTypeOf(
+  state: Pick<SelectionState, 'selectedKind' | 'selectedEntityId'>,
+  buildings: readonly { readonly id: number; readonly buildingType: BuildingType }[],
+): BuildingType | null {
+  if (state.selectedKind !== 'building' || state.selectedEntityId === null) return null;
+  return buildings.find((building) => building.id === state.selectedEntityId)?.buildingType ?? null;
+}
+
+/** A building card's lists in the order of DE's slots, as DE's grid draws
+ *  them, for the card of `buildingType` (`cardBuildingTypeOf`); any other
+ *  card's as they come. */
+export function inBuildingCardSlotOrder(state: CardLists, buildingType: BuildingType | null): CardLists {
+  if (buildingType === null || !hasBuildingCardKeys(buildingType)) return state;
+  const building = buildingType;
   const sort = <T extends string>(options: readonly T[], kind: string): T[] => inSlotOrder(
     options,
     (option) => buildingCardKeyOf(building, `${kind}-${option}`),

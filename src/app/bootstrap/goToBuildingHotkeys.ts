@@ -12,9 +12,11 @@
 //    player on Select All Town Centers, 2020).
 // A key finds the player's buildings alone and takes no other player's. DE's
 // Ctrl+W (Go to Wonder) and Ctrl+Shift+W (Select all Wonders) are keys Chrome
-// keeps, closing the tab and the window, so no page receives them and the
-// Wonder has no key here. The entries for buildings this game lacks (Krepost,
-// Donjon, Settlement, Shipyard, Port, Mule Cart, the heroes) bind nothing.
+// keeps in a tab, closing the tab and the window, so a page in a tab never
+// receives them; Chrome passes them on only in fullscreen and in an app window
+// (review round 9). The Wonder has no key here, by the coordinator's answer.
+// The entries for buildings this game lacks (Krepost, Donjon, Settlement,
+// Shipyard, Port, Mule Cart, the heroes) bind nothing.
 
 import type { EntityRef } from 'civ-engine';
 

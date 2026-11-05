@@ -193,6 +193,29 @@ test.describe("DE's go-to and select-all building keys", () => {
     await expect(page.locator('[data-selection-unit-count="barracks"]')).toHaveText('x2');
   });
 
+  test('a group of several building types shows its primary\'s card in DE\'s slot order, and the card\'s keys press it', async ({ page }) => {
+    // Review round 9: the group has no shared type, and the card's keys and
+    // slot order read the type from the group, so Q pressed nothing.
+    await game.waitForPausedBootWithSeed(page, SEED);
+    await page.evaluate(() => window.__AOE2_TEST__!.clearSelection());
+    await page.keyboard.press('Control+Shift+Space');
+    await expect(page.locator('[data-selection-name]')).toHaveText('7 Units Selected');
+    const primary = (await game.getSelectionState(page)).selectedEntityId;
+    const castle = (await buildings(page)).find((entry) => entry.id === primary);
+    expect(castle?.buildingType, 'the primary of the group is its oldest building, the Castle').toBe('castle');
+    // CASTLE_HOTKEYS: the unique unit Q (UNIQUE_UNIT), the Trebuchet W, the Petard E.
+    await expect.poll(() => page.locator('[data-hud="selection-panel"] [data-command^="train-"]')
+      .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('data-command'))))
+      .toEqual(['train-longbowman', 'train-trebuchet', 'train-petard']);
+    await page.keyboard.press('q');
+    // The match is paused: the order is carried out on the next ticks.
+    await page.evaluate(() => window.__AOE2_TEST__!.advanceTicks(2, 100));
+    await expect.poll(() => page.evaluate((id) => window.__AOE2_TEST__!.getEconomyState().buildings
+      .find((building) => building.id === id)!.queue.map((entry) => entry.unitType), primary), {
+      message: 'Q on the group\'s card did not train the Castle\'s unique unit',
+    }).toEqual(['longbowman']);
+  });
+
   test('on the default map Ctrl+Shift+H selects the Town Center, and a key with no building of its type changes nothing', async ({ page }) => {
     await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
     const townCenter = (await buildings(page)).find((entry) => entry.owner === 1 && entry.buildingType === 'town-center')!;
