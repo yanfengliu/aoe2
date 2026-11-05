@@ -273,16 +273,14 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
     // even when every kind is under its target — a common case when
     // total villagers is smaller than total desired villagers.
     //
-    // Iter-2 V5-2 considered: zero-target kinds with actual > 0 are
-    // skipped (continue) below. Iter-2 explored treating them as
-    // POSITIVE_INFINITY donors, but that breaks the load-bearing
-    // dark-age gold accumulation — `assignVillagerRole(ordinal=3)`
-    // spawns the 4th villager on gold (canonical AoE2 opening), while
-    // `villagerTargetsForAge('dark-age')` reports gold=0. The current
-    // skip lets that villager keep gathering enough gold for the
-    // feudal age-up cost. Treating the trap as "the bug" actively
-    // breaks AI age progression. Revisit only if AI build plans gain
-    // dynamic target flips mid-age.
+    // A kind the plan wants NOBODY on gives up whoever is on it (work 141).
+    // Until then such a kind was skipped, which kept the Dark-Age gold
+    // villager `assignVillagerRole` puts the fourth villager on (ordinal 3)
+    // for the whole age: the Feudal age-up costs no gold, so it banked 450
+    // gold by 20:00 on the boot map while the Town Center waited for food.
+    // The note this replaces called that gold load-bearing for the age-up; it
+    // is not, and DE's AI puts nobody on gold in the Dark Age below 12
+    // villagers (Promisory dawn.per 72-78).
     const kinds: EconomyResourceKind[] = ['food', 'wood', 'gold', 'stone'];
     let worstKind: EconomyResourceKind | null = null;
     let worstRatio = Number.POSITIVE_INFINITY;
@@ -291,7 +289,13 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
     for (const kind of kinds) {
       const desired = desiredByKind[kind];
       if (desired <= 0) {
-        continue; // Avoid divide-by-zero; zero-target kinds don't pull villagers.
+        // Zero-target kinds never pull villagers; one holding any is the most
+        // over-served kind there is.
+        if (villagersByKind[kind].length > 0 && bestRatio < Number.POSITIVE_INFINITY) {
+          bestRatio = Number.POSITIVE_INFINITY;
+          bestKind = kind;
+        }
+        continue;
       }
       const ratio = actualByKind[kind] / desired;
       if (ratio < worstRatio) {
@@ -320,8 +324,10 @@ export function createAiDecisionOps(deps: AiDecisionDeps): AiDecisionOps {
       // (26-32 ticks/cycle) the bounced villager never finishes a cycle:
       // measured on ai-feudal-stone-fixture, stone froze at 50 for 12,000
       // ticks with the lone miner permanently mid-first-cycle.
-      && (actualByKind[bestKind] - 1) / desiredByKind[bestKind]
-        >= (actualByKind[worstKind] + 1) / desiredByKind[worstKind]
+      // Leaving a zero-target kind can never invert the order.
+      && (desiredByKind[bestKind] <= 0
+        || (actualByKind[bestKind] - 1) / desiredByKind[bestKind]
+          >= (actualByKind[worstKind] + 1) / desiredByKind[worstKind])
     ) {
       // Donate the villager with the LEAST sunk work, not whichever the
       // entity query happened to list first. Reassignment throws away the

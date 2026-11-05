@@ -107,7 +107,13 @@ describe('Slice 10 AI planner — pure helpers', () => {
 });
 
 describe('Slice 10 AI planner — simulation end-to-end', () => {
-  it('assigns villagers across at least three resource types within 300 ticks', () => {
+  // Work 141: DE's AI puts 75% of a Dark-Age economy under 12 villagers on food
+  // and 25% on wood, and nobody on gold (Promisory dawn.per 72-78). This used to
+  // ask for three kinds within 300 ticks, which only the stray gold villager
+  // `assignVillagerRole` hands the fourth villager could satisfy; the rebalance
+  // now moves that villager to the plan, as it moves any villager off a kind
+  // the plan wants nobody on.
+  it('splits its Dark-Age villagers between food and wood, mostly food, within 300 ticks', () => {
     const bridge = createSimulationBridge('ai-planner-fixture');
 
     for (let i = 0; i < 300; i += 1) {
@@ -116,8 +122,10 @@ describe('Slice 10 AI planner — simulation end-to-end', () => {
 
     const economy = bridge.getEconomyState();
     const aiVillagers = economy.villagers.filter((v) => v.owner === 2);
-    const kinds = new Set(aiVillagers.map((v) => v.desiredResource));
-    expect(kinds.size).toBeGreaterThanOrEqual(3);
+    const count = (kind: string) => aiVillagers.filter((v) => v.desiredResource === kind).length;
+    const split = `food ${count('food')} wood ${count('wood')} gold ${count('gold')} stone ${count('stone')}`;
+    expect(new Set(aiVillagers.map((v) => v.desiredResource)), split).toEqual(new Set(['food', 'wood']));
+    expect(count('food'), split).toBeGreaterThan(count('wood'));
   }, 60_000);
 
   it('ages up through the ages within a generous tick budget', () => {

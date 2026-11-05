@@ -82,8 +82,8 @@ type Rect = { minX: number; minY: number; maxX: number; maxY: number };
 
 /** A sealed chamber east of the bay holding the buildings the same-decision
  *  variant needs STANDING: a Watch Tower is offered only to a Feudal owner
- *  with a completed barracks (buildOptions.ts), and with a mill and two farms
- *  already up the Feudal build order's next affordable entry is the 3x3
+ *  with a completed barracks (buildOptions.ts), and with a mill, two farms and
+ *  a House already up the Feudal build order's next affordable entry is the 3x3
  *  blacksmith rather than a 2x2 mill or a 1x1 farm. Nothing can walk in or
  *  out of it, and nothing needs to. */
 const SAME_DECISION_CHAMBER: Rect = { minX: 42, minY: 14, maxX: 50, maxY: 22 };
@@ -143,6 +143,10 @@ function spawnsFor(variant: CorridorSealVariant): ScenarioSpawnSpec[] {
         ownedSpawn('mill', 2, 46, 14),
         ownedSpawn('farm', 2, 42, 18),
         ownedSpawn('farm', 2, 44, 18),
+        // Population 3 of 10, so the Feudal House rule (a House under 6 free
+        // population, work 141's `aiHousing.ts`) asks for none and the next
+        // build stays the blacksmith; without it (3 of 5) the House took the slot.
+        ownedSpawn('house', 2, 48, 18),
       ]
     : [];
   return [

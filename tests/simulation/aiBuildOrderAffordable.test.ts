@@ -105,10 +105,10 @@ describe('AI build order — falls through to what it can pay for', () => {
       .toBe('market');
   });
 
-  it('leaves the population block alone: a house or nothing', () => {
+  it('leaves a housed owner alone: a House or nothing', () => {
     expect(
       pickNextBuildTarget('castle-age', nothingBuilt, true, null, only('castle')),
-      'a pop-blocked AI built something other than the House that unblocks it',
+      'a housed AI built something other than the House that unblocks it',
     ).toBe('house');
   });
 
@@ -161,10 +161,11 @@ describe('AI build order — what the plan is STUCK on (v0.3.222)', () => {
     )).toBeNull();
   });
 
-  it('names the House a population-blocked owner cannot pay for, and nothing else', () => {
-    // The pop-block branch does not fall through in `pickNextBuildTarget`, so it
-    // must not fall through here either — a blocked owner is waiting for a House
-    // and for nothing else, whatever else it is missing.
+  it('names the House a housed owner cannot pay for, and nothing else', () => {
+    // The housed branch does not fall through in `pickNextBuildTarget`, so it
+    // must not fall through here either — a housed owner is waiting for a House
+    // and for nothing else, whatever else it is missing. Housed is full below the
+    // hard population limit; full at the limit is not (`aiHousedAtLimit.test.ts`).
     expect(blockedBuildTarget('castle-age', nothingBuilt, true, null, everythingBuilt)).toBe('house');
     expect(blockedBuildTarget('castle-age', everythingBuilt, true, null, everythingBuilt)).toBeNull();
   });

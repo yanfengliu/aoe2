@@ -5,7 +5,7 @@
 
 import type { BuildingType, PlayerResources, ResearchableTechnologyType, TrainableUnitType } from '../../types';
 import { canAfford, trainingCost } from '../../prototypeEconomyRules';
-import { ownerConstructionCost } from '../ownerCosts';
+import { ownerConstructionCost, ownerResearchCost } from '../ownerCosts';
 import { trainableInSameLine } from '../unitLines';
 import { effectiveResearchCost } from '../../civBonusEffects';
 import {
@@ -35,7 +35,15 @@ import {
   playerCivilizationsCodec,
 } from '../bridgeStateSerialize';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
+import { townCenterVillagerDemand, villagerReserve } from './aiVillagerDemand';
 import { MONK_ACTION_RANGE } from './monkBehaviorSystem';
+
+const addCosts = (a: Partial<PlayerResources>, b: Partial<PlayerResources>): Partial<PlayerResources> => ({
+  food: (a.food ?? 0) + (b.food ?? 0),
+  wood: (a.wood ?? 0) + (b.wood ?? 0),
+  gold: (a.gold ?? 0) + (b.gold ?? 0),
+  stone: (a.stone ?? 0) + (b.stone ?? 0),
+});
 
 // Every building the AI researches at, in the order it consults them. Named
 // once because the plan scan and the research loop below MUST walk the same
@@ -164,7 +172,11 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
     researchOptionsByBuilding.set(buildingType, options);
     if (!stockpile) continue;
     for (const tech of options) {
-      const cost = effectiveResearchCost(civOf(owner), ageOf(owner), tech);
+      // The OWNER's price, as the charge reads it (work 141): Spies is 200 gold
+      // per living enemy villager, and priced off the table it looked affordable
+      // with 200 gold, was pushed every decision and refused every time, and
+      // the Castle researched nothing behind it (work 125's card).
+      const cost = ownerResearchCost(activeWorld, accessor, owner, tech);
       if (canAfford(stockpile, cost)) break;
       // The first entry it cannot pay for, matching the research loop below,
       // which walks the same list in the same order and buys the first it can.
@@ -191,7 +203,7 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
         // Phase 1C: skip techs whose queue.research intention is
         // already pending (handler hasn't flipped inFlightTechByOwner).
         if (pendingResearchKeys.has(`${owner}:${tech}`)) continue;
-        const cost = effectiveResearchCost(civOf(owner), ageOf(owner), tech);
+        const cost = ownerResearchCost(activeWorld, accessor, owner, tech);
         if (canAfford(stockpile, cost)) {
           pushQueueResearchIntention(buildingId, tech);
           // Update per-tick gating maps so subsequent same-tick
@@ -234,6 +246,15 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
   // At most ONE market trade per decision tick, whichever gate asks for it: the
   // age-up shortfall keeps priority, because an age is worth more than a unit.
   let marketActionPushed = false;
+  // A soldier leaves the next villager's cost behind (`aiVillagerDemand.ts`).
+  const nextVillager = villagerReserve(townCenterVillagerDemand(deps, ctx));
+  const soldierReserve = addCosts(militaryReserve, nextVillager);
+  // Handlers charge in the order asked and none of these pushes is charged yet,
+  // so while a villager is due each soldier is priced on top of those asked
+  // before it (work 141 review round 0, F0: a Spearman and a Scout each passed
+  // with 130 food and left the villager 15). Only while one is due: that is the
+  // purchase this protects, and Imperial research asked before it is not counted.
+  let soldiersAsked: Partial<PlayerResources> = {};
   // v0.1.92: pause military growth when stuck short of the next age → frees pop/wood for the 2nd Feudal-prereq building (see helper).
   if (!savingForAgeUp && !militaryGrowthPausedForAgeUp(currentAge, qualifiesForNextAge, ownedMilitaryUnitIds(owner).size)) {
     for (const { unitType, producer } of mix) {
@@ -266,11 +287,15 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
       // names the Skirmisher only in Feudal and its upgrade is Castle. If any
       // tier is ever repriced, this is already right.
       const cost = trainingCost(offered);
-      if (!canAffordWithReserve(stockpile, cost, militaryReserve)) {
-        unaffordableWants.push(cost);
+      if (!canAffordWithReserve(stockpile, cost, addCosts(soldierReserve, soldiersAsked))) {
+        // The Market sees the budget this check used (work 141 review round 1):
+        // the unit plus what this decision already holds for the villager and
+        // the soldiers before it, not its bare price against the whole purse.
+        unaffordableWants.push(addCosts(cost, addCosts(nextVillager, soldiersAsked)));
         continue;
       }
       pushQueueTrainIntention(producerId, offered);
+      if (nextVillager.food !== undefined) soldiersAsked = addCosts(soldiersAsked, cost);
       // Phase 1C — increment so subsequent same-producer pushes (feudal+
       // pickUnitMix returns multiple unit types per producer) see this
       // push in their findIdleProducerLocal queue-length gate. Without
@@ -297,7 +322,7 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
         .find((option) => option !== 'trebuchet');
       if (
         castleUnit !== undefined
-        && canAffordWithReserve(stockpile, trainingCost(castleUnit), ageUpReserve)
+        && canAffordWithReserve(stockpile, trainingCost(castleUnit), addCosts(addCosts(ageUpReserve, nextVillager), soldiersAsked))
       ) {
         pushQueueTrainIntention(castleId, castleUnit);
         pendingTrainsByBuilding.set(
@@ -381,20 +406,25 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
       const currentVillagers =
         countOwnedUnits(owner, 'villager') + countQueuedUnits(ownerTownCenterId, 'villager') + tcPendingTrains;
       const villagerCost = trainingCost('villager');
+      // Not held back by `savingForAgeUp` (work 141): DE's AI keeps training
+      // villagers while it saves for an age — in the Dark Age to 25 villagers
+      // whatever its food, in the Feudal Age until it can pay for the Castle
+      // Age (Promisory units.per 328-386 and 409-415) — and banks the age's
+      // cost once it stops at its villager count. The latch stopped villagers
+      // at 60% of the cost, so the Town Center idled while the AI could pay.
       if (
         !populationBlocked
-        && !savingForAgeUp
         && currentVillagers < villagerCap
         && tcEffectiveQueueLength < 2
         && stockpile
-        // v0.1.96: villager training is NOT age-up-reserve-gated (unlike military ~549) —
+        // v0.1.96: villager training is NOT age-up-reserve-gated (unlike military) —
         // gating the engine that GATHERS the reserve deadlocked the economy when the AI qualified
-        // villager-poor (corpus: 7 Feudal vil frozen at 339/800). Cap gate + savingForAgeUp (~628) bank food.
+        // villager-poor (corpus: 7 Feudal vil frozen at 339/800). The cap banks the food (work 141).
         && canAfford(stockpile, villagerCost)
       ) {
         pushQueueTrainIntention(ownerTownCenterId, 'villager');
         // Iter-1 Gemini MINOR: increment so a future multi-TC / multi-pass
-        // re-entry can't over-commit (mirrors the military push ~555).
+        // re-entry can't over-commit (mirrors the military push above).
         pendingTrainsByBuilding.set(
           ownerTownCenterId,
           (pendingTrainsByBuilding.get(ownerTownCenterId) ?? 0) + 1,

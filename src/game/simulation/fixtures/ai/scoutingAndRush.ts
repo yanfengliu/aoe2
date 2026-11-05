@@ -167,6 +167,22 @@ export function createAiRushFixture(seed: string): PrototypeScenario {
       ownedSpawn('villager', 2, 22, 8, { vision: 4 }),
       ownedSpawn('villager', 2, 22, 9, { vision: 4 }),
       ownedSpawn('villager', 2, 23, 9, { vision: 4 }),
+      // The AI starts at its Dark Age villager count, ten, with the Houses to
+      // hold them (work 141). Its Town Center now trains villagers before any
+      // soldier, as DE's does (`aiVillagerDemand.ts`), so from three villagers
+      // on a map with no wood it filled its population with villagers and never
+      // had room or food for a Militia: the Barracks-and-Militia path these
+      // fixtures exist for (aiPlayer.test.ts, createSimulationBridge.combat
+      // and the browser meta spec) was being decided by the opening instead.
+      ownedSpawn('villager', 2, 22, 10, { vision: 4 }),
+      ownedSpawn('villager', 2, 23, 10, { vision: 4 }),
+      ownedSpawn('villager', 2, 22, 11, { vision: 4 }),
+      ownedSpawn('villager', 2, 23, 11, { vision: 4 }),
+      ownedSpawn('villager', 2, 22, 12, { vision: 4 }),
+      ownedSpawn('villager', 2, 23, 12, { vision: 4 }),
+      ownedSpawn('villager', 2, 24, 12, { vision: 4 }),
+      ownedSpawn('house', 2, 29, 4),
+      ownedSpawn('house', 2, 32, 4),
       // Food for the rusher (2026-09-02). This map is bare grass, so before
       // these the AI ran the whole rush off its 200 starting food and the
       // test measured opening-spend arithmetic rather than rush behaviour:
@@ -269,18 +285,14 @@ export function createAiAgeUpPriorityFixture(seed: string): PrototypeScenario {
   };
 }
 
-// savingForAgeUp latch fixture (v0.1.96): isolates the age-up food-banking
-// mechanism. The AI (owner 2) sits in the Dark Age with the two Feudal
-// prerequisites (barracks + mill) so `canAdvanceToFeudalAge` is true and the
-// next-age cost is {food:500}. Its food (320) is chosen deliberately: 64% of the
-// 500-food Feudal cost, i.e. AT/ABOVE the 60% `savingForAgeUp` hard-latch, so the
-// latch suppresses ALL production (military AND villagers, ~628) and the food is
-// HELD toward the age-up. There is NO food resource on the map, so villagers
-// cannot gather (zero income) and any food change is purely production spend.
-// This is the mechanism that banks the age-up food now that villager training is
-// no longer reserve-gated (v0.1.96 removed that coupling — it deadlocked the
-// economic engine when the AI qualified while villager-poor). 3 villagers start
-// below the Dark cap (10) so the AI would train more if the latch were not held.
+// savingForAgeUp latch fixture (v0.1.96; work 141). The AI (owner 2) sits in the
+// Dark Age with the two Feudal prerequisites (barracks + mill) so
+// `canAdvanceToFeudalAge` is true and the next-age cost is {food:500}. Its food
+// (320) is 64% of that cost, above the 60% `savingForAgeUp` latch. Since work
+// 141 the latch holds soldiers and research but not villagers, as DE's AI keeps
+// training while it saves, so the Town Center spends the food on villagers. There
+// is NO food resource on the map, so villagers gather nothing and any food change
+// is purely production spend. 3 villagers start below the Dark cap (10).
 export function createAiVillagerReserveFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -306,7 +318,7 @@ export function createAiVillagerReserveFixture(seed: string): PrototypeScenario 
       ownedSpawn('house', 2, 18, 14),
       ownedSpawn('house', 2, 21, 14),
       // 3 villagers — below the Dark-Age villager cap (10) so the AI keeps
-      // trying to train more (which the reserve fix must suppress). No food
+      // training more (work 141: the latch no longer holds them). No food
       // resource exists on the grass map, so these villagers gather nothing:
       // food income is zero and any food change is purely villager-training.
       ownedSpawn('villager', 2, 24, 13, { vision: 4 }),

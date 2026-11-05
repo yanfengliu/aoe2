@@ -7,7 +7,14 @@ import { ownerConstructionCost } from '../ownerCosts';
 import type { BuildableBuildingType, BuildingComponent } from '../../types';
 import { canAfford } from '../../prototypeEconomyRules';
 import { blockedBuildTarget, pickNextBuildTarget, shouldPursueWonder } from '../../ai';
-import { matchSettingsCodec, playerResourcesCodec } from '../bridgeStateSerialize';
+import { houseWanted } from '../../aiHousing';
+import {
+  constructionStatesCodec,
+  matchSettingsCodec,
+  playerResourcesCodec,
+  populationCodec,
+} from '../bridgeStateSerialize';
+import { ownerHardPopCap } from '../ownerPopCap';
 import { dropOffAnchorFor } from './dropOffAnchor';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
 
@@ -131,15 +138,35 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       return farms;
     };
 
-    const missing = (buildingType: BuildableBuildingType): boolean => {
-      if (buildingType === 'house') {
-        if (populationBlocked) {
-          return !isConstructingBuilding(owner, 'house');
-        }
-        return false;
-      }
-      return !findOwnedBuilding(owner, buildingType);
-    };
+    // Houses AHEAD of need, by DE's headroom rule (`aiHousing.ts`, work 141):
+    // before it, a House was wanted only once the population had reached the
+    // cap, so every House was an emergency the Town Center waited out.
+    let housesPending = 0;
+    for (const id of activeWorld.query('building')) {
+      const building = activeWorld.getComponent<BuildingComponent>(id, 'building');
+      if (building?.owner !== owner || building.buildingType !== 'house') continue;
+      if (accessor.get(constructionStatesCodec).get(id)?.isComplete === false) housesPending += 1;
+    }
+    const population = accessor.get(populationCodec).get(owner);
+    const hardCap = ownerHardPopCap(accessor, owner);
+    const wantHouse = population !== undefined && houseWanted({
+      age: currentAge,
+      popCurrent: population.current,
+      popCap: population.cap,
+      hardCap,
+      housesPending,
+      // Any Blacksmith placed: interim, as DE's 6/8 rule counts a standing one (aiHousing.ts).
+      ownsBlacksmith: findOwnedBuilding(owner, 'blacksmith') !== null,
+    });
+    // The House rule decides the housed path too (work 141 review round 0):
+    // that path asked only whether a House was already going up, so at the
+    // hard population limit it built Houses that could add nothing. And full
+    // at the limit is not housed: no House helps, so the build order carries
+    // on with everything else instead of waiting on one.
+    const missing = (buildingType: BuildableBuildingType): boolean => (
+      buildingType === 'house' ? wantHouse : !findOwnedBuilding(owner, buildingType)
+    );
+    const housed = populationBlocked && population !== undefined && population.cap < hardCap;
 
     let ongoingBuilds = 0;
     for (const [, cmd] of unitCommands.entries()) {
@@ -203,7 +230,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
       stockpile !== undefined
       && canAfford(stockpile, ownerConstructionCost(accessor, owner, buildingType));
     const nextBuild = pickNextBuildTarget(
-      currentAge, missing, populationBlocked, farmState, affordable,
+      currentAge, missing, housed, farmState, affordable, wantHouse,
     );
     // …and what it is STUCK on, which is a different building whenever a cheap
     // entry is affordable and a dear one above it is not. The production phase
@@ -211,7 +238,7 @@ export function runBuildingPhase(deps: AiSystemDeps, ctx: AiOwnerContext): void 
     // without it a 60-wood farm is the only thing the build order ever names
     // while the 200 wood for a Siege Workshop never forms (v0.3.222).
     const blocked = blockedBuildTarget(
-      currentAge, missing, populationBlocked, farmState, affordable,
+      currentAge, missing, housed, farmState, affordable, wantHouse,
     );
     ctx.blockedBuildCost = blocked === null
       ? null

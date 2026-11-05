@@ -1,30 +1,135 @@
 # The computer opponent builds its economy as Definitive Edition's does
 
-Status: planned
-Owner: ai-economy worker for the Claude coordinator
+Status: active
+Owner: ai-economy worker for the Claude coordinator (M1, shipped v0.3.260); a fresh worker takes M2, which is open
 Created: 2026-11-04
 Updated: 2026-11-04
 
 ## Problem and outcome
 
-The computer opponent builds its economy as Definitive Edition's does. Define the observable outcome before implementation.
+Players ranked the computer opponent as the biggest thing breaking the DE feel (work 106's card queue, "The computer opponent"). At the lobby's defaults (Standard difficulty, Standard resources, population 200, map `aoe2-prototype`), the computer should build its economy the way DE's AI does at that difficulty. It builds Houses ahead of need, keeps its Town Center training villagers up to its villager count, spends what it gathers, and ages on DE's schedule for that level.
+
+Measured on 6b5e9871 and on the M1 tree, 12,000 ticks each (`npm run playtest -- --seed aoe2-prototype --max-ticks 12000 [--all-ai]`, deterministic). The bundles are kept in the primary checkout's ignored `tmp/work141-m1/` with their per-minute reports: `idle-base` and `allai-base` on 6b5e9871, `idle-m1` and `allai-m1` on M1, and `idle-final` and `allai-final` on the tree handed off (M1 with review rounds 0 and 1, rebased onto work 140). The reports were read with `src/game/playtest/aiEconomyTrace.ts` over civ-engine's `snapshotAtTick`. Villagers at 2:00 / 5:00 / 10:00 / 15:00 / 20:00:
+
+| Seat | 6b5e9871 | M1 | Longest housed run, before / after | Feudal reached, before / after |
+|---|---|---|---|---|
+| owner 2, human idle | 6 / 7 / 10 / 10 / 14 | 7 / 10 / 10 / 10 / 14 | 68 s / 3 s | 16:14 / 17:14 |
+| owner 1, all-AI | 6 / 6 / 9 / 10 / 12 | 7 / 10 / 10 / 12 / 22 | 70 s / 3 s | 18:14 / 13:56 |
+| owner 2, all-AI | 6 / 6 / 7 / 10 / 10 | 7 / 9 / 10 / 10 / 17 | 66 s / none | 19:44 / 15:50 |
+
+Gold at 20:00 went from 450 to 40 for owner 2 with the human idle. With the human idle, M1 reaches Feudal a minute later: it eats its nearby food sooner and builds no Dark Age farms (M2, age timing). The Town Center's idle time between 7:00 and 15:00 is the Dark Age cap of 10 villagers (M2). Every M1 figure above, gold included, is the same in the final bundles, though they add the Spies fix, review rounds 0 and 1 (soldiers priced together while a villager is due) and work 140's building armor.
+
+Causes found on 6b5e9871, all fixed in M1:
+1. A House was wanted only once population reached the cap. In `aiSystemBuildingPhase.ts` the `missing('house')` closure read `populationBlocked` and nothing else.
+2. The Dark Age split {food 4, wood 3} put 2 of 6 villagers on food. `assignVillagerRole` gives the fourth villager gold, and the rebalance skipped zero-target kinds, so that villager stayed on gold all age. The no-inversion guard would not move a wood villager to the third food slot. The Town Center sat idle 44-60 s a minute from 1:00 to 4:59 for want of 50 food.
+3. The military loop runs before the villager push and drew on the same food: four Dark Age Militia went to the enemy and died while the Town Center waited.
+4. `savingForAgeUp` stopped villagers at 60% of the next age's cost.
+5. The AI priced research off the base table, so Spies (200 gold per living enemy villager) looked affordable with 200 gold, was asked for and refused on every decision, and stalled the Castle. That is work 125's card.
+
+Two things in the brief were wrong, and the coordinator accepted both corrections. The second scout and the "House" seen at tick 1,123 are the default 1v1 map's forward outpost for player 2 (`mapGeneration/defaultMap.ts` 61-87: a free House and Scout, so player 2 starts at 5/10). And DE's Standard AI does not grow its economy without limit or age on a fixed schedule (below).
+
+## DE's AI, sourced
+
+DE's own default AI scripts are installed on this machine: `C:\Program Files (x86)\Steam\steamapps\common\AoE2DE\resources\_common\ai\Promisory\*.per` (modified 2026-10-06; spec §13.3 already cites this folder). They load under `DIFFICULTY-EASIEST`, `-EASY` (the lobby's Standard), `-MODERATE`, `-HARD`, `-HARDEST` and `-EXTREME`, and set `sn-do-not-scale-for-difficulty-level 1` (init.per 173). The engine's own scaling, which airef documents as attack-only, is therefore off, and every level difference comes from the scripts.
+
+At every level (M1, implemented):
+- Houses ahead of need (buildings.per). Dark Age: under 3 free population, none pending (1584-1596). Feudal Age, INTERIM: M1 applies DE's Feudal-war rule at every level: under 6, or under 8 once a Blacksmith is placed, none pending (buildings.per 1646-1659, which counts only a standing Blacksmith where M1 counts a placed one). DE's "usual" strategy, the only one Standard keeps, jumps past it (1636-1645) to under 4 (1584-1596) or under 6 once a Blacksmith is placed (1623-1634). Review round 0 found this (Claude F1). The coordinator deferred it to M2 on 2026-11-04: the DE reading for usual, and a standing-Blacksmith-only variant, each moved the coverage lab's census beyond variant A. Castle Age: under 10, 16 from 42 population and 20 from 64, two pending (1767-1779). Imperial Age: under 20, three pending (1789-1801). No House at the hard population limit. `aiHousing.ts` lists what is not modelled.
+- Dark Age split, every level below Hardest. Below 12 villagers it gathers 75% food and 25% wood, with no gold (dawn.per 72-78). M1's Dark Age cap of 10 keeps the AI below 12. From 12 villagers to the Feudal click DE's split is dawn.per's: it picks each villager's resource one at a time (80-385) and writes the split from those counts (402-409). Under the usual strategy, the only one Standard keeps, no gatherers.per rule sets a split before the click: 11-20 and 79-87 skip the s-flush and r-flush blocks, and the usual block's Dark Age rules (589-662) wait for the Feudal research. The flush strategies, which DE's Hard keeps, have Dark Age rules of their own from 19 and 20 villagers (21-29, 88-97). M2 models it with the per-level counts. Round 0 removed a "55/45 from 12" that was not DE's.
+- Villagers keep training while the AI saves for an age. The Dark Age trains to 25 villagers whatever the food (units.per 328-386). The Feudal Age trains while under 18 villagers or unable to pay for Castle (409-415).
+
+Per level (M2), items 1-6 of the first report to the coordinator:
+1. Villager cap. Civilian percent is 5 at Easiest, 13 at Standard, 28 at Moderate and 53 at Hard; it is 100 at Hardest and Extreme (const.per 5105-5268). Max civilians = round(min(up-max-civ, 130) x percent / 100), never below 6 (init.per 1220-1230; `c:/` rounds, airef). up-max-civ is 130 at population 200, 98 at 150, 65 at 100 and 49 at 75 (const.per, the POPULATION-CAP blocks), so Standard keeps 17 civilians at 200, 13 at 150, 8 at 100 and 6 at 75. Training stops there (units.per 11393-11402). These match community reports: aoezone's review gave Easiest 7, Standard 20 and Moderate 40, and a Steam Standard-vs-Standard game had "vil count never exceeded 20".
+2. Rubber band, Easiest to Moderate (units.per 11454-11467). With 12 or more villagers it stops while its civilians exceed the target enemy's (`up-get-target-fact civilian-population`, init.per 1320). It never queues a second villager while level. Against the human-idle seat (3 villagers) it stops at 12.
+3. Ages, Easiest and Standard (researches.per 36-49, 98-108, 117-127). With a human in the game it researches no next age while every enemy and ally is still in its current age, so it never leads the human into one. Otherwise Feudal comes when villager training stops, or at 1,200 food, or at 990 food when custom-civ-pop is 30 or more, which is always so below Hardest (50-97). Castle and Imperial come as soon as it can research them (109-140).
+4. Attacks and strategy. At Standard it makes no attack on a human before 40:00 (tsa.per 2799-2823; Easiest 2781-2798, Moderate 2824-2848, Hard 2851-2875). From 40:00 to 55:00 it calls an attack off while it is clearly the stronger side: at superiority level 3 or more, 2 or more before 50:00, or 1 or more before 45:00. The level grows with its army lead over the enemy's army and defences (threats.per 1306-1351). After 55:00 it attacks freely. (The first report to the coordinator said "only with military superiority", which inverted this.) At Easiest and Standard any other strategy resets to "usual" (init.per 9577-9590); below Hard that also happens once the Feudal Age passes max-delay (9593-9606). A Dark Age rush resets to "usual" at every DE level below Extreme (9611-9621; diff-fp is 0 in const.per's DE blocks and 1 only at Extreme).
+5. Army cap. Military percent is 14 at Standard: allowed military = round((min(pop cap, 200), plus a third of any cap above 200, minus min(up-max-civ, 130)) x percent / 100), never below 5, so 10 at population 200 (init.per 1231-1246).
+6. Housing is item 6 and is the same at every level (above, M1).
 
 ## Scope
 
-Record the included work, exclusions and dependencies before implementation.
+M1 (this landing):
+- Houses by DE's headroom rule (`aiHousing.ts`).
+- DE's Dark Age split, with zero-target kinds giving up their villagers.
+- Villagers out of `savingForAgeUp`.
+- A soldier priced on top of the next villager's cost (`aiVillagerDemand.ts`).
+- The AI's research priced at `ownerResearchCost`, which fixes the Spies stall (the part of plan 106's "AI prices" card with that cause; the card line now says what remains).
+- The self-play gate, re-recorded baselines and records.
+The per-age villager targets (10/22/40/60) are unchanged.
+
+M2 (approved by the coordinator 2026-11-04 under the DE tiebreak; a fresh worker takes it). Conditions:
+- `easy` behaves as DE Easiest, `standard` as DE Standard and `hard` as DE Hard. The stored and URL values stay `easy|standard|hard` (saves, links and fixtures carry them). The setup row may show DE's labels (Easiest / Standard / Hard).
+- Source two more things from the same scripts or DE docs before coding them. First: does any DE level change gather rates or hand out resources (a cheat such as `cc-add-resource`)? Our 0.7/1.0/1.3 `gatherMultiplier` and 60/30/15 decision intervals in `ai.ts` are our own inventions; keep, change or drop each one to match DE, and say which and why. Second: what is DE's lobby default difficulty for a new skirmish? Our `DEFAULT_DIFFICULTY` follows it, and if DE's default is Moderate, stop and report, because that call is the owner's.
+- Move each self-play gate to the level whose DE behaviour it measures, with each gate's numbers and wall time before and after. Never weaken an assertion; a gate that cannot keep its meaning at any level goes to the coordinator.
+- Spec: §13.1 gets the per-level rules with their script citations. §4.6's setup paragraph ("AI difficulty (Easy / Standard / Hard — ...)") gets the new behaviour, labels and default.
+- Split M2 past about 200k tokens: the per-level rules first, the gate moves second.
+- Rebase onto main after work 140 (building armor) lands, and report a file conflict with its changes rather than resolving another lane's change.
+- `tests/simulation/scoutWanderCorner.test.ts` had its one recalibration in M1 (far-corner bar 40 to 28, approved 2026-11-04). If M2 moves its numbers again, do not move the bar: rebuild the case on a pocket the fixture itself places, with owner 2's AI economy off (`disableAiForOwners: {2}` keeps the wander running). The coordinator authorized that rewrite within work 141.
+
+Out of scope (cards in plan 106): DE's missing levels (Moderate, Hardest, Extreme), the default map's forward outpost, and the fixed AI civilization per seat.
 
 ## Approach
 
-Record the chosen approach and consequential tradeoffs.
+Fix the causes in the AI's phases. Measure with an instrument that reads components and world-state slots only, never the AI's own decisions: `src/game/playtest/aiEconomyTrace.ts`, which serves a live world (the gate) and a recorded snapshot from `snapshotAtTick` (bundles). Each gate is a self-play metric, proven red on the old code and again with its defect put back.
+
+The coverage lab (`selfPlayContentCoverage.test.ts`, hard, high resources, no attacks, 45,000 ticks) is chaotic in its last producers. In the Castle and Imperial Ages the AI is wood-starved (5-120 wood at nearly every sample, on 6b5e9871 and on M1). It spends in a fixed order: the unit mix with siege last, and the research producers with the Castle last. Whatever comes last goes unbought whenever the purse is short. M1 ends the housing cap that used to throttle the army and leave wood for the last entries (owner 1's peak army 110 on 6b5e9871, 118-125 on M1). The census probe played the test's exact match under each candidate:
+- 6b5e9871: the checked-in census exactly (the control).
+- M1 without the Spies fix: owner 1 Castle research lost; its Castle idled 678 of 678 samples holding up to 2,321 gold.
+- A (shipped): owner 1 Monastery and Siege Workshop training lost, and owner 2 Castle research lost.
+- B (A plus Monks asked for before research): owner 1 Castle research and Siege Workshop training lost, and owner 2 Castle research lost.
+- Round-robin research order: owner 1 Siege Workshop research and training lost, Market training lost, and owner 2 Castle research lost.
+- D (B with no Castle or Imperial Houses ahead): owner 1 Siege Workshop research and training lost, Market training lost, and owner 2 Siege Workshop training lost. So the House rule is not the cause.
+Each producer lost in A produces in a sibling (the Monastery in B, owner 2's Castle in D), except owner 1's Siege Workshop, which is lost in every M1 variant. The coordinator chose A, with the census re-recorded and every move named in its commit. The full A census against the old one: units lost capped-ram and mangonel; technologies lost conscription, plate-mail-armor and ring-archer-armor. Owner 1 lost capped-ram and monk among units, those three technologies, and the Monastery and Siege Workshop as train producers. Owner 2 gained light-cavalry, lost mangonel and conscription, and lost the Castle as a research producer. Ages are unchanged, both Imperial.
+
+Work 140 (building armor, v0.3.259) landed first and re-recorded the census for armor alone; owner 1 lost its Monastery and Siege Workshop buildings, Monk and Capped Ram. M1 was rebased onto it and the census re-recorded on top, under the coordinator's approval for losses from the measured mechanism (2026-11-04). Moves of the combined recording against work 140's:
+- Owner 1: buildings gained monastery and siege-workshop; units lost arbalest, gained cavalier and halberdier; technologies lost arbalest-upgrade, blast-furnace, conscription, plate-barding, plate-mail-armor and sappers, gained capped-ram-upgrade, cavalier-upgrade and halberdier-upgrade; research producers lost castle, gained siege-workshop; train producers unchanged.
+- Owner 2: units lost capped-ram, gained mangonel; technologies lost capped-ram-upgrade, heavy-scorpion-upgrade, hoardings and sappers; research producers lost castle and siege-workshop.
+- Ages unchanged, both Imperial; no building lost.
+Against variant A, the one producer move is owner 1's Castle research, lost. The Castle probe (the lab's match, sampled every 1,000 ticks) shows the measured mechanism. Every Castle technology owner 1's Britons can research is an Imperial one (`technologies.csv`), and in the Imperial Age owner 1 holds at most 400 food, 104 wood and 72 gold, against 150 food and 150 gold for Conscription, the cheapest. Its Castle trains Longbowmen meanwhile. Against 6b5e9871 the combined recording has lost four producers, which M2's first criterion names.
 
 ## Acceptance criteria
 
-- [ ] Define observable completion conditions and their checks.
+M1:
+- [x] No housed run (population at its cap, the cap below the hard limit) longer than 30 s for any AI seat in either arrangement over 9,000 ticks (`aiEconomySelfPlay.test.ts`).
+- [x] At least 10 villagers held by 5:00, the Dark Age target, with 2:05 of margin over continuous DE training.
+- [x] Town Center regression floors: never idle over 6 s at a stretch, or 30 s in all, while it can pay, has room and is under target.
+- [x] Each gate proven red: the shipped file on 6b5e9871; the House rule and the soldier reserve put back (the gate); the split and the donor (`darkAgeTuning.test.ts`, `aiPlayer.test.ts`); the latch (`aiVillagerReserve.test.ts`); the base research price (`aiResearchRealPrice.test.ts`); the scout recalibration (the reverted bound gives 19 against 28).
+- [x] Review repairs proven red (rounds 0 to 2, `reviews/`): DE's House table under five mutations (`aiHousing.test.ts`); the hard-limit wiring, which places nothing with full read as housed and two Houses with the pre-F1 wiring (`aiHousedAtLimit.test.ts`); soldiers priced together, which queue a Spearman and a Scout and leave the villager 15 food when priced alone, and the Market aimed at that budget, which trades a decision late when the soldier goes to it at its bare price, and the Spearman asked for, which is missing with Feudal soldiers suppressed (`aiSoldierBudget.test.ts`); the seated Ram's case, whose whole army idles with 800ee967's defect back (`aiGarrisonedDefender.test.ts`).
+- [x] Full `npm run verify` receipt on the rebased tree, review, and the coordinator's "accepted, land it" (2026-11-04, with the squash).
+
+M2:
+- [ ] FIRST: each of the four producers lost against 6b5e9871's census in the recording M1 landed with, on top of work 140's (owner 1's Monastery training, owner 1's Siege Workshop training, owner 1's Castle research, owner 2's Castle research), produces again in the coverage lab. The only exception is a DE source, approved by the coordinator, showing DE's AI would not use it. This is the first spending target, not a nice-to-have.
+- [ ] Siege against buildings: see the measured item below, with the 7-match conquest table before and after.
+- [ ] The per-level rules (items 1-5 above), the two sourcing questions, the gate moves and the spec, under the conditions in Scope (the coordinator's of 2026-11-04: `easy|standard|hard` stay as stored and in URLs and behave as DE's Easiest, Standard and Hard; source the `gatherMultiplier` and decision intervals; stop and report if DE's lobby default is Moderate; move gates by what they measure; spec §13.1 and §4.6).
+- [ ] The Feudal House rule per level and strategy, and the split from 12 villagers to the click: the two items below.
+- [ ] Spending: the Castle and Imperial wood starvation and the fixed spending order (above), banked gold spent.
+- [ ] Age timing: the Dark Age farm transition (the human-idle seat reaches Feudal a minute later on M1).
+- [ ] Housing per level and strategy, after the spending fix and then with the census re-measured once. The Feudal threshold follows DE's rule for the level and strategy. M1 ships DE's Feudal-war rule (buildings.per 1646-1659) at every level. DE's usual strategy jumps past it (1636-1645) to 1584-1596 and 1623-1634. Model DE's second Dark Age rule too: under 5 with a Dock or Port, or with a drush strategy and a Barracks (1598-1609).
+- [ ] Spending leads from review round 0: Spies' real price becomes a Castle's plan want once everything before it is bought, and the Imperial Market sells toward it (Claude F12). The Dark Age build order still builds a Mining Camp nobody uses (Claude F13). The latch's hold on soldiers and research is isolated by no test (Claude F3).
+- [ ] Siege against buildings (measured by work 140, coordinator 2026-11-04). Under DE's building armor the computer cannot take buildings without siege. In 140's self-play only 1 of 7 conquest-only matches ends within its horizon, against 3 before. On `corpus-seed-b`, owner 2's Crossbowmen do 1.3 a hit on buildings and it builds no ram. M2's spending work must get the computer to field siege against buildings, as DE's AI does. Report the same 7-match conquest table before and after M2, with `scripts/selfplay-audit.mjs`, as 140 did. A second measured symptom (2026-11-04): on `ai-garrisoned-defender-fixture` as it stood before M1 seated a Ram in owner 1's starting army, the M1 tree rebased onto work 140 cannot raze owner 2's Castle Age Town Center within 8,000 ticks. Main e9369088 alone resolved at tick 4,915 through a Mangonel and a Ram it bought; the combined tree bought no Mangonel, its Ram died at about tick 4,250, its purse ended at 5 food, 10 wood and 69 gold, and its two Crossbowmen take 1 a hit off the Town Center. M2 can re-run that original army as a measurement (drop the seated Ram from the fixture), not as the gate, which keeps the Ram.
+- [ ] The Dark Age split from 12 villagers to the Feudal click (review round 1, Claude R1-3). Model dawn.per's assignment (80-385, the split written at 402-409) with the per-level villager counts. Under the usual strategy no gatherers.per rule sets a split before the click (11-20 and 79-87 skip the flush blocks; the usual block's Dark Age rules, 589-662, wait for the Feudal research), but Hard keeps the flush strategies, whose rules set 55/45 from 19 villagers (21-29) and 33/58/9 from 20 (88-97) once the Feudal food is banked. Which of dawn.per's and gatherers.per's splits wins in one pass depends on the order the files load in, which the install does not show (review rounds 2 and 3: C2-4, R3-2, C3-1). M1 never reaches 12 Dark Age villagers under its cap of 10, so the cap and the split change together.
+- [ ] Review round 1's low findings left to M2. In the Imperial Age, research asked for before the soldiers is not counted in `soldiersAsked` (Claude R1-6a). While no villager is due, two soldiers can still breach the age-up reserve together; this predates M1, and the latch recovers it a decision later (R1-6c). The pending House count and the Blacksmith the building phase passes to `houseWanted` are pinned by no test (R1-5). From round 2 (Claude, Info): `canAffordWithReserve` holds the villager's 50 food back from every soldier, so while a villager is due and food is under 50 an Archer or a Ram that costs no food is refused too, where DE's rule order would still buy it from wood and gold. `aiSystemProductionPhase.ts` is at 499 of its 500 lines: split it before adding to it.
 
 ## Implementation steps
 
-- [ ] Agree scope and acceptance, then carry out the work.
+- [x] Measure the old code (bundles, per-minute rows, causes) and source DE's rules.
+- [x] M1 gate `tests/simulation/aiEconomySelfPlay.test.ts`, red on the old code.
+- [x] M1 fixes and the Spies class fix, with tests and red proofs.
+- [x] Existing gates: the rush fixture now starts the AI at its Dark Age count with Houses. The corridor-seal fixture gains a House. The ram test follows its House by id. Three tests encoding the old split, latch or gold villager now assert DE's. The scout recalibration was coordinator-approved. The lab census was re-recorded as variant A by the coordinator's decision.
+- [x] Review rounds 0 to 3 repaired (`reviews/`).
+- [x] Rebased onto work 140 (v0.3.259). The census was re-recorded on top of its recording, every move named above; the gates that read hits on buildings were re-run on the rebased tree, and the scout and Spies red proofs again (19 against 28; Spies asked 10 times in 10 decisions at the base price). One existing gate went red only on the combined tree: `aiGarrisonedDefender.test.ts`, whose fixture asks only whether owner 1 attacks at all. By the coordinator's option A (2026-11-04) its ten-strong arm now seats one Battering Ram, the assertion and the 8,000-tick window unchanged; it resolves at tick 1,197 before owner 1 buys any soldier, and with 800ee967's defect put back the whole army, the Ram included, idles to tick 8,000 (the `-few` arm unchanged, and red too).
+- [x] Full gate on the rebased tree with every repair: 7ca58fbb on main ec250733, vitest 5,201 passed and 3 skipped, Playwright 273 passed and 2 skipped, receipt accepted on tree 7504474d4d49. The review records name the hashes as reviewed: 9bad65d7 and 49c0b997 on a37deeee; cb1ce0c6, cc2d80fb, f92bf5c0 and 87a54304 on e9369088, the same code as a5323584, 4498c648, 47f78a60 and 488b332f on ec250733, whose one commit is docs.
+- [x] Phase 1 handoff, the coordinator's "accepted, land it" with the squash, landing as v0.3.260.
+- [ ] M2 by a fresh worker.
 
 ## Outcome
 
-Pending. Record the verified revision, checks and limitations at closure.
+M1 shipped as v0.3.260, one commit on main that squashes these six (the coordinator's call on review 2's C2-5: the first two were red on work 140's base):
+- a5323584 The computer builds its Dark Age economy as DE's does (work 141 M1)
+- 4498c648 Repair review round 0's findings on work 141 M1
+- 47f78a60 Repair review round 1 on work 141 M1, and re-record the census on work 140's
+- 488b332f Seat a Ram in the garrisoned-defender case, and repair review round 2 (work 141)
+- 7ca58fbb Repair review round 3's low findings on work 141 M1
+- 4f03cacb Record work 141 M1's phase-1 gate and review round 3
+The review records keep the hashes they reviewed (the last step above maps them). The phase-1 gate is in the steps above; the landing gate ran on the squashed commit itself, so its receipt is in the landing report to the coordinator. Limitations at landing: the Feudal House rule is interim; DE's per-level rules, the Castle and Imperial spending, siege against buildings and age timing are M2's; the coverage lab has lost four producers against 6b5e9871 (M2's first criterion).
+
+M2's starting state. The plan above is M2's brief: its criteria in order, the conditions in Scope, DE's citations in "DE's AI, sourced", and the census moves in Approach. Its inputs are in the primary checkout's ignored `tmp/work141-m1/` (about 750 MB): the 12,000-tick bundles on 6b5e9871, M1 and the shipped tree with their per-minute reports, the census JSONs (6b5e9871's, variants A, B, D and round-robin, work 140's and the shipped one), and the probes with their outputs (`aiEconomyMinutes.mts`, `labCensus.mts`, `labCastle.mts`, `garrisonFight.mts`, `scoutCorners.mts`). The M2 worker owns that folder and deletes it when M2 closes.

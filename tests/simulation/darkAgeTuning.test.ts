@@ -9,6 +9,11 @@
 // adopted and withdrawn the same day: it won on `default-seed` and lost 800
 // ticks on `aoe2-prototype`, the map the game boots. A silent drift back to a
 // swept-but-unadopted row is exactly the regression this guards.
+//
+// Work 141 (2026-11-04) replaced the 4 : 3 split with DE's own: 75% food and
+// 25% wood below 12 villagers (Promisory dawn.per 72-78); the cap stays 10, so
+// the AI never reaches 12 in the Dark Age, until work 141's M2 decides the
+// per-level villager counts. The pins below are DE's numbers now.
 
 import { describe, expect, it } from 'vitest';
 
@@ -19,9 +24,9 @@ import {
 } from '../../src/game/simulation/aiEconomyPlan';
 
 describe('the Dark-Age tuning seam', () => {
-  it('ships the measured baseline: cap 10, food 4 : wood 3', () => {
+  it('ships the DE Dark-Age split: food 3 : wood 1, cap 10', () => {
     expect(DARK_AGE_TUNING.villagerCap).toBe(10);
-    expect(DARK_AGE_TUNING.weights).toEqual({ food: 4, wood: 3, gold: 0, stone: 0 });
+    expect(DARK_AGE_TUNING.weights).toEqual({ food: 3, wood: 1, gold: 0, stone: 0 });
   });
 
   it('is what the plan functions actually read', () => {
@@ -41,8 +46,8 @@ describe('the Dark-Age tuning seam', () => {
   it('hands out a COPY, so a caller cannot mutate the tuning through it', () => {
     const targets = villagerTargetsForAge('dark-age') as Record<string, number>;
     targets.food = 99;
-    expect(DARK_AGE_TUNING.weights.food).toBe(4);
-    expect(villagerTargetsForAge('dark-age')).toEqual({ food: 4, wood: 3, gold: 0, stone: 0 });
+    expect(DARK_AGE_TUNING.weights.food).toBe(3);
+    expect(villagerTargetsForAge('dark-age')).toEqual({ food: 3, wood: 1, gold: 0, stone: 0 });
   });
 
   it('leaves the other ages alone', () => {

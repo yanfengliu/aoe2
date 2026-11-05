@@ -170,22 +170,26 @@ const MINIMUM_FARMS = 2;
 function buildWants(
   age: AgeType,
   missing: (buildingType: BuildableBuildingType) => boolean,
-  populationBlocked: boolean,
+  housed: boolean,
   farms: { owned: number; villagerCount: number; food?: number } | null,
+  houseWanted: boolean,
 ): readonly BuildableBuildingType[] {
-  // Pop block pre-empts everything: no production of any kind can
-  // resume until the AI has headroom. A fresh House is the fastest fix, and
-  // nothing else is worth starting until the block clears — so this branch
-  // does not fall through.
-  if (populationBlocked) {
-    return missing('house') ? ['house'] : [];
+  // Housed pre-empts everything: no production of any kind can resume until
+  // the AI has headroom. A fresh House is the fastest fix, and nothing else is
+  // worth starting until the block clears, so this branch does not fall
+  // through. HOUSED, not merely full: a seat full at the hard population limit
+  // is not housed, since no House helps it (work 141 review round 0, F1).
+  if (housed) {
+    return missing('house') || houseWanted ? ['house'] : [];
   }
 
+  // A House wanted AHEAD of need (`aiHousing.ts`, DE's headroom rule) comes
+  // before everything else, as DE's does (work 141).
+  const wants: BuildableBuildingType[] = houseWanted ? ['house'] : [];
   // Dark-Age priority: barracks first (rush), then mill so the AI has
   // two Dark-Age prereqs for Feudal age-up. Lumber / mining camps are
   // OPTIONAL nice-to-haves only while still in Dark Age — in Feudal
   // and beyond the AI no longer blocks age-up on them.
-  const wants: BuildableBuildingType[] = [];
   if (missing('barracks')) wants.push('barracks');
   if (missing('mill')) wants.push('mill');
   if (age === 'dark-age') {
@@ -244,7 +248,7 @@ function buildWants(
 export function pickNextBuildTarget(
   age: AgeType,
   missing: (buildingType: BuildableBuildingType) => boolean,
-  populationBlocked: boolean,
+  housed: boolean,
   farms: { owned: number; villagerCount: number; food?: number } | null = null,
   /**
    * Whether the owner can pay for this build right now. The order above is a
@@ -262,11 +266,13 @@ export function pickNextBuildTarget(
    * pre-2026-09-06 behaviour exactly.
    */
   affordable: (buildingType: BuildableBuildingType) => boolean = () => true,
+  /** A House is due by DE's headroom rule (`aiHousing.ts`). */
+  houseWanted = false,
 ): BuildableBuildingType | null {
   // The first entry the owner can pay for, else the first entry at all: a
   // broke AI still names what it is saving for, and the caller's own
   // affordability gate turns that into "build nothing this tick" as before.
-  const wants = buildWants(age, missing, populationBlocked, farms);
+  const wants = buildWants(age, missing, housed, farms, houseWanted);
   return wants.find(affordable) ?? wants[0] ?? null;
 }
 
@@ -286,11 +292,12 @@ export function pickNextBuildTarget(
 export function blockedBuildTarget(
   age: AgeType,
   missing: (buildingType: BuildableBuildingType) => boolean,
-  populationBlocked: boolean,
+  housed: boolean,
   farms: { owned: number; villagerCount: number; food?: number } | null,
   affordable: (buildingType: BuildableBuildingType) => boolean,
+  houseWanted = false,
 ): BuildableBuildingType | null {
-  return buildWants(age, missing, populationBlocked, farms)
+  return buildWants(age, missing, housed, farms, houseWanted)
     .find((want) => !affordable(want)) ?? null;
 }
 
