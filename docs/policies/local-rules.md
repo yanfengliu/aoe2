@@ -1,6 +1,6 @@
 # Local rules — aoe2
 
-Repo-scoped directions that outlive the task that produced them. Fleet-wide rules live in `../fleet/FLEET.md`; this file is only for things true of *this* repo.
+Repo-scoped rules the owner asked for. Fleet-wide rules live in `../fleet/FLEET.md`; this file is only for things true of *this* repo.
 
 Each line names a rule and links its file, which holds the rule in full, why it exists and its evidence; open that file when the work reaches the rule. Entries refer to one another by title, and "above" and "below" mean earlier and later in this list.
 
