@@ -20,6 +20,7 @@ import type { UnitMovementPlan } from '../movementTypes';
 import type { UnitRangeReach } from '../unitRangeReach';
 import type { MonkTask, UnitCommand } from '../sharedTypes';
 import type { AiState } from '../../ai';
+import type { DecisionBudget } from '../../aiEscrow';
 
 export type CivWorld = GameWorld;
 type PushMonkContextAtEntityIntention = (
@@ -216,4 +217,12 @@ export interface AiOwnerContext {
    * not run (the ferry owns it).
    */
   blockedBuildCost: Partial<PlayerResources> | null;
+  /**
+   * The decision's budget while DE's escrow holds or has bought anything
+   * (`aiEscrow.ts`), else null. WRITTEN by the production phase, READ by the
+   * trade and tribute phases after it, so a Trade Cart and a tribute are checked
+   * and counted against the same budget as every purchase before them (work 141
+   * review rounds 6 and 7).
+   */
+  decisionBudget: DecisionBudget | null;
 }

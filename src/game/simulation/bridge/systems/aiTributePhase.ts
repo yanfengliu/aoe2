@@ -6,8 +6,9 @@
 
 import type { EconomyResourceKind } from '../../types';
 import { areAllied } from '../../alliances';
-import { constructionStatesCodec, playerResourcesCodec, playerTeamsCodec } from '../bridgeStateSerialize';
+import { constructionStatesCodec, playerResourcesCodec, playerTeamsCodec, researchedTechnologiesCodec } from '../bridgeStateSerialize';
 import type { BuildingComponent } from '../../types';
+import { tributeCost, tributeFeeRateFor } from '../../tributeRules';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
 
 // Presence-over-optimum scale, like the trade-cart cap: a 100 chunk when the
@@ -44,7 +45,16 @@ export function runTributePhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
     for (const resource of TRIBUTE_RESOURCES) {
       if (allyStockpile[resource] >= AI_TRIBUTE_ALLY_FLOOR) continue;
       if (stockpile[resource] < AI_TRIBUTE_SENDER_RESERVE) continue;
+      // While DE's escrow holds or has bought anything, the chunk and its fee
+      // go through the decision's budget like every purchase before it, so a
+      // tribute cannot send what is held for a Monk or Conscription (work 141
+      // review round 7: Conscription holds food too).
+      const budget = ctx.decisionBudget;
+      const researched = accessor.get(researchedTechnologiesCodec).get(owner) ?? new Set();
+      const cost = { [resource]: tributeCost(AI_TRIBUTE_CHUNK, tributeFeeRateFor(researched)) };
+      if (budget && !budget.affords(cost)) continue;
       pushTributeIntention(owner, other, resource, AI_TRIBUTE_CHUNK);
+      budget?.ask(cost);
       // One chunk per decision tick: generosity with a metering valve.
       return;
     }

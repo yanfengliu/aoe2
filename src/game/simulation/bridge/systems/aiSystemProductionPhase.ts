@@ -1,4 +1,5 @@
-// AI production + research phase: computes the age-up planning state, then in
+// AI production + research phase: computes the age-up planning state, buys what
+// the escrow flags (`aiEscrowPhase.ts`, work 141 M2a), then in
 // priority order trains military, pushes the next-age research + villager
 // production at the Town Center, researches building techs, and trains/assigns
 // monks. Runs after the building phase and before the attack phase.
@@ -13,29 +14,27 @@ import {
   AGE_PREREQUISITE_MILITARY_FLOOR,
   agePrerequisiteWoodReserve,
   ageUpReserveCost,
-  ageUpResourceBuffer,
   canAffordWithReserve,
   militaryGrowthPausedForAgeUp,
   QUALIFYING_FEUDAL_BUILDINGS,
-  pickNextAgeResearch,
   pickUnitMix,
-  villagerCapForAge,
 } from '../../ai';
 import {
-  marketActionForAgeUpShortfall,
   marketActionForUnaffordableWant,
   researchOutranksQueue,
 } from '../../aiMarketPlanning';
 import { MARKET_TRANSACTION_AMOUNT } from '../bridgeConstants';
 import {
   constructionStatesCodec,
+  inFlightTechByOwnerCodec,
   playerResourcesCodec,
-  productionQueuesCodec,
   playerAgesCodec,
   playerCivilizationsCodec,
 } from '../bridgeStateSerialize';
 import type { AiOwnerContext, AiSystemDeps } from './aiSystemTypes';
 import { townCenterVillagerDemand, villagerReserve } from './aiVillagerDemand';
+import { chargedTradeCost, runEscrowPhase } from './aiEscrowPhase';
+import { runTownCenterPhase } from './aiTownCenterPhase';
 import { MONK_ACTION_RANGE } from './monkBehaviorSystem';
 
 const addCosts = (a: Partial<PlayerResources>, b: Partial<PlayerResources>): Partial<PlayerResources> => ({
@@ -66,7 +65,6 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
     canAdvanceToCastleAge,
     canAdvanceToImperialAge,
     ownedMilitaryUnitIds,
-    countOwnedUnits,
     countQueuedUnits,
     pushQueueResearchIntention,
     pushQueueTrainIntention,
@@ -84,11 +82,9 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
   const ageOf = (o: number) => accessor.get(playerAgesCodec).get(o) ?? 'dark-age';
   const {
     owner,
-    ownerTownCenterId,
     activeWorld,
     currentAge,
     stockpile,
-    populationBlocked,
     findIdleProducerLocal,
     pendingTrainsByBuilding,
     pendingResearchByBuilding,
@@ -164,7 +160,26 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
   // and a queue that buys in 25-wood, 45-gold bites every decision tick is why
   // they never form. See `marketActionForUnaffordableWant` for the measurement.
   const researchOptionsByBuilding = new Map<BuildingType, ResearchableTechnologyType[]>();
-  const planCosts: Array<Partial<PlayerResources>> = [];
+  // DE's escrow first (`aiEscrowPhase.ts`, work 141 M2a). It buys what it flags
+  // and holds the price of what it cannot pay for yet, after the age-up as DE
+  // buys its age-ups first. While it holds or has bought anything, every
+  // purchase below is checked once against a budget of what the decision has
+  // not spent (`DecisionBudget`): the purchase's own reserves as before, and
+  // the holds resource by resource, as DE's plain `can-research` and
+  // `can-train` read them. Otherwise every check is as it was. A held purchase
+  // it cannot pay for is part of the plan.
+  const escrow = runEscrowPhase(deps, ctx, ageUpReserve, savingForAgeUp);
+  const budget = escrow !== null && escrow.budget.holding ? escrow.budget : null;
+  ctx.decisionBudget = budget; // the trade phase's Trade Carts use it too
+  const spend = (cost: Partial<PlayerResources>): void => { budget?.ask(cost); };
+  // The Castle's list drops only what is researched (`castleTechOptions`), so a
+  // technology already queued there is asked for again, refused by the handler
+  // and counted as a slot taken (work 141 review round 5). Skipping it moves the
+  // coverage lab's match a long way (owner 1 then builds no Monastery or Siege
+  // Workshop), so that fix is plan 106's card; here a refused request is only
+  // kept out of the escrow's budget.
+  const inFlight = accessor.get(inFlightTechByOwnerCodec).get(owner);
+  const planCosts: Array<Partial<PlayerResources>> = [...(escrow?.unpaid ?? [])];
   if (ctx.blockedBuildCost) planCosts.push(ctx.blockedBuildCost);
   for (const buildingType of RESEARCH_PRODUCERS) {
     if (!ownedQualifying.has(buildingType)) continue;
@@ -204,8 +219,9 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
         // already pending (handler hasn't flipped inFlightTechByOwner).
         if (pendingResearchKeys.has(`${owner}:${tech}`)) continue;
         const cost = ownerResearchCost(activeWorld, accessor, owner, tech);
-        if (canAfford(stockpile, cost)) {
+        if (budget ? budget.affords(cost) : canAfford(stockpile, cost)) {
           pushQueueResearchIntention(buildingId, tech);
+          if (!inFlight?.has(tech)) spend(cost);
           // Update per-tick gating maps so subsequent same-tick
           // findIdleProducerLocal calls see this slot consumed.
           pendingResearchByBuilding.set(
@@ -287,7 +303,10 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
       // names the Skirmisher only in Feudal and its upgrade is Castle. If any
       // tier is ever repriced, this is already right.
       const cost = trainingCost(offered);
-      if (!canAffordWithReserve(stockpile, cost, addCosts(soldierReserve, soldiersAsked))) {
+      const soldierFits = budget
+        ? budget.affords(cost, soldierReserve)
+        : canAffordWithReserve(stockpile, cost, addCosts(soldierReserve, soldiersAsked));
+      if (!soldierFits) {
         // The Market sees the budget this check used (work 141 review round 1):
         // the unit plus what this decision already holds for the villager and
         // the soldiers before it, not its bare price against the whole purse.
@@ -295,6 +314,7 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
         continue;
       }
       pushQueueTrainIntention(producerId, offered);
+      spend(cost);
       if (nextVillager.food !== undefined) soldiersAsked = addCosts(soldiersAsked, cost);
       // Phase 1C — increment so subsequent same-producer pushes (feudal+
       // pickUnitMix returns multiple unit types per producer) see this
@@ -322,9 +342,12 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
         .find((option) => option !== 'trebuchet');
       if (
         castleUnit !== undefined
-        && canAffordWithReserve(stockpile, trainingCost(castleUnit), addCosts(addCosts(ageUpReserve, nextVillager), soldiersAsked))
+        && (budget
+          ? budget.affords(trainingCost(castleUnit), addCosts(ageUpReserve, nextVillager))
+          : canAffordWithReserve(stockpile, trainingCost(castleUnit), addCosts(addCosts(ageUpReserve, nextVillager), soldiersAsked)))
       ) {
         pushQueueTrainIntention(castleId, castleUnit);
+        spend(trainingCost(castleUnit));
         pendingTrainsByBuilding.set(
           castleId,
           (pendingTrainsByBuilding.get(castleId) ?? 0) + 1,
@@ -333,105 +356,8 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
     }
   }
 
-  if (ownerTownCenterId !== null) {
-    const tcConstruction = accessor.get(constructionStatesCodec).get(ownerTownCenterId);
-    if (!tcConstruction || tcConstruction.isComplete) {
-      const bufferCost = ageUpResourceBuffer(currentAge);
-      const hasBuffer = stockpile ? canAfford(stockpile, bufferCost) : false;
-      const nextAge = pickNextAgeResearch(
-        currentAge,
-        (tech) => {
-          if (tech === 'feudal-age') return canAdvanceToFeudalAge(owner);
-          if (tech === 'castle-age') return canAdvanceToCastleAge(owner);
-          if (tech === 'imperial-age') return canAdvanceToImperialAge(owner);
-          return false;
-        },
-        (tech) => {
-          return stockpile ? canAfford(stockpile, effectiveResearchCost(civOf(owner), ageOf(owner), tech)) : false;
-        },
-      );
-      // Effective TC queue length BEFORE the age-up gate (productionQueues
-      // mixes train + research; without it a full 2-deep TC lands age-up
-      // research at depth 3, which the handler has no recheck for).
-      const tcPersistedQueueLength = accessor.get(productionQueuesCodec).get(ownerTownCenterId)?.length ?? 0;
-      // The AI only pushes villagers to the TC, so every pending TC
-      // queue.train counts as a pending villager (narrow this if a future
-      // non-villager TC train — king / fishing-boat — is added).
-      const tcPendingTrains = pendingTrainsByBuilding.get(ownerTownCenterId) ?? 0;
-      let tcPendingResearch = pendingResearchByBuilding.get(ownerTownCenterId) ?? 0;
-      const tcEffectiveQueueLengthBeforeAgeUp =
-        tcPersistedQueueLength + tcPendingTrains + tcPendingResearch;
-
-      // The age-up may push onto a FULL (2-deep) villager queue (depth 3):
-      // a rich AI keeps the TC queue full, so gating at < 2 starved the
-      // age-up (grounded 2026-07-02); the handler advances queued research
-      // past a pop-blocked unit so it completes.
-      if (
-        nextAge
-        && hasBuffer
-        && !pendingResearchKeys.has(`${owner}:${nextAge}`)
-        && tcEffectiveQueueLengthBeforeAgeUp < 3
-      ) {
-        pushQueueResearchIntention(ownerTownCenterId, nextAge);
-        tcPendingResearch += 1;
-        pendingResearchByBuilding.set(ownerTownCenterId, tcPendingResearch);
-        pendingResearchKeys.add(`${owner}:${nextAge}`);
-      }
-
-      // v0.1.91: qualifies for the next age but can't afford it → trade at
-      // the Market to cover the shortfall (one batch/tick). The market.action
-      // validator gates ownership + affordability, so an owner with no Market
-      // just no-ops like any rejected AI intention. Robust successor to
-      // gather-weight tuning (v0.1.91 FIND): self-corrects whichever age-up
-      // resource the chaotic AI-vs-AI economy left short.
-      if (
-        nextAgeTech
-        && qualifiesForNextAge
-        && stockpile
-        && !canAfford(stockpile, effectiveResearchCost(civOf(owner), ageOf(owner), nextAgeTech))
-      ) {
-        const trade = marketActionForAgeUpShortfall(
-          stockpile, effectiveResearchCost(civOf(owner), ageOf(owner), nextAgeTech), MARKET_TRANSACTION_AMOUNT);
-        if (trade !== null) {
-          pushMarketActionIntention(owner, trade);
-          marketActionPushed = true;
-        }
-      }
-
-      // Recompute the queue length post-age-up push so the villager
-      // gate below sees the freshly-pushed age-up entry.
-      const tcEffectiveQueueLength =
-        tcPersistedQueueLength + tcPendingTrains + tcPendingResearch;
-      const villagerCap = villagerCapForAge(currentAge);
-      const currentVillagers =
-        countOwnedUnits(owner, 'villager') + countQueuedUnits(ownerTownCenterId, 'villager') + tcPendingTrains;
-      const villagerCost = trainingCost('villager');
-      // Not held back by `savingForAgeUp` (work 141): DE's AI keeps training
-      // villagers while it saves for an age — in the Dark Age to 25 villagers
-      // whatever its food, in the Feudal Age until it can pay for the Castle
-      // Age (Promisory units.per 328-386 and 409-415) — and banks the age's
-      // cost once it stops at its villager count. The latch stopped villagers
-      // at 60% of the cost, so the Town Center idled while the AI could pay.
-      if (
-        !populationBlocked
-        && currentVillagers < villagerCap
-        && tcEffectiveQueueLength < 2
-        && stockpile
-        // v0.1.96: villager training is NOT age-up-reserve-gated (unlike military) —
-        // gating the engine that GATHERS the reserve deadlocked the economy when the AI qualified
-        // villager-poor (corpus: 7 Feudal vil frozen at 339/800). The cap banks the food (work 141).
-        && canAfford(stockpile, villagerCost)
-      ) {
-        pushQueueTrainIntention(ownerTownCenterId, 'villager');
-        // Iter-1 Gemini MINOR: increment so a future multi-TC / multi-pass
-        // re-entry can't over-commit (mirrors the military push above).
-        pendingTrainsByBuilding.set(
-          ownerTownCenterId,
-          (pendingTrainsByBuilding.get(ownerTownCenterId) ?? 0) + 1,
-        );
-      }
-    }
-  }
+  // The Town Center: the next age, the Market toward it, villagers (`aiTownCenterPhase.ts`).
+  if (runTownCenterPhase(deps, ctx, nextAgeTech, qualifiesForNextAge)) marketActionPushed = true;
 
   // v0.3.222: the Market's second job — the surplus trade. The age-up path
   // above fires only while an age-up is pending, so it is dead for the whole
@@ -458,7 +384,17 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
     const trade = marketActionForUnaffordableWant(
       currentAge, stockpile, planCosts, unaffordableWants,
       militaryReserve, MARKET_TRANSACTION_AMOUNT);
-    if (trade !== null) pushMarketActionIntention(owner, trade);
+    // A trade spends gold or a commodity like any purchase, so while the escrow
+    // holds anything it must fit the budget and be counted (review round 5).
+    // Counted only when its handler will charge it (review round 8). While the
+    // budget is active a trade the AI cannot pay for now is not asked for at all:
+    // income arriving before its handler runs, the next tick, would let it
+    // through uncounted (review round 9).
+    const tradeCost = trade === null ? null : chargedTradeCost(deps, owner, trade, stockpile);
+    if (trade !== null && (!budget || (tradeCost !== null && budget.affords(tradeCost)))) {
+      pushMarketActionIntention(owner, trade);
+      if (tradeCost !== null) spend(tradeCost);
+    }
   }
 
   if (!researchOutranksQueue(currentAge)) runResearchPhase();
@@ -475,10 +411,11 @@ export function runProductionPhase(deps: AiSystemDeps, ctx: AiOwnerContext): voi
       if (
         ownedMonks < AI_MONK_COUNT_CAP
         && stockpile
-        && canAfford(stockpile, trainingCost('monk'))
+        && (budget ? budget.affords(trainingCost('monk')) : canAfford(stockpile, trainingCost('monk')))
         && getTrainOptions(owner, 'monastery').includes('monk')
       ) {
         pushQueueTrainIntention(monasteryId, 'monk');
+        spend(trainingCost('monk'));
       }
     }
   }

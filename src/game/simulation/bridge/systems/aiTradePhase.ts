@@ -63,7 +63,13 @@ export function runTradePhase(deps: AiSystemDeps, ctx: AiOwnerContext): void {
   const marketId = findIdleProducerLocal('market');
   if (marketId === null) return;
   if (cartCount + countQueuedUnits(marketId, 'trade-cart') >= AI_TRADE_CART_CAP) return;
-  if (!stockpile || !canAfford(stockpile, trainingCost('trade-cart'))) return;
+  // While DE's escrow holds or has bought anything, the cart goes through the
+  // decision's budget like every purchase before it, so it cannot spend the
+  // gold held for a Monk or Conscription (work 141 review round 6).
+  const cost = trainingCost('trade-cart');
+  const budget = ctx.decisionBudget;
+  if (!stockpile || !(budget ? budget.affords(cost) : canAfford(stockpile, cost))) return;
   if (!getTrainOptions(owner, 'market').includes('trade-cart')) return;
   pushQueueTrainIntention(marketId, 'trade-cart');
+  budget?.ask(cost);
 }

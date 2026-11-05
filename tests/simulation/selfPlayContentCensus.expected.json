@@ -23,7 +23,6 @@
       ],
       "units": [
         "archer",
-        "cavalier",
         "crossbowman",
         "halberdier",
         "knight",
@@ -32,11 +31,11 @@
         "longbowman",
         "man-at-arms",
         "militia",
+        "monk",
         "pikeman",
         "scout",
         "spearman",
         "trade-cart",
-        "two-handed-swordsman",
         "villager"
       ],
       "technologies": [
@@ -44,9 +43,9 @@
         "bracer",
         "capped-ram-upgrade",
         "castle-age",
-        "cavalier-upgrade",
         "chain-barding-armor",
         "chain-mail-armor",
+        "conscription",
         "crossbowman-upgrade",
         "feudal-age",
         "fletching",
@@ -63,13 +62,13 @@
         "pikeman-upgrade",
         "scale-barding-armor",
         "scale-mail-armor",
-        "squires",
-        "two-handed-swordsman-upgrade"
+        "squires"
       ],
       "researchProducers": [
         "archery-range",
         "barracks",
         "blacksmith",
+        "castle",
         "siege-workshop",
         "stable",
         "town-center"
@@ -79,6 +78,7 @@
         "barracks",
         "castle",
         "market",
+        "monastery",
         "stable",
         "town-center"
       ]
@@ -118,6 +118,7 @@
         "spearman",
         "throwing-axeman",
         "trade-cart",
+        "two-handed-swordsman",
         "villager"
       ],
       "technologies": [
@@ -127,6 +128,7 @@
         "cavalier-upgrade",
         "chain-barding-armor",
         "chain-mail-armor",
+        "conscription",
         "crop-rotation",
         "crossbowman-upgrade",
         "elite-skirmisher-upgrade",
@@ -146,12 +148,14 @@
         "pikeman-upgrade",
         "scale-barding-armor",
         "scale-mail-armor",
-        "squires"
+        "squires",
+        "two-handed-swordsman-upgrade"
       ],
       "researchProducers": [
         "archery-range",
         "barracks",
         "blacksmith",
+        "castle",
         "mill",
         "stable",
         "town-center"
@@ -216,6 +220,7 @@
     "cavalier-upgrade",
     "chain-barding-armor",
     "chain-mail-armor",
+    "conscription",
     "crop-rotation",
     "crossbowman-upgrade",
     "elite-skirmisher-upgrade",
