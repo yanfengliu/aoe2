@@ -21,26 +21,34 @@
 // Monastery or Monks (units.per 4216-4224, every level). Its train rule
 // (13189-13210) runs before every army line, so it has first claim on what is
 // not held.
+// And DE's ram (work 141 M2a-2b, `aiSiege.ts`), which holds nothing either: its
+// train rule (units.per 12905-12925) runs after the villager's (12771) and
+// before the Monk's (13210), so it is priced after the next villager, as a
+// soldier is, and comes before the first-claim Monk.
 // Left out: DE skips both flags while the AI is under attack, which this AI
 // does not track, and asks military superiority 0 or better for the Monk
-// (3077), which it does not compute. Conscription's population test (3208-3210)
-// always passes at Hard, whose rules these are.
+// (3077), which this AI computes only for the ram's goal. Conscription's
+// population test (3208-3210) always passes at Hard, whose rules these are.
 //
 // Neither flag holds wood. Every Imperial unit costs wood, and holding a stuck
 // building's wood from the army froze it (spec §13.2, "The plan outranks the
 // queue in the Imperial Age"; measured again by work 141: owner 1's army held
 // at 4 from tick 10,000 to 22,000 in the coverage lab).
 
+import type { RamLineUnit } from './aiSiege';
 import type { AgeType, PlayerResources } from './types';
 
 export type EscrowPurchase =
   | { kind: 'train'; producer: 'monastery'; unit: 'monk' }
+  | { kind: 'train'; producer: 'siege-workshop'; unit: RamLineUnit }
   | { kind: 'research'; producer: 'castle'; technology: 'conscription' };
 
 export interface FlaggedPurchase {
   purchase: EscrowPurchase;
   /** Held from the army until bought (DE's escrow), or only bought first. */
   holds: boolean;
+  /** Priced as a soldier: after the next villager and the age's prerequisite wood, not the age-up alone. */
+  soldier?: boolean;
 }
 
 export interface EscrowInputs {
@@ -59,6 +67,8 @@ export interface EscrowInputs {
   castle: boolean;
   /** Conscription is offered: not researched, not in flight, not asked for. */
   conscriptionOffered: boolean;
+  /** The ram-line unit DE's ram goal wants trained now (`aiSiege.ts`), or none. */
+  ram?: RamLineUnit | null;
 }
 
 const MONK: EscrowPurchase = { kind: 'train', producer: 'monastery', unit: 'monk' };
@@ -73,6 +83,7 @@ export function flaggedPurchases(inputs: EscrowInputs): FlaggedPurchase[] {
   if (inputs.age === 'imperial-age' && inputs.castle && inputs.conscriptionOffered) {
     flagged.push({ purchase: CONSCRIPTION, holds: true });
   }
+  if (inputs.ram) flagged.push({ purchase: { kind: 'train', producer: 'siege-workshop', unit: inputs.ram }, holds: false, soldier: true });
   if (firstMonk && inputs.relicsOnMap < 2 && inputs.enemyMonks) flagged.push({ purchase: MONK, holds: false });
   return flagged;
 }
@@ -117,7 +128,9 @@ export interface EscrowSettlement {
  * order from one escrow with its age-ups first (escrow.per 24-725), and its
  * price is held until bought. A first-claim purchase is bought only from what
  * nothing holds, and holds nothing. A purchase whose producer is busy waits,
- * still held if it holds.
+ * still held if it holds. A soldier (the ram) leaves `soldierReserve` instead
+ * of the age-up's: the soldiers' reserve, the next villager's cost included,
+ * read resource by resource as DE's rules read the purse.
  */
 export function settleEscrow(
   stockpile: PlayerResources,
@@ -125,15 +138,16 @@ export function settleEscrow(
   priceOf: (purchase: EscrowPurchase) => Cost,
   producerIdle: (purchase: EscrowPurchase) => boolean,
   ageUpReserve: Cost,
+  soldierReserve: Cost = ageUpReserve,
 ): EscrowSettlement {
   let bought: Cost = {};
   let held: Cost = {};
   const buy: EscrowPurchase[] = [];
   const unpaid: Cost[] = [];
-  for (const { purchase, holds } of flagged) {
+  for (const { purchase, holds, soldier } of flagged) {
     const price = priceOf(purchase);
     const before = plus(bought, held);
-    if (!pays(stockpile, plus(ageUpReserve, before), price)) {
+    if (!pays(stockpile, plus(soldier ? soldierReserve : ageUpReserve, before), price)) {
       if (holds) {
         held = plus(held, price);
         unpaid.push(plus(before, price));
