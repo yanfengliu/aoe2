@@ -28,7 +28,9 @@ const CARDS: Readonly<Record<string, string>> = {
   scout: '<button data-command="stance-aggressive">Aggressive</button><button data-command="stance-defensive">Defensive</button>',
 };
 
-function harness(initial: Selection) {
+type Unit = { id: number; owner: number; unitType: string };
+
+function harness(initial: Selection, units: Unit[] = []) {
   let selection = initial;
   const handlers = new Map<string, () => void>();
   const hudRoot = document.createElement('div');
@@ -50,7 +52,10 @@ function harness(initial: Selection) {
   registerCommandCardHotkeys({
     hotkeyRegistry: { register: (spec, handler) => { handlers.set(spec.key, handler); } },
     view,
-    bridgeRef: () => ({ getSelectionState: () => ({ stanceOptions: [], ...selection }) }) as unknown as SimulationBridge,
+    bridgeRef: () => ({
+      getSelectionState: () => ({ stanceOptions: [], ...selection }),
+      getEconomyState: () => ({ units }),
+    }) as unknown as SimulationBridge,
     hudRoot,
     syncSelectionPanel,
   });
@@ -92,5 +97,29 @@ describe('command-card keys read the card of the selection (work 142)', () => {
     expect(app.pressed.mock.calls).toEqual([['stance-defensive']]);
     app.press('r');
     expect(app.view.armAttackMove).toHaveBeenCalledTimes(1);
+  });
+
+  // Review round 5 (Codex): a Mangonel converted while selected stays in the
+  // selection, beside the player's Scout that keeps the military card; T is
+  // Attack Ground only for a unit of the player's that may attack the ground.
+  it('arms attack-ground on T for the player\'s Mangonel, and not for one an enemy converted', () => {
+    const soldiers: Selection = {
+      selectedEntityIds: [3, 4],
+      selectedEntityType: null,
+      buildOptions: [],
+      stanceOptions: ['aggressive', 'defensive', 'stand-ground', 'no-attack'],
+    };
+    const converted = harness(soldiers, [
+      { id: 3, owner: 1, unitType: 'scout' },
+      { id: 4, owner: 2, unitType: 'mangonel' },
+    ]);
+    converted.press('t');
+    expect(converted.view.armAttackGround).not.toHaveBeenCalled();
+    const own = harness(soldiers, [
+      { id: 3, owner: 1, unitType: 'scout' },
+      { id: 4, owner: 1, unitType: 'mangonel' },
+    ]);
+    own.press('t');
+    expect(own.view.armAttackGround).toHaveBeenCalledTimes(1);
   });
 });

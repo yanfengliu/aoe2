@@ -18,6 +18,7 @@
 
 import type { SimulationBridge } from '../../game/simulation/createSimulationBridge';
 import { canAttackGround } from '../../game/simulation/projectileRules';
+import { HUMAN_PLAYER_ID } from '../../game/simulation/prototypeScenario';
 import type { BuildableBuildingType } from '../../game/simulation/types';
 import {
   BUILD_PAGE_KEYS,
@@ -114,10 +115,14 @@ export function registerCommandCardHotkeys(deps: {
   const orderOnKey = (key: GridKey): MilitaryOrder | undefined => (
     (Object.keys(MILITARY_ORDER_KEYS) as MilitaryOrder[]).find((order) => MILITARY_ORDER_KEYS[order] === key)
   );
-  // DE's card holds Attack Ground only for a unit that may attack the ground.
+  // DE's card holds Attack Ground only for a unit that may attack the ground,
+  // and only the player's own: a unit converted while selected stays in the
+  // selection (review round 5), and no order of the player's would move it.
   const selectionMayAttackGround = (selectedIds: readonly number[]): boolean => {
     const ids = new Set(selectedIds);
-    return bridgeRef().getEconomyState().units.some((unit) => ids.has(unit.id) && canAttackGround(unit.unitType));
+    return bridgeRef().getEconomyState().units.some((unit) => (
+      ids.has(unit.id) && unit.owner === HUMAN_PLAYER_ID && canAttackGround(unit.unitType)
+    ));
   };
 
   const pressUnitKey = (panel: Element | null, key: GridKey, militaryCard: boolean, selectedIds: readonly number[]): void => {
