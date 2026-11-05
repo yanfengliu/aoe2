@@ -252,7 +252,6 @@ export class AoeVoxelGameView {
   /** M6 control: see armedGroundOrder.ts. */
   private readonly groundOrder = new ArmedGroundOrder();
 
-  /** Arm a ground order; the next left click spends it (the military card's R, Q and T keys). */
   /** In-match speed (v0.3.155): DE's numpad +/- ladder (1 / 1.5 / 2). */
   adjustSpeed(direction: 1 | -1): number {
     const ladder = [1, 1.5, 2];
@@ -260,6 +259,8 @@ export class AoeVoxelGameView {
     this.simulationSpeedMultiplier = ladder[Math.min(ladder.length - 1, Math.max(0, index + direction))]!;
     return this.simulationSpeedMultiplier;
   }
+  getSimulationSpeed(): number { return this.simulationSpeedMultiplier; }
+  /** Arm a ground order; the next left click spends it (the military card's R, Q and T keys). */
   armAttackMove(): void { this.groundOrder.arm('attack-move'); }
   armPatrol(): void { this.groundOrder.arm('patrol'); }
   armAttackGround(): void { this.groundOrder.arm('attack-ground'); }

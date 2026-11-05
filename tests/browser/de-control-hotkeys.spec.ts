@@ -1,5 +1,7 @@
 // DE muscle-memory hotkeys (v0.3.155): H selects the Town Center and
-// centres, ',' cycles idle military, F3 pauses, +/- steps the game speed.
+// centres, ',' cycles idle military, F3 pauses, the numpad's + and − step
+// the game speed (DE's SPEED_UP and SPEED_DOWN, VK_ADD and VK_SUBTRACT: the
+// main row's keys stopped doing it in work 142; de-global-keys.spec.ts).
 // Real key presses per the unwatched-seam rule — a registry entry proves
 // nothing about what a keyboard does.
 
@@ -59,7 +61,7 @@ test.describe('DE control hotkeys', () => {
       .toBeGreaterThan(t2);
   });
 
-  test('+ and - step the game speed ladder', async ({ page }) => {
+  test("the numpad's + and − step the game speed ladder", async ({ page }) => {
     await game.waitForBoot(page);
     // A speed ladder IS a rate, so this one legitimately holds a clock — but it
     // reads the clock the sample was actually taken over instead of assuming
@@ -84,10 +86,10 @@ test.describe('DE control hotkeys', () => {
       return (b.tick - a.tick) / ((b.atMs - a.atMs) / 1000);
     };
     const slow = await rate();
-    await page.keyboard.press('+');
+    await page.keyboard.press('NumpadAdd');
     const normal = await rate();
     expect(normal).toBeGreaterThan(slow);
-    await page.keyboard.press('-');
+    await page.keyboard.press('NumpadSubtract');
     const backDown = await rate();
     expect(backDown).toBeLessThan(normal);
   });

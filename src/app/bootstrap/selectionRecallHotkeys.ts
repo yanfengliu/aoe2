@@ -2,7 +2,9 @@
 // the idle-villager '.' cycle and the v0.3.104 control-group trio — Ctrl+digit
 // binds, digit recalls survivors, a quick second tap centres the camera.
 
+import type { HotkeyHandler, HotkeySpec } from '../../game/control/HotkeyRegistry';
 import type { SimulationBridge } from '../../game/simulation/createSimulationBridge';
+import { centreOnObject, type CentringViewLike } from './goToObject';
 
 /** A second tap of the same group key inside this window centres the camera.
  *  Measured between the two keydowns' own `timeStamp`s, never on a clock read
@@ -12,19 +14,11 @@ import type { SimulationBridge } from '../../game/simulation/createSimulationBri
 export const CONTROL_GROUP_DOUBLE_TAP_MS = 450;
 
 interface HotkeyRegistryLike {
-  register(spec: { key: string; ctrl?: boolean }, handler: (event: KeyboardEvent) => void): void;
+  register(spec: HotkeySpec, handler: HotkeyHandler): void;
 }
 
-interface CameraViewLike {
-  centerCameraOnWorldPosition(x: number, y: number): void;
-}
-
-function centerOnPrimarySelection(bridge: SimulationBridge, view: CameraViewLike): void {
-  const id = bridge.getSelectionState().selectedEntityId;
-  const unit = id === null
-    ? undefined
-    : bridge.getEconomyState().units.find((candidate) => candidate.id === id);
-  if (unit) view.centerCameraOnWorldPosition(unit.x + 0.5, unit.y + 0.5);
+function centerOnPrimarySelection(bridge: SimulationBridge, view: CentringViewLike): void {
+  centreOnObject(bridge, view, bridge.getSelectionState().selectedEntityId);
 }
 
 export function registerSelectionRecallHotkeys(
@@ -32,7 +26,7 @@ export function registerSelectionRecallHotkeys(
   // A GETTER, not the bridge: createApp swaps the bridge on save-load, and a
   // captured reference would leave every hotkey bound to the dead world.
   bridgeRef: () => SimulationBridge,
-  view: CameraViewLike,
+  view: CentringViewLike,
 ): () => void {
   // The idle villager bell (v0.3.103): '.' or the bottom-left button selects
   // the next standing-around villager (round-robin) and centres the camera.
@@ -61,6 +55,11 @@ export function registerSelectionRecallHotkeys(
   hotkeyRegistry.register({ key: 'Delete' }, () => {
     bridgeRef().deleteSelectedEntity();
   });
+  // Shift+Delete (work 142): DE's DELETE_UNITS (19036, "Delete All Selected
+  // Units"), every selected entity of the player's; Delete is DELETE_UNIT.
+  hotkeyRegistry.register({ key: 'Delete', shift: true }, () => {
+    bridgeRef().deleteSelectedEntities();
+  });
   // ',' (v0.3.155): the idle-MILITARY cycle, DE's companion to '.'.
   hotkeyRegistry.register({ key: ',' }, () => {
     if (!bridgeRef().selectNextIdleMilitary()) return;
@@ -77,9 +76,7 @@ export function registerSelectionRecallHotkeys(
     if (centers.length === 0) return;
     const next = centers.find((c) => c.id > lastTownCenterId) ?? centers[0]!;
     lastTownCenterId = next.id;
-    if (bridge.selectEntityById(next.id)) {
-      view.centerCameraOnWorldPosition(next.x + 0.5, next.y + 0.5);
-    }
+    if (bridge.selectEntityById(next.id)) centreOnObject(bridge, view, next.id);
   });
   return selectNextIdleVillagerAndCenter;
 }

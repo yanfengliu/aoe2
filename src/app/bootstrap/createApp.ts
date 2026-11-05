@@ -428,7 +428,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   idleBell.mount(hudRoot);
   cleanupCallbacks.push(() => idleBell.dispose());
   registerDePlayHotkeys({
-    hotkeyRegistry, view, pauseControl, replayController,
+    hotkeyRegistry, view, pauseControl, replayController, bridgeRef,
     getLastHomeAttackPosition: () => gameAudio.getLastHomeAttackPosition(),
   });
   // v0.1.95 / v0.3.223: Esc backs out of whatever is ON TOP, and opens the

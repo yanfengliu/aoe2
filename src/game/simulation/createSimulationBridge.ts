@@ -405,6 +405,15 @@ export function createSimulationBridge(
       });
       return result.accepted;
     },
+    // Shift+Delete (work 142): one `entity.delete` per selected entity, whose
+    // validator refuses any the player does not own (a unit converted while
+    // selected stays in the selection).
+    deleteSelectedEntities(): number {
+      return getSelectedEntityRefs().filter((ref) => world.submitWithResult('entity.delete', {
+        entityId: ref.id,
+        requestedBy: HUMAN_PLAYER_ID,
+      }).accepted).length;
+    },
     setSelectionStance,
     setSelectionFormation,
     issueAttackMoveCommand: (x: number, y: number) => ack(issueAttackMoveCommand(x, y)),

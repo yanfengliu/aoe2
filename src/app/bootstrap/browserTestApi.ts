@@ -205,6 +205,8 @@ export interface BrowserTestApi {
    *  Returns the zoom the camera's own clamp accepted, which is not the
    *  requested one past the 0.7–2.4 range. */
   setCameraZoom(zoom: number): number;
+  /** The in-match game speed the numpad keys step (work 142). */
+  getSimulationSpeed(): number;
   issueContextCommand(cellX: number, cellY: number, garrison?: boolean): boolean;
   issueContextCommandAtWorldPosition(worldX: number, worldY: number): boolean;
   issueMoveCommand(cellX: number, cellY: number): boolean;
@@ -401,6 +403,7 @@ export function installBrowserTestApi(
       view.syncFromBridge(true);
       return applied;
     },
+    getSimulationSpeed: () => view.getSimulationSpeed(),
     issueContextCommand: (cellX: number, cellY: number, garrison?: boolean) => {
       const didIssue = getBridge().issueContextCommand(cellX, cellY, garrison);
       view.syncFromBridge(true);

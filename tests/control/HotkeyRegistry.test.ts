@@ -219,3 +219,36 @@ describe('HotkeyRegistry', () => {
     registry.dispose();
   });
 });
+
+// Work 142 M2b-2b: DE's keys name physical keys (VK_ADD is the numpad's +,
+// which a browser reports as the same `key` as Shift+=), and a boot-time key
+// that means something else in one mode passes the key on to that mode's own.
+describe('HotkeyRegistry physical keys and passing a key on', () => {
+  it('matches a spec with a code on the physical key alone', () => {
+    const handler = vi.fn();
+    const registry = createHotkeyRegistry();
+    registry.register({ code: 'NumpadAdd' }, handler);
+    dispatch(document, { key: '+', code: 'Equal' });
+    expect(handler).not.toHaveBeenCalled();
+    dispatch(document, { key: '+', code: 'NumpadAdd' });
+    expect(handler).toHaveBeenCalledTimes(1);
+    registry.dispose();
+  });
+
+  it('a handler that returns false passes the key to the next registration and leaves its default', () => {
+    const registry = createHotkeyRegistry();
+    const declines = vi.fn(() => false as const);
+    registry.register({ key: 'Home' }, declines);
+    const first = new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true });
+    document.dispatchEvent(first);
+    expect(declines).toHaveBeenCalledTimes(1);
+    expect(first.defaultPrevented, 'a declined key kept the browser from it').toBe(false);
+    const takes = vi.fn();
+    registry.register({ key: 'Home' }, takes);
+    const second = new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true });
+    document.dispatchEvent(second);
+    expect(takes).toHaveBeenCalledTimes(1);
+    expect(second.defaultPrevented).toBe(true);
+    registry.dispose();
+  });
+});

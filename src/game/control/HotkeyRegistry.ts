@@ -5,20 +5,30 @@
 // (input / textarea / contenteditable) has focus to avoid hijacking
 // future chat / form input.
 
-export interface HotkeySpec {
-  /** Single character keys are matched case-insensitively against
-   *  KeyboardEvent.key (lowercased). Special keys ('Escape', 'Enter',
-   *  'ArrowUp', etc.) are matched verbatim. */
-  readonly key: string;
+interface HotkeyModifiers {
   readonly alt?: boolean;
   readonly ctrl?: boolean;
   readonly shift?: boolean;
   readonly meta?: boolean;
 }
 
+export type HotkeySpec = HotkeyModifiers & (
+  /** Single character keys are matched case-insensitively against
+   *  KeyboardEvent.key (lowercased). Special keys ('Escape', 'Enter',
+   *  'ArrowUp', etc.) are matched verbatim. */
+  | { readonly key: string; readonly code?: never }
+  /** A physical key, matched verbatim against KeyboardEvent.code (work 142):
+   *  DE names keys, and the numpad's + ('NumpadAdd', DE's VK_ADD) arrives
+   *  with the same `key` as Shift+=, as Shift+1 arrives as '!'. */
+  | { readonly code: string; readonly key?: never }
+);
+
 /** Gets the keydown itself, so a gesture timed across two presses can read
- *  each press's own `timeStamp` rather than a clock read in the handler. */
-export type HotkeyHandler = (event: KeyboardEvent) => void;
+ *  each press's own `timeStamp` rather than a clock read in the handler.
+ *  Returning `false` passes the key on: the next matching registration gets
+ *  it, and with none the browser keeps it (a boot-time key that means
+ *  something else in replay mode hands it to the replay's own). */
+export type HotkeyHandler = (event: KeyboardEvent) => void | false;
 
 export interface HotkeyRegistry {
   /** Register a handler for a chord. Returns an unregister function. */
@@ -80,10 +90,14 @@ const isTextInputElement = (el: EventTarget | null): boolean => {
 };
 
 const matches = (spec: HotkeySpec, event: KeyboardEvent): boolean => {
-  // Single-char keys: case-insensitive. Otherwise: exact (e.g., 'Escape').
-  const eventKey = event.key.length === 1 ? event.key.toLowerCase() : event.key;
-  const specKey = spec.key.length === 1 ? spec.key.toLowerCase() : spec.key;
-  if (eventKey !== specKey) return false;
+  if (spec.code !== undefined) {
+    if (event.code !== spec.code) return false;
+  } else {
+    // Single-char keys: case-insensitive. Otherwise: exact (e.g., 'Escape').
+    const eventKey = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+    const specKey = spec.key.length === 1 ? spec.key.toLowerCase() : spec.key;
+    if (eventKey !== specKey) return false;
+  }
   if ((spec.alt ?? false) !== event.altKey) return false;
   if ((spec.ctrl ?? false) !== event.ctrlKey) return false;
   if ((spec.shift ?? false) !== event.shiftKey) return false;
@@ -114,8 +128,8 @@ export function createHotkeyRegistry(options: HotkeyRegistryOptions = {}): Hotke
     if (isTextInputElement(event.target)) return;
     for (const reg of registrations) {
       if (matches(reg.spec, event)) {
+        if (reg.handler(event) === false) continue;
         event.preventDefault();
-        reg.handler(event);
         return;
       }
     }

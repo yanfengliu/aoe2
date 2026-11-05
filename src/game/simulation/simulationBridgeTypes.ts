@@ -137,6 +137,9 @@ export interface SimulationBridge {
   getRecentPlayerHits(): readonly import('./bridge/playerHitFeed').PlayerHitView[];
   /** Delete key (v0.3.114): remove the primary selected OWN unit/building. */
   deleteSelectedEntity(): boolean;
+  /** Shift+Delete (work 142, DE's DELETE_UNITS): every selected entity of the
+   *  player's; returns how many the validator accepted. */
+  deleteSelectedEntities(): number;
   /** Successful town-bell rings this session (v0.3.116 audio observable). */
   getTownBellRings(): number;
   /** Successful order gestures this session (v0.3.118 ack-click observable). */
