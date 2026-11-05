@@ -213,5 +213,17 @@ test.describe("DE's global keys", () => {
     // The hidden form keeps focus on Cancel; the game's keys work again.
     await page.keyboard.press('Control+Equal');
     await expect.poll(() => zoom(page), { message: 'a game key stayed dead after the form closed' }).toBeCloseTo(before.zoom + 0.1, 5);
+
+    // Review round 8: Enter on the severity radio submits the form, and the
+    // radio, an input, keeps focus in the hidden form.
+    await page.keyboard.press('Alt+m');
+    await expect(form).not.toHaveClass(/annotation-form--hidden/);
+    await page.locator('[data-testid="annotation-form-text"]').fill('submitted from a radio');
+    await page.locator('[data-testid="annotation-form-severity-bug"]').focus();
+    await page.keyboard.press('Enter');
+    await expect(form, 'Enter on the radio did not submit the form').toHaveClass(/annotation-form--hidden/);
+    const afterSubmit = await zoom(page);
+    await page.keyboard.press('Control+Equal');
+    await expect.poll(() => zoom(page), { message: 'a game key stayed dead after the form was submitted from its radio' }).toBeCloseTo(afterSubmit + 0.1, 5);
   });
 });

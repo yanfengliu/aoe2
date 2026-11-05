@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { centreOnObject } from '../../src/app/bootstrap/goToObject';
 import type { SimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 
-function fakeBridge(visibleCells: ReadonlySet<string>): SimulationBridge {
+function fakeBridge(visibleCells: ReadonlySet<string>, allyCells: ReadonlySet<string> = new Set()): SimulationBridge {
   return {
     getEconomyState: () => ({
       units: [
@@ -22,7 +22,8 @@ function fakeBridge(visibleCells: ReadonlySet<string>): SimulationBridge {
         { id: 5, owner: 1, x: 90, y: 91 },
       ],
     }),
-    isCellVisibleForOwner: (_owner: number, x: number, y: number) => visibleCells.has(`${x},${y}`),
+    getSharedVisionOwners: (playerId: number) => (playerId === 1 ? [3] : []),
+    isCellVisibleForOwner: (owner: number, x: number, y: number) => (owner === 1 ? visibleCells : owner === 3 ? allyCells : new Set()).has(`${x},${y}`),
   } as unknown as SimulationBridge;
 }
 
@@ -42,6 +43,14 @@ describe('centreOnObject', () => {
     expect(centreOnObject(fakeBridge(new Set(['30,40', '70,80'])), view, 2)).toBe(true);
     expect(centreOnObject(fakeBridge(new Set(['30,40', '70,80'])), view, 4)).toBe(true);
     expect(view.centerCameraOnWorldPosition.mock.calls).toEqual([[30.5, 40.5], [70.5, 80.5]]);
+  });
+
+  // Review round 8: the player sees through its allies' eyes (and everyone's
+  // with Spies), so what an ally sees is drawn, clickable, and a target.
+  it("follows another player's unit that only an ally sees", () => {
+    const view = { centerCameraOnWorldPosition: vi.fn() };
+    expect(centreOnObject(fakeBridge(new Set(), new Set(['30,40'])), view, 2)).toBe(true);
+    expect(view.centerCameraOnWorldPosition).toHaveBeenCalledWith(30.5, 40.5);
   });
 
   it("centres another player's building on its footprint's middle, seen or remembered", () => {

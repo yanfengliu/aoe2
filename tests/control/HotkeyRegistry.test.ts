@@ -276,6 +276,15 @@ describe('HotkeyRegistry inside a form', () => {
     (form as HTMLFormElement & { checkVisibility: () => boolean }).checkVisibility = () => false;
     inside.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
     expect(handler).toHaveBeenCalledTimes(2);
+    // Review round 8: an input of the hidden form, a radio that submitted it
+    // with Enter, kept focus too, and a text field's rule must not take it back.
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    const text = document.createElement('textarea');
+    form.append(radio, text);
+    radio.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+    text.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+    expect(handler).toHaveBeenCalledTimes(4);
     form.remove();
     outside.remove();
     registry.dispose();

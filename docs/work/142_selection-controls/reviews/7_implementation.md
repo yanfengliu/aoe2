@@ -29,3 +29,11 @@ All five repaired in `b0d05e70`.
 3. One assertion after each main-row key.
 4. The spec says the speed and zoom keys match the physical key and the letter and punctuation keys the character typed.
 5. "Home has no target".
+
+## Verification
+
+The phase-1 gate on the reviewed revision `c8ca788a` passed: vitest 5,295 passed and 3 skipped, Playwright 309 passed and 2 skipped, receipt OK. Each repair's new test was run on `c8ca788a` and failed there. The gate on the repairs (`47e89d37`) failed in two unit cases: `tests/architecture/humanSightQueries.test.ts` refused the visibility query of repair 1, which asked about the human's own vision alone (round 8 found the same), and `tests/architecture/workDocsIntegration.test.ts` asked for this section. Both are answered in round 8's repair commit.
+
+## Round outcome
+
+Five findings, all repaired; a focused re-review followed (round 8).
