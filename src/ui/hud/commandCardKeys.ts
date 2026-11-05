@@ -7,9 +7,9 @@
 // slot 4, T, and "Ungarrison All Units" at slot 9, G).
 //
 // A pressed key presses the button of the selected card that holds it, so a
-// key does exactly what a click on that button does. Only the cards this file
-// names have DE keys yet: the villager's, the Town Center's and the units'
-// (M2a and M2b-1); the other buildings' cards are work 142 M2b-2.
+// key does exactly what a click on that button does. This file holds the grid,
+// the villager's card and the units' cards (M2a and M2b-1); the buildings'
+// cards are in `buildingCardKeys.ts` (M2a and M2b-2).
 
 import type { BuildableBuildingType } from '../../game/simulation/types';
 import type { BuildPageId } from './selectionPanel/buildPages';
@@ -63,45 +63,11 @@ export const VILLAGER_BUILD_SLOTS: Readonly<Record<BuildableBuildingType, { page
   castle: { page: 'military', key: 'c' }, // VILLAGER_BUILD_CASTLE, 19066
 };
 
-/** A building's card, keyed by the button's `data-command`. */
-type BuildingCardKeys = Readonly<Record<string, GridKey>>;
-
-/** TOWN_CENTER_HOTKEYS (string 20004), with UNIT_COMMAND_HOTKEYS' UNGARRISON
- *  (20208), which every garrisonable building shares. */
-const TOWN_CENTER_KEYS: BuildingCardKeys = {
-  'train-villager': 'q', // TOWN_CENTER_CREATE_VILLAGER, 19054
-  'research-loom': 'a', // TOWN_CENTER_LOOM, 19333
-  'research-wheelbarrow': 's', // TOWN_CENTER_WHEELBARROW_HANDCART, 19334
-  'research-hand-cart': 's',
-  'research-town-watch': 'd', // TOWN_CENTER_TOWN_WATCH_GUARD, 19335
-  'research-town-patrol': 'd',
-  'research-feudal-age': 'z', // TOWN_CENTER_AGE_ADVANCE, 19336
-  'research-castle-age': 'z',
-  'research-imperial-age': 'z',
-  'action-back-to-work': 'f', // TOWN_CENTER_BACK_TO_WORK, 19324
-  'action-ungarrison': 'g', // UNGARRISON, 20208
-  'action-ring-town-bell': 'b', // TOWN_CENTER_RING_TOWN_BELL, 19319
-};
-
-const BUILDING_CARD_KEYS: Readonly<Record<string, BuildingCardKeys>> = {
-  'town-center': TOWN_CENTER_KEYS,
-};
-
-/** Whether this building's card takes DE's keys (work 142 M2a: the Town Center). */
-export function hasBuildingCardKeys(buildingType: string): boolean {
-  return Object.hasOwn(BUILDING_CARD_KEYS, buildingType);
-}
-
-/** The DE key of a button on a building's card, or null when DE gives it none here. */
-export function buildingCardKeyOf(buildingType: string, command: string): GridKey | null {
-  return BUILDING_CARD_KEYS[buildingType]?.[command] ?? null;
-}
-
 /** A unit's card (work 142 M2b-1), keyed by the button's `data-command`:
  *  MILITARY_UNITS_HOTKEYS (string 20014, "Military Units") holds the stances
  *  and formations, and a Fishing Ship builds the Fish Trap on
  *  VILLAGER_BUILD_FISH_TRAP's Q, which has no build page (no `context`). */
-const UNIT_CARD_KEYS: BuildingCardKeys = {
+const UNIT_CARD_KEYS: Readonly<Record<string, GridKey>> = {
   'stance-aggressive': 'a', // AGGRESSIVE, 19315
   'stance-defensive': 's', // DEFENSIVE, 19316
   'stance-stand-ground': 'd', // STAND_GROUND, 19317
@@ -132,12 +98,22 @@ export const MILITARY_ORDER_KEYS: Readonly<Record<MilitaryOrder, GridKey>> = {
   'attack-ground': 't',
 };
 
-/** Orders a card's buttons by their DE slots, as DE's grid draws them; a
- *  button DE gives no key keeps its place after the keyed ones. */
-export function inUnitCardSlotOrder<T>(options: readonly T[], commandOf: (option: T) => string): T[] {
+/** Orders a card's buttons by their DE slots, as DE's grid draws them: the
+ *  buttons that share a slot, a line's tiers, by `rankOf` (else as they come),
+ *  and a button DE gives no key after the keyed ones, as it came. */
+export function inSlotOrder<T>(
+  options: readonly T[],
+  keyOf: (option: T) => GridKey | null,
+  rankOf: (option: T) => number = () => 0,
+): T[] {
   const slot = (option: T): number => {
-    const key = unitCardKeyOf(commandOf(option));
+    const key = keyOf(option);
     return key === null ? GRID_KEYS.length : gridSlotOf(key);
   };
-  return [...options].sort((a, b) => slot(a) - slot(b));
+  return [...options].sort((a, b) => slot(a) - slot(b) || rankOf(a) - rankOf(b));
+}
+
+/** A unit's card in DE's slot order (`inSlotOrder`). */
+export function inUnitCardSlotOrder<T>(options: readonly T[], commandOf: (option: T) => string): T[] {
+  return inSlotOrder(options, (option) => unitCardKeyOf(commandOf(option)));
 }

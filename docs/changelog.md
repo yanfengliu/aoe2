@@ -2,6 +2,15 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## Unreleased — work 142 M2b-2
+
+Every building's command card takes Definitive Edition's (DE's) default keys, from the default key profile in DE's own files.
+
+- **DE's keys on every building.** With a building selected, each key presses the button DE puts on it. The Barracks trains the Militia line on Q and the Spearman line on W and researches the Militia line's upgrades on A; the Archery Range trains Archers, Skirmishers and Cavalry Archers on Q, W and E; the Stable trains Scouts, Knights and Camels on Q, W and E; the Siege Workshop trains Rams, Mangonels and Scorpions on Q, W and E; the Blacksmith researches melee attack on Q, infantry armor on W, cavalry armor on E, arrows on A and archer armor on S; the Market sells wood, food and stone on S, D and F and buys them on X, C and V; the Castle trains its unique unit on Q, the Trebuchet on W and the Petard on E, and researches its unique technologies on S and D; the Dock trains Fishing Ships on Q. Design §14.2 lists every key.
+- **A building's buttons are in DE's order.** Each group of a building's card is drawn in the order of DE's slots: the Town Center shows Loom before the next age, and of two tiers of one line the earlier comes first (Chemistry before the Bombard Tower).
+- **G ungarrisons any building** that holds units, as in DE.
+- **Keys that moved.** None: no key did anything on a building's card but the Town Center's before.
+
 ## 0.3.263
 
 The military card's keys are Definitive Edition's (DE's), from the default key profile in DE's own files.

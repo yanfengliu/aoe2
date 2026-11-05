@@ -26,6 +26,9 @@ const CARDS: Readonly<Record<string, string>> = {
   'town-center': '<button data-command="train-villager">Train Villager</button>',
   'fishing-ship': '<button data-command="build-fish-trap">Fish Trap</button>',
   scout: '<button data-command="stance-aggressive">Aggressive</button><button data-command="stance-defensive">Defensive</button>',
+  // Two tiers of one slot, the first locked (work 142 M2b-2).
+  university: '<button data-command="research-chemistry" disabled>Chemistry</button>'
+    + '<button data-command="research-bombard-tower-unlock">Bombard Tower</button>',
 };
 
 type Unit = { id: number; owner: number; unitType: string };
@@ -97,6 +100,14 @@ describe('command-card keys read the card of the selection (work 142)', () => {
     expect(app.pressed.mock.calls).toEqual([['stance-defensive']]);
     app.press('r');
     expect(app.view.armAttackMove).toHaveBeenCalledTimes(1);
+  });
+
+  // Work 142 M2b-2: DE's slot shows one tier of a line, the one the player can
+  // take; this card can draw a locked tier beside it, and a key passes it over.
+  it('presses the first button on a building\'s key that is not locked', () => {
+    const app = harness({ selectedEntityIds: [11], selectedEntityType: 'university', buildOptions: [] });
+    app.press('t');
+    expect(app.pressed.mock.calls).toEqual([['research-bombard-tower-unlock']]);
   });
 
   // Review round 5 (Codex): a Mangonel converted while selected stays in the

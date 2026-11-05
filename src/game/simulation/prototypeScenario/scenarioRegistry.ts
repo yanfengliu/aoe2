@@ -280,7 +280,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   // Behind-building silhouette cue: one hidden + one control villager
   // (capture target for the unit-occlusion-outline change).
   ['occlusion-showcase-fixture', fixtures.createOcclusionShowcaseFixture],
-  ['selection-controls-fixture', fixtures.createSelectionControlsFixture],
+  ...fixtures.selectionControlsScenarios(),
   // M7 terrain-blending: a visual-only showcase painting adjacent terrain kinds
   // (capture target for the kind-to-kind transition change).
   ['terrain-showcase-fixture', fixtures.createTerrainShowcaseFixture],

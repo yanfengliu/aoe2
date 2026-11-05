@@ -463,7 +463,7 @@ export {
 } from './buildingShowcase';
 
 export { createOcclusionShowcaseFixture } from './occlusionShowcase';
-export { createSelectionControlsFixture } from './selectionControls';
+export { createSelectionControlsFixture, selectionControlsScenarios } from './selectionControls';
 
 export {
   createTerrainShowcaseFixture,

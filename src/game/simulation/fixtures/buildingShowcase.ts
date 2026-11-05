@@ -21,9 +21,10 @@ function showcaseTerrain() {
 // Visual-only showcase scenario (M7 building-visuals). Places one COMPLETED
 // human-owned building of every concrete BuildingType in a tidy grid, so the
 // AGENTS.md visual-change protocol can capture a single before/after frame that
-// exercises both shared role silhouettes and their type-specific details. Not
-// referenced by gameplay tests; purely a capture target (lives in the fixtures
-// tree, the sanctioned home for scenario data).
+// exercises both shared role silhouettes and their type-specific details. A
+// capture target (lives in the fixtures tree, the sanctioned home for scenario
+// data); work 142's building-card-keys fixture reuses its grid with more
+// resources, finding each building by type, so the layout stays free to move.
 // Imperial age + generous vision so every building is fog-visible to player 1
 // at boot. Footprints are spaced apart so the bridge-boot overlap validator
 // passes and each silhouette is isolated and legible.

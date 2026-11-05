@@ -4,6 +4,15 @@ import {
   type PrototypeScenario,
 } from '../prototypeScenario';
 import { createGrassFixtureTerrain, gaiaSpawn, ownedSpawn } from './common';
+import { BUILDING_CARD_KEYS_SEED, createBuildingCardKeysFixture } from './buildingCardKeys';
+
+/** Work 142's scenes by seed, which the scenario registry lists as one family. */
+export function selectionControlsScenarios(): ReadonlyArray<readonly [string, (seed: string) => PrototypeScenario]> {
+  return [
+    ['selection-controls-fixture', createSelectionControlsFixture],
+    [BUILDING_CARD_KEYS_SEED, createBuildingCardKeysFixture],
+  ];
+}
 
 // Work 142: selecting and commanding as Definitive Edition does, on one paused
 // frame at the browser suite's 800x600 and the camera's boot framing (centred

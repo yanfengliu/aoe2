@@ -64,84 +64,9 @@ import {
   renderTrainButtons,
   renderTributeButtons,
 } from './selectionPanel/buttons';
+import { commandReasons, renderCommandGroup } from './selectionPanel/commandGroup';
+import { inBuildingCardSlotOrder } from './buildingCardKeys';
 
-/**
- * The bridge's per-command "what is missing", indexed by the same
- * `data-command` hook the buttons carry. The simulation decides WHY a
- * command refuses; this only routes each sentence to its own control.
- */
-function commandReasons(selectionState: SelectionState): ReadonlyMap<string, string> {
-  return new Map(
-    selectionState.unavailableCommands.map((entry) => [
-      `${entry.kind}-${entry.id}`,
-      entry.reason,
-    ]),
-  );
-}
-
-type CommandGroupKind =
-  | 'action'
-  | 'stance'
-  | 'formation'
-  | 'train'
-  | 'market'
-  | 'tribute'
-  | 'research'
-  | 'build';
-
-// `headingControls` is optional markup that LEADS the heading row — the Build
-// group's page toggle — and `headingStatus` sits between the title and the
-// count: the Build group's "Placing: …" pill. Both live in the heading so a
-// mode or a page can be offered without adding a section to the bar (a sibling
-// of the bar takes its width out of the palette; a row of its own takes its
-// height). The toggle leads because the title and the count step aside for the
-// pill on a narrow group, and a control that moves when a mode starts is the
-// defect the pill itself was moved here to avoid.
-function renderCommandGroup(
-  kind: CommandGroupKind,
-  label: string,
-  content: string,
-  count: number,
-  headingStatus = '',
-  headingControls = '',
-  sectionAttributes = '',
-): string {
-  if (!content) {
-    return '';
-  }
-  const headingId = `hud-command-group-${kind}`;
-  const listClass = kind === 'build' ? 'hud-build-menu' : 'hud-command-list';
-  return `
-    <section
-      class="hud-command-group hud-command-group--${kind}"
-      data-command-group="${kind}"
-      data-command-group-count="${count}"
-      ${sectionAttributes}
-      aria-labelledby="${headingId}"
-    >
-      <div class="hud-command-group__heading">
-        ${headingControls}
-        <span class="hud-command-group__title" id="${headingId}">${label}</span>
-        ${headingStatus}
-        <span class="hud-command-group__count" aria-hidden="true">${count}</span>
-      </div>
-      <div class="${listClass}">${content}</div>
-    </section>`;
-}
-
-// M7 UI-icons (v0.1.72): the command-card "Train <Name>" buttons get a per-role
-// procedural UNIT glyph before the label (reusing the v0.1.44 selection-panel
-// art), mirroring renderBuildButtons. Augment-not-replace: the
-// `data-command="train-<type>"` hook and the "Train <Name>" text are preserved
-// (the text sits in a `hud-command-label` span so textContent is unchanged).
-// Exported so it is unit-testable in isolation.
-// M7 UI-icons (v0.1.74): the command-card "Research <Name>" buttons get the
-// generic procedural RESEARCH glyph before the label. Augment-not-replace:
-// the `data-command="research-<tech>"` hook, the "Research <Name>" text, and
-// the visible-but-locked disabled state (a tech shown greyed until its
-// prerequisites are met) are all preserved. `visibleResearchOptions` is the
-// full set of buttons to draw; `availableResearchOptions` is the subset that
-// is researchable right now (the rest render locked).
 export interface SelectionPanelDeps {
   getEconomyState(): EconomyState;
   issueAction(actionType: ActionType): boolean;
@@ -311,9 +236,11 @@ export function createSelectionPanel(
     // Only a selection with a build palette can be placing; the fallback keeps
     // the status visible if that ever stops being true.
     const placementOutsideDeck = buildButtons ? '' : placementMarkup;
-    const actionButtons = renderActionButtons(selectionState.actionOptions);
-    const trainButtons = renderTrainButtons(selectionState.trainOptions, reasons, costs);
-    const marketButtons = renderMarketButtons(selectionState.marketOptions, reasons);
+    // A building's buttons are drawn in DE's slot order (work 142 M2b-2).
+    const card = inBuildingCardSlotOrder(selectionState);
+    const actionButtons = renderActionButtons(card.actionOptions);
+    const trainButtons = renderTrainButtons(card.trainOptions, reasons, costs);
+    const marketButtons = renderMarketButtons(card.marketOptions, reasons);
     // Tribute rides the Market card: buttons exist only while a completed own
     // Market is selected, which is exactly when marketOptions is non-empty.
     const tribute = selectionState.marketOptions.length > 0
@@ -322,7 +249,7 @@ export function createSelectionPanel(
     const tributeTargetCount = tribute.owners.length * 4;
     const tributeButtons = renderTributeButtons(tribute.owners, tribute.feeRate);
     const researchButtons = renderResearchButtons(
-      selectionState.visibleResearchOptions,
+      card.visibleResearchOptions,
       selectionState.researchOptions,
       reasons,
       costs,

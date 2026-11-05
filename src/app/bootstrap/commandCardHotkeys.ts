@@ -1,7 +1,8 @@
 // DE's command-card keys (work 142): a grid key presses the button of the
 // selected card that DE puts on that key, so a key does exactly what a click on
 // the button does, availability and refusals included. The keys and their
-// sources are in `src/ui/hud/commandCardKeys.ts`.
+// sources are in `src/ui/hud/commandCardKeys.ts` and, for the buildings,
+// `src/ui/hud/buildingCardKeys.ts`.
 //
 // A villager's card is DE's two steps: on its first page Q opens the Economic
 // Buildings page and W the Military Buildings page (a click on a page tab
@@ -12,19 +13,19 @@
 // A unit's card (work 142 M2b-1): a key presses the stance, formation or Fish
 // Trap button that holds it, and the military card, the card of a unit with
 // stances, arms its three ground orders by key: Q patrol, R attack-move and T
-// attack-ground, T only when a selected unit may attack the ground. The
-// buildings' cards other than the Town Center's have no keys yet (M2b-2), and
-// a key on a card without DE keys does nothing.
+// attack-ground, T only when a selected unit may attack the ground. A
+// building's card (work 142 M2b-2) owns the grid: a key presses the button DE
+// puts on it there, the first that is not locked when a line's tiers share it,
+// and a key whose button this game lacks does nothing.
 
 import type { SimulationBridge } from '../../game/simulation/createSimulationBridge';
 import { canAttackGround } from '../../game/simulation/projectileRules';
 import { HUMAN_PLAYER_ID } from '../../game/simulation/prototypeScenario';
 import type { BuildableBuildingType } from '../../game/simulation/types';
+import { buildingCardKeyOf, hasBuildingCardKeys } from '../../ui/hud/buildingCardKeys';
 import {
   BUILD_PAGE_KEYS,
-  buildingCardKeyOf,
   GRID_KEYS,
-  hasBuildingCardKeys,
   MILITARY_ORDER_KEYS,
   unitCardKeyOf,
   VILLAGER_BUILD_SLOTS,
@@ -101,9 +102,12 @@ export function registerCommandCardHotkeys(deps: {
     card?.click();
   };
 
+  // DE's slot shows one tier of a line at a time; this card can draw several,
+  // a later one locked until the one before is researched, so the key takes
+  // the first it may press.
   const pressBuildingKey = (panel: Element, buildingType: string, key: GridKey): void => {
     [...panel.querySelectorAll<HTMLButtonElement>('[data-command]')]
-      .find((button) => buildingCardKeyOf(buildingType, button.dataset.command ?? '') === key)
+      .find((button) => !button.disabled && buildingCardKeyOf(buildingType, button.dataset.command ?? '') === key)
       ?.click();
   };
 

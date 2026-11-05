@@ -67,6 +67,13 @@ function reasonMarkup(reason: string | undefined, baseTooltip: string): string {
   return `data-tooltip="${tooltip}"${hook}`;
 }
 
+// M7 UI-icons (v0.1.74): the command-card "Research <Name>" buttons get the
+// generic procedural RESEARCH glyph before the label. Augment-not-replace:
+// the `data-command="research-<tech>"` hook, the "Research <Name>" text, and
+// the visible-but-locked disabled state (a tech shown greyed until its
+// prerequisites are met) are all preserved. `visibleResearchOptions` is the
+// full set of buttons to draw; `availableResearchOptions` is the subset that
+// is researchable right now (the rest render locked).
 export function renderResearchButtons(
   visibleResearchOptions: ResearchableTechnologyType[],
   availableResearchOptions: ResearchableTechnologyType[],
@@ -144,6 +151,12 @@ export function renderMarketButtons(
     .join('');
 }
 
+// M7 UI-icons (v0.1.72): the command-card "Train <Name>" buttons get a per-role
+// procedural UNIT glyph before the label (reusing the v0.1.44 selection-panel
+// art), mirroring renderBuildButtons. Augment-not-replace: the
+// `data-command="train-<type>"` hook and the "Train <Name>" text are preserved
+// (the text sits in a `hud-command-label` span so textContent is unchanged).
+// Exported so it is unit-testable in isolation.
 export function renderTrainButtons(
   trainOptions: TrainableUnitType[],
   reasons: CommandReasons = NO_REASONS,
