@@ -221,7 +221,7 @@ export function createSelectionPanel(
         ? buildAvailabilitySignature(
             selectionState.buildOptions, playerResources, costOf)
         : null,
-      activeBuildPage,
+      activeBuildPage, chosenBuildPage, // the chosen flag is drawn too (work 142's keys read it)
     ]);
     if (signature === lastSelectionSignature) {
       return;
@@ -358,7 +358,7 @@ export function createSelectionPanel(
         activePageOptions.length,
         placementMarkup,
         buildPageTabs,
-        `data-build-page="${activeBuildPage}"`,
+        `data-build-page="${activeBuildPage}" data-build-page-chosen="${chosenBuildPage !== null}"`,
       ),
     ].join('');
 

@@ -126,9 +126,20 @@ test.describe('DE command card and its keys (work 142 M2a)', () => {
       await game.clickUnit(page, id);
       await expect.poll(async () => (await game.getSelectionState(page)).selectedEntityIds).toEqual([id]);
     };
+    // Review round 4: the Economic page opened on the first villager is closed
+    // by the round trip too, so W opens Military rather than building a Mill.
+    await select(villagers[0]!);
+    await page.keyboard.press('q');
+    await select(villagers[1]!);
+    await select(villagers[0]!);
+    await page.keyboard.press('w');
+    await expect(buildGroup).toHaveAttribute('data-build-page', 'military');
+    await expect(placing).toHaveCount(0);
     // Military open on the first villager, then another villager, then the
     // first again: its card is back on the Economic page, and Q Q is a House.
+    await select(villagers[1]!);
     await select(villagers[0]!);
+    await expect(buildGroup).toHaveAttribute('data-build-page', 'economic');
     await page.keyboard.press('w');
     await expect(buildGroup).toHaveAttribute('data-build-page', 'military');
     await select(villagers[1]!);

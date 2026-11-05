@@ -48,46 +48,48 @@ export function registerCommandCardHotkeys(deps: {
   syncSelectionPanel: () => void;
 }): () => void {
   const { hotkeyRegistry, view, bridgeRef, hudRoot, syncSelectionPanel } = deps;
-  const selectionKey = (): string => bridgeRef().getSelectionState().selectedEntityIds.join(',');
-  // The villager's open build page, for the selection that opened it.
-  let openPage: { page: BuildPageId; selection: string } | null = null;
+  // The open page is the PANEL's: the page the player chose on this card
+  // (`data-build-page-chosen`), which the panel itself forgets when the
+  // selection changes, so a villager selected again opens on its first page.
+  // The one thing the panel does not know is that a building was chosen from
+  // the page since, which in DE closes it; that is this flag.
+  let buildingChosen = false;
 
   // A click on a page tab opens that page for the keys, as DE's button does,
-  // and a click on a building closes it, as choosing one by key does.
-  // Capture phase: a button's own handler redraws the panel, which detaches
-  // the button from it before the click could bubble up here.
-  const onTabClick = (event: MouseEvent): void => {
+  // and a click on a building closes it, as choosing one by key does. Capture
+  // phase, and the panel redrawn first: a click on a panel still drawn for
+  // the selection before must land on the card of the selection now.
+  const onPanelClick = (event: MouseEvent): void => {
     const target = event.target instanceof Element ? event.target : null;
-    if (target?.closest(`${SELECTION_PANEL} [data-command^="build-"]`)) openPage = null;
-    const tab = target?.closest(`${SELECTION_PANEL} ${PAGE_TAB}`);
-    const page = tab instanceof HTMLButtonElement ? tab.dataset.buildPage : undefined;
-    if (isBuildPageId(page)) openPage = { page, selection: selectionKey() };
+    if (!target?.closest(SELECTION_PANEL)) return;
+    syncSelectionPanel();
+    if (target.closest('[data-command^="build-"]')) buildingChosen = true;
+    if (target.closest(PAGE_TAB)) buildingChosen = false;
   };
-  hudRoot.addEventListener('click', onTabClick, true);
+  hudRoot.addEventListener('click', onPanelClick, true);
+
+  const openPageOf = (panel: Element): BuildPageId | null => {
+    const group = panel.querySelector<HTMLElement>('[data-command-group="build"]');
+    const page = group?.dataset.buildPage;
+    return !buildingChosen && group?.dataset.buildPageChosen === 'true' && isBuildPageId(page) ? page : null;
+  };
 
   const pressVillagerKey = (panel: Element, key: GridKey): void => {
-    const selection = selectionKey();
-    // Another selection, or a panel no longer showing the page (it reopens a
-    // reselected villager on its first page), closes it.
-    const shownTab = openPage ? panel.querySelector(`button[data-build-page="${openPage.page}"]`) : null;
-    if (openPage?.selection !== selection || shownTab?.getAttribute('aria-pressed') !== 'true') openPage = null;
-    if (!openPage) {
-      const page = (Object.keys(BUILD_PAGE_KEYS) as BuildPageId[]).find((id) => BUILD_PAGE_KEYS[id] === key);
-      const tab = page ? panel.querySelector<HTMLButtonElement>(`button[data-build-page="${page}"]`) : null;
-      if (!page || !tab || tab.disabled) return;
-      if (tab.getAttribute('aria-pressed') !== 'true') tab.click();
-      openPage = { page, selection };
+    const page = openPageOf(panel);
+    if (!page) {
+      const opening = (Object.keys(BUILD_PAGE_KEYS) as BuildPageId[]).find((id) => BUILD_PAGE_KEYS[id] === key);
+      const tab = opening ? panel.querySelector<HTMLButtonElement>(`button[data-build-page="${opening}"]`) : null;
+      // The tab's own click makes the page the chosen one, and the click
+      // listener above clears `buildingChosen`.
+      if (tab && !tab.disabled) tab.click();
       return;
     }
-    const { page } = openPage;
     const card = [...panel.querySelectorAll<HTMLButtonElement>('[data-command^="build-"]')].find((button) => {
       const slot = VILLAGER_BUILD_SLOTS[button.dataset.command?.slice('build-'.length) as BuildableBuildingType];
       return slot?.page === page && slot.key === key;
     });
     // An empty slot leaves the page open, as an empty slot of DE's grid does.
-    if (!card) return;
-    openPage = null;
-    card.click();
+    card?.click();
   };
 
   const pressBuildingKey = (panel: Element, buildingType: string, key: GridKey): void => {
@@ -128,5 +130,5 @@ export function registerCommandCardHotkeys(deps: {
   // M6 control: P arms patrol; the next left click is the far end of the route.
   hotkeyRegistry.register({ key: 'p' }, () => { view.armPatrol(); });
   // The registry's own dispose drops the keys; this drops the tab listener.
-  return () => { hudRoot.removeEventListener('click', onTabClick, true); };
+  return () => { hudRoot.removeEventListener('click', onPanelClick, true); };
 }
