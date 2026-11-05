@@ -82,15 +82,17 @@ describe('voxel camera controller', () => {
   });
 
   it('never pans on W, A, S or D: DE gives them to the command card', () => {
-    const { controller, keys } = harness();
-    controller.centerOnWorldPosition(30, 18);
-    const before = controller.getState();
-
-    for (const code of ['KeyW', 'KeyA', 'KeyS', 'KeyD']) keys.add(code);
-    controller.update(1_000, 250);
-    keys.clear();
-
-    expect(controller.getState()).toEqual(before);
+    // One key at a time: held together, W and S (and A and D) would cancel
+    // and pass even if each still panned (review round 3).
+    for (const code of ['KeyW', 'KeyA', 'KeyS', 'KeyD']) {
+      const { controller, keys } = harness();
+      controller.centerOnWorldPosition(30, 18);
+      const before = controller.getState();
+      keys.add(code);
+      controller.update(1_000, 250);
+      keys.clear();
+      expect(controller.getState(), code).toEqual(before);
+    }
   });
 
   it('clamps zoom and middle-drag panning to the playable world', () => {

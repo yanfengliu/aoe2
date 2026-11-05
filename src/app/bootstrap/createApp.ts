@@ -408,7 +408,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   );
   hotkeyRegistry.register({ key: 'l', alt: true }, () => stack?.markerListPanel.toggleVisibility());
   // DE's command-card keys, and A, P and G's ground orders where a card has none yet (work 142).
-  cleanupCallbacks.push(registerCommandCardHotkeys({ hotkeyRegistry, view, bridgeRef, hudRoot }));
+  cleanupCallbacks.push(registerCommandCardHotkeys({ hotkeyRegistry, view, bridgeRef, hudRoot, syncSelectionPanel: () => hudController.refreshSelectionPanel() }));
   const selectNextIdleVillagerAndCenter = registerSelectionRecallHotkeys(hotkeyRegistry, bridgeRef, view);
   // Audio cues (v0.3.109): horn, age-up fanfare, match stings, mute toggle.
   const gameAudio = mountGameAudio(bridgeRef, hudRoot, (text, hitTick) => hudController.toastHandle.showToast(text, { kind: 'alert', hitTick }), replayController);

@@ -43,17 +43,23 @@ export function registerCommandCardHotkeys(deps: {
   // A getter: createApp swaps the bridge on save-load.
   bridgeRef: () => SimulationBridge;
   hudRoot: HTMLElement;
+  // Redraws the selection panel for the selection now: the HUD redraws it a
+  // frame after a click, and a key pressed in between must find the new card.
+  syncSelectionPanel: () => void;
 }): () => void {
-  const { hotkeyRegistry, view, bridgeRef, hudRoot } = deps;
+  const { hotkeyRegistry, view, bridgeRef, hudRoot, syncSelectionPanel } = deps;
   const selectionKey = (): string => bridgeRef().getSelectionState().selectedEntityIds.join(',');
   // The villager's open build page, for the selection that opened it.
   let openPage: { page: BuildPageId; selection: string } | null = null;
 
-  // A click on a page tab opens that page for the keys, as DE's button does.
-  // Capture phase: the tab's own handler redraws the panel, which detaches
-  // the tab from it before the click could bubble up here.
+  // A click on a page tab opens that page for the keys, as DE's button does,
+  // and a click on a building closes it, as choosing one by key does.
+  // Capture phase: a button's own handler redraws the panel, which detaches
+  // the button from it before the click could bubble up here.
   const onTabClick = (event: MouseEvent): void => {
-    const tab = event.target instanceof Element ? event.target.closest(`${SELECTION_PANEL} ${PAGE_TAB}`) : null;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest(`${SELECTION_PANEL} [data-command^="build-"]`)) openPage = null;
+    const tab = target?.closest(`${SELECTION_PANEL} ${PAGE_TAB}`);
     const page = tab instanceof HTMLButtonElement ? tab.dataset.buildPage : undefined;
     if (isBuildPageId(page)) openPage = { page, selection: selectionKey() };
   };
@@ -61,7 +67,10 @@ export function registerCommandCardHotkeys(deps: {
 
   const pressVillagerKey = (panel: Element, key: GridKey): void => {
     const selection = selectionKey();
-    if (openPage?.selection !== selection) openPage = null;
+    // Another selection, or a panel no longer showing the page (it reopens a
+    // reselected villager on its first page), closes it.
+    const shownTab = openPage ? panel.querySelector(`button[data-build-page="${openPage.page}"]`) : null;
+    if (openPage?.selection !== selection || shownTab?.getAttribute('aria-pressed') !== 'true') openPage = null;
     if (!openPage) {
       const page = (Object.keys(BUILD_PAGE_KEYS) as BuildPageId[]).find((id) => BUILD_PAGE_KEYS[id] === key);
       const tab = page ? panel.querySelector<HTMLButtonElement>(`button[data-build-page="${page}"]`) : null;
@@ -97,9 +106,14 @@ export function registerCommandCardHotkeys(deps: {
       // Which card answers is the SELECTION's, never the panel's: the panel
       // redraws a frame after a click, so a key pressed in between would
       // otherwise go to the card of the selection before.
+      syncSelectionPanel();
       const state = bridgeRef().getSelectionState();
       const panel = hudRoot.querySelector(SELECTION_PANEL);
-      if (state.buildOptions.length > 0) {
+      // A villager's card: villagers, alone or with their sheep (no shared
+      // type then). A Fishing Ship's palette is not a villager's card (M2b).
+      const villagerCard = state.buildOptions.length > 0
+        && (state.selectedEntityType === 'villager' || state.selectedEntityType === null);
+      if (villagerCard) {
         if (panel) pressVillagerKey(panel, key);
         return;
       }

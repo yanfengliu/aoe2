@@ -144,6 +144,9 @@ export interface HudController {
   // the same controller continues with the new bridge), but the
   // capability now exists for teardown contexts that need it.
   destroy(): void;
+  /** Redraws the selection panel for the selection NOW, not at the next frame,
+   *  so a key pressed right after a click finds the clicked card (work 142). */
+  refreshSelectionPanel(): void;
 }
 
 /** What the selection panel needs from the bridge. */
@@ -451,6 +454,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     isGameMenuOpen: gameMenu.isOpen,
     closeGameMenu: gameMenu.close,
     toastHandle: { showToast },
+    refreshSelectionPanel() {
+      if (!isDestroyed) selectionPanelHandle.update(bridge.getSelectionState(), bridge.getHudState().playerResources);
+    },
     destroy() {
       if (isDestroyed) {
         return;

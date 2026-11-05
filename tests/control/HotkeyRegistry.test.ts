@@ -145,6 +145,20 @@ describe('HotkeyRegistry', () => {
     registry.dispose();
   });
 
+  // Work 142 review round 3: the grid keys are plain letters, and a focused
+  // dropdown (the annotation form's Category) jumps to an option on a letter.
+  it('suppressed when focus is on a select, so its letters still pick options', () => {
+    const handler = vi.fn();
+    const registry = createHotkeyRegistry();
+    registry.register({ key: 'e' }, handler);
+    const select = document.createElement('select');
+    document.body.appendChild(select);
+    dispatch(document, { key: 'e', target: select });
+    expect(handler).not.toHaveBeenCalled();
+    select.remove();
+    registry.dispose();
+  });
+
   it('suppressed when focus is on a contenteditable element', () => {
     const handler = vi.fn();
     const registry = createHotkeyRegistry();

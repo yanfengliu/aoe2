@@ -90,6 +90,55 @@ test.describe('DE command card and its keys (work 142 M2a)', () => {
     await expect(placing).toHaveText('Placing: Palisade Wall');
   });
 
+  // Review round 3: the open page belongs to the card as it is on screen.
+  test('a mouse-chosen building puts the keys back on the first page', async ({ page }) => {
+    await game.waitForBoot(page);
+    const villagers = await page.evaluate(() => window.__AOE2_TEST__!.getEconomyState().units
+      .filter((unit) => unit.owner === 1 && unit.unitType === 'villager').map((unit) => unit.id));
+    expect(villagers.length, 'the default map starts the human with two villagers or more').toBeGreaterThanOrEqual(2);
+    const placing = page.locator('[data-placement-mode]');
+    const buildGroup = page.locator('[data-command-group="build"]');
+    const select = async (id: number): Promise<void> => {
+      await game.clickUnit(page, id);
+      await expect.poll(async () => (await game.getSelectionState(page)).selectedEntityIds).toEqual([id]);
+    };
+
+    // Q opens the Economic page; a CLICK on the House chooses it, as Q would.
+    await select(villagers[0]!);
+    await page.keyboard.press('q');
+    await page.locator('[data-command="build-house"]').click();
+    await expect(placing).toHaveText('Placing: House');
+    await page.keyboard.press('Escape');
+    await expect(placing).toHaveCount(0);
+    // W is the first page's Military Buildings again, not the Economic page's Mill.
+    await page.keyboard.press('w');
+    await expect(buildGroup).toHaveAttribute('data-build-page', 'military');
+    await expect(placing).toHaveCount(0);
+  });
+
+  test('a villager selected again opens on its first page for the keys', async ({ page }) => {
+    await game.waitForBoot(page);
+    const villagers = await page.evaluate(() => window.__AOE2_TEST__!.getEconomyState().units
+      .filter((unit) => unit.owner === 1 && unit.unitType === 'villager').map((unit) => unit.id));
+    const placing = page.locator('[data-placement-mode]');
+    const buildGroup = page.locator('[data-command-group="build"]');
+    const select = async (id: number): Promise<void> => {
+      await game.clickUnit(page, id);
+      await expect.poll(async () => (await game.getSelectionState(page)).selectedEntityIds).toEqual([id]);
+    };
+    // Military open on the first villager, then another villager, then the
+    // first again: its card is back on the Economic page, and Q Q is a House.
+    await select(villagers[0]!);
+    await page.keyboard.press('w');
+    await expect(buildGroup).toHaveAttribute('data-build-page', 'military');
+    await select(villagers[1]!);
+    await select(villagers[0]!);
+    await expect(buildGroup).toHaveAttribute('data-build-page', 'economic');
+    await page.keyboard.press('q');
+    await page.keyboard.press('q');
+    await expect(placing).toHaveText('Placing: House');
+  });
+
   test('the Town Center trains a Villager on Q and researches Loom on A', async ({ page }) => {
     await game.waitForBoot(page);
     await selectTownCenterWithH(page);

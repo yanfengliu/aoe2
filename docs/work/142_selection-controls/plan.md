@@ -110,6 +110,8 @@ Split from M2 at the coordinator's brief: M2a is the villager's card plus the To
 
 **Unsourced, the closest sourced behaviour taken.** Escape on an open build page (it does what it always did; the page stays open for the keys until a building is chosen or the selection changes); whether a held key repeats (the browser's repeat presses again); the mixed group's card (above). This game's one Back to Work sends everyone sheltered anywhere back; it takes F, the Town Center's Go Back to Work slot.
 
+**Review.** [Round 3](reviews/3_implementation.md), Codex on `5fec5564`: five P2 and one P3 (a mouse-chosen building and a reselected villager left the keys' page stale, a key before the HUD's next frame went to the old card, a Fishing Ship took the villager's two steps, a grid key swallowed a letter typed into a dropdown, and the camera case held opposite keys at once); all repaired, each with a test red on the reviewed code.
+
 **Found, not in M2a's scope (queued in plan 106, tagged "(work 142)").** DE's villager card has Repair (E), Stop (G), Garrison (T), Seek Shelter (F), Drop Off Resources (A) and Delete; this game has none of them as buttons. DE's Town Center has Set Gather Point (T), All Back to Work (V) beside Go Back to Work for its own garrison (F), and the bell's button turns into Undo Town Bell; this game has one Back to Work for everyone. DE draws a fixed 5x3 grid with empty slots; this game packs a page's buildings in grid order. Every other unit and building card is M2b's to check against DE.
 
 ## Outcome

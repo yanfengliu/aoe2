@@ -49,6 +49,9 @@ const isTextInputElement = (el: EventTarget | null): boolean => {
     return true;
   }
   if (tag === 'TEXTAREA') return true;
+  // A focused dropdown takes letters to jump to an option (the annotation
+  // form's Category: E for "economy"); a game key must not swallow them.
+  if (tag === 'SELECT') return true;
   // Check the contentEditable attribute directly. el.isContentEditable is
   // a derived getter that real browsers compute based on the attribute +
   // ancestors; jsdom's implementation can lag, so prefer the attribute
