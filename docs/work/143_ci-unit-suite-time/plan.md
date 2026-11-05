@@ -83,6 +83,7 @@ The `--` before `--shard` is quoted. PowerShell is the default shell on windows-
 - [x] Review round 1 (Codex) on `e185cbef`: no blocker or major finding; F0 confirmed, F1 (continued), F2 and F3 repaired in the next commit ([round 1](reviews/1_implementation.md)).
 - [x] Review round 2 (Codex) on `b97742da`: no blocker or major finding; F1 again (a command spanning lines escaped the line rule), so the rule now reads each run block whole, and a nit on the register's sample wording (F4), both repaired in the next commit ([round 2](reviews/2_implementation.md)).
 - [x] Review round 3 (Codex) on `4db8bcf1`: no blocker or major finding; F1 a fifth time (a bracket also ends a PowerShell token, so whitespace did not delimit every bare `--`) and F4 again (the day's other runs included a failing one), both repaired in the next commit; F1's repair budget of five is now spent ([round 3](reviews/3_implementation.md)).
+- [x] Review coverage, the coordinator's decision of 2026-11-05: the change is reviewed through round 3. Round 3's repair of F1, the fifth (`eae0b820`, a bare `--` found by its characters), had no round 4: its 21 mutations and 5 controls cover it, and the hazard it guards is not live on today's runner.
 - [ ] Hand off, land, follow the landing run.
 
 ## Hosted proof
