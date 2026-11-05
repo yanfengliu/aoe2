@@ -120,10 +120,20 @@ jobs:
       # the dep resolves. aoe2 CI does NOT build the engine; that is the engine
       # CI's job. (Public repo asset → no token needed; curl + tar work on the
       # ubuntu + windows/git-bash matrix.)
+      #
+      # Every curl in these workflows retries with the same flags, which
+      # tests/scripts/ciDownloadRetry.test.ts holds. `--retry 3` retries a
+      # timeout and HTTP 408, 429, 500, 502, 503 and 504 after waits of 1, 2
+      # and 4 s, and `--retry-all-errors` retries any other failure too. With
+      # no retry, this fetch failed main on an HTTP 504 (runs 42056978761 and
+      # 42056978614, 2026-11-05) and on a reset TLS handshake, curl exit 35,
+      # which `--retry` alone leaves unretried (run 38153770319, 2026-10-11).
+      # curl's manual warns against `--retry-all-errors` with redirected
+      # output; `-o` names a file, which curl empties before each retry.
       - name: Fetch the prebuilt civ-engine
         shell: bash
         run: |
-          curl -fsSL -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
+          curl -fsSL --retry 3 --retry-all-errors -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
           mkdir -p ../civ-engine
           tar -xzf civ-engine.tgz -C ../civ-engine --strip-components=1
 
@@ -137,7 +147,7 @@ jobs:
           # Relative paths on purpose, -C included: under Git-bash on Windows
           # GNU tar mangles a drive-lettered path, which kept every
           # windows-latest run red for two months.
-          curl -fsSL --retry 3 \
+          curl -fsSL --retry 3 --retry-all-errors \
             -o voxel.tgz \
             "https://github.com/yanfengliu/voxel/archive/${VOXEL_COMMIT}.tar.gz"
           tar -xzf voxel.tgz \
@@ -274,7 +284,7 @@ jobs:
       - name: Fetch the prebuilt civ-engine
         shell: bash
         run: |
-          curl -fsSL -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
+          curl -fsSL --retry 3 --retry-all-errors -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
           mkdir -p ../civ-engine
           tar -xzf civ-engine.tgz -C ../civ-engine --strip-components=1
 
@@ -285,7 +295,7 @@ jobs:
           printf '%s\n' "$VOXEL_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
           test ! -e ../voxel
           mkdir -p ../voxel
-          curl -fsSL --retry 3 \
+          curl -fsSL --retry 3 --retry-all-errors \
             -o voxel.tgz \
             "https://github.com/yanfengliu/voxel/archive/${VOXEL_COMMIT}.tar.gz"
           tar -xzf voxel.tgz \

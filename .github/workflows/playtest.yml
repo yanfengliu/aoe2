@@ -24,11 +24,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # aoe2 consumes the engine's PREBUILT dist (the engine CI packs it as the
-      # rolling engine-dist release); it does not build the engine. See ci.yml.
+      # rolling engine-dist release); it does not build the engine. See ci.yml,
+      # which also says why every curl here takes the same retry flags.
       - name: Fetch the prebuilt civ-engine
         shell: bash
         run: |
-          curl -fsSL -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
+          curl -fsSL --retry 3 --retry-all-errors -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
           mkdir -p ../civ-engine
           tar -xzf civ-engine.tgz -C ../civ-engine --strip-components=1
       - name: Fetch pinned voxel source
@@ -41,7 +42,7 @@ jobs:
           # Relative paths on purpose, -C included: under Git-bash on Windows
           # GNU tar mangles a drive-lettered path, which kept every
           # windows-latest run red for two months.
-          curl -fsSL --retry 3 \
+          curl -fsSL --retry 3 --retry-all-errors \
             -o voxel.tgz \
             "https://github.com/yanfengliu/voxel/archive/${VOXEL_COMMIT}.tar.gz"
           tar -xzf voxel.tgz \
