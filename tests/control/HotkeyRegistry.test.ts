@@ -252,3 +252,32 @@ describe('HotkeyRegistry physical keys and passing a key on', () => {
     registry.dispose();
   });
 });
+
+// Review round 7: the annotation form's Save and Cancel buttons are not text
+// fields, but a key pressed on them is the form's (the coordinator's answer of
+// 2026-11-05): Space presses the focused button, Ctrl+= zooms the page.
+describe('HotkeyRegistry inside a form', () => {
+  it('gives a key pressed on a control inside a form to the form, and one outside to the game', () => {
+    const handler = vi.fn();
+    const registry = createHotkeyRegistry();
+    registry.register({ key: ' ' }, handler);
+    const form = document.createElement('form');
+    const inside = document.createElement('button');
+    form.append(inside);
+    const outside = document.createElement('button');
+    document.body.append(form, outside);
+    const onInside = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    inside.dispatchEvent(onInside);
+    expect(handler).not.toHaveBeenCalled();
+    expect(onInside.defaultPrevented).toBe(false);
+    outside.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+    expect(handler).toHaveBeenCalledTimes(1);
+    // A hidden form keeps focus on the button that closed it; the key is the game's.
+    (form as HTMLFormElement & { checkVisibility: () => boolean }).checkVisibility = () => false;
+    inside.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+    expect(handler).toHaveBeenCalledTimes(2);
+    form.remove();
+    outside.remove();
+    registry.dispose();
+  });
+});

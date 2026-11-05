@@ -51,6 +51,13 @@ interface Registration {
 
 const isTextInputElement = (el: EventTarget | null): boolean => {
   if (!(el instanceof Element)) return false;
+  // A key pressed on any control of a SHOWN form is the form's (work 142
+  // review round 7): the annotation form's focused Save or Cancel takes Space
+  // as a press and leaves Ctrl+= to the page, as its text fields do. A hidden
+  // form keeps focus on the button that closed it, and a key then is the
+  // game's. (jsdom has no checkVisibility, so a form there counts as shown.)
+  const form: (Element & { checkVisibility?: () => boolean }) | null = el.closest('form');
+  if (form !== null && (form.checkVisibility === undefined || form.checkVisibility())) return true;
   const tag = el.tagName;
   if (tag === 'INPUT') {
     if (el instanceof HTMLInputElement) {

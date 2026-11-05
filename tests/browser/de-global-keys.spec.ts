@@ -113,10 +113,11 @@ test.describe("DE's global keys", () => {
     expect(await speed(page)).toBe(1);
     await page.keyboard.press('NumpadAdd');
     await expect.poll(() => speed(page)).toBe(1.5);
-    await page.keyboard.press('Minus');
-    await page.keyboard.press('Shift+Equal');
-    await game.waitForRenderedFrames(page, 3, 100);
-    expect(await speed(page), "the main row's − or + changed the game speed").toBe(1.5);
+    for (const key of ['Minus', 'Shift+Equal']) {
+      await page.keyboard.press(key);
+      await game.waitForRenderedFrames(page, 3, 100);
+      expect(await speed(page), `the main row's ${key} changed the game speed`).toBe(1.5);
+    }
     await page.keyboard.press('NumpadAdd');
     await expect.poll(() => speed(page)).toBe(2);
     await page.keyboard.press('NumpadSubtract');
@@ -186,5 +187,31 @@ test.describe("DE's global keys", () => {
     await expect(field).toHaveValue('alpha  +-');
     expect(await field.evaluate((element: HTMLTextAreaElement) => element.selectionStart), 'Home did not reach the field').toBe(0);
     expect({ zoom: await zoom(page), speed: await speed(page), camera: await cameraState(page) }).toEqual(before);
+  });
+
+  test("the annotation form's buttons keep their keys: Ctrl+= is the page's and Space presses the button", async ({ page }) => {
+    await game.waitForBoot(page);
+    await page.keyboard.press('h');
+    await page.keyboard.press('Alt+m');
+    const form = page.locator('[data-testid="annotation-form"]');
+    await expect(form).not.toHaveClass(/annotation-form--hidden/);
+    const cancel = page.locator('[data-testid="annotation-form-cancel"]');
+    await cancel.focus();
+    const before = { zoom: await zoom(page), camera: await cameraState(page) };
+    await page.evaluate(() => {
+      const log: boolean[] = [];
+      (window as unknown as { equalLog: boolean[] }).equalLog = log;
+      window.addEventListener('keydown', (event) => { if (event.code === 'Equal') log.push(event.defaultPrevented); });
+    });
+    await page.keyboard.press('Control+Equal');
+    expect(await page.evaluate(() => (window as unknown as { equalLog: boolean[] }).equalLog),
+      'the game took Ctrl+= from a focused button of the annotation form').toEqual([false]);
+    expect({ zoom: await zoom(page), camera: await cameraState(page) }).toEqual(before);
+    await page.keyboard.press('Space');
+    await expect(form, 'Space did not press the focused Cancel button').toHaveClass(/annotation-form--hidden/);
+    expect(await cameraState(page), 'Space moved the camera from a focused button of the form').toEqual(before.camera);
+    // The hidden form keeps focus on Cancel; the game's keys work again.
+    await page.keyboard.press('Control+Equal');
+    await expect.poll(() => zoom(page), { message: 'a game key stayed dead after the form closed' }).toBeCloseTo(before.zoom + 0.1, 5);
   });
 });
