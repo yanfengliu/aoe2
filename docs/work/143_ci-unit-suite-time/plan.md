@@ -65,7 +65,7 @@ The `--` before `--shard` is quoted. PowerShell is the default shell on windows-
 
 ## Acceptance criteria
 
-- [x] Each unit-suite job on both runners finishes at or under about half its limit on hosted runners, measured from the job logs of a hosted run of the change, with the bound stated: 12.1-18.0 minutes on windows-latest (30% at most) and 5.9-12.2 on ubuntu-latest, runs 42008973265 and 42009011415.
+- [x] Each unit-suite job on both runners finishes at or under about half its limit on hosted runners, measured from the job logs of a hosted run of the change, with the bound stated: 10.2-18.0 minutes on windows-latest (30% at most) and 5.6-13.7 on ubuntu-latest (23% at most) over hosted runs 42008973265, 42009011415, 42019409523 and 42023734189.
 - [x] `timeout-minutes` stays 60, both headroom gates are unchanged in their rules, no test is skipped, deleted or weakened, and both runners stay in the matrix.
 - [x] The three shards together run every test file exactly once on each runner: 223, 223 and 221 files on both runners in run 42008973265, 667 in all, and 1,874, 1,624 and 1,750 tests, 5,248 in all.
 - [x] The job-headroom step still fails a shard past two thirds, and each shard's per-test step judges its own shard's report, both shown red on hosted runners (run 42009011415).
@@ -76,12 +76,13 @@ The `--` before `--shard` is quoted. PowerShell is the default shell on windows-
 
 - [x] Measure the unit jobs from their logs (28 jobs from 14 runs, 2026-09-24 to 2026-11-05), rank the files and model the split.
 - [x] Shard the unit suite three ways per runner, the `--` quoted; hold the split and the `--` rule in `ciJobHeadroom.test.ts` (`807692a4`).
-- [x] Prove the test red: 19 mutations of ci.yml, each red, and four controls green (`docs/learning/gate-proofs.md`).
+- [x] Prove the test red: 21 mutations of ci.yml, each red, and five controls green (`docs/learning/gate-proofs.md`).
 - [x] Prove the partition with vitest's own sequencer: 223, 223 and 221 of 667 files, each in exactly one shard.
 - [x] Prove on hosted runners: a clean run (42008973265, `807692a4`) and a red-proof run (42009011415, `568f3a5d`, never landed, its branch deleted).
 - [x] Review round 0 (Codex) on `807692a4`: no blocker or major finding; its two minor findings repaired in `5a56aed9` ([round 0](reviews/0_implementation.md)).
 - [x] Review round 1 (Codex) on `e185cbef`: no blocker or major finding; F0 confirmed, F1 (continued), F2 and F3 repaired in the next commit ([round 1](reviews/1_implementation.md)).
 - [x] Review round 2 (Codex) on `b97742da`: no blocker or major finding; F1 again (a command spanning lines escaped the line rule), so the rule now reads each run block whole, and a nit on the register's sample wording (F4), both repaired in the next commit ([round 2](reviews/2_implementation.md)).
+- [x] Review round 3 (Codex) on `4db8bcf1`: no blocker or major finding; F1 a fifth time (a bracket also ends a PowerShell token, so whitespace did not delimit every bare `--`) and F4 again (the day's other runs included a failing one), both repaired in the next commit; F1's repair budget of five is now spent ([round 3](reviews/3_implementation.md)).
 - [ ] Hand off, land, follow the landing run.
 
 ## Hosted proof
@@ -105,6 +106,10 @@ Run 42009011415, `568f3a5d` (never landed): the red proof. It added a test that 
 - shard 3: the per-test step green, "1759 tests measured", and its job-headroom step red, "This job used 53.0 of its 60-minute limit (88% …)" on Windows and 49.4 (82%) on Ubuntu.
 
 Run 42019409523, `b97742da` (after review round 1's repairs), all ten jobs green: Windows shards 16.9, 16.1 and 10.2 minutes (28%, 27%, 17%), Ubuntu 12.6, 6.3 and 8.2 (21%, 11%, 14%), and 223, 223 and 221 files on each runner.
+
+Run 42023734189, `4db8bcf1` (after review round 2's repairs), all ten jobs green: Windows shards 17.4, 15.8 and 11.6 minutes (29%, 26%, 19%), Ubuntu 13.7, 7.1 and 5.6 (23%, 12%, 9%).
+
+Over the four hosted runs the Windows shard jobs took 10.2-18.0 minutes (30% of the limit at most) and the Ubuntu ones 5.6-13.7 (23% at most).
 
 ## The bound
 
