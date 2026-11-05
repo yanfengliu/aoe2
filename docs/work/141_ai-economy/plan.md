@@ -1,7 +1,7 @@
 # The computer opponent builds its economy as Definitive Edition's does
 
 Status: active
-Owner: ai-economy worker for the Claude coordinator (M1, shipped v0.3.260); the M2 worker (ai-economy-m2) has M2a-1, accepted 2026-11-05 and landing after work 143; a fresh worker takes M2a-2, then M2c
+Owner: ai-economy worker for the Claude coordinator (M1, shipped v0.3.260); the M2 worker (ai-economy-m2) shipped M2a-1 as v0.3.264 (2026-11-05); a fresh worker takes M2a-2, then M2c
 Created: 2026-11-04
 Updated: 2026-11-05
 
@@ -135,6 +135,7 @@ M2 (rewritten 2026-11-05 for the owner's decision and the coordinator's on M2a, 
 - [x] Full gate on the rebased tree with every repair: 7ca58fbb on main ec250733, vitest 5,201 passed and 3 skipped, Playwright 273 passed and 2 skipped, receipt accepted on tree 7504474d4d49. The review records name the hashes as reviewed: 9bad65d7 and 49c0b997 on a37deeee; cb1ce0c6, cc2d80fb, f92bf5c0 and 87a54304 on e9369088, the same code as a5323584, 4498c648, 47f78a60 and 488b332f on ec250733, whose one commit is docs.
 - [x] Phase 1 handoff, the coordinator's "accepted, land it" with the squash, landing as v0.3.260.
 - [x] M2a-1: DE's escrow (first Monk, Conscription) and the first-claim Monk, the Town Center phase split out, the audit's siege, Castle and army columns, the census re-recorded (Outcome).
+- [x] M2a-1 landed as v0.3.264 (Outcome).
 - [ ] M2a-2, first: the AI purchase choke point and its architecture test (the criterion above).
 - [ ] M2a-2: siege against buildings.
 - [ ] M2c: the Feudal House rule's relabel and the 12-to-click split.
@@ -186,3 +187,5 @@ Tests, each red with its defect back:
 - No existing test or fixture changed. The census expectation is re-recorded (above). `scoutWanderCorner.test.ts`'s numbers are byte for byte main's (M1's probe `scoutCorners.mts`, both trees).
 
 **Handed over to M2a-2 (2026-11-05).** The control worktree `../aoe2-worktrees/ai-economy-m2-base-1104`, beside the primary checkout (branch `ai-economy-m2-base-1104`): main 496ee0e9, the tree before M2, with M2a-1's audit columns uncommitted. Its ignored `tmp/m2a/` holds the before arms of the tables above (`base2-castle45.txt`, `base2-castle60a.txt`, `base2-castle60b.txt`, `base2-default52.txt`, `base-labSpend2.txt`, `base-lab-audit.txt`). It is M2a-2's before arm for the 7-match conquest table; M2a-2's worker removes it, and its branch, with `node scripts/controlWorktree.mjs` (dry run first, `--discard-changes`) when done. The primary checkout's `tmp/work141-m1/` stays until M2 closes.
+
+**M2a-1 shipped as v0.3.264 (2026-11-05).** One commit, d2dd2a9e, on main 6afdd44f, after work 143 put the unit suite back inside CI's time limit. It squashes the branch's five commits on that base (3f90cafc, b6927f7e, 602e7b56, b6112d30, c1edd40f; the first two are the 52d60aff and d3d9ee67 the reviews name). Landing gate on d2dd2a9e: vitest 5,275 passed and 3 skipped, Playwright 293 passed and 2 skipped, receipt OK on tree f9ec44d41f1d. CI run 42037441614 passed all 10 jobs and playtest-corpus run 42037441858 passed. Each job's time, read from its log's headroom line: the unit shards on Windows 9.6, 16.8 and 13.1 of 60 minutes and on Ubuntu 9.6, 11.9 and 7.3; the browser shards 13.7, 7.2, 9.3 and 11.0 of 45. `aiEscrow.test.ts` (30 tests) took 819 ms on Windows and 861 ms on Ubuntu, both in shard 1.
