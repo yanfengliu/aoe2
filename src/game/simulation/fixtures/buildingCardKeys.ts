@@ -6,8 +6,8 @@ import { createBuildingShowcaseFixture } from './buildingShowcase';
 // Imperial Age, AIs off), with resources enough that every key of a card can
 // queue its button in one match: a refusal for want of gold would hide whether
 // the key pressed the right button. The `?civ=` parameter picks the Castle's
-// unique unit and technologies.
-export const BUILDING_CARD_KEYS_SEED = 'building-card-keys-fixture';
+// unique unit and technologies. Its seed, 'building-card-keys-fixture', is
+// registered in selectionControls.ts.
 
 const PLENTY = 50_000;
 
