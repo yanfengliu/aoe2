@@ -72,11 +72,25 @@ describe('voxel camera controller', () => {
     controller.centerOnWorldPosition(30, 18);
     const before = controller.getState();
 
-    keys.add('KeyD');
+    // DE scrolls with the arrow keys alone (hotkeys.json SCROLL_HOTKEYS); until
+    // work 142 M2a this case held D, which is now a command-card key.
+    keys.add('ArrowRight');
     controller.update(1_000, 250);
     keys.clear();
 
     expect(controller.getState().scrollX).toBeGreaterThan(before.scrollX + 40);
+  });
+
+  it('never pans on W, A, S or D: DE gives them to the command card', () => {
+    const { controller, keys } = harness();
+    controller.centerOnWorldPosition(30, 18);
+    const before = controller.getState();
+
+    for (const code of ['KeyW', 'KeyA', 'KeyS', 'KeyD']) keys.add(code);
+    controller.update(1_000, 250);
+    keys.clear();
+
+    expect(controller.getState()).toEqual(before);
   });
 
   it('clamps zoom and middle-drag panning to the playable world', () => {

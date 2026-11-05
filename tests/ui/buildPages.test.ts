@@ -68,14 +68,20 @@ describe('build pages', () => {
     expect(BUILDABLE_BUILDING_TYPES.length).toBe(unionMembersFromSource().length);
   });
 
-  it('follows DE: houses and drop sites Economic, towers and walls Military', () => {
+  // DE's own split, not a guess at it (work 142 M2a): each VILLAGER_HOTKEYS
+  // entry of the install's `resources/_common/dat/hotkeys.json` names its page
+  // in `context`, and Blacksmith, Monastery and University are "economic".
+  // Until work 142 this test held them on the Military page. The Fish Trap
+  // has no context there (a Fishing Ship builds it), and stays Economic.
+  it('follows DE\'s hotkeys.json: each building on the page its context names', () => {
     const economic: BuildableBuildingType[] = [
       'house', 'mill', 'farm', 'lumber-camp', 'mining-camp',
       'market', 'dock', 'fish-trap', 'town-center', 'wonder',
+      'blacksmith', 'monastery', 'university',
     ];
     const military: BuildableBuildingType[] = [
-      'barracks', 'archery-range', 'stable', 'siege-workshop', 'blacksmith',
-      'monastery', 'university', 'castle', 'outpost', 'watch-tower',
+      'barracks', 'archery-range', 'stable', 'siege-workshop',
+      'castle', 'outpost', 'watch-tower',
       'bombard-tower', 'palisade-wall', 'stone-wall', 'palisade-gate', 'stone-gate',
     ];
     for (const buildingType of economic) {
@@ -87,12 +93,15 @@ describe('build pages', () => {
     expect(economic.length + military.length).toBe(BUILDABLE_BUILDING_TYPES.length);
   });
 
-  it('splits a palette into pages that keep the palette order', () => {
+  it('splits a palette into pages in DE\'s grid order, Q W E R T, A S D F G, Z X C V B', () => {
+    // The palette's own order is not the page's: DE's card is a grid whose
+    // slot is the building's key (VILLAGER_HOTKEYS), so a page lists its
+    // buildings by that key's place in the grid.
     const buckets = partitionBuildOptions([
-      'house', 'barracks', 'mill', 'palisade-wall', 'farm',
+      'farm', 'palisade-wall', 'mill', 'outpost', 'house', 'barracks', 'lumber-camp', 'mining-camp', 'dock',
     ]);
-    expect(buckets.economic).toEqual(['house', 'mill', 'farm']);
-    expect(buckets.military).toEqual(['barracks', 'palisade-wall']);
+    expect(buckets.economic).toEqual(['house', 'mill', 'mining-camp', 'lumber-camp', 'dock', 'farm']);
+    expect(buckets.military).toEqual(['barracks', 'outpost', 'palisade-wall']);
   });
 
   it('shows the chosen page, then the page a placement is on, then any page with options', () => {

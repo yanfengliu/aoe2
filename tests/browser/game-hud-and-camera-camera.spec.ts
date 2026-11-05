@@ -14,18 +14,18 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (camera)', () 
     // 250 ms and then polling a camera that has already stopped. The pan
     // accrues per RENDERED FRAME, each frame capped at 100 ms of motion, so the
     // fixed window measured the host: CI covered 35.0 px — exactly one clamped
-    // frame at zoom 1.2 (100/1000 x 420 / 1.2) — against this bar of 40.
-    await page.keyboard.down('KeyD');
+    // frame at zoom 1.2 (100/1000 x 420 / 1.2) — against this bar of 40. Right Arrow is DE's Scroll Right; D was, until work 142 M2a.
+    await page.keyboard.down('ArrowRight');
     try {
       await expect.poll(
         async () => (await game.getSnapshot(page)).cameraState?.scrollX ?? 0,
         {
-          message: 'holding D pans the view right: scrollX never passed the bar while the key was held',
+          message: 'holding Right Arrow pans the view right: scrollX never passed the bar while the key was held',
           timeout: 10_000,
         },
       ).toBeGreaterThan((initialCamera?.scrollX ?? 0) + 40);
     } finally {
-      await page.keyboard.up('KeyD');
+      await page.keyboard.up('ArrowRight');
     }
 
     const movedCamera = (await game.getSnapshot(page)).cameraState;

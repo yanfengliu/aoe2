@@ -362,7 +362,11 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
     const ownedSelectedUnits = selectedUnits.filter(
       (entry) => entry.unit.owner === humanPlayerId,
     );
-    const stanceOptions: UnitStance[] = ownedSelectedUnits.length > 0 ? [...UNIT_STANCES] : [];
+    // DE's villager card has neither stances nor formations: its hotkeys.json
+    // files both under "Military Units" (work 142). Any other unit in the
+    // group keeps them, since which card DE shows for a mix is unsourced.
+    const offersStances = ownedSelectedUnits.some((entry) => entry.unit.unitType !== 'villager');
+    const stanceOptions: UnitStance[] = offersStances ? [...UNIT_STANCES] : [];
     const stancesInSelection = new Set(ownedSelectedUnits.map((entry) => (
       accessor.get(unitStancesCodec).get(entry.id) ?? defaultStanceFor(entry.unit.unitType)
     )));
@@ -371,9 +375,7 @@ export function createSelectionStateOps(deps: SelectionStateOpsDeps): SelectionS
       : null;
     // Same shape for formations: a single value when the whole selection
     // agrees, null when it does not, so the panel can show "mixed" honestly.
-    const formationOptions: UnitFormation[] = ownedSelectedUnits.length > 0
-      ? [...UNIT_FORMATIONS]
-      : [];
+    const formationOptions: UnitFormation[] = offersStances ? [...UNIT_FORMATIONS] : [];
     const formationsInSelection = new Set(ownedSelectedUnits.map((entry) => (
       accessor.get(unitFormationsCodec).get(entry.id) ?? DEFAULT_FORMATION
     )));

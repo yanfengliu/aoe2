@@ -4,16 +4,13 @@ import { isoToWorld } from '../rendering/isometricProjection';
 // none of them touch the view's state, which is why they were free-standing
 // functions at the bottom of that file already.
 
-/** WASD and the arrow keys pan the camera; everything else belongs elsewhere. */
+/** The arrow keys pan the camera, as DE's SCROLL_HOTKEYS do; W, A, S and D
+ *  are command-card keys in DE's default profile (work 142), not camera keys. */
 export function isCameraKey(code: string): boolean {
   return code === 'ArrowLeft'
     || code === 'ArrowRight'
     || code === 'ArrowUp'
-    || code === 'ArrowDown'
-    || code === 'KeyW'
-    || code === 'KeyA'
-    || code === 'KeyS'
-    || code === 'KeyD';
+    || code === 'ArrowDown';
 }
 
 /**

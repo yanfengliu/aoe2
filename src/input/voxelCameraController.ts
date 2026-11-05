@@ -138,10 +138,12 @@ export function createVoxelCameraController(
   function update(timeMs: number, deltaMs: number): void {
     const keys = deps.getPressedKeys();
     const keyboardSpeed = deltaMs / 1_000 * KEYBOARD_SCROLL_SPEED_PX_PER_SECOND / zoom;
-    if (keys.has('ArrowLeft') || keys.has('KeyA')) centerX -= keyboardSpeed;
-    if (keys.has('ArrowRight') || keys.has('KeyD')) centerX += keyboardSpeed;
-    if (keys.has('ArrowUp') || keys.has('KeyW')) centerY -= keyboardSpeed;
-    if (keys.has('ArrowDown') || keys.has('KeyS')) centerY += keyboardSpeed;
+    // The arrow keys alone, as DE's SCROLL_HOTKEYS (work 142): W, A, S and D
+    // are command-card keys there.
+    if (keys.has('ArrowLeft')) centerX -= keyboardSpeed;
+    if (keys.has('ArrowRight')) centerX += keyboardSpeed;
+    if (keys.has('ArrowUp')) centerY -= keyboardSpeed;
+    if (keys.has('ArrowDown')) centerY += keyboardSpeed;
     if (!deps.isMiddleDragging() && !deps.isDragSelecting()) {
       const edge = edgePan(timeMs);
       const speed = deltaMs / 1_000 * EDGE_PAN_SPEED_PX_PER_SECOND / zoom;

@@ -64,7 +64,7 @@ Not in scope: the AI (work 141), HUD restyling beyond these behaviours, civ-engi
 - [x] The click-unit gate and its red proof.
 - [x] Captures and pixel diffs; full gate; review rounds 0-2; records; phase-1 handoff.
 - [x] Phase 2 for M1: Moebius and random-view checks, lock, version 0.3.261, verify, push, findings queued in plan 106, worktrees retired.
-- [ ] M2: the villager's command card and DE's default hotkeys, for a fresh worker (starting state below).
+- [ ] M2: the villager's command card and DE's default hotkeys, for a fresh worker (starting state below). M2a (the villager's card, the Villager and Town Center keys) is below; M2b (the other cards' keys and the global keys) is open.
 
 ### Owner decisions waiting (unsourced rules; each took the closest sourced behaviour; also one line in plan 106's "Owner decisions waiting")
 
@@ -90,6 +90,27 @@ Seen on main before M1 (2026-11-04, lobby defaults, 1280x720): a selected villag
 
 
 DE's default hotkeys are in the install's `resources/_common/dat/hotkeys.json`: each shared entry's `defaults_list` holds the `definitive` profile's key, and `name_string_id` names it in `resources/en/strings/key-value/key-value-strings-utf8.txt`. Shared groups include `GAME_COMMAND_HOTKEYS`, `CYCLE_COMMAND_HOTKEYS` (`NEXT_IDLE_VILLAGER` is `VK_OEM_PERIOD`) and `GROUP_COMMAND_HOTKEYS`; `hotkey_group_list` holds 27 per-card groups, among them `VILLAGER_HOTKEYS` (37 entries) and `TOWN_CENTER_HOTKEYS` (18), whose entries are shaped differently from the shared ones. The options screen (`widgetui/screenoptions.json`) lists "Selection Modifier Hotkeys" and "Shift Group Appending" as checkboxes with no default given.
+
+### M2a: the villager's card and the Villager and Town Center keys (2026-11-04)
+
+Split from M2 at the coordinator's brief: M2a is the villager's card plus the Town Center's and the villager's keys; M2b is the other cards' keys and the global keys (H, comma, period, Space, F3, plus and minus, control groups, and the military card's A, P and G).
+
+**Sources.** DE's default keys are the `definitive` entry of each `defaults_list` in the install's `resources/_common/dat/hotkeys.json`, named by `name_string_id` in `resources/en/strings/key-value/key-value-strings-utf8.txt`; read by `tmp/de/dumpHotkeys.mjs` in the M2 worktree, DE never launched. The profile is a grid of slots, Q W E R T over A S D F G over Z X C V B: the install's `buttons.json` puts "Set Gather Point" at slot 4 (T), "Ungarrison All Units" at 9 (G), "Go Back To Work" at 8 (F), "All Back To Work" at 13 (V) and "Town Bell" at 14 (B), each the key `hotkeys.json` gives it. An entry's `alternate: true` is the Alt key (Create Group 11 is Ctrl+Alt+1 beside Create Group 1's Ctrl+1).
+
+1. **No stance or formation on a villager's card.** `MILITARY_UNITS_HOTKEYS` ("Military Units", string 20014) holds Patrol Q, Guard W, Follow E, Aggressive A, Defensive S, Stand Ground D, No Attack F, Attack Move R, Auto Scout G, Build B and the formations Box X, Line Z, Staggered C, Flank V; `VILLAGER_HOTKEYS` ("Villager Build", 20003) holds buildings only. Which card DE shows for a mixed group: unsourced; here any non-villager keeps stances and formations.
+2. **The villager's keys.** `UNIT_COMMAND_HOTKEYS`: Build Economic Q (19214), Build Military W (19215), Repair E, Stop G, Garrison T, Seek Shelter F (400017), Drop Off Resources A (400021); Delete is the Delete key (`DELETE_UNIT`). `VILLAGER_HOTKEYS` names each building's page in `context` and its slot by key: Economic House Q, Mill W, Mining Camp E, Lumber Camp R, Dock T, Farm A, Blacksmith S, Market D, Monastery F, University G, Town Center Z, Wonder X; Military Barracks Q, Archery Range W, Stable E, Siege Workshop R, Outpost A, Palisade Wall S, Stone Wall D, Tower F, Bombard Tower G, Gate Z, Palisade Gate X, Castle C. The Fish Trap (Q) has no context: a Fishing Ship builds it.
+3. **The Town Center's keys.** `TOWN_CENTER_HOTKEYS` (20004): Villager Q, Loom A, Wheelbarrow and Hand Cart S, Town Watch and Town Patrol D, Age Up Z, Ring Town Bell B (and its undo), Go Back to Work F, All Back to Work V; with `UNIT_COMMAND_HOTKEYS`' Set Gather Point T and Ungarrison G.
+4. **Scrolling.** `SCROLL_HOTKEYS` are the four arrow keys; W, A, S and D are grid keys.
+
+**Changes.** `selectionStateOps.ts` offers stances and formations only to a selection with a non-villager owned unit. `src/ui/hud/commandCardKeys.ts` holds DE's keys with their citations, including each building's page and slot, which `buildPages.ts` now reads (the Blacksmith, Monastery and University move to the Economic page, and a page lists its buildings in grid order). `src/app/bootstrap/commandCardHotkeys.ts` registers the fifteen grid keys: a key presses the button of the selected card that holds it, a villager's card takes DE's two steps (Q or W opens a page, the next key builds, a click on a tab opens it too), and cards without DE keys keep A (attack-move), G (attack-ground) and P (patrol), registered there now rather than in `createApp.ts`. The camera scrolls on the arrow keys alone.
+
+**Keys that moved.** W, A, S and D stopped scrolling. With a villager selected, A and G no longer arm attack-move and attack-ground (DE's villager card has Drop Off Resources and Stop there, which this game lacks, so they do nothing). With the Town Center selected, A is Loom and G Ungarrison. Q, W, E, R, T, S, D, F, Z, X, C, V and B were unbound before.
+
+**Tests adapted, and why.** `game-hud-and-camera-camera.spec.ts` and `voxelCameraController.test.ts` hold the Right Arrow where they held D, DE's Scroll Right. `attack-move-hotkey.spec.ts` selects the Scout where it selected a villager: DE has no attack-move for a villager. `play-opening.spec.ts` reads the boot palette in DE's grid order (House, Mill, Mining Camp, Lumber Camp, Dock, Farm; Barracks, Outpost, Palisade Wall, Palisade Gate). `buildPages.test.ts` holds DE's pages and grid order. M1's `selection-controls.spec.ts` arms A and G with a sheep selected (a card without DE keys yet) where it used a villager, and P still with the villager; it now waits for the click's selection before the key, which also caught the key handler reading the card from the panel, a frame behind the selection, so the handler now reads it from the selection. Same assertions otherwise.
+
+**Unsourced, the closest sourced behaviour taken.** Escape on an open build page (it does what it always did; the page stays open for the keys until a building is chosen or the selection changes); whether a held key repeats (the browser's repeat presses again); the mixed group's card (above). This game's one Back to Work sends everyone sheltered anywhere back; it takes F, the Town Center's Go Back to Work slot.
+
+**Found, not in M2a's scope (queued in plan 106, tagged "(work 142)").** DE's villager card has Repair (E), Stop (G), Garrison (T), Seek Shelter (F), Drop Off Resources (A) and Delete; this game has none of them as buttons. DE's Town Center has Set Gather Point (T), All Back to Work (V) beside Go Back to Work for its own garrison (F), and the bell's button turns into Undo Town Bell; this game has one Back to Work for everyone. DE draws a fixed 5x3 grid with empty slots; this game packs a page's buildings in grid order. Every other unit and building card is M2b's to check against DE.
 
 ## Outcome
 

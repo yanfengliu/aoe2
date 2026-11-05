@@ -80,19 +80,20 @@ const HUMAN = 1;
 // The BUILD panel a Dark Age Britons villager shows, as read from the cards
 // in panel order. Palisade Wall (2 wood/tile) and Palisade Gate (30 wood)
 // are DE's Dark Age options too.
-// Economic page first, then Military — DE's two build pages, each in palette
-// order (v0.3.189; `readBuildPanel` visits both tabs).
+// Economic page first, then Military — DE's two build pages (v0.3.189;
+// `readBuildPanel` visits both tabs), each in DE's grid order, the slot its
+// key names (QWERT, ASDFG, ZXCVB; work 142 M2a, which replaced palette order).
 const EXPECTED_BUILD_PANEL: play.BuildCard[] = [
   { name: 'House', cost: { wood: 25 } },
   { name: 'Mill', cost: { wood: 100 } },
-  { name: 'Lumber Camp', cost: { wood: 100 } },
   { name: 'Mining Camp', cost: { wood: 100 } },
-  { name: 'Farm', cost: { wood: 60 } },
+  { name: 'Lumber Camp', cost: { wood: 100 } },
   { name: 'Dock', cost: { wood: 150 } },
+  { name: 'Farm', cost: { wood: 60 } },
   { name: 'Barracks', cost: { wood: 175 } },
+  { name: 'Outpost', cost: { wood: 25, stone: 5 } },
   { name: 'Palisade Wall', cost: { wood: 2 } },
   { name: 'Palisade Gate', cost: { wood: 30 } },
-  { name: 'Outpost', cost: { wood: 25, stone: 5 } },
 ];
 
 test('the opening plays like AoE2 DE through the lobby, the mouse, and the HUD', {

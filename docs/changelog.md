@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## Unreleased — work 142 M2a
+
+The villager's command card and the Villager and Town Center keys are Definitive Edition's (DE's), from the default key profile in DE's own files.
+
+- **A villager's card has no stance or formation buttons**, as in DE. A group with any soldier in it keeps them.
+- **DE's build keys for villagers.** Q opens the Economic buildings and W the Military ones, and the next key builds: Q Q a House, Q W a Mill, Q A a Farm, W Q a Barracks, W S a Palisade Wall. A click on a page tab opens it for the keys too.
+- **The Blacksmith, the Monastery and the University are on the Economic page**, as in DE, and each page lists its buildings in DE's grid order (House, Mill, Mining Camp, Lumber Camp, Dock, then Farm on the Economic page).
+- **DE's Town Center keys.** Q trains a Villager, A researches Loom, S Wheelbarrow or Hand Cart, D Town Watch or Town Patrol, Z the next age, B rings the Town Bell, F sends everyone back to work and G ungarrisons.
+- **Keys that moved.** W, A, S and D no longer scroll the map; the arrow keys do, as in DE. With a villager or the Town Center selected, A and G are that card's keys, and no longer arm attack-move or attack-ground. A, G and P keep their old orders for other units until DE's keys reach those cards.
+
 ## 0.3.261
 
 Selecting and targeting with the mouse work as in Definitive Edition.

@@ -255,8 +255,18 @@ test.describe('selection and targeting as in DE (work 142)', () => {
     await expect(game.clickCell(page, shared.x, shared.y)).rejects.toThrow(
       new RegExp(`clickCell refuses a left click on cell \\(${shared.x},${shared.y}\\)`),
     );
+    // Work 142 M2a gave a villager's A and G to its DE card, so those two are
+    // armed with a sheep selected, whose card has no DE keys yet: two sheep,
+    // since a second click at one place walks the stack under it.
+    const selectFor = {
+      a: await sheepAt(page, SELECTION_CONTROLS_BOX_SHEEP),
+      p: villager!,
+      g: await sheepAt(page, SELECTION_CONTROLS_HIDDEN_SHEEP),
+    };
     for (const [key, order] of [['a', 'attack-move'], ['p', 'patrol'], ['g', 'attack-ground']] as const) {
-      await game.clickUnit(page, villager!);
+      await game.clickUnit(page, selectFor[key]);
+      // The key reads the card now on screen, so it waits for the click's selection.
+      await expect.poll(async () => (await game.getSelectionState(page)).selectedEntityIds).toEqual([selectFor[key]]);
       await page.keyboard.press(key);
       expect(await page.evaluate(() => window.__AOE2_TEST__!.getArmedGroundOrder())).toBe(order);
       await game.clickCell(page, shared.x, shared.y);

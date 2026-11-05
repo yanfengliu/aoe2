@@ -41,6 +41,7 @@ import { createIdleVillagerBell } from '../../ui/hud/idleVillagerBell';
 import { mountReferencePanels } from './referencePanels';
 import { registerEscapeLayerHotkey } from './escapeLayers';
 import { registerDePlayHotkeys } from './dePlayHotkeys';
+import { registerCommandCardHotkeys } from './commandCardHotkeys';
 import { registerSelectionRecallHotkeys } from './selectionRecallHotkeys';
 import { mountGameAudio, WORLD_LOADED_EVENT } from '../../audio/mountGameAudio';
 import { registerReplayHotkeys } from '../../game/replay/ReplayHotkeys';
@@ -406,11 +407,8 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     gateAnnotationHotkeyOnReplayMode(replayController, () => stack?.annotationController.onHotkey()),
   );
   hotkeyRegistry.register({ key: 'l', alt: true }, () => stack?.markerListPanel.toggleVisibility());
-  // M6 control: A arms attack-move; the next left click is its destination
-  // (AoE2's own interaction). Right-click or Esc cancels.
-  hotkeyRegistry.register({ key: 'a' }, () => {
-    view.armAttackMove();
-  });
+  // DE's command-card keys, and A, P and G's ground orders where a card has none yet (work 142).
+  cleanupCallbacks.push(registerCommandCardHotkeys({ hotkeyRegistry, view, bridgeRef, hudRoot }));
   const selectNextIdleVillagerAndCenter = registerSelectionRecallHotkeys(hotkeyRegistry, bridgeRef, view);
   // Audio cues (v0.3.109): horn, age-up fanfare, match stings, mute toggle.
   const gameAudio = mountGameAudio(bridgeRef, hudRoot, (text, hitTick) => hudController.toastHandle.showToast(text, { kind: 'alert', hitTick }), replayController);
@@ -429,17 +427,6 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   });
   idleBell.mount(hudRoot);
   cleanupCallbacks.push(() => idleBell.dispose());
-  // M6 control: P arms patrol. Same interaction as attack-move — the next left
-  // click is the far end — but the route stands, so the unit paces it until
-  // ordered elsewhere.
-  hotkeyRegistry.register({ key: 'p' }, () => {
-    view.armPatrol();
-  });
-  // Attack-ground (v0.3.117): G arms it; the next left click is the cell the
-  // mangonel line bombards, targets or no targets.
-  hotkeyRegistry.register({ key: 'g' }, () => {
-    view.armAttackGround();
-  });
   registerDePlayHotkeys({
     hotkeyRegistry, view, pauseControl, replayController,
     getLastHomeAttackPosition: () => gameAudio.getLastHomeAttackPosition(),

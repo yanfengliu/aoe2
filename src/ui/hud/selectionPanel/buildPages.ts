@@ -3,50 +3,21 @@
 // owns that split and nothing else: which page a building belongs to, how a
 // palette is partitioned across the pages, and which page should be showing.
 //
-// The map below is typed `Record<BuildableBuildingType, BuildPageId>`, so a
-// building added to the union without a page fails `npm run typecheck`; the
-// runtime list it exports is what `tests/ui/buildPages.test.ts` walks so the
-// same guarantee holds for a build that skipped the typechecker.
+// The page and the slot are DE's own (work 142): `VILLAGER_BUILD_SLOTS` in
+// `../commandCardKeys.ts`, read from the install's hotkeys.json. That map is
+// typed `Record<BuildableBuildingType, …>`, so a building added to the union
+// without a page fails `npm run typecheck`; the runtime list exported here is
+// what `tests/ui/buildPages.test.ts` walks so the same guarantee holds for a
+// build that skipped the typechecker.
 
 import type { BuildableBuildingType } from '../../../game/simulation/types';
+import { gridSlotOf, VILLAGER_BUILD_SLOTS } from '../commandCardKeys';
 
 export type BuildPageId = 'economic' | 'military';
 
-// The DE split. Towers and walls are MILITARY in DE (they sit on the military
-// page beside the Barracks), the Town Center and the Wonder are ECONOMIC.
-const BUILD_PAGE_BY_BUILDING: Record<BuildableBuildingType, BuildPageId> = {
-  // Economic Buildings
-  house: 'economic',
-  mill: 'economic',
-  farm: 'economic',
-  'lumber-camp': 'economic',
-  'mining-camp': 'economic',
-  market: 'economic',
-  dock: 'economic',
-  'fish-trap': 'economic',
-  'town-center': 'economic',
-  wonder: 'economic',
-  // Military Buildings
-  barracks: 'military',
-  'archery-range': 'military',
-  stable: 'military',
-  'siege-workshop': 'military',
-  blacksmith: 'military',
-  monastery: 'military',
-  university: 'military',
-  castle: 'military',
-  outpost: 'military',
-  'watch-tower': 'military',
-  'bombard-tower': 'military',
-  'palisade-wall': 'military',
-  'stone-wall': 'military',
-  'palisade-gate': 'military',
-  'stone-gate': 'military',
-};
-
 /** Every buildable building, in map order — the runtime mirror of the union. */
 export const BUILDABLE_BUILDING_TYPES = Object.keys(
-  BUILD_PAGE_BY_BUILDING,
+  VILLAGER_BUILD_SLOTS,
 ) as BuildableBuildingType[];
 
 export interface BuildPage {
@@ -65,7 +36,7 @@ export const BUILD_PAGES: readonly BuildPage[] = [
 export const DEFAULT_BUILD_PAGE: BuildPageId = 'economic';
 
 export function buildPageOf(buildingType: BuildableBuildingType): BuildPageId {
-  return BUILD_PAGE_BY_BUILDING[buildingType];
+  return VILLAGER_BUILD_SLOTS[buildingType].page;
 }
 
 export function isBuildPageId(value: unknown): value is BuildPageId {
@@ -74,7 +45,8 @@ export function isBuildPageId(value: unknown): value is BuildPageId {
 
 export type BuildPageBuckets = Record<BuildPageId, BuildableBuildingType[]>;
 
-/** Split a palette across the two pages, each page keeping the palette order. */
+/** Split a palette across the two pages, each page in DE's grid order: a
+ *  building's slot is its key, Q W E R T, A S D F G, Z X C V B. */
 export function partitionBuildOptions(
   buildOptions: readonly BuildableBuildingType[],
 ): BuildPageBuckets {
@@ -82,6 +54,8 @@ export function partitionBuildOptions(
   for (const buildingType of buildOptions) {
     buckets[buildPageOf(buildingType)].push(buildingType);
   }
+  const slot = (buildingType: BuildableBuildingType): number => gridSlotOf(VILLAGER_BUILD_SLOTS[buildingType].key);
+  for (const page of Object.values(buckets)) page.sort((a, b) => slot(a) - slot(b));
   return buckets;
 }
 

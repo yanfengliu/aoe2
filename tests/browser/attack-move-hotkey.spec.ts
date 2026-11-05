@@ -9,11 +9,14 @@ test.describe('attack-move interaction', () => {
   test('arms on A and turns the next left click into an attack-move order', async ({ page }) => {
     await game.waitForBoot(page);
 
-    // Select a villager so there is something to command.
+    // Select the Scout Cavalry so there is something to command. Until work
+    // 142 M2a this was a villager; DE gives a villager no attack-move (Attack
+    // Move is in hotkeys.json's "Military Units" group) and its A is now its
+    // card's key.
     const selected = await page.evaluate(() => {
       const api = window.__AOE2_TEST__!;
       const unit = api.getEconomyState().units.find(
-        (u) => u.owner === 1 && u.unitType === 'villager',
+        (u) => u.owner === 1 && u.unitType === 'scout',
       );
       if (!unit) return null;
       api.selectEntityAtCell(unit.x, unit.y);
