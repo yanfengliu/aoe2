@@ -123,7 +123,7 @@ export class AoeVoxelGameView {
       issueContextCommandAtWorldPosition: (x, y, isoX, isoY, garrison, forceAttack, queueMove) =>
         this.issueContextCommandAtWorldPosition(x, y, isoX, isoY, garrison, forceAttack, queueMove),
       clearRecentSelectionClicks: () => this.selection.clearRecentSelectionClicks(),
-      // M6 control: attack-move arming lives on the view so the A hotkey and
+      // M6 control: attack-move arming lives on the view so the R, Q and T keys and
       // the pointer share one piece of state.
       armedGroundOrder: () => this.groundOrder.get(),
       disarmGroundOrder: () => { this.groundOrder.disarm(); },
@@ -252,7 +252,7 @@ export class AoeVoxelGameView {
   /** M6 control: see armedGroundOrder.ts. */
   private readonly groundOrder = new ArmedGroundOrder();
 
-  /** Arm a ground order; the next left click spends it (A/P/G hotkeys). */
+  /** Arm a ground order; the next left click spends it (the military card's R, Q and T keys). */
   /** In-match speed (v0.3.155): DE's numpad +/- ladder (1 / 1.5 / 2). */
   adjustSpeed(direction: 1 | -1): number {
     const ladder = [1, 1.5, 2];

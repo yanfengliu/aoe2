@@ -150,7 +150,7 @@ export function createVoxelPointerInputController(
     }
     const armedOrder = event.button === 0 ? deps.armedGroundOrder?.() : null;
     if (armedOrder) {
-      // M6 control: the player armed a ground order (A for attack-move, P for
+      // M6 control: the player armed a ground order (R for attack-move, Q for
       // patrol) and this left click is its destination, exactly like AoE2.
       // Disarm FIRST so a rejected order cannot leave the cursor stuck.
       event.preventDefault();

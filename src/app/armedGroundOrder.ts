@@ -2,7 +2,7 @@
 //
 // AoE2's attack-move and patrol share one interaction — press a key, then
 // click where you want it. That means one piece of state, not a flag per order
-// type: with two booleans, pressing A and then P leaves both set and the click
+// type: with two booleans, pressing R and then Q leaves both set and the click
 // has to arbitrate. Held here rather than in the view so the hotkey registry
 // and the pointer controller are looking at the same thing.
 
