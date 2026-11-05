@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
-## Unreleased — work 142 M2b-2
+## 0.3.265
 
 Every building's command card takes Definitive Edition's (DE's) default keys, from the default key profile in DE's own files.
 
