@@ -279,7 +279,7 @@ test('the opening plays like AoE2 DE through the lobby, the mouse, and the HUD',
     // 10-food drop-off, so the drop is asserted as a window, never exactly.
     const foodBefore = (await play.readHud(page)).food;
     await page.locator('[data-command="train-villager"]').click();
-    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Training: Villager');
+    await expect(page.locator('[data-selection-queue-item="0"]')).toHaveAttribute('data-queue-entry', 'villager');
     await expect.poll(async () => foodBefore - (await play.readHud(page)).food)
       .toBeGreaterThanOrEqual(40);
     const foodDrop = foodBefore - (await play.readHud(page)).food;

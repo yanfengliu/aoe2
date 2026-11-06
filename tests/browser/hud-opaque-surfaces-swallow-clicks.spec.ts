@@ -119,7 +119,8 @@ const STATES: HudState[] = [
         // count of 1 cannot be silently under-advanced.
         await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1); });
       }
-      await expect(page.locator('[data-selection-queue-item="3"]')).toBeAttached();
+      // DE stacks the four into one icon counting 4 (work 148 M1).
+      await expect(page.locator('[data-selection-queue-item="0"]')).toHaveAttribute('data-queue-stack-count', '4');
     },
   },
   {

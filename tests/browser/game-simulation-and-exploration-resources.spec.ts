@@ -23,7 +23,7 @@ test.describe('browser gameplay smoke tests - game-simulation-and-exploration (r
     await page.locator('[data-command="train-villager"]').click();
 
     await expect(page.locator('[data-hud="food"]')).toHaveText('150');
-    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Training: Villager');
+    await expect(page.locator('[data-selection-queue-item="0"]')).toHaveAttribute('data-queue-entry', 'villager');
     await expect(page.locator('[data-selection-queue-item="0"]')).not.toContainText('ticks remaining');
 
     const advancedSnapshot = await page.evaluate(

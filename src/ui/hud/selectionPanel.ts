@@ -11,6 +11,7 @@ import type {
   EconomyState,
   MarketActionType,
   PlayerResources,
+  PopulationState,
   ResearchableTechnologyType,
   SelectionState,
   TrainableUnitType,
@@ -18,8 +19,6 @@ import type {
 
 import {
   formatEntityName,
-  formatQueueEntryName,
-  formatQueueProgress,
   formatSelectionName,
 } from './displayNames';
 import {
@@ -74,6 +73,7 @@ import {
   type GroupMember,
 } from './selectionPanel/groupPanel';
 import { trackPanelPress } from './selectionPanel/pressHold';
+import { renderProductionQueue } from './selectionPanel/productionQueue';
 
 export interface SelectionPanelDeps {
   getEconomyState(): EconomyState;
@@ -92,6 +92,8 @@ export interface SelectionPanelDeps {
   cancelBuildingPlacement(): boolean;
   /** A unit's hit points now, for its icon's bar in the group panel. */
   getEntityHealth(id: number): { currentHp: number; maxHp: number } | null;
+  /** A player's population, which the production queue reads (work 148 M1). */
+  getPopulation(owner: number): PopulationState | null;
   /** Keeps exactly these of the selected units selected, in the selection's
    *  order: the group panel's clicks (work 146 M2). */
   keepSelected(ids: readonly number[]): void;
@@ -181,6 +183,12 @@ export function createSelectionPanel(
       buildPages,
       selectionState.placementMode,
     );
+    // The queue names a unit the population holds, and a held queue does not
+    // change while the houses go up, so the owner's population redraws it too
+    // (work 148 M1, review round 1).
+    const queuePopulation = selectionState.queue.length > 0 && selectionState.owner !== null
+      ? deps.getPopulation(selectionState.owner)
+      : null;
     const signature = JSON.stringify([
       selectionState,
       selectionState.buildOptions.length > 0
@@ -188,6 +196,7 @@ export function createSelectionPanel(
             selectionState.buildOptions, playerResources, costOf)
         : null,
       activeBuildPage, chosenBuildPage, // the chosen flag is drawn too (work 142's keys read it)
+      queuePopulation,
     ]);
     const structureKey = JSON.stringify([
       selectionKey, selectionState.placementMode, activeBuildPage, chosenBuildPage,
@@ -226,31 +235,9 @@ export function createSelectionPanel(
     // next two on the bell and garrisoned their own villagers (play-test
     // 2026-09-11, `M1-07-queue.png`). Local rule "The HUD holds its shape"
     // already names "a queue filling up": nothing ahead of the deck may grow on
-    // a simulation event.
-    const queueItems = selectionState.queue.length > 0
-      ? selectionState.queue
-        .map((entry, index) => {
-          const progress = entry.totalTicks <= 0
-            ? 100
-            : Math.max(
-              0,
-              Math.min(
-                100,
-                Math.round(((entry.totalTicks - entry.remainingTicks) / entry.totalTicks) * 100),
-              ),
-            );
-          return `
-            <div class="hud-queue-item" data-selection-queue-item="${index}">
-              <div class="hud-queue-name">${formatQueueEntryName(entry)}</div>
-              <div class="hud-queue-meta">${formatQueueProgress(progress)}</div>
-              <div class="hud-queue-progress">
-                <div class="hud-queue-progress-fill" style="width: ${progress}%"></div>
-              </div>
-            </div>
-          `;
-        })
-        .join('')
-      : '';
+    // a simulation event. DE draws the queue as icons with one bar, the item in
+    // production's (work 148 M1, `selectionPanel/productionQueue.ts`).
+    const productionQueue = renderProductionQueue(selectionState.queue, queuePopulation);
     // Placement mode is announced INSIDE the Build group's heading, never as a
     // sibling section of the bar. As a third flex sibling between the summary
     // and the deck it took its width out of the build palette — the only thing
@@ -357,7 +344,7 @@ export function createSelectionPanel(
       </div>
       ${placementOutsideDeck}
       ${commandGroups ? `<div class="hud-command-deck" data-command-deck>${commandGroups}</div>` : ''}
-      ${queueItems ? `<div class="hud-queue-list" data-selection-queue-list>${queueItems}</div>` : ''}
+      ${productionQueue}
     `;
 
     el.querySelectorAll<HTMLButtonElement>('[data-command^="train-"]').forEach((button) => {

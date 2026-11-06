@@ -53,7 +53,7 @@ Other checks completed:
 - The real tree passes. An independent scan confirmed **exactly seventeen non-AI files**, with no missing or unexpected entry.
 - Removing the purchase-type references from each listed file independently failed the exact-list check: **17/17**.
 
-The records correctly update the counts to **9 architecture and 11 purchase tests**, and correctly identify the fifth repair and cap. However, the general prevention claims in `docs/work/141_ai-economy/plan.md:199`, `docs/architecture/decisions.md:976` and the devlog (`docs/devlog/detailed/2026-11-04_2026-11-04.md:227`) remain too broad. Review 15's (`docs/work/141_ai-economy/reviews/15_implementation.md:66`) concrete helper proofs hold, but its boundary description needs the allowed-file exception exposed above.
+The records correctly update the counts to **9 architecture and 11 purchase tests**, and correctly identify the fifth repair and cap. However, the general prevention claims in `docs/work/141_ai-economy/plan.md:199`, `docs/architecture/decisions.md:976` and the devlog (`docs/devlog/detailed/2026-11-04_2026-11-06.md:227`) remain too broad. Review 15's (`docs/work/141_ai-economy/reviews/15_implementation.md:66`) concrete helper proofs hold, but its boundary description needs the allowed-file exception exposed above.
 
 Verification: baseline typechecking and diff checks passed. **50 existing test callbacks passed using an in-memory runner with Vitest matchers, not the Vitest runner.** Full verification was not rerun; sandbox networking prevented remote CI verification. No files were modified.
 

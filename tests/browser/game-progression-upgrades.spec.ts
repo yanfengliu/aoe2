@@ -17,7 +17,7 @@ test.describe('browser gameplay smoke tests - upgrades', () => {
     expect(await game.selectOwnedBuildingDirect(page, 1, 'blacksmith')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Blacksmith');
     await page.locator('[data-command="research-fletching"]').click();
-    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Researching: Fletching');
+    await expect(page.locator('[data-selection-queue-item="0"]')).toHaveAttribute('data-queue-entry', 'fletching');
 
     await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(320, 100); });
 
@@ -57,7 +57,7 @@ test.describe('browser gameplay smoke tests - upgrades', () => {
     await expect(page.locator('[data-command="train-crossbowman"]')).toHaveCount(0);
 
     await page.locator('[data-command="research-crossbowman-upgrade"]').click();
-    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Researching: Crossbowman');
+    await expect(page.locator('[data-selection-queue-item="0"]')).toHaveAttribute('data-queue-entry', 'crossbowman-upgrade');
 
     await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(380, 100); });
 
@@ -106,8 +106,8 @@ test.describe('browser gameplay smoke tests - upgrades', () => {
     await expect(page.locator('[data-selection-name]')).toHaveText('Archery Range');
     await expect(page.locator('[data-command="research-arbalest-upgrade"]')).toBeVisible();
     await page.locator('[data-command="research-arbalest-upgrade"]').click();
-    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText(
-      'Researching: Arbalest',
+    await expect(page.locator('[data-selection-queue-item="0"]')).toHaveAttribute(
+      'data-queue-entry', 'arbalest-upgrade',
     );
 
     await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(700, 100); });

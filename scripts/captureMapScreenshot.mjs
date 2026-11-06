@@ -405,20 +405,18 @@ try {
       console.log(`ZOOM ${zoomValue} clamped to ${applied} by the camera`);
     }
   }
-  if (ticks > 0) {
-    if (!Number.isInteger(ticks)) {
-      throw new Error(`TICKS must be a whole number of simulation ticks; got "${process.env.TICKS}"`);
+  // advanceTicks is atomic (unpause -> step N -> repause) inside the page, so
+  // it is exact; chunked so a long advance does not exceed the call timeout.
+  // The sim STAYS paused afterwards — the screenshot is of exactly this tick.
+  const advance = async (count, name) => {
+    if (!Number.isInteger(count) || count < 0) {
+      throw new Error(`${name} must be a whole number of simulation ticks; got "${process.env[name]}"`);
     }
-    // advanceTicks is atomic (unpause -> step N -> repause) inside the page, so
-    // it is exact; chunked so a long advance does not exceed the call timeout.
-    // The sim STAYS paused afterwards — the screenshot is of exactly this tick.
-    let done = 0;
-    while (done < ticks) {
-      const chunk = Math.min(500, ticks - done);
-      await page.evaluate((count) => { window.__AOE2_TEST__?.advanceTicks(count); }, chunk);
-      done += chunk;
+    for (let done = 0; done < count; done += 500) {
+      await page.evaluate((chunk) => { window.__AOE2_TEST__?.advanceTicks(chunk); }, Math.min(500, count - done));
     }
-  }
+  };
+  await advance(ticks, 'TICKS');
   // PLACE="house@31,12" shows the placement GHOST there: the human's first
   // villager is selected, placement mode is entered for that building (what its
   // build card does) and the pointer moves onto the cell, so the frame shows the
@@ -476,6 +474,10 @@ try {
     await page.keyboard.press(key);
     await page.waitForTimeout(120);
   }
+  // HOTKEY_TICKS=<n> runs n ticks AFTER the keys: the paused capture applies a
+  // key's command at the next tick (a Town Center's Q queues its villager
+  // there), so without it the frame shows the panel before the keys (work 148).
+  await advance(Number(process.env.HOTKEY_TICKS ?? 0), 'HOTKEY_TICKS');
   // HOVER='<css selector>' rests the real mouse on one element before the shot,
   // so a capture can show what a TOOLTIP says — the price a command button
   // quotes (work 125), which no click-free frame draws. It goes last, after

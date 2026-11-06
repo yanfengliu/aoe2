@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.276
+
+A building's production queue is drawn as Definitive Edition (DE) draws it.
+
+- **Icons, not cards.** The queue is a row of icons after the command deck, a run of one kind stacked into one icon with its count: three Villagers and Loom are two icons, where they were four cards each reading "Training: Villager 0% complete", of which two or three fit and the rest were off the screen.
+- **One bar.** The item in production has the one bar, under DE's words "Creating Villager" or "Researching Loom" and beside its percent; its icon is outlined green with a thin bar of its own. The selected building's work line says "Creating" where it said "Training".
+- **Waiting for houses.** A unit at the head of the queue that the population holds is drawn red, and the queue says "You need to build more houses." (or "Population limit reached." at the limit), DE's words; a technology researched behind it shows its own progress on the bar.
+- **Tooltips stay up.** A hovered button or queue icon keeps its tooltip while a building trains; the panel draws itself again on every tick, and the tooltip used to vanish with the element it was shown for, so it showed one frame in twenty.
+- **Not here yet.** In DE a click on a queued icon takes the item out and returns its price, and a building queues at most 15; this game has neither, so the icons do nothing on a click.
+
 ## 0.3.275
 
 The game speeds are Definitive Edition's (DE's): Slow 1.0x, Casual 1.5x, Normal 1.7x and Fast 2.0x, starting on Normal.

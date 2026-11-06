@@ -67,6 +67,7 @@ function mount(hp: Map<number, number> = new Map()) {
     beginBuildingPlacement: vi.fn(() => true),
     cancelBuildingPlacement: vi.fn(() => true),
     getEntityHealth: (id) => ({ currentHp: hp.get(id) ?? 25, maxHp: 25 }),
+    getPopulation: () => null,
     keepSelected,
   };
   const panel = createSelectionPanel(host, deps);

@@ -740,9 +740,10 @@
        and 1100x700 (a compact chip row beside a two-line name, over the
        two-row palette); a villager 226.6px at 800x600; a Town Centre with one
        villager queued 234px at 1024x768 and 1100x700. The queue is a LINE of
-       its own here (66px an entry plus the 10px gap), so at 800x600, where the
-       stat chips take three rows, that same card is 262.6px and scrolls
-       inside the band; the camera-centre rule below leaves no room for it. */
+       its own here; at 800x600, where the stat chips take three rows, that
+       card was 262.6px and scrolled inside the band while the queue drew a
+       66px card an entry, and since work 148 M1, DE's row of icons, it is
+       234px and fits. */
     --hud-selection-bar-height: 236px;
     /* The group panel's 60 beside the heading on the summary's own line, in
        four rows of sixteen, short enough that the stance and formation tiles
@@ -824,6 +825,20 @@
   .hud-panel--selection > .hud-command-deck {
     flex: 1 1 100%;
     flex-wrap: wrap;
+  }
+
+  /* The queue is a line of its own here, so its status and its icons share
+     that line rather than stack: one row, which a Town Center's queue fits in
+     at 800x600, where the line starts some 60px above the band's bottom edge
+     (work 148 M1). */
+  .hud-panel--selection > .hud-queue-list {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hud-panel--selection > .hud-queue-list > .hud-queue-status {
+    flex: 0 0 180px;
   }
 }
 
@@ -912,19 +927,6 @@
   border-color: transparent;
   background: rgba(255, 255, 255, 0.03);
   color: rgba(226, 234, 243, 0.34);
-}
-
-/* Production progress: the one place the accent earns a solid fill, because
-   it is the only continuously-changing quantity on the panel. */
-.hud-queue-progress {
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.35);
-  overflow: hidden;
-}
-
-.hud-queue-progress-fill {
-  border-radius: 999px;
-  background: var(--hud-accent, #e9b949);
 }
 
 /* Menu items share the command-button surface so the menu is recognisably

@@ -133,6 +133,7 @@ describe('villager build palette', () => {
       beginBuildingPlacement,
       cancelBuildingPlacement: vi.fn(() => true),
       getEntityHealth: vi.fn(() => null),
+      getPopulation: vi.fn(() => null),
       keepSelected: vi.fn(),
     });
     const selection = villagerSelection();
@@ -196,6 +197,7 @@ describe('villager build palette', () => {
       beginBuildingPlacement: vi.fn(() => true),
       cancelBuildingPlacement: vi.fn(() => true),
       getEntityHealth: vi.fn(() => null),
+      getPopulation: vi.fn(() => null),
       keepSelected: vi.fn(),
     });
 

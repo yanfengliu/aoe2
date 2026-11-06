@@ -20,7 +20,7 @@ test.describe('browser gameplay smoke tests - game-combat-and-meta (combat)', ()
     expect(await game.selectOwnedBuildingDirect(page, 1, 'barracks')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Barracks');
     await page.locator('[data-command="train-militia"]').click();
-    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Training: Militia');
+    await expect(page.locator('[data-selection-queue-item="0"]')).toHaveAttribute('data-queue-entry', 'militia');
 
     const trainedSnapshot = await page.evaluate(
       () => window.__AOE2_TEST__!.advanceTicks(260, 100),

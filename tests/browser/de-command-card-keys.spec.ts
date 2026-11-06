@@ -153,16 +153,16 @@ test.describe('DE command card and its keys (work 142 M2a)', () => {
   test('the Town Center trains a Villager on Q and researches Loom on A', async ({ page }) => {
     await game.waitForBoot(page);
     await selectTownCenterWithH(page);
-    const queue = page.locator('[data-selection-queue-item] .hud-queue-name');
+    const queue = page.locator('[data-selection-queue-item]');
     await expect(queue).toHaveCount(0);
     // TOWN_CENTER_CREATE_VILLAGER: Q.
     await page.keyboard.press('q');
     await expect(queue).toHaveCount(1);
-    await expect(queue.first()).toContainText('Villager');
+    await expect(queue.first()).toHaveAttribute('data-queue-entry', 'villager');
     // TOWN_CENTER_LOOM: A. It no longer arms attack-move with the Town Center selected.
     await page.keyboard.press('a');
     await expect(queue).toHaveCount(2);
-    await expect(queue.nth(1)).toContainText('Loom');
+    await expect(queue.nth(1)).toHaveAttribute('data-queue-entry', 'loom');
     expect(await armedGroundOrder(page)).toBeNull();
   });
 

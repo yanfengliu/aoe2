@@ -14,7 +14,7 @@ test.describe('browser gameplay smoke tests - age up', () => {
     expect(await game.selectOwnedBuildingDirect(page, 1, 'town-center')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
     await page.locator('[data-command="research-feudal-age"]').click();
-    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Researching: Feudal Age');
+    await expect(page.locator('[data-selection-queue-item="0"]')).toHaveAttribute('data-queue-entry', 'feudal-age');
 
     await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1320, 100); });
 
@@ -58,7 +58,7 @@ test.describe('browser gameplay smoke tests - age up', () => {
     expect(await game.selectOwnedBuildingDirect(page, 1, 'town-center')).toBe(true);
     await expect(page.locator('[data-selection-name]')).toHaveText('Town Center');
     await page.locator('[data-command="research-castle-age"]').click();
-    await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Researching: Castle Age');
+    await expect(page.locator('[data-selection-queue-item="0"]')).toHaveAttribute('data-queue-entry', 'castle-age');
     await expect(page.locator('[data-hud="food"]')).toHaveText('200');
     await expect(page.locator('[data-hud="gold"]')).toHaveText('200');
 

@@ -45,7 +45,7 @@ This needs no knowledge of the purchase point, method aliasing, computed strings
 Cover this ordinary helper shape too. Consequently, `docs/work/141_ai-economy/plan.md:199`'s claim that a shared helper "cannot either" remains too broad; the decision and review/devlog closure claims need the same qualification.
 
 **R15-2 — low — The devlog's Result retains older test counts.**
-`docs/devlog/detailed/2026-11-04_2026-11-04.md:225`
+`docs/devlog/detailed/2026-11-04_2026-11-06.md:225`
 
 It reports **6 architecture tests and 9 purchase tests**; HEAD has **9 and 11**, respectively. Update them or explicitly label them as pre-review counts.
 

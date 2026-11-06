@@ -1,14 +1,12 @@
-// Tech / action / queue / age / time formatters. Smaller/varied
+// Tech / action / age / time formatters. Smaller/varied
 // formatters that don't share the unit/entity dispatch surface.
 
 import type {
   ActionType,
   AgeType,
   MarketActionType,
-  ProductionQueueEntry,
   ResearchableTechnologyType,
 } from '../../../game/simulation/types';
-import { formatEntityName } from './entityNames';
 
 export function formatTechnologyName(technologyType: ResearchableTechnologyType): string {
   switch (technologyType) {
@@ -327,22 +325,6 @@ export function formatMarketActionName(actionType: MarketActionType): string {
     case 'sell-stone':
       return 'Sell Stone';
   }
-}
-
-export function formatQueueEntryName(entry: ProductionQueueEntry): string {
-  if (entry.kind === 'unit' && entry.unitType) {
-    return `Training: ${formatEntityName(entry.unitType)}`;
-  }
-
-  if (entry.kind === 'technology' && entry.technologyType) {
-    return `Researching: ${formatTechnologyName(entry.technologyType)}`;
-  }
-
-  return entry.label;
-}
-
-export function formatQueueProgress(progressPercent: number): string {
-  return `${progressPercent}% complete`;
 }
 
 export function formatAgeName(age: AgeType): string {

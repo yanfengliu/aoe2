@@ -141,7 +141,9 @@ function formatActivityLabel(activity: NonNullable<SelectionState['activity']>):
     'carrying': 'Carrying relic',
     'packing': 'Packing',
     'unpacking': 'Unpacking',
-    'training': 'Training',
+    // DE's word for a building at work on a unit: "Creating" (string 4310,
+    // IDS_ATTRIBUTE_TRAINING), as its production queue says (work 148 M1).
+    'training': 'Creating',
     'researching': 'Researching',
     'under construction': 'Under construction',
     'idle': 'Idle',

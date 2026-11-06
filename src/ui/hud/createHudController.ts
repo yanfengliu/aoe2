@@ -81,6 +81,7 @@ interface HudBridge {
   select: SimulationBridge['select'];
   // Work 146 M2: each icon of the group panel draws its unit's hit points.
   getEntityHealth: SimulationBridge['getEntityHealth'];
+  getPopulationState: SimulationBridge['getPopulationState'];
   // Slice 11: drain the oldest pending rejection for a toast; null when none.
   consumeCommandRejection(): string | null;
   // Slice 11: F2 debug-overlay snapshot, read every frame while it is on.
@@ -157,7 +158,7 @@ export type SelectionPanelBridge = Pick<
   | 'getEconomyState' | 'issueAction' | 'setSelectionStance' | 'setSelectionFormation'
   | 'queueTrainUnit' | 'queueResearch' | 'issueMarketAction' | 'sendTribute'
   | 'listTributeTargets' | 'humanTributeFeeRate' | 'beginBuildingPlacement'
-  | 'getSelectionState' | 'getSelectedEntityRefs' | 'select' | 'getEntityHealth'
+  | 'getSelectionState' | 'getSelectedEntityRefs' | 'select' | 'getEntityHealth' | 'getPopulationState'
 >;
 
 /** The selection panel's wiring to the bridge, in one place so a test mounts
@@ -179,6 +180,7 @@ export function selectionPanelDepsFor(bridge: SelectionPanelBridge): SelectionPa
     beginBuildingPlacement: (buildingType) => bridge.beginBuildingPlacement(buildingType),
     cancelBuildingPlacement: () => cancelBuildingPlacement(bridge),
     getEntityHealth: (id) => bridge.getEntityHealth(id),
+    getPopulation: (owner) => bridge.getPopulationState(owner),
     // The group panel's clicks keep a part of the selection, so its refs keep
     // their order and generations, and `select` marks a paused frame.
     keepSelected: (ids) => {

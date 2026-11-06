@@ -108,7 +108,7 @@ export async function readSelectionPanel(page: Page): Promise<SelectionReadout> 
       health: text('[data-selection-detail-value="health"]'),
       inventory: text('[data-selection-detail-value="inventory"]'),
       placement: text('[data-placement-mode]'),
-      queueHead: text('[data-selection-queue-item="0"]'),
+      queueHead: document.querySelector<HTMLElement>('[data-selection-queue-item="0"]')?.getAttribute('aria-label') ?? '',
       commands,
     };
   });

@@ -91,7 +91,7 @@ Outside the diff I read:
 - Suggested wording: "Under the usual strategy no gatherers.per rule sets a split before the Feudal click: 11-20 and 79-87 skip the s-flush and r-flush blocks, and the usual block's Dark Age rules (589-662) wait for the Feudal research."
 
 **C3-2 (Low; records): the devlog and the plan's status stop at round 1.**
-- The devlog's "Reviewer findings" (`docs/devlog/detailed/2026-11-04_2026-11-04.md:62-64`) lists rounds 0 and 1 only. Round 2's findings and repairs (Codex R2-1, Claude C2-1 to C2-5) are missing, though `AGENTS.md:78` asks for reviewer findings by provider.
+- The devlog's "Reviewer findings" (`docs/devlog/detailed/2026-11-04_2026-11-06.md:62-64`) lists rounds 0 and 1 only. Round 2's findings and repairs (Codex R2-1, Claude C2-1 to C2-5) are missing, though `AGENTS.md:78` asks for reviewer findings by provider.
 - `plan.md:116` still reads "Review rounds 0 and 1 repaired".
 - `plan.md:118` still lists review round 2 as pending.
 - `plan.md:96` names only the red proofs of rounds 0 and 1. R2-1's red proof (Barracks empty with Feudal soldiers suppressed) is not there.

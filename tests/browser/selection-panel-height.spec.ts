@@ -27,15 +27,13 @@
 // stone mine; every villager; a box selection of every owned unit and sheep;
 // nothing again. Each state is also held INSIDE the band without a vertical
 // scroll, so a band kept fixed by clipping a card is red here and not only in
-// command-deck-fits.spec.ts — with ONE exception, named per state: at 800x600
-// the queued Town Centre is 261px of content (the wrapped bar puts the queue
-// on a line of its own, 76px an entry, and its stat chips take three rows
-// there), which no band under the camera-centre rule can hold, so it scrolls
-// inside the band under §14.2 rule (b) and is held for height and top edge
-// only; at 1024x768 the same card is 232px and must fit. Nothing here covers
+// command-deck-fits.spec.ts. Until work 148 M1 the queued Town Centre was the
+// one exception, at 800x600: 261px of content, its queue a line of 76px an
+// entry; DE's queue is a row of icons, the card is 234px, and the spec's
+// stale-exception check asked for the exception to go. Nothing here covers
 // other fixtures (a Castle's or a Market's card exceeds the band and scrolls
-// inside it, which command-deck-fits.spec.ts holds), a deeper queue (three
-// entries fit the unwrapped band, four scroll), widths between the four, a
+// inside it, which command-deck-fits.spec.ts holds), a deeper queue (its
+// icons wrap; de-production-queue.spec.ts holds four items), widths between the four, a
 // window shorter than the band needs (the viewport ceilings then clamp every
 // selection alike), or the replay timeline's reserve. Every state asserts
 // that its selection took effect before measuring, so a selection that
@@ -177,10 +175,7 @@ async function measureVillagerAndScout(page: Page): Promise<PanelMetrics[]> {
 
 /** The Town Centre, empty and with a villager queued, and a House foundation,
  *  from a fresh boot against their own "nothing selected". */
-async function measureTownCentreAndFoundation(
-  page: Page,
-  viewport: { width: number; height: number },
-): Promise<PanelMetrics[]> {
+async function measureTownCentreAndFoundation(page: Page): Promise<PanelMetrics[]> {
   const states: PanelMetrics[] = [];
   const record = async (state: string, scrollsInsideTheBand?: string): Promise<void> => {
     states.push(await measurePanel(page, state, scrollsInsideTheBand));
@@ -202,16 +197,10 @@ async function measureTownCentreAndFoundation(
   // so a paused match shows no queue entry until one tick runs. `advanceTicks`
   // is atomic — unpause, step, repause — so the match stays paused.
   await page.evaluate(() => { window.__AOE2_TEST__!.advanceTicks(1); });
-  await expect(page.locator('[data-selection-queue-item="0"]')).toContainText('Training: Villager');
-  await record(
-    'the Town Centre with a villager queued',
-    // The BOUND's one exception: the wrapped bar's queue line, at the width
-    // where the stat chips take three rows (261px of content at 800x600;
-    // 232px at 1024x768, which fits and is held).
-    viewport.width === 800
-      ? 'the queue takes a line of its own in the wrapped bar and the 800px summary wraps to three chip rows'
-      : undefined,
-  );
+  await expect(page.locator('[data-selection-queue-item="0"]')).toHaveAttribute('data-queue-entry', 'villager');
+  // Held like the others at every width since work 148 M1: DE's queue is a
+  // row of icons, and the 800x600 card that scrolled (261px) is 234px.
+  await record('the Town Centre with a villager queued');
 
   // A foundation: a villager places a House through the real placement pair,
   // and the paused simulation leaves it unbuilt.
@@ -304,7 +293,16 @@ async function measureMinesAndGroups(page: Page): Promise<PanelMetrics[]> {
   return states;
 }
 
-const GROUPS = [
+/** A group of states measured in one test; a group may except a state at a
+ *  viewport from the no-scroll rule, naming why (none does since work 148 M1). */
+interface PanelGroup {
+  name: string;
+  minimum: number;
+  measure: (page: Page, viewport: { width: number; height: number }) => Promise<PanelMetrics[]>;
+  excepted: (viewport: { width: number }) => string[];
+}
+
+const GROUPS: PanelGroup[] = [
   {
     name: 'villager and scout',
     minimum: 6,
@@ -314,8 +312,8 @@ const GROUPS = [
   {
     name: 'Town Centre and a House foundation',
     minimum: 5,
-    measure: measureTownCentreAndFoundation,
-    excepted: (viewport: { width: number }) => (viewport.width === 800 ? ['the Town Centre with a villager queued'] : []),
+    measure: (page: Page) => measureTownCentreAndFoundation(page),
+    excepted: () => [] as string[],
   },
   {
     name: 'a sheep, a tree and a berry bush',
@@ -366,8 +364,8 @@ for (const viewport of VIEWPORTS) {
             + `${state.clientHeight}px box without a vertical scroll.\n  ${table}`,
         ).toBeLessThanOrEqual(state.clientHeight + 1);
       }
-      // The exception is exactly one state at exactly one viewport, and it is
-      // still reachable: rule (b) says what the band cannot show scrolls.
+      // An exception is named per state and viewport (none since work 148 M1),
+      // and it is still reachable: rule (b) says what the band cannot show scrolls.
       const excepted = states.filter((state) => state.scrollsInsideTheBand);
       expect(excepted.map((state) => state.state)).toEqual(group.excepted(viewport));
       for (const state of excepted) {

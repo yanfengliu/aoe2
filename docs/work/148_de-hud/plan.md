@@ -1,30 +1,97 @@
 # The HUD tells the player what Definitive Edition's does
 
-Status: planned
+Status: active
 Owner: de-hud worker for the Claude coordinator
 Created: 2026-11-06
 Updated: 2026-11-06
 
+M1 (the production queue) landed as v0.3.276; M2 (the tooltips) goes to a fresh worker, its starting state below; M3 has not started.
+
 ## Problem and outcome
 
-The HUD tells the player what Definitive Edition's does. Define the observable outcome before implementation.
+Plan 106's HUD card (from play-1014 and the coordinator's plays): the HUD tells the player less than Age of Empires II: Definitive Edition's (DE's). Every queued item reads "Training: Villager 0% complete" and only three rows fit, where DE draws the queue as icons with the first one's progress; tooltips give price and time but no effect, and the Feudal Age's omits its two Dark Age buildings; the game menu is unlabelled icons and two settings rows are unlabelled; placement refusals are long and quote grid coordinates, where DE shows the red ghost and at most a short message. The outcome: the HUD shows the production queue, the tooltips, the menu and placement feedback as DE's does, every rule sourced from DE's install, otherwise official notes or documented community sources, cited; a rule no source settles takes the closest sourced behaviour and goes to plan 106's "Owner decisions waiting".
+
+Reproduced (M1) on 72f7266e (v0.3.274), a lobby-default match through the real Start Match, muted, real mouse (`tmp/probes/repro-queue.mjs` in the worktree): the Town Center clicked, Train Villager clicked five times (four queued, the fifth refused "Not enough food.") and Research Loom once. The panel drew four cards, three "Training: Villager 0% complete" (the first held at population 5 of 5, which nothing said) and "Researching: Loom 9% complete". At 1280x720 the list was 216px tall holding 356px of cards, so Loom's card was below the screen; at 800x600 it began at y 534 of 600 and one card showed in part.
 
 ## Scope
 
-Record the included work, exclusions and dependencies before implementation.
+M1, the production queue; M2, the tooltips (what each unit, building and technology does, and its requirements); M3, the game menu's labels and the placement feedback. Split or merged as the work shows, each landed through the coordinator's two phases. Not in scope: the simulation's rules (so no taking an item out of a queue, no queue cap), the AI (work 147), the game speed and the lobby (work 149), civ-engine and voxel, `AGENTS.md`. Findings outside scope go to plan 106, tagged "(work 148)".
 
 ## Approach
 
-Record the chosen approach and consequential tradeoffs.
+Rules are read from DE's install, never launched (the owner runs other sessions on this machine): `widgetui/` (at the install's root, `C:\Program Files (x86)\Steam\steamapps\common\AoE2DE\widgetui\`, not under `resources\_common\` as the brief had it), the English string table `resources/en/strings/key-value/key-value-strings-utf8.txt`, `widgetui/stringreference.json` (string names) and `resources/_common/dat/hotkeys.json`; then official notes and documented community sources.
+
+### DE rules, with sources (M1)
+
+1. **The queue is a row of icons.** `widgetui/commandpanel.json` gives the object panel a `QueueButtons` anchor filled at run time; each queued item is a button with its own tooltip, string 43104 "Click to remove this unit from the queue.", 43105 "Click to stop creating this unit." (the unit in production), 43108 and 43100 for a technology. DE queues units and technologies together ("mixed queuing", string 72608).
+2. **One bar, the item in production's.** The same panel has ONE `ProgressBack`/`Progress` bar (280x20) beside a `StatusLabel` (multiline, 38pt); its words are "Creating" (4310, IDS_ATTRIBUTE_TRAINING; also 20604-20605) and "Researching" (4309; 20600), with "%" (4328, IDS_PERCENT_SIGN).
+3. **A unit the population holds is named.** Strings 20607 "You need to build more houses." and 20608 "Population limit reached."; DE's global queue draws such a unit red: 300185, "Green: Progress of unit/research. Yellow: Pending unit/research. Red: Unit cannot be created due to the population cap."
+4. **Stacks.** DE's global queue shows a building's "first consecutive group of units of the same type in the same building" (a DE player, forums.ageofempires.com t/284548, 2026-03-04), so a consecutive run of one kind is one entry.
+5. **Out of this game's reach (simulation).** A click on a queued item takes it out and returns its price ("Click a unit in the queue to remove it from the queue. ... If you remove a unit from the queue, the resources are returned to your stockpile", The Age of Kings manual, 2000, p. 30, archive.org's copy; and strings 43104-43108), and a building queues at most 15 ("You can queue up to 15 units", the same page; 3088 "This building's production queue is full."). This game has no command that takes an item out of a queue and no cap, so its icons are not buttons; both go to plan 106.
+
+### Unsourced, the closest sourced behaviour taken (M1; also for plan 106's "Owner decisions waiting")
+
+1. That a building's own panel stacks a consecutive run into one icon, as the global queue groups it (rule 4), and where the count is drawn: here the count in the icon's top-left corner, the item in production counted in its stack.
+2. The status line's words beyond "Creating" and "Researching": here "Creating Villager" and "Researching Loom", the item's name after DE's word, and the whole percent beside the bar.
+3. Which message when: here 20607 while a House would make room, and 20608 once the housing is above the cap or the cap is 200.
+4. The icons' colours: here DE's global queue's (300185): green for the item in production, the accent's dim yellow for a waiting one, red for a unit the population holds.
+5. What a tooltip says without a click to offer: here the item, its count, and its percent or its wait ("Creating Villager: 40% (2 in the queue)", "Loom: in the queue", "Villager (2 in the queue): You need to build more houses.").
+
+### Changes (M1)
+
+- `src/ui/hud/selectionPanel/productionQueue.ts` (new): the rules (`queueStacks`, `progressingEntryIndex`, `headWaitsForHousing`, `queueEntryPercent`, `housingMessage`) and the markup (`renderProductionQueue`): a status (the housing message, then DE's word and the item, then the one bar and its whole percent) and the icons, each with `data-selection-queue-item` (its first item's index), `data-queue-entry`, `data-queue-stack-count` and `data-queue-state`, the glyph, the count when above one, and on the active icon a thin bar.
+- `selectionPanel.ts` draws it after the deck where the cards were, with the selection owner's population; `selectionPanel/render.ts` says "Creating" for a building at work on a unit; the two old formatters (`formatQueueEntryName`, `formatQueueProgress`) are gone.
+- CSS: the queue's rules in `styles.css` (tokens `--hud-queue-tile` 28px and `--hud-queue-gap` 3px); in `hudCommandPanel.css` the old progress rules went, and below 1120px the status and the icons share the queue's line.
+- `scripts/captureMapScreenshot.mjs`: `HOTKEY_TICKS` runs ticks after the hotkeys (the paused capture applies a key's command at the next tick), `TICKS` and it sharing one `advance`.
+- Review round 0 ([record](reviews/0_implementation.md), Codex on `f5b62c7e`): three P2 and one P3, all repaired. The active icon's fill was an inline span and drew nothing (now a block); the housing message did not follow a population change while the queue held still (the panel reads the owner's population through a new dep, `getPopulation`, the bridge's `getPopulationState`, while a queue is drawn, and redraws on it); a saved game's label could inject attributes (`escapeHtml` on the entry, the tooltip and the status's name); 145 of 250 ticks read 57% (times 100 before dividing).
+- Found during the round: a tooltip on any control the panel redraws vanished at the redraw, so while a building trained a hovered queue icon or Train Villager showed its tooltip one frame in twenty (`tmp/probes/queue-tooltip-hover.mjs`). `tooltips.ts` now finds the same control again by its key (`data-command`, a build page, a group-panel unit, a queue icon's `data-selection-queue-item`), and a document-level pointermove off the control releases it, since the browser, still holding the replaced element as hovered, sends no pointerout the HUD hears; its copy factories moved to the new `tooltipCopy.ts`, re-exported, to keep it under 500 lines.
+- Review round 1 ([record](reviews/1_implementation.md), Codex on `55f2b911`): the four repairs correct, and one P2, repaired: the tooltip followed a control the redraw had moved out from under the pointer (a group panel closing up). The controller keeps the pointer's last position and keeps a redrawn control's tooltip only where `elementFromPoint` there falls inside it; a DOM case, red on `55f2b911`.
+
+**Behaviour changed for existing features.** The queue's look and words (cards to icons, "Training: X N% complete" to the status and its bar, the bar green instead of the accent's gold); the selected building's work line says "Creating Villager" for "Training Villager"; a unit the population holds is now named and drawn red. The queue's place after the deck, its share of a width deficit and its scroll inside the band are unchanged; a Town Center's queued card at 800x600 now fits the band (234px) where it scrolled (261px). A hovered control the panel redraws keeps its tooltip, where it lost it at the redraw.
+
+### Tests (M1)
+
+- `tests/ui/productionQueueDom.test.ts`, seven cases on the panel as the HUD mounts it: the stacks in the queue's order with their counts and glyphs; one bar with DE's words and the percent, on the active icon too, and the tooltips; no card and no "% complete"; a unit waiting for houses (the message, the blocked icon, the research's bar behind it); the population limit; a unit held for want of room to appear is not said to want houses; nothing for an empty queue.
+- `tests/browser/de-production-queue.spec.ts`, five real-mouse, real-key cases: at 800x600, 1280x720 and 1920x1080, three villagers and Loom clicked are two icons (villager 3, active; Loom, waiting), the status "Creating Villager" with the simulation's percent, one bar, both fills drawn at that percent as rendered, the work line "Creating Villager", every icon on screen and hit by the pointer with nothing to scroll, and Train Villager where it was; at 1280x720 the hovered active icon and Train Villager keep their tooltips, with the current copy, across four redraws; and a villager waiting for houses says "You need to build more houses.", draws red with its tooltip, and Loom's bar moves behind it.
+- Round 0's repairs: three DOM cases (a population-only update, a label as text, 58% exactly), each red before its repair; `tests/ui/tooltipFollowsRedraw.test.ts` (five cases: a command and a queue icon redrawn keep their tooltip, red before; a move off a followed control lets go; a dropped control and another control of the same copy do not keep it, the controls). Mutants, each red: `r1-inline-fill` (browser 3, at the fill check), `r1-no-population-signature`, `r1-unescaped-entry`, `r1-divide-first` (DOM 1 each), `tooltip-drops-redrawn-host` (DOM 2, browser 1) and `tooltip-sticks-after-leave` (DOM 1, browser 1); `training-word` rerun on the repair (DOM 2, browser 3).
+- **Red proofs.** With the base's six product files put back and bundled with vite alone (`tmp/redproof-m1.sh`): all four browser cases red at their first new claim (the icons; the housing message not found), and six of the seven DOM cases (the empty queue is the control, green on both). Seven mutants, each red (`tmp/mutate-m1.mjs`): no stacking (DOM 3, browser 4), "Training" for "Creating" (1, 3), always the House message (DOM 1), the head always progressing (2, 1), no count (1, 3), 140px tiles (browser 2, at the in-view and no-scroll checks), and the queue moved ahead of the deck (browser 3, each at Train Villager's place).
+- **Adapted** (the cards' text was the defect; each keeps its claim, that the queue's head is the item): `de-command-card-keys` (the icons' entries for `.hud-queue-name`'s text), `game-combat-and-meta-combat`, `game-progression-ageup` (two), `game-progression-upgrades` (three), `game-simulation-and-exploration-resources`, `play-opening` and `selection-panel-height` (`data-queue-entry` for "Training: X" or "Researching: X"); `hud-opaque-surfaces-swallow-clicks` (four villagers are one icon counting 4, for a fourth card); `helpers/playOpening.ts`'s `queueHead` reads the head icon's label. `selection-panel-height` also lost its one exception, the 800x600 queued Town Center, which its own stale-exception check reported once the card fit (234px of 234px): the state is now held like the others, and the groups carry a type so the exception machinery stays.
+
+### Captures (M1)
+
+SwiftShader, fog on, `scripts/captureMapScreenshot.mjs` with `SELECT=town-center HOTKEY=q,q,q,a HOTKEY_TICKS=40` (three villagers and Loom by DE's keys, 40 ticks run), before on the base's bundle (72f7266e's product files) and after on the branch, and `scripts/diffMapScreenshots.mjs` (`tmp/capture-m1.sh` in the worktree, images in its `tmp/captures/m1/`). Default view at 800x600: 19,401 pixels changed (4.04%), all within x 12-587, y 352-587, the bar; 1280x720: 39,550 (4.29%), x 12-1011, y 462-707, the bar; 1920x1080: 37,745 (1.82%), x 12-1053, y 822-1067, the bar, whose right edge moved in by 42px since the queue's column is narrower. A random view (`FOCUS=46,16`, `ZOOM=1.42`, 1024x768): 22,252 (2.83%), x 12-811, y 520-755, the bar. Each looked at at full resolution.
+
+### Live check (M1)
+
+A lobby-default match through Start Match at 1280x720 on the branch's build (PREVIEW_PORT 4323, the speaker's title "Sound off — click to unmute", `tmp/probes/live-check-m1.mjs`): the Town Center clicked, Train Villager clicked twice, Q and A pressed. The queue read villager 3 (active) and Loom, "Creating Villager" from 0% through 30% and 55%; the villager came out at population 5 of 5, and the queue read "You need to build more houses." over villager 2 (red) and Loom (green), Loom's bar from 2% to 98%; Loom done, villager 2 waited alone. The work line read "Creating Villager" throughout, no page text was selected, and the page logged no error.
+
+### Found outside M1's scope (for plan 106, tagged "(work 148)")
+
+- DE takes a queued item out on a click on its icon and returns its price, and caps a building's queue at 15 (rule 5): this game has neither, so its queue icons are not buttons.
+- The selected building's work line names the queue's head even while it waits for houses ("Creating Villager" at population 5 of 5), where DE's status label says "You need to build more houses."; the queue beside it says so, and the work line comes from the simulation's `getBuildingActivity`, outside the HUD.
+
+### M2 and M3 starting state (for a fresh worker; sources found during M1's search)
+
+- **Where the tooltips live (since M1).** `src/ui/hud/tooltipCopy.ts` holds the copy: `formatResourceCost`, `HUD_CHIP_TOOLTIPS`, `SELECTION_DETAIL_TOOLTIPS` and the command cards' factories (`formatTrainTooltip`, `formatResearchTooltip`, `formatBuildTooltip`, `formatActionTooltip`, `formatMarketActionTooltip`); `src/ui/hud/tooltips.ts` re-exports all of it and keeps the controller (hover, focus, placement around the bar and the minimap, and M1's redraw rule: a control redrawn under a resting pointer keeps its tooltip by its key, `tooltipHostKey`, while the pointer's last position is inside it). M2's copy belongs in `tooltipCopy.ts`; the buttons that call it are `src/ui/hud/selectionPanel/buttons.ts` and `buildPalette.ts`, and every price comes from `SelectionState.commandCosts` (spec §14.2), never priced in the HUD. `tests/ui/commandTooltips.test.ts` holds today's copy.
+- **M2, effects.** DE's string table (`resources/en/strings/key-value/key-value-strings-utf8.txt`, read-only) gives each unit, building and technology a help text that says what it does, for example 26143: "Create <b>Shotel Warrior<b> (<cost>)\nEthiopian unique Infantry with high attack and fast training speed. Fast-moving. Strong vs. Infantry. Weak vs. Archery Units.\n<GREY><i>Upgrades: ...<i><DEFAULT>\n<hp> <attack> <armor> <piercearmor> <range>". Copy DE's words as rules to follow, not as text to ship wholesale; nothing in this repo may copy DE's files.
+- **M2, requirements.** DE's Feudal Age tooltip, string 28101: "Advance to <b>Feudal Age<b> (<cost>; two Dark Age buildings)\nImproves your civilization. Gives you access to different buildings, more powerful military units, and stronger technologies. Before you can advance, you must have any two Dark Age buildings: Lumber Camp, Mining Camp, Mill, Dock, or Barracks." The Age of Kings manual (2000, p. 6, archive.org's copy) says the same: 500 food and two different Dark Age buildings, Houses and the Town Center not counted.
+- **M3, the menu.** "Learn to play", Lesson 4, "The Menu Bar" (https://www.ageofempires.com/learn-to-play/control-resources-aoe2/): Civilization Icon (the technology tree), Objectives, Chat, Diplomacy, Settings, Main Menu (save or load, resign, restart). To read in the install: `widgetui/menupanel.json`, `dialogingamemenu.json` and `screenoptions.json` (the `widgetui` folder is at the install's root). Spec §14.1 today calls the game menu's icon-only actions "the deliberate icon-only exception", which M3 revisits.
+- **M3, placement.** The Age of Kings manual (p. 5, and the "To construct a building" steps): "The building is shown in flashing red if you cannot build in a particular location." openage's `building_placement.md` has no interface rules. Plan 106's placement card (the House ghost a flat footprint where DE draws the building translucent and tinted) is related but is not this work's.
 
 ## Acceptance criteria
 
-- [ ] Define observable completion conditions and their checks.
+- [x] M1 (landed as v0.3.276): the queue as DE's icons with one bar, its stacks and the housing message; real-click browser tests and unit tests, each red with the defect put back; captures with a diff confined to the bar; spec §14.2; verify green with a passing receipt; independent review recorded; a lobby-default match driven through Start Match with the queue.
+- [ ] M2: tooltips with effects and requirements, with the same checks.
+- [ ] M3: the menu's labels and DE's placement feedback, with the same checks.
 
 ## Implementation steps
 
-- [ ] Agree scope and acceptance, then carry out the work.
+- [x] Source M1's rules and reproduce in the real game.
+- [x] M1 tests first, red on the base; implement; mutants; captures; live check.
+- [x] M1 gate, review rounds 0 and 1, phase-1 handoff.
+- [x] M1 phase 2: landed as v0.3.276.
+- [ ] M2, then M3, each through both phases.
 
 ## Outcome
 
-Pending. Record the verified revision, checks and limitations at closure.
+M1 phase 1 (2026-11-06): branch `de-hud-1106` holds `78f48002` (M1), `f5b62c7e` (the merge of main `4bd1978b`, docs only), `55f2b911` (round 0's repairs and the redrawn tooltip), `3065f9de` (round 1's repair) and this record. The gate on `3065f9de`, under the lock: vitest 5,474 passed and 3 skipped, Playwright 342 passed and 2 skipped (10.0 minutes), receipt OK (tree `1825080da6d5`). On that build the four after-captures diff from the before-captures exactly as recorded above, and the live check gave the same results; a hover in a running lobby match held the active icon's tooltip on 20 of 20 samples a tenth of a second apart, its percent climbing, and Train Villager's on 20 of 20, where the base showed them on 1 and 0 of 20 (`tmp/probes/queue-tooltip-hover.mjs`). Not checked: DE itself (never launched), so every unsourced choice above; a full match played with the queue (the live check plays about 40 s); touch and pen input on the queue icons and the tooltip's move release; another player's building's queue, which the selection state carries; queues longer than four items or wider than one row of icons in the narrow column; widths between the tested ones and windows under 600px tall; the replay timeline with a queue; the cost of the tooltip's scan per redraw and of the population read per frame, beyond their being one `querySelectorAll` and one map read. The version bump, the landing, plan 106's card, its new cards and owner-decision line, and the gallery wait for phase 2.

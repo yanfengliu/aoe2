@@ -18,8 +18,6 @@ export {
   formatTechnologyName,
   formatActionName,
   formatMarketActionName,
-  formatQueueEntryName,
-  formatQueueProgress,
   formatAgeName,
   formatMatchTime,
   formatCountdownTicks,
