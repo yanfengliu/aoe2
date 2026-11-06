@@ -35,7 +35,8 @@ import type {
   PlacementPreviewVisualState,
   SelectionBoxState,
 } from '../rendering/viewTypes';
-import { boundedVisibleSimulationDelta } from '../game/visibleSimulationTiming';
+import { frameSimulationDelta } from '../game/visibleSimulationTiming';
+import { stepGameSpeed } from '../game/simulation/matchOptions';
 import { createFrameHaltState, type FrameHalt } from './frameHaltState';
 
 export interface AoeVoxelGameViewOptions {
@@ -252,12 +253,9 @@ export class AoeVoxelGameView {
   /** M6 control: see armedGroundOrder.ts. */
   private readonly groundOrder = new ArmedGroundOrder();
 
-  /** In-match speed (v0.3.155): DE's numpad +/- ladder (1 / 1.5 / 2). */
+  /** In-match speed: one step of DE's four §4.5 speeds (numpad + and −). */
   adjustSpeed(direction: 1 | -1): number {
-    const ladder = [1, 1.5, 2];
-    const index = Math.max(0, ladder.findIndex((step) => Math.abs(step - this.simulationSpeedMultiplier) < 0.01));
-    this.simulationSpeedMultiplier = ladder[Math.min(ladder.length - 1, Math.max(0, index + direction))]!;
-    return this.simulationSpeedMultiplier;
+    return this.simulationSpeedMultiplier = stepGameSpeed(this.simulationSpeedMultiplier, direction);
   }
   getSimulationSpeed(): number { return this.simulationSpeedMultiplier; }
   /** Arm a ground order; the next left click spends it (the military card's R, Q and T keys). */
@@ -390,7 +388,7 @@ export class AoeVoxelGameView {
       const elapsedMs = this.lastFrameTimeMs === null
         ? 0
         : Math.max(0, timeMs - this.lastFrameTimeMs);
-      const simulationDeltaMs = boundedVisibleSimulationDelta(elapsedMs) * this.simulationSpeedMultiplier;
+      const simulationDeltaMs = frameSimulationDelta(elapsedMs, this.simulationSpeedMultiplier);
       const cameraDeltaMs = Math.min(MAX_CAMERA_FRAME_DELTA_MS, elapsedMs);
       this.lastFrameTimeMs = timeMs;
       // After a halt the world may be mid-tick, so it never steps again — but

@@ -17,16 +17,19 @@ function chip(
   label: string,
   initialValue: string,
 ): string {
+  // Work 149: the time shows the game speed in brackets under the clock, as
+  // DE's game-time display does (spec §4.5), laid out as a resource's workers.
   const workers = ['food', 'wood', 'gold', 'stone'].includes(key)
     ? `<span class="hud-resource-workers" data-resource-workers="${key}" aria-label="${label} workers: 0" data-tooltip="${label} workers: 0"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4" r="3" fill="currentColor"/><path d="M2 15c0-4 2-6 6-6s6 2 6 6Z" fill="currentColor"/></svg><span data-resource-worker-count="${key}">0</span></span>`
-    : '';
+    : key === 'time' ? '<span class="hud-game-speed" data-hud="speed" aria-label="Game speed">(1.0)</span>' : '';
+  const readout = key === 'time' ? 'hud-time-readout' : 'hud-resource-readout';
   return `
         <div class="hud-chip" data-hud-chip="${key}" data-tooltip="${HUD_CHIP_TOOLTIPS[key]}">
           <div class="hud-chip-head">
             ${resourceGlyph(key)}
             <div class="hud-label">${label}</div>
           </div>
-          ${workers ? '<div class="hud-resource-readout">' : ''}<div class="hud-value" data-hud="${key}">${initialValue}</div>${workers}${workers ? '</div>' : ''}
+          ${workers ? `<div class="${readout}">` : ''}<div class="hud-value" data-hud="${key}">${initialValue}</div>${workers}${workers ? '</div>' : ''}
         </div>`;
 }
 

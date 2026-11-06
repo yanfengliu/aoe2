@@ -8,6 +8,13 @@
 import { CIVILIZATION_NAMES } from '../../game/simulation/civilizationNames';
 import { MAX_STANDARD_PLAYERS } from '../../game/simulation/mapGeneration/applyStandardPlayerOpening/patches';
 import { PLAYABLE_MAPS } from '../../game/simulation/mapGeneration/playableMaps';
+import {
+  DEFAULT_GAME_SPEED,
+  GAME_SPEED_LADDER,
+  GAME_SPEEDS,
+  UNSET_GAME_SPEED,
+  type GameSpeed,
+} from '../../game/simulation/matchOptions';
 
 export interface SetupChoices {
   seed: string;
@@ -17,9 +24,15 @@ export interface SetupChoices {
   difficulty: 'easy' | 'standard' | 'hard';
   resources: 'standard' | 'medium' | 'high';
   victory: 'standard' | 'conquest-only';
-  speed: 'slow' | 'normal' | 'fast';
+  speed: GameSpeed;
   popCap: number;
 }
+
+/** §4.5's row: DE's four speeds slowest first, starting on DE's Normal. */
+const SPEED_OPTIONS = GAME_SPEED_LADDER.map((id) => ({
+  value: id,
+  label: `${GAME_SPEEDS[id].label} (${GAME_SPEEDS[id].multiplier.toFixed(1)}x)`,
+}));
 
 /** True when this visit carries any configuration at all — those boot straight
  *  into the match, so the screen shows only on a bare URL. */
@@ -43,7 +56,7 @@ export function setupQueryString(choices: SetupChoices): string {
   if (choices.difficulty !== 'standard') params.set('difficulty', choices.difficulty);
   if (choices.resources !== 'standard') params.set('resources', choices.resources);
   if (choices.victory !== 'standard') params.set('victory', choices.victory);
-  if (choices.speed !== 'slow') params.set('speed', choices.speed);
+  if (choices.speed !== UNSET_GAME_SPEED) params.set('speed', choices.speed);
   if (choices.popCap !== 200) params.set('popcap', String(choices.popCap));
   return params.toString();
 }
@@ -116,11 +129,7 @@ export function mountSetupScreen(root: HTMLElement): void {
         </select>
       </label>
       <label class="setup-row">Game speed
-        <select data-setup="speed">
-          <option value="slow">Slow (1.0x)</option>
-          <option value="normal" selected>Normal (1.5x)</option>
-          <option value="fast">Fast (2.0x)</option>
-        </select>
+        <select data-setup="speed">${options(SPEED_OPTIONS, DEFAULT_GAME_SPEED)}</select>
       </label>
       <button class="setup-start" data-setup="start" type="button">Start Match</button>
     </div>

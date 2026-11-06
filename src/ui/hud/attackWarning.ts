@@ -12,7 +12,7 @@
 //
 // And again (defect register 2026-09-24): the mark that fixed it was a dot
 // with a 3-pixel core that lived 8 s of WALL CLOCK, while the throttle that
-// re-raises it counts 200 SIMULATION ticks — 13.3 s at normal speed (1.5x). So
+// re-raises it counts 200 SIMULATION ticks — 13.3 s at the 1.5x normal of then. So
 // a sustained raid left the minimap dark for about 40% of the time, a paused
 // game lost the mark after 8 s, and the real play screenshots held 16 alert
 // pixels out of 1.44 million. It was also the only alert in the game with no

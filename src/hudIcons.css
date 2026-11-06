@@ -37,28 +37,34 @@
 
 /* Resource glyphs and numeric readouts fit the fixed chip. Seven-digit totals
    fit inline; longer values use an explicit ellipsis and the full tooltip. */
-.hud-chip:has(> .hud-resource-readout) .hud-chip-head {
+/* The Time chip's clock and game speed (work 149) share the same two rows. */
+.hud-chip:has(> .hud-resource-readout) .hud-chip-head,
+.hud-chip:has(> .hud-time-readout) .hud-chip-head {
   height: 12px;
   line-height: 12px;
 }
-.hud-chip:has(> .hud-resource-readout) .hud-chip-glyph {
+.hud-chip:has(> .hud-resource-readout) .hud-chip-glyph,
+.hud-chip:has(> .hud-time-readout) .hud-chip-glyph {
   width: 12px;
   height: 12px;
 }
-.hud-resource-readout {
+.hud-resource-readout,
+.hud-time-readout {
   display: grid;
   grid-template-rows: 14px 10px;
   align-content: start;
   min-width: 0;
 }
-.hud-resource-readout .hud-value {
+.hud-resource-readout .hud-value,
+.hud-time-readout .hud-value {
   min-width: 0;
   font-size: 12px;
   line-height: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.hud-resource-workers {
+.hud-resource-workers,
+.hud-game-speed {
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -69,6 +75,7 @@
   white-space: nowrap;
 }
 .hud-resource-workers svg { width: 8px; height: 8px; }
+.hud-game-speed[hidden] { display: none; }
 
 /* Build-command buttons: glyph sits left of the text label. The button
    is otherwise unchanged (same gradient, padding, hover, disabled). */

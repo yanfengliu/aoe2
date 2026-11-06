@@ -16,7 +16,7 @@
 // HOW: `raid-warning-fixture` gives the human a lone House far from its Town
 // Center and puts two of owner 2's Militia beside it with the AI off. The
 // spec orders them onto the House through the command pipeline, runs the
-// match in real time at `?speed=normal` (1.5x), then pauses it with F3, the
+// match in real time at `?speed=normal` (DE's 1.7x), then pauses it with F3, the
 // real DE pause key.
 //
 // BOUNDS, so a green run is not read for more than it holds:

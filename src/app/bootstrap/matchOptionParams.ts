@@ -1,9 +1,15 @@
 // Parse the §4 match-option URL parameters the setup screen writes:
 // ?victory=conquest-only, ?resources=standard|medium|high, and
-// ?speed=slow|normal|fast. Each unusable value warns and falls back to the
-// default — a bad URL opens the ordinary game, never a refusal.
+// ?speed=slow|casual|normal|fast. Each unusable value warns and falls back to
+// the default — a bad URL opens the ordinary game, never a refusal.
 
-import { GAME_SPEEDS, RESOURCE_PRESETS, type GameSpeed, type ResourcePreset } from '../../game/simulation/matchOptions';
+import {
+  GAME_SPEEDS,
+  RESOURCE_PRESETS,
+  UNSET_GAME_SPEED,
+  type GameSpeed,
+  type ResourcePreset,
+} from '../../game/simulation/matchOptions';
 
 export function parseVictoryParam(url: string): 'conquest-only' | undefined {
   const raw = new URL(url).searchParams.get('victory');
@@ -36,14 +42,16 @@ export function parsePopCapParam(url: string): number | undefined {
   return value;
 }
 
-/** The simulation-delta multiplier ?speed= asks for (§4.5); 1 when absent. */
+/** The simulation-delta multiplier ?speed= asks for (§4.5); Slow's 1.0x when
+ *  absent, which is every boot but the lobby's. */
 export function parseSpeedParam(url: string): number {
+  const unset = GAME_SPEEDS[UNSET_GAME_SPEED].multiplier;
   const raw = new URL(url).searchParams.get('speed');
-  if (raw === null || raw.trim() === '') return GAME_SPEEDS.slow;
+  if (raw === null || raw.trim() === '') return unset;
   const value = raw.trim().toLowerCase();
-  if (value in GAME_SPEEDS) return GAME_SPEEDS[value as GameSpeed];
+  if (Object.hasOwn(GAME_SPEEDS, value)) return GAME_SPEEDS[value as GameSpeed].multiplier;
   console.warn(
     `[aoe2] ?speed= "${raw.trim()}" is not one of ${Object.keys(GAME_SPEEDS).join('/')}; running at 1.0x.`,
   );
-  return GAME_SPEEDS.slow;
+  return unset;
 }

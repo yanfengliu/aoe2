@@ -38,6 +38,7 @@ import {
 } from '../../game/replay/ReplayController';
 import { createTimelinePanel } from '../../game/replay/TimelinePanel';
 import { createIdleVillagerBell } from '../../ui/hud/idleVillagerBell';
+import { showGameSpeed } from '../../ui/hud/gameSpeedReadout';
 import { mountReferencePanels } from './referencePanels';
 import { registerEscapeLayerHotkey } from './escapeLayers';
 import { registerDePlayHotkeys } from './dePlayHotkeys';
@@ -428,9 +429,13 @@ export async function createApp(): Promise<AoeVoxelGameView> {
   });
   idleBell.mount(hudRoot);
   cleanupCallbacks.push(() => idleBell.dispose());
+  const showSpeed = (): void => showGameSpeed(hudRoot, view.getSimulationSpeed(), replayController.mode === 'replay');
+  showSpeed();
+  cleanupCallbacks.push(replayController.onModeChange(showSpeed));
   registerDePlayHotkeys({
     hotkeyRegistry, view, pauseControl, replayController, bridgeRef,
     getLastHomeAttackPosition: () => gameAudio.getLastHomeAttackPosition(),
+    onSpeedChange: showSpeed,
   });
   // v0.1.95 / v0.3.223: Esc backs out of whatever is ON TOP, and opens the
   // in-game menu only when nothing is. The stack, its order and the reasoning

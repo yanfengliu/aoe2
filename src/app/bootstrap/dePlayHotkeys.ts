@@ -42,6 +42,8 @@ export function registerDePlayHotkeys(deps: {
   replayController: ReplayControllerLike;
   bridgeRef: () => SimulationBridge;
   getLastHomeAttackPosition: () => { x: number; y: number } | null;
+  /** After each speed key: the Time chip shows the new speed (work 149). */
+  onSpeedChange?: () => void;
 }): void {
   const { hotkeyRegistry, view, pauseControl, replayController, getLastHomeAttackPosition } = deps;
   // F3 (v0.3.155, PAUSE_GAME): the same manual pause the menu preserves, so
@@ -49,11 +51,11 @@ export function registerDePlayHotkeys(deps: {
   hotkeyRegistry.register({ key: 'F3' }, () => {
     if (pauseControl.isPaused()) pauseControl.resume(); else pauseControl.pause();
   });
-  // Game speed through the §4.5 ladder on the numpad's keys alone (SPEED_UP
-  // VK_ADD, SPEED_DOWN VK_SUBTRACT): the main row's − and Shift+= are not
-  // DE's speed keys, and Ctrl+= and Ctrl+− are its zoom.
-  hotkeyRegistry.register({ code: 'NumpadAdd' }, () => { view.adjustSpeed(1); });
-  hotkeyRegistry.register({ code: 'NumpadSubtract' }, () => { view.adjustSpeed(-1); });
+  // Game speed through DE's four §4.5 speeds on the numpad's keys alone
+  // (SPEED_UP VK_ADD, SPEED_DOWN VK_SUBTRACT), held at Slow and Fast: the main
+  // row's − and Shift+= are not DE's speed keys, and Ctrl+= and Ctrl+− are its zoom.
+  hotkeyRegistry.register({ code: 'NumpadAdd' }, () => { view.adjustSpeed(1); deps.onSpeedChange?.(); });
+  hotkeyRegistry.register({ code: 'NumpadSubtract' }, () => { view.adjustSpeed(-1); deps.onSpeedChange?.(); });
   // Zoom (ZOOM_IN2 Ctrl+VK_OEM_PLUS, ZOOM_OUT2 Ctrl+VK_OEM_MINUS, RESET_ZOOM
   // Ctrl+VK_BACK): a wheel notch each way, and back to the boot zoom. These
   // take the browser's page zoom keys, outside a text field (spec §14.2).

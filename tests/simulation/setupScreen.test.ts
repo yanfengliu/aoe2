@@ -73,7 +73,7 @@ describe('the match-option parameters', () => {
     expect(parseVictoryParam('http://x/?victory=conquest-only')).toBe('conquest-only');
     expect(parseVictoryParam('http://x/?victory=regicide')).toBeUndefined();
     expect(parseSpeedParam('http://x/?speed=fast')).toBe(2);
-    expect(parseSpeedParam('http://x/?speed=normal')).toBe(1.5);
+    expect(parseSpeedParam('http://x/?speed=normal')).toBe(1.7);
     expect(parseSpeedParam('http://x/')).toBe(1);
     expect(parseSpeedParam('http://x/?speed=ludicrous')).toBe(1);
   });

@@ -21,15 +21,15 @@
 //  - The frame clock is an even 60 frames a second. A real host's frames are
 //    uneven; the mark reads only the tick, so that cannot change the verdict,
 //    but it is not what is simulated here.
-//  - Every case names its speed. The sustained raid runs at all three of the
-//    §4.5 presets (the old dark share was 60% at slow, 40% at normal and 20%
-//    at fast); the rest run at `normal` (1.5x), the speed the play session
-//    that met the defect used.
+//  - Every case names its speed. The sustained raid runs at all four of the
+//    §4.5 presets (the old dark share was 60% at slow, 40% at the old 1.5x
+//    normal and 20% at fast); the rest run at `normal`, DE's 1.7x since work
+//    149 and the lobby's default (the play session met the defect at 1.5x).
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createGameAudioController, type GameAudioCue } from '../../src/audio/gameAudioController';
-import { GAME_SPEEDS } from '../../src/game/simulation/matchOptions';
+import { GAME_SPEED_LADDER, GAME_SPEEDS } from '../../src/game/simulation/matchOptions';
 import { TPS } from '../../src/game/simulation/prototypeScenario';
 import {
   ATTACK_WARNING_HOLD_TICKS,
@@ -64,7 +64,7 @@ function swingAt(tick: number): Swing {
 // audio mount's rAF loop does, and reads the mark the way the minimap does —
 // at the frame's tick, on the module's own wall clock.
 function runMatch(speed: keyof typeof GAME_SPEEDS) {
-  const ticksPerMs = (TPS * GAME_SPEEDS[speed]) / 1000;
+  const ticksPerMs = (TPS * GAME_SPEEDS[speed].multiplier) / 1000;
   const state = {
     wallMs: 1_000, simMs: 0, tick: 0, paused: false, raidUntil: -1,
     /** Single blows outside the periodic raid. */
@@ -161,8 +161,8 @@ describe('the words', () => {
 describe('the mark during a raid', () => {
   beforeEach(() => clearAttackWarning());
 
-  for (const speed of ['slow', 'normal', 'fast'] as const) {
-    it(`never goes dark while a raid keeps hitting, at ${speed} speed (${GAME_SPEEDS[speed]}x)`, () => {
+  for (const speed of GAME_SPEED_LADDER) {
+    it(`never goes dark while a raid keeps hitting, at ${speed} speed (${GAME_SPEEDS[speed].multiplier}x)`, () => {
       const match = runMatch(speed);
       match.state.raidUntil = 3 * ATTACK_WARNING_THROTTLE_TICKS;
       match.runTo(SWING_EVERY_TICKS);
@@ -174,7 +174,7 @@ describe('the mark during a raid', () => {
       // Instrument check: the raid outlasted the old flash on the wall clock
       // AND a whole throttle window after it, so a mark bound to either would
       // have been caught dark here.
-      const throttleMs = (ATTACK_WARNING_THROTTLE_TICKS / (TPS * GAME_SPEEDS[speed])) * 1000;
+      const throttleMs = (ATTACK_WARNING_THROTTLE_TICKS / (TPS * GAME_SPEEDS[speed].multiplier)) * 1000;
       expect(match.state.wallMs - startMs).toBeGreaterThan(OLD_FLASH_MS + throttleMs);
       expect(dark, `ticks with a raid in progress and a dark minimap: ${dark.slice(0, 5).join(', ')}`).toEqual([]);
     });

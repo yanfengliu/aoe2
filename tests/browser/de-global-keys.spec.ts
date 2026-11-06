@@ -125,7 +125,7 @@ test.describe("DE's global keys", () => {
       expect(await speed(page), `the main row's ${key} changed the game speed`).toBe(1.5);
     }
     await page.keyboard.press('NumpadAdd');
-    await expect.poll(() => speed(page)).toBe(2);
+    await expect.poll(() => speed(page)).toBe(1.7);
     await page.keyboard.press('NumpadSubtract');
     await expect.poll(() => speed(page)).toBe(1.5);
   });

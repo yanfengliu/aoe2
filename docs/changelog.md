@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.275
+
+The game speeds are Definitive Edition's (DE's): Slow 1.0x, Casual 1.5x, Normal 1.7x and Fast 2.0x, starting on Normal.
+
+- **The lobby.** The Game speed row offers Slow (1.0x), Casual (1.5x), Normal (1.7x) and Fast (2.0x) and starts on Normal, so the lobby's default match runs at 17 ticks a second where it ran at 15. It offered Slow, Normal (1.5x) and Fast.
+- **`?speed=`.** It takes `slow`, `casual`, `normal` and `fast`. `?speed=normal` now means 1.7x (it meant 1.5x); `?speed=casual` is the old 1.5x. A URL without it still runs at 1.0x, and any other value still warns and runs at 1.0x.
+- **The numpad's + and −.** They step Slow, Casual, Normal and Fast and stop at Slow and at Fast, where they stepped 1.0x, 1.5x and 2.0x.
+- **The speed on screen.** The top bar's Time shows the speed in brackets under the clock, `(1.7)`, as DE's game-time display shows it, and hides it during a replay.
+- **Unchanged.** Saves, replays and the match itself: the speed only sets how far each frame steps the match, and neither a save nor a replay records it.
+
 ## 0.3.274
 
 The computer's soldiers leave its farms and its Siege Workshop their wood, as Definitive Edition's (DE's) AI does with the buffers of its ranged flush.

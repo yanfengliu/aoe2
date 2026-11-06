@@ -28,7 +28,7 @@ export const HUD_CHIP_TOOLTIPS: Record<string, string> = {
   stone: 'Stone stockpile. Mined from stone deposits; required for Town Centers, walls, and Castles.',
   age: 'Current age. Research the next age at a Town Center to unlock new units and buildings.',
   pop: 'Population used out of the current cap. Build Houses or Town Centers to raise the cap.',
-  time: 'Elapsed match time (minutes:seconds).',
+  time: 'Elapsed match time (minutes:seconds), and the game speed in brackets. The numpad + and − keys change the speed.',
   countdown: 'A victory countdown is active. If it finishes without interruption the holder wins.',
 };
 
