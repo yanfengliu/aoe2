@@ -2945,6 +2945,14 @@
     {
       "id": 147,
       "theme": "ai-spending"
+    },
+    {
+      "id": 148,
+      "theme": "de-hud"
+    },
+    {
+      "id": 149,
+      "theme": "de-game-speeds"
     }
   ]
 }
