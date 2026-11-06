@@ -2961,6 +2961,10 @@
     {
       "id": 151,
       "theme": "ai-train-reasons"
+    },
+    {
+      "id": 152,
+      "theme": "ai-economy-research"
     }
   ]
 }
