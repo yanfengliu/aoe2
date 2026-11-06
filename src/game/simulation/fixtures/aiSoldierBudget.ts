@@ -1,5 +1,13 @@
 import { MAP_HEIGHT, MAP_WIDTH, type PrototypeScenario } from '../prototypeScenario';
+import { AI_FLUSH_BUFFER_SCENARIOS } from './aiFlushBuffers';
 import { createGrassFixtureTerrain, ownedSpawn } from './common';
+
+/** What a soldier may spend, by seed: work 141's shared budget (below) and work 147's flush buffers. */
+export const AI_SOLDIER_BUDGET_SCENARIOS: ReadonlyArray<readonly [string, (seed: string) => PrototypeScenario]> = [
+  ['ai-soldier-budget-fixture', (seed) => createAiSoldierBudgetFixture(seed)],
+  ['ai-market-budget-fixture', (seed) => createAiMarketBudgetFixture(seed)],
+  ...AI_FLUSH_BUFFER_SCENARIOS,
+];
 
 // Work 141 review round 0, F0: soldiers asked for in one decision while a
 // villager is due are priced together. Owner 2 is a Feudal AI with an idle
@@ -49,7 +57,8 @@ export function createAiSoldierBudgetFixture(seed: string): PrototypeScenario {
 // food, 25 wood) takes the wood the villager leaves, so the Archer (25 wood, 45
 // gold) is refused; priced
 // bare against the purse, the Archer looked affordable, the Market aimed at it
-// and made no trade.
+// and made no trade. Two farms keep the seat at its farm target (work 147 M2):
+// short of it, DE's flush buffer would hold both soldiers under 85 wood.
 export function createAiMarketBudgetFixture(seed: string): PrototypeScenario {
   return {
     seed,
@@ -76,6 +85,8 @@ export function createAiMarketBudgetFixture(seed: string): PrototypeScenario {
       ownedSpawn('house', 2, 43, 18, { vision: 3 }),
       ownedSpawn('house', 2, 40, 27, { vision: 3 }),
       ownedSpawn('house', 2, 43, 27, { vision: 3 }),
+      ownedSpawn('farm', 2, 48, 18, { vision: 3 }),
+      ownedSpawn('farm', 2, 48, 22, { vision: 3 }),
       ownedSpawn('villager', 2, 40, 24, { vision: 4 }),
       ownedSpawn('villager', 2, 41, 24, { vision: 4 }),
       ownedSpawn('villager', 2, 42, 24, { vision: 4 }),

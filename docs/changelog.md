@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.274
+
+The computer's soldiers leave its farms and its Siege Workshop their wood, as Definitive Edition's (DE's) AI does with the buffers of its ranged flush.
+
+- **A farm's wood first.** While its farms, built or only placed, are fewer than it wants, the computer trains no Spearman-line or Archer-line soldier under 85 wood (a farm's 60 and the soldier's 25) and no Skirmisher under 95, when its army is level with the enemy's with 5 or more soldiers and it is not ahead of the enemy's age, or fewer than 7 of its villagers are on food and it has fewer than 7 farms, or every farm is worked and its army is well ahead. The Teutons, Goths, Byzantines and Mayans keep DE's own buffers for their civilizations.
+- **The Siege Workshop's wood.** From the Castle Age, until it has placed a Siege Workshop, the computer trains no Spearman-line or Archer-line soldier under 225 wood (the workshop's 200 and the soldier's 25), and no Skirmisher under 235.
+- **What it changes.** Over five maps by five seeds of all-AI matches, the computer's farms fall under its two-farm floor less often (403 samples against 662 in the castle configuration, 342 against 536 in the no-attack lab) and more of its seats build a Siege Workshop, sooner (36 against 33 of 50, and 46 against 44); in the coverage lab's census match both seats hold a Monastery and a Siege Workshop again. Its villagers at 5 to 20 minutes do not change.
+- **What it costs.** A seat short of farms trains fewer Feudal soldiers: one measured seat had 2 where it had 6 when a raid came, lost 19 of its 40 villagers and its food, and with them its Monastery and Castle. Fewer lab seats field siege (17 of 50 seat-seeds, against 27). Farms still run out unpaid as often, since a farm that empties is reseeded only when the stockpile holds its 60 wood at that moment. One lab seat lost its Imperial Age when its villagers were killed under the enemy's defences, an existing gathering fault the change brought on earlier.
 ## 0.3.273
 
 The group panel works as in Definitive Edition (DE).

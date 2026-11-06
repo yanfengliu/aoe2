@@ -15,31 +15,34 @@ import { HUNT_RADIUS } from './aiSystemHuntPhase';
 const NATURAL_FOOD = new Set(['sheep', 'berry-bush', 'deer', 'boar', 'fish']);
 const FOOD = new Set([...NATURAL_FOOD, 'farm']);
 
-export function darkAgeFoodSituation(
-  world: GameWorld,
-  accessor: BridgeStateAccessor,
-  owner: number,
-  townCenter: Position | null | undefined,
-): DarkAgeFoodSituation {
+/** Who of one seat works food and on what, and its farms: what DE's farm rules read of a seat (work 144 M2), and its
+ *  flush buffers too (work 147 M2, `aiFlushBufferPhase.ts`). */
+export interface SeatFarmWork {
+  villagers: number;
+  /** Complete farms. */
+  farms: number;
+  /** Farms placed, complete or not (DE's building-type-count-total farm). */
+  farmsPlaced: number;
+  /** Complete farms no villager is working (idle-farm-count). */
+  idleFarms: number;
+  /** Villagers gathering food of any kind (villager-food), and of them those on sheep, forage, hunt or fish. */
+  foodGatherers: number;
+  naturalFoodGatherers: number;
+  hasWoodDropSite: boolean;
+}
+
+export function seatFarmWork(world: GameWorld, accessor: BridgeStateAccessor, owner: number): SeatFarmWork {
   const construction = accessor.get(constructionStatesCodec);
   const farmIds = new Set<number>();
+  let farmsPlaced = 0;
   let hasWoodDropSite = false;
   for (const id of world.query('building')) {
     const building = world.getComponent<BuildingComponent>(id, 'building');
-    if (building?.owner !== owner || construction.get(id)?.isComplete === false) continue;
+    if (building?.owner !== owner) continue;
+    if (building.buildingType === 'farm') farmsPlaced += 1;
+    if (construction.get(id)?.isComplete === false) continue;
     if (building.buildingType === 'farm') farmIds.add(id);
     if (building.buildingType === 'lumber-camp') hasWoodDropSite = true;
-  }
-  let ownSheep = 0;
-  let naturalFoodNearby = false;
-  for (const id of world.query('position', 'resource')) {
-    const resource = world.getComponent<ResourceComponent>(id, 'resource');
-    if (!resource || resource.amount <= 0 || !NATURAL_FOOD.has(resource.resourceType)) continue;
-    if (resource.resourceType === 'sheep' && resource.owner === owner) ownSheep += 1;
-    if (naturalFoodNearby || !townCenter || resource.resourceType === 'fish') continue;
-    if (resource.resourceType === 'sheep' && resource.owner !== owner && resource.owner !== null) continue;
-    const at = world.getComponent<Position>(id, 'position');
-    if (at && Math.hypot(at.x - townCenter.x, at.y - townCenter.y) <= HUNT_RADIUS) naturalFoodNearby = true;
   }
   let villagers = 0;
   let foodGatherers = 0;
@@ -59,12 +62,41 @@ export function darkAgeFoodSituation(
   }
   return {
     villagers,
-    ownSheep,
     farms: farmIds.size,
+    farmsPlaced,
     idleFarms: [...farmIds].filter((id) => !workedFarms.has(id)).length,
     foodGatherers,
     naturalFoodGatherers,
-    naturalFoodNearby,
     hasWoodDropSite,
+  };
+}
+
+export function darkAgeFoodSituation(
+  world: GameWorld,
+  accessor: BridgeStateAccessor,
+  owner: number,
+  townCenter: Position | null | undefined,
+): DarkAgeFoodSituation {
+  const work = seatFarmWork(world, accessor, owner);
+  let ownSheep = 0;
+  let naturalFoodNearby = false;
+  for (const id of world.query('position', 'resource')) {
+    const resource = world.getComponent<ResourceComponent>(id, 'resource');
+    if (!resource || resource.amount <= 0 || !NATURAL_FOOD.has(resource.resourceType)) continue;
+    if (resource.resourceType === 'sheep' && resource.owner === owner) ownSheep += 1;
+    if (naturalFoodNearby || !townCenter || resource.resourceType === 'fish') continue;
+    if (resource.resourceType === 'sheep' && resource.owner !== owner && resource.owner !== null) continue;
+    const at = world.getComponent<Position>(id, 'position');
+    if (at && Math.hypot(at.x - townCenter.x, at.y - townCenter.y) <= HUNT_RADIUS) naturalFoodNearby = true;
+  }
+  return {
+    villagers: work.villagers,
+    ownSheep,
+    farms: work.farms,
+    idleFarms: work.idleFarms,
+    foodGatherers: work.foodGatherers,
+    naturalFoodGatherers: work.naturalFoodGatherers,
+    naturalFoodNearby,
+    hasWoodDropSite: work.hasWoodDropSite,
   };
 }

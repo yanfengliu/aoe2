@@ -16,6 +16,8 @@
         "market",
         "mill",
         "mining-camp",
+        "monastery",
+        "siege-workshop",
         "stable",
         "town-center"
       ],
@@ -29,6 +31,7 @@
         "longbowman",
         "man-at-arms",
         "militia",
+        "monk",
         "pikeman",
         "scout",
         "skirmisher",
@@ -39,9 +42,9 @@
       ],
       "technologies": [
         "arbalest-upgrade",
-        "blast-furnace",
         "bodkin-arrow",
         "bracer",
+        "capped-ram-upgrade",
         "castle-age",
         "chain-barding-armor",
         "chain-mail-armor",
@@ -59,7 +62,6 @@
         "man-at-arms-upgrade",
         "padded-archer-armor",
         "pikeman-upgrade",
-        "plate-barding",
         "plate-mail-armor",
         "scale-barding-armor",
         "scale-mail-armor",
@@ -71,6 +73,7 @@
         "barracks",
         "blacksmith",
         "castle",
+        "siege-workshop",
         "stable",
         "town-center"
       ],
@@ -79,6 +82,7 @@
         "barracks",
         "castle",
         "market",
+        "monastery",
         "stable",
         "town-center"
       ]
@@ -103,8 +107,8 @@
       "units": [
         "archer",
         "capped-ram",
-        "cavalier",
         "crossbowman",
+        "halberdier",
         "knight",
         "light-cavalry",
         "long-swordsman",
@@ -116,7 +120,6 @@
         "skirmisher",
         "spearman",
         "trade-cart",
-        "two-handed-swordsman",
         "villager"
       ],
       "technologies": [
@@ -124,7 +127,6 @@
         "bodkin-arrow",
         "capped-ram-upgrade",
         "castle-age",
-        "cavalier-upgrade",
         "chain-barding-armor",
         "chain-mail-armor",
         "crop-rotation",
@@ -132,6 +134,7 @@
         "feudal-age",
         "fletching",
         "forging",
+        "halberdier-upgrade",
         "heavy-plow",
         "horse-collar",
         "husbandry",
@@ -145,8 +148,7 @@
         "pikeman-upgrade",
         "scale-barding-armor",
         "scale-mail-armor",
-        "squires",
-        "two-handed-swordsman-upgrade"
+        "squires"
       ],
       "researchProducers": [
         "archery-range",
@@ -189,8 +191,8 @@
     "arbalest",
     "archer",
     "capped-ram",
-    "cavalier",
     "crossbowman",
+    "halberdier",
     "knight",
     "light-cavalry",
     "long-swordsman",
@@ -213,7 +215,6 @@
     "bracer",
     "capped-ram-upgrade",
     "castle-age",
-    "cavalier-upgrade",
     "chain-barding-armor",
     "chain-mail-armor",
     "conscription",
@@ -222,6 +223,7 @@
     "feudal-age",
     "fletching",
     "forging",
+    "halberdier-upgrade",
     "heavy-plow",
     "horse-collar",
     "husbandry",
@@ -233,7 +235,6 @@
     "man-at-arms-upgrade",
     "padded-archer-armor",
     "pikeman-upgrade",
-    "plate-barding",
     "plate-mail-armor",
     "scale-barding-armor",
     "scale-mail-armor",

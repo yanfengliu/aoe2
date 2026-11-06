@@ -33,8 +33,9 @@ import {
 import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 import { townCenterVillagerDemand, villagerReserve } from './aiVillagerDemand';
 import { runEscrowPhase } from './aiEscrowPhase';
-import { ramToTrain } from './aiSiegePhase';
-import { RAM_LINE } from '../../aiSiege';
+import { flushBufferGate } from './aiFlushBufferPhase';
+import { ramGoalInputs, ramToTrain } from './aiSiegePhase';
+import { RAM_LINE, type RamGoalInputs } from '../../aiSiege';
 import { runTownCenterPhase } from './aiTownCenterPhase';
 import { MONK_ACTION_RANGE } from './monkBehaviorSystem';
 
@@ -179,7 +180,11 @@ export function runProductionPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void
   // ahead of the army, as DE's train order buys it, unless the army is paused.
   const armyPaused = savingForAgeUp
     || militaryGrowthPausedForAgeUp(currentAge, qualifiesForNextAge, ownedMilitaryUnitIds(owner).size);
-  const ram = armyPaused ? null : ramToTrain(deps, ctx);
+  // The decision's army census, taken once for the ram and DE's flush buffers (work 147 M2).
+  let census: RamGoalInputs | undefined;
+  const ramCensus = (): RamGoalInputs => (census ??= ramGoalInputs(deps, ctx));
+  const flushBufferHolds = flushBufferGate(deps, ctx, ramCensus);
+  const ram = armyPaused ? null : ramToTrain(deps, ctx, ramCensus);
   const escrow = runEscrowPhase(deps, ctx, ageUpReserve, savingForAgeUp, ram, soldierReserve);
   // The Castle's list drops only what is researched (`castleTechOptions`), so a
   // technology already queued there is asked for again, refused by the handler
@@ -301,6 +306,8 @@ export function runProductionPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void
       if (offered === undefined) continue;
       // DE trains one ram a pass (units.per 12905-12925): one the escrow bought is this decision's.
       if (escrow?.ramBought && (RAM_LINE as readonly string[]).includes(offered)) continue;
+      // DE's flush buffers (`aiFlushBuffers.ts`): no reason to train the line, so no want for the Market either.
+      if (flushBufferHolds(offered)) continue;
       // Advisory base cost (gates intention only; the validator and the charge
       // apply the owner's civilization cost rules, such as the Byzantine and
       // Viking seats' discounts, and no rule raises a price). Priced on what will

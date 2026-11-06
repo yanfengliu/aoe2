@@ -488,7 +488,7 @@ export {
 } from './heatedShot';
 export { createAiCastleAgeMilitaryFixture } from './aiCastleAgeMilitary';
 export { createAiSpiesPriceFixture } from './aiSpiesPrice';
-export { createAiMarketBudgetFixture, createAiSoldierBudgetFixture } from './aiSoldierBudget';
+export { AI_SOLDIER_BUDGET_SCENARIOS } from './aiSoldierBudget';
 export { AI_ESCROW_SCENARIOS } from './aiEscrow';
 export { createAiImperialMilitaryFixture } from './aiImperialMilitary';
 export { createAiGarrisonedDefenderFixture } from './aiGarrisonedDefender';

@@ -13,9 +13,14 @@
 
 export const NEVER = Number.POSITIVE_INFINITY;
 const TICKS_PER_MINUTE = 600;
-// The army every 5,000 ticks, to the longest horizon the A/B plays by default (60,000).
+// The army, and the complete farms and the wood (work 147 M2), every 5,000 ticks, to the longest horizon the A/B plays
+// by default (60,000).
 export const ARMY_SAMPLES = 12;
 const field = (name) => (p) => p[name];
+/** The series sampled every 5,000 ticks: [label, the record field holding them]. */
+export const SERIES = [['army', 'armyByTick'], ['farms', 'farmsByTick'], ['wood', 'woodByTick']];
+const seriesColumn = (label, key, i) => [`${label} ${(i + 1) * 5}k`, 'count', (p) => p[key]?.[i] ?? null, key];
+const seriesColumns = (label, key, from, to) => Array.from({ length: to - from }, (_unused, k) => seriesColumn(label, key, from + k));
 
 /** Per-owner columns: [label, kind, read(ownerRecord), the record field it reads]. Every field of an owner's record
  *  has one; tests/scripts/selfplayAb.test.ts holds that against a played record (review round 0, R0-3). */
@@ -35,7 +40,11 @@ export const COLUMNS = [
   ['Monastery', 'time', field('monastery'), 'monastery'],
   ['Monk', 'time', field('monk'), 'monk'],
   ['peak army', 'count', field('peakArmy'), 'peakArmy'],
-  ...Array.from({ length: ARMY_SAMPLES }, (_unused, i) => [`army ${(i + 1) * 5}k`, 'count', (p) => p.armyByTick[i] ?? null, 'armyByTick']),
+  ...SERIES.flatMap(([label, key]) => seriesColumns(label, key, 0, ARMY_SAMPLES)),
+  ['Siege Workshop', 'time', field('siegeWorkshop'), 'siegeWorkshop'],
+  ['farm floor breaches', 'count', field('farmFloorBreaches'), 'farmFloorBreaches'],
+  ['farms run out', 'count', field('farmsRunOut'), 'farmsRunOut'],
+  ['farms reseeded', 'count', field('farmsReseeded'), 'farmsReseeded'],
   ['vill lost', 'count', field('villagersLost'), 'villagersLost'],
   ['under def', 'count', field('underDefence'), 'underDefence'],
   ['first siege', 'time', field('siege'), 'siege'],
@@ -45,17 +54,17 @@ export const COLUMNS = [
   ['relics', 'count', field('relics'), 'relics'],
 ];
 
-/** The columns for a set of records: COLUMNS, with an army row for every sample past the twelfth that any record
- *  holds, so a horizon past 60,000 keeps its last samples (review round 1, R1-4). */
+/** The columns for a set of records: COLUMNS, with a row of each 5,000-tick series for every sample past the twelfth
+ *  that any record holds, so a horizon past 60,000 keeps its last samples (review round 1, R1-4). */
 export function columnsFor(records) {
-  const samples = Math.max(0, ...records.flatMap((r) => Object.values(r.owners).map((p) => p.armyByTick.length)));
+  const samples = Math.max(0, ...records.flatMap((r) => Object.values(r.owners).flatMap((p) => SERIES.map(([, key]) => p[key]?.length ?? 0))));
   if (samples <= ARMY_SAMPLES) return COLUMNS;
-  const extra = Array.from({ length: samples - ARMY_SAMPLES }, (_unused, k) => {
-    const i = ARMY_SAMPLES + k;
-    return [`army ${(i + 1) * 5}k`, 'count', (p) => p.armyByTick[i] ?? null, 'armyByTick'];
-  });
-  const after = COLUMNS.findLastIndex((c) => c[3] === 'armyByTick') + 1;
-  return [...COLUMNS.slice(0, after), ...extra, ...COLUMNS.slice(after)];
+  let columns = COLUMNS;
+  for (const [label, key] of SERIES) {
+    const after = columns.findLastIndex((c) => c[3] === key) + 1;
+    columns = [...columns.slice(0, after), ...seriesColumns(label, key, ARMY_SAMPLES, samples), ...columns.slice(after)];
+  }
+  return columns;
 }
 
 /** A column's value for one owner of one record: a number, NEVER for a time not reached, or null for unmeasured. */

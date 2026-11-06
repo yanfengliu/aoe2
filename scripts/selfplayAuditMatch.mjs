@@ -24,12 +24,21 @@
 // types seen, the army (every unit not a villager, garrisoned ones not counted) at its peak and every 5,000 ticks,
 // villager deaths (with those inside an enemy defence's fully upgraded reach), the first Monastery, Monk, complete
 // Castle and siege unit, the most siege held, relics stored, and the first complete farm.
+//
+// The farms and the wood (work 147 M2, schema 2), which the spending study measured with scratch probes that went
+// with their worktree: the first complete Siege Workshop; the complete farms and the wood held every 5,000 ticks,
+// beside the army; the 250-tick samples at which an owner that has held two complete farms holds fewer (a breach
+// of spec §13.2's two-farm floor, `MINIMUM_FARMS`); and, from the 25-tick sample, each farm that left play with at
+// most 10 food at its last sighting (run out and not reseeded, which its owner could not pay for) and each farm whose
+// food rose by more than 50 between sightings (reseeded in place). A farm is named by its entity id and generation,
+// since the engine recycles ids (plan 147, review R0-1). Bound: a farm built and gone between two 25-tick samples is
+// not seen, and one killed with at most 10 food left reads as run out.
 
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const RECORD_SCHEMA = 1;
+export const RECORD_SCHEMA = 2;
 export const VARIANT_SEPARATOR = '#';
 
 // `castle` plays the match `tests/simulation/aiReachesCastleAge.test.ts` plays (the shipped configuration with the
@@ -64,6 +73,11 @@ const DEFENCE_MARGIN = 1;
 // ticks. The age clicks are read on the same sample.
 const TASK_SAMPLE_INTERVAL = 25;
 const ECONOMY_SAMPLE_INTERVAL = 250;
+// The farm columns' thresholds: spec §13.2's floor, a farm's food at its last sighting at or under which leaving play
+// is running out, and the rise between sightings that only a reseed gives (nothing else gives a farm food).
+const FARM_FLOOR = 2;
+const FARM_RUN_OUT_FOOD = 10;
+const FARM_RESEED_RISE = 50;
 
 /** The modules a match needs, imported from the checkout at `root`. */
 export async function loadGame(root) {
@@ -210,12 +224,35 @@ function createRelicLedger(bridge, owners) {
   };
 }
 
-function emptyOwner() {
+export function emptyOwner() {
   return {
     buildings: new Set(), units: new Set(), age: {}, click: {}, villagersAtClick: {}, qualified: null, peakArmy: 0,
     villagersLost: 0, underDefence: 0, monastery: null, monk: null, siege: null, siegePeak: 0, armyByTick: [],
     castleBuilding: null, firstFarm: null, villagersAt: {},
+    siegeWorkshop: null, farmsByTick: [], woodByTick: [], heldFarmFloor: false, farmFloorBreaches: 0, farmsRunOut: 0,
+    farmsReseeded: 0,
   };
+}
+
+/** Each farm's food at its last sighting, by entity id and generation, so a farm that leaves play or is reseeded in
+ *  place between two 25-tick samples is counted for its owner (see the header). */
+export function trackFarms(bridge, st, per, seen) {
+  const now = new Map();
+  for (const b of st.buildings) {
+    if (b.buildingType !== 'farm' || !per[b.owner]) continue;
+    const ref = bridge.world.getEntityRef(b.id);
+    const food = bridge.world.getComponent(b.id, 'resource')?.amount;
+    if (!ref || food === undefined) continue;
+    const key = `${ref.id}:${ref.generation}`;
+    const was = seen.get(key);
+    if (was && food > was.food + FARM_RESEED_RISE) per[b.owner].farmsReseeded += 1;
+    now.set(key, { owner: b.owner, food });
+  }
+  for (const [key, was] of seen) {
+    if (!now.has(key) && was.food <= FARM_RUN_OUT_FOOD) per[was.owner].farmsRunOut += 1;
+  }
+  seen.clear();
+  for (const [key, farm] of now) seen.set(key, farm);
 }
 
 /** Plays one match and returns its record (see the header for the columns). */
@@ -235,6 +272,7 @@ export function playAuditMatch(game, { seed, config = 'castle', ticks }) {
   const per = Object.fromEntries(owners.map((o) => [o, emptyOwner()]));
   const lastTask = new Map();
   const deathsSeen = new Set();
+  const farmsSeen = new Map();
   const ledger = [];
   const relicLedger = createRelicLedger(bridge, owners);
   relicLedger.onSample(0, bridge.getEconomyState());
@@ -274,6 +312,7 @@ export function playAuditMatch(game, { seed, config = 'castle', ticks }) {
         if (u.unitType === 'villager') lastTask.set(u.id, u.task);
       }
       readClicks(st, per, tick, () => villagerCounts(bridge));
+      trackFarms(bridge, st, per, farmsSeen);
     }
     if (tick % ECONOMY_SAMPLE_INTERVAL) continue;
     const st = bridge.getEconomyState();
@@ -340,17 +379,28 @@ export function readClicks(st, per, tick, villagers) {
   }
 }
 
-function sampleOwner(game, p, o, st, tick, villagers) {
+export function sampleOwner(game, p, o, st, tick, villagers) {
   let qualifying = 0;
+  let farms = 0;
   for (const b of st.buildings) {
     if (b.owner !== o || !b.isComplete) continue;
     p.buildings.add(b.buildingType);
     if (QUALIFYING.includes(b.buildingType)) qualifying += 1;
     if (b.buildingType === 'monastery' && p.monastery === null) p.monastery = tick;
     if (b.buildingType === 'castle' && p.castleBuilding === null) p.castleBuilding = tick;
-    if (b.buildingType === 'farm' && p.firstFarm === null) p.firstFarm = tick;
+    if (b.buildingType === 'siege-workshop' && p.siegeWorkshop === null) p.siegeWorkshop = tick;
+    if (b.buildingType === 'farm') {
+      farms += 1;
+      if (p.firstFarm === null) p.firstFarm = tick;
+    }
   }
   if (qualifying >= 2 && p.qualified === null) p.qualified = tick;
+  if (farms >= FARM_FLOOR) p.heldFarmFloor = true;
+  else if (p.heldFarmFloor) p.farmFloorBreaches += 1;
+  if (tick % ARMY_SAMPLE_TICKS === 0) {
+    p.farmsByTick.push(farms);
+    p.woodByTick.push(Math.floor(st.playerResources[o]?.wood ?? 0));
+  }
   let army = 0;
   let siege = 0;
   for (const u of st.units) {
@@ -386,5 +436,7 @@ function finishOwner(p, relics) {
     monastery: p.monastery, monk: p.monk, relics,
     siege: p.siege, siegePeak: p.siegePeak, castleBuilding: p.castleBuilding, firstFarm: p.firstFarm,
     villagersAt: Object.fromEntries(VILLAGER_MINUTES.map((m) => [m, p.villagersAt[m] ?? null])),
+    siegeWorkshop: p.siegeWorkshop, farmsByTick: p.farmsByTick, woodByTick: p.woodByTick,
+    farmFloorBreaches: p.farmFloorBreaches, farmsRunOut: p.farmsRunOut, farmsReseeded: p.farmsReseeded,
   };
 }

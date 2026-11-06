@@ -1,7 +1,8 @@
 // What DE's ram goal reads, gathered for one owner's decision (work 141
 // M2a-2b; the rules and their citations are in `aiSiege.ts`). It names the
 // ram-line unit to train now, which the escrow phase buys ahead of the army,
-// or none.
+// or none. The census (`ramGoalInputs`) also gives DE's military superiority
+// and military population to its flush buffers (work 147 M2).
 
 import type { BuildingComponent, ResearchableTechnologyType, UnitComponent } from '../../types';
 import { attackGroupSize } from '../../ai';
@@ -11,6 +12,7 @@ import {
   RAM_LINE,
   ramWanted,
   siegePopulation,
+  type RamGoalInputs,
   type RamLineUnit,
 } from '../../aiSiege';
 import { civImperialPopulationBonus } from '../../civBonusEffects';
@@ -37,14 +39,24 @@ const ELITE_UNIQUE_UPGRADES: ReadonlySet<ResearchableTechnologyType> = new Set(
   (RESEARCHES_BY_BUILDING.get('castle') ?? []).filter((tech) => tech.startsWith('elite-')),
 );
 
-/** The ram-line unit DE's ram goal wants trained this decision, or none. */
-export function ramToTrain(deps: AiPhaseDeps, ctx: AiOwnerContext): RamLineUnit | null {
-  const { accessor, countQueuedUnits, getTrainOptions, ownedMilitaryUnitIdsOnMap, ownerHasUnitOnMap } = deps;
-  const { activeWorld, owner, currentAge, targetOwner, pendingResearchKeys } = ctx;
+/** The ram-line unit DE's ram goal wants trained this decision, or none. `inputs` is the decision's census
+ *  (`ramGoalInputs`), shared with DE's flush buffers (`aiFlushBufferPhase.ts`) so a decision takes it once. */
+export function ramToTrain(
+  deps: AiPhaseDeps,
+  ctx: AiOwnerContext,
+  inputs: () => RamGoalInputs = () => ramGoalInputs(deps, ctx),
+): RamLineUnit | null {
+  const { currentAge, owner } = ctx;
   if (currentAge !== 'castle-age' && currentAge !== 'imperial-age') return null;
-  const tier = trainableInSameLine('battering-ram', getTrainOptions(owner, 'siege-workshop'));
+  const tier = trainableInSameLine('battering-ram', deps.getTrainOptions(owner, 'siege-workshop'));
   if (tier === undefined) return null;
+  return ramWanted(inputs()) ? tier as RamLineUnit : null;
+}
 
+/** What DE's ram goal and its military superiority read about one owner this decision (threats.per; `aiSiege.ts`). */
+export function ramGoalInputs(deps: AiPhaseDeps, ctx: AiOwnerContext): RamGoalInputs {
+  const { accessor, countQueuedUnits, ownedMilitaryUnitIdsOnMap, ownerHasUnitOnMap } = deps;
+  const { activeWorld, owner, currentAge, targetOwner, pendingResearchKeys } = ctx;
   let militaryPopulation = 0;
   let targetMilitaryPopulation = 0;
   let ramsStanding = 0;
@@ -88,7 +100,7 @@ export function ramToTrain(deps: AiPhaseDeps, ctx: AiOwnerContext): RamLineUnit 
   const attacking = !deps.attacksDisabled && marching > 0
     && (marching >= attackGroupSize(currentAge) || (targetOwner !== null && !ownerHasUnitOnMap(targetOwner)));
 
-  const wanted = ramWanted({
+  return {
     age: currentAge,
     militaryPopulation,
     targetMilitaryPopulation,
@@ -107,6 +119,5 @@ export function ramToTrain(deps: AiPhaseDeps, ctx: AiOwnerContext): RamLineUnit 
     siegeRamPending: has('siege-ram-upgrade')
       || (accessor.get(inFlightTechByOwnerCodec).get(owner)?.has('siege-ram-upgrade') ?? false)
       || pendingResearchKeys.has(`${owner}:siege-ram-upgrade`),
-  });
-  return wanted ? tier as RamLineUnit : null;
+  };
 }

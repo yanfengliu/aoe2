@@ -34,14 +34,18 @@ import {
   spread,
 } from '../../scripts/selfplayAbReport.mjs';
 import {
+  emptyOwner,
   loadGame,
   mapOfSeed,
   playAuditMatch,
   readClicks,
+  RECORD_SCHEMA,
   registerSeed,
+  sampleOwner,
   scenarioDigest,
   seedsForMap,
   stepOneTick,
+  trackFarms,
   VILLAGER_MINUTES,
   villagerCounts,
 } from '../../scripts/selfplayAuditMatch.mjs';
@@ -57,13 +61,15 @@ function owner(overrides: Record<string, unknown> = {}): any {
     units: ['villager'], peakArmy: 10, armyByTick: [1, 2, 3], villagersLost: 4, underDefence: 1, monastery: null,
     monk: null, relics: 0, siege: null, siegePeak: 0, castleBuilding: null, firstFarm: 5000,
     villagersAt: { 5: 10, 10: 20, 15: 25, 20: null },
+    siegeWorkshop: null, farmsByTick: [0, 2, 4], woodByTick: [50, 10, 200], farmFloorBreaches: 0, farmsRunOut: 1,
+    farmsReseeded: 2,
     ...overrides,
   };
 }
 
 function record(seed: string, owners: Record<number, any> = {}, outcome: any = null): any {
   return {
-    schema: 1, seed, map: mapOfSeed(seed), config: 'castle', ticks: 45000, scenarioDigest: `digest-${seed}`,
+    schema: RECORD_SCHEMA, seed, map: mapOfSeed(seed), config: 'castle', ticks: 45000, scenarioDigest: `digest-${seed}`,
     outcome: outcome ?? { state: 'running', winner: null, by: null, endedAt: null },
     owners: { 1: owner(owners[1]), 2: owner(owners[2]) },
     ledger: [], relics: [], relicStores: [],
@@ -197,6 +203,44 @@ describe('the columns mean what they say', () => {
     expect(columnValue(column('vills 15:00'), r, 1)).toBe(25);
     expect(columnValue(column('army 10k'), r, 1)).toBe(2);
     expect(columnValue(column('army 20k'), r, 1)).toBeNull();
+  });
+
+  it('counts a farm run out, a farm reseeded in place and a farm killed, naming each farm by id and generation', () => {
+    // Work 147 M2. Farm 7 runs out (5 food, then gone), farm 8 is reseeded (3, then 175), farm 9 is killed with
+    // food left, and id 7 comes back as another farm (generation 2) that is not the first one returning.
+    const farms = new Map<number, { generation: number; food: number }>();
+    const bridge = {
+      world: {
+        getEntityRef: (id: number) => (farms.has(id) ? { id, generation: farms.get(id)!.generation } : undefined),
+        getComponent: (id: number, component: string) => (component === 'resource' && farms.has(id) ? { amount: farms.get(id)!.food } : undefined),
+      },
+    };
+    const st = () => ({ buildings: [...farms.keys()].map((id) => ({ id, owner: 1, buildingType: 'farm' })) });
+    const per: any = { 1: { farmsRunOut: 0, farmsReseeded: 0 }, 2: { farmsRunOut: 0, farmsReseeded: 0 } };
+    const seen = new Map();
+    farms.set(7, { generation: 1, food: 5 });
+    farms.set(8, { generation: 1, food: 3 });
+    farms.set(9, { generation: 1, food: 120 });
+    trackFarms(bridge, st(), per, seen);
+    farms.set(7, { generation: 2, food: 175 });
+    farms.set(8, { generation: 1, food: 175 });
+    farms.delete(9);
+    trackFarms(bridge, st(), per, seen);
+    expect(per[1]).toEqual({ farmsRunOut: 1, farmsReseeded: 1 });
+    expect(per[2]).toEqual({ farmsRunOut: 0, farmsReseeded: 0 });
+  });
+
+  it('breaches the two-farm floor only once the floor was held, and samples the farms and wood every 5,000 ticks', () => {
+    const p = emptyOwner();
+    const game = { isSiegeUnit: () => false };
+    const farm = (n: number) => Array.from({ length: n }, () => ({ owner: 1, isComplete: true, buildingType: 'farm' }));
+    const samples: Array<[number, number]> = [[250, 1], [500, 2], [750, 1], [1000, 0], [1250, 3], [5000, 1]];
+    for (const [tick, farms] of samples) {
+      sampleOwner(game, p, 1, { buildings: [...farm(farms), { owner: 1, isComplete: false, buildingType: 'farm' }], units: [], ages: {}, playerResources: { 1: { wood: 42.5 } } }, tick, 0);
+    }
+    expect(p.farmFloorBreaches).toBe(3);
+    expect(p.farmsByTick).toEqual([1]);
+    expect(p.woodByTick).toEqual([42]);
   });
 });
 
