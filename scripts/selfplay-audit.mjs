@@ -27,10 +27,6 @@
 // and with a Monk, and `relics`, the relics stored in its Monasteries when the
 // run ended — and a line per relic gives the sample each seat first SAW it on
 // (its own vision), every pickup by a Monk and the owner, and every store.
-// Pickups and stores are read every tick from the two world-state slots the
-// relic rules write, `aoe2.monkCarriedRelic` (Monk -> relic) and
-// `aoe2.relicsInMonastery` (Monastery -> count), and only when the slot's
-// object changes, which is once per write.
 //
 // Siege (work 141, 2026-11-04): under DE's building armor (work 140) only siege
 // takes buildings at any pace, so two columns count it per owner — `siege`, the
@@ -43,6 +39,18 @@
 // every 5,000 ticks: the AI's spending rules hold resources back from it (work
 // 141's escrow), and a held army shows there as a flat run.
 //
+// The economy (work 144): a second table gives each owner's age clicks (the
+// first 25-tick sample with that age's research queued), the villagers held at
+// the Feudal and Castle clicks, at 5, 10, 15 and 20 minutes, and the first
+// complete farm. DE's AI trains 25 villagers and more before its Feudal click
+// (Promisory units.per 328-386), which the first table cannot show.
+//
+// The match itself is played and measured by `scripts/selfplayAuditMatch.mjs`,
+// which `scripts/selfplay-ab.mjs` shares: that one plays several seeds per map
+// in two trees and reports each column's spread, because one seed per map
+// cannot tell a change from the noise of a chaotic match (work 144). This
+// script plays this checkout's game, one record per seed, and prints it.
+//
 // `--config castle` (the default) plays the match
 // `tests/simulation/aiReachesCastleAge.test.ts` plays: the shipped configuration
 // with the Wonder and Relic victories off (work 128; that test's header says
@@ -51,16 +59,18 @@
 // plays can end in a Relic or Wonder victory before the late game.
 // `--config lab` plays the no-attack coverage lab of
 // `tests/simulation/selfPlayContentCoverage.test.ts` (attacks off, conquest
-// only, high resources, hard AI). `scripts/profile-selfplay.mjs` and
-// `scripts/aiTickAb.mjs` name castle and lab the same way.
+// only, high resources, hard AI). `--config idle` plays the boot match at the
+// lobby's defaults with the human seat not played, and prints owner 2 only.
+// `scripts/profile-selfplay.mjs` and `scripts/aiTickAb.mjs` name castle and lab
+// the same way.
 //
 // Usage:
-//   npx tsx scripts/selfplay-audit.mjs [--seeds a,b,c] [--ticks 45000] [--config castle|standard|lab] [--ledger]
+//   npx tsx scripts/selfplay-audit.mjs [--seeds a,b,c] [--ticks 45000] [--config castle|standard|lab|idle] [--ledger]
 
-import { createSimulationBridge } from '../src/game/simulation/createSimulationBridge.ts';
-import { createBuildingCombatState } from '../src/game/simulation/prototypeBuildingRules.ts';
-import { HUMAN_PLAYER_ID } from '../src/game/simulation/prototypeScenario.ts';
-import { isSiegeUnit } from '../src/game/simulation/prototypeUnitRules.ts';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { CONFIGS, loadGame, playAuditMatch, VILLAGER_MINUTES } from './selfplayAuditMatch.mjs';
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -68,11 +78,6 @@ const arg = (name, fallback) => {
 };
 const SEEDS = String(arg('seeds', 'aoe2-prototype,default-seed,corpus-seed-b')).split(',');
 const CONFIG = String(arg('config', 'castle'));
-const CONFIGS = {
-  castle: { victory: 'conquest-only' },
-  standard: {},
-  lab: { disableAiAttacks: true, victory: 'conquest-only', resourcePreset: 'high', difficulty: 'hard' },
-};
 if (!(CONFIG in CONFIGS)) {
   throw new Error(`--config must be one of ${Object.keys(CONFIGS).join(', ')}; got "${CONFIG}"`);
 }
@@ -95,227 +100,52 @@ if (!(CONFIG in CONFIGS)) {
 // only stops the common case from lying.
 const TICKS = Number(arg('ticks', 45000));
 const PRINT_LEDGER = process.argv.includes('--ledger');
-const QUALIFYING = ['blacksmith', 'archery-range', 'stable', 'market'];
+const OWNERS = CONFIGS[CONFIG].owners;
 
-// The most the Blacksmith's arrow technologies (Fletching, Bodkin Arrow,
-// Bracer) add to a building's range, and the one-cell margin the assignment
-// rule keeps clear. A Keep or a Korean tower reaches one or two further; the
-// ledger prints the distance so those show.
-const ARROW_TECH_RANGE_MAX = 3;
-const DEFENCE_MARGIN = 1;
-// The feed keeps a death for ten ticks and prunes only when the next one
-// lands, so reading it every tick and de-duplicating by unit id sees them all;
-// the task is sampled less often because a gather trip lasts hundreds of ticks.
-const TASK_SAMPLE_INTERVAL = 25;
-
-function upgradedReach(buildingType) {
-  const combat = createBuildingCombatState(buildingType);
-  return combat === null ? null : combat.attackRange + ARROW_TECH_RANGE_MAX + DEFENCE_MARGIN;
-}
-
-function footprintDistance(b, x, y) {
-  const nx = Math.min(Math.max(x, b.x), b.x + b.footprintWidth - 1);
-  const ny = Math.min(Math.max(y, b.y), b.y + b.footprintHeight - 1);
-  return Math.abs(x - nx) + Math.abs(y - ny);
-}
-
-// Returns the NEAREST enemy defence (for the ledger line) and, separately,
-// whether ANY of them covers the cell. Those are different questions: a
-// Castle two cells further off reaches two cells further than a Town Centre,
-// so asking only the nearest one under-counts.
-function nearestEnemyDefence(buildings, owner, x, y) {
-  let best = null;
-  let covered = false;
-  for (const b of buildings) {
-    if (b.owner === owner || !b.isComplete) continue;
-    const reach = upgradedReach(b.buildingType);
-    if (reach === null) continue;
-    const distance = footprintDistance(b, x, y);
-    if (distance <= reach) covered = true;
-    if (best === null || distance < best.distance) {
-      best = { defence: b.buildingType, defenceOwner: b.owner, distance, reach };
-    }
-  }
-  return best === null ? null : { ...best, covered };
-}
-
-// The relic ledger described in the header. `onTick` runs after every step;
-// `onSample` runs on the 250-tick economy sample, and once before the first
-// step so a relic picked up early is already known by its starting cell.
-function createRelicLedger(bridge, owners) {
-  const relics = new Map();
-  const stores = [];
-  const storedBy = new Map(owners.map((o) => [o, 0]));
-  let carriedSlot;
-  let storedSlot;
-  let carriedPairs = new Set();
-  const ownerOf = (id, component) => bridge.world.getComponent(id, component)?.owner ?? null;
-  const entryFor = (id, x = null, y = null) => {
-    if (!relics.has(id)) relics.set(id, { x, y, seen: {}, picked: [] });
-    return relics.get(id);
-  };
-  return {
-    stores,
-    storedBy,
-    relics,
-    onTick(tick) {
-      const carried = bridge.world.getState('aoe2.monkCarriedRelic');
-      if (carried !== carriedSlot) {
-        carriedSlot = carried;
-        const next = new Set();
-        for (const [monkId, relicId] of carried ?? []) {
-          const key = `${monkId}:${relicId}`;
-          next.add(key);
-          if (!carriedPairs.has(key)) entryFor(relicId).picked.push({ tick, owner: ownerOf(monkId, 'unit') });
-        }
-        carriedPairs = next;
-      }
-      const stored = bridge.world.getState('aoe2.relicsInMonastery');
-      if (stored !== storedSlot) {
-        storedSlot = stored;
-        const totals = new Map(owners.map((o) => [o, 0]));
-        for (const [monasteryId, count] of stored ?? []) {
-          const owner = ownerOf(monasteryId, 'building');
-          if (totals.has(owner)) totals.set(owner, totals.get(owner) + count);
-        }
-        for (const [owner, total] of totals) {
-          if (total > storedBy.get(owner)) stores.push({ tick, owner, total });
-          storedBy.set(owner, total);
-        }
-      }
-    },
-    onSample(tick, economy) {
-      for (const r of economy.resources) {
-        if (r.resourceType !== 'relic') continue;
-        const entry = entryFor(r.id, r.x, r.y);
-        for (const o of owners) {
-          if (entry.seen[o] === undefined && bridge.isCellVisibleForOwner(o, Math.floor(r.x), Math.floor(r.y))) {
-            entry.seen[o] = tick;
-          }
-        }
-      }
-    },
-  };
-}
-
+const game = await loadGame(resolve(dirname(fileURLToPath(import.meta.url)), '..'));
 const pad = (s, n) => String(s).padEnd(n);
 console.log(`# AI self-play audit — ${CONFIG} configuration, ${TICKS} ticks (${(TICKS / 600).toFixed(0)} min of game time)\n`);
 console.log(`| ${pad('seed', 16)} | own | feudal | qualified | castle | imperial | bldgs | units | peak army | vill lost | under def | monastery | monk  | relics | siege  | peak siege | Castle bldg |`);
 console.log(`| ${'-'.repeat(16)} | --- | ------ | --------- | ------ | -------- | ----- | ----- | --------- | --------- | --------- | --------- | ----- | ------ | ------ | ---------- | ----------- |`);
 
 const totals = { castle: 0, imperial: 0, bldg: 0, unit: 0, army: 0, owners: 0, lost: 0, underDefence: 0, relics: 0 };
+const records = [];
 for (const seed of SEEDS) {
-  // 'on-read' skips the per-tick render projection, which never writes the
-  // world, so the match is the same (renderProjectionOnRead.test.ts) and it
-  // runs about a quarter faster.
-  const bridge = createSimulationBridge(seed, {
-    ...CONFIGS[CONFIG],
-    forceAiForOwners: new Set([HUMAN_PLAYER_ID]),
-    renderProjection: 'on-read',
-  });
-  const per = {};
-  for (const o of [1, 2]) {
-    per[o] = { b: new Set(), u: new Set(), age: {}, q: null, army: 0, lost: 0, underDefence: 0, monastery: null, monk: null, siege: null, siegePeak: 0, armyByTick: [], castleBuilding: null };
-  }
-  const lastTask = new Map();
-  const deathsSeen = new Set();
-  const ledger = [];
-  const relicLedger = createRelicLedger(bridge, [1, 2]);
-  relicLedger.onSample(0, bridge.getEconomyState());
-  let outcome = 'running';
-  let endedAt = null;
-  for (let tick = 1; tick <= TICKS; tick += 1) {
-    bridge.step(100);
-    relicLedger.onTick(tick);
-    for (const death of bridge.getRecentUnitDeaths()) {
-      const key = `${death.id}:${death.tick}`;
-      if (deathsSeen.has(key)) continue;
-      deathsSeen.add(key);
-      if (death.unitType !== 'villager') continue;
-      const x = Math.floor(death.x);
-      const y = Math.floor(death.y);
-      const nearest = nearestEnemyDefence(bridge.getEconomyState().buildings, death.owner, x, y);
-      const underDefence = nearest !== null && nearest.covered;
-      ledger.push({ tick: death.tick, owner: death.owner, x, y, task: lastTask.get(death.id) ?? '?', nearest, underDefence });
-      const p = per[death.owner];
-      if (p) {
-        p.lost += 1;
-        if (underDefence) p.underDefence += 1;
-      }
-    }
-    if (bridge.getMatchState().outcome !== 'running') {
-      const match = bridge.getMatchState();
-      outcome = `${match.outcome} for owner 1 by ${match.winCondition ?? '?'}`;
-      endedAt = tick;
-      break;
-    }
-    if (tick % TASK_SAMPLE_INTERVAL === 0) {
-      for (const u of bridge.getEconomyState().units) {
-        if (u.unitType === 'villager') lastTask.set(u.id, u.task);
-      }
-    }
-    if (tick % 250) continue;
-    const st = bridge.getEconomyState();
-    relicLedger.onSample(tick, st);
-    for (const o of [1, 2]) {
-      const p = per[o];
-      let qualifying = 0;
-      for (const b of st.buildings) {
-        if (b.owner !== o || !b.isComplete) continue;
-        p.b.add(b.buildingType);
-        if (QUALIFYING.includes(b.buildingType)) qualifying += 1;
-        if (b.buildingType === 'monastery' && p.monastery === null) p.monastery = tick;
-        if (b.buildingType === 'castle' && p.castleBuilding === null) p.castleBuilding = tick;
-      }
-      if (qualifying >= 2 && p.q === null) p.q = tick;
-      let army = 0;
-      let siege = 0;
-      for (const u of st.units) {
-        if (u.owner !== o) continue;
-        p.u.add(u.unitType);
-        if (u.unitType !== 'villager') army += 1;
-        if (u.unitType === 'monk' && p.monk === null) p.monk = tick;
-        if (isSiegeUnit(u.unitType)) siege += 1;
-      }
-      p.army = Math.max(p.army, army);
-      if (tick % 5000 === 0) p.armyByTick.push(army);
-      if (siege > 0 && p.siege === null) p.siege = tick;
-      p.siegePeak = Math.max(p.siegePeak, siege);
-      const age = st.ages[o];
-      if (age && p.age[age] === undefined) p.age[age] = tick;
-    }
-  }
-  for (const o of [1, 2]) {
-    const p = per[o];
-    const at = (a) => (p.age[a] === undefined ? '-' : String(p.age[a]));
-    console.log(`| ${pad(seed, 16)} | ${o}   | ${pad(at('feudal-age'), 6)} | ${pad(p.q ?? '-', 9)} `
-      + `| ${pad(at('castle-age'), 6)} | ${pad(at('imperial-age'), 8)} | ${pad(p.b.size, 5)} `
-      + `| ${pad(p.u.size, 5)} | ${pad(p.army, 9)} | ${pad(p.lost, 9)} | ${pad(p.underDefence, 9)} `
-      + `| ${pad(p.monastery ?? '-', 9)} | ${pad(p.monk ?? '-', 5)} | ${pad(relicLedger.storedBy.get(o), 6)} `
+  const record = playAuditMatch(game, { seed, config: CONFIG, ticks: TICKS });
+  records.push(record);
+  for (const o of OWNERS) {
+    const p = record.owners[o];
+    console.log(`| ${pad(seed, 16)} | ${o}   | ${pad(p.feudal ?? '-', 6)} | ${pad(p.qualified ?? '-', 9)} `
+      + `| ${pad(p.castle ?? '-', 6)} | ${pad(p.imperial ?? '-', 8)} | ${pad(p.buildings.length, 5)} `
+      + `| ${pad(p.units.length, 5)} | ${pad(p.peakArmy, 9)} | ${pad(p.villagersLost, 9)} | ${pad(p.underDefence, 9)} `
+      + `| ${pad(p.monastery ?? '-', 9)} | ${pad(p.monk ?? '-', 5)} | ${pad(p.relics, 6)} `
       + `| ${pad(p.siege ?? '-', 6)} | ${pad(p.siegePeak, 10)} | ${pad(p.castleBuilding ?? '-', 11)} |`);
     totals.owners += 1;
-    if (p.age['castle-age'] !== undefined) totals.castle += 1;
-    if (p.age['imperial-age'] !== undefined) totals.imperial += 1;
-    totals.bldg += p.b.size; totals.unit += p.u.size; totals.army += p.army;
-    totals.lost += p.lost; totals.underDefence += p.underDefence;
-    totals.relics += relicLedger.storedBy.get(o);
+    if (p.castle !== null) totals.castle += 1;
+    if (p.imperial !== null) totals.imperial += 1;
+    totals.bldg += p.buildings.length; totals.unit += p.units.length; totals.army += p.peakArmy;
+    totals.lost += p.villagersLost; totals.underDefence += p.underDefence;
+    totals.relics += p.relics;
   }
-  if (outcome !== 'running') console.log(`| ${pad(seed, 16)} |     | match ended early: ${outcome} at tick ${endedAt}`);
-  console.log(`| ${pad(seed, 16)} |     | army every 5,000 ticks: ${[1, 2].map((o) => `o${o} ${per[o].armyByTick.join(',') || '-'}`).join('; ')}`);
-  for (const [id, r] of relicLedger.relics) {
+  const { outcome } = record;
+  if (outcome.state !== 'running') {
+    console.log(`| ${pad(seed, 16)} |     | match ended early: ${outcome.state} for owner 1 by ${outcome.by ?? '?'} at tick ${outcome.endedAt}`);
+  }
+  console.log(`| ${pad(seed, 16)} |     | army every 5,000 ticks: ${OWNERS.map((o) => `o${o} ${record.owners[o].armyByTick.join(',') || '-'}`).join('; ')}`);
+  for (const r of record.relics) {
     const seen = [1, 2].map((o) => `o${o} ${r.seen[o] ?? '-'}`).join(', ');
     const picked = r.picked.map((p) => `o${p.owner} ${p.tick}`).join(', ') || '-';
-    console.log(`| ${pad(seed, 16)} |     | relic ${id} at ${r.x ?? '?'},${r.y ?? '?'}: seen ${seen}; picked up ${picked}`);
+    console.log(`| ${pad(seed, 16)} |     | relic ${r.id} at ${r.x ?? '?'},${r.y ?? '?'}: seen ${seen}; picked up ${picked}`);
   }
-  const stores = relicLedger.stores.map((s) => `o${s.owner} ${s.tick} (holds ${s.total})`).join(', ') || 'none';
+  const stores = record.relicStores.map((s) => `o${s.owner} ${s.tick} (holds ${s.total})`).join(', ') || 'none';
   console.log(`| ${pad(seed, 16)} |     | relics stored: ${stores}`);
-  if (ledger.length > 0) {
+  if (record.ledger.length > 0) {
     const byTask = {};
-    for (const d of ledger) byTask[d.task] = (byTask[d.task] ?? 0) + 1;
+    for (const d of record.ledger) byTask[d.task] = (byTask[d.task] ?? 0) + 1;
     const tasks = Object.entries(byTask).map(([task, n]) => `${task} ${n}`).join(', ');
     console.log(`| ${pad(seed, 16)} |     | villager deaths by last task: ${tasks}`);
     if (PRINT_LEDGER) {
-      for (const d of ledger) {
+      for (const d of record.ledger) {
         const near = d.nearest === null
           ? 'no enemy defence'
           : `${d.nearest.distance} from o${d.nearest.defenceOwner} ${d.nearest.defence}`;
@@ -328,3 +158,14 @@ for (const seed of SEEDS) {
 console.log(`\n${totals.owners} owner-slots: ${totals.castle} reached Castle, ${totals.imperial} reached Imperial.`);
 console.log(`Totals — building types ${totals.bldg}, unit types ${totals.unit}, peak army ${totals.army}, `
   + `villagers lost ${totals.lost} (${totals.underDefence} under enemy defences), relics stored ${totals.relics}.`);
+
+console.log(`\n| ${pad('seed', 16)} | own | feudal click | vills then | castle click | vills then | imperial click | ${VILLAGER_MINUTES.map((m) => `vills ${m}:00`).join(' | ')} | first farm |`);
+console.log(`| ${'-'.repeat(16)} | --- | ------------ | ---------- | ------------ | ---------- | -------------- | ${VILLAGER_MINUTES.map((m) => '-'.repeat(`vills ${m}:00`.length)).join(' | ')} | ---------- |`);
+for (const record of records) {
+  for (const o of OWNERS) {
+    const p = record.owners[o];
+    console.log(`| ${pad(record.seed, 16)} | ${o}   | ${pad(p.feudalClick ?? '-', 12)} | ${pad(p.villagersAtFeudalClick ?? '-', 10)} `
+      + `| ${pad(p.castleClick ?? '-', 12)} | ${pad(p.villagersAtCastleClick ?? '-', 10)} | ${pad(p.imperialClick ?? '-', 14)} `
+      + `| ${VILLAGER_MINUTES.map((m) => pad(p.villagersAt[m] ?? '-', `vills ${m}:00`.length)).join(' | ')} | ${pad(p.firstFarm ?? '-', 10)} |`);
+  }
+}

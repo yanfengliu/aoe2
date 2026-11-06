@@ -1,30 +1,87 @@
 # The computer booms in the Dark Age as Definitive Edition's does
 
-Status: planned
-Owner: ai-dark-age worker for the Claude coordinator
+Status: active
+Owner: ai-dark-age worker (worktree `ai-dark-age-1105`) for the Claude coordinator
 Created: 2026-11-05
 Updated: 2026-11-05
 
 ## Problem and outcome
 
-The computer booms in the Dark Age as Definitive Edition's does. Define the observable outcome before implementation.
+The computer opponent stops at 10 Dark Age villagers (`aiEconomyPlan.ts`, `DARK_AGE_TUNING.villagerCap`), where Definitive Edition's AI trains 25 and more before its Feudal click (Promisory units.per 328-386, up to `darkvills`, const.per 3381-3384). Work 141 closed with four plan 106 cards on it, scheduled as this work on 2026-11-05: judge AI changes on several seeds per map; the Dark Age boom with DE's Dark Age gathering split; the Dark Age farm transition; and DE's second Dark Age House rule. The outcome: the computer's Dark Age economy grows as DE's does, measured on several seeds of every map, with the Feudal, Castle and Imperial clicks, the villagers at 5, 10, 15 and 20 minutes, the castle configuration's conquest table, villager deaths, the army over time and the coverage census before and after.
+
+Every work 141 milestone was judged on the castle configuration's seven matches, one seed each. The game draws no random number, so each match is exact on its tree and silent about how far it moves for reasons other than the change: under work 141's ram goal fortress's owner 2 lost 47 villagers against 4, after one lost battle, and nobody could say whether that was the rule or the match. So the instrument comes first, as its own milestone with no game change (M1).
 
 ## Scope
 
-Record the included work, exclusions and dependencies before implementation.
+- M1: a multi-seed A/B self-play instrument beside `scripts/selfplay-audit.mjs`, listed in `docs/debugging/instruments.md`, with its noise floor. No game change.
+- M2: the Dark Age villager count and the gathering split it implies, from DE's scripts, for the strategy closest to how this AI plays.
+- M3: the Dark Age farm transition, and DE's second Dark Age House rule (buildings.per 1598-1609) if it applies to how this AI plays. The coordinator may hand M3 to a fresh worker.
+- Binding: the owner's "Keep current AI" (spec §13.1; no DE handicap is adopted, and a handicap found is added to §13.1's list); every AI purchase through `AiPurchases.buy`, with R16-1 left open; drop, don't tune; the coverage census compared both ways; self-play gates re-recorded with every move named and no assertion weakened; CI's two-thirds limits.
+- Not this work: combat tables, input and the HUD; the civ-engine and voxel repos; `AGENTS.md`; R16-1's fix.
 
 ## Approach
 
-Record the chosen approach and consequential tradeoffs.
+M1. A seed is a map seed. No system reads the world's rng (civ-engine's `world.random` has no caller under `src/`) and no file under `src/game/simulation` calls `Math.random`, so a match is a function of its map and options, and several games of one map are several seeds of that map's generator. A seed `<map>#<k>` plays `<map>`'s generator with that seed: the default map generates any seed the scenario table does not name, and a named map's factory (`fortress`, `coastal`, ...) is entered in the table under the variant seed, in the measuring process only. The default map's first three seeds are `aoe2-prototype`, `default-seed` and `corpus-seed-b`, the three every audit since 2026-08-29 played, so work 141's seven matches are each map's first seeds.
+- `scripts/selfplayAuditMatch.mjs` plays one match and returns its record per owner: the audit's columns, plus the three age clicks (the first 25-tick sample with the age's research queued) with the villagers held then, the villagers at 5, 10, 15 and 20 minutes, and the first complete farm. Villagers are counted from the unit components, garrisoned ones included. `loadGame(root)` imports the game from any checkout, so both arms are measured by one copy of the measurement.
+- `scripts/selfplay-audit.mjs` plays this checkout through it and prints its table as before, with the new columns in a second table.
+- `scripts/selfplay-ab.mjs` plays N seeds per map (default 5) in two checkouts, a process per match, and `scripts/selfplayAbReport.mjs` reports each column per owner as each arm's median and range, and, with the same seeds in both arms, the per-seed difference with its range and how many seeds moved up, down or not at all. A time not reached counts as later than any tick, so a lost age shows as a move. A scenario digest per record warns when two seeds are one map or one seed is two.
 
 ## Acceptance criteria
 
-- [ ] Define observable completion conditions and their checks.
+M1:
+- [x] The instrument plays N seeds per map in two checkouts and reports every column's median and range per arm and owner, and with paired seeds the per-seed difference, its range and its direction counts; the conquest table seed by seed (Outcome).
+- [x] Its seeds are games of the map they name, checked on generated scenarios: a named map's variant seed plays that map, and every playable map's first three seeds are three scenarios.
+- [x] Its noise floor: A against A on the castle configuration, five maps and five seeds each, in two checkouts of one game, reports no difference on any column; the same tree on seeds 5-9 against seeds 0-4 shows how far a map's medians differ by chance (Outcome).
+- [x] `selfplay-audit.mjs` prints its table byte for byte as before the split.
+- [x] Tests on the contract, each red with its defect put back (41 mutants); listed in `docs/debugging/instruments.md`; `npm run verify` and its receipt; independent review (rounds 0 to 2).
+- [ ] The coordinator's acceptance.
+
+M2 and M3: set when M1 lands, from DE's scripts (the brief's items 2 to 4).
 
 ## Implementation steps
 
-- [ ] Agree scope and acceptance, then carry out the work.
+- [x] Worktree `ai-dark-age-1105` and the control worktree `ai-dark-age-base-1105` on main 41732763 (the A arm).
+- [x] M1: the shared match module, the A/B runner and its report, the audit on the module, tests and red proofs.
+- [x] M1: the noise floor runs (Outcome).
+- [x] M1: review rounds 0 to 2 and their repairs, and the gate (Outcome).
+- [ ] M1: the phase-1 handoff and the coordinator's "accepted, land it".
+- [ ] M2.
+- [ ] M3.
 
 ## Outcome
 
-Pending. Record the verified revision, checks and limitations at closure.
+**M1: the multi-seed A/B (2026-11-05, phase 1; no game change, no version).**
+- `scripts/selfplayAuditMatch.mjs` (new): `playAuditMatch(game, { seed, config, ticks })` plays one match and returns its record; `loadGame(root)` imports the game from a checkout; `seedsForMap`, `mapOfSeed`, `registerSeed` and `scenarioDigest` name and check the seeds. The audit's loop moved here unchanged; the new columns read the 25-tick sample the audit already took.
+- `scripts/selfplay-audit.mjs` plays through it: its first table is byte for byte the old script's (`aoe2-prototype` and `fortress`, 15,000 ticks, `--ledger`, compared with `diff` against main's script on the same commit), and a second table gives the clicks, the villagers at them and at 5-20 minutes, and the first farm. `--config idle` plays the boot match with the human seat idle.
+- `scripts/selfplay-ab.mjs` (new) and `scripts/selfplayAbReport.mjs` (new): the pool, the record files (`--out`, `--reuse`, a reused record refused unless it is the job's seed, configuration and horizon and was played on the run's game and measurement, by fingerprint) and the report. The report has a row for every field of a record: the age clicks and ages, the villagers at the clicks and at 5, 10, 15 and 20 minutes, the first farm, the qualifying buildings, the Castle, the Monastery and the Monk, the peak army and the army at every 5,000 ticks to 60,000, villager deaths and those under defences, the first siege and the most siege held, building and unit types and relics, and each match's end.
+- Review round 0 (`reviews/0_implementation.md`, Codex) found four, all repaired: reused records not tied to the revision (R0-1, high), a refused step measured as a tick (R0-2, high; the audit's loop has done so since 2026-09-02), measured columns missing from the report (R0-3) and an even-count median that read a gain and a loss as a gain whichever arm was A (R0-4). A step is now checked to advance the world by one tick or the match fails, and an even count's median is the mean of its middle two, so swapping the arms negates it. Round 1 (`reviews/1_implementation.md`, Codex, on the repairs) found four more, all repaired: the fingerprints were the parent's, taken before the pool, so a checkout changed during a run could stamp records with the old revision (R1-1, high; each worker now fingerprints what it loads, before and after its match); a `match-over` refusal still passed while the match state said running (R1-2); an untracked `--out` folder inside an arm changed the arm's fingerprint (R1-3; only untracked files under `src/` and `design/` count); and a horizon past 60,000 lost its last army samples (R1-4). Round 2 (`reviews/2_implementation.md`) found no implementation defect and one medium on the tests, three partial reversions of round 1's repairs that passed them; each now has an assertion that a reversion turns red.
+- One trap found on the first run: the economy state's unit list holds only units with a position, so on `aoe2-prototype#1` owner 1's Town Center bell read as a seat with 2 villagers at 5:00 where it held 10. The villager columns count the unit components.
+- `vitest`'s module runner deadlocked on the five game modules imported together (a test waited 120 s); `loadGame` imports them one at a time (2.0 s).
+
+Tests: `tests/scripts/selfplayAb.test.ts`, 18 tests in about 3 s (the slowest 2.1 s of its 30 s): the seeds (each map's own first, the default map's three, the offset), a named map's variant seed playing that map and every playable map's first three seeds three scenarios, a seed played twice one record, villagers counted with the garrisoned, the age click at its first sample, "never" in medians and differences, a tree against itself on the same seeds reporting no move on any row, unpaired arms compared by their medians, the digest warnings, the plan's arms, seeds and horizons, a stale reused record and one of another game or measurement refused, a world that stops advancing failing the match, a gain on one seed and a loss on another shown as "?", every field of a played record with a column, the game's fingerprint moved by a commit, an uncommitted change, an untracked file under `src/` and the engine build and not by an untracked file elsewhere, a worker refusing a checkout that moved during its match and stamping what it loaded, a match over before its first step ending at 0, and every army sample of a horizon past 60,000 kept. One existing test changed: `tests/scripts/runDirectly.test.ts`, whose exact census of the scripts that use `run-directly.mjs` now names `selfplay-ab.mjs` and runs it through a junction (plain node, `--config bogus`, its error). Red with each defect put back, 41 mutants (`tmp/m1/mutate.mjs` in the worktree, one at a time, the file restored byte for byte): the default map's three seeds dropped, the offset ignored, the variant seed not registered, a digest of the map's size only, a record holding a clock, villagers read from positioned units, a click overwritten later, a click counting owner 1's villagers, a time not reached read as missing, an even median taking the lower value, never against never read as a move, a lost age read as no move, arm B paired out of order, different seeds read as paired, either digest warning dropped, arm B ignoring its offset, one horizon for every map, and a reused record unchecked; and round 0's: the fingerprints unchecked and jobs without them, a refused step, a step that does not advance and the loop not checking its steps, the Monastery column dropped and six army samples, the lower-middle median and the first rule for an even count, and "?" shown as a number; round 1's: the worker's change check and its stamp, the `match-over` check, the end read off the loop's count, untracked files hashed anywhere and not at all, the uncommitted diff and the engine build not hashed, and the army rows stopped at twelve; round 2's: the measurement's drift unchecked, the `match-over` guards dropped and the pooled table capped at twelve samples; and the runner guarding itself the old way, which the census refuses. The repairs change no successful match: `aoe2-prototype` and `fortress`, played again on both arms, give the first run's records but for the fingerprints and the wall time, and the reports regenerated from the records with the repaired code read as before (441 paired rows, none with a move; the noise table unchanged).
+
+The noise floor, castle configuration, five maps and five seeds each, 45,000 ticks on the default map and 60,000 on the others. Bound: these 25 seeds of these five maps on main 41732763's game, deterministic, so exact for them and silent about any other seed; ages and farms are sampled every 250 ticks, clicks every 25 and armies every 5,000.
+- A against A, paired: main in the control worktree `ai-dark-age-base-1105` against this branch, the same game files. All 25 records are identical (JSON less the wall time) and every row of the report reads "0 up, 0 down, 5 same", pooled "25 same". The first seed of each map reproduces work 141's seven-match table: `corpus-seed-b` ends at tick 43,255 and `gold-rush` at 53,265, both won by owner 2, and the other five run to their horizon, as in plan 141. 50 matches took 21 minutes on 8 processes: 110-173 s for a 45,000-tick match and 141-329 s for a 60,000-tick one.
+- The human-idle boot match (`--config idle`, the default map's five seeds, lobby defaults): the 5 records identical in both arms. Owner 2 conquers the idle human on every seed, at 49:05 [42:08-69:33] (`aoe2-prototype` at tick 26,127, as plan 141 measured); its Feudal click is 10:55 [10:18-16:10] with 10 villagers on every seed, and it holds 10 villagers at 5:00 and 10:00 on every seed.
+- One tree against itself on other seeds, unpaired: this branch on seeds 5-9 against seeds 0-4. Each cell below is seeds 0-4's median [range], then the median of seeds 5-9 minus it, the move a five-seed median makes by chance:
+
+| map | own | Feudal click | Feudal | Castle | Imperial | vills 20:00 | peak army | vill lost |
+|---|---|---|---|---|---|---|---|---|
+| aoe2-prototype | 1 | 15:28 [11:48-19:48]; 0:00 | 17:55 [14:10-22:05]; 0:00 | never [36:40-never]; -never | never; 0:00 | 15 [10-22]; -1 | 5 [5-10]; +2 | 23 [3-55]; +13 |
+| aoe2-prototype | 2 | 15:05 [12:50-19:05]; -2:43 | 17:30 [15:00-21:15]; -2:55 | 39:35 [31:15-41:40]; -4:35 | 70:50 [60:25-never]; -11:15 | 15 [10-21]; +5 | 13 [11-30]; +3 | 6 [1-17]; -5 |
+| coastal | 1 | 9:33 [8:43-10:35]; -0:35 | 12:05 [11:15-12:55]; -0:50 | 38:20 [32:05-never]; -1:40 | 92:05 [63:20-never]; -26:15 | 22; 0 | 6 [4-24]; +2 | 28 [1-92]; +57 |
+| coastal | 2 | 12:28 [11:28-13:28]; +0:20 | 15:00 [13:45-15:50]; 0:00 | 33:45 [31:40-34:10]; -1:40 | never [59:10-never]; -never | 22 [19-22]; -1 | 14 [7-19]; -1 | 18 [2-99]; -3 |
+| gold-rush | 1 | 9:58 [9:28-12:43]; -0:20 | 12:30 [11:40-15:00]; -0:25 | never [31:40-never]; 0:00 | never [55:25-never]; 0:00 | 22 [15-22]; 0 | 5 [4-50]; 0 | 46 [0-96]; +32 |
+| gold-rush | 2 | 14:35 [12:38-16:23]; -1:43 | 17:05 [15:00-18:45]; -1:40 | 37:55 [34:35-never]; -2:55 | 60:25 [57:05-never]; +8:20 | 13 [10-18]; +4 | 24 [4-29]; -4 | 8 [4-73]; -5 |
+| arena | 1 | 9:23 [9:20-9:25]; -0:05 | 11:40; 0:00 | 80:00 [54:35-never]; -22:30 | never [62:30-never]; 0:00 | 22 [21-22]; 0 | 6 [6-22]; +2 | 23 [0-37]; +8 |
+| arena | 2 | 17:53 [10:13-60:35]; -7:28 | 20:25 [12:30-62:55]; -7:30 | 41:15 [30:00-never]; -7:30 | never [58:45-never]; -never | 10 [10-22]; +12 | 14 [3-30]; -4 | 9 [0-59]; -8 |
+| fortress | 1 | 8:23 [8:23-8:35]; -0:03 | 10:50; 0:00 | 52:55 [43:20-never]; -10:00 | never [72:05-never]; 0:00 | 22; 0 | 7 [5-11]; -1 | 102 [82-113]; -9 |
+| fortress | 2 | 11:05 [10:13-11:10]; -0:45 | 13:20 [12:30-13:20]; -0:50 | 30:00 [28:20-30:00]; -1:15 | 47:30 [45:25-48:20]; -0:50 | 22; 0 | 19 [11-56]; +4 | 6 [0-47]; -4 |
+
+How to read an A/B with it. The Feudal click and the Feudal Age move by 0:00 to 2:55 between two five-seed medians on four maps, so a move of a few minutes there is signal only when the seeds move together; arena's owner 2 moves 7:30 because two of its first five seeds hold it in the Dark Age for an hour. Castle moves 1:15 to 4:35 on most seats and 10:00 and 22:30 on two, and Imperial up to 26:15; either can flip to and from "never". Villager deaths move by 3 to 57 and peak armies by 0 to 4. So the single-match reading work 141 could not settle was inside one tree's spread: on main's five fortress seeds owner 2 loses 6 [0-47] villagers, and the 47 is work 141's seed itself.
+
+Found by the noise floor, for M2 and M3: on `arena#2` and `arena#4` owner 2 clicks Feudal only at 60:35 and 58:33 (ticks 36,350 and 35,125), holding 10 villagers at 5, 10, 15 and 20 minutes, and lays its first farm after the age arrives (38,000 and 36,750): `targetFarmCount` is 0 in the Dark Age, so a seat whose natural food runs out has no food source left (the farm card, M3).
+
+Gates. b59fb08b failed its unit stage on one test, the run-directly census, which did not yet name the new runner (repaired in 1f11ad9b); 1f11ad9b and dc45e608 each passed: vitest 5,373 passed and 3 skipped, Playwright 320 passed, receipts OK on trees f632895a988a and cb0a3ec3fee8. c07c8c1d, the code handed off: vitest 5,376 passed and 3 skipped, Playwright 320 passed and 2 skipped, receipt OK on tree 69feaec4066d. In that suite `tests/scripts/selfplayAb.test.ts` took 6.1 s, its slowest test 3.1 s of its 30 s (10%), and `tests/scripts/runDirectly.test.ts` 0.8 s.
+
+Not checked in M1: the live lobby match through the real Start Match, since M1 changes no game file (it is M2's, before and after); the coverage census, which no file M1 touches can move; seeds of the `standard` and `lab` configurations.
