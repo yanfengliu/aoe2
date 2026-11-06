@@ -2,6 +2,12 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.277
+
+A selected unit's or building's work line holds one line, as a group's does.
+
+- **One line.** The line under the selection's name ("Creating Villager", "Gathering berry-bush") is cut with an ellipsis where it does not fit, and a hover shows all of it. In v0.3.276 "Creating Villager" wrapped onto a second line on some systems' fonts and made the command bar scroll; below 1120px a long work line pushed the stat chips onto another row, and a work that changed moved the deck under the cursor.
+
 ## 0.3.276
 
 A building's production queue is drawn as Definitive Edition (DE) draws it.

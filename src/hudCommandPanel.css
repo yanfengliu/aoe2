@@ -135,15 +135,25 @@
    ellipsised with the whole text in its tooltip. The work changes as units
    fight, walk and die, and wrapped onto three lines it pushed the icons under
    it out of the band above 1120px, and the tiles under the line below 1120px
-   (review round 2 of work 146 M2). */
+   (review round 2 of work 146 M2). A single selection's work line holds to one
+   line the same way: "Creating Villager" fitted its 102px column by 1.8px on
+   Windows and wrapped on Linux CI, which made the bar scroll (v0.3.277). */
 .hud-panel--selection > .hud-selection-summary--group .hud-selection-name,
-.hud-panel--selection > .hud-selection-summary--group .hud-selection-activity {
+.hud-panel--selection .hud-selection-activity {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
   line-clamp: 1;
   overflow-wrap: anywhere;
+}
+
+/* The work line takes the heading's width and lends it none: below 1120px the
+   heading is as wide as its content up to 130px, so a longer work line widened
+   it, pushed the stat chips beside it onto another row and grew the bar, and a
+   work that changed with the simulation moved the deck under the cursor. */
+.hud-panel--selection .hud-selection-activity {
+  contain: inline-size;
 }
 
 /* A definite width and the height of a full 60, as the chip grid had a

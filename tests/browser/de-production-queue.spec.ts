@@ -147,6 +147,45 @@ test('a hovered queue icon, and Train Villager, keep their tooltips while the pa
   }
 });
 
+test('the selected building\'s work line holds one line whatever its label, with the label in its tooltip', async ({ page }) => {
+  // v0.3.276: "Creating Villager" drew 100.2px in its 102px column on Windows
+  // and wrapped on Linux CI, which made the bar scroll; a label far longer than
+  // the column, written into the paused panel, holds the line whatever the
+  // fonts measure (no real label reaches it).
+  await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
+  await selectTownCenter(page);
+  await clickCommand(page, 'train-villager');
+  await runTicks(page, 1);
+  const line = page.locator('[data-selection-activity]');
+  await expect(line).toHaveText('Creating Villager');
+  await expect(line).toHaveAttribute('data-tooltip', 'Creating Villager');
+  for (const size of [{ width: 800, height: 600 }, { width: 1280, height: 720 }, { width: 1920, height: 1080 }]) {
+    await page.setViewportSize(size);
+    await game.waitForRenderedFrames(page, 2);
+    const measure = () => page.evaluate(() => {
+      const work = document.querySelector<HTMLElement>('[data-selection-activity]')!;
+      const panel = document.querySelector<HTMLElement>('[data-hud="selection-panel"]')!;
+      return { line: work.getBoundingClientRect().height, content: panel.scrollHeight, box: panel.clientHeight };
+    });
+    const before = await measure();
+    const label = await line.evaluate((work) => {
+      const original = work.textContent ?? '';
+      work.textContent = `Creating ${'Villager '.repeat(12).trim()}`;
+      return original;
+    });
+    await game.waitForRenderedFrames(page, 1);
+    const long = await measure();
+    expect(long.line, `the long work line holds one line at ${size.width}x${size.height}`).toBeCloseTo(before.line, 0);
+    expect(long.content, `the bar keeps its height at ${size.width}x${size.height}`).toBe(before.content);
+    expect(long.content, 'and nothing scrolls').toBeLessThanOrEqual(long.box + 1);
+    await line.evaluate((work, text) => { work.textContent = text; }, label);
+  }
+  // The real label is in the tooltip a hover shows.
+  const box = await line.boundingBox();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await expect(page.locator('[data-hud="tooltip"]')).toHaveText('Creating Villager');
+});
+
 test('a villager waiting for houses says so, and the research behind it moves', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');

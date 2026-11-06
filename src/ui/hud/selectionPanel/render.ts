@@ -162,8 +162,11 @@ function formatActivityLabel(activity: NonNullable<SelectionState['activity']>):
 export function renderSelectionActivity(selectionState: SelectionState): string {
   const a = selectionState.activity;
   if (a) {
+    // One line, cut with an ellipsis, the whole label in its tooltip, as a
+    // group's is: "Creating Villager" drew 100.2px in a 102px column on
+    // Windows and wrapped on Linux CI, which made the bar scroll (v0.3.276).
     const text = formatActivityLabel(a);
-    return `<div class="hud-selection-activity" data-selection-activity>${text}</div>`;
+    return `<div class="hud-selection-activity" data-selection-activity data-tooltip="${text}">${text}</div>`;
   }
   const breakdown = selectionState.activityBreakdown;
   if (breakdown && breakdown.entries.length > 0) {

@@ -206,6 +206,16 @@ The second 2026-09-26 rollover, of "Three parts of the verification plumbing sai
 
 **The 2026-11-06 work 146 M2 rollover moved the closed 2026-10-17 foundation-clearing entry verbatim.** The new closed entry on the click held on the selection panel while it redrew took the active register to thirteen closed entries, and this was the oldest closed one the classifier marked MOVE. It has no "above" or "below" of its own, and no retained entry points at it by position or by name.
 
+## 2026-11-04 — The 1920px resource-occupation test failed on CI three times in 51 runs: its one-cell walk ended between Playwright's polls (CI runs 38675522945, 39193369383 and 40960398985; work 137, FIXED and gated)
+
+**Symptom.** `tests/browser/resource-workers.spec.ts:100` at 1920px expected "Moving" after a real right-click and read "Gathering food" then "Idle" twice. Once it read "Moving" and then food workers 0. All three came after work 123 made the case fast on 2026-10-14, and none before.
+
+**Investigation and cause.** The House anchor was the first valid cell near the Town Center, (8,6), beside the sheep the worker gathers from (7.25,6.75). CI's runners order the move 3.3 s after the gather, once the worker is there, so it walked about one cell; local runs ordered it 0.3 s after, from 2.6 cells away. "Moving", the walking food occupation and the House order's effect all last only as long as the walk. The trace of 2026-10-29 shows "Moving" with food 1 at +900 ms and food 0 at +936 ms. Under a slow-frame model the one-cell walk had also ended before the House order in 6 of 6 runs, so the old House check could pass without the order having caused it.
+
+**Fix.** The move waits for the worker to gather on every host; the anchor is at least 8 cells away, which lasts at least 6.7 s at Normal speed; the spec reads "Moving" and food 1 together, and again just before the House order, and after it requires "Building House" with food 0, which only the order produces. Every original assertion stays.
+
+**Check and status.** FIXED and gated: with the old anchor the setup guard on the walk's length fails at all three widths (1.27 cells); a one-cell walk under slow frames fails the "still walking" check; a walk that ends without the House order fails "Building House", which the old food-0 check passed. Bound: one map and seed, and a walk of at least 6.7 s against the old flow's 0.9 s Moving check and 2.2 s Build House click on CI; [gate-proofs.md](gate-proofs.md) has the rest.
+
 ## 2026-10-17 — Foundation clearing overlapped destinations or waited despite a valid exit arrangement (independent integration review IR1 and IR3, FIXED and gated)
 
 The planner tested each destination against unchanged occupancy. A later animal claim could block an earlier relocated unit, and two animals could select one cell. footprintClearing now reserves every provisional destination before moving anyone, shares only actual remaining unit slots, and keeps animal destinations exclusive. A failed plan moves nobody. foundationStartAnimals.test.ts covers sole exits, separate exits, existing occupants and sixteen-slot capacity; restoring the original planner makes six of its 33 cases red. These are mechanism tests on a small synthetic world, not page-control evidence.
