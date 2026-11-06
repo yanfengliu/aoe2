@@ -82,11 +82,13 @@ Outcome: villagers share a resource as DE's do. A player's order putting several
 
 ## Reviews
 
+- Round 2 (`reviews/2_implementation.md`), Codex on c063fd2d: one low finding, a spec sentence still saying a unit under a relic could not walk off it, accepted and repaired; it confirmed both test changes.
 - Round 1 (`reviews/1_implementation.md`), Codex on e4791912: one medium finding, the staggered Farm case passing the opposite rule too, accepted and repaired (it asserts who farms what; red with a Farm reserved through the delivery). It confirmed R0-1's disposition against the spec, with the bound that the source is a 2019 player report.
 - Round 0 (`reviews/0_implementation.md`), Codex on a2c6789b: one medium finding, a Farm taken while its farmer delivers, rejected for the rule (DE's Farm is free then) with its regression test added; the worker found and repaired the same trap in the move-order search.
 
 ## Gates
 
+- c063fd2d: `npm run verify` exit 0, `node scripts/verify-receipt.mjs check` OK on tree 935e666f29a7 (vitest 5,390 passed and 3 skipped, Playwright 321 passed and 2 skipped).
 - e4791912: `npm run verify` failed its unit stage on `monkCarriedRelic.test.ts` (above); repaired in the next commit.
 - a2c6789b: `npm run verify` exit 0, `node scripts/verify-receipt.mjs check` OK on tree 6ba72558cf2a (vitest 5,388 passed and 3 skipped, Playwright 321 passed and 2 skipped).
 
