@@ -1,11 +1,11 @@
 # Selecting units as in Definitive Edition
 
-Status: active
+Status: complete
 Owner: de-selection worker for the Claude coordinator
 Created: 2026-11-06
 Updated: 2026-11-06
 
-M1 landed as v0.3.272 and M2 as v0.3.273 (Outcome).
+M1 landed as v0.3.272 and M2 as v0.3.273, and the work is complete (Outcome).
 
 ## Problem and outcome
 
@@ -149,4 +149,6 @@ M1's landing checks. The gate on `559307c9`, under the lock: vitest 5,424 passed
 
 M2 phase 1 (2026-11-06): branch `de-selection-m2-1106` holds `2bc5c724` (M2), `ee60e927` (the merge of main `e4ca37c1`, docs only), `0f65b185` (records), `e60f86c5` (round 1's repairs), `9af53389` (round 2's) and this record. Gates: the full gate on `0f65b185` ran vitest 5,439 passed and 3 skipped, and Playwright 333 passed, 2 skipped and 1 failed, the sorted-by-type case reading the panel a frame early (repaired in round 1); a run started on `e60f86c5` passed every stage, and its receipt was refused, since round 2's edits were made while it ran; on `9af53389`, vitest 5,445 passed and 3 skipped, Playwright 337 passed and 2 skipped, receipt OK (tree `c60ae22211cd`), the new spec's cases each under the browser report's cut-off of 4.5 s. On `9af53389` the five after-captures are pixel for pixel those recorded above, and the live check gave the same results. Not checked: DE itself (never launched), so every unsourced default; a full match played with the panel (the live check plays 40 s); Chrome's Ctrl+click on macOS (a right-click there); a touch or pen press on the panel (the hold reads `pointerup` and `pointercancel`, untested); the replay timeline's reserve with sixty icons; windows below 536px tall above 1120px wide, where the band clamps further and the last rows scroll; the per-frame bar refresh's cost beyond the still-frame check. The version bump, the landing, plan 106's card, owner-decision and out-of-scope lines, the gallery and the closing of this plan wait for phase 2.
 
-M2 landed (2026-11-06) as v0.3.273: one commit on main after `e4ca37c1`, squashed from branch `de-selection-m2-1106` (`2bc5c724`, `ee60e927`, `0f65b185`, `e60f86c5`, `9af53389`, `a263fd79`), which the coordinator accepted at `a263fd79`; those commits, the reviewed `0f65b185` and `e60f86c5` among them, are kept on the local branch `retained/de-selection-m2-1106`. Plan 106 holds the card's shipping line, the six owner-decision defaults and the four cards found here, each tagged "(work 146)". The landing gate and CI follow.
+M2 landed (2026-11-06) as v0.3.273: one commit on main after `e4ca37c1`, squashed from branch `de-selection-m2-1106` (`2bc5c724`, `ee60e927`, `0f65b185`, `e60f86c5`, `9af53389`, `a263fd79`), which the coordinator accepted at `a263fd79`; those commits, the reviewed `0f65b185` and `e60f86c5` among them, are kept on the local branch `retained/de-selection-m2-1106`. Plan 106 holds the card's shipping line, the six owner-decision defaults and the four cards found here, each tagged "(work 146)". The landing commit is `66851aba`.
+
+M2's landing checks. The gate on `66851aba`, under the lock: vitest 5,445 passed and 3 skipped, Playwright 337 passed and 2 skipped, receipt OK (tree `aaa764cd487b`). CI run 42252902310 on `66851aba` passed all ten jobs at its first attempt, each read from its own log: the unit shards ran 1,949, 1,689 (2 skipped) and 1,806 (2 skipped) tests on each runner, in 14.9, 7.7 and 9.5 minutes on Ubuntu and 14.8, 18.4 and 13.6 on Windows (Windows 2/3 the longest, all under 40); the browser shards ran 87 (2 skipped), 83, 83 and 83 (1 skipped) in 15.3, 8.2, 8.4 and 8.9 minutes, all under 45. The new spec ran in shard 2/4: its ten cases took 4.0 to 5.6 s each from one case line to the next, the slowest (the tiles case and the Shift case) 5.6 s, 19% of the 30 s limit. Playtest-corpus run 42252902297 passed. The gallery's Update 107 keeps the default view's pair, its diff and the two sixty-icon captures, in the primary checkout's `tmp/visual-gallery`. The worktree and its landing branch are removed after this record is pushed.
