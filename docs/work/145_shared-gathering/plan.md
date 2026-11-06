@@ -1,6 +1,6 @@
 # Villagers share a resource as in Definitive Edition
 
-Status: active
+Status: complete
 Owner: shared-gathering worker for the Claude coordinator
 Created: 2026-11-06
 Updated: 2026-11-06
@@ -43,8 +43,8 @@ Outcome: villagers share a resource as DE's do. A player's order putting several
 
 - [x] Browser, real clicks: six villagers on one sheep under the Town Center all eat, and carry on together to the next sheep (`tests/browser/shared-gathering.spec.ts`).
 - [x] Simulation: per kind, a group on one node all work it with per-villager rates unchanged; a long-walk group is not split; a Farm takes one and the extra carries on or idles; a villager under a sheep works; the campaign-4 pile does not jam. Each red with the defect put back.
-- [ ] selfplay-ab against the noise floor; census moves named both ways.
-- [ ] Spec §6.4, register, changelog (Unreleased — work 145), devlog vNEXT; verify and receipt; Codex review.
+- [x] selfplay-ab against the noise floor; census moves named both ways (none).
+- [x] Spec §6.4, register, changelog, devlog; verify and receipt; Codex review (three rounds).
 
 ## Files
 
@@ -99,8 +99,10 @@ The default view and one random view (FOCUS 37,22, ZOOM 1.7, 1280x720), main aga
 
 ## Implementation steps
 
-- [ ] M1 as above.
+- [x] M1 as above, landed in v0.3.270.
 
 ## Outcome
 
-Pending.
+Landed on main as 19e4ffeb (v0.3.270), a fast-forward from 1e16571b (v0.3.269, already merged into the branch as 075cb601), pushed at 22:35 on 2026-11-05 local. The landing gate: `npm run verify` on 19e4ffeb, `verify-receipt check` OK on tree 05992f2ecdc3 (vitest 5,396 passed and 3 skipped, Playwright 322 passed and 2 skipped). CI run 42175360094 passed all 10 jobs; read from their logs, the unit shards used 12.7, 11.9 and 7.4 of 60 minutes on Ubuntu and 17.4, 13.2 and 13.4 on Windows, and the browser shards 14.7, 13.1, 13.2 and 11.0 of 45, with `shared-gathering.spec.ts` at 8.5 s of its 30 s in browser shard 4. playtest-corpus run 42175360128 passed. Work 144 had not landed, so nothing of it was merged here; whichever of its milestones lands next merges this and measures again. The primary checkout was fast-forwarded to 19e4ffeb.
+
+Open, with homes in plan 106 tagged "(work 145)": the computer's side of DE's sharing (the carry-on rank and one villager a Farm, dropped for the computer with their gate numbers), the trained villagers that worked another sheep (main too), a gather point to check, the Shift-click code pointer on work 142's Controls card, and the owner decision on an extra farmer and a Farm whose farmer delivers.
