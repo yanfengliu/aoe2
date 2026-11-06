@@ -88,6 +88,7 @@ Outcome: villagers share a resource as DE's do. A player's order putting several
 
 ## Gates
 
+- 075cb601 (the merge of origin/main 1e16571b, v0.3.269, into this branch): `npm run verify` exit 0, `node scripts/verify-receipt.mjs check` OK on tree ce0b79b363e8 (vitest 5,396 passed and 3 skipped, Playwright 322 passed and 2 skipped); the commit after it is docs only (this line, a changelog wording and a spec bound).
 - c063fd2d: `npm run verify` exit 0, `node scripts/verify-receipt.mjs check` OK on tree 935e666f29a7 (vitest 5,390 passed and 3 skipped, Playwright 321 passed and 2 skipped).
 - e4791912: `npm run verify` failed its unit stage on `monkCarriedRelic.test.ts` (above); repaired in the next commit.
 - a2c6789b: `npm run verify` exit 0, `node scripts/verify-receipt.mjs check` OK on tree 6ba72558cf2a (vitest 5,388 passed and 3 skipped, Playwright 321 passed and 2 skipped).

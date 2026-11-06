@@ -6,7 +6,7 @@ This changelog lists user-visible behavior changes only. Pure refactors and docu
 
 Villagers share a resource as in Definitive Edition (DE): DE's text names a worker limit for the Farm alone.
 
-- **Any number of villagers work one sheep, carcass, tree, mine or bush.** A group sent onto one walks to it and works it together, each at its own rate, however far away it is. Until now a group sent more than 32 tiles was split on the way, all but two of it sent to other nodes.
+- **Any number of villagers work one sheep, carcass, tree, mine or bush.** A group sent onto one walks to it and works it together, each at its own rate. Until now a group sent more than 32 tiles was split on the way, all but two of it sent to other nodes.
 - **When a node runs out, all your gatherers on it go on to the nearest one of its kind**, as DE's shepherds do. Six villagers on a sheep under the Town Center move on to the next sheep together, where four used to take it and two another.
 - **A Farm takes one of your villagers**, as DE's text says. One that reaches a Farm another villager works takes a free Farm within five cells, or stands idle.
 - **A villager under a sheep can walk away.** A sheep boxed with its villagers walks with them to the sheep they are sent onto and can stop on their cell; until now that left them unable to move, idle or holding food beside the Town Center for good.
