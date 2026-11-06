@@ -2,7 +2,7 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
-## Unreleased — work 145
+## 0.3.270
 
 Villagers share a resource as in Definitive Edition (DE): DE's text names a worker limit for the Farm alone.
 
