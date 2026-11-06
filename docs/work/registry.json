@@ -2953,6 +2953,10 @@
     {
       "id": 149,
       "theme": "de-game-speeds"
+    },
+    {
+      "id": 150,
+      "theme": "de-map-size"
     }
   ]
 }
