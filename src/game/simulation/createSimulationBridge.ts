@@ -123,6 +123,7 @@ export function createSimulationBridge(
     selectOwnedUnitsByTypeInRect,
     filterSelectableUnitIds,
     selectUnitsByIds,
+    addUnitsToSelection, removeFromSelection,
     selectByRefs,
     selectUnitsInBox,
     clearSelection,
@@ -437,6 +438,7 @@ export function createSimulationBridge(
     selectOwnedUnitsByTypeInRect,
     filterSelectableUnitIds,
     selectUnitsByIds,
+    addUnitsToSelection, removeFromSelection,
     selectUnitsInBox,
     clearSelection,
     issueContextCommand(x: number, y: number, garrison?: boolean) {

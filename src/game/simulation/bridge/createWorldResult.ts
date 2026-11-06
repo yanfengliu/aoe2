@@ -81,6 +81,8 @@ export interface CreateWorldResult {
   ) => boolean;
   filterSelectableUnitIds: (ids: number[]) => number[];
   selectUnitsByIds: (ids: number[]) => boolean;
+  addUnitsToSelection: (ids: number[]) => boolean;
+  removeFromSelection: (ids: number[]) => boolean;
   selectUnitsInBox: (minX: number, minY: number, maxX: number, maxY: number) => boolean;
   // Spec 2 (annotation-ui v0.1.5) AO-2: selection refs (with generation)
   // and select-from-refs entry point — exposed so the AnnotationController

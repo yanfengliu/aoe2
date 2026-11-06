@@ -118,8 +118,8 @@ export class AoeVoxelGameView {
       // wrapper and left this one two-armed, so a selecting click re-derived the
       // iso pick from flat ground and hit a villager in front of the Town Centre
       // only when its idle animation had the body there (2026-09-11).
-      selectEntityAtWorldPosition: (x, y, isoX, isoY, pointerTimeMs) =>
-        this.selectEntityAtWorldPosition(x, y, isoX, isoY, pointerTimeMs),
+      selectEntityAtWorldPosition: (x, y, isoX, isoY, pointerTimeMs, modifiers) =>
+        this.selectEntityAtWorldPosition(x, y, isoX, isoY, pointerTimeMs, modifiers),
       issueContextCommandAtWorldPosition: (x, y, isoX, isoY, garrison, forceAttack, queueMove) =>
         this.issueContextCommandAtWorldPosition(x, y, isoX, isoY, garrison, forceAttack, queueMove),
       clearRecentSelectionClicks: () => this.selection.clearRecentSelectionClicks(),
@@ -296,10 +296,10 @@ export class AoeVoxelGameView {
     return this.camera.getScreenPointForCell(cellX, cellY);
   }
 
-  selectEntityAtWorldPosition(worldX: number, worldY: number, isoX?: number, isoY?: number, pointerTimeMs?: number): boolean {
+  selectEntityAtWorldPosition(worldX: number, worldY: number, isoX?: number, isoY?: number, pointerTimeMs?: number, modifiers?: { shift: boolean; ctrl: boolean }): boolean {
     const iso = this.hitTestPoint(worldX, worldY, isoX, isoY);
-    // Only the pointer passes a click time; without one, not half of a double-click.
-    return iso !== null && this.selection.selectEntityAtWorldPosition(worldX, worldY, iso.x, iso.y, pointerTimeMs);
+    // Only the pointer passes a click time (without one, not half of a double-click) and Shift and Ctrl (work 146).
+    return iso !== null && this.selection.selectEntityAtWorldPosition(worldX, worldY, iso.x, iso.y, pointerTimeMs, modifiers);
   }
 
   issueContextCommandAtWorldPosition(

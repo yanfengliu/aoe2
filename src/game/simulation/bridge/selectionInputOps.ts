@@ -17,6 +17,7 @@ import { clamp, type GameWorld } from './pureHelpers';
 import { createSelectionFinders, type SelectionFinders } from './selectionFinders';
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { isHiddenUnstartedFoundation } from './unstartedFoundations';
+import { SELECTION_LIMIT } from '../selectionLimit';
 
 export interface SelectableEntityCandidate {
   id: number;
@@ -245,7 +246,8 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
   function selectUnitIds(ids: number[]): boolean {
     selection.refs = ids
       .map((id) => getEntityRef(id))
-      .filter((ref): ref is EntityRef => ref !== null);
+      .filter((ref): ref is EntityRef => ref !== null)
+      .slice(0, SELECTION_LIMIT); // DE's cap (work 146): the first 60 listed
     selection.focusCell = null;
 
     if (selection.refs.length === 0) {
@@ -265,6 +267,7 @@ export function createSelectionInputOps(deps: SelectionInputOpsDeps): SelectionI
     const surviving: EntityRef[] = [];
     const seenIds = new Set<number>();
     for (const ref of refs) {
+      if (surviving.length === SELECTION_LIMIT) break; // DE's cap (work 146)
       const id = getCurrentEntityId(ref);
       if (id === null || seenIds.has(id)) continue;
       seenIds.add(id);

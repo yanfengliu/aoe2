@@ -51,6 +51,14 @@ export interface VoxelSelectionControllerDeps {
   };
 }
 
+/** The keys held at a selecting left click (work 146, spec §9.4). */
+export interface SelectionClickModifiers {
+  /** Shift adds to the selection ("Learn to play", Lesson 1). */
+  readonly shift: boolean;
+  /** Ctrl takes a selected unit out (forums.ageofempires.com t/74555). */
+  readonly ctrl: boolean;
+}
+
 export interface VoxelSelectionController {
   selectEntityAtWorldPosition(
     worldX: number,
@@ -73,6 +81,7 @@ export interface VoxelSelectionController {
      * input happens, so a busy page cannot stretch it.
      */
     pointerTimeMs?: number,
+    modifiers?: SelectionClickModifiers,
   ): boolean;
   issueContextCommandAtWorldPosition(
     worldX: number,
@@ -111,12 +120,17 @@ export function createVoxelSelectionController(
     isoX?: number,
     isoY?: number,
     pointerTimeMs?: number,
+    modifiers?: SelectionClickModifiers,
   ): boolean {
     if (!isActive()) {
       return false;
     }
 
     const targetEntities = entitiesAtWorldPosition(worldX, worldY, isoX, isoY);
+    if (modifiers?.ctrl || modifiers?.shift) {
+      const point = isoX === undefined || isoY === undefined ? worldToIso(worldX, worldY) : { x: isoX, y: isoY };
+      return modifierClick(targetEntities[0], point, pointerTimeMs, modifiers.ctrl);
+    }
     if (targetEntities.length === 0) {
       clearRecentSelectionClicks();
       getBridge().clearSelection();
@@ -217,6 +231,41 @@ export function createVoxelSelectionController(
     return true;
   }
 
+  // DE's modifier clicks (work 146, spec §9.4). Ctrl takes the unit on top out
+  // of the selection if it is in it (forums.ageofempires.com t/74555, 2020),
+  // and otherwise changes nothing (a DE player holding Ctrl, Steam 2019: "only
+  // the ones i already selected remain"); Ctrl wins over Shift. Shift adds what
+  // a box would take ("Learn to play", Lesson 1), selects from nothing as a
+  // plain click does, and otherwise changes nothing: on the ground, on a unit
+  // already selected, on anything a box cannot take. A modifier click never
+  // walks the stack; two quick Shift clicks at one place add the type on screen.
+  function modifierClick(
+    target: ProjectedEntityView | undefined,
+    point: { x: number; y: number },
+    pointerTimeMs: number | undefined,
+    ctrl: boolean,
+  ): boolean {
+    recentExactSelectionClick = null;
+    const bridge = getBridge();
+    const selectedIds = bridge.getSelectionState().selectedEntityIds;
+    if (ctrl) {
+      recentFriendlyUnitClick = null;
+      return target !== undefined && selectedIds.includes(target.id) && bridge.removeFromSelection([target.id]);
+    }
+    // The ground is never half of a double-click, as for a plain click (review round 0).
+    if (target === undefined) {
+      recentFriendlyUnitClick = null;
+      return false;
+    }
+    if (pointerTimeMs !== undefined && trySelectSameTypeOnDoubleClick(point.x, point.y, pointerTimeMs, true)) {
+      clearRecentSelectionClicks();
+      return true;
+    }
+    recentFriendlyUnitClick = pointerTimeMs === undefined ? null : friendlyUnitClick(target, point.x, point.y, pointerTimeMs);
+    if (selectedIds.length === 0) return bridge.selectEntityById(target.id);
+    return bridge.addUnitsToSelection([target.id]);
+  }
+
   function entitiesAtWorldPosition(
     worldX: number,
     worldY: number,
@@ -306,6 +355,8 @@ export function createVoxelSelectionController(
     isoX: number,
     isoY: number,
     pointerTimeMs: number,
+    /** Shift held: the type joins the selection rather than replacing it. */
+    add = false,
   ): boolean {
     const recentClick = recentFriendlyUnitClick;
     if (
@@ -325,7 +376,8 @@ export function createVoxelSelectionController(
     const onScreen = candidates
       .filter((entity) => isDrawnInView(drawn.get(entity.id) ?? [], view))
       .sort((left, right) => left.y - right.y || left.x - right.x || left.id - right.id);
-    return getBridge().selectUnitsByIds(onScreen.map((entity) => entity.id));
+    const ids = onScreen.map((entity) => entity.id);
+    return add ? getBridge().addUnitsToSelection(ids) : getBridge().selectUnitsByIds(ids);
   }
 
   // The first half of a double-click, if this entity can be one: one of the

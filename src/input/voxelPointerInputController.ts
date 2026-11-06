@@ -20,6 +20,7 @@ import type {
   VoxelCameraController,
   VoxelPointerState,
 } from './voxelCameraController';
+import type { SelectionClickModifiers } from './voxelSelectionController';
 
 export interface VoxelPointerInputControllerDeps {
   readonly canvas: HTMLCanvasElement;
@@ -33,6 +34,8 @@ export interface VoxelPointerInputControllerDeps {
     isoY: number,
     /** The pointerup's own `timeStamp`: when the player clicked, not when this ran. */
     pointerTimeMs: number,
+    /** Shift adds, Ctrl takes out (work 146): the keys held at the release. */
+    modifiers: SelectionClickModifiers,
   ) => boolean;
   // M6 control: attack-move arming state, owned by the app so the HUD and the
   // hotkey can both drive it. Optional so existing callers/tests are unaffected.
@@ -256,14 +259,24 @@ export function createVoxelPointerInputController(
     const completed = dragSelection;
     dragSelection = null;
     if (isDragSelectionActive(completed)) {
-      const didSelect = deps.getBridge().selectUnitsByIds(
-        previewEntities(completed).map((entity) => entity.id),
-      );
+      const boxed = previewEntities(completed).map((entity) => entity.id);
+      // DE's Shift+drag adds the box to the selection ("Learn to play",
+      // Lesson 1), and a Shift box over nothing keeps it (work 146). Ctrl has
+      // no box meaning with DE's Selection Modifier Hotkeys off, its default.
+      if (event.shiftKey) {
+        deps.getBridge().addUnitsToSelection(boxed);
+        deps.clearRecentSelectionClicks();
+        return;
+      }
+      const didSelect = deps.getBridge().selectUnitsByIds(boxed);
       deps.clearRecentSelectionClicks();
       if (!didSelect) deps.getBridge().clearSelection();
       return;
     }
-    deps.selectEntityAtWorldPosition(cell.x, cell.y, cell.isoX, cell.isoY, event.timeStamp);
+    deps.selectEntityAtWorldPosition(cell.x, cell.y, cell.isoX, cell.isoY, event.timeStamp, {
+      shift: event.shiftKey,
+      ctrl: event.ctrlKey,
+    });
   }
 
   function handleContextMenu(event: MouseEvent): void {

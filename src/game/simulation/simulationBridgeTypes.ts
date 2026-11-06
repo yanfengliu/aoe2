@@ -177,6 +177,13 @@ export interface SimulationBridge {
   ): boolean;
   filterSelectableUnitIds(ids: number[]): number[];
   selectUnitsByIds(ids: number[]): boolean;
+  /** DE's Shift (work 146): the player's own units and livestock among `ids`
+   *  join the selection, after it and up to the 60-unit cap; a selection a
+   *  box could not have made is replaced. True when any joined. */
+  addUnitsToSelection(ids: number[]): boolean;
+  /** DE's Ctrl+click (work 146): takes `ids` out of the selection. True when
+   *  any was selected. */
+  removeFromSelection(ids: number[]): boolean;
   selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number): boolean;
   clearSelection(): void;
   issueContextCommand(x: number, y: number, garrison?: boolean): boolean;

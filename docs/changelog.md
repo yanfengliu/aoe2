@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.272
+
+Selecting units with Shift and Ctrl works as in Definitive Edition (DE), and a selection holds at most DE's 60 units.
+
+- **Shift adds to the selection.** Shift+click adds a unit to what is selected, and Shift+drag adds every unit in the box; before, either replaced the selection. A Shift+click on a unit already selected, on the ground or on another player's unit leaves the selection as it is, and two quick Shift clicks on a unit add every unit of its type on screen.
+- **Ctrl+click takes a unit out.** Ctrl+click on a selected unit takes it out of the selection; on anything else it changes nothing. Before, Ctrl+click selected the unit alone.
+- **At most 60 units.** A box, Shift, a double-click, a control group or a select-all key selects at most 60 units, as in DE; a box over more keeps the first 60 row by row.
+
 ## 0.3.271
 
 The computer opponent builds up its Dark Age economy the way Definitive Edition's (DE's) own AI does, at every difficulty.

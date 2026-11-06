@@ -8,6 +8,7 @@ import {
 import type { UnitTaskState } from '../types';
 import { bootScenarioOrLoad } from './bootScenarioOrLoad';
 import { createControlGroupOps } from './controlGroupOps';
+import { createSelectionModifierOps } from './selectionModifierOps';
 import { createQueuedEntityOrderOps } from './queuedEntityOrderOps';
 import { createTownBellOps } from './townBellOps';
 import { registerBridgeSystems } from './registerBridgeSystems';
@@ -263,6 +264,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     clearSelection,
   } = unitCommandOps;
 
+  const selectionModifiers = createSelectionModifierOps(selectionInputOps); // Shift adds, Ctrl drops (work 146)
   const { assignControlGroup, appendControlGroupToSelection, ungroupSelection, recallControlGroup } = createControlGroupOps({
     accessor,
     getSelectedEntityRefs,
@@ -474,6 +476,8 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     ),
     filterSelectableUnitIds,
     selectUnitsByIds: (ids) => selectionMutation(() => selectUnitsByIds(ids)),
+    addUnitsToSelection: (ids) => selectionMutation(() => selectionModifiers.addUnitsToSelection(ids)),
+    removeFromSelection: (ids) => selectionMutation(() => selectionModifiers.removeFromSelection(ids)),
     selectByRefs: (refs) => selectionMutation(() => selectByRefs(refs)),
     selectUnitsInBox: (minX, minY, maxX, maxY) => selectionMutation(
       () => selectUnitsInBox(minX, minY, maxX, maxY),

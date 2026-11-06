@@ -284,6 +284,17 @@ export function makeReplayBridge(
       flushOutOfBandRenderChange();
       return selected;
     },
+    // Work 146: Shift and Ctrl select in a replay as in a match.
+    addUnitsToSelection(ids: number[]) {
+      const added = api.addUnitsToSelection(ids);
+      flushOutOfBandRenderChange();
+      return added;
+    },
+    removeFromSelection(ids: number[]) {
+      const removed = api.removeFromSelection(ids);
+      flushOutOfBandRenderChange();
+      return removed;
+    },
     selectUnitsInBox(minX: number, minY: number, maxX: number, maxY: number) {
       const selected = api.selectUnitsInBox(minX, minY, maxX, maxY);
       flushOutOfBandRenderChange();

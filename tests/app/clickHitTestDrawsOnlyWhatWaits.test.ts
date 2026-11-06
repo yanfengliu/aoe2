@@ -146,7 +146,8 @@ describe('a click hit-tests what is on screen, and draws only a snapshot that is
     view.entitiesAtWorldPosition(3.5, 4.5);
 
     expect(fakes.frame).not.toHaveBeenCalled();
-    expect(fakes.select).toHaveBeenCalledWith(3.5, 4.5, 10, 20, 1_000);
+    // The view passes the click's Shift and Ctrl on too (work 146); this call has none.
+    expect(fakes.select).toHaveBeenCalledWith(3.5, 4.5, 10, 20, 1_000, undefined);
     expect(fakes.command).toHaveBeenCalledTimes(1);
     expect(fakes.stack).toHaveBeenCalledTimes(1);
   });

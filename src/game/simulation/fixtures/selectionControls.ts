@@ -6,11 +6,12 @@ import {
 import { createGrassFixtureTerrain, gaiaSpawn, ownedSpawn } from './common';
 import { createBuildingCardKeysFixture } from './buildingCardKeys';
 import { createBuildingGoToKeysFixture } from './buildingGoToKeys';
+import { createSelectionCapFixture } from './selectionCap';
 
 /** Work 142's scenes by seed, which the scenario registry lists as one family.
  *  The registry calls this while it is itself being evaluated, which can be
  *  in the middle of an import cycle through `prototypeScenario` before
- *  `buildingCardKeys.ts` and `buildingGoToKeys.ts` have run, so it reads only
+ *  `buildingCardKeys.ts`, `buildingGoToKeys.ts` and `selectionCap.ts` have run, so it reads only
  *  literals and its own functions, and reaches the other modules when a
  *  scenario is built (`tests/simulation/selectionControlsScenarios.test.ts`). */
 export function selectionControlsScenarios(): ReadonlyArray<readonly [string, (seed: string) => PrototypeScenario]> {
@@ -18,6 +19,8 @@ export function selectionControlsScenarios(): ReadonlyArray<readonly [string, (s
     ['selection-controls-fixture', createSelectionControlsFixture],
     ['building-card-keys-fixture', (seed) => createBuildingCardKeysFixture(seed)],
     ['building-go-to-keys-fixture', (seed) => createBuildingGoToKeysFixture(seed)],
+    // Work 146: sixty-four Militia for DE's 60-unit selection cap.
+    ['selection-cap-fixture', (seed) => createSelectionCapFixture(seed)],
   ];
 }
 
