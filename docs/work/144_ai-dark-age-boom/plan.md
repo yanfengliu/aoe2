@@ -55,7 +55,7 @@ M2 (the coordinator, 2026-11-05: measure DE's Dark Age villager count and split 
 - [x] The gate changes 2-5 under the coordinator's decisions, each proven red; decision 5 dropped, its premise wrong, and the economy gate's total bar re-derived under the coordinator's option (a) of 2026-11-06 ("M2: the landing").
 - [x] Spec §13.2 with the corrected citations and the accepted costs; plan 106's four cards "(work 144)".
 - [x] The A/B on the final base and again on work 145's main (all 55 records identical), the live check, the three HUD and input specs repointed at a scripted raid (the coordinator's widened scope), verify with its receipt, review rounds 3 to 5, and the phase-1 handoff (2026-11-06).
-- [ ] The landing (phase 2), after the coordinator's "accepted, land it".
+- [x] The landing (phase 2), after the coordinator's "accepted, land it": 513f3172, v0.3.271, CI run 42191805397 green (Outcome).
 
 M3: the second Dark Age House rule (the brief's item 4), and whatever of the farm transition M2 does not land.
 
@@ -68,7 +68,7 @@ M3: the second Dark Age House rule (the brief's item 4), and whatever of the far
 - [x] M1: the phase-1 handoff and the coordinator's "accepted, land it"; landed as bd679a37 (Outcome).
 - [x] M2: DE's rules sourced, B1 and B2 measured, the coordinator's choice (Outcome).
 - [x] M2: the census trace ("M2: the census trace"), handed to the coordinator.
-- [ ] M2: the gates, review and landing ("M2 starting state", after the trace's decision).
+- [x] M2: the gates, review and landing ("M2 starting state", after the trace's decision); landed as 513f3172, v0.3.271 (Outcome).
 - [ ] M3.
 
 ## Outcome
@@ -362,9 +362,15 @@ The live lobby check (`tmp/m2/live.mjs` on PREVIEW_PORT 4322, this checkout's bu
 
 Not checked in phase 1: the other seeds and maps (bound above); the standard configuration; CI's own times, until the landing run; the Italians' stop in a match (no measured match plays them; the unit test does); a census case that kills an unfarmed, nearly empty farm (none exists).
 
+**M2 landed (2026-11-06) as v0.3.271.** One commit, 513f3172, on main d97d8629, squashing the branch's commits from 5f68a1dd to df9f041f, several of them work in progress and ungated. The landing gate ran with the gate lock held from the last look at origin/main through the push: `npm run verify` on df9f041f (the version bump on 677f21e1), vitest 5,409 passed and 3 skipped, Playwright 322 passed and 2 skipped, receipt OK on tree 052c1deb7bbf, which is 513f3172's tree. CI run 42191805397 passed all 10 jobs, and playtest-corpus run 42191805542 passed. Read from each job's log:
+- The unit shards took 11.8, 10.8 and 7.2 of 60 minutes on Ubuntu and 14.9, 18.1 and 12.8 on Windows, all under the 40-minute line; the browser shards took 13.8, 13.2, 10.5 and 9.6 of 45.
+- The hit census's all-AI case ran in shard 2: 83.8 s of its 300 on Ubuntu and 156.3 s on Windows, under the 200 s line.
+- `aiReachesCastleAge` ran in shard 1: 225.4 s of its 600 on Ubuntu and 259.5 s on Windows, under the 400 s line. The coverage census took 321.7 s and 387.0 s of its 1,800 there.
+- The primary checkout was fast-forwarded. The control worktrees `ai-dark-age-b4-1105` and `ai-dark-age-base-1105` were removed with their branches, and this lane's raw review runs in fleet's ignored `tmp/review-runs/aoe2-144-m2-r3` to `r5` were deleted, their reports kept in `reviews/`. The worktree's ignored `tmp/m2` (the A/B records, the probes and the mutation scripts) leaves with the worktree; this plan holds their numbers.
+
 ## Open items
 
-- M3, DE's second Dark Age House rule (buildings.per 1598-1609): not the M2 landing worker's; the coordinator assigns it.
-- Work 145 (the worker "shared-gathering", the two-gatherer cap per resource in the gather code this AI uses): whichever of 145 and 144 M2 lands second re-measures its A/B on the other's landing.
+- M3, DE's second Dark Age House rule (buildings.per 1598-1609), for the next lane: measured against main as of v0.3.271 with a new control worktree, since M2's A arm (main 41732763's game) was removed with M2.
+- Work 145 (villagers share a node as in DE) landed first, as v0.3.270, and M2 re-measured on it: all 55 records identical ("M2: the landing").
 - Decision 5 is dropped (2026-11-06): encoding DE's flush stop in the economy gate's "able" rested on a premise the trace disproved ("M2: the landing", gates).
 - Low priority (review round 3): `darkAgeFoodSituation` walks every building, resource and gatherer twice per Dark Age decision, once for the split before the rebalance and once in the building phase, though its header says once. Its cost is not measured.
