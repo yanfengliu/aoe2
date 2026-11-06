@@ -326,10 +326,11 @@ describe('a relic in a Monk\'s hands stands on no ground (work 128)', () => {
     relicPosition.y = CARRIED_MONK_CELL.y;
     const loaded = createSimulationBridge(MONK_CARRIED_RELIC_SEED, { savedGame: blob });
     expect(relicById(loaded, relic.id)).toMatchObject(CARRIED_MONK_CELL);
-    // The premise: on the relic's cell the Monk stands on blocked ground.
-    expect(loaded.selectUnitsByIds([monk.id])).toBe(true);
-    expect(loaded.issueMoveCommand(WALK_TARGET.x, WALK_TARGET.y)).toBe(true);
-    expect(loaded.consumeCommandRejection(), 'the staged save did not put the Monk on blocked ground').not.toBeNull();
+    // The premise: the relic lies under the Monk, on the cell it claims. Until
+    // work 145 this read a refused move order, because a unit on a cell a
+    // resource claims could not walk off it; since work 145 any unit can (spec
+    // §6.4, "Several villagers on one node"), so the premise is the shared cell.
+    expect(cellOf(unitById(loaded, monk.id)!), 'the staged save did not put the relic under the Monk').toEqual(CARRIED_MONK_CELL);
 
     pickUpWith(loaded, monk.id, relic.id);
     expect(walkTo(loaded, monk.id, WALK_TARGET, true), 'the Monk that picked up the relic under it never reached the cell it was sent to').toBe(true);

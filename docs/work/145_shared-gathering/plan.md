@@ -65,6 +65,7 @@ Outcome: villagers share a resource as DE's do. A player's order putting several
 
 ## Existing tests changed
 
+- `monkCarriedRelic.test.ts` (work 128), "picks up a relic it stands on in a save made before work 128, and walks off with it": its premise read a refused move order as proof the Monk stood on blocked ground, which is the trap this work removes, so it failed the gate on e4791912. The premise is now the shared cell (the relic under the Monk); the case's claims are unchanged. Spec §6.9's sentence on such a unit now says it walks off.
 - `movementPlanCandidateReach.test.ts`: its oracle (the pre-work-123 planner) takes the same open start cell as the planner, a blocked-start case is added, and its sample grew from 600 to 900 grids, because its floor of more than 50 rounds where every reachable search failed fell to 43 of 600 once a blocked start no longer ends a search. No assertion or floor changed.
 
 ## Live check (lobby defaults, Start Match, 1280x720, port 4323, `aoe2.audio.muted=1`; `tmp/repro/liveOpening.mts`)
@@ -81,10 +82,12 @@ Outcome: villagers share a resource as DE's do. A player's order putting several
 
 ## Reviews
 
+- Round 1 (`reviews/1_implementation.md`), Codex on e4791912: one medium finding, the staggered Farm case passing the opposite rule too, accepted and repaired (it asserts who farms what; red with a Farm reserved through the delivery). It confirmed R0-1's disposition against the spec, with the bound that the source is a 2019 player report.
 - Round 0 (`reviews/0_implementation.md`), Codex on a2c6789b: one medium finding, a Farm taken while its farmer delivers, rejected for the rule (DE's Farm is free then) with its regression test added; the worker found and repaired the same trap in the move-order search.
 
 ## Gates
 
+- e4791912: `npm run verify` failed its unit stage on `monkCarriedRelic.test.ts` (above); repaired in the next commit.
 - a2c6789b: `npm run verify` exit 0, `node scripts/verify-receipt.mjs check` OK on tree 6ba72558cf2a (vitest 5,388 passed and 3 skipped, Playwright 321 passed and 2 skipped).
 
 ## Visual

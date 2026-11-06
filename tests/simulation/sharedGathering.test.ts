@@ -195,13 +195,19 @@ describe('villagers share a node as in DE (work 145)', () => {
     expect(away, 'fixture premise: the farmer never went to deliver its load').toBe(true);
     order(bridge, [second!], f1);
     let mostOnF1 = 0;
+    // Who farms what, by name (review round 1: sorted targets also passed a
+    // Farm held for its farmer through the delivery, the rule this rejects).
+    let newcomerTookF1 = false;
+    let farmerTookF2 = false;
     for (let tick = 0; tick < 800; tick += 1) {
       bridge.step(100);
       mostOnF1 = Math.max(mostOnF1, workingOn(bridge, [first!, second!], f1));
+      newcomerTookF1 ||= workingOn(bridge, [second!], f1) === 1;
+      farmerTookF2 ||= workingOn(bridge, [first!], f2) === 1;
     }
     expect(mostOnF1, 'two farmers worked one Farm at once').toBe(1);
-    const targets = [first!, second!].map((id) => gathererOf(bridge, id).targetResourceId).sort();
-    expect(targets, 'both Farms are farmed, one villager each').toEqual([f1, f2].sort());
+    expect(newcomerTookF1, 'the villager sent to the Farm while its farmer delivered never farmed it').toBe(true);
+    expect(farmerTookF2, 'the farmer coming back to its taken Farm never took the free one').toBe(true);
   });
 
   it('a villager a sheep has walked onto obeys a move order', () => {
