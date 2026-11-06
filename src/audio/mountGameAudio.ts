@@ -57,8 +57,9 @@ export function mountGameAudio(
     return context;
   }
   // ensureContext runs before the controller exists on the first gesture
-  // path, so the mute read is indirected through a ref set below.
-  let controllerMutedRef: () => boolean = () => false;
+  // path, so the mute read is indirected through a ref set below. Until it
+  // is, the answer is the game's default: muted (owner, 2026-11-05).
+  let controllerMutedRef: () => boolean = () => true;
   // The first pointer or key gesture unlocks audio for the whole session.
   const unlock = (): void => {
     ensureContext();

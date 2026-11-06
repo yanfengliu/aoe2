@@ -94,7 +94,9 @@ function runMatch(speed: keyof typeof GAME_SPEEDS) {
       saidFor.push(hitTick);
       saidOnTick.push(state.tick);
     },
-    storage: { getItem: () => null, setItem: () => {} },
+    // Sound on, as the speaker toggle stores it: the game starts muted (the
+    // owner, 2026-11-05), and these cases count the horns beside the words.
+    storage: { getItem: (key) => (key === 'aoe2.audio.muted' ? '0' : null), setItem: () => {} },
   });
   function frame(frameMs = FRAME_MS) {
     state.wallMs += frameMs;

@@ -277,10 +277,15 @@ export function createGameAudioController(deps: GameAudioControllerDeps): GameAu
   };
 }
 
+// The game starts MUTED (the owner, 2026-11-05: "I dont want the game to be
+// making any sound", then "Yes, start muted"; spec §14.5). Only the player's
+// own choice turns the sound on: the speaker toggle stores '0' when they
+// unmute and '1' when they mute again. A missing value, any other value and a
+// storage that throws all mean muted. Until then a missing value meant sound.
 function readStoredMute(storage: Pick<Storage, 'getItem'>): boolean {
   try {
-    return storage.getItem(MUTED_KEY) === '1';
+    return storage.getItem(MUTED_KEY) !== '0';
   } catch {
-    return false;
+    return true;
   }
 }

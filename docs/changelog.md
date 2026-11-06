@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.269
+
+The game starts with sound off; turn it on with the sound button, and the game remembers.
+
+- **Sound is off until you turn it on**, for every player in every browser. The speaker button at the left of the screen, above the idle-villager button, turns it on, and the game keeps it on the next time you play in that browser. The same button turns it off again.
+- **The attack warning still shows with the sound off:** the words "You are under attack!" and the mark on the minimap.
+- A browser where the sound was turned off and back on in an earlier version keeps it on. Everywhere else, the game that used to start with sound now starts without it.
+
 ## 0.3.268
 
 Definitive Edition's (DE's) "go to" and "select all" building keys and its twenty control groups, from the default key profile in DE's own files.

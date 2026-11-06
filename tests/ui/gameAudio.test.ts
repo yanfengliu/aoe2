@@ -7,7 +7,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 
 import { createGameAudioController } from '../../src/audio/gameAudioController';
 import type { GameAudioCue } from '../../src/audio/gameAudioController';
-import { clearAttackWarning, getAttackWarning } from '../../src/ui/hud/attackWarning';
+import { ATTACK_WARNING_TEXT, clearAttackWarning, getAttackWarning } from '../../src/ui/hud/attackWarning';
 
 function mapStorage(map: Map<string, string>) {
   return {
@@ -50,8 +50,21 @@ interface Deps {
   selection: { id: number; role: string } | null;
 }
 
-function makeController(state: Deps) {
+// The game starts muted (the owner, 2026-11-05; "the sound starts off" below
+// holds that default). So every case about WHEN a cue sounds runs as a player
+// who has turned the sound on, with the '0' the speaker toggle stores: on a
+// muted controller a cue would never play, and a silence asserted there would
+// hold whatever the cue logic did.
+function soundOn(): Map<string, string> {
+  return new Map([['aoe2.audio.muted', '0']]);
+}
+
+function makeController(
+  state: Deps,
+  storage: Pick<Storage, 'getItem' | 'setItem'> = mapStorage(soundOn()),
+) {
   const played: GameAudioCue[] = [];
+  const said: string[] = [];
   const controller = createGameAudioController({
     humanPlayerId: 1,
     getCurrentAge: () => state.age,
@@ -63,10 +76,10 @@ function makeController(state: Deps) {
     getOrderAcks: () => state.orderAcks,
     getPrimarySelection: () => state.selection,
     playCue: (cue) => played.push(cue),
-    announce: () => {},
-    storage: mapStorage(new Map<string, string>()),
+    announce: (text) => said.push(text),
+    storage,
   });
-  return { controller, played, state };
+  return { controller, played, said, state };
 }
 
 describe('the attack horn', () => {
@@ -207,7 +220,8 @@ describe('a load', () => {
 
 describe('the mute switch', () => {
   it('silences every cue and persists the choice', () => {
-    const storage = new Map<string, string>();
+    // From sound on, so muting is a change; the default is muted.
+    const storage = soundOn();
     const played: GameAudioCue[] = [];
     const state: Deps = { attacks: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0, selection: null };
     const controller = createGameAudioController({
@@ -239,6 +253,88 @@ describe('the mute switch', () => {
     state.tick = 900;
     controller.poll();
     expect(played).toEqual(['town-under-attack']);
+  });
+});
+
+// The owner's decision of 2026-11-05 (spec §14.5): "I dont want the game to be
+// making any sound", then "Yes, start muted". The game starts muted for every
+// player unless that player has turned the sound on, which the speaker toggle
+// stores as '0'. Each case raises one of every cue the controller knows in one
+// poll, so a default that let any single cue through shows here.
+// BOUND: the controller's decision only; that the toggle starts off and keeps
+// the player's choice across a reload is tests/browser/audio-starts-muted.spec.ts.
+describe('the sound starts off', () => {
+  const EVERY_CUE: GameAudioCue[] = [
+    'town-under-attack', 'age-up', 'victory', 'research-complete',
+    'countdown-started', 'town-bell', 'order-ack', 'select-villager',
+  ];
+
+  function startWith(storage: Pick<Storage, 'getItem' | 'setItem'>) {
+    return makeController({ attacks: [], age: 'dark-age', outcome: null, tick: 0, researched: 0, countdownActive: false, bellRings: 0, orderAcks: 0, selection: null }, storage);
+  }
+
+  function raiseEveryCue(harness: ReturnType<typeof startWith>): void {
+    // The first poll takes the starting state, which is never news.
+    harness.controller.poll();
+    harness.state.attacks = [hit(1, 10, 10)];
+    harness.state.tick = 1;
+    harness.state.age = 'feudal-age';
+    harness.state.outcome = 'victory';
+    harness.state.researched = 1;
+    harness.state.countdownActive = true;
+    harness.state.bellRings = 1;
+    harness.state.orderAcks = 1;
+    harness.state.selection = { id: 5, role: 'villager' };
+    harness.controller.poll();
+  }
+
+  beforeEach(() => clearAttackWarning());
+
+  it('starts muted for a player who never chose, plays no cue, and still says and marks an attack', () => {
+    const stored = new Map<string, string>();
+    const harness = startWith(mapStorage(stored));
+    expect(harness.controller.isMuted()).toBe(true);
+    raiseEveryCue(harness);
+    expect(harness.played).toEqual([]);
+    // The words and the mark are outside the mute switch, so the default
+    // silences the horn and nothing a player reads.
+    expect(harness.said).toEqual([ATTACK_WARNING_TEXT]);
+    expect(getAttackWarning(1)).toMatchObject({ x: 10, y: 10 });
+    // Starting muted is the default, not a choice: nothing is written.
+    expect(stored.has('aoe2.audio.muted')).toBe(false);
+  });
+
+  it("plays every cue once the player has turned the sound on ('0')", () => {
+    const harness = startWith(mapStorage(new Map([['aoe2.audio.muted', '0']])));
+    expect(harness.controller.isMuted()).toBe(false);
+    raiseEveryCue(harness);
+    expect(harness.played).toEqual(EVERY_CUE);
+  });
+
+  for (const stored of ['1', '', 'true']) {
+    it(`stays muted on a stored ${JSON.stringify(stored)}: only the toggle's own '0' turns the sound on`, () => {
+      const harness = startWith(mapStorage(new Map([['aoe2.audio.muted', stored]])));
+      expect(harness.controller.isMuted()).toBe(true);
+      raiseEveryCue(harness);
+      expect(harness.played).toEqual([]);
+    });
+  }
+
+  it('starts muted when the storage cannot be read, and the toggle still turns the sound on', () => {
+    const harness = startWith({
+      getItem: () => { throw new Error('storage disabled'); },
+      setItem: () => { throw new Error('storage disabled'); },
+    });
+    expect(harness.controller.isMuted()).toBe(true);
+    raiseEveryCue(harness);
+    expect(harness.played).toEqual([]);
+    // A storage that throws never breaks the game: the choice holds for the
+    // session and is just not remembered.
+    harness.controller.setMuted(false);
+    expect(harness.controller.isMuted()).toBe(false);
+    harness.state.age = 'castle-age';
+    harness.controller.poll();
+    expect(harness.played).toEqual(['age-up']);
   });
 });
 
