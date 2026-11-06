@@ -34,7 +34,7 @@ M1:
 - [x] Its noise floor: A against A on the castle configuration, five maps and five seeds each, in two checkouts of one game, reports no difference on any column; the same tree on seeds 5-9 against seeds 0-4 shows how far a map's medians differ by chance (Outcome).
 - [x] `selfplay-audit.mjs` prints its table byte for byte as before the split.
 - [x] Tests on the contract, each red with its defect put back (41 mutants); listed in `docs/debugging/instruments.md`; `npm run verify` and its receipt; independent review (rounds 0 to 2).
-- [ ] The coordinator's acceptance.
+- [x] The coordinator's acceptance (2026-11-05: "accepted, land it", no version and no changelog entry).
 
 M2 and M3: set when M1 lands, from DE's scripts (the brief's items 2 to 4).
 
@@ -44,7 +44,7 @@ M2 and M3: set when M1 lands, from DE's scripts (the brief's items 2 to 4).
 - [x] M1: the shared match module, the A/B runner and its report, the audit on the module, tests and red proofs.
 - [x] M1: the noise floor runs (Outcome).
 - [x] M1: review rounds 0 to 2 and their repairs, and the gate (Outcome).
-- [ ] M1: the phase-1 handoff and the coordinator's "accepted, land it".
+- [x] M1: the phase-1 handoff and the coordinator's "accepted, land it"; landed as bd679a37 (Outcome).
 - [ ] M2.
 - [ ] M3.
 
@@ -83,5 +83,7 @@ How to read an A/B with it. The Feudal click and the Feudal Age move by 0:00 to 
 Found by the noise floor, for M2 and M3: on `arena#2` and `arena#4` owner 2 clicks Feudal only at 60:35 and 58:33 (ticks 36,350 and 35,125), holding 10 villagers at 5, 10, 15 and 20 minutes, and lays its first farm after the age arrives (38,000 and 36,750): `targetFarmCount` is 0 in the Dark Age, so a seat whose natural food runs out has no food source left (the farm card, M3).
 
 Gates. b59fb08b failed its unit stage on one test, the run-directly census, which did not yet name the new runner (repaired in 1f11ad9b); 1f11ad9b and dc45e608 each passed: vitest 5,373 passed and 3 skipped, Playwright 320 passed, receipts OK on trees f632895a988a and cb0a3ec3fee8. c07c8c1d, the code handed off: vitest 5,376 passed and 3 skipped, Playwright 320 passed and 2 skipped, receipt OK on tree 69feaec4066d. In that suite `tests/scripts/selfplayAb.test.ts` took 6.1 s, its slowest test 3.1 s of its 30 s (10%), and `tests/scripts/runDirectly.test.ts` 0.8 s.
+
+**M1 landed (2026-11-05), no version.** One commit, bd679a37, on main 41732763, squashing b59fb08b, 1f11ad9b, dc45e608, c07c8c1d and 541923e8 (the review records name the first three): the first was red on its own gate. Main had not moved, so the phase-1 receipt (c07c8c1d, tree 69feaec4066d) held with docs-only drift. CI run 42141841701 passed all 10 jobs and playtest-corpus run 42141841621 passed. Each job's time, read from its log's headroom line: the unit shards on Ubuntu 13.2, 11.8 and 9.3 of 60 minutes and on Windows 10.1, 10.0 and 13.3; the browser shards 15.1, 12.3, 10.4 and 12.9 of 45. `selfplayAb.test.ts` ran in shard 2, its slowest test 2.4 s of 20 s on Ubuntu and 2.9 s of 30 s on Windows. The primary checkout was fast-forwarded; the raw review runs in fleet's ignored `tmp/review-runs/aoe2-144-m1-r1` to `r3` were deleted, their reports kept in `reviews/`. The control worktree `ai-dark-age-base-1105` (main 41732763) stays as M2's before arm.
 
 Not checked in M1: the live lobby match through the real Start Match, since M1 changes no game file (it is M2's, before and after); the coverage census, which no file M1 touches can move; seeds of the `standard` and `lab` configurations.
