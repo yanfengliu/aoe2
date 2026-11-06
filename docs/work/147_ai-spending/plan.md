@@ -56,7 +56,7 @@ M1:
 
 M2 (a fresh worker, from "M2 starting state" in the Outcome):
 - [x] P1 implemented, measured against the A arm re-recorded on the current main, both configurations and the idle boot match, and kept only if it loses no building, Age or seat's economy (kept under the coordinator's count reading, 2026-11-06: Outcome, M2).
-- [ ] The census moves named both ways; the self-play gates re-recorded; the live lobby check; `npm run verify` and its receipt; review; spec §13.2's paragraph marked implemented.
+- [x] The census moves named both ways; the self-play gates re-recorded; the live lobby check; `npm run verify` and its receipt; review; spec §13.2's paragraph marked implemented.
 
 M3 (a fresh worker, from "M3 starting state" in the Outcome):
 - [ ] M3a: DE's `maxfarms` with its farm-build conditions other than the camp's, measured on both configurations and the idle boot match, adopted only where neither configuration loses an Age (the drop rule above).
@@ -70,7 +70,8 @@ M3 (a fresh worker, from "M3 starting state" in the Outcome):
 - [x] M1: the proposal, review and the phase-1 handoff.
 - [x] M1: the coordinator's decision and the landing (2026-11-06).
 - [x] M2 (a fresh worker): P1, its tests, the farm and wood columns of `selfplay-ab`, the A/B on both configurations and the idle boot match, the census, the live check (worktree `ai-spending-m2-1106`; control worktrees `ai-spending-m2-a` on main e4ca37c1 and `ai-spending-m2-b` on the branch's c25d6a6b).
-- [ ] M3.
+- [x] M2 landed as v0.3.274 (5ac4ac4c).
+- [ ] M3 (a fresh worker; M3a and M3b above).
 
 ## Outcome
 
@@ -267,6 +268,12 @@ Named costs, each with its traced cause:
 - Farms run out unpaid did not fall (castle 844 to 813, lab 991 to 1,143): more farms stand, and a farm that empties is reseeded only if the stock holds its 60 wood at that moment. That is M3's lever (below).
 
 Not checked in M2: seeds beyond 0-4 for the B arm (the noise floor is M1's, on seeds 5-9, valid because the A arm plays exactly as M1's); the standard configuration; civilizations other than the Britons and the Franks, whose own buffers are set from the scripts but no measured match plays them; DE's enemy half step from the score; CI's times.
+
+**M2 landed (2026-11-06) as v0.3.274.** The coordinator accepted it ("accepted, land it"), with the drop rule above. One commit, 5ac4ac4c, on main 66851aba (v0.3.273), squashing the branch's commits c25d6a6b to ede66bec and the merge of origin/main with the version bump (06df3e22). The landing gate ran with the gate lock held from the merge of origin/main through the push: `npm run verify` on 06df3e22, vitest 5,458 passed and 3 skipped, Playwright 337 passed and 2 skipped, receipt OK on tree ed8c88d88f30, which is 5ac4ac4c's tree. CI run 42258128083 passed all 10 jobs, and playtest-corpus run 42258127900 passed. Read from each job's log:
+- The unit shards took 13.6, 12.9 and 8.2 of 60 minutes on Ubuntu and 14.9, 13.6 and 8.8 on Windows, all under the 40-minute line.
+- The hit census's all-AI case ran in shard 3: 95.6 s of its 300 on Ubuntu and 84.2 s on Windows, under the 200 s line.
+- `aiReachesCastleAge` ran in shard 1: 236.1 s of its 600 on Ubuntu and 251.0 s on Windows, under the 400 s line. The coverage census took 365.4 s and 401.3 s of its 1,800 there, under the 1,200 s line.
+- The primary checkout was fast-forwarded to 5ac4ac4c.
 
 **M3 starting state (2026-11-06, for a fresh worker; M2's worker handed over near the end of its context).**
 - M3a, DE's farm count with its conditions. `maxfarms` is the villagers the split puts on food less those on sheep, forage, hunt and fish (init.per 1660-1671). Its farm-build conditions other than the camp's (Approach, item 9, and plan 106's card "DE's farm model, whole"): `farmmb-cost` per civilization (215 for the Teutons, 209 for the Malians, 235 for the rest; plan 147 cites customConstants.per 6438-6463 and plan 106 const.per 4265-4293 for it: read both before coding); the `dfeudal` case (DE's Dark Age farm rule skips while the Feudal research is pending, init.per 4005-4010, and farms then need `flushprep-cost`, 460, buildings.per 4378-4401); no more than 8 farms until Horse Collar (4357-4363); the skips at 2 or 3 idle farms (4295, 4326); the Castle research's 610-785 spare wood, which a seat under 8 farms passes without (4772-4782). The condition left out is the wood drop site within 5 tiles of the wood, or a camp's wood beside the farm's (4239, 4253-4254), which waits on DE's Lumber Camp rule and its safe gather route (plan 106's M5 cards). Work 144 M2 measured the count alone and the castle configuration lost Ages, and measured the seventh Dark Age farm and dropped it (Castles 35 to 31). When M3a adopts `maxfarms`, the flush buffers' farm target (`aiFlushBufferPhase.ts`, which reads `targetFarmCount` today) becomes it, as spec §13.2 says.
