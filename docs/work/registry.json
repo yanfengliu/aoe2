@@ -2933,6 +2933,10 @@
     {
       "id": 144,
       "theme": "ai-dark-age-boom"
+    },
+    {
+      "id": 145,
+      "theme": "shared-gathering"
     }
   ]
 }

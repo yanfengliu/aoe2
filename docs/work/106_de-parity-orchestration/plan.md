@@ -127,6 +127,9 @@ From the coordinator's play session of 2026-11-04 (v0.3.258, the lobby's default
 - Lobby: computer seats always play the same civilization, seat 2 the Franks (`pureHelpers.ts` `defaultCivilizationName`); check what DE's lobby gives a computer seat by default.
 - Difficulty: dropped on 2026-11-04 by owner decision. Asked whether Standard should copy DE's deliberately weak Standard, the owner answered "Keep current AI". So the three levels keep this game's own behaviour, no level is mapped to DE's, and work 141 M2b is dropped (spec §13.1). DE's six-level ladder is not adopted.
 
+From the coordinator's play session of 2026-11-05 (v0.3.268, the lobby's defaults at 1280x720, real mouse and keyboard). Working as DE: H, Q at the Town Center, Q then Q for a House, `.` for the next idle villager, Ctrl+1 and 1 for a control group, a right-click on a sheep drawn behind the Town Center, the Town Center's 3/5 armor, and the villager card without stance or formation buttons.
+- Gathering: every resource takes at most two gatherers (`MAX_GATHERERS_PER_RESOURCE = 2`, `toResourceStep.ts`, the campaign-4 fix for villagers jamming on one tree). A third villager ordered onto a sheep two others are eating goes idle, ordered alone or in a group, and does not carry on to the other sheep beside it. DE's standard opening puts six or more villagers on one sheep under the Town Center. Scheduled as work 145 on 2026-11-05.
+
 M2, combat depth:
 - Trebuchet and Cannon Galleon accuracy from DE effect data, with the Hun trebuchet accuracy and the Saracen Transport Ship capacity on §11.11's open list; re-source the Transport Ship and the Careening and Dry Dock capacity (work 120 M3).
 - Capped Ram and Siege Ram melee armor (work 109): `unitArmorTables.ts` gives both -3, where the pinned dataset gives -2 and -1; the CSV's ram-class armor of +1 and +2 is a separate field. Source the rule from DE before changing either. It was outside work 109's scope.
