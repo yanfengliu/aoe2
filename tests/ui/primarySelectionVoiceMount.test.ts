@@ -31,6 +31,9 @@ beforeEach(() => {
   vi.stubGlobal('cancelAnimationFrame', () => { frames = []; });
   vi.stubGlobal('AudioContext', FakeAudioContext);
   window.localStorage.clear();
+  // Sound on, as the speaker toggle stores it: the game starts muted (the
+  // owner, 2026-11-05), and this case reads the cue that plays.
+  window.localStorage.setItem('aoe2.audio.muted', '0');
   vi.mocked(playProceduralCue).mockClear();
 });
 
