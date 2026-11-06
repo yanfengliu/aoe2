@@ -127,6 +127,7 @@ export function emptySelectionState(placementMode: BuildableBuildingType | null)
     selectedCount: 0,
     selectedKind: null,
     selectedEntityType: null,
+    selectedEntityTypes: [],
     owner: null,
     health: null,
     attack: null,

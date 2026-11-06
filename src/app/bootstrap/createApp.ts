@@ -333,6 +333,7 @@ export async function createApp(): Promise<AoeVoxelGameView> {
     issueContextCommand: (cellX, cellY) => bridgeRef().issueContextCommand(cellX, cellY),
     getSelectedEntityRefs: () => bridgeRef().getSelectedEntityRefs(),
     select: (refs) => { bridgeRef().select(refs); },
+    getEntityHealth: (id) => bridgeRef().getEntityHealth(id),
     issueAction: (actionType) => bridge.issueAction(actionType),
     setSelectionStance: (stance) => bridge.setSelectionStance(stance),
     setSelectionFormation: (formation: import('../../game/simulation/unitFormation').UnitFormation) =>

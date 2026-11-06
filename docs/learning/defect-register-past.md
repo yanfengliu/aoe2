@@ -204,6 +204,14 @@ The second 2026-09-26 rollover, of "Three parts of the verification plumbing sai
 
 **The 2026-11-06 work 144 M2 rollover moved the closed 2026-10-17 rally-onto-another-player's-Farm entry verbatim.** The new closed entry on the three HUD and input browser specs that waited for the computer's own Dark Age raid took the active register to thirteen closed entries, and this was the oldest closed one the classifier marked MOVE.
 
+**The 2026-11-06 work 146 M2 rollover moved the closed 2026-10-17 foundation-clearing entry verbatim.** The new closed entry on the click held on the selection panel while it redrew took the active register to thirteen closed entries, and this was the oldest closed one the classifier marked MOVE. It has no "above" or "below" of its own, and no retained entry points at it by position or by name.
+
+## 2026-10-17 — Foundation clearing overlapped destinations or waited despite a valid exit arrangement (independent integration review IR1 and IR3, FIXED and gated)
+
+The planner tested each destination against unchanged occupancy. A later animal claim could block an earlier relocated unit, and two animals could select one cell. footprintClearing now reserves every provisional destination before moving anyone, shares only actual remaining unit slots, and keeps animal destinations exclusive. A failed plan moves nobody. foundationStartAnimals.test.ts covers sole exits, separate exits, existing occupants and sixteen-slot capacity; restoring the original planner makes six of its 33 cases red. These are mechanism tests on a small synthetic world, not page-control evidence.
+
+Review IR3 then found a valid batch refused forever: the first unit took an empty exit needed by a sheep while it could share a different crowded exit. Units also have owner-specific gate alternatives. The repair keeps a valid original plan, but on failure reserves exclusive animal cells first and uses bounded augmenting assignment for remaining unit capacity. Two new real-occupancy cases fail before repair and all 35 pass afterward; removing reassignment makes the gate-capacity case fail. Integrated foundation/refund/relic-spill checks pass 47 cases. Naval Dock terrain is not newly exercised by these two cases.
+
 ## 2026-10-17 — A villager rallied onto another player's Farm or deep-water fish was assigned an illegal gather task (independent integration review IR2, FIXED and gated)
 
 Exact-node rally assignment bypassed the existing resource eligibility and ownership filter. Production now checks the same gather capability, harvest ownership and shore-fish domain rules before preserving an exact target; an invalid gather rally falls back to movement. rallyGatherEligibility.test.ts has enemy/allied Farms and deep fish red before repair, with own Farm, tree and shore fish controls. Adjacent production, rally and Dark Age tests pass; the complete integrated gate remains the acceptance boundary.

@@ -171,8 +171,12 @@ export function createTooltipController(
   let pointerPressedKey: string | null = null;
 
   function tooltipHostKey(host: Element): string {
+    // A group panel icon is its unit (work 146 M2): icons of one type share
+    // their tooltip's text, and are each a control of their own.
+    const member = host.getAttribute('data-selection-member');
     return host.getAttribute('data-command')
       ?? host.getAttribute('data-build-page')
+      ?? (member === null ? null : `selection-member:${member}`)
       ?? host.getAttribute('data-tooltip')
       ?? '';
   }

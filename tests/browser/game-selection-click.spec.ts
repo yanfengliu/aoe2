@@ -425,8 +425,9 @@ test.describe('browser gameplay smoke tests - selection: click', () => {
     await page.mouse.up({ button: 'left' });
 
     await expect(page.locator('[data-selection-name]')).toHaveText(`${renderedVillagers.length} Villagers Selected`);
-    await expect(page.locator('[data-selection-unit-icon="villager"]')).toHaveText('V');
-    await expect(page.locator('[data-selection-unit-count="villager"]')).toHaveText('x3');
+    // DE's group panel: one icon per villager (work 146 M2), where the panel
+    // drew one chip with a "V" badge and an "x3" count.
+    await expect(page.locator('[data-selection-member-type="villager"]')).toHaveCount(3);
 
     const selectedSnapshot = await game.getSnapshot(page);
     expect(selectedSnapshot.selectionState.selectedCount).toBe(renderedVillagers.length);

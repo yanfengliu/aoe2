@@ -66,6 +66,14 @@ import {
 } from './selectionPanel/buttons';
 import { commandReasons, renderCommandGroup } from './selectionPanel/commandGroup';
 import { cardBuildingTypeOf, inBuildingCardSlotOrder } from './buildingCardKeys';
+import {
+  groupPanelGesture,
+  refreshGroupPanelHealth,
+  selectionAfterGroupPanelClick,
+  selectionGroupMembers,
+  type GroupMember,
+} from './selectionPanel/groupPanel';
+import { trackPanelPress } from './selectionPanel/pressHold';
 
 export interface SelectionPanelDeps {
   getEconomyState(): EconomyState;
@@ -82,10 +90,19 @@ export interface SelectionPanelDeps {
   beginBuildingPlacement(buildingType: BuildableBuildingType): boolean;
   /** Puts an armed placement away again, leaving the builders selected. */
   cancelBuildingPlacement(): boolean;
+  /** A unit's hit points now, for its icon's bar in the group panel. */
+  getEntityHealth(id: number): { currentHp: number; maxHp: number } | null;
+  /** Keeps exactly these of the selected units selected, in the selection's
+   *  order: the group panel's clicks (work 146 M2). */
+  keepSelected(ids: readonly number[]): void;
 }
 
 export interface SelectionPanelHandle {
-  update(selectionState: SelectionState, playerResources: PlayerResources): void;
+  /** One HUD frame. `force` draws the selection now even under a press: a key
+   *  that acts on the card must find the card of the selection now (work 142),
+   *  whatever the mouse is doing (review round 1 of work 146 M2). */
+  update(selectionState: SelectionState, playerResources: PlayerResources, options?: { force?: boolean }): void;
+  destroy(): void;
 }
 
 // Renders the left-side selection panel: icons, detail rows, production
@@ -98,10 +115,30 @@ export function createSelectionPanel(
   deps: SelectionPanelDeps,
 ): SelectionPanelHandle {
   if (!selectionPanel) {
-    return { update: () => {} };
+    return { update: () => {}, destroy: () => {} };
   }
 
   let lastSelectionSignature = '';
+  // What is selected, its page and its placement: a change of these is drawn
+  // even under a press (`pressHold.ts`), since the card it pressed is gone.
+  let lastStructureKey = '';
+  const press = trackPanelPress(selectionPanel);
+  // The group panel's members as last drawn, in the selection's order, which
+  // its clicks act on (work 146 M2).
+  let lastMembers: GroupMember[] = [];
+  const health = (id: number) => deps.getEntityHealth(id);
+  // One listener on the panel itself, which outlives every redraw: an icon's
+  // click reaches it even when the HUD's capture listener has just redrawn the
+  // panel for the selection now (`commandCardHotkeys.ts`).
+  const onGroupClick = (event: MouseEvent): void => {
+    const icon = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-selection-member]') : null;
+    if (!icon) return;
+    const next = selectionAfterGroupPanelClick(lastMembers, Number(icon.dataset.selectionMember), groupPanelGesture(event));
+    const current = lastMembers.map((member) => member.id);
+    if (next.length === current.length && next.every((id, index) => id === current[index])) return;
+    deps.keepSelected(next);
+  };
+  selectionPanel.addEventListener('click', onGroupClick);
   // Which of DE's two build pages the player last chose. UI state, so it lives
   // in the closure rather than in the simulation's selection state — but it is
   // part of the render signature, because a page change has to redraw a
@@ -114,7 +151,11 @@ export function createSelectionPanel(
   let lastSelectionState: SelectionState | null = null;
   let lastPlayerResources: PlayerResources | null = null;
 
-  function update(selectionState: SelectionState, playerResources: PlayerResources): void {
+  function update(
+    selectionState: SelectionState,
+    playerResources: PlayerResources,
+    options: { force?: boolean } = {},
+  ): void {
     const el = selectionPanel;
     if (!el) {
       return;
@@ -148,10 +189,19 @@ export function createSelectionPanel(
         : null,
       activeBuildPage, chosenBuildPage, // the chosen flag is drawn too (work 142's keys read it)
     ]);
-    if (signature === lastSelectionSignature) {
+    const structureKey = JSON.stringify([
+      selectionKey, selectionState.placementMode, activeBuildPage, chosenBuildPage,
+    ]);
+    // The group panel's bars follow the hit points on every frame, in place;
+    // hit points are not in the signature, so a change of hit points alone
+    // redraws nothing.
+    if (signature === lastSelectionSignature
+      || (press.held && !options.force && structureKey === lastStructureKey)) {
+      refreshGroupPanelHealth(el, health);
       return;
     }
     lastSelectionSignature = signature;
+    lastStructureKey = structureKey;
 
     const focusedElement = el.contains(document.activeElement)
       && document.activeElement instanceof HTMLElement
@@ -159,9 +209,12 @@ export function createSelectionPanel(
       : null;
     const focusedCommand = focusedElement?.dataset.command ?? null;
     const focusedBuildPage = focusedElement?.dataset.buildPage ?? null;
+    const focusedMember = focusedElement?.dataset.selectionMember ?? null;
 
     const economyState = deps.getEconomyState();
-    const selectionIcons = renderSelectionIcons(selectionState, economyState);
+    const selectionIcons = renderSelectionIcons(selectionState, economyState, health);
+    const isGroup = selectionState.selectedEntityIds.length > 1;
+    lastMembers = isGroup ? selectionGroupMembers(selectionState) : [];
     const selectionDetails = renderSelectionDetails(selectionState);
 
     // The production queue is drawn AFTER the command deck (see the template
@@ -293,10 +346,10 @@ export function createSelectionPanel(
     // it gets the rest of the bar. Grouping these three was what let the build
     // palette fit on screen at all once the panel became a bottom bar.
     el.innerHTML = `
-      <div class="hud-selection-summary">
+      <div class="hud-selection-summary${isGroup ? ' hud-selection-summary--group' : ''}">
         <div class="hud-selection-heading">
           <div class="hud-label">Selection</div>
-          <div class="hud-selection-name" data-selection-name>${formatSelectionName(selectionState)}</div>
+          <div class="hud-selection-name" data-selection-name${isGroup ? ` data-tooltip="${formatSelectionName(selectionState)}"` : ''}>${formatSelectionName(selectionState)}</div>
           ${renderSelectionActivity(selectionState)}
         </div>
         ${selectionIcons}
@@ -419,8 +472,20 @@ export function createSelectionPanel(
       // to survive it or a Tab-driven player is thrown back to the top.
       el.querySelector<HTMLButtonElement>(`button[data-build-page="${focusedBuildPage}"]`)
         ?.focus({ preventScroll: true });
+    } else if (focusedMember) {
+      // A group panel icon keeps the focus by its unit across a redraw, while
+      // the unit is still selected (review round 1).
+      [...el.querySelectorAll<HTMLButtonElement>('[data-selection-member]')]
+        .find((icon) => icon.dataset.selectionMember === focusedMember)
+        ?.focus({ preventScroll: true });
     }
   }
 
-  return { update };
+  return {
+    update,
+    destroy() {
+      press.dispose();
+      selectionPanel.removeEventListener('click', onGroupClick);
+    },
+  };
 }

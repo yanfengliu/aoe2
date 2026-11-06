@@ -2,6 +2,14 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.273
+
+The group panel works as in Definitive Edition (DE).
+
+- **One icon per unit, with its hit points.** A selection of several shows each unit as its own icon with its hit-point bar, sorted by type, all 60 of a full selection at once; before, the panel showed one chip per type with a count and no hit points.
+- **The icons answer DE's clicks.** A click on an icon selects only that unit, Ctrl+click takes it out, Shift+click keeps every unit of its type and Ctrl+Shift+click takes every unit of its type out; each icon's tooltip says so in DE's words.
+- **A click on the command card lands while the card redraws.** A click held on a button while the panel redrew, such as Train Villager while a villager trains, did nothing unless the button was pressed and released inside one frame; it now lands.
+
 ## 0.3.272
 
 Selecting units with Shift and Ctrl works as in Definitive Edition (DE), and a selection holds at most DE's 60 units.

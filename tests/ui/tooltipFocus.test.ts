@@ -286,4 +286,30 @@ describe('HUD tooltip keyboard focus', () => {
     observer.disconnect();
     handle.destroy();
   });
+
+  // Work 146 M2: the group panel's icons of one type share their tooltip's
+  // text, and each is a control of its own (review round 1).
+  it('tells two group panel icons of one type apart, so pressing one leaves the other its keyboard tooltip', () => {
+    const root = document.createElement('div');
+    const tooltip = document.createElement('div');
+    root.innerHTML = '<button data-selection-member="11" data-tooltip="Click to select only this Villager.">a</button>'
+      + '<button data-selection-member="12" data-tooltip="Click to select only this Villager.">b</button>';
+    root.append(tooltip);
+    document.body.append(root);
+    const handle = createTooltipController(root, tooltip);
+    const [first, second] = [...root.querySelectorAll('button')];
+
+    first!.dispatchEvent(new MouseEvent('pointerover', { bubbles: true }));
+    first!.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    first!.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    first!.dispatchEvent(new MouseEvent('pointerout', { bubbles: true, relatedTarget: root }));
+    expect(tooltip.dataset.hudTooltipActive).toBe('false');
+
+    // Tab to the other villager's icon: another control, so its tooltip shows.
+    first!.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: second }));
+    second!.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    expect(tooltip.dataset.hudTooltipActive).toBe('true');
+
+    handle.destroy();
+  });
 });

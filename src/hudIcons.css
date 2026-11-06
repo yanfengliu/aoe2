@@ -118,14 +118,8 @@
   );
 }
 
-/* Compact multi-select chip: the chip is a centered grid (badge row +
-   count row). The glyph becomes the dominant top row; keep it a touch
-   smaller than the big-chip glyph so several fit the wrapping grid, and
-   let the two-letter badge sit just below as a small code label. */
-.hud-selection-unit-chip--compact .hud-selection-unit-glyph {
-  width: 30px;
-  height: 30px;
-}
+/* A group's icons size the glyph to their own tile (hudCommandPanel.css,
+   work 146 M2); the per-type compact chip it sized here is gone. */
 
 /* v0.3.8: dedicated icon-only game-menu actions. Six match actions form a
    compact scan grid; the Settings action keeps its live state visible. */

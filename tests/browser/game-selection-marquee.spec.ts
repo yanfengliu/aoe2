@@ -139,9 +139,11 @@ test.describe('browser gameplay smoke tests - selection: marquee + activity', ()
     await page.mouse.up({ button: 'left' });
 
     await expect(page.locator('[data-selection-name]')).toHaveText('3 Units Selected');
-    await expect(page.locator('[data-selection-unit-icon="villager"]')).toHaveText('V');
-    await expect(page.locator('[data-selection-unit-icon="militia"]')).toHaveText('M');
-    await expect(page.locator('[data-selection-unit-icon="scout"]')).toHaveText('SC');
+    // DE's group panel: one icon per unit (work 146 M2), where the panel drew
+    // one chip per type with its two-letter badge (V, M, SC).
+    await expect(page.locator('[data-selection-member-type="villager"]')).toHaveCount(1);
+    await expect(page.locator('[data-selection-member-type="militia"]')).toHaveCount(1);
+    await expect(page.locator('[data-selection-member-type="scout"]')).toHaveCount(1);
 
     const selectedSnapshot = await game.getSnapshot(page);
     expect(selectedSnapshot.selectionState.selectedCount).toBe(3);

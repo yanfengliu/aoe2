@@ -10,6 +10,7 @@ function selection(overrides: Partial<SelectionState>): SelectionState {
     selectedCount: 1,
     selectedKind: 'unit',
     selectedEntityType: 'villager',
+    selectedEntityTypes: ['villager'],
     owner: 1,
     health: null,
     attack: null,

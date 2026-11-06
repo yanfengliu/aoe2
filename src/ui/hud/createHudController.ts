@@ -79,6 +79,8 @@ interface HudBridge {
   // selection round-trip in cancelBuildingPlacement.ts.
   getSelectedEntityRefs: SimulationBridge['getSelectedEntityRefs'];
   select: SimulationBridge['select'];
+  // Work 146 M2: each icon of the group panel draws its unit's hit points.
+  getEntityHealth: SimulationBridge['getEntityHealth'];
   // Slice 11: drain the oldest pending rejection for a toast; null when none.
   consumeCommandRejection(): string | null;
   // Slice 11: F2 debug-overlay snapshot, read every frame while it is on.
@@ -155,7 +157,7 @@ export type SelectionPanelBridge = Pick<
   | 'getEconomyState' | 'issueAction' | 'setSelectionStance' | 'setSelectionFormation'
   | 'queueTrainUnit' | 'queueResearch' | 'issueMarketAction' | 'sendTribute'
   | 'listTributeTargets' | 'humanTributeFeeRate' | 'beginBuildingPlacement'
-  | 'getSelectionState' | 'getSelectedEntityRefs' | 'select'
+  | 'getSelectionState' | 'getSelectedEntityRefs' | 'select' | 'getEntityHealth'
 >;
 
 /** The selection panel's wiring to the bridge, in one place so a test mounts
@@ -176,6 +178,13 @@ export function selectionPanelDepsFor(bridge: SelectionPanelBridge): SelectionPa
     ),
     beginBuildingPlacement: (buildingType) => bridge.beginBuildingPlacement(buildingType),
     cancelBuildingPlacement: () => cancelBuildingPlacement(bridge),
+    getEntityHealth: (id) => bridge.getEntityHealth(id),
+    // The group panel's clicks keep a part of the selection, so its refs keep
+    // their order and generations, and `select` marks a paused frame.
+    keepSelected: (ids) => {
+      const kept = new Set(ids);
+      bridge.select(bridge.getSelectedEntityRefs().filter((ref) => kept.has(ref.id)));
+    },
   };
 }
 
@@ -336,6 +345,7 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
   // Selection panel: icons + details + queue + command buttons. Skips
   // re-render when the `selectionState` signature is unchanged.
   const selectionPanelHandle = createSelectionPanel(selectionPanel, selectionPanelDepsFor(bridge));
+  teardownCallbacks.push(() => selectionPanelHandle.destroy());
 
   if (minimap) {
     const minimapInput = mountMinimapInput(minimap, {
@@ -455,7 +465,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     closeGameMenu: gameMenu.close,
     toastHandle: { showToast },
     refreshSelectionPanel() {
-      if (!isDestroyed) selectionPanelHandle.update(bridge.getSelectionState(), bridge.getHudState().playerResources);
+      // Forced: a key acts on the card of the selection now, even while the
+      // mouse holds a press in the panel (work 146 M2, review round 1).
+      if (!isDestroyed) selectionPanelHandle.update(bridge.getSelectionState(), bridge.getHudState().playerResources, { force: true });
     },
     destroy() {
       if (isDestroyed) {

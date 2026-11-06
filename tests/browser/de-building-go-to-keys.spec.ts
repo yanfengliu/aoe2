@@ -166,7 +166,7 @@ test.describe("DE's go-to and select-all building keys", () => {
     expect(await keyLog(page), 'the browser kept a select-all key').toEqual(SELECT_ALL_KEYS.map(([key]) => ({ code: codeOf(key), prevented: true })));
   });
 
-  test('the panel shows a select-all key\'s buildings by type with their count, as it shows a group of units', async ({ page }) => {
+  test('the panel shows a select-all key\'s buildings one icon each, as it shows a group of units', async ({ page }) => {
     await game.waitForPausedBootWithSeed(page, SEED);
     await page.evaluate(() => window.__AOE2_TEST__!.clearSelection());
     // The bar keeps one height and one top edge whatever is selected (spec §14.2).
@@ -182,15 +182,16 @@ test.describe("DE's go-to and select-all building keys", () => {
     const grouped = await bar();
     expect(Math.abs(grouped.top - empty.top) + Math.abs(grouped.height - empty.height),
       `the bar moved or changed its height for a group of buildings: ${JSON.stringify({ empty, grouped })}`).toBeLessThanOrEqual(1);
-    const chips = page.locator('[data-selection-unit-chip]');
-    await expect(chips, 'the group\'s buildings are not drawn in the panel')
-      .toHaveCount(MILITARY_BUILDINGS.length);
-    expect((await chips.evaluateAll((elements) => elements.map((element) => element.getAttribute('data-selection-unit-chip')))).sort())
-      .toEqual([...MILITARY_BUILDINGS].sort());
-    await expect(page.locator('[data-selection-unit-count="barracks"]')).toHaveText('x2');
+    // DE's group panel: one icon per building (work 146 M2), where the panel
+    // drew one chip per type with an "x2" count.
+    const icons = page.locator('[data-selection-member]');
+    await expect(icons, 'the group\'s buildings are not drawn in the panel').toHaveCount(7);
+    const types = await icons.evaluateAll((elements) => elements.map((element) => element.getAttribute('data-selection-member-type')));
+    expect([...new Set(types)].sort()).toEqual([...MILITARY_BUILDINGS].sort());
+    await expect(page.locator('[data-selection-member-type="barracks"]')).toHaveCount(2);
     await page.keyboard.press('Control+Shift+b');
     await expect(page.locator('[data-selection-name]')).toHaveText('2 Barracks Selected');
-    await expect(page.locator('[data-selection-unit-count="barracks"]')).toHaveText('x2');
+    await expect(page.locator('[data-selection-member-type="barracks"]')).toHaveCount(2);
   });
 
   test('a group of several building types shows its primary\'s card in DE\'s slot order, and the card\'s keys press it', async ({ page }) => {

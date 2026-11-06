@@ -26,6 +26,7 @@ function villagerSelection(overrides: Partial<SelectionState> = {}): SelectionSt
     selectedCount: 1,
     selectedKind: 'unit',
     selectedEntityType: 'villager',
+    selectedEntityTypes: ['villager'],
     owner: 1,
     health: { current: 25, max: 25 },
     attack: 3,
@@ -131,6 +132,8 @@ describe('villager build palette', () => {
     getTributeTargets: vi.fn(() => ({ owners: [2], feeRate: 0.3 })),
       beginBuildingPlacement,
       cancelBuildingPlacement: vi.fn(() => true),
+      getEntityHealth: vi.fn(() => null),
+      keepSelected: vi.fn(),
     });
     const selection = villagerSelection();
 
@@ -192,6 +195,8 @@ describe('villager build palette', () => {
       getTributeTargets: vi.fn(() => ({ owners: [], feeRate: 0 })),
       beginBuildingPlacement: vi.fn(() => true),
       cancelBuildingPlacement: vi.fn(() => true),
+      getEntityHealth: vi.fn(() => null),
+      keepSelected: vi.fn(),
     });
 
     panel.update(villagerSelection({ placementMode: 'house' }), READY_RESOURCES);

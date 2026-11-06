@@ -39,6 +39,14 @@
      entries in its production queue beside it. A villager's card is 185.6px
      here, a scout's 212.6px, a tree's 114.2px, nothing selected 72px. */
   --hud-selection-bar-height: 246px;
+  /* The group panel's icons (work 146 M2): DE's cap of 60 in the 300px summary
+     under its heading, twelve to a row in five rows, each a portrait with its
+     hit-point bar under it. hudCommandPanel.css sets the wrapped bar's. */
+  --hud-member-tile: 23px;
+  --hud-member-columns: 12;
+  --hud-member-rows: 5;
+  --hud-member-gap: 2px;
+  --hud-member-hp: 3px;
   --hud-radius-lg: 16px;
   --hud-radius-md: 11px;
   --hud-radius-sm: 8px;
@@ -278,23 +286,9 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   gap: 8px;
 }
 
-/* Multi-selection: icon-only wrapping grid so 8–16+ distinct unit types
-   stay visible inside the selection panel. Tooltips carry the full name
-   so nothing is lost. */
-.hud-selection-unit-list--compact {
-  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-  gap: 6px;
-  /* A definite width, or `auto-fill` has nothing to fill. The list sits in an
-     auto-sized grid column of the summary (a shrink-to-fit flex item below
-     1120px), and against an indefinite width auto-fill resolves to ONE
-     column: three kinds of unit stacked 269px tall (measured 2026-09-05),
-     taller than the bar, in a grid written so that "8-16+ distinct unit
-     types stay visible". Three chips per row leaves the heading beside it
-     about 130px of the 300px summary — a name wraps to two lines there,
-     the height of one chip row. */
-  width: calc(3 * 48px + 2 * 6px);
-}
-
+/* A selection of several is the group panel, one icon per unit
+   (hudCommandPanel.css, work 146 M2); until then it was a grid of one chip
+   per type with a count, whose rules went with it. */
 .hud-selection-unit-chip {
   display: flex;
   align-items: center;
@@ -303,16 +297,6 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   border: 1px solid var(--hud-hairline);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.045);
-}
-
-.hud-selection-unit-chip--compact {
-  display: grid;
-  grid-template-rows: auto auto;
-  justify-items: center;
-  align-items: center;
-  gap: 2px;
-  padding: 4px 4px 3px;
-  pointer-events: auto;
 }
 
 .hud-selection-unit-badge {
@@ -332,14 +316,6 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   text-transform: uppercase;
 }
 
-.hud-selection-unit-chip--compact .hud-selection-unit-badge {
-  min-width: 36px;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  font-size: 11px;
-}
-
 .hud-selection-unit-meta {
   display: grid;
   gap: 2px;
@@ -349,20 +325,6 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   color: var(--hud-text);
   font-size: 13px;
   font-weight: 700;
-}
-
-.hud-selection-unit-count {
-  color: var(--hud-text-muted);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.hud-selection-unit-chip--compact .hud-selection-unit-count {
-  font-size: 11px;
-  line-height: 1;
-  letter-spacing: 0;
 }
 
 .hud-selection-activity {

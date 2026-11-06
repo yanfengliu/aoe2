@@ -310,6 +310,11 @@ export interface SelectionState {
   selectedCount: number;
   selectedKind: 'unit' | 'building' | 'resource' | null;
   selectedEntityType: UnitType | BuildingType | ResourceKind | null;
+  /** Each selected entity's own type, in `selectedEntityIds`' order (null for
+   *  one that is none of these). The group panel's icons are drawn from it
+   *  (work 146 M2), and since the panel redraws when its selection state
+   *  changes, a member that upgrades in place redraws its icon. */
+  selectedEntityTypes: Array<UnitType | BuildingType | ResourceKind | null>;
   owner: number | null;
   health: {
     current: number;

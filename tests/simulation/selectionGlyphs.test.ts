@@ -185,6 +185,7 @@ function baseSelectionState(overrides: Partial<SelectionState>): SelectionState 
     selectedCount: 0,
     selectedKind: null,
     selectedEntityType: null,
+    selectedEntityTypes: [],
     owner: null,
     health: null,
     attack: null,
@@ -290,12 +291,13 @@ describe('renderSelectionIcons — glyph augments the badge (slice 2)', () => {
     expect(html).toContain('TC');
   });
 
-  it('multi villager + sheep: every chip gets a glyph (v0.1.78 sheep=fauna), counts + hooks preserved', () => {
+  it('multi villager + sheep: every unit\'s icon gets a glyph (v0.1.78 sheep=fauna)', () => {
     const villagerIds = [1, 2];
     const sheepIds = [100, 101, 102];
     const html = renderSelectionIcons(
       baseSelectionState({
         selectedEntityIds: [...villagerIds, ...sheepIds],
+        selectedEntityTypes: [...villagerIds.map(() => 'villager' as const), ...sheepIds.map(() => 'sheep' as const)],
         selectedCount: villagerIds.length + sheepIds.length,
         selectedKind: 'unit',
         selectedEntityType: 'villager',
@@ -304,17 +306,15 @@ describe('renderSelectionIcons — glyph augments the badge (slice 2)', () => {
       economyStateWith(villagerIds.map(villagerUnit), sheepIds.map(sheepResource)),
     );
 
-    // Existing compact-grid contract intact.
-    expect(html).toContain('data-selection-unit-icon="villager"');
-    expect(html).toContain('data-selection-unit-count="villager"');
-    expect(html).toContain('data-selection-unit-icon="sheep"');
-    expect(html).toContain('data-selection-unit-count="sheep"');
-    expect(html).toContain('x2');
-    expect(html).toContain('x3');
-    // Both the villager chip (role glyph) and the sheep chip (fauna glyph,
-    // v0.1.78) now carry a glyph → exactly TWO glyphs.
+    // DE's group panel is one icon per unit (work 146 M2), where it was one
+    // chip per type with an "x2" count: two villager icons and three sheep.
+    expect(html.match(/data-selection-member-type="villager"/g)).toHaveLength(2);
+    expect(html.match(/data-selection-member-type="sheep"/g)).toHaveLength(3);
+    expect(html).not.toContain('data-selection-unit-count');
+    // Each icon (role glyph for a villager, fauna glyph for a sheep, v0.1.78)
+    // carries a glyph → exactly FIVE glyphs.
     const glyphCount = html.match(/hud-selection-unit-glyph/g)?.length ?? 0;
-    expect(glyphCount).toBe(2);
+    expect(glyphCount).toBe(5);
   });
 
   it('single sheep gets a fauna glyph on the entity-icon path (v0.1.78)', () => {

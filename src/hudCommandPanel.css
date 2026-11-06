@@ -112,6 +112,139 @@
   grid-column: 1 / -1;
 }
 
+/* DE's group panel (work 146 M2): a selection of several is one icon per unit
+   with its hit-point bar ("Learn to play", Lesson 5), up to the cap of 60. The
+   heading runs across the top of the summary and the icons fill the rows under
+   it, twelve to a row: the old per-type chips were 48px wide, three to a row
+   beside a heading 132px wide, and sixty icons there would be 11px. Below
+   1120px the summary is a line of its own and the icons sit beside the heading
+   (the media block below sets their size). */
+.hud-panel--selection > .hud-selection-summary--group > .hud-selection-heading {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  align-self: start;
+}
+
+.hud-panel--selection > .hud-selection-summary--group > .hud-selection-group {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+/* A group's heading keeps one height whatever the simulation does: its name
+   holds to one line above 1120px and two below, and its work to one line, each
+   ellipsised with the whole text in its tooltip. The work changes as units
+   fight, walk and die, and wrapped onto three lines it pushed the icons under
+   it out of the band above 1120px, and the tiles under the line below 1120px
+   (review round 2 of work 146 M2). */
+.hud-panel--selection > .hud-selection-summary--group .hud-selection-name,
+.hud-panel--selection > .hud-selection-summary--group .hud-selection-activity {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow-wrap: anywhere;
+}
+
+/* A definite width and the height of a full 60, as the chip grid had a
+   definite width, so the bar is the same for two units as for sixty: below
+   1120px the icons sit AHEAD of the deck, and a group losing units in a fight
+   must not move the stance and formation tiles under the player's cursor
+   (§14.2, "No command button moves because the simulation did something"). */
+.hud-selection-group {
+  display: grid;
+  grid-template-columns: repeat(var(--hud-member-columns), var(--hud-member-tile));
+  align-content: start;
+  gap: var(--hud-member-gap);
+  width: calc(var(--hud-member-columns) * var(--hud-member-tile) + (var(--hud-member-columns) - 1) * var(--hud-member-gap));
+  min-height: calc(var(--hud-member-rows) * (var(--hud-member-tile) + 1px + var(--hud-member-hp)) + (var(--hud-member-rows) - 1) * var(--hud-member-gap));
+  flex: 0 0 auto;
+}
+
+/* An icon is a native button with no chrome of its own: the portrait, tinted
+   with its type's accent, over its unit's hit-point bar. */
+.hud-selection-member {
+  display: grid;
+  grid-template-rows: var(--hud-member-tile) var(--hud-member-hp);
+  gap: 1px;
+  width: var(--hud-member-tile);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.hud-selection-member__portrait {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--hud-member-tile);
+  height: var(--hud-member-tile);
+  border: 1px solid color-mix(in srgb, var(--unit-icon-accent) 55%, transparent);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--unit-icon-accent) 22%, #172124 78%);
+}
+
+.hud-selection-member .hud-selection-unit-glyph {
+  width: calc(var(--hud-member-tile) - 5px);
+  height: calc(var(--hud-member-tile) - 5px);
+}
+
+.hud-selection-member:hover .hud-selection-member__portrait,
+.hud-selection-member:focus-visible .hud-selection-member__portrait {
+  border-color: var(--hud-text);
+}
+
+.hud-selection-member:focus-visible {
+  outline: 1px solid var(--hud-text);
+  outline-offset: 1px;
+}
+
+/* The bar's tones are the bars over the units' (aoeVoxelOverlayParts.ts):
+   green above 60%, yellow above 30%, red below, on the same dark track. */
+.hud-selection-member__hp {
+  display: block;
+  height: var(--hud-member-hp);
+  overflow: hidden;
+  background: #15191a;
+}
+
+.hud-selection-member__hp-fill {
+  display: block;
+  height: 100%;
+  background: #77d26a;
+}
+
+.hud-selection-member__hp[data-selection-member-hp-tone="mid"] > .hud-selection-member__hp-fill {
+  background: #dab85a;
+}
+
+.hud-selection-member__hp[data-selection-member-hp-tone="low"] > .hud-selection-member__hp-fill {
+  background: #d76464;
+}
+
+/* A member with no hit points here (a sheep: this game gives livestock none)
+   draws no bar, rather than an empty one that reads as dying; the row keeps
+   its height. */
+.hud-selection-member__hp[data-selection-member-hp-tone="none"] {
+  visibility: hidden;
+}
+
+/* A window too short for the band clamps it (above 1120px wide, 36vh is under
+   the band's 246px below 684px tall), and five rows of 23px no longer fit
+   under the heading there: four rows of fifteen 18px icons do, down to 536px
+   tall (review round 1 of work 146 M2, which found 1280x600 cutting a row). */
+@media (min-width: 1121px) and (max-height: 683px) {
+  :root {
+    --hud-member-tile: 18px;
+    --hud-member-columns: 15;
+    --hud-member-rows: 4;
+  }
+}
+
 /* The stat chips take whatever is left of the summary's line and wrap INSIDE
    it (flex-basis 0). Below 120px of remaining room they take the next line
    instead of being squeezed into a column one chip wide — which is what the
@@ -611,6 +744,12 @@
        stat chips take three rows, that same card is 262.6px and scrolls
        inside the band; the camera-centre rule below leaves no room for it. */
     --hud-selection-bar-height: 236px;
+    /* The group panel's 60 beside the heading on the summary's own line, in
+       four rows of sixteen, short enough that the stance and formation tiles
+       or a villager's two-row palette still fit the band under them. */
+    --hud-member-tile: 18px;
+    --hud-member-columns: 16;
+    --hud-member-rows: 4;
   }
 
   .hud-panel--selection {
@@ -674,6 +813,12 @@
 
   .hud-panel--selection .hud-selection-name {
     font-size: 16px;
+  }
+
+  /* Beside the icons a group's name takes two lines of the heading's 130px. */
+  .hud-panel--selection > .hud-selection-summary--group .hud-selection-name {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   .hud-panel--selection > .hud-command-deck {

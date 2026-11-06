@@ -6,11 +6,9 @@
 import type { UnitStance } from '../../../game/simulation/unitStance';
 import type { UnitFormation } from '../../../game/simulation/unitFormation';
 import type {
-  BuildingType,
   EconomyState,
   ResearchableTechnologyType,
   SelectionState,
-  UnitType,
 } from '../../../game/simulation/types';
 import {
   formatEntityIcon,
@@ -23,13 +21,9 @@ import { selectionGlyph } from '../icons/unitGlyphs';
 import { inUnitCardSlotOrder } from '../commandCardKeys';
 import { formationGlyph, stanceGlyph } from '../icons/commandGlyphs';
 import { SELECTION_DETAIL_TOOLTIPS } from '../tooltips';
+import { renderGroupPanel, selectionGroupMembers, type GroupHealthReader } from './groupPanel';
 
-// Types that can appear as first-class entries in the multi-select icon
-// grid. Owned sheep live in `economyState.resources`, not `.units`, but
-// they share the player-commandable multi-selection contract with units,
-// so the icon grid treats them as siblings. Buildings join them since DE's
-// select-all building keys (work 142) put several buildings in one selection.
-type MultiSelectionIconKind = UnitType | 'sheep' | BuildingType;
+const NO_HEALTH: GroupHealthReader = () => null;
 
 function renderSingleSelectionIcon(
   entityType: SelectionState['selectedEntityType'],
@@ -57,12 +51,22 @@ function renderSingleSelectionIcon(
   `;
 }
 
+// A selection of several is DE's group panel, one icon per unit with its
+// hit-point bar (work 146 M2, `groupPanel.ts`); until then it was one chip per
+// type with an "x3" count and no hit points. `health` reads each unit's hit
+// points; the HUD passes the bridge's, and a caller without one draws the bars
+// empty.
 export function renderSelectionIcons(
   selectionState: SelectionState,
   economyState: EconomyState,
+  health: GroupHealthReader = NO_HEALTH,
 ): string {
   if (selectionState.selectedEntityIds.length === 0) {
     return '';
+  }
+
+  if (selectionState.selectedEntityIds.length > 1) {
+    return renderGroupPanel(selectionGroupMembers(selectionState), health);
   }
 
   // Single non-unit selections (buildings, lone owned sheep, relics, ...)
@@ -70,134 +74,42 @@ export function renderSelectionIcons(
   // preserves the `data-selection-entity-icon` contract that existing
   // browser tests rely on.
   if (
-    selectionState.selectedEntityIds.length === 1
-    && selectionState.selectedEntityType !== null
+    selectionState.selectedEntityType !== null
     && !isUnitType(selectionState.selectedEntityType)
   ) {
     return renderSingleSelectionIcon(selectionState.selectedEntityType);
   }
 
-  const unitsById = new Map(economyState.units.map((unit) => [unit.id, unit]));
-  // Built on the first selected id that is not a unit, as the sheep lookup is.
-  let buildingTypesById: Map<number, BuildingType> | null = null;
-  const buildingTypeOf = (id: number): BuildingType | undefined => {
-    buildingTypesById ??= new Map(economyState.buildings.map((building) => [building.id, building.buildingType]));
-    return buildingTypesById.get(id);
-  };
-  // Lazy-built lookup of sheep entity ids — only needed when a selected
-  // id misses `unitsById`. `economyState.resources` can hold hundreds of
-  // entries mid/late game, and this function runs on every HUD-affecting
-  // update, so we avoid the unconditional filter+map pass when the
-  // selection is unit-only.
-  let sheepIdsCache: Set<number> | null = null;
-  const sheepIds = (): Set<number> => {
-    if (sheepIdsCache !== null) {
-      return sheepIdsCache;
-    }
-    sheepIdsCache = new Set();
-    for (const resource of economyState.resources) {
-      if (resource.resourceType === 'sheep') {
-        sheepIdsCache.add(resource.id);
-      }
-    }
-    return sheepIdsCache;
-  };
-  const counts = new Map<MultiSelectionIconKind, number>();
-  const orderedTypes: MultiSelectionIconKind[] = [];
-
-  for (const id of selectionState.selectedEntityIds) {
-    const unit = unitsById.get(id);
-    const kind: MultiSelectionIconKind | null = unit
-      ? unit.unitType
-      : buildingTypeOf(id) ?? (sheepIds().has(id) ? 'sheep' : null);
-    if (!kind) {
-      continue;
-    }
-
-    if (!counts.has(kind)) {
-      orderedTypes.push(kind);
-      counts.set(kind, 0);
-    }
-
-    counts.set(kind, (counts.get(kind) ?? 0) + 1);
+  // One unit: its portrait, when the economy state lists it.
+  const unit = economyState.units.find((candidate) => candidate.id === selectionState.selectedEntityIds[0]);
+  if (!unit) {
+    return renderSingleSelectionIcon(selectionState.selectedEntityType);
   }
 
-  if (orderedTypes.length === 0) {
-    if (selectionState.selectedCount === 1) {
-      return renderSingleSelectionIcon(selectionState.selectedEntityType);
-    }
-
-    const fallbackKind: MultiSelectionIconKind | null = isUnitType(selectionState.selectedEntityType)
-      ? selectionState.selectedEntityType
-      : selectionState.selectedEntityType === 'sheep'
-        ? 'sheep'
-        : null;
-    if (!fallbackKind) {
-      return '';
-    }
-
-    orderedTypes.push(fallbackKind);
-    counts.set(fallbackKind, Math.max(selectionState.selectedCount, 1));
-  }
-
-  const isSingleEntrySelection =
-    selectionState.selectedEntityIds.length === 1
-    && orderedTypes.length === 1
-    && (counts.get(orderedTypes[0]) ?? 0) === 1;
-
-  if (isSingleEntrySelection) {
-    const kind = orderedTypes[0];
-    return `
+  const kind = unit.unitType;
+  return `
+    <div
+      class="hud-selection-unit-list"
+      data-selection-unit-icons
+      style="--unit-icon-accent: ${formatEntityIconAccent(kind)}"
+    >
       <div
-        class="hud-selection-unit-list"
-        data-selection-unit-icons
+        class="hud-selection-unit-chip"
+        data-selection-unit-chip="${kind}"
         style="--unit-icon-accent: ${formatEntityIconAccent(kind)}"
       >
-        <div
-          class="hud-selection-unit-chip"
-          data-selection-unit-chip="${kind}"
-          style="--unit-icon-accent: ${formatEntityIconAccent(kind)}"
-        >
-          ${selectionGlyph(kind)}
-          <div class="hud-selection-unit-badge" data-selection-unit-icon="${kind}">
-            ${formatEntityIcon(kind)}
-          </div>
-          <div class="hud-selection-unit-meta">
-            <div class="hud-selection-unit-label" data-selection-unit-label="${kind}">
-              ${formatEntityName(kind)}
-            </div>
+        ${selectionGlyph(kind)}
+        <div class="hud-selection-unit-badge" data-selection-unit-icon="${kind}">
+          ${formatEntityIcon(kind)}
+        </div>
+        <div class="hud-selection-unit-meta">
+          <div class="hud-selection-unit-label" data-selection-unit-label="${kind}">
+            ${formatEntityName(kind)}
           </div>
         </div>
       </div>
-    `;
-  }
-
-  const chips = orderedTypes
-    .map((kind) => {
-      const count = counts.get(kind) ?? 1;
-      const label = formatEntityName(kind);
-      const countMarkup =
-        count > 1
-          ? `<div class="hud-selection-unit-count" data-selection-unit-count="${kind}">x${count}</div>`
-          : '';
-      return `
-        <div
-          class="hud-selection-unit-chip hud-selection-unit-chip--compact"
-          data-selection-unit-chip="${kind}"
-          data-tooltip="${label}"
-          style="--unit-icon-accent: ${formatEntityIconAccent(kind)}"
-        >
-          ${selectionGlyph(kind)}
-          <div class="hud-selection-unit-badge" data-selection-unit-icon="${kind}">
-            ${formatEntityIcon(kind)}
-          </div>
-          ${countMarkup}
-        </div>
-      `;
-    })
-    .join('');
-
-  return `<div class="hud-selection-unit-list hud-selection-unit-list--compact" data-selection-unit-icons>${chips}</div>`;
+    </div>
+  `;
 }
 
 function renderSelectionDetail(
@@ -255,7 +167,10 @@ export function renderSelectionActivity(selectionState: SelectionState): string 
   if (breakdown && breakdown.entries.length > 0) {
     const tokens = breakdown.entries.map((e) => `${e.count} ${e.label}`);
     if (breakdown.overflow > 0) tokens.push('…');
-    return `<div class="hud-selection-activity" data-selection-activity-multi>${tokens.join(' · ')}</div>`;
+    // A group's heading holds this to one line (work 146 M2, review round 2);
+    // its tooltip carries all of it.
+    const text = tokens.join(' · ');
+    return `<div class="hud-selection-activity" data-selection-activity-multi data-tooltip="${text}">${text}</div>`;
   }
   return '';
 }

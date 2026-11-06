@@ -122,8 +122,10 @@ test.describe('selection and targeting as in DE (work 142)', () => {
 
     await expect(page.locator('[data-selection-name]')).toHaveText('4 Units Selected');
     expect([...(await game.getSelectionState(page)).selectedEntityIds].sort()).toEqual([...villagers, sheep].sort());
-    await expect(page.locator('[data-selection-unit-count="villager"]')).toHaveText('x3');
-    await expect(page.locator('[data-selection-unit-chip="sheep"]')).toHaveCount(1);
+    // DE's group panel: one icon per unit (work 146 M2), where the panel drew
+    // one chip per type with an "x3" count.
+    await expect(page.locator('[data-selection-member-type="villager"]')).toHaveCount(3);
+    await expect(page.locator('[data-selection-member-type="sheep"]')).toHaveCount(1);
   });
 
   test('a box never takes another player\'s unit, a wild animal, a tree or a building', async ({ page }) => {
