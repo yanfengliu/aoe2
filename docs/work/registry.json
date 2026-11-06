@@ -2937,6 +2937,14 @@
     {
       "id": 145,
       "theme": "shared-gathering"
+    },
+    {
+      "id": 146,
+      "theme": "de-selection"
+    },
+    {
+      "id": 147,
+      "theme": "ai-spending"
     }
   ]
 }
