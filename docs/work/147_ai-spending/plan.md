@@ -1,7 +1,7 @@
 # The computer spends as Definitive Edition's AI does
 
-Status: active
-Owner: ai-spending worker (worktree `ai-spending-1106`; M2 `ai-spending-m2-1106`) for the Claude coordinator
+Status: complete
+Owner: ai-spending worker (worktree `ai-spending-1106`; M2 `ai-spending-m2-1106`; M3 `ai-spending-m3-1106`) for the Claude coordinator
 Created: 2026-11-06
 Updated: 2026-11-06
 
@@ -59,8 +59,8 @@ M2 (a fresh worker, from "M2 starting state" in the Outcome):
 - [x] The census moves named both ways; the self-play gates re-recorded; the live lobby check; `npm run verify` and its receipt; review; spec §13.2's paragraph marked implemented.
 
 M3 (a fresh worker, from "M3 starting state" in the Outcome):
-- [ ] M3a: DE's `maxfarms` with its farm-build conditions other than the camp's, measured on both configurations and the idle boot match, adopted only where neither configuration loses an Age (the drop rule above).
-- [ ] M3b: the computer's Farm per farmer (work 145's one-farmer Farm rule held for the computer), measured likewise.
+- [x] M3a: DE's `maxfarms` with its farm-build conditions other than the camp's, and DE's Horse Collar (the coordinator, 2026-11-06), measured on both configurations and the idle boot match: not adopted under the drop rule (Outcome, M3a), accepted by the coordinator (2026-11-06).
+- [x] M3b: the computer's Farm per farmer (work 145's one-farmer Farm rule held for the computer): deferred by the coordinator (2026-11-06) to plan 106's card "DE's farm model, retried, with the computer's Farm per farmer (work 147)".
 
 ## Implementation steps
 
@@ -71,7 +71,8 @@ M3 (a fresh worker, from "M3 starting state" in the Outcome):
 - [x] M1: the coordinator's decision and the landing (2026-11-06).
 - [x] M2 (a fresh worker): P1, its tests, the farm and wood columns of `selfplay-ab`, the A/B on both configurations and the idle boot match, the census, the live check (worktree `ai-spending-m2-1106`; control worktrees `ai-spending-m2-a` on main e4ca37c1 and `ai-spending-m2-b` on the branch's c25d6a6b).
 - [x] M2 landed as v0.3.274 (5ac4ac4c).
-- [ ] M3 (a fresh worker; M3a and M3b above).
+- [x] M3a (worktree `ai-spending-m3-1106`; control worktrees `ai-spending-m3-a` on main 19eef443 and `ai-spending-m3-b` on the measured a96ee1e9): sourced, built with its tests, measured, not adopted.
+- [x] M3a landed docs only (2026-11-06); M3b deferred to plan 106's retry card; plan 147 closed.
 
 ## Outcome
 
@@ -282,3 +283,82 @@ Not checked in M2: seeds beyond 0-4 for the B arm (the noise floor is M1's, on s
 - Where the code is. The farm wants: `ai.ts` `buildWants` (the farm entries and `MINIMUM_FARMS`); `aiEconomyPlan.ts` `targetFarmCount`; `aiDarkAgeBoom.ts` `deDarkAgeFarmsWanted`; `bridge/systems/aiDarkAgeFarms.ts` (`seatFarmWork`: villagers, farms complete and placed, idle farms, food gatherers; `darkAgeFoodSituation`); `bridge/systems/aiSystemBuildingPhase.ts` (the farm state and `countOwnedFarms`); `bridge/farmReseed.ts`; the flush buffers `aiFlushBuffers.ts` and `bridge/systems/aiFlushBufferPhase.ts`.
 - The instruments. `scripts/selfplay-ab.mjs` records (schema 2, `scripts/selfplayAuditMatch.mjs`) hold per owner `siegeWorkshop`, `farmsByTick` and `woodByTick` (every 5,000 ticks, beside `armyByTick`), `farmFloorBreaches`, `farmsRunOut` and `farmsReseeded`, and `scripts/selfplayAbReport.mjs` reports them (`SERIES`). The counts of seat-seeds that reached an age or held a building, by arm with the seeds gained and lost, came from a scratch tally that went with M2's worktree: per record and owner, a time column that is not null is an event reached. `tmp/probes/seatTrace.mts` (gone too) traced one seat with `src/game/playtest/aiEconomyTrace.ts` (`liveWorldSource`, `sampleAiEconomy`) on `selfplayAuditMatch.mjs`'s loop.
 - The A arm to re-record. M2 changed the game, so M1's noise floor no longer applies: play the A arm on main after M2 (castle, lab and idle, five maps by five seeds) and the noise floor (`--b-seed-offset 5`), from control worktrees, as M2 did (`selfplay-ab`'s fingerprint trap is in M1's starting state above).
+
+**M3a: DE's farm model measured and not adopted (2026-11-06; phase 1, for the coordinator's acceptance).**
+
+What was sourced, beyond the M3 starting state (spec §13.2, "DE's farm model, measured and not adopted", holds the rules with their lines). DE's farm rules for a `feudal-war` seat on land with one Town Center are a union: a farm is placed whenever any rule holds (buildings.per 4216-5019; one placement a pass, 5216-5229), up to `maxfarms` (init.per 1660-1671). Besides the rules the starting state named, a seat of this AI meets three more: up to 3 Dark Age farms with a Mill and a Barracks (4290-4320); short of food under 2 farms while the Feudal Age is researched or reached (4568-4590); and two with no idle-farm limit, a farm from the Feudal Age unless the wood is under `farmtc-cost` (198 for the Britons, 335 for most) with 150 food spare, and one whenever Heavy Plow is done, or researched with 610 wood, or unavailable in the Imperial Age (4994-5019). DE also stops farming for its Imperial buildings (5029-5043). The rules written for other strategies, more Town Centers, Docks and the Khmer were left out, with the wood drop site condition.
+
+The coordinator's decisions (2026-11-06, on the worker's message): DE's Horse Collar rule goes with M3a, bought through `AiPurchases.buy` from the escrow; it is measured as one arm, never without Horse Collar; M3b follows as its own milestone. The worker's four corrections were accepted. The 8-farm cap (4357-4363) holds only while `sn-current-age <= dfeudal`. The Castle research's 610 and 785 wood (4772-4782) never bind a `feudal-war` seat. customConstants.per is the file DE loads and const.per a stale copy; both give `farmmb-cost` 215, 209 and 235, so the two citations agreed. And DE's AI scripts hold no reseed rule (no Promisory file names a reseed or the Mill's farm queue), so the reseed lever has no AI rule to adopt; what DE's engine does with the computer's expired farm is not verified. One more reading, made in building it: DE skips Horse Collar's flag and research while Double-Bit Axe is still to research (escrow.per 1276-1285, researches.per 2419-2428). This AI never researches Double-Bit Axe, so that order was left out, as the coordinator's decision implies.
+
+What was built and measured: commit a96ee1e9 on the branch. The coordinator kept it on the local branch `retained/farm-model-m3a` (the closing paragraph).
+- `aiFarmModel.ts` (`deMaxFarms`, the rules by name and lines, `deWantsHorseCollar`) and its reader `bridge/systems/aiFarmModelPhase.ts`.
+- The building phase asked the model in every age, in place of `targetFarmCount` and `deDarkAgeFarmsWanted`; the seventh Dark Age farm and the per-civilization `farmmb-cost` came with it.
+- The flush buffers' farm target became `maxfarms`, and the escrow flagged Horse Collar from the Feudal Age.
+- Tests: `aiFarmModel.test.ts` (19 cases) and `aiFarmModelBuilds.test.ts`, which plays one decision of a seat. It builds a ninth farm short of food where the old count stopped at 8, and none once fed; it researches Horse Collar at the Mill with a Blacksmith, and none without.
+- Red proofs: 17 mutations (`tmp/m3/mutate.mjs`), all caught. The architecture suite and the affected AI tests passed.
+
+The measurement:
+- Arms: A on main 19eef443 (control worktree `ai-spending-m3-a`), B on a96ee1e9 (`ai-spending-m3-b`), both played by the unchanged instrument. The noise floor is A against itself on seeds 5-9.
+- A plays exactly as M2's B arm (every count below equals plan 147's M2 figures), so M2's numbers hold as this baseline.
+- Records were in the worktree's ignored `tmp/m3/` (`nf-castle/`, `nf-lab/`, `nf-idle/`, `b-castle/`, `b-lab/`, `b-idle/`, pooled by `tally.mjs`), removed with the worktree.
+
+Counts are seat-seeds of 50:
+
+| count | castle A | castle B | castle floor | lab A | lab B | lab floor |
+|---|---|---|---|---|---|---|
+| Castle Age clicked | 44 | 48 | 46 | 49 | 50 | 48 |
+| Imperial Age clicked | 33 | 35 | 32 | 48 | 47 | 48 |
+| Siege Workshop | 36 | 37 | 39 | 46 | 39 | 46 |
+| Monastery | 35 | 40 | 41 | 46 | 43 | 46 |
+| Castle | 34 | 45 | 35 | 48 | 49 | 48 |
+| a Monk | 28 | 38 | 37 | 44 | 30 | 41 |
+| a siege unit | 18 | 16 | 15 | 17 | 12 | 26 |
+
+The castle configuration, A then B:
+- Villagers at 5, 10, 15 and 20 minutes: 11, 20, 28 and 34.5, then 11, 22, 28 and 36.
+- Villagers lost: 1,826, then 1,837 (the floor 1,796). Peak army summed: 1,012, then 1,138.
+- Median clicks: Feudal 15:20, then 13:13; Castle 25:55, then 26:02; Imperial 42:27, then 41:55.
+- Complete farms per seat (median): 8, then 13 from 20,000 to 35,000 ticks, then 12 at 40,000-45,000, 8 at 50,000 and 6.5 at 55,000 as matches end (A: 8, then 7.5, 6 and 6.5). Wood held (median): 37-93 in both arms from 5,000 to 45,000 ticks, then A 39 and 19.5 and B 49.5 and 48.5 at 50,000 and 55,000.
+- Farm-floor breaches 403, then 578; farms run out 813, then 993; reseeded in place 883, then 735.
+- The conquest table moved on 14 of 25 matches. The winner changed side on one, gold-rush#1 (owner 1 at 67:12, then owner 2 at 93:14).
+
+The lab, A then B:
+- Villagers at 5, 10, 15 and 20 minutes: 9, 18.5, 30 and 39, then 9, 19, 31 and 39.
+- Villagers lost: 681, then 644. Median clicks: Castle 19:12, then 18:22; Imperial 31:28, then 29:22.
+- Farms: 8, then 11-17 from 10,000 ticks. The late food collapse is gone: breaches 342, then 171.
+- Farms run out 1,143, then 1,118; reseeded 792, then 912.
+
+The idle boot match (owner 2, the default map's five seeds), A then B:
+- The Castle click came earlier on every seed: 29,675 to 17,750, 20,800 to 16,975, 20,325 to 18,500, 23,675 to 16,750, and 19,575 to 18,350 ticks.
+- The Imperial Age on 3 seeds against 2; a Siege Workshop and a Monastery on 3 against 2.
+- Villagers at 5-20 minutes: 12, 21, 29 and 32, then 12, 21, 29 and 33; none lost.
+- Farm-floor breaches: 7, then 59, every new one in the Dark Age. DE's farms now come at 4,000-7,000 ticks against 8,000-10,750, and expire before the Feudal Age with no wood to reseed them (the floor is not a Dark Age rule).
+- The computer conquers the idle human on every seed in both arms, from 35:09 to 56:05 in B.
+
+The drop rule:
+- In the lab the Siege Workshops held fell by 7, and the floor did not move. Lost: aoe2-prototype, arena, arena#1, arena#3, coastal#2, coastal#4, fortress#3 and fortress#4 owner 1, and coastal#4 owner 2. Gained: corpus-seed-b owner 1 and gold-rush owner 2.
+- The Monasteries fell by 3, and the floor did not move. Lost: arena, arena#1, arena#2, arena#3 and coastal#4 owner 2, and default-seed owner 1. Gained: 3.
+- `selfPlayContentCoverage.test.ts` failed its producer floor: owner 1's Siege Workshop researched nothing it hosts.
+- So M3a is not adopted, though the castle configuration and the idle match gained on every count but the siege units.
+
+Traced on the census seed (the lab's aoe2-prototype, owner 1):
+- 9-12 farms stand from 20,000 ticks, where A's fall to 0-7, and its wood stays at 2-48.
+- It places no Siege Workshop, where A's stands at 20,000. Its Monastery comes at 38,750 against 13,000, and its army peaks at 38 against 123.
+- The wood goes to farms. DE's count, from this AI's own split, wants up to 19 farms (7 of 15 villagers on food in the Feudal Age, as work 144 found).
+- The build order also puts a wanted farm first while the food is under 500 (`FARM_PRIORITY_FOOD`, this AI's rule, which DE does not have). So a 175- or 200-wood building waits behind every 60-wood farm in a seat whose army keeps its food low.
+- The other losses were not traced one by one.
+
+What it suggests for the coordinator (not done):
+- DE's farm count is DE's split's food villagers, and this AI keeps its own split from the Feudal Age.
+- DE places farms beside its building queue, where this AI ranks a farm ahead of every hall while the food is under 500.
+- Either may be what the lab's buildings need before DE's farm model can be adopted. The economy technology card (plan 106, M5) carries Horse Collar and Heavy Plow, which DE's farm rules are written around.
+
+Not checked in M3a:
+- Seeds beyond 0-4 for B, and the standard configuration.
+- The losses other than the census seed's, one by one.
+- The live lobby check: nothing of the game changes, so main's build was not driven again.
+- CI.
+
+**M3b starting state (2026-11-06, for a fresh worker).** M3b, the computer's Farm per farmer, assumed DE's farm count, which M3a did not adopt. The computer still keeps `targetFarmCount` (2 to 8 farms) from the Feudal Age, with more food villagers than that, so work 145's finding stands: applied to the computer, the one-farmer rule broke `selfPlayContentCoverage.test.ts` and `aiReachesCastleAge.test.ts`. The coordinator deferred it with the farm model's retry (the closing paragraph below).
+
+**Closed 2026-11-06.** M1 was the study (docs only). M2 shipped DE's flush buffers as v0.3.274. M3a measured DE's farm model whole, with DE's Horse Collar, and did not adopt it: the coordinator accepted the drop ("accepted, land it", 2026-11-06) and it landed as one docs-only commit on main 8d25707a, squashing the branch's commits to 1492e1ba, the reviewed tip, with the content checks and the architecture suite passing and the gate lock held for the push; no version, no CI wait. M3b, the computer's Farm per farmer, was deferred with the farm model's retry, after work 151 and the economy research lane, to plan 106's card "DE's farm model, retried, with the computer's Farm per farmer (work 147)", which names the order and the two changes the retry starts from. M3a's measured code is kept on the local branch `retained/farm-model-m3a` at a96ee1e9bd02e75889fcb22973cfc8a82c94f13d, under the owner's 2026-10-18 direction; whoever retries or drops that card deletes it. The economy research card ("The computer researches no economy technology") is the coordinator's next AI lane. The M3 worktrees and their scratch, the A arm included, were removed; the next lane re-records its own A arm.
