@@ -15,8 +15,17 @@
 
 import { trainingCost } from '../../prototypeEconomyRules';
 import { villagerCapForAge } from '../../ai';
-import type { PlayerResources } from '../../types';
-import { constructionStatesCodec, productionQueuesCodec } from '../bridgeStateSerialize';
+import { deWantsVillager } from '../../aiDarkAgeBoom';
+import { effectiveResearchCost } from '../../civBonusEffects';
+import type { AgeType, PlayerResources } from '../../types';
+import {
+  constructionStatesCodec,
+  inFlightTechByOwnerCodec,
+  playerCivilizationsCodec,
+  playerResourcesCodec,
+  productionQueuesCodec,
+  researchedTechnologiesCodec,
+} from '../bridgeStateSerialize';
 import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 
 export interface TownCenterVillagerDemand {
@@ -32,7 +41,7 @@ export interface TownCenterVillagerDemand {
 }
 
 export function townCenterVillagerDemand(
-  deps: Pick<AiPhaseDeps, 'accessor' | 'countOwnedUnits' | 'countQueuedUnits'>,
+  deps: Pick<AiPhaseDeps, 'accessor' | 'countOwnedUnits' | 'countQueuedUnits' | 'canAdvanceToFeudalAge'>,
   ctx: Pick<AiOwnerContext, 'owner' | 'ownerTownCenterId' | 'currentAge' | 'populationBlocked'
     | 'pendingTrainsByBuilding' | 'pendingResearchByBuilding'>,
 ): TownCenterVillagerDemand | null {
@@ -53,8 +62,35 @@ export function townCenterVillagerDemand(
     queueLength,
     villagers,
     cap,
-    wantsVillager: !ctx.populationBlocked && villagers < cap && queueLength < 2,
+    wantsVillager: !ctx.populationBlocked && villagerWanted(deps, ctx.owner, ctx.currentAge, villagers) && queueLength < 2,
   };
+}
+
+/** Whether the owner trains another villager at this count: DE's rule in the
+ *  Dark and Feudal Ages (work 144 M2, `aiDarkAgeBoom.ts`), this AI's cap after. */
+export function villagerWanted(
+  deps: Pick<AiPhaseDeps, 'accessor' | 'canAdvanceToFeudalAge'>,
+  owner: number,
+  age: AgeType,
+  villagers: number,
+): boolean {
+  if (age !== 'dark-age' && age !== 'feudal-age') return villagers < villagerCapForAge(age);
+  const { accessor } = deps;
+  const civilization = accessor.get(playerCivilizationsCodec).get(owner);
+  const researched = accessor.get(researchedTechnologiesCodec).get(owner);
+  const inFlight = accessor.get(inFlightTechByOwnerCodec).get(owner);
+  const loomAllowance = !(researched?.has('loom') || inFlight?.has('loom'))
+    || (researched?.has('wheelbarrow') ?? false) || (inFlight?.has('wheelbarrow') ?? false);
+  return deWantsVillager(age, {
+    villagers,
+    stockpile: accessor.get(playerResourcesCodec).get(owner),
+    civilization,
+    loomAllowance,
+    castleCost: effectiveResearchCost(civilization, age, 'castle-age'),
+    feudalAvailable: age === 'dark-age' && deps.canAdvanceToFeudalAge(owner),
+    feudalFood: effectiveResearchCost(civilization, age, 'feudal-age').food ?? 0,
+    cap: villagerCapForAge(age),
+  });
 }
 
 /** What a soldier must leave behind: the next villager's cost, when one is due. */

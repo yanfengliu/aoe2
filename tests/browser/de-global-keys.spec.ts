@@ -14,10 +14,14 @@
 // field (the coordinator's answer of 2026-11-05).
 //
 // BOUNDS: `aoe2-prototype` at the browser suite's viewport; a US layout's
-// physical keys as Playwright types them; one raid, the scenario's first.
+// physical keys as Playwright types them; one raid, the scripted one of
+// `boot-map-raid-fixture` (the boot map with owner 2's AI off), which the
+// Home case orders itself: it waited for the computer's own Dark Age raid,
+// which DE's Dark Age boom ended (work 144 M2, `helpers/bootMapRaid.ts`).
 
 import { expect, test, type Page } from '@playwright/test';
 
+import { BOOT_MAP_RAID_SEED, orderBootMapRaid } from './helpers/bootMapRaid';
 import * as game from './helpers/gameTestHelpers';
 
 async function distanceFromCentre(page: Page, worldX: number, worldY: number): Promise<number> {
@@ -70,10 +74,12 @@ test.describe("DE's global keys", () => {
 
   test('Home goes to the last attack notification, which Space no longer does', async ({ page }) => {
     test.slow();
-    await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
-    // The raid is found as attack-warning.spec.ts finds it: the match runs in
-    // 10-tick steps until a villager of the human's loses HP, then until the
-    // minimap marks the cell, which is the notification Home goes to.
+    await game.waitForPausedBootWithSeed(page, BOOT_MAP_RAID_SEED);
+    // The raid is ordered and found as attack-warning.spec.ts orders and finds
+    // it: the match runs in 10-tick steps until a villager of the human's loses
+    // HP, then until the minimap marks the cell, which is the notification
+    // Home goes to.
+    await orderBootMapRaid(page);
     const raidTick = await page.evaluate(() => {
       const api = window.__AOE2_TEST__!;
       for (let step = 0; step < 360; step += 1) {
@@ -85,7 +91,7 @@ test.describe("DE's global keys", () => {
       }
       return null;
     });
-    expect(raidTick, "no villager of the human's lost HP within 3600 ticks: nothing was tested").not.toBeNull();
+    expect(raidTick, "no villager of the human's lost HP within 3600 ticks of the raid's order: nothing was tested").not.toBeNull();
     const minimap = page.locator('[data-hud="minimap"]');
     let cell: string | null = null;
     for (let step = 0; step < 5 && cell === null; step += 1) {

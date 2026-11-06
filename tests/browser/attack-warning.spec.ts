@@ -19,20 +19,28 @@
 // toast's words. The sustained raid and the pause are
 // `attack-warning-sustained.spec.ts`.
 //
+// THE RAID IS SCRIPTED (work 144 M2, 2026-11-06). This spec waited for the
+// computer's own Dark Age raid on the idle human, a Militia's at tick 3,312 by
+// then. DE's Dark Age boom ended it: the computer trains no Dark Age Militia,
+// and its first blow on the idle human lands near tick 21,000. A HUD spec that
+// needs an attack must not depend on the computer's opening strategy, so it
+// runs on `boot-map-raid-fixture` (`src/game/simulation/fixtures/raidWarning.ts`):
+// `aoe2-prototype` itself, the view the pixel floor below was sized on, with
+// owner 2's AI off and one Militia of owner 2's out of reach until this spec
+// orders it onto the human's nearest villager through the command pipeline
+// (`helpers/bootMapRaid.ts`). Headless, the first villager is hit 196 ticks
+// after the order.
+//
 // BOUNDS, so a green run is not read for more than it holds:
-//  - One scenario (`aoe2-prototype`) and one raid, the reproduced one. The
-//    rule's other cases — the throttle, the things that must NOT warn — are
+//  - One scenario (the boot map) and one raid, a scripted one. The rule's
+//    other cases — the throttle, the things that must NOT warn — are
 //    `tests/ui/attackWarning.test.ts` over a synthetic feed.
-//  - The raid is FOUND, not pinned to a tick: the match runs from boot in
-//    10-tick steps until a human villager first loses HP, up to tick 3600,
-//    and the mark is looked for from that step on. The raid was at tick 3084
-//    until DE's 50-food Militia (v0.3.228) moved it to 1450; a fixed window
-//    of 3050-3600 then read a villager hurt long before the window as "hurt
-//    and no mark", which is the wrong failure. `expect(raidTick)` below
-//    fails with "no villager lost HP" if the scenario stops producing a raid
-//    by tick 3600, so a run that did not exercise the warning cannot report
-//    itself as one that did, and cannot report itself as a broken warning
-//    either.
+//  - The raid is FOUND, not pinned to a tick: after the order the match runs
+//    in 10-tick steps until a human villager first loses HP, up to 3,600
+//    ticks, and the mark is looked for from that step on. `expect(raidTick)`
+//    below fails with "no villager lost HP" if the scenario stops producing
+//    the raid, so a run that did not exercise the warning cannot report itself
+//    as one that did, and cannot report itself as a broken warning either.
 //  - The quiet-frame half asserts the boot frame carries ZERO alert pixels
 //    and no alert toast, which is what makes the raid frame's count mean
 //    something.
@@ -44,6 +52,7 @@
 import { expect, test } from '@playwright/test';
 import * as game from './helpers/gameTestHelpers';
 import { ALERT_SCREEN_PIXEL_FLOOR, countAlertScreenPixels as countAlertPixels } from './helpers/attackWarningPixels';
+import { BOOT_MAP_RAID_SEED, orderBootMapRaid } from './helpers/bootMapRaid';
 
 const ALERT_TOAST = '[data-hud="toast"][data-hud-toast-kind="alert"]';
 
@@ -98,12 +107,12 @@ function floorMessage(raidTick: number | null, marked: number): string {
     + `${marked.toFixed(0)} screen pixels, under the ${ALERT_SCREEN_PIXEL_FLOOR}-pixel floor a player can find`;
 }
 
-const NO_RAID = "no villager of the human's lost HP within 3600 ticks — "
+const NO_RAID = "no villager of the human's lost HP within 3600 ticks of the raid's order — "
   + 'the scenario no longer produces the raid this gate is about, so nothing was tested';
 
 test('an enemy raiding your villagers puts a mark on the minimap', async ({ page }) => {
   test.slow();
-  await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
+  await game.waitForPausedBootWithSeed(page, BOOT_MAP_RAID_SEED);
   await settleFrames(page);
 
   // A quiet frame carries no alert pixels at all. Without this, the raid
@@ -114,6 +123,7 @@ test('an enemy raiding your villagers puts a mark on the minimap', async ({ page
     await page.locator('[data-hud="minimap"]').getAttribute('data-attack-warning-cell'),
   ).toBeNull();
 
+  await orderBootMapRaid(page);
   const raidTick = await findRaid(page);
   // Distinguishes "the warning failed" from "the raid never happened".
   expect(raidTick, NO_RAID).not.toBeNull();
@@ -133,10 +143,12 @@ test('an enemy raiding your villagers puts a mark on the minimap', async ({ page
 // with no horn and no words. The real menu is driven for both the save and the
 // load. Bound: one save (tick 100) and one load, of the same match; a load
 // from another match or a later tick is the unit case in
-// `tests/ui/raidWarning.test.ts`.
+// `tests/ui/raidWarning.test.ts`. The raid is ordered after the save, so the
+// saved world holds no order, and ordered again after the load: the same raid,
+// met again, at the same distance from the order (work 144 M2).
 test('the first raid after loading an earlier save is announced again', async ({ page }) => {
   test.slow();
-  await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
+  await game.waitForPausedBootWithSeed(page, BOOT_MAP_RAID_SEED);
   // Count every alert toast the page raises: the first raid's toast can still
   // be on screen when the second arrives, so what is on screen cannot tell
   // the two apart, and a count of raised toasts can.
@@ -163,6 +175,7 @@ test('the first raid after loading an earlier save is announced again', async ({
   await page.locator('[data-hud="menu-resume"]').click();
   await page.evaluate(() => window.__AOE2_TEST__!.setPaused(true));
 
+  await orderBootMapRaid(page);
   expect(await findRaid(page), NO_RAID).not.toBeNull();
   await lookForMark(page);
   expect(await raised(), 'the raid before the load was not announced').toBe(1);
@@ -178,6 +191,7 @@ test('the first raid after loading an earlier save is announced again', async ({
   await settleFrames(page);
   expect(await countAlertPixels(page), "the old world's mark survived the load").toBe(0);
 
+  await orderBootMapRaid(page);
   const raidTick = await findRaid(page);
   expect(raidTick, NO_RAID).not.toBeNull();
   const { marked } = await lookForMark(page);

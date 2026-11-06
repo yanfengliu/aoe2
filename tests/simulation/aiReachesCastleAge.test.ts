@@ -153,12 +153,23 @@ interface MatchReport {
  *  match's length, which is why the 13/9 bars left; the union is a contract
  *  for the match players actually get. A name that drops out fails by name;
  *  a legitimate loss is edited out with its reason in the commit. The wider
- *  floor lives in `selfPlayContentCoverage.test.ts`, under the no-attack lab. */
+ *  floor lives in `selfPlayContentCoverage.test.ts`, under the no-attack lab.
+ *
+ *  THE MILITIA LEFT THE FLOOR (work 144 M2, 2026-11-06; the coordinator's
+ *  decision 4 of 2026-11-05). The computer now booms its Dark Age as DE's
+ *  ranged flush does: a villager whenever it holds fewer than 25, and up to 29
+ *  under a food threshold (Promisory units.per 328-376). The soldier reserve
+ *  (work 141 M1) leaves each due villager's 50 food, and a Militia's 60 is not
+ *  left over in a boom that spends its food on villagers: neither seat holds
+ *  one at any sample of this match (it was on the floor since 2026-09-05). DE's
+ *  flush trains no Dark Age soldier either, and play-1014 listed this AI's old
+ *  fixed opening (a Barracks at 00:36, a Militia at 02:30) as a fault. The
+ *  Barracks still stands and trains: the Spearman is on the floor. */
 const SHIPPED_BUILDINGS_EXERCISED = [
   'town-center', 'house', 'barracks', 'mill', 'lumber-camp', 'mining-camp', 'farm',
   'blacksmith', 'archery-range', 'stable', 'market',
 ];
-const SHIPPED_UNITS_EXERCISED = ['villager', 'scout', 'militia', 'spearman', 'archer', 'crossbowman'];
+const SHIPPED_UNITS_EXERCISED = ['villager', 'scout', 'spearman', 'archer', 'crossbowman'];
 
 interface SelfPlayResult {
   report: Record<number, MatchReport>;

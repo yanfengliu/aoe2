@@ -1,9 +1,9 @@
 # The computer booms in the Dark Age as Definitive Edition's does
 
 Status: active
-Owner: ai-dark-age worker (worktree `ai-dark-age-1105`) for the Claude coordinator
+Owner: the ai-dark-age workers (worktree `ai-dark-age-1105`; M2 landed by the third, 2026-11-06) for the Claude coordinator
 Created: 2026-11-05
-Updated: 2026-11-05
+Updated: 2026-11-06
 
 ## Problem and outcome
 
@@ -26,6 +26,15 @@ M1. A seed is a map seed. No system reads the world's rng (civ-engine's `world.r
 - `scripts/selfplay-audit.mjs` plays this checkout through it and prints its table as before, with the new columns in a second table.
 - `scripts/selfplay-ab.mjs` plays N seeds per map (default 5) in two checkouts, a process per match, and `scripts/selfplayAbReport.mjs` reports each column per owner as each arm's median and range, and, with the same seeds in both arms, the per-seed difference with its range and how many seeds moved up, down or not at all. A time not reached counts as later than any tick, so a lost age shows as a move. A scenario digest per record warns when two seeds are one map or one seed is two.
 
+
+M2: DE's rules (`src/game/simulation/aiDarkAgeBoom.ts`, read from the installed Promisory scripts).
+- The strategy. DE's AI plays one strategy a game, each with a type (init.per 10102-10153): drush is `dark-war`; sling, grush, the scout and ranged flushes and trush are `feudal-war`; the castle rushes are `castle-war`; fast-imp, stonewall, castledrop and "usual" against a non-flushing enemy are `imperial-war`. This AI is closest to a `feudal-war` one. It builds a Barracks first and trains soldiers from the Dark Age. It clicks each age the moment it can pay for it, which is DE's `feudal-war` Feudal click (researches.per 69-81: as soon as it can be researched); "usual" waits for 990 food, its villager count or the end of its villager training (56-96). Its Feudal army needs an Archery Range and gold (`pickUnitMix`), so of the flushes the ranged one (r-flush) is the closest. "usual" is also the strategy DE's Easiest and Standard force on every other (init.per 9577-9606), a handicap spec §13.1 lists.
+- The villager count, Dark Age (units.per 156-351). A `feudal-war` strategy stops its boom once it can research the Feudal Age with 21 villagers and the Feudal food banked, or 25 villagers and the food within 30 of it (225-233); after that only the base rule trains, under 400 food (180-190, `castle-feco`). Before that its boom rules run (328-337): a villager while under 25, and up to `darkvills`, 29 (32 for the Malay, not in this roster; const.per 3381-3384), while the food is under 845 plus the civilization's `dark-vill-buffer` (-65 for the Italians, Khmer and Ethiopians, customConstants.per 6349-6364), less 35 while Loom is still to research or the Wheelbarrow is under way, at 25 villagers, 65 less at 26 and 130 less at 27 and 28 (290-327). In this game's economy the food does not reach the Feudal Age's 500 before 26-29 villagers (B2, every seat and seed), so the seat trains to about its cap and banks then.
+- The Feudal Age (units.per 409-415): a villager while under 18, or until the Castle Age's food and gold are banked. DE's only higher bound is its civilian population. This AI's own Feudal cap of 22 would stop a 29-villager Dark Age from training in the Feudal Age at all, so B1 and B2 take DE's rule and bound it by this AI's Castle Age cap (40). That bound, and the Feudal entry of `villagerCapForAge` it implies, are the coordinator's call (Outcome).
+- The split, Dark Age. Below 12 villagers 75% food and 25% wood (dawn.per 72-78, work 141 M1). From 12, dawn.per adds each villager to one resource in turn (80-385) and writes the split from those counts (391-409). This assignment runs for every strategy, not only "usual", with rules of its own per strategy type: for `feudal-war` on land it gives 7 food first (93-104), 3 wood (120-129; a flush stops there), food up to 15 (310-319), wood up to 6 once 15 are on food (299-309), and food after that (310-319, 365-372). Its house villager (87-92) is this AI's House builder, and its drush gold rules (130-180) do not apply to a flush. gatherers.per's flush rules are the end of that age: from the Feudal click, or from 20 villagers with the Feudal food banked, the ranged flush gathers 33% food, 58% wood and 9% gold until an Archery Range stands (79-97). The scout flush's 55/45 (21-29) is the other flush.
+- The farm transition, Dark Age (buildings.per 4216-4260, init.per 1660-1740, dawn.per 413-430), B2 only. DE farms in the Dark Age while no farm stands idle, it owns fewer than 3 sheep and a wood drop site stands (4216-4223). It farms once it holds 7 villagers, is short of the Feudal food and has wood to spare (215, `farmmb-cost`) or fewer than 9 villagers on food, under 7 farms (4224-4234). It builds only as many as the food villagers that natural food does not employ: the food target less the villagers on sheep, forage, hunt and fish (`maxfarms`, init.per 1660-1671). While only farms feed it, its food villagers are the farms and one more, the rest cutting wood (dawn.per 413-430). This AI's farms are complete Farm buildings; its natural food is sheep, forage and hunt with food left within `HUNT_RADIUS` (20 tiles) of its Town Center (`bridge/systems/aiDarkAgeFarms.ts`).
+- Not modelled: the house-wood villager (dawn.per 87-92), the fishing and water rules, drush's gold and its micro, the Malay's and fast-imp's counts, the excess natural gatherers DE counts toward farms later in the game (init.per 1672-1740), and DE's second Dark Age House rule (M3).
+
 ## Acceptance criteria
 
 M1:
@@ -36,7 +45,19 @@ M1:
 - [x] Tests on the contract, each red with its defect put back (41 mutants); listed in `docs/debugging/instruments.md`; `npm run verify` and its receipt; independent review (rounds 0 to 2).
 - [x] The coordinator's acceptance (2026-11-05: "accepted, land it", no version and no changelog entry).
 
-M2 and M3: set when M1 lands, from DE's scripts (the brief's items 2 to 4).
+M2 (the coordinator, 2026-11-05: measure DE's Dark Age villager count and split both with and without DE's Dark Age farm rule, and bring the multi-seed A/B tables with the noise floor beside them before choosing):
+- [x] Source DE's Dark Age villager count, the split it implies for the strategy closest to how this AI plays, and DE's Dark Age farm rule (Approach, "M2: DE's rules").
+- [x] B1: the villager count and split; B2: B1 with the farm rule. Measured against main on the castle configuration (five maps, five seeds each) and the human-idle boot match (Outcome).
+- [x] The coordinator's choice (2026-11-05): B2, with the decisions in "M2 starting state" (Outcome).
+- [x] The census trace (decision 2): DE's Feudal villager rule moves the lab, and the losses are systematic there ("M2: the census trace"). For the coordinator's decision.
+- [x] The coordinator's decision on the trace (option 2, 2026-11-05): DE's farm count from the Feudal Age and DE's seventh Dark Age farm, with the sweep's cap knob fixed; measured ("M2: option 2, part 1"). The castle configuration loses Ages under it: for the coordinator.
+- [x] The coordinator's decision (2026-11-06): land B2, not option 2; back out option 2's farm count and keep its other fixes; keep DE's seventh Dark Age farm only if the final A/B loses no Age against B2's records ("M2: the landing").
+- [x] The gate changes 2-5 under the coordinator's decisions, each proven red; decision 5 dropped, its premise wrong, and the economy gate's total bar re-derived under the coordinator's option (a) of 2026-11-06 ("M2: the landing").
+- [x] Spec §13.2 with the corrected citations and the accepted costs; plan 106's four cards "(work 144)".
+- [x] The A/B on the final base and again on work 145's main (all 55 records identical), the live check, the three HUD and input specs repointed at a scripted raid (the coordinator's widened scope), verify with its receipt, review rounds 3 to 5, and the phase-1 handoff (2026-11-06).
+- [ ] The landing (phase 2), after the coordinator's "accepted, land it".
+
+M3: the second Dark Age House rule (the brief's item 4), and whatever of the farm transition M2 does not land.
 
 ## Implementation steps
 
@@ -45,7 +66,9 @@ M2 and M3: set when M1 lands, from DE's scripts (the brief's items 2 to 4).
 - [x] M1: the noise floor runs (Outcome).
 - [x] M1: review rounds 0 to 2 and their repairs, and the gate (Outcome).
 - [x] M1: the phase-1 handoff and the coordinator's "accepted, land it"; landed as bd679a37 (Outcome).
-- [ ] M2.
+- [x] M2: DE's rules sourced, B1 and B2 measured, the coordinator's choice (Outcome).
+- [x] M2: the census trace ("M2: the census trace"), handed to the coordinator.
+- [ ] M2: the gates, review and landing ("M2 starting state", after the trace's decision).
 - [ ] M3.
 
 ## Outcome
@@ -87,3 +110,261 @@ Gates. b59fb08b failed its unit stage on one test, the run-directly census, whic
 **M1 landed (2026-11-05), no version.** One commit, bd679a37, on main 41732763, squashing b59fb08b, 1f11ad9b, dc45e608, c07c8c1d and 541923e8 (the review records name the first three): the first was red on its own gate. Main had not moved, so the phase-1 receipt (c07c8c1d, tree 69feaec4066d) held with docs-only drift. CI run 42141841701 passed all 10 jobs and playtest-corpus run 42141841621 passed. Each job's time, read from its log's headroom line: the unit shards on Ubuntu 13.2, 11.8 and 9.3 of 60 minutes and on Windows 10.1, 10.0 and 13.3; the browser shards 15.1, 12.3, 10.4 and 12.9 of 45. `selfplayAb.test.ts` ran in shard 2, its slowest test 2.4 s of 20 s on Ubuntu and 2.9 s of 30 s on Windows. The primary checkout was fast-forwarded; the raw review runs in fleet's ignored `tmp/review-runs/aoe2-144-m1-r1` to `r3` were deleted, their reports kept in `reviews/`. The control worktree `ai-dark-age-base-1105` (main 41732763) stays as M2's before arm.
 
 Not checked in M1: the live lobby match through the real Start Match, since M1 changes no game file (it is M2's, before and after); the coverage census, which no file M1 touches can move; seeds of the `standard` and `lab` configurations.
+
+**M2: the A/B (2026-11-05, before the coordinator's choice; nothing landed).** Arms: A is main (the control worktree `ai-dark-age-base-1105`, main 41732763's game); B1 is DE's Dark Age villager count and split with DE's Feudal rule bounded by the Castle cap, and no Dark Age farms (worktree `ai-dark-age-b1-1105`, uncommitted); B2 is B1 with DE's Dark Age farm rule (`ai-dark-age-b2-1105`, uncommitted; the same code is uncommitted in `ai-dark-age-1105`). Castle configuration, five maps and five seeds each, 45,000 ticks on the default map and 60,000 on the others, and the human-idle boot match (the default map's five seeds, 45,000 ticks). Each cell: the arm's median [range]; for B1 and B2 the median of the per-seed difference from A and how many seeds moved up and down; and M1's noise floor, the move of a five-seed median between two seed sets on main's game. Bound: these seeds, deterministic, so exact for them; ages and farms every 250 ticks, clicks every 25, armies every 5,000. Records and reports in the worktree's ignored `tmp/m2/`.
+
+**Feudal click**
+
+| map | own | A (main) | B1 (no Dark Age farms) | B2 (with them) | noise floor |
+|---|---|---|---|---|---|
+| aoe2-prototype | 1 | 15:28 [11:48-19:48] | 17:55 [13:25-never]; +2:23 (4 up, 1 down) | 17:55 [13:25-never]; +2:23 (5 up, 0 down) | 0:00 |
+| aoe2-prototype | 2 | 15:05 [12:50-19:05] | 16:38 [13:55-21:13]; +1:05 (4 up, 1 down) | 16:38 [13:55-19:58]; +0:50 (4 up, 1 down) | -2:43 |
+| coastal | 1 | 9:33 [8:43-10:35] | 15:33 [13:05-never]; +4:58 (5 up, 0 down) | 16:55 [13:13-20:50]; +7:38 (5 up, 0 down) | -0:35 |
+| coastal | 2 | 12:28 [11:28-13:28] | never; +never (5 up, 0 down) | 14:55 [13:03-18:43]; +2:48 (4 up, 1 down) | +0:20 |
+| gold-rush | 1 | 9:58 [9:28-12:43] | never; +never (5 up, 0 down) | 15:40 [14:38-17:05]; +5:38 (5 up, 0 down) | -0:20 |
+| gold-rush | 2 | 14:35 [12:38-16:23] | never; +never (5 up, 0 down) | 19:05 [17:35-21:20]; +4:23 (5 up, 0 down) | -1:43 |
+| arena | 1 | 9:23 [9:20-9:25] | never; +never (5 up, 0 down) | 12:38 [12:33-19:03]; +3:15 (5 up, 0 down) | -0:05 |
+| arena | 2 | 17:53 [10:13-60:35] | never; +never (5 up, 0 down) | 13:58 [13:13-27:23]; -4:40 (2 up, 3 down) | -7:28 |
+| fortress | 1 | 8:23 [8:23-8:35] | never; +never (5 up, 0 down) | 11:28 [10:55-12:48]; +3:05 (5 up, 0 down) | -0:03 |
+| fortress | 2 | 11:05 [10:13-11:10] | never; +never (5 up, 0 down) | 13:25 [13:18-13:50]; +2:30 (5 up, 0 down) | -0:45 |
+
+**vills at Feudal click**
+
+| map | own | A (main) | B1 (no Dark Age farms) | B2 (with them) | noise floor |
+|---|---|---|---|---|---|
+| aoe2-prototype | 1 | 10 | 29; +19 (4 up, 0 down) | 29; +19 (4 up, 0 down) | 0 |
+| aoe2-prototype | 2 | 10 | 29; +19 (5 up, 0 down) | 29; +19 (5 up, 0 down) | 0 |
+| coastal | 1 | 10 | 29; +19 (3 up, 0 down) | 29; +19 (5 up, 0 down) | 0 |
+| coastal | 2 | 10 | n/a | 27 [24-29]; +17 (5 up, 0 down) | 0 |
+| gold-rush | 1 | 10 | n/a | 29; +19 (5 up, 0 down) | 0 |
+| gold-rush | 2 | 10 | n/a | 29 [28-29]; +19 (5 up, 0 down) | 0 |
+| arena | 1 | 10 | n/a | 29; +19 (5 up, 0 down) | 0 |
+| arena | 2 | 10 | n/a | 28 [24-29]; +18 (5 up, 0 down) | 0 |
+| fortress | 1 | 10 | n/a | 29 [28-29]; +19 (5 up, 0 down) | 0 |
+| fortress | 2 | 10 | n/a | 26 [26-27]; +16 (5 up, 0 down) | 0 |
+
+**Castle**
+
+| map | own | A (main) | B1 (no Dark Age farms) | B2 (with them) | noise floor |
+|---|---|---|---|---|---|
+| aoe2-prototype | 1 | never [36:40-never] | 50:00 [29:35-never]; -never (2 up, 3 down) | 56:15 [29:10-never]; -never (2 up, 3 down) | -never |
+| aoe2-prototype | 2 | 39:35 [31:15-41:40] | 37:05 [29:10-46:40]; -4:35 (2 up, 3 down) | 37:30 [30:50-40:50]; -4:10 (2 up, 3 down) | -4:35 |
+| coastal | 1 | 38:20 [32:05-never] | 32:30 [29:35-never]; -0:25 (2 up, 3 down) | 32:30 [27:55-45:50]; 0:00 (2 up, 2 down) | -1:40 |
+| coastal | 2 | 33:45 [31:40-34:10] | never; +never (5 up, 0 down) | 28:20 [24:35-31:15]; -3:45 (0 up, 5 down) | -1:40 |
+| gold-rush | 1 | never [31:40-never] | never; 0:00 (2 up, 0 down) | 27:55 [27:05-29:35]; -never (0 up, 5 down) | 0:00 |
+| gold-rush | 2 | 37:55 [34:35-never] | never; +never (4 up, 0 down) | never [26:15-never]; +never (3 up, 2 down) | -2:55 |
+| arena | 1 | 80:00 [54:35-never] | never; +never (3 up, 0 down) | 53:45 [50:00-never]; -30:00 (2 up, 3 down) | -22:30 |
+| arena | 2 | 41:15 [30:00-never] | never; +never (4 up, 0 down) | 27:30 [25:00-40:25]; -16:15 (2 up, 3 down) | -7:30 |
+| fortress | 1 | 52:55 [43:20-never] | never; +never (4 up, 0 down) | 26:40 [22:30-28:20]; -24:35 (0 up, 5 down) | -10:00 |
+| fortress | 2 | 30:00 [28:20-30:00] | never; +never (5 up, 0 down) | 24:10 [22:05-24:35]; -5:25 (0 up, 5 down) | -1:15 |
+
+**Imperial**
+
+| map | own | A (main) | B1 (no Dark Age farms) | B2 (with them) | noise floor |
+|---|---|---|---|---|---|
+| aoe2-prototype | 1 | never | 63:20 [35:50-never]; -never (0 up, 4 down) | never [35:25-never]; 0:00 (0 up, 1 down) | 0:00 |
+| aoe2-prototype | 2 | 70:50 [60:25-never] | never [52:30-never]; +never (3 up, 1 down) | 50:25 [44:35-57:30]; -15:50 (0 up, 5 down) | -11:15 |
+| coastal | 1 | 92:05 [63:20-never] | never [49:10-never]; 0:00 (2 up, 2 down) | never [59:35-never]; 0:00 (1 up, 1 down) | -26:15 |
+| coastal | 2 | never [59:10-never] | never; 0:00 (2 up, 0 down) | 55:25 [31:40-never]; -23:20 (0 up, 3 down) | -never |
+| gold-rush | 1 | never [55:25-never] | never; 0:00 (2 up, 0 down) | 47:55 [42:30-never]; -never (1 up, 4 down) | 0:00 |
+| gold-rush | 2 | 60:25 [57:05-never] | never; +never (3 up, 0 down) | never [61:15-never]; +never (3 up, 1 down) | +8:20 |
+| arena | 1 | never [62:30-never] | never; 0:00 (2 up, 0 down) | never; 0:00 (2 up, 0 down) | 0:00 |
+| arena | 2 | never [58:45-never] | never; 0:00 (2 up, 0 down) | 45:50 [40:50-53:20]; -never (0 up, 5 down) | -never |
+| fortress | 1 | never [72:05-never] | never; 0:00 (2 up, 0 down) | 42:05 [31:15-48:20]; -never (0 up, 5 down) | 0:00 |
+| fortress | 2 | 47:30 [45:25-48:20] | never; +never (5 up, 0 down) | 38:45 [37:05-45:50]; -6:40 (0 up, 5 down) | -0:50 |
+
+**vills 10:00**
+
+| map | own | A (main) | B1 (no Dark Age farms) | B2 (with them) | noise floor |
+|---|---|---|---|---|---|
+| aoe2-prototype | 1 | 10 [5-10] | 20 [19-24]; +14 (5 up, 0 down) | 20 [19-24]; +14 (5 up, 0 down) | -1 |
+| aoe2-prototype | 2 | 10 [8-10] | 19 [17-23]; +9 (5 up, 0 down) | 19 [17-23]; +9 (5 up, 0 down) | 0 |
+| coastal | 1 | 10 | 25 [23-26]; +15 (5 up, 0 down) | 25 [23-26]; +15 (5 up, 0 down) | 0 |
+| coastal | 2 | 10 | 16 [12-19]; +6 (5 up, 0 down) | 16 [12-19]; +6 (5 up, 0 down) | 0 |
+| gold-rush | 1 | 10 | 22 [21-23]; +12 (5 up, 0 down) | 22 [21-23]; +12 (5 up, 0 down) | 0 |
+| gold-rush | 2 | 9 [5-10] | 12 [9-16]; +4 (4 up, 0 down) | 12 [9-16]; +4 (4 up, 0 down) | +1 |
+| arena | 1 | 10 | 25 [25-26]; +15 (5 up, 0 down) | 25 [25-26]; +15 (5 up, 0 down) | 0 |
+| arena | 2 | 10 | 19 [14-20]; +9 (5 up, 0 down) | 19 [14-20]; +9 (5 up, 0 down) | 0 |
+| fortress | 1 | 10 | 26 [25-26]; +16 (5 up, 0 down) | 26 [25-26]; +16 (5 up, 0 down) | 0 |
+| fortress | 2 | 10 | 17 [17-18]; +7 (5 up, 0 down) | 17 [17-18]; +7 (5 up, 0 down) | 0 |
+
+**vills 20:00**
+
+| map | own | A (main) | B1 (no Dark Age farms) | B2 (with them) | noise floor |
+|---|---|---|---|---|---|
+| aoe2-prototype | 1 | 15 [10-22] | 29 [18-39]; +15 (5 up, 0 down) | 29 [21-39]; +15 (5 up, 0 down) | -1 |
+| aoe2-prototype | 2 | 15 [10-21] | 31 [29-38]; +19 (5 up, 0 down) | 31 [29-38]; +18 (5 up, 0 down) | +5 |
+| coastal | 1 | 22 | 30 [2-38]; +8 (4 up, 1 down) | 31 [29-40]; +9 (5 up, 0 down) | 0 |
+| coastal | 2 | 22 [19-22] | 29 [27-29]; +7 (5 up, 0 down) | 35 [28-38]; +13 (5 up, 0 down) | -1 |
+| gold-rush | 1 | 22 [15-22] | 25 [22-26]; +4 (4 up, 0 down) | 34 [30-36]; +12 (5 up, 0 down) | 0 |
+| gold-rush | 2 | 13 [10-18] | 26 [22-29]; +12 (5 up, 0 down) | 29 [28-29]; +16 (5 up, 0 down) | +4 |
+| arena | 1 | 22 [21-22] | 29 [28-29]; +7 (5 up, 0 down) | 39 [29-40]; +17 (5 up, 0 down) | 0 |
+| arena | 2 | 10 [10-22] | 27 [14-29]; +17 (4 up, 1 down) | 37 [14-39]; +27 (4 up, 1 down) | +12 |
+| fortress | 1 | 22 | 28 [28-29]; +6 (5 up, 0 down) | 40; +18 (5 up, 0 down) | 0 |
+| fortress | 2 | 22 | 29 [27-29]; +7 (5 up, 0 down) | 36 [35-37]; +14 (5 up, 0 down) | 0 |
+
+**first farm**
+
+| map | own | A (main) | B1 (no Dark Age farms) | B2 (with them) | noise floor |
+|---|---|---|---|---|---|
+| aoe2-prototype | 1 | 18:20 [14:35-22:55] | 21:15 [16:40-never]; +2:55 (4 up, 1 down) | 18:45 [15:00-20:50]; +0:25 (3 up, 2 down) | +0:25 |
+| aoe2-prototype | 2 | 20:25 [15:25-21:40] | 20:00 [16:40-24:10]; +1:15 (3 up, 2 down) | 15:50 [12:05-18:20]; -3:45 (1 up, 4 down) | -3:20 |
+| coastal | 1 | 13:45 [12:30-15:50] | 18:20 [15:50-never]; +4:10 (5 up, 0 down) | 13:20 [11:40-14:35]; -0:50 (1 up, 3 down) | 0:00 |
+| coastal | 2 | 15:00 [14:10-16:15] | never; +never (5 up, 0 down) | 11:15 [9:10-16:40]; -2:55 (1 up, 4 down) | +0:25 |
+| gold-rush | 1 | 14:10 [12:05-15:50] | never; +never (5 up, 0 down) | 12:05 [12:05-14:10]; -0:50 (0 up, 3 down) | -0:25 |
+| gold-rush | 2 | 17:30 [16:15-19:35] | never; +never (5 up, 0 down) | 15:50 [15:25-16:40]; -1:40 (1 up, 4 down) | -0:50 |
+| arena | 1 | 12:05 [12:05-12:30] | never; +never (5 up, 0 down) | 10:50 [10:25-10:50]; -1:15 (0 up, 5 down) | 0:00 |
+| arena | 2 | 20:25 [14:10-63:20] | never; +never (5 up, 0 down) | 10:50 [10:00-12:05]; -9:35 (0 up, 5 down) | -6:15 |
+| fortress | 1 | 11:15 [11:15-11:40] | never; +never (5 up, 0 down) | 9:10 [8:45-9:35]; -2:05 (0 up, 5 down) | 0:00 |
+| fortress | 2 | 13:45 [12:55-13:45] | never; +never (5 up, 0 down) | 11:40 [11:15-11:40]; -2:05 (0 up, 5 down) | -0:50 |
+
+**peak army**
+
+| map | own | A (main) | B1 (no Dark Age farms) | B2 (with them) | noise floor |
+|---|---|---|---|---|---|
+| aoe2-prototype | 1 | 5 [5-10] | 13 [1-21]; +3 (4 up, 1 down) | 9 [1-25]; +4 (3 up, 2 down) | +2 |
+| aoe2-prototype | 2 | 13 [11-30] | 11 [9-20]; -3 (1 up, 4 down) | 22 [13-31]; +10 (4 up, 1 down) | +3 |
+| coastal | 1 | 6 [4-24] | 15 [2-18]; -1 (2 up, 3 down) | 9 [6-21]; 0 (2 up, 2 down) | +2 |
+| coastal | 2 | 14 [7-19] | 1; -13 (0 up, 5 down) | 12 [8-19]; 0 (2 up, 2 down) | -1 |
+| gold-rush | 1 | 5 [4-50] | 4; -1 (0 up, 4 down) | 37 [11-48]; +28 (3 up, 2 down) | 0 |
+| gold-rush | 2 | 24 [4-29] | 1; -23 (0 up, 5 down) | 6 [4-55]; -18 (1 up, 4 down) | -4 |
+| arena | 1 | 6 [6-22] | 2; -4 (0 up, 5 down) | 5 [2-8]; -2 (1 up, 3 down) | +2 |
+| arena | 2 | 14 [3-30] | 1; -13 (0 up, 5 down) | 30 [15-79]; +7 (3 up, 1 down) | -4 |
+| fortress | 1 | 7 [5-11] | 2 [2-3]; -5 (0 up, 5 down) | 7 [7-11]; +1 (3 up, 2 down) | -1 |
+| fortress | 2 | 19 [11-56] | 1; -18 (0 up, 5 down) | 25 [14-39]; -5 (2 up, 3 down) | +4 |
+
+**vill lost**
+
+| map | own | A (main) | B1 (no Dark Age farms) | B2 (with them) | noise floor |
+|---|---|---|---|---|---|
+| aoe2-prototype | 1 | 23 [3-55] | 18 [6-46]; 0 (2 up, 2 down) | 50 [12-67]; +13 (3 up, 2 down) | +13 |
+| aoe2-prototype | 2 | 6 [1-17] | 29 [0-68]; +27 (4 up, 1 down) | 7 [0-72]; -4 (2 up, 3 down) | -5 |
+| coastal | 1 | 28 [1-92] | 0 [0-53]; -28 (1 up, 4 down) | 49 [17-105]; +13 (3 up, 2 down) | +57 |
+| coastal | 2 | 18 [2-99] | 26 [15-34]; +13 (3 up, 2 down) | 59 [0-87]; +6 (3 up, 2 down) | -3 |
+| gold-rush | 1 | 46 [0-96] | 11 [4-25]; -35 (2 up, 3 down) | 0 [0-28]; -46 (1 up, 4 down) | +32 |
+| gold-rush | 2 | 8 [4-73] | 13 [7-23]; +3 (3 up, 2 down) | 67 [13-93]; +37 (3 up, 2 down) | -5 |
+| arena | 1 | 23 [0-37] | 1 [0-8]; -23 (2 up, 3 down) | 47 [35-66]; +27 (5 up, 0 down) | +8 |
+| arena | 2 | 9 [0-59] | 3 [2-7]; -6 (2 up, 3 down) | 2 [1-5]; -8 (2 up, 3 down) | -8 |
+| fortress | 1 | 102 [82-113] | 9 [9-20]; -82 (0 up, 5 down) | 58 [41-88]; -28 (0 up, 5 down) | -9 |
+| fortress | 2 | 6 [0-47] | 11 [4-15]; +7 (3 up, 2 down) | 13 [3-31]; +2 (3 up, 1 down) | -4 |
+
+**match end**
+
+| map | own | A (main) | B1 (no Dark Age farms) | B2 (with them) | noise floor |
+|---|---|---|---|---|---|
+| aoe2-prototype | - | never [72:06-never] | never [36:40-never]; 0:00 (1 up, 1 down) | never [50:04-never]; 0:00 (1 up, 1 down) | 0:00 |
+| coastal | - | never [98:42-never] | 70:52 [36:17-never]; -27:50 (0 up, 3 down) | never [85:15-never]; 0:00 (1 up, 2 down) | 0:00 |
+| gold-rush | - | 88:47 [79:51-97:58] | never; +never (5 up, 0 down) | 80:42 [67:13-90:19]; -14:43 (2 up, 3 down) | +7:36 |
+| arena | - | never | never; 0:00 (0 up, 0 down) | never [93:21-never]; 0:00 (0 up, 2 down) | 0:00 |
+| fortress | - | never [94:52-never] | never; 0:00 (1 up, 0 down) | never; 0:00 (1 up, 0 down) | 0:00 |
+
+The human-idle boot match (owner 2 against an idle human, lobby defaults):
+| aoe2-prototype | - | 49:05 [42:08-69:33] | 44:49 [35:59-56:43]; -7:34 (2 up, 3 down) | 40:11 [39:07-56:02]; -3:33 (1 up, 4 down) | n/a |
+| aoe2-prototype | 2 | 10:55 [10:18-16:10] | 17:08 [12:08-19:58]; +3:40 (5 up, 0 down) | 15:55 [12:08-19:10]; +3:40 (4 up, 1 down) | n/a |
+| aoe2-prototype | 2 | 10 | 29 [27-29]; +19 (5 up, 0 down) | 29 [27-29]; +19 (5 up, 0 down) | n/a |
+| aoe2-prototype | 2 | 13:20 [12:30-18:20] | 19:35 [15:00-22:30]; +3:45 (5 up, 0 down) | 18:20 [15:00-21:40]; +3:45 (4 up, 0 down) | n/a |
+| aoe2-prototype | 2 | 36:40 [33:20-39:10] | 32:55 [32:30-52:30]; -0:50 (2 up, 3 down) | 37:30 [35:25-52:30]; +4:10 (3 up, 1 down) | n/a |
+| aoe2-prototype | 2 | 10 | 21 [19-23]; +11 (5 up, 0 down) | 21 [19-23]; +11 (5 up, 0 down) | n/a |
+| aoe2-prototype | 2 | 22 [13-22] | 30 [29-40]; +15 (5 up, 0 down) | 32 [29-40]; +15 (5 up, 0 down) | n/a |
+| aoe2-prototype | 2 | 17:05 [13:20-19:10] | 20:50 [15:50-22:55]; +2:30 (4 up, 0 down) | 15:50 [13:20-17:55]; -0:25 (1 up, 3 down) | n/a |
+| aoe2-prototype | 2 | 10 [7-16] | 13 [9-18]; +6 (4 up, 1 down) | 13 [8-18]; +3 (4 up, 1 down) | n/a |
+
+What the A/B says:
+- B1 loses the Feudal Age. Without Dark Age farms, a seat with 25-29 villagers eats its natural food and can never bank the Feudal Age's 500 food: on gold-rush, arena and fortress both seats and coastal's owner 2 never click Feudal within 60,000 ticks, on all five seeds. Under the drop-don't-tune rule B1 is dropped.
+- B2 grows the Dark Age as DE's does: 26-29 villagers at the Feudal click on every seat and seed, against 10; 12-26 villagers at 10:00 against 9-10; and the first farm earlier on 9 of 10 seats.
+- B2 clicks Feudal later on 9 of 10 seats, by 0:50 to 7:38 (medians), outside the noise floor on 8 of them (the default map's owner 2 moves 0:50 against a floor of 2:43); arena's owner 2 clicks 4:40 sooner, inside its floor of 7:28. It reaches the Castle Age sooner on most: fortress 24:35 and 5:25 sooner and arena 30:00 and 16:15 sooner, on most seeds. Gold-rush's owner 1 reaches it on all 5 seeds by 29:35 against 2 of 5 on main, and coastal's owner 2 is 3:45 sooner on all five. The Imperial Age is up to 23:20 sooner. The exception is gold-rush's owner 2, which reaches the Castle Age on 2 of 5 seeds against 4 of 5 on main: owner 1 now wins 4 of 5 gold-rush matches (owner 2 won 3 of 5 on main), and owner 2 loses 67 [13-93] villagers against 8.
+- Villager deaths move both ways, mostly within the noise floor: arena's owner 1 loses 27 more on all five seeds and fortress's owner 1 28 fewer on all five.
+- The human-idle boot match: owner 2 clicks Feudal at 15:55 against 10:55 with 29 villagers against 10, holds 21 villagers at 10:00 against 10, and conquers the idle human at 40:11 against 49:05 (4 of 5 seeds sooner). Its Castle Age is not sooner there (37:30 against 36:40).
+- The arena lead from M1 (owner 2 held in the Dark Age to 58-60 minutes on `arena#2` and `arena#4`, with no Dark Age farm) is gone under B2: owner 2 clicks Feudal at 13:58 [13:13-27:23] and lays its first farm by 12:05 on every seed.
+
+The coverage lab (`selfPlayContentCoverage.test.ts`, its exact match, the census printed in full by a scratch copy of the test with its producer checks soft): B1 and B2 move it identically, since the lab's high resources keep the food over the Feudal Age's and the farm rule never fires there. Ages unchanged, both Imperial. Losses of a new kind, for the coordinator: owner 1 loses its Monastery and Siege Workshop buildings (so the Siege Workshop as a research producer and the Monastery as a train producer), and owner 2 loses its Castle (as a research and a train producer). Other moves: union units gained arbalest, capped-ram and skirmisher, lost battering-ram, halberdier, mangonel and throwing-axeman; union technologies gained arbalest-upgrade, plate-barding and plate-mail-armor, lost elite-skirmisher-upgrade and halberdier-upgrade. Owner 1's units gained arbalest, skirmisher and two-handed-swordsman and lost halberdier and monk. Its technologies gained arbalest-upgrade, blast-furnace, plate-barding, plate-mail-armor and two-handed-swordsman-upgrade and lost capped-ram-upgrade and halberdier-upgrade. Owner 2's units gained capped-ram and skirmisher and lost battering-ram, mangonel and throwing-axeman. Its technologies gained capped-ram-upgrade and lost conscription and elite-skirmisher-upgrade. Its research producers gained siege-workshop.
+
+Existing gates B1 and B2 both turn red (`tests/simulation`, run in full on B2 and the four self-play ones on B1; none changed yet):
+- `aiReachesCastleAge.test.ts`: neither seat trains a Militia, which is on the shipped configuration's named unit floor. A villager is now due through the whole Dark Age, and the soldier reserve (work 141 M1) leaves its 50 food, so the Dark Age Militia is never bought. DE's ranged flush trains no Dark Age soldier either.
+- `playerHitCensus.test.ts`: its all-AI window holds no raid any more ("nothing lost a hit point or died"), for the same reason.
+- `aiEconomySelfPlay.test.ts`, both seats AI: owner 2's Town Center is idle while able 33.4 s in all (33.8 on B1), against the 30 s regression floor. "Able" reads the cap (now 29), so the seconds DE's flush stops training to bank its Feudal food (units.per 225-233) count as idle.
+- `selfPlayContentCoverage.test.ts`: the census above.
+- `darkAgeTuning.test.ts` pins the cap of 10, and `aiVillagerCap.test.ts` the strict order of the age caps, which a 29-villager Dark Age above the Feudal cap of 22 breaks.
+
+**M2 starting state (2026-11-05, for a fresh worker; the coordinator's decisions on the A/B above).** The ai-dark-age worker handed over at about 370k tokens. B2's code, its unit test and this plan are on branch `ai-dark-age-1105` as one work-in-progress commit, ungated and unlanded, on main 57d06adf (main has since moved: merge it first).
+- Decisions (coordinator, 2026-11-05):
+  1. B2 is the arm. B1 is dropped: with no Dark Age farms, no Feudal click within 60,000 ticks on any seed for gold-rush's and arena's and fortress's two seats and coastal's owner 2 (coastal's owner 1 clicks 4:58 later, the default map's two seats 2:23 and 1:05 later).
+  2. The census losses (owner 1's Monastery and Siege Workshop buildings, owner 2's Castle) are NOT accepted. Losing a building is the drop condition unless the cause lies elsewhere, so trace it first. The coordinator's hypothesis was that the ranged flush's 33/58/9 split, with no stone, runs past the Feudal click into the Castle Age and starves a 650-stone Castle, as work 141's dropped Castle Age split did (gatherers.per 1380-1447). The split is to be scoped to the Dark-to-Feudal span DE uses it for, then the census and the castle table re-measured, and if the losses persist under a properly scoped split, the trace goes to the coordinator. Note for the trace: the flush split is already reached only in `villagerTargetsForAge`'s `dark-age` case (the Feudal research and the 20-villager banked-food moment), and the Feudal, Castle and Imperial splits (7:6:1:1, 4:4:3:1, 4:3:5:1, each with stone) are unchanged, so the hypothesis' mechanism is not in the code as written, and the trace must look elsewhere. Candidates, not measured: DE's Feudal villager rule, under which the lab's high starting resources bank the Castle Age's cost at once so the Feudal Age trains no villager past the Dark Age's count (about 21 at DE's flush stop, against main's Feudal 22); the earlier, larger Dark Age shifting the whole match; and the lab's known chaos in its last producers (work 141: "whatever comes last goes unbought whenever the purse is short", wood-starved in the Castle and Imperial Ages). M2a-1's `labSpend.mts` approach (the lab's match sampled every 1,000 ticks) is the probe shape; work 141's copy left with its worktree.
+  3. Gold-rush's owner 2 (Castle on 2 of 5 seeds against 4, 67 [13-93] villagers lost against 8) is accepted as a lost match against a stronger owner 1, which now wins 4 of 5 gold-rush matches; not a stall.
+  4. The Dark Age Militia is gone, accepted: DE's flush trains no Dark Age soldier, and play-1014 listed the old fixed opening (a Barracks at 00:36, a Militia at 02:30) as a fault. Edit `aiReachesCastleAge.test.ts`'s militia floor with that reason in the test; move `playerHitCensus.test.ts`'s window to one that holds a raid, keeping its assertions' meaning.
+  5. `aiEconomySelfPlay.test.ts`'s "able" may follow DE's training stop on one condition (R19): the gate encodes the stop itself from its citations (units.per 225-233 in the Dark Age, 409-415 in the Feudal Age) and does NOT import the AI's own `deWantsVillager`. The 30 s floor stays.
+  6. `aiVillagerCap.test.ts`: a Feudal bound equal to the Castle bound is accepted; the test records why strictly increasing caps were this AI's own invention, which DE's per-age rules do not follow (DE: Dark Age to 29, Feudal until the Castle Age is banked, Castle under 50).
+- The gates to change, and why: `darkAgeTuning.test.ts` (the cap pin 10 becomes DE's 29; the 3:1 weights are now the under-12 split only); `aiVillagerCap.test.ts` (decision 6); `aiReachesCastleAge.test.ts` and `playerHitCensus.test.ts` (decision 4); `aiEconomySelfPlay.test.ts` (decision 5); `selfPlayContentCoverage.test.ts` and its census (decision 2, after the trace). None is changed yet; `tests/simulation` run in full on B2 had these six red and nothing else.
+- Also owed before landing: red proofs for `tests/simulation/aiDarkAgeBoom.test.ts` (8 tests, green, none proven red yet) and for each gate change; spec §13.2 (the villager count, the split, the Feudal rule and the farm transition, with the citations in Approach); the A/B re-run on the final base; the live lobby check (PREVIEW_PORT=4322: the computer's villagers and its Feudal click); `npm run verify` and the receipt; review; the devlog and changelog (user-visible: `## Unreleased — work 144 M2`).
+- Coordination: work 145 (worker "shared-gathering", worktree `shared-gathering-1105`) is lifting the two-gatherer cap per resource in the gather code this AI uses. Whichever of 145 and 144 M2 lands second re-measures its A/B on the other's landing.
+- Where things are: the code is on branch `ai-dark-age-1105` in worktree `../aoe2-worktrees/ai-dark-age-1105`. The A arm is `../aoe2-worktrees/ai-dark-age-base-1105` (branch of the same name, main 41732763's game, kept). The B1 and B2 arm copies were removed after this commit; B1 is B2 without the farm wiring (`bridge/systems/aiDarkAgeFarms.ts`, the farm line in `ai.ts`'s Dark Age build order, the building phase's `darkAgeFarmsWanted` and the farms-only split). The worktree's ignored `tmp/m2/` holds the A/B records (`ab-b1-castle/`, `ab-b2-castle/`, `ab-b1-idle/`, `ab-b2-idle/`, each with `report.md`), `run-ab.sh` (the runs as made), `table.mjs` (the tables above, `node tmp/m2/table.mjs castle <maps> "<columns>"`), `census-b2.log` and the scratch census probe's method (a copy of `selfPlayContentCoverage.test.ts` with its producer checks soft and the diff printed). `tmp/m1/` holds M1's noise-floor records (`aa-castle/`, `aa-offset/`, `aa-idle/`), `mutate.mjs` and `gate.sh` (waits for the lock, runs `npm run verify` with PREVIEW_PORT=4322, checks the receipt, releases the lock).
+
+**M2: the census trace (2026-11-05, the second worker; nothing landed; for the coordinator's decision).** Bound: the lab configuration (`selfplay-ab.mjs --config lab`, five maps and five seeds each, 45,000 ticks), main 41732763's game (A, `ai-dark-age-base-1105`) against B2 (B, this branch at f447b4e1: 5f68a1dd with main e714b4c0 merged, docs only). The census match (the default map's first seed) was traced in both arms every 1,000 ticks (`tmp/probes/labTrace.mts`, on `aiEconomyTrace.ts`), with its site searches (`tmp/probes/castleSite.mts`, on `placementSearchInstrument`, the search unchanged). Deterministic, so exact for these seeds. Records in the worktree's ignored `tmp/m2/ab-b2-lab/` (with `report.md`) and `tmp/m2/trace/`.
+- Candidate (a) names the rule, but it works the other way. The lab's AI spends its food as it comes: 29-174 at every Feudal sample of the census match. So DE's Feudal rule (units.per 409-415: a villager until the Castle Age's 800 food and 200 gold are banked) trains on to 32-40 villagers at the Castle click, on every seat and seed, against main's Feudal cap of 22. The Castle click comes later on all 50 seat-seeds: by 1:48 to 4:40 (medians) on nine seats, and by 19:40 on gold-rush's owner 2.
+- Candidate (b) does not apply in the lab: its Dark Age is identical per seed in both arms (the default map's Feudal click at 0:53-2:13, Feudal at 3:45-5:25), since 1,000 starting food pays for the click once the Barracks and Mill stand.
+- Candidate (c) delivers each loss, on the census match. Owner 1 (B2) builds its Castle at 11,750, then holds 1-168 wood at every sample to 45,000, against the Monastery's 175 and the Siege Workshop's 200; it has 60 villagers, an army of 140 and population 200/200 from 40,000. Main's owner 1 also bought those two last, at 21,250, 11,000 ticks after its Castle, when its wood first reached 172. Owner 2 (B2) placed its Siege Workshop and Monastery at 13,786-14,000. It then searched for a 4x4 Castle site at its Town Center on every decision from 13,801 to 16,486 (141 searches, Hard's 15 ticks apart), and every search came back NULL while it held 756-795 stone. Between 15,600 and 16,200 its stone fell to 47 and the Market's stone price from 73 to 49: the Siege Workshop and Monastery had qualified it for the Imperial Age, and the shortfall trade sold the stone. Main's owner 2 placed its Castle, Siege Workshop and Monastery together at 11,000.
+- Across the lab's 25 seeds the loss is systematic, not one seed's chaos. Main holds a Castle on 50 of 50 seat-seeds and a Monastery and a Siege Workshop on 49 each. B2 holds a Castle on 48, a Monastery on 46 and a Siege Workshop on 44.
+- B2 also loses an Age in the lab: on `gold-rush` (its first seed) owner 2 never clicks the Castle Age in 45,000 ticks (main: 13,325). Its food is 2-49 at every Feudal sample to 24,000, with 8 farms (`targetFarmCount`'s cap) and 20-31 villagers, while its wood climbs to 1,719 unspent. Under DE's Feudal rule every 50 food buys a villager, so the 800 never banks. On main the cap of 22 stopped its villagers at 8,000, and its food reached 597 by 13,000.
+- The castle configuration does not show it. There B2 holds a Castle on 35 of 50 seat-seeds against main's 30, a Monastery on 35 against 27 and a Siege Workshop on 33 against 27, and reaches the Castle Age on 43 against 38 (`tmp/m2/ab-b2-castle`).
+- So the census's three losses trace to M2's Feudal rule acting through the lab's high starting resources. Causes outside the rule deliver them: the lab's wood starvation (spec §13.2, "Not yet DE"), a full base where no 4x4 site passes the seal guard within `AI_PLACEMENT_WIDER_SEARCH_RADIUS` (24), the Imperial shortfall trade selling stone a Castle wanted, and the Feudal farm cap of 8.
+
+Further findings, for M2's landing:
+- DE's base rule (units.per 185-196) trains a Dark Age villager under 400 food at any count, past `darkvills`; the rule before it (168-176) skips it only from 700 food. B2 stops at 29 whatever its food. On each map's first castle-configuration seed, B2's seats held 29 villagers with under 400 food for 800-5,675 ticks before the click, their Town Center idle for 0-3,900 of them (`tmp/probes/darkBaseRule.mts`). B2's line for the base rule after its flush stop (`food < 400` where the food is at least 470) can never train.
+- B2's Dark Age farm limit is 6, where DE builds while it has fewer than 7 (buildings.per 4234), so up to 7.
+- `deWantsVillager` reads its own 29, so `DARK_AGE_TUNING.villagerCap` no longer reaches the Dark Age decision and `ai-dark-age-sweep.mjs`'s cap knob does nothing.
+- Exact citations: the flush stop is units.per 233-244. The brief's and decision 5's 225-233 straddle the end of 223-232 (no villager on the pass the Feudal Age can be researched with 1,260 food, or 1,050 at 25 villagers) and the stop's first lines. The base rules are 185-206, the boom 328-338, its thresholds 293-327, the Feudal rule 409-415, and the Castle Age's count 478-486 (under 50; 60 in the Imperial Age).
+- `playerHitCensus.test.ts`'s all-AI window: under B2 the boot match's first blow lands at tick 22,682 (a Town Center's arrows), with raids at 22,200-23,400 and 24,600-25,800 (`tmp/probes/hitWindow.mts`). A 6,000-tick census from 20,000 holds both.
+
+**M2: option 2, part 1 (2026-11-05, the second worker; the coordinator's decision: "Bring DE's farm count into M2, then land").** Handed over at about 240k tokens, at the coordinator's direction ("write the state into plan 144 at a clean point"). The code is a work-in-progress commit on the branch, 7999a2e4, ungated and unlanded.
+- DE's farm count (Promisory init.per 1660-1671, `maxfarms`): from the Feudal Age the AI wants the villagers its split puts on food, less those on natural food (sheep, forage, hunt, fish), never below 0, floored at this AI's own two (`targetFarmCount`, which the building phase now hands the natural food gatherers through `foodGatherers`). It replaced a third of the villagers capped at 8. Castle Age at 21 villagers is 7 either way, so `aiBuildOrderPastFarms.test.ts` is unchanged.
+- The Dark Age farm limit is DE's: a farm while fewer than 7 stand or are placed (buildings.per 4234), so up to 7, not 6.
+- `deWantsVillager` reads its bound from `villagerCapForAge` again (`cap`, in place of its own 29 and of `castleAgeCap`), and the Feudal entry is 40 (decision 6). Proved with the sweep (`ai-dark-age-sweep.mjs --caps 16,29 --splits 3:1 --seeds aoe2-prototype --ticks 20000`): cap 16 clicked Feudal at 7,000 and 10,000 and cap 29 at 10,400 and 13,300; with the bound unread (B2's code put back) both rows read 10,400 and 13,300.
+- The dead branch after the flush stop (`food < 400` where the food is at least 470) is `false`, with its reason; the citations are the exact rules (the flush stop units.per 233-244, the base rules 185-206, the boom 328-338, its thresholds 293-327, the Feudal rule 409-415).
+- Tests: `aiDarkAgeBoom.test.ts`, 11 (three new: the bound handed in, in both ages; DE's farm count, with no cap of 8; its floor and the Dark Age's 0), the Dark Age farm cases at DE's 7. Gate changes 1 and 6 made: `darkAgeTuning.test.ts` pins the cap of 29 and the Feudal 40; `aiVillagerCap.test.ts` asks a cap that never shrinks, with DE's per-age rules as the reason (decision 6). Red with each defect put back, 9 mutants (`tmp/m2/mutate.mjs`): the cap of 8, natural food not taken off, a third of the villagers, the floor of two dropped, the Dark Age limit 6, the Dark Age bound unread, the Feudal bound unread, the Feudal cap back to 22 and the Dark Age cap back to 10.
+- The A/B against main (`tmp/m2/run-b3.sh`: castle and lab, five maps by five seeds, and the human-idle boot match; main's records reused; records and reports in `tmp/m2/ab-b3-castle/`, `ab-b3-lab/`, `ab-b3-idle/`, and `tmp/m2/reach.mjs` for the per-seat counts). Bound: these seeds, deterministic. Seat-seeds of 50, main / B2 / this arm (B3):
+  - Lab: the Castle Age 50 / 49 / 50 and the Imperial 49 / 49 / 50; gold-rush's owner 2 now clicks the Castle Age at 15,250 (main 13,325) and is Imperial at 26,250, so the lost Age is gone. A Castle 50 / 48 / 50, a Monastery and a Siege Workshop 49 / 46 / 39 and 49 / 44 / 39: arena's owner 2 builds neither on any seed, and its owner 1 neither on three. The census seed against the census file (buildings and units held, from the A/B record, not the coverage test): owner 1 lost the Siege Workshop and gained a Watch Tower; owner 2 keeps its Castle and lost its Watch Tower.
+  - Castle configuration: the Castle Age 38 / 43 / 37 and the Imperial 25 / 32 / 30; a Castle 30 / 35 / 39, a Monastery 27 / 35 / 25, a Siege Workshop 27 / 33 / 23. Fortress's owner 1 reaches the Castle Age on 4 / 5 / 0 of its five seeds, with the same Feudal click as B2's (10:55-12:42) and 40 villagers at 20:00, losing 82-107 villagers (B2: 41-88; main 82-113). Arena's owner 1 reaches it on 3 / 3 / 1, gold-rush's owner 2 the Imperial Age on 3 / 1 / 1.
+  - The human-idle boot match: owner 2's Castle Age at 46:15 [34:10-57:30] against main's 36:40 (4 of 5 seeds later, by up to 18:45; B2: 37:30), its Feudal click unchanged from B2 (15:55 with 29 villagers), conquest at 48:57 against 49:05.
+- So the coordinator's stop condition holds: Ages are lost in the castle configuration (fortress's owner 1 on four seeds, arena's on two), and the Monastery and Siege Workshop are held on fewer seat-seeds than on main. Brought to the coordinator with these numbers; not traced. An unmeasured lead: B2 and B3 differ only from the Feudal Age, where DE's count asks for up to 18 farms at 40 villagers (7 of 15 on food) against the cap of 8, at 60 wood each, on a walled map.
+- Still owed for M2 after the coordinator's decision: gate changes 2-5 (the castle gate's Militia floor, the hit census at 20,000-26,000 with its time measured, the economy gate's "able" encoded from DE's citations) and 6 (the census, after the trace's decision); spec §13.2 (its bullets on the Dark Age split and the villager count, the measured paragraph's "unchanged" and the gatherer distribution's per-age caps; the corrected citations); the plan 106 card "(work 144)" for the Castle site search; the A/B on the final base; the live check (`tmp/m2/live.mjs`, not yet run); verify; review; both phases; and CI headroom per test and job (B2's lab matches ran 440 s against main's 340 in the runner).
+
+**M2: the landing, phase 1 (2026-11-06, the third worker).** Taken over at 1b679ab3, with the A arm `ai-dark-age-base-1105` (main 41732763's game). Main 1e16571b (v0.3.269) was merged at 6ed99cd6; between 41732763 and 1e16571b only `src/audio`, the M1 scripts and docs changed, so main's records stay the A arm's.
+- The coordinator's decision (2026-11-06): land B2, not option 2. Seat-seeds of 50, main / B2 / option 2: in the castle configuration the Castle Age 38 / 43 / 37, the Imperial Age 25 / 32 / 30, a Monastery 27 / 35 / 25 and a Siege Workshop 27 / 33 / 23; in the lab a Monastery 49 / 46 / 39 and a Siege Workshop 49 / 44 / 39. Option 2's count asked for up to 18 farms at 60 wood without DE's farm-build conditions (a wood reserve), a model adopted by halves.
+- Backed out (bef406a0): `targetFarmCount` is a third of the villagers between 2 and 8 again, and the natural-food plumbing only DE's Feudal count read went with it (`ai.ts`'s farm state, `aiDarkAgeFarms.ts`'s `foodGatherers`, the building phase's count). Kept from 7999a2e4: `deWantsVillager` reads its bound from `villagerCapForAge` (Dark 29, Feudal 40), so the sweep's cap knob reaches the AI; the base-rule branch after the flush stop removed; the corrected citations; gates 1 and 6 (`darkAgeTuning.test.ts` at 29 and 40, and `aiVillagerCap.test.ts`'s cap that never shrinks).
+- A correction to the brief: that branch (`food < 400` once stopped) was not dead for the Italians. The stop's margin was the Feudal food less 30, so their 425-food Feudal Age stopped them from 395 food at 25 villagers, and 395-399 reached the branch. DE's `feudal-f2` is a constant per civilization, 470 and the Italians' 425 (const.per 4570-4572, 4591-4592, 4609-4611). The stop now reads it, a stopped seat holds at least 425, and the branch is dead for every civilization. No A/B match plays the Italians (owners 1 and 2 are the Britons and the Franks).
+- DE's seventh Dark Age farm (buildings.per 4234: a farm while fewer than 7 stand or are placed) was measured as arm B4 (bef406a0, records in `tmp/m2/ab-b4-*`) against B2's records, seed by seed (`tmp/m2/pair-arms.mjs`). The lab's 25 matches and the idle boot match's 5 are identical. Of the castle configuration's 25, 15 are identical and 10 moved. Five seat-Ages were lost: coastal#2's owner 1 its Castle and Imperial Ages, and aoe2-prototype#4's owner 2, fortress#1's owner 1 and gold-rush#3's owner 2 their Imperial Ages. Six were gained: gold-rush#1's owner 2 its Castle and Imperial Ages, gold-rush#2's owner 2 its Castle Age, and aoe2-prototype's owner 1, coastal#2's owner 2 and gold-rush#3's owner 1 their Imperial Ages. Castles were held 31 times against 35, Monasteries 34 against 35 and Siege Workshops 32 against 33. Ages were lost against B2's records, so the limit is 6 again (76c86a9b), and the seventh goes to plan 106's farm card.
+- The A/B on the final base (`tmp/m2/run-final.sh`: arm B the control worktree `ai-dark-age-b4-1105` fast-forwarded to 76c86a9b, main's records reused; records in `tmp/m2/ab-final-castle/`, `-lab/` and `-idle/`, each with its `report.md`). Every record is identical to B2's, less the wall time and the fingerprints: 25 of 25 in the castle configuration, 25 of 25 in the lab and 5 of 5 in the idle boot match. So B2's tables above, and the census trace, are the final arm's. Bound: these 55 seeds, deterministic, so exact for them; ages and farms sampled every 250 ticks, clicks every 25, armies every 5,000.
+
+Gates, each changed under the coordinator's decisions:
+- `aiReachesCastleAge.test.ts` (decision 4): the shipped unit floor drops the Militia, with the reason in the test. On the final tree the match runs to its 45,000-tick horizon: owner 2 reaches the Castle Age at 23,250 with a peak army of 31 (the bar is 10), owner 1 at 33,750 with 9; the union holds 15 building types and 10 unit types, and no Militia.
+- `playerHitCensus.test.ts` (decision 4): the all-AI census runs its 6,000 ticks from tick 20,000; the match is played there first, with the render projection on read. The bridge's hit feed, read over 30,000 ticks of the final tree (`tmp/probes/hitWindow.mts`), records its first blows at 20,585 (a Spearman's) and 20,758 (a Town Centre's arrows), and blows at 20,400-21,599, 22,200-23,399 and 25,200-25,799. The moved window found what the census's bounds had assumed away: seven farms eaten to nothing (six of owner 1's, one of owner 2's), which it counted as deaths with no blow. The census now reads each farm's food and whether a villager is gathering it, and a farm gone unstruck that held at most one swing's food (`gatherAmountFor('farm')`, 1) and a farmer at its last reading is eaten, not killed (the farmer since review round 3, R3-5); the bounds say so, with the cost (a blow that kills a farm in its farmer's last swing goes unchecked). In the window: 86 losses and 13 deaths, all recorded, by Town Centres (56 blows), Spearmen (76), Archers (8) and a Watch Tower (8); the same counts with the projection every tick.
+- `aiEconomySelfPlay.test.ts`: decision 5's premise was wrong, so encoding DE's stop in "able" is dropped. The 19 idle runs (`tmp/probes/econIdle.mts`, through aiEconomyTrace on the gate's own match) are each 0.3-3.0 s at 50-51 food: the wait for the next decision in a food-bound boom. The window never banks the Feudal food, so DE's stop would change nothing there. Under the coordinator's option (a) of 2026-11-06 the total bar is one Standard decision (30 ticks, a constant the test pins against `decisionIntervalTicks('standard')`) of idle-while-able per villager trained in the window; the 6 s longest-run bar stays. `aiEconomyTrace.ts`'s summary counts the villagers trained. Measured on the final tree: both-AI owner 2 33.4 s for 24 trained (13.9 ticks each, longest 3.0 s) and owner 1 7.7 s for 26 (3.0); the human-idle owner 2 25.9 s for 25 (10.4, longest 3.1 s). Main: 5.5 s for 8 (6.9), 4.6 s for 9 (5.1) and 4.8 s for 7 (6.9).
+- `selfPlayContentCoverage.test.ts`: the census re-recorded (`selfPlayContentCensus.expected.json`) from a scratch copy of the test with its producer checks soft, which wrote the census it played (deleted after). The moves are B2's census, both ways, unchanged. Ages unchanged, both Imperial. The union's units gained arbalest, capped-ram and skirmisher and lost battering-ram, halberdier, mangonel and throwing-axeman; its technologies gained arbalest-upgrade, plate-barding and plate-mail-armor and lost elite-skirmisher-upgrade and halberdier-upgrade. Owner 1 lost its Monastery and Siege Workshop buildings, so the Siege Workshop as a research producer and the Monastery as a train producer; its units gained arbalest, skirmisher and two-handed-swordsman and lost halberdier and monk; its technologies gained arbalest-upgrade, blast-furnace, plate-barding, plate-mail-armor and two-handed-swordsman-upgrade and lost capped-ram-upgrade and halberdier-upgrade. Owner 2 lost its Castle, as a research and a train producer; its units gained capped-ram and skirmisher and lost battering-ram, mangonel and throwing-axeman; its technologies gained capped-ram-upgrade and lost conscription and elite-skirmisher-upgrade; its research producers gained the Siege Workshop. The losses are the coordinator's accepted moves: owner 1's Monastery and Siege Workshop to wood starvation (plan 106's army-spending card), and owner 2's Castle to 141 empty 4x4 site searches and then the Imperial shortfall trade selling its stone (plan 106's new card).
+
+Red proofs (`tmp/m2/mutate-gates.mjs`, one mutation at a time on the final code, every file restored byte for byte and checked; all red):
+- The economy gate. The Town Center's villager skipped on alternate decisions: both-AI owner 2 idles 78.7 s for 23 villagers trained, over its total bar (787 > 690 ticks), and both seats' longest run is 6.1 s, one tick over the longest bar; the human-idle case stays green. "House only when housed", the defect the gate was built for: housed 54.6-212.6 s against 30 s in both cases, and the human-idle seat at 8 villagers by 5:00. The soldier ignoring the next villager's food: 6 and 7 villagers by 5:00 against 10, and owner 1 housed 34.2 s. The Town Center holding a second villager's food back (idle with food banked): idle-while-able 211-790 s, over the total bar (2,112 > 720, 4,215 > 540 and 7,901 > 120 ticks) and the longest (49-739 s), with 7-8 villagers by 5:00. Neither of the two idle mutations races what it disproves: each acts only on the Town Center's training, the match runs its whole window, and the total bar fails on its own count.
+- The hit census. A projectile on a unit recording no blow: the all-AI window reports 27 of its 99 losses and deaths unrecorded, and six fixture cases fail with it. A melee blow on a unit recording none: 69 of 99 unrecorded in the all-AI window, and five fixture cases fail with it. The census counting an eaten farm as killed (its farm rule removed), and the census seeing no farmer on any farm: the all-AI window fails on its seven eaten farms either way (7 of 106 losses and deaths, 20 deaths counted).
+- The unit tests: DE's feudal-f2 for the Italians as the Feudal food less 30, and as the default 470; the Dark Age farm limit 7; the Dark Age bound not read; the Feudal bound not read; the Feudal cap back to 22; the Dark Age cap back to 10; the farm count a flat 8 (`aiBuildOrderPastFarms.test.ts`, unchanged).
+
+Times, on this machine under load (other lanes and this lane's A/B running): `aiReachesCastleAge.test.ts` 243-305 s of its 600 s; `playerHitCensus.test.ts`'s all-AI case 67-102 s of 300 s (22-34%; 156 s with the projection every tick), against 23.7 s on main's window; `aiEconomySelfPlay.test.ts`'s two cases 23-33 s of 150 s; the coverage census 344 s of 1,800 s. Main's last CI run (42156176549, 1e16571b): the castle gate 192 s (Ubuntu) and 236 s (Windows) of 600 in shard 1, the coverage census 318 and 401 s of 1,800 in shard 1, the hit census's all-AI case 22.7 and 24.2 s of 300 in shard 3, and the unit jobs 9.2-17.3 of 60 minutes. The hit census's case grows by about 80 s; its shard took 9.2 and 10.4 minutes. CI's own numbers are owed by the landing run.
+
+Review round 3 (`reviews/3_implementation.md`, Codex `gpt-6-astra` read-only on b3330359) found four DE-model gaps, each checked against the scripts and holding: DE's totals count carried loads (init.per 1546-1612); `farmmb-cost` is per civilization (215 is the Teutons', 235 everyone else's); DE's Dark Age farm rule skips while the Feudal research runs (`dfeudal`); and DE asks its wood drop site to stand within 5 tiles of wood. Each changes the measured game, and the coordinator decided (2026-11-06) to land B2 as measured and card them in plan 106: the last three in the farm-model card, the first its own. The review also found the hit census's eaten-farm rule able to hide an unrecorded kill on an idle, nearly empty farm (repaired: a farmer is now required, both mutants red), and the spec's flush split said to run until an Archery Range stands where it ends at the Feudal Age (reworded). 215 is now said plainly to be the Teutons' value, in the code and the spec.
+
+The first full gate, on 6b051fbe, was cut short and is unexplained. It took the lock at 22:14:28, and `npm run verify` exited 127 at 22:17:45, three minutes into the unit stage. Its log ends mid-run after passing files, with no failing test and no vitest summary, and the receipt check refused. No process of this lane's was left. The coordinator asked work 145's worker, which took the lock at 22:18:10 for its landing, whether it stopped a process by name then. Work 145 landed first, so M2 re-measures on top of it (below).
+
+The re-measure on work 145 (2026-11-06, the coordinator's cheap path first). Main 19e4ffeb (work 145, v0.3.270, villagers share a node as in DE) was merged at 1c4dc261, with conflicts in the changelog and the two devlogs only. Only the B arm was played again: B2 with work 145, in the control worktree `ai-dark-age-b4-1105` fast-forwarded to 1c4dc261 (`tmp/m2/run-merged.sh`, records in `tmp/m2/ab-merged-castle/`, `-lab/` and `-idle/`). Record by record against the final B2 records, less the wall time and the fingerprints (`tmp/m2/same-records.mjs`), all 55 are identical: 25 of 25 in the castle configuration, 25 of 25 in the lab and 5 of 5 in the idle boot match, with the game's fingerprint moved (49fdee3770bbc626 to 4904bae0cac1afb1). So the A/B tables above stand on the merged base, and no new A arm was built. Work 145's own measurement found its change leaving main's 25 castle-configuration records identical; main's lab and idle matches were not played again on 19e4ffeb. Review round 4 (`reviews/4_implementation.md`, Codex on the merge) found nothing.
+
+Three HUD and input browser specs depended on the computer's opening (the defect register's 2026-11-06 entry). The gate on 18bcd8cc passed vitest (5,407, 3 skipped) and failed three Playwright specs: `attack-warning.spec.ts`'s minimap mark and its re-announce after a load, and `de-global-keys.spec.ts`'s Home case. Each waited for the computer's own Dark Age raid on the idle human. On the boot map at the lobby's defaults that raid was a Militia's at tick 3,312 on main; under DE's Dark Age boom the first blow on the idle human is a Spearman's at tick 21,341 (`tmp/probes/idleRaid.mts`, the bridge's hit feed). The coordinator widened this lane's scope to the three specs (2026-11-06), and they now script their raid. `boot-map-raid-fixture` (`fixtures/raidWarning.ts`, registered through the module's own pairs, so the registry stays at its 500 lines) is `aoe2-prototype` itself with owner 2's AI off and one Militia of owner 2's at (20, 11), out of reach of the human's Town Center, Scout and villagers. Each spec orders it onto the human's nearest villager (`tests/browser/helpers/bootMapRaid.ts`), and the save-and-load case orders it after the save and again after the load. `tests/simulation/bootMapRaidFixture.test.ts` (2 tests) pins that the fixture is the boot map, that nothing is hit for 1,000 ticks without the order, and that the ordered raid lands 196 ticks after it, the same tick on two runs. Every assertion and the 100-pixel floor are kept, and the three specs pass. Red against their own behaviour (`tmp/m2/mutate-browser.mjs`, a fresh build per mutation): the minimap drawing no mark fails both attack-warning cases (0 floor pixels at the raid ticks 200 and 301); the horn's tick surviving a load, the v0.3.229 defect, fails the re-announce ("came with no words" at tick 301); and Home going nowhere fails the Home case ("did not go to the raid at 7.75,9.75"). The mutations act in the page's HUD, audio and input code, never the simulation, and each failure names the raid, so none races it. No lesson: no gate keeps a future spec from leaning on the computer's play. The full gate then passed on 6d667613 (vitest 5,409 passed and 3 skipped, Playwright 322 passed and 2 skipped, receipt OK on tree bc18d1e545b7). Review round 5 (`reviews/5_implementation.md`, Codex on the scripted raid) found one medium on the fixture's test: its quiet check read the ten-tick hit feed once, at the end. It now reads it after every step, red with the Militia moved beside a villager, where the old check's own assertion passed.
+
+The phase-1 gate: `npm run verify` on 6be957b0 (tree 81f1f1225ff1), vitest 5,409 passed and 3 skipped, Playwright 322 passed and 2 skipped, receipt OK; main d97d8629 (plan 145's records, docs only) merged after it at 6b78e3fb, with the receipt check passing on docs-only drift and `tests/architecture` green (161 tests). Per test in that gate, against each test's own limit: `aiReachesCastleAge` 229.8 s of 600 (38%), the hit census's all-AI case 107.4 s of 300 (36%), `aiRelicsSelfPlay` 186.2 s of 600 (31%), the coverage census 300.1 s of 1,800 (17%), the economy gate's cases 22.2 and 32.3 s of 150, and `bootMapRaidFixture` 5.5 s of 30.
+
+The live lobby check (`tmp/m2/live.mjs` on PREVIEW_PORT 4322, this checkout's build at 18bcd8cc, whose game the later commits change only in a fixture; Chromium muted, and the game starts muted). The lobby's defaults (`aoe2-prototype`, two players, the Britons, Standard, standard resources, population 200) through the real Start Match, 60 s of real-time play, then stepped to tick 13,000. The computer held 12 villagers at 5:00, 19 at 10:00, 28 at 15:00 and 29 at 20:00, and clicked the Feudal Age at tick 11,503 (19:10) with 29, in the Feudal Age by 13,015; no console error. The idle A/B's first seed is the same match: its click at 11,500 with 29, and 12, 19, 28 and 29 villagers at 5 to 20 minutes.
+
+Not checked in phase 1: the other seeds and maps (bound above); the standard configuration; CI's own times, until the landing run; the Italians' stop in a match (no measured match plays them; the unit test does); a census case that kills an unfarmed, nearly empty farm (none exists).
+
+## Open items
+
+- M3, DE's second Dark Age House rule (buildings.per 1598-1609): not the M2 landing worker's; the coordinator assigns it.
+- Work 145 (the worker "shared-gathering", the two-gatherer cap per resource in the gather code this AI uses): whichever of 145 and 144 M2 lands second re-measures its A/B on the other's landing.
+- Decision 5 is dropped (2026-11-06): encoding DE's flush stop in the economy gate's "able" rested on a premise the trace disproved ("M2: the landing", gates).
+- Low priority (review round 3): `darkAgeFoodSituation` walks every building, resource and gatherer twice per Dark Age decision, once for the split before the rebalance and once in the building phase, though its header says once. Its cost is not measured.

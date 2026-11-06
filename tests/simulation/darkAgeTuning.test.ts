@@ -14,6 +14,14 @@
 // 25% wood below 12 villagers (Promisory dawn.per 72-78); the cap stays 10, so
 // the AI never reaches 12 in the Dark Age, until work 141's M2 decides the
 // per-level villager counts. The pins below are DE's numbers now.
+//
+// Work 144 M2 (2026-11-05): the Dark Age trains to DE's `darkvills`, 29
+// (const.per 3384), under DE's own villager rule (`aiDarkAgeBoom.ts`), which
+// reads its bound from this seam (`villagerCapForAge`); from 12 villagers the
+// split is dawn.per's per-villager counts, so the 3 : 1 weights are the split
+// below 12 only. The Feudal bound is the Castle Age's 40 (the coordinator's
+// decision 6): DE's Feudal rule trains until the Castle Age is banked, with no
+// count of its own (units.per 409-415).
 
 import { describe, expect, it } from 'vitest';
 
@@ -24,8 +32,8 @@ import {
 } from '../../src/game/simulation/aiEconomyPlan';
 
 describe('the Dark-Age tuning seam', () => {
-  it('ships the DE Dark-Age split: food 3 : wood 1, cap 10', () => {
-    expect(DARK_AGE_TUNING.villagerCap).toBe(10);
+  it('ships DE\'s Dark Age: food 3 : wood 1 below 12 villagers, and the count to 29', () => {
+    expect(DARK_AGE_TUNING.villagerCap).toBe(29);
     expect(DARK_AGE_TUNING.weights).toEqual({ food: 3, wood: 1, gold: 0, stone: 0 });
   });
 
@@ -50,8 +58,8 @@ describe('the Dark-Age tuning seam', () => {
     expect(villagerTargetsForAge('dark-age')).toEqual({ food: 3, wood: 1, gold: 0, stone: 0 });
   });
 
-  it('leaves the other ages alone', () => {
-    expect(villagerCapForAge('feudal-age')).toBe(22);
+  it('bounds the Feudal Age by the Castle Age, and leaves the later ages alone', () => {
+    expect(villagerCapForAge('feudal-age')).toBe(40);
     expect(villagerCapForAge('castle-age')).toBe(40);
     expect(villagerCapForAge('imperial-age')).toBe(60);
   });

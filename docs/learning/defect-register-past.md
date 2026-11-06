@@ -202,6 +202,12 @@ The second 2026-09-26 rollover, of "Three parts of the verification plumbing sai
 
 **The 2026-11-06 work 145 rollover moved the closed 2026-10-17 unstarted-House-refund entry verbatim.** The new closed entry on the villager a boxed sheep left idle beside the sheep it was ordered onto took the active register to thirteen closed entries, and this was the oldest closed one the classifier marked MOVE.
 
+**The 2026-11-06 work 144 M2 rollover moved the closed 2026-10-17 rally-onto-another-player's-Farm entry verbatim.** The new closed entry on the three HUD and input browser specs that waited for the computer's own Dark Age raid took the active register to thirteen closed entries, and this was the oldest closed one the classifier marked MOVE.
+
+## 2026-10-17 — A villager rallied onto another player's Farm or deep-water fish was assigned an illegal gather task (independent integration review IR2, FIXED and gated)
+
+Exact-node rally assignment bypassed the existing resource eligibility and ownership filter. Production now checks the same gather capability, harvest ownership and shore-fish domain rules before preserving an exact target; an invalid gather rally falls back to movement. rallyGatherEligibility.test.ts has enemy/allied Farms and deep fish red before repair, with own Farm, tree and shore fish controls. Adjacent production, rally and Dark Age tests pass; the complete integrated gate remains the acceptance boundary.
+
 ## 2026-10-17 — Deleting an unstarted House kept its 25 wood instead of refunding it (work 122 observation recovered in work 126 M2, FIXED and gated)
 
 Voluntary Delete used combat destruction with no refund. The handler now rechecks ownership and refunds only zero-progress construction, using the current effective owner price and marking the stockpile dirty. Eleven deleteFoundationRefund.test.ts cases cover discounts, old saves, age changes, replay, duplicate commands and started/completed/stale-owner refusals. Mutations with no refund, refund after work started, no dirty mark and no execution owner check fail. The save format holds no original payment receipt; current-price refunds and no proportional started refund are explicit bounds.

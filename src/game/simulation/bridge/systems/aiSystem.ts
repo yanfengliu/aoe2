@@ -4,6 +4,8 @@
 import { type Position, type VisibilityMap } from 'civ-engine';
 import type { BuildingComponent, UnitComponent } from '../../types';
 import { footprintVisionSources } from '../../buildingVisionSources';
+import { effectiveResearchCost } from '../../civBonusEffects';
+import { darkAgeFoodSituation } from './aiDarkAgeFarms';
 import { buildingFootprint, type GameWorld } from '../pureHelpers';
 import {
   AI_BASE_VISION_RADIUS,
@@ -14,6 +16,8 @@ import {
 } from '../../ai';
 import {
   aiStatesCodec,
+  inFlightTechByOwnerCodec,
+  playerCivilizationsCodec,
   playerResourcesCodec,
   populationCodec,
   playerTeamsCodec,
@@ -50,6 +54,7 @@ export function registerAiSystem(bridgeDeps: AiSystemDeps): void {
     currentEntityId,
     getPlayerAge,
     villagerRebalance,
+    countOwnedUnits,
   } = deps;
 
   world.registerSystem({
@@ -136,7 +141,17 @@ export function registerAiSystem(bridgeDeps: AiSystemDeps): void {
           state.plan = nextPlan;
         }
 
-        const desiredTargets = villagerTargetsForAge(currentAge);
+        // DE's Dark Age split reads the villagers held and the Feudal click (work 144 M2).
+        const feudalFood = effectiveResearchCost(accessor.get(playerCivilizationsCodec).get(owner), currentAge, 'feudal-age').food ?? 0;
+        const food = currentAge === 'dark-age' ? darkAgeFoodSituation(activeWorld, accessor, owner, ownerTownCenterPosition) : null;
+        const farmsOnly = food !== null && food.farms > 0 && food.naturalFoodGatherers === 0 && food.ownSheep === 0 && !food.naturalFoodNearby
+          ? food.farms : null;
+        const desiredTargets = villagerTargetsForAge(currentAge, {
+          farmsOnly,
+          villagers: countOwnedUnits(owner, 'villager'),
+          feudalClicked: accessor.get(inFlightTechByOwnerCodec).get(owner)?.has('feudal-age') ?? false,
+          foodBanked: (accessor.get(playerResourcesCodec).get(owner)?.food ?? 0) >= feudalFood,
+        });
         if (!villagerTargetsEqual(state.villagerTargets, desiredTargets)) {
           state.villagerTargets = { ...desiredTargets };
         }

@@ -171,7 +171,7 @@ function buildWants(
   age: AgeType,
   missing: (buildingType: BuildableBuildingType) => boolean,
   housed: boolean,
-  farms: { owned: number; villagerCount: number; food?: number } | null,
+  farms: { owned: number; villagerCount: number; food?: number; darkAgeFarmsWanted?: number } | null,
   houseWanted: boolean,
 ): readonly BuildableBuildingType[] {
   // Housed pre-empts everything: no production of any kind can resume until
@@ -196,6 +196,8 @@ function buildWants(
     // The age bound is a RULE, not a preference: falling through must never
     // offer a Dark-Age AI a building it cannot place.
     if (missing('lumber-camp')) wants.push('lumber-camp');
+    // DE's Dark Age farms (work 144 M2, `aiDarkAgeBoom.ts`).
+    if (farms && farms.owned < (farms.darkAgeFarmsWanted ?? 0)) wants.push('farm');
     if (missing('mining-camp')) wants.push('mining-camp');
     return wants;
   }
@@ -249,7 +251,7 @@ export function pickNextBuildTarget(
   age: AgeType,
   missing: (buildingType: BuildableBuildingType) => boolean,
   housed: boolean,
-  farms: { owned: number; villagerCount: number; food?: number } | null = null,
+  farms: { owned: number; villagerCount: number; food?: number; darkAgeFarmsWanted?: number } | null = null,
   /**
    * Whether the owner can pay for this build right now. The order above is a
    * PRIORITY LIST, not a queue: an AI that cannot afford its first choice
@@ -293,7 +295,7 @@ export function blockedBuildTarget(
   age: AgeType,
   missing: (buildingType: BuildableBuildingType) => boolean,
   housed: boolean,
-  farms: { owned: number; villagerCount: number; food?: number } | null,
+  farms: { owned: number; villagerCount: number; food?: number; darkAgeFarmsWanted?: number } | null,
   affordable: (buildingType: BuildableBuildingType) => boolean,
   houseWanted = false,
 ): BuildableBuildingType | null {

@@ -8,9 +8,13 @@ import type { BuildableBuildingType, BuildingComponent } from '../../types';
 import { canAfford } from '../../prototypeEconomyRules';
 import { blockedBuildTarget, pickNextBuildTarget, shouldPursueWonder } from '../../ai';
 import { houseWanted } from '../../aiHousing';
+import { deDarkAgeFarmsWanted } from '../../aiDarkAgeBoom';
+import { effectiveResearchCost } from '../../civBonusEffects';
+import { darkAgeFoodSituation } from './aiDarkAgeFarms';
 import {
   constructionStatesCodec,
   matchSettingsCodec,
+  playerCivilizationsCodec,
   playerResourcesCodec,
   populationCodec,
 } from '../bridgeStateSerialize';
@@ -215,7 +219,16 @@ export function runBuildingPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
       }
     }
 
+    // DE's Dark Age farm rule (work 144 M2, `aiDarkAgeBoom.ts`).
+    const darkAgeFarmsWanted = currentAge === 'dark-age'
+      ? deDarkAgeFarmsWanted(
+        darkAgeFoodSituation(activeWorld, accessor, owner, ctx.ownerTownCenterPosition),
+        stockpile,
+        effectiveResearchCost(accessor.get(playerCivilizationsCodec).get(owner), currentAge, 'feudal-age').food ?? 0,
+      )
+      : 0;
     const farmState = {
+      darkAgeFarmsWanted,
       owned: countOwnedFarms(),
       villagerCount: countOwnedUnits(owner, 'villager'),
       // Farms outrank the rest of the build order only while the food is

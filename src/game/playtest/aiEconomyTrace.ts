@@ -171,6 +171,9 @@ export interface AiEconomySummary {
   idleWhileAbleTicks: number;
   /** Town Center idle while it could pay for a villager, whatever the target. */
   idleWhileAffordableTicks: number;
+  /** Villagers born in the window: each rise in the villagers held from one
+   *  sample to the next (a birth and a death on one tick hide each other). */
+  villagersTrained: number;
   houses: Array<{ id: number; placed: number; complete: number | null }>;
   /** The first tick each age was held. */
   ageReached: Record<string, number>;
@@ -192,7 +195,11 @@ export function summarizeAiEconomy(
   const placed = new Map<number, number>();
   const complete = new Map<number, number>();
   const ageReached: Record<string, number> = {};
+  let villagersTrained = 0;
+  let previous: AiEconomySample | undefined;
   for (const s of samples) {
+    if (previous !== undefined && s.villagers > previous.villagers) villagersTrained += s.villagers - previous.villagers;
+    previous = s;
     if (ageReached[s.age] === undefined) ageReached[s.age] = s.tick;
     for (const house of s.houses) {
       if (!placed.has(house.id)) placed.set(house.id, s.tick);
@@ -205,6 +212,7 @@ export function summarizeAiEconomy(
     idleWhileAble,
     idleWhileAbleTicks: idleWhileAble.reduce((sum, run) => sum + run.ticks, 0),
     idleWhileAffordableTicks: samples.filter((s) => s.townCenter === 'idle' && s.food >= villagerFood).length * step,
+    villagersTrained,
     houses: [...placed].map(([id, at]) => ({ id, placed: at, complete: complete.get(id) ?? null })),
     ageReached,
     villagersAt: (tick) => samples.find((s) => s.tick >= tick)?.villagers,

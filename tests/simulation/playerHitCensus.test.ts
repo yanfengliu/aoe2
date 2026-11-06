@@ -25,10 +25,15 @@
 //    tick it vanished was spent, not killed, and is not counted. A charge spent
 //    on an animal with no player's unit in its blast strikes nothing the feed
 //    records (v0.3.238: it goes off at an animal too), so it would read as an
-//    unrecorded death; no scenario below orders one. A player's
-//    delete, a depleted farm, a razed building's garrison (never tracked: a
-//    garrisoned unit has no position) and a Monk's heresy remove entities
-//    without a blow; no scenario below does any of them.
+//    unrecorded death; no scenario below orders one. A farm eaten to nothing
+//    leaves the world on the swing that takes its last food, which is no blow:
+//    the census reads each farm's food and whether a villager is gathering it,
+//    and a farm gone unstruck that held at most one swing's food and a farmer
+//    is eaten, not killed (the all-AI window eats seven, work 144 M2). So a
+//    blow that kills a farm in its farmer's last swing would go unchecked, and
+//    an unfarmed farm killed unrecorded still fails. A player's delete, a razed building's garrison (never
+//    tracked: a garrisoned unit has no position) and a Monk's heresy remove
+//    entities without a blow; no scenario below does any of them.
 //  - A loss is read as the net change over a tick, so a foundation hit on the
 //    tick its builders add hit points can hide a blow. No scenario below hits
 //    a foundation.
@@ -42,6 +47,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { BLAST_CENSUS_UNIT_TARGET, blastCensusSeed } from '../../src/game/simulation/fixtures/blastCensusLayout';
+import { gatherAmountFor } from '../../src/game/simulation/prototypeEconomyRules';
 import { detonatesOnAttack } from '../../src/game/simulation/prototypeUnitRules';
 import type { UnitType } from '../../src/game/simulation/types';
 
@@ -56,7 +62,14 @@ interface Owned {
   /** The engine's ref, taken before the step: a new entity can reuse an id,
    *  and only the ref's generation tells them apart. */
   ref: EntityRef | null;
+  /** A farm's food left, and whether a villager is gathering it, so a farm
+   *  eaten to nothing is not read as killed. */
+  food?: number;
+  farmed?: boolean;
 }
+
+/** The most food one farmer's swing takes (`GATHER_AMOUNT_BY_KIND`, 1). */
+const FARM_SWING_FOOD = gatherAmountFor('farm');
 
 interface CensusResult {
   ticks: number;
@@ -85,6 +98,11 @@ function readOwned(bridge: Bridge): Map<number, Owned> {
     (bridge.world.getState('aoe2.buildingHealthStates') ?? []) as Array<[number, { currentHp: number }]>,
   );
   const owned = new Map<number, Owned>();
+  const gathered = new Set<number>();
+  for (const id of bridge.world.query('gatherer')) {
+    const target = bridge.world.getComponent<{ targetResourceId: number | null }>(id, 'gatherer')?.targetResourceId;
+    if (target !== null && target !== undefined) gathered.add(target);
+  }
   for (const unit of economy.units) {
     const health = unitHp.get(unit.id);
     if (health) {
@@ -98,6 +116,9 @@ function readOwned(bridge: Bridge): Map<number, Owned> {
     if (health) {
       owned.set(building.id, {
         owner: building.owner, hp: health.currentHp, type: building.buildingType, building: true, ref: bridge.world.getEntityRef(building.id),
+        ...(building.buildingType === 'farm'
+          ? { food: bridge.world.getComponent<{ amount: number }>(building.id, 'resource')?.amount, farmed: gathered.has(building.id) }
+          : {}),
       });
     }
   }
@@ -128,6 +149,7 @@ function census(bridge: Bridge, ticks: number, beforeTick?: (tick: number) => vo
       const gone = was.ref === null || !bridge.world.isCurrent(was.ref);
       if (gone) {
         if (!was.building && detonatesOnAttack(was.type as UnitType) && striking.has(id)) continue; // spent by its own charge
+        if (was.type === 'farm' && !struck.has(id) && was.farmed === true && was.food !== undefined && was.food <= FARM_SWING_FOOD) continue; // eaten, not killed
         result.deaths += 1;
         if (!struck.has(id)) result.unrecorded.push(`tick ${tick}: owner ${was.owner}'s ${was.type} #${id} died and no blow was recorded`);
         continue;
@@ -296,10 +318,28 @@ const SCENARIOS: Scenario[] = [
   { name: "a wolf's bite", seed: 'wolf-aggro-fixture', ticks: 120, attacker: 'wildlife' },
 ];
 
+/** THE ALL-AI WINDOW MOVED (work 144 M2, 2026-11-06; the coordinator's
+ *  decision 4 of 2026-11-05). It was the match's first 6,000 ticks, which held
+ *  the Dark Age Militia's raids and the Town Centres' arrows at them. Under DE's
+ *  Dark Age boom neither seat buys a Dark Age Militia (`aiReachesCastleAge.test.ts`
+ *  says why), and the old window held no loss at all ("the census tested
+ *  nothing"). Read off the bridge's own hit feed over 30,000 ticks (a scratch
+ *  probe, 2026-11-06): its first blows are a Spearman's at tick 20,585 and a
+ *  Town Centre's arrows at 20,758, and it records blows at 20,400-21,599 and
+ *  22,200-23,399 (Spearmen, Town Centres and a Watch Tower) and 25,200-25,799
+ *  (Light Cavalry), none before. So the census runs the same 6,000 ticks from
+ *  tick 20,000, which hold all three; the match is played to there without it. */
+const ALL_AI_CENSUS_FROM = 20_000;
+const ALL_AI_CENSUS_TICKS = 6_000;
+
 describe('every hit point a player loses is recorded as a blow', () => {
   it('in an all-AI match on the real map, through its first raids', () => {
-    const bridge = createSimulationBridge('aoe2-prototype', { forceAiForOwners: new Set([1]) });
-    const result = census(bridge, 6_000);
+    // The render projection runs only when read, here once a census tick: it
+    // never writes the world, so the match is the same (renderProjectionOnRead.test.ts),
+    // and the 20,000 ticks before the census do not pay for it.
+    const bridge = createSimulationBridge('aoe2-prototype', { forceAiForOwners: new Set([1]), renderProjection: 'on-read' });
+    while (bridge.world.tick < ALL_AI_CENSUS_FROM) bridge.step(100);
+    const result = census(bridge, ALL_AI_CENSUS_TICKS);
     expectClean(result);
     // The floor: the match's own raids and its Town Centres' arrows happened,
     // or this case proved less than it claims.

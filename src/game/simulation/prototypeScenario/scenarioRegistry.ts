@@ -60,7 +60,7 @@ import {
   MONK_RELIC_CROSS_OWNER_SEED,
 } from '../fixtures/monkRelics';
 import { createProjectileLookShowcaseFixture } from '../fixtures/projectileLookShowcase';
-import { createRaidWarningFixture } from '../fixtures/raidWarning';
+import { raidWarningScenarios } from '../fixtures/raidWarning';
 import { createVictoryClockFixture, victoryClockSeeds } from '../fixtures/victoryClocks';
 import { createRelicGoldFixture } from '../fixtures/relicGold';
 import { createSiegeBaseStatsFixture } from '../fixtures/siegeBaseStats';
@@ -442,7 +442,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['farmer-on-farm-showcase-fixture', createFarmerOnFarmShowcaseFixture],
   ['traffic-contest-fixture', createTrafficContestFixture],
   ['ai-idle-surplus-fixture', createAiIdleSurplusFixture],
-  ['raid-warning-fixture', createRaidWarningFixture],
+  ...raidWarningScenarios(), // the raid fixture and the boot map's scripted raid (work 144 M2)
   ['building-shot-landing-fixture', createBuildingShotLandingFixture],
   ['wildlife-shots-fixture', createWildlifeShotsFixture],
   ['projectile-look-showcase-fixture', createProjectileLookShowcaseFixture],

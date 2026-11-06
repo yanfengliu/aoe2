@@ -2,6 +2,16 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.271
+
+The computer opponent builds up its Dark Age economy the way Definitive Edition's (DE's) own AI does, at every difficulty.
+
+- **Many more villagers before the Feudal Age.** The computer keeps training villagers through the Dark Age, up to 29 where it stopped at 10, and clicks the Feudal Age once it has them and the food. In the Feudal Age it keeps training villagers until it can pay for the Castle Age.
+- **Its villagers split as DE's do.** Past 12 villagers it adds them to food and wood in DE's order, and from its Feudal click it moves most of them to wood for its archers.
+- **It farms in the Dark Age** once the sheep, berries and game near its Town Center run out.
+- **No early Militia.** It no longer sends a lone Militia at about 2:30; its food goes into villagers, as DE's does.
+- Against a player who does nothing, at the lobby's settings, the computer now reaches the Feudal Age at about 16 minutes instead of 11, with 29 villagers instead of 10, and wins about 9 minutes sooner. In 25 computer-against-computer test matches, the seats reached the Castle Age 43 times out of 50, where they reached it 38 times.
+
 ## 0.3.270
 
 Villagers share a resource as in Definitive Edition (DE): DE's text names a worker limit for the Farm alone.

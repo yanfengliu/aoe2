@@ -8,6 +8,7 @@
 // easier to find together than scattered among unit mixes and attack groups.
 
 import type { AgeType, EconomyResourceKind } from './types';
+import { DE_DARK_AGE_VILLAGERS, deDarkAgeSplit } from './aiDarkAgeBoom';
 
 // Baseline villager allocation target for a given age. FU4 rebalanced
 // these toward a Dark-Age food-first opening (match canonical AoE2
@@ -57,15 +58,31 @@ import type { AgeType, EconomyResourceKind } from './types';
 // gatherers.per rule sets one before the click: 11-20 and 79-87 skip the flush
 // blocks, and the usual block's Dark Age rules (589-662) wait for the Feudal
 // research. Work 141 M2 models it with the per-level villager counts.
+// Work 144 M2: the Dark Age grows to DE's `darkvills` and splits by DE's
+// `feudal-war` assignment from 12 villagers (`aiDarkAgeBoom.ts`); the weights
+// below are the under-12 split.
 export const DARK_AGE_TUNING = {
-  villagerCap: 10,
+  villagerCap: DE_DARK_AGE_VILLAGERS,
   weights: { food: 3, wood: 1, gold: 0, stone: 0 } as Partial<Record<EconomyResourceKind, number>>,
 };
 
-export function villagerTargetsForAge(age: AgeType): Partial<Record<EconomyResourceKind, number>> {
+/** What the split reads besides the age: the villagers held, and whether the
+ *  Feudal Age is clicked or its food banked (DE's flush rule). */
+export interface DarkAgeSplitInputs {
+  villagers: number;
+  feudalClicked: boolean;
+  foodBanked: boolean;
+  /** The farms, while only farms feed the seat; otherwise null (`aiDarkAgeBoom.ts`). */
+  farmsOnly?: number | null;
+}
+
+export function villagerTargetsForAge(
+  age: AgeType,
+  dark: DarkAgeSplitInputs = { villagers: 0, feudalClicked: false, foodBanked: false },
+): Partial<Record<EconomyResourceKind, number>> {
   switch (age) {
     case 'dark-age':
-      return { ...DARK_AGE_TUNING.weights };
+      return deDarkAgeSplit(dark.villagers, { ...dark, underTwelve: DARK_AGE_TUNING.weights });
     case 'feudal-age':
       // Food-dominant: the Castle age-up costs 800 food : 200 gold (4:1).
       // Grounded 2026-07-04 by replaying the default-seed corpus — the old
@@ -110,15 +127,20 @@ export function villagerTargetsForAge(age: AgeType): Partial<Record<EconomyResou
 // counts — still conservative (military trains first each decision tick, from
 // what is left above the age-up cost and, since work 141, above the next
 // villager's cost, so a higher cap grows the economy without starving the age-up
-// and the soldiers asked for while a villager is due leave its food). Monotonic increasing across
-// ages. Food supply from natural resources bounds this in very long games until
-// the AI builds farms (a separate follow-up).
+// and the soldiers asked for while a villager is due leave its food). It never
+// shrinks from one age to the next (the Feudal bound equals the Castle Age's
+// since work 144 M2; `aiVillagerCap.test.ts` says why). Food supply from natural
+// resources bounds this in very long games until the AI builds farms (a separate
+// follow-up).
 export function villagerCapForAge(age: AgeType): number {
   switch (age) {
     case 'dark-age':
       return DARK_AGE_TUNING.villagerCap;
     case 'feudal-age':
-      return 22;
+      // DE's Feudal rule trains until the Castle Age is banked, with no count of
+      // its own (units.per 409-415), so the Feudal bound is the Castle Age's
+      // (work 144 M2, the coordinator's decision 6; it was 22).
+      return 40;
     case 'castle-age':
       return 40;
     case 'imperial-age':
@@ -151,7 +173,15 @@ export function villagerCapForAge(age: AgeType): number {
  *
  * Roughly a third of the villager force on farms is the AoE2 shape, floored so
  * that a small early economy still puts two down and capped so the AI does not
- * spend its whole wood income on soil.
+ * spend its whole wood income on soil. The Dark Age's farms are DE's own rule
+ * (`aiDarkAgeBoom.ts`).
+ *
+ * DE's own count (`maxfarms`, Promisory init.per 1660-1671: the villagers the
+ * split puts on food, less those natural food employs) was measured here in work
+ * 144 M2 and NOT adopted: without DE's farm-build conditions beside it, it asked
+ * for up to 18 farms at 60 wood each, and the castle configuration lost Ages
+ * under it (fortress's owner 1 reached the Castle Age on 0 of 5 seeds, against
+ * 4 of 5). Plan 106's farm card takes the count and the conditions together.
  */
 export function targetFarmCount(age: AgeType, villagerCount: number): number {
   if (age === 'dark-age') return 0;

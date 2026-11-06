@@ -1,8 +1,10 @@
 import {
+  DEFAULT_SEED,
   MAP_HEIGHT,
   MAP_WIDTH,
   type PrototypeScenario,
 } from '../prototypeScenario';
+import { createDefaultMap } from '../mapGeneration/defaultMap';
 import { createGrassFixtureTerrain, ownedSpawn } from './common';
 
 // A raid that keeps hitting, for the attack warning's browser gate (v0.3.229,
@@ -42,4 +44,38 @@ export function createRaidWarningFixture(seed: string): PrototypeScenario {
       ...RAID_WARNING_MILITIA.map((cell) => ownedSpawn('militia', 2, cell.x, cell.y, { vision: 5 })),
     ],
   };
+}
+
+// The boot map with a raid the attack warning's specs order themselves (work
+// 144 M2). Three HUD and input specs waited for the computer's own Dark Age
+// raid on the idle human in `aoe2-prototype`, a Militia's at tick 3,312, and
+// DE's Dark Age boom ended it: the computer's first blow on the idle human
+// now lands near tick 21,000. A spec that needs an attack must not depend on
+// the computer's opening strategy, so this is `aoe2-prototype` itself, the
+// same terrain, starts and spawns (the view the minimap mark's pixel floor
+// was sized on), with owner 2's AI off and one Militia of owner 2's standing
+// out of reach of the human's Town Center, Scout and villagers, which a spec
+// orders onto the human's nearest villager through the command pipeline.
+export const BOOT_MAP_RAID_SEED = 'boot-map-raid-fixture';
+export const BOOT_MAP_RAID_MILITIA = { x: 20, y: 11 } as const;
+
+export function createBootMapRaidFixture(seed: string): PrototypeScenario {
+  const map = createDefaultMap(DEFAULT_SEED, 2);
+  return {
+    ...map,
+    seed,
+    starts: map.starts.map((start) => (start.owner === 2 ? { ...start, disableAi: true } : start)),
+    spawns: [
+      ...map.spawns,
+      ownedSpawn('militia', 2, BOOT_MAP_RAID_MILITIA.x, BOOT_MAP_RAID_MILITIA.y, { vision: 4 }),
+    ],
+  };
+}
+
+/** The seeds this module builds, for the scenario registry. */
+export function raidWarningScenarios(): Array<readonly [string, (seed: string) => PrototypeScenario]> {
+  return [
+    ['raid-warning-fixture', createRaidWarningFixture],
+    [BOOT_MAP_RAID_SEED, createBootMapRaidFixture],
+  ];
 }

@@ -6,7 +6,7 @@
 import type { ResearchableTechnologyType } from '../../types';
 import { canAfford, trainingCost } from '../../prototypeEconomyRules';
 import { effectiveResearchCost } from '../../civBonusEffects';
-import { ageUpResourceBuffer, pickNextAgeResearch, villagerCapForAge } from '../../ai';
+import { ageUpResourceBuffer, pickNextAgeResearch } from '../../ai';
 import { marketActionForAgeUpShortfall } from '../../aiMarketPlanning';
 import { MARKET_TRANSACTION_AMOUNT } from '../bridgeConstants';
 import {
@@ -17,6 +17,7 @@ import {
 } from '../bridgeStateSerialize';
 import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 import { ownerTrainingCost } from '../ownerCosts';
+import { villagerWanted } from './aiVillagerDemand';
 
 /** Returns whether it asked the Market for a trade (one a decision at most). */
 export function runTownCenterPhase(
@@ -126,7 +127,6 @@ export function runTownCenterPhase(
   // gate below sees the freshly-pushed age-up entry.
   const tcEffectiveQueueLength =
     tcPersistedQueueLength + tcPendingTrains + tcPendingResearch;
-  const villagerCap = villagerCapForAge(currentAge);
   const currentVillagers =
     countOwnedUnits(owner, 'villager') + countQueuedUnits(ownerTownCenterId, 'villager') + tcPendingTrains;
   const villagerCost = trainingCost('villager');
@@ -140,7 +140,7 @@ export function runTownCenterPhase(
   // resources while the AI has fewer than 65 (units.per 11760-11778).
   if (
     !populationBlocked
-    && currentVillagers < villagerCap
+    && villagerWanted(deps, owner, currentAge, currentVillagers)
     && tcEffectiveQueueLength < 2
     && stockpile
     // v0.1.96: villager training is NOT age-up-reserve-gated (unlike military) —
