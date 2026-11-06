@@ -253,9 +253,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             return;
           }
           if (playerTasked) {
-            resumePlayerGatherOrder(
-              assignmentDeps, activeWorld, id, unit.owner, gatherer, gatherTargetCounts, IDLE_ASSIGN_SPREAD_CAP,
-            );
+            resumePlayerGatherOrder(assignmentDeps, activeWorld, id, unit.owner, gatherer, gatherTargetCounts);
             return;
           }
           assignIdleGatherer(gatherer, (safeOnly) => (
@@ -287,7 +285,7 @@ export function registerVillagerEconomySystem(deps: VillagerEconomySystemDeps): 
             assignResource,
             enemyStaticDefences,
             playerCarryOn: playerTasked
-              ? (from, spreadCap) => carryOnFromUnworkable(assignmentDeps, activeWorld, id, unit.owner, gatherer, from, gatherTargetCounts, spreadCap)
+              ? (from) => carryOnFromUnworkable(assignmentDeps, activeWorld, id, unit.owner, gatherer, from, gatherTargetCounts)
               : null,
           });
         }

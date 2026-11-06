@@ -215,8 +215,9 @@ export function runGatheringStep(ctx: GatheringStepContext): 'skip' | 'continue'
       world: activeWorld,
       ended: { id: depletedId, resourceType: targetResource.resourceType, position: targetPosition },
       gatherTargetCounts,
-      spreadCap: ctx.spreadCap,
       hasQueuedEntityOrders: ctx.hasQueuedEntityOrders,
+      computerSpreadCap: ctx.spreadCap,
+      isAiControlled: (owner) => ctx.creditDeps.aiStates.has(owner),
     });
     destroyResourceEntity(depletedId);
     if (gatherer.task === 'to-resource' && gatherer.carriedAmount >= carryCapacity) {

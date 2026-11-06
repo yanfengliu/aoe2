@@ -12,10 +12,12 @@
 //
 // The fix keeps the answer and drops the repeats: after the first failed
 // search the planner floods the start's reachable cells once and skips every
-// candidate outside them. A* here steps orthogonally and refuses a blocked
-// start, so it can never reach a goal outside that region, and every
-// candidate inside it still gets its own search (with civ-engine's
-// 10,000-iteration cap, which can only bind on a map past about 8,000 cells).
+// candidate outside them. A* here steps orthogonally, so it can never reach a
+// goal outside that region, and every candidate inside it still gets its own
+// search (with civ-engine's 10,000-iteration cap, which can only bind on a map
+// past about 8,000 cells). Since work 145 both see the unit's own cell as open,
+// so a unit on a cell a resource has stopped on walks off it; the oracle below
+// is the old planner over that same predicate.
 //
 // Two checks. (1) Equivalence: on seeded random grids, the planner returns
 // what the old one-search-per-candidate planner returns — the same
@@ -51,8 +53,9 @@ function counted(grid: Grid) {
   return { counter, isPassable };
 }
 
-/** The planner before work 123, verbatim in what it decides: the oracle. It
- *  also counts its failed searches, the case the new planner shortcuts. */
+/** The planner before work 123, verbatim in what it decides, over the search
+ *  predicate work 145 gave both (the start cell open): the oracle. It also
+ *  counts its failed searches, the case the new planner shortcuts. */
 function oldPlanner(grid: Grid, start: Position, candidates: Position[], preferCurrentCell: boolean, isPassable: (id: number, x: number, y: number) => boolean, failed = { searches: 0 }) {
   const seen = new Set<string>();
   const unique = candidates.filter((c) => {
@@ -66,7 +69,7 @@ function oldPlanner(grid: Grid, start: Position, candidates: Position[], preferC
     if (here) return { destination: { ...here }, path: [{ ...start }] };
   }
   for (const destination of unique) {
-    const result = findGridPath({ width: grid.width, height: grid.height, start, goal: destination, blocked: (x, y) => !isPassable(1, x, y) });
+    const result = findGridPath({ width: grid.width, height: grid.height, start, goal: destination, blocked: (x, y) => !(x === start.x && y === start.y) && !isPassable(1, x, y) });
     if (result) return { destination: { ...destination }, path: result.path.map((step) => ({ ...step })) };
     failed.searches += 1;
   }
@@ -92,11 +95,25 @@ function random(seed: number): () => number {
 }
 
 describe('findMovementPathToCandidates', () => {
-  it('returns what the one-search-per-candidate planner returned, on 600 seeded random grids', () => {
+  it('walks a unit off a blocked cell it stands on (work 145)', () => {
+    const grid: Grid = { width: 4, height: 1, open: (x) => x !== 0 };
+    const ops = createMovementPlanOps({
+      world: makeWorld(4, 1), mapWidth: 4, mapHeight: 1, movePathCache: new Map(),
+      isCellPassableForUnit: () => true, isCellPassableForWildlife: () => true,
+    });
+    const found = ops.findMovementPathToCandidates(1, { x: 0, y: 0 }, [{ x: 3, y: 0 }], false, undefined, counted(grid).isPassable);
+    expect(found?.destination).toEqual({ x: 3, y: 0 });
+    expect(found?.path).toEqual([{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }]);
+  });
+
+  // 900 grids since work 145, from 600: a blocked start no longer ends a search,
+  // so fewer grids end with every reachable search failed, and the floor of 50
+  // such rounds below needs the larger sample (43 of 600 reached it).
+  it('returns what the one-search-per-candidate planner returned, on 900 seeded random grids', () => {
     const next = random(123);
     let failedThenReached = 0;
     let failedThenNull = 0;
-    for (let round = 0; round < 600; round += 1) {
+    for (let round = 0; round < 900; round += 1) {
       const width = 4 + Math.floor(next() * 20);
       const height = 3 + Math.floor(next() * 14);
       const density = 0.15 + next() * 0.45;

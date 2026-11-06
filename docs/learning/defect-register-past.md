@@ -200,6 +200,12 @@ The second 2026-09-26 rollover, of "Three parts of the verification plumbing sai
 
 **The 2026-11-05 npm-spawn-tests rollover moved the closed 2026-10-17 Missionary-relic entry verbatim.** The new closed entry on the unit test that used 96% of its time limit because it timed npm and tsx starting its script took the active register to thirteen closed entries. The maintained classifier kept the two unresolved September 3 AI entries pinned and named "Missionaries refused relics under an obsolete DE rule", the oldest archivable closed entry. It is the most recent arrival, so it sits at the top here, above the relic-storage entry. It has no "above" or "below" of its own, and no retained entry points at it by position or by name. Checked rather than assumed.
 
+**The 2026-11-06 work 145 rollover moved the closed 2026-10-17 unstarted-House-refund entry verbatim.** The new closed entry on the villager a boxed sheep left idle beside the sheep it was ordered onto took the active register to thirteen closed entries, and this was the oldest closed one the classifier marked MOVE.
+
+## 2026-10-17 — Deleting an unstarted House kept its 25 wood instead of refunding it (work 122 observation recovered in work 126 M2, FIXED and gated)
+
+Voluntary Delete used combat destruction with no refund. The handler now rechecks ownership and refunds only zero-progress construction, using the current effective owner price and marking the stockpile dirty. Eleven deleteFoundationRefund.test.ts cases cover discounts, old saves, age changes, replay, duplicate commands and started/completed/stale-owner refusals. Mutations with no refund, refund after work started, no dirty mark and no execution owner check fail. The save format holds no original payment receipt; current-price refunds and no proportional started refund are explicit bounds.
+
 ## 2026-10-17 — Missionaries refused relics under an obsolete DE rule (current DE comparison, FIXED and gated)
 
 The original work 128 contract and tests required Missionaries to heal instead of collect. Official DE update 169123 permits carrying and slows loaded Missionaries to 0.9; installed current DE text confirms that capability. Collection and speed tests were written red first, and movement now reads the existing persisted carry slot. Restoring the refusal fails five cases; removing the loaded speed fails two, and disconnecting the carry flag fails one. No new save state is introduced. This establishes the tested carrier behavior, not whole-game DE parity.

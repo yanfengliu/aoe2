@@ -289,6 +289,12 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
     // ones the search-per-candidate loop chose (tests/simulation/
     // movementPlanCandidateReach.test.ts). A candidate the flood cannot index
     // also goes to findGridPath, which judges it as before.
+    // The unit's own cell counts as open (work 145): a sheep that stops on a
+    // villager's cell blocked it, and A* refuses a blocked start, so every
+    // order from there failed. A unit can always walk off the cell it is on.
+    const passable = (x: number, y: number): boolean => (
+      (x === start.x && y === start.y) || isPassable(unitId, x, y, activeWorld)
+    );
     let reachable: Uint8Array | null = null;
     for (const destination of uniqueCandidates) {
       if (reachable && isGridCell(destination) && reachable[destination.y * mapWidth + destination.x] === 0) {
@@ -299,10 +305,10 @@ export function createMovementPlanOps(deps: MovementPlanOpsDeps): MovementPlanOp
         height: mapHeight,
         start,
         goal: destination,
-        blocked: (x, y) => !isPassable(unitId, x, y, activeWorld),
+        blocked: (x, y) => !passable(x, y),
       });
       if (!pathResult) {
-        reachable ??= floodReachable(start, (x, y) => isPassable(unitId, x, y, activeWorld));
+        reachable ??= floodReachable(start, passable);
         continue;
       }
 

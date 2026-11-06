@@ -21,7 +21,7 @@ import { blastCensusSeed } from '../fixtures/blastCensusLayout';
 import { createBuildingShotLandingFixture } from '../fixtures/buildingShotLanding';
 import { createBuildingVisionBuildFixture, createBuildingVisionFixture } from '../fixtures/buildingVision';
 import { createCivFarmerFixture, createCivFarmToBerriesFixture, createCivForagerFixture } from '../fixtures/civGatherBonuses';
-import { carryOnSeeds, createCarryOnDeerFixture, createCarryOnFixture, createCarryOnHuntFixture, createCarryOnRadiusFixture } from '../fixtures/economyBasics/carryOn';
+import { carryOnSeeds, createCarryOnDeerFixture, createCarryOnFixture, createCarryOnHuntFixture, createCarryOnRadiusFixture, sharedGatheringScenarios } from '../fixtures/economyBasics/carryOn';
 import { createRallyGatherEligibilityFixture } from '../fixtures/economyBasics/rallyGatherEligibility';
 import { createCorridorSealFixture } from '../fixtures/corridorSeal';
 import { createFarmerOnFarmShowcaseFixture, createFarmsAreWalkableFixture } from '../fixtures/farmsAreWalkable';
@@ -485,7 +485,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['carry-on-hunt-fixture', createCarryOnHuntFixture],
   ['carry-on-deer-fixture', createCarryOnDeerFixture],
   ['carry-on-radius-fixture', createCarryOnRadiusFixture],
-
+  ...sharedGatheringScenarios(), // work 145: villagers share a node as in DE
   [UNBUILT_FOUNDATIONS_SEED, createUnbuiltFoundationsFixture],
   [UNBUILT_FOUNDATIONS_ANIMAL_SEED, createUnbuiltFoundationsAnimalFixture],
   [UNBUILT_FOUNDATIONS_AI_SEED, createUnbuiltFoundationsAiFixture],

@@ -9,6 +9,8 @@ import {
 import { createTerrainCell } from '../../mapGeneration/sharedTerrainHelpers';
 import type { ResourceKind } from '../../types';
 import { createGrassFixtureTerrain, gaiaSpawn, ownedSpawn } from '../common';
+// Work 145's scenes, registered beside work 131's (the registry is at its size cap).
+export { sharedGatheringScenarios } from './sharedGathering';
 
 // Work 131: what a gatherer does when the node it works runs out. Definitive
 // Edition's villager carries on to more of the SAME kind close by and works

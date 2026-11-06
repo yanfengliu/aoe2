@@ -97,10 +97,19 @@ export function isPlayerTaskedVillager(owner: number, unitType: string, isAiCont
  * The node the villager carries on to from `from`: the same kind, within
  * CARRY_ON_RADIUS of it, harvestable, workable from the villager's domain, its
  * owner's to take (never another player's sheep), clear of enemy arrows (§6.4)
- * and reachable. Ranked own before neutral, unsaturated before saturated, then
- * nearest the villager — beside the node it finished, that is the next one in
- * the patch; walking home with a load, the one nearest the drop-off. Null when
- * there is none.
+ * and reachable. Ranked own before neutral, then nearest the villager — beside
+ * the node it finished, that is the next one in the patch; walking home with a
+ * load, the one nearest the drop-off. Null when there is none.
+ *
+ * How many already work a node does not rank it for the human player's
+ * villager (work 145): DE names a worker limit only for the Farm, so the
+ * shepherds of a sheep that runs out all go on to the next sheep, as DE's do.
+ * Until work 145 a node with 4 gatherers (2 on the walk's reroutes) ranked
+ * after an emptier one, and six shepherds split 4 and 2. The computer's
+ * villager keeps that rank (`spreadCap`): it is the computer spreading its
+ * own villagers, and dropping it moved two self-play gates (plan 145). A Farm
+ * with a villager on it, or on its way to it, is never a candidate;
+ * `freeFarm` asks for a free Farm near a taken one.
  */
 export function findCarryOnTarget(
   deps: GatherAssignmentDeps,
@@ -109,9 +118,10 @@ export function findCarryOnTarget(
   owner: number,
   from: CarryOnFrom,
   gatherTargetCounts: ReadonlyMap<number, number>,
-  spreadCap: number,
+  spreadCap: number | null = null,
+  freeFarm = false,
 ): number | null {
-  const kinds = carryOnKinds(from.resourceType);
+  const kinds: readonly ResourceKind[] = freeFarm ? ['farm'] : carryOnKinds(from.resourceType);
   const unit = world.getComponent<UnitComponent>(villagerId, 'unit');
   const at = world.getComponent<Position>(villagerId, 'position');
   if (kinds.length === 0 || !unit || !at) return null;
@@ -134,10 +144,11 @@ export function findCarryOnTarget(
     const isOwnedStructure = world.getComponent<BuildingComponent>(id, 'building') !== undefined;
     if (!canGatherResource(owner, isOwnedStructure, resource.baseOwner)) continue;
     if (defences.length > 0 && isInsideDefenceReach(position, defences)) continue;
+    if (resource.resourceType === 'farm' && (gatherTargetCounts.get(id) ?? 0) > 0) continue;
     candidates.push({
       id,
       tier: resource.owner === owner ? 0 : resource.baseOwner === owner ? 1 : 2,
-      saturated: (gatherTargetCounts.get(id) ?? 0) >= spreadCap ? 1 : 0,
+      saturated: spreadCap !== null && (gatherTargetCounts.get(id) ?? 0) >= spreadCap ? 1 : 0,
       distance: (position.x - at.x) ** 2 + (position.y - at.y) ** 2,
     });
   }
@@ -186,11 +197,12 @@ export function carryOnTo(
 
 /**
  * For the human player's villager whose node stands but cannot be worked —
- * unreachable, crowded, or walked at too long: carries it on from that node
- * (never back to it) and returns true, or returns false having found nothing
- * and changed nothing. The automatic reroutes that serve the computer's
- * villagers take any node of the stockpile kind, of any kind on failure; the
- * player's villager keeps its trade and its patch.
+ * unreachable, walked at too long, or a Farm another villager works: carries
+ * it on from that node (never back to it) and returns true, or returns false
+ * having found nothing and changed nothing. From a Farm it takes a free Farm
+ * close by. The automatic reroutes that serve the computer's villagers take
+ * any node of the stockpile kind, of any kind on failure; the player's
+ * villager keeps its trade and its patch.
  */
 export function carryOnFromUnworkable(
   deps: GatherAssignmentDeps,
@@ -200,13 +212,12 @@ export function carryOnFromUnworkable(
   gatherer: GathererComponent,
   fromId: number,
   gatherTargetCounts: Map<number, number>,
-  spreadCap: number,
 ): boolean {
   const resource = world.getComponent<ResourceComponent>(fromId, 'resource');
   const position = world.getComponent<Position>(fromId, 'position');
   if (!resource || !position) return false;
   const from = { id: fromId, resourceType: resource.resourceType, position };
-  const next = findCarryOnTarget(deps, world, villagerId, owner, from, gatherTargetCounts, spreadCap);
+  const next = findCarryOnTarget(deps, world, villagerId, owner, from, gatherTargetCounts, null, resource.resourceType === 'farm');
   if (next === null) return false;
   carryOnTo(deps, world, villagerId, owner, gatherer, next, gatherTargetCounts);
   return true;
@@ -237,10 +248,13 @@ export function carryOnFromEndedNode(params: {
   world: GameWorld;
   ended: CarryOnFrom;
   gatherTargetCounts: Map<number, number>;
-  spreadCap: number;
   hasQueuedEntityOrders: (unitId: number) => boolean;
+  /** The computer's villagers rank a node with this many gatherers after an
+   *  emptier one; the human player's rank by distance alone (work 145). */
+  computerSpreadCap: number;
+  isAiControlled: (owner: number) => boolean;
 }): void {
-  const { deps, world, ended, gatherTargetCounts, spreadCap, hasQueuedEntityOrders } = params;
+  const { deps, world, ended, gatherTargetCounts, hasQueuedEntityOrders } = params;
   for (const id of world.query('unit', 'gatherer')) {
     const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
     const unit = world.getComponent<UnitComponent>(id, 'unit');
@@ -254,6 +268,9 @@ export function carryOnFromEndedNode(params: {
       if (gatherer.task !== 'to-dropoff') gatherer.task = gatherer.carriedAmount > 0 ? 'to-dropoff' : 'idle';
       continue;
     }
+    const spreadCap = isPlayerTaskedVillager(unit.owner, unit.unitType, params.isAiControlled(unit.owner))
+      ? null
+      : params.computerSpreadCap;
     const next = findCarryOnTarget(deps, world, id, unit.owner, ended, gatherTargetCounts, spreadCap);
     if (next === null) endGatherOrder(gatherer);
     else carryOnTo(deps, world, id, unit.owner, gatherer, next, gatherTargetCounts);
@@ -275,7 +292,6 @@ export function resumePlayerGatherOrder(
   owner: number,
   gatherer: GathererComponent,
   gatherTargetCounts: Map<number, number>,
-  spreadCap: number,
 ): void {
   const targetId = gatherer.targetResourceId;
   const resource = targetId === null ? undefined : world.getComponent<ResourceComponent>(targetId, 'resource');
@@ -287,11 +303,22 @@ export function resumePlayerGatherOrder(
       return;
     }
     const from = { id: targetId, resourceType: resource.resourceType, position };
-    const next = findCarryOnTarget(deps, world, villagerId, owner, from, gatherTargetCounts, spreadCap);
+    const next = findCarryOnTarget(deps, world, villagerId, owner, from, gatherTargetCounts);
     if (next !== null) {
       carryOnTo(deps, world, villagerId, owner, gatherer, next, gatherTargetCounts);
       return;
     }
   }
   endGatherOrder(gatherer);
+}
+
+/** Whether a villager other than `villagerId` is working Farm `farmId` now.
+ *  DE: "Only one Villager may work a Farm at a time" (string 26149). */
+export function farmWorkedByAnother(world: GameWorld, farmId: number, villagerId: number): boolean {
+  for (const id of world.query('gatherer')) {
+    if (id === villagerId) continue;
+    const gatherer = world.getComponent<GathererComponent>(id, 'gatherer');
+    if (gatherer?.task === 'gathering' && gatherer.targetResourceId === farmId) return true;
+  }
+  return false;
 }

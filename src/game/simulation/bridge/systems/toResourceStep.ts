@@ -17,7 +17,7 @@ import { assignIdleGatherer, shouldRetryReachability } from '../idleGatherAssign
 import type { EnemyStaticDefenceLookup } from '../enemyDefenceRange';
 import { retargetOutOfEnemyDefence } from '../enemyDefenceRetarget';
 import { GATHER_APPROACH_BUDGET_TICKS } from './gatherApproachBudget';
-import { endGatherOrder } from '../gatherCarryOn';
+import { endGatherOrder, farmWorkedByAnother } from '../gatherCarryOn';
 import { sheepMoveOrdersCodec } from '../bridgeStateSerialize';
 
 // Wood/gather gridlock fix (campaign-4): villagers piled onto ONE nearest tree
@@ -26,6 +26,13 @@ import { sheepMoveOrdersCodec } from '../bridgeStateSerialize';
 // GATHER_APPROACH_BUDGET_TICKS reassigns to the nearest UNsaturated resource
 // (fan-out). Surgical — normal idle→assign stays nearest-first (AI economy
 // untouched); the approach timer reuses gatherProgressTicks (no new save state).
+//
+// The COMPUTER's spread only (work 145). It is the computer tasking its own
+// villagers, not a rule of the node: DE names a worker limit for the Farm
+// alone, so the human player's group walks on to the node it was ordered onto
+// however many share it, and one that never gets beside it is carried on by
+// the 600-tick backstop below. Until work 145 a player's group ordered onto a
+// node more than 32 tiles away was split here, all but two of it carried on.
 export const MAX_GATHERERS_PER_RESOURCE = 2;
 // The fan-out budget lives in gatherApproachBudget.ts, expressed in TILES so
 // it tracks the movement clock: a flat 80 ticks was ~40 tiles under the old
@@ -84,7 +91,7 @@ export interface ToResourceStepDeps {
    *  cannot work, to the same kind within reach — true when it now holds a
    *  new node. Null for the computer's gatherers, which the reroutes below
    *  re-task as before. */
-  playerCarryOn: ((fromId: number, spreadCap: number) => boolean) | null;
+  playerCarryOn: ((fromId: number) => boolean) | null;
 }
 
 /** Advances one gatherer that is walking to its resource. */
@@ -152,7 +159,7 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
                 unreachableTarget,
                 Math.max(0, (gatherTargetCounts.get(unreachableTarget) ?? 1) - 1),
               );
-              if (!playerCarryOn(unreachableTarget, MAX_GATHERERS_PER_RESOURCE)) endGatherOrder(gatherer);
+              if (!playerCarryOn(unreachableTarget)) endGatherOrder(gatherer);
             }
           } else if (gatherer.carriedAmount > 0) {
             // Deposit a carry first (mirrors the depleted/gone branch above —
@@ -202,6 +209,18 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
             }
           }
         } else if (isUnitAtTarget(id, resourceApproachPlan.destination, activeWorld)) {
+          // A Farm takes one villager (DE string 26149, "Only one Villager may
+          // work a Farm at a time"; work 145). The human player's villager that
+          // arrives at a Farm another villager works takes a free Farm close
+          // by, or with none stands idle. The computer's farmers are as before:
+          // holding them to one a Farm moved two self-play gates (plan 145).
+          const farmId = gatherer.targetResourceId;
+          if (playerCarryOn && farmId !== null && targetResource.resourceType === 'farm' && farmWorkedByAnother(activeWorld, farmId, id)) {
+            gatherTargetCounts.set(farmId, Math.max(0, (gatherTargetCounts.get(farmId) ?? 1) - 1));
+            gatherer.gatherProgressTicks = 0;
+            if (!playerCarryOn(farmId)) endGatherOrder(gatherer);
+            return;
+          }
           gatherer.task = 'gathering';
           gatherer.gatherProgressTicks = 0;
           // v0.3.113: raise a component diff for the transition — the unit is
@@ -250,7 +269,7 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
             gatherer.gatherProgressTicks = 0;
             if (playerCarryOn) {
               // The player's villager: the same kind near the node, or nothing.
-              if (abandoned === null || !playerCarryOn(abandoned, MAX_GATHERERS_PER_RESOURCE)) {
+              if (abandoned === null || !playerCarryOn(abandoned)) {
                 endGatherOrder(gatherer);
               }
               return;
@@ -269,7 +288,8 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
               })
             ));
           } else if (
-            overSubscribed
+            !playerCarryOn
+            && overSubscribed
             && gatherer.gatherProgressTicks >= GATHER_APPROACH_BUDGET_TICKS
           ) {
             // Reservation MOVE: release this villager's slot on the
@@ -286,14 +306,6 @@ export function runToResourceStep(deps: ToResourceStepDeps): void {
             }
             const previousTask = gatherer.task;
             gatherer.gatherProgressTicks = 0;
-            if (playerCarryOn) {
-              // The player's villager spreads only within its patch, and with
-              // nothing there it keeps its place in the queue.
-              if (previousTarget !== null && !playerCarryOn(previousTarget, MAX_GATHERERS_PER_RESOURCE)) {
-                gatherTargetCounts.set(previousTarget, (gatherTargetCounts.get(previousTarget) ?? 0) + 1);
-              }
-              return;
-            }
             // The FIFTH automatic-assignment site, and the only one that must
             // not change the villager's resource KIND: it is redistributing
             // within one kind, and swapping the kind here would fight the AI's
