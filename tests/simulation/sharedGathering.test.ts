@@ -175,6 +175,59 @@ describe('villagers share a node as in DE (work 145)', () => {
     expect(idle, 'the third, with no free Farm close by, did not stand idle').toHaveLength(1);
   });
 
+  // Review round 0: a Farm is free while its farmer carries a load home, as
+  // DE's is (a 2019 Steam report has villagers "steal farms from others that
+  // are also dropping off"), so a villager sent to it then farms it, and the
+  // farmer coming back takes the free Farm beside it. Never two at once, and
+  // no Farm stands empty while a farmer stands idle.
+  it('a Farm whose farmer is away delivering is taken, and the farmer coming back takes the free Farm', () => {
+    const bridge = createSimulationBridge(SHARED_FARM_SEED, { renderProjection: 'on-read' });
+    const [first, second] = villagersOf(bridge);
+    const f1 = nodeAt(bridge, SHARED_FARM.F1, 'farm');
+    const f2 = nodeAt(bridge, SHARED_FARM.F2, 'farm');
+    order(bridge, [first!], f1);
+    let away = false;
+    for (let tick = 0; tick < 800 && !away; tick += 1) {
+      bridge.step(100);
+      const g = gathererOf(bridge, first!);
+      away = g.task === 'to-dropoff' && g.targetResourceId === f1;
+    }
+    expect(away, 'fixture premise: the farmer never went to deliver its load').toBe(true);
+    order(bridge, [second!], f1);
+    let mostOnF1 = 0;
+    for (let tick = 0; tick < 800; tick += 1) {
+      bridge.step(100);
+      mostOnF1 = Math.max(mostOnF1, workingOn(bridge, [first!, second!], f1));
+    }
+    expect(mostOnF1, 'two farmers worked one Farm at once').toBe(1);
+    const targets = [first!, second!].map((id) => gathererOf(bridge, id).targetResourceId).sort();
+    expect(targets, 'both Farms are farmed, one villager each').toEqual([f1, f2].sort());
+  });
+
+  it('a villager a sheep has walked onto obeys a move order', () => {
+    const bridge = createSimulationBridge(SHARED_TRAP_SEED, { renderProjection: 'on-read' });
+    const [villager] = villagersOf(bridge);
+    const walker = nodeAt(bridge, SHARED_TRAP.walker, 'sheep');
+    expect(bridge.selectUnitsByIds([walker])).toBe(true);
+    expect(bridge.issueMoveCommand(SHARED_TRAP.villager.x, SHARED_TRAP.villager.y)).toBe(true);
+    const at = (id: number) => bridge.world.getComponent<Position>(id, 'position')!;
+    let underSheep = false;
+    for (let tick = 0; tick < 300 && !underSheep; tick += 1) {
+      bridge.step(100);
+      underSheep = at(walker).x === at(villager!).x && at(walker).y === at(villager!).y;
+    }
+    expect(underSheep, 'fixture premise: the sheep never stood on the villager\'s cell').toBe(true);
+    const goal = { x: SHARED_TRAP.villager.x - 3, y: SHARED_TRAP.villager.y };
+    expect(bridge.selectUnitsByIds([villager!])).toBe(true);
+    expect(bridge.issueMoveCommand(goal.x, goal.y)).toBe(true);
+    let arrived = false;
+    for (let tick = 0; tick < 300 && !arrived; tick += 1) {
+      bridge.step(100);
+      arrived = at(villager!).x === goal.x && at(villager!).y === goal.y;
+    }
+    expect(arrived, 'the villager under the sheep never walked to the cell it was sent to').toBe(true);
+  });
+
   it('a villager a sheep has walked onto still gathers when ordered', () => {
     const bridge = createSimulationBridge(SHARED_TRAP_SEED, { renderProjection: 'on-read' });
     const [villager] = villagersOf(bridge);

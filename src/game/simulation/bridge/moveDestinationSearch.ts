@@ -113,9 +113,10 @@ export function createMoveDestinationSearch(
   }
 
   // 4-connected, over exactly the predicate `findGridPath` is handed, so
-  // "reachable" here and "a path exists" there are the same claim.
+  // "reachable" here and "a path exists" there are the same claim. Both count
+  // the start as open (work 145): a unit stands on it, and a sheep that stops
+  // on a villager's cell must not leave the villager unable to walk off.
   function flood(unitId: number, start: Position, activeWorld: GameWorld): Flood | null {
-    if (!isCellPassableForUnit(unitId, start.x, start.y, activeWorld)) return null;
     const reached = new Uint8Array(cellCount);
     const cameFrom = new Int32Array(cellCount).fill(-1);
     const frontier: Position[] = [];
@@ -149,6 +150,17 @@ export function createMoveDestinationSearch(
       }
     }
     return { reached, cameFrom, frontier };
+  }
+
+  /** Whether a unit standing at `at` is inside a flood: its cell, or for a
+   *  unit on a cell a resource stopped on, a cell beside it it can step to. */
+  function reachedFrom(reached: Uint8Array, at: Position): boolean {
+    if (reached[indexOfCell(at.x, at.y)] === 1) return true;
+    return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+      const x = at.x + dx!;
+      const y = at.y + dy!;
+      return x >= 0 && y >= 0 && x < mapWidth && y < mapHeight && reached[indexOfCell(x, y)] === 1;
+    });
   }
 
   /** The reachable cell with the smallest (manhattan-to-target, y, x). */
@@ -199,7 +211,7 @@ export function createMoveDestinationSearch(
         height: mapHeight,
         start,
         goal: target,
-        blocked: (x, y) => !isCellPassableForUnit(unitId, x, y, activeWorld),
+        blocked: (x, y) => !(x === start.x && y === start.y) && !isCellPassableForUnit(unitId, x, y, activeWorld),
       });
       if (direct) {
         return {
@@ -226,7 +238,7 @@ export function createMoveDestinationSearch(
       height: mapHeight,
       start,
       goal: destination,
-      blocked: (x, y) => !isCellPassableForUnit(unitId, x, y, activeWorld),
+      blocked: (x, y) => !(x === start.x && y === start.y) && !isCellPassableForUnit(unitId, x, y, activeWorld),
     });
     return {
       destination,
@@ -356,7 +368,7 @@ export function createMoveDestinationSearch(
       }
       const reach = floodByDomain.get(domain) ?? null;
       if (!reach) continue;
-      if (reach.reached[indexOfCell(position.x, position.y)] !== 1) {
+      if (!reachedFrom(reach.reached, position)) {
         blocked += 1;
         firstBlocked ??= { unitId, position };
       }

@@ -35,7 +35,8 @@ Outcome: villagers share a resource as DE's do. A player's order putting several
 
 - The human player's villagers: no rule limit on a sheep, carcass, tree, mine or bush. The count fan-out of the walk (more than 2 on the node after 400 ticks) is the computer's alone, so a group sent any distance works the node it was sent to; one that never gets beside it is carried on by the 600-tick backstop, as before. Their carry-on takes the nearest node of the kind however many work it.
 - A Farm takes one of the human player's villagers: one that arrives at a Farm another villager works takes a free Farm within 5 cells (`findCarryOnTarget`'s `freeFarm`), or its order ends.
-- Every unit: the approach and drop-off path searches (`movementPlanOps.findMovementPathToCandidates`) count the searcher's own cell as open, so a unit on a cell a resource has stopped on walks off it.
+- Every unit: the approach and drop-off path searches (`movementPlanOps.findMovementPathToCandidates`) and the move-order search (`moveDestinationSearch.ts`, from review round 0) count the searcher's own cell as open, so a unit on a cell a resource has stopped on walks off it.
+- A Farm is free while its farmer is away delivering, as DE's is; the farmer coming back to a taken Farm takes a free one (review round 0).
 - The computer keeps its spread (4 on idle assignment and its carry-on, 2 on its reroutes and walk fan-out) and may put two on a Farm. The first version held it to the human's rules (the carry-on's rank and the Farm for every owner); that moved two self-play gates, so by "drop, don't tune" it was dropped for the computer (Measurements).
 
 ## Acceptance criteria
@@ -49,7 +50,7 @@ Outcome: villagers share a resource as DE's do. A player's order putting several
 
 - `src/game/simulation/bridge/gatherCarryOn.ts`: the carry-on's crowding rank only for the computer's villagers (`spreadCap`), a Farm someone targets never a candidate, `freeFarm`, `farmWorkedByAnother`.
 - `src/game/simulation/bridge/systems/toResourceStep.ts`: the walk fan-out the computer's only; the human player's villager arriving at a worked Farm.
-- `src/game/simulation/bridge/movementPlanOps.ts`: the open start cell (500 lines, at the cap).
+- `src/game/simulation/bridge/movementPlanOps.ts`: the open start cell (500 lines, at the cap). `moveDestinationSearch.ts`: the same for move orders, and the walk-order message's reach.
 - `src/game/simulation/bridge/systems/villagerEconomySystem.ts`, `gatheringStep.ts`: call sites.
 - `src/game/simulation/fixtures/economyBasics/sharedGathering.ts` (new, registered in `scenarioRegistry.ts`): the opening, five kinds, the far walk, the Farm, the trap and the pile.
 - Tests: `tests/simulation/sharedGathering.test.ts`, `villagerGatherPile.test.ts`, `sharedGatheringScenarios.test.ts` (new), `tests/browser/shared-gathering.spec.ts` (new), `movementPlanCandidateReach.test.ts` (changed, below).
@@ -59,6 +60,7 @@ Outcome: villagers share a resource as DE's do. A player's order putting several
 
 - On main's code (the test files on the unfixed tree): all nine `sharedGathering.test.ts` cases red, each with its own message.
 - On the final code: the human's carry-on given the computer's 4-per-node rank: the opening and all five kinds red (shepherds [B,B,B,B,C,C]; each kind 4 and 4), and the browser spec red (sheep C eaten to 82). The walk fan-out given back to the human: the far case red (a villager sent to the other pile). The Farm check off: the Farm case red (three on one Farm). The open start cell removed: the trap case, the blocked-start case and the equivalence case red.
+- Round 0's two cases: the staggered Farm case red with the Farm check off (two farmers on one Farm); the move-order case red with the move search's open start removed (the villager stayed under the sheep).
 - `villagerGatherPile.test.ts`: red under a two-per-node arrival rule, with the give-up path (4 villagers never filled a load) and without it (6); green with the give-up path alone removed, because one cell takes the whole pile today (18 gathered from (19,21) at once, overflow past 16 slots) and drop-offs rotate it. Bound: the gate holds that a pile all works, whatever stops it.
 
 ## Existing tests changed
@@ -76,6 +78,14 @@ Outcome: villagers share a resource as DE's do. A player's order putting several
 
 - `npx tsx scripts/selfplay-ab.mjs --a <main e714b4c0> --b <this change> --seeds 5 --config castle --jobs 6`, the noise floor's configuration (plan 144): five maps, five seeds each, 45,000 ticks on the default map and 60,000 on the others; arm A a control worktree on main, arm B a frozen copy of the final game code. All 25 records are identical to main's but for wall time and fingerprints, and every row of the report reads no move (0 up, 0 down): villagers at the clicks and at 5 to 20 minutes, the age clicks, villager deaths, armies, ends. So the change is byte-neutral for the computer on these seeds; the open start cell, the only part that reaches it, changed no match. Bound: castle configuration, these 25 seeds; both seats are computers there, so the human player's rules do not run.
 - The computer held to the human player's rules (the first version: the carry-on without its crowding rank and one villager a Farm, for every owner): `selfPlayContentCoverage.test.ts` red, "owner 1's siege-workshop researched nothing it hosts", and `aiReachesCastleAge.test.ts` red, the Crossbowman never exercised on the boot match's floor. The Farm rule alone for the computer: `selfPlayContentCoverage.test.ts` red, "owner 2 did not reach the Imperial Age in the lab" (it ended in the Castle Age). Both dropped for the computer; with the final code both gates pass and the census is unchanged (the census file is not re-recorded).
+
+## Reviews
+
+- Round 0 (`reviews/0_implementation.md`), Codex on a2c6789b: one medium finding, a Farm taken while its farmer delivers, rejected for the rule (DE's Farm is free then) with its regression test added; the worker found and repaired the same trap in the move-order search.
+
+## Gates
+
+- a2c6789b: `npm run verify` exit 0, `node scripts/verify-receipt.mjs check` OK on tree 6ba72558cf2a (vitest 5,388 passed and 3 skipped, Playwright 321 passed and 2 skipped).
 
 ## Visual
 
