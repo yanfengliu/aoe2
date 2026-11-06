@@ -1,6 +1,6 @@
 # Definitive Edition's game speeds
 
-Status: active
+Status: complete
 Owner: de-game-speeds worker for the Claude coordinator
 Created: 2026-11-06
 Updated: 2026-11-06
@@ -51,6 +51,8 @@ The lobby starts on Normal. A URL without `?speed=` stays at Slow, 1.0x: every t
 - [x] `npm run verify`, the receipt check, the independent review; then the handoff.
 
 ## Outcome
+
+**Landed (2026-11-06): v0.3.275, commit fb2361b2 on main**, one commit squashing the branch `de-game-speeds-1106` (reviewed code commit 73e5ed78, its docs commit 23fff7a7, and e0da69af, which made the same-match case compare at every landing tick and proved it red after the coordinator's finding; none is kept on a branch). Landing gate on fb2361b2's clean tree: `npm run verify` exited 0, receipt OK on tree ba2d316cd20c (vitest 5,470 passed and 3 skipped, Playwright 339 passed and 2 skipped). CI run 42286497204 succeeded, read from each job's log: unit shards Ubuntu 1/3, 2/3 and 3/3 used 13.9, 8.8 and 7.6 of their 60 minutes (23%, 15%, 13%; the ceiling is 67%) and Windows 1/3, 2/3 and 3/3 10.9, 18.1 and 12.6 (18%, 30%, 21%); browser shards 1/4 to 4/4 used 15.4, 12.7, 13.2 and 11.1 of their 45 minutes (34%, 28%, 29%, 25%). The new tests: `gameSpeedPace.test.ts` took 17.5 s on Ubuntu 3/3 (the same-match case 16.1 s, 13% of its 120 s) and 32.7 s on Windows 3/3 (30.4 s, 25%); `gameSpeeds.test.ts` 5 ms; `game-speed.spec.ts` passed in browser shard 3/4, both cases under the 37% of 30 s that the shard's closest-five report started at. playtest-corpus run 42286497365 succeeded.
 
 **Phase 1 handoff (2026-11-06).** Reviewed revision 73e5ed78 (on main 4bd1978b). `npm run verify` on its clean tree exited 0 and `node scripts/verify-receipt.mjs check` printed OK: tree cb899466950f, vitest 5,470 passed and 3 skipped, Playwright 339 passed and 2 skipped. One Codex review round ([reviews/0_implementation.md](reviews/0_implementation.md)): no blocker or major finding; of two minor ones, the empty `?speed=` was settled in §4.5's wording and the readout's visibility and replay cases are noted below. The docs-only commit after it holds the review record and those words.
 
