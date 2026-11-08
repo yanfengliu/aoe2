@@ -95,7 +95,9 @@ export class RenderStore {
           layerOrder.indexOf(left.layer) - layerOrder.indexOf(right.layer);
         if (layerDelta !== 0) return layerDelta;
         if (left.y !== right.y) return left.y - right.y;
-        return left.x - right.x;
+        if (left.x !== right.x) return left.x - right.x;
+        // Match a full engine snapshot even after a lower entity ID is reused.
+        return left.id - right.id;
       });
   }
 

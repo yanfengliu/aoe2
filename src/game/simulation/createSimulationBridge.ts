@@ -8,6 +8,7 @@ import { countResourceWorkers } from './resourceWorkerCounts';
 import { visibilityStateFromSave } from './saveBlobReaders';
 import { LayeredVisibilityMap } from './bridge/layeredVisibilityMap';
 import { createRenderStateOps } from './bridge/renderStateOps';
+import { trackRenderInvalidation } from './bridge/renderInvalidation';
 import { createTickHaltState, tryTick } from './bridge/tickHaltGuard';
 import {
   STEP_REFUSED_HALTED,
@@ -184,7 +185,10 @@ export function createSimulationBridge(
   // 'on-read' (createSimulationBridgeOptions.ts): no projection while the
   // world steps; each read projects the whole world once.
   const projectOnRead = options.renderProjection === 'on-read';
-  if (!projectOnRead) renderAdapter.connect();
+  if (!projectOnRead) {
+    trackRenderInvalidation(world, renderAdapter, consumeOutOfBandRenderChange, getSelectedEntityRefs);
+    renderAdapter.connect();
+  }
 
   function refreshRenderProjection(): void {
     renderAdapter.disconnect();

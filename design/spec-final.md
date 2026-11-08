@@ -2121,6 +2121,7 @@ Requirements:
 - game logic decoupled from render frame rate
 - seeded random number generation for reproducible logic
 - per-tick updates for movement, combat, gathering, training, research, and AI
+- rendering must show game-owned health, activity and selection changes in the same completed tick, without repeatedly projecting unchanged terrain and static resources; input received between ticks still refreshes immediately, including while paused. Rendering does not mutate simulation or saved state.
 
 ### 15.2 Command Model
 

@@ -1,6 +1,6 @@
 # Pin the installed engine and preserve consumer checks
 
-Status: active
+Status: complete
 Owner: Codex
 Created: 2026-11-08
 Updated: 2026-11-08
@@ -66,3 +66,7 @@ Hosted CI42436197882 Windows unit shard2/3 failed only tests/scripts/engineInsta
 A real checkout-root junction reproduces the same path-spelling class locally: the raw expected path failed while13 other installation cases passed. The corrected common assertion uses realpath(installed), without weakening physical-dependency rejection or runtime checks. All14 install cases plus9 actual CLI cases pass. Product/guard/package bytes are unchanged. Raw logs: tmp/engine-pin/canonical-path-{red,green}.log. Exact review, complete gates and hosted delivery of this test-only correction remain pending.
 
 Round2 independently accepted source tree590f5b809ee301a67f8e7d46bd76350bfd562c3f with no material findings. The complete correction gate passed2026-11-08 02:21:25–02:36:26 UTC:5,504 unit passes/3 existing skips,345 browser passes/2 existing skips, content/type/lint/final build green. Both audits pass (7 moderate development findings,0 production). Node24.22.1/root npm11.6.2/PATH npm11.7.0;417 tracked owned processes, no forced terminations or leftovers. Its dirty-tree receipt correctly refuses landing; clean-commit certification and corrected hosted CI remain pending. Evidence: tmp/engine-pin/verify-canonical-dirty.{stdout.log,stderr.log,process.json}.
+
+## Terminal acceptance
+
+Work153 canonical-path correction is delivered at main a0e10435912d97078ee033112d49926a36807fde. Clean verify on tree3cc8351b01dc04fe07dc971a02946467eed7cc0c passed5,504 unit tests/3 existing skips and345 browser tests/2 existing skips, all stages and receipt check, from2026-11-08 02:39:00–02:53:35 UTC;400 tracked owned processes,0 cleanup stops/leftovers. CI42440504621 finished successfully in all10 jobs, including Windows, and corpus42440504564 succeeded. Actual physical runtime remains engine2.9.0. No work154/155 gameplay change was included.

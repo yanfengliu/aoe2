@@ -2,6 +2,10 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.278
+
+Health, activity and selection updates avoid rebuilding every terrain and static-resource view each tick. Rendering still observes changes in the same tick, and paused input refreshes immediately. Saved games and recorded simulation state keep the same format.
+
 ## 0.3.277
 
 A selected unit's or building's work line holds one line, as a group's does.
