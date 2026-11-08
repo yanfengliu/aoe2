@@ -2,7 +2,7 @@
 // Fixture copies let drift cases fail without changing the real installation.
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, realpath, rm, symlink, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -20,6 +20,9 @@ async function check(root: string): Promise<{ version: string; packageRoot: stri
     "import { checkEngineInstall } from './scripts/check-engine.mjs'; console.log(JSON.stringify(await checkEngineInstall(process.argv[1])));", root],
   { cwd: process.cwd(), windowsHide: true });
   return JSON.parse(stdout) as { version: string; packageRoot: string };
+}
+async function expectPhysicalInstall(root: string, installed: string) {
+  expect(await check(root)).toMatchObject({ version: pin.version, packageRoot: await realpath(installed) });
 }
 async function fixture() {
   const root = await mkdtemp(path.join(tmpdir(), 'aoe2-engine-pin-'));
@@ -45,7 +48,19 @@ afterEach(async () => { for (const root of roots.splice(0)) await rm(root, { rec
 describe('retained engine installation', () => {
   it('accepts the physical compiled package and both runtime versions', async () => {
     const { root, installed } = await fixture();
-    expect(await check(root)).toMatchObject({ version: pin.version, packageRoot: installed });
+    await expectPhysicalInstall(root, installed);
+  });
+
+  it('accepts the same physical package through a checkout-root alias', async () => {
+    const { root } = await fixture();
+    const alias = path.join(root, 'checkout-alias');
+    await symlink(root, alias, 'junction');
+    try {
+      expect(await realpath(alias), 'the alias must resolve to a different spelling').not.toBe(alias);
+      await expectPhysicalInstall(alias, path.join(alias, 'node_modules/civ-engine'));
+    } finally {
+      await unlink(alias);
+    }
   });
 
   const drift: [string, string[], unknown][] = [

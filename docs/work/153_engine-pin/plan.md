@@ -24,7 +24,7 @@ Engine producer c78a3b3162a3674b8e42204fed66cbabcdabf5ac passed CI42430952599 on
 - [x] Clean private installed engine matches exact archive/lock/runtime; old link and drift contracts fail.
 - [x] Preserve internal-helper tripwires, browser graph controls, voxel retry policy and actual installed-engine fingerprinting.
 - [x] Corrected full local verify and both audits pass; exact independent review closes material findings.
-- [ ] Final clean-commit verify receipt is accepted before landing.
+- [x] Final clean-commit verify receipt accepted source0aa25692 before landing; hosted test portability repair below remains active.
 - [ ] Hold the integration lock from final refresh through push, follow CI and corpus to terminal, retire only task-owned worktree/processes through the controller.
 
 ## Implementation steps
@@ -56,3 +56,13 @@ Corrected npm run verify completed with native exit0: content validation,695 uni
 The pre-commit receipt contains complete passing suite reports but is deliberately refused for landing because the candidate was uncommitted at both endpoints. Root will commit the reviewed candidate, rerun the exact complete gate on clean HEAD, inspect verify-receipt check, and only then land. Evidence: tmp/engine-pin/verify-corrected.{stdout.log,stderr.log,receipt.json,process.json}, direct-cli-{red-valid,green}.log and audit-final-{full,production}.json.
 
 A separate fresh public-API probe confirmed E03 remains open under engine2.9.0: a selected villager accepted a move, pausing refused advancement at tick0, the save persisted an empty pendingCommands array, and after20 ticks the continued game position differed from the loaded game. This probe is preparation evidence only, not a persistence fix or new-format authorization.
+
+## Hosted canonical-path fixture correction
+
+Source0aa2569211db3380074cd2126c99c49a02b57de2 landed on main after a clean full verify accepted exact tree4000085464f2d9e1f66b7a321bd7e45e169ff43d: 5,503 unit passes/3 existing skips and345 browser passes/2 existing skips. The command ran2026-11-08 01:38:07–01:52:49 UTC, tracked448 owned processes, terminated one remaining owned process after completion and left zero. The gate lock was held through push and then released. Corpus42436197812 passed.
+
+Hosted CI42436197882 Windows unit shard2/3 failed only tests/scripts/engineInstall.test.ts: the guard returned canonical C:\Users\runneradmin while the fixture expected the short-path alias C:\Users\RUNNER~1. Job128595444738 had1 failed/1,716 passed/2 existing skipped tests. This is a fixture expectation defect, not a guard or engine-runtime mismatch. The fixture's synthetic2.8.2 pin is intentional; the actual installed runtime remains2.9.0. Other completed jobs passed; final run status is followed separately.
+
+A real checkout-root junction reproduces the same path-spelling class locally: the raw expected path failed while13 other installation cases passed. The corrected common assertion uses realpath(installed), without weakening physical-dependency rejection or runtime checks. All14 install cases plus9 actual CLI cases pass. Product/guard/package bytes are unchanged. Raw logs: tmp/engine-pin/canonical-path-{red,green}.log. Exact review, complete gates and hosted delivery of this test-only correction remain pending.
+
+Round2 independently accepted source tree590f5b809ee301a67f8e7d46bd76350bfd562c3f with no material findings. The complete correction gate passed2026-11-08 02:21:25–02:36:26 UTC:5,504 unit passes/3 existing skips,345 browser passes/2 existing skips, content/type/lint/final build green. Both audits pass (7 moderate development findings,0 production). Node24.22.1/root npm11.6.2/PATH npm11.7.0;417 tracked owned processes, no forced terminations or leftovers. Its dirty-tree receipt correctly refuses landing; clean-commit certification and corrected hosted CI remain pending. Evidence: tmp/engine-pin/verify-canonical-dirty.{stdout.log,stderr.log,process.json}.
