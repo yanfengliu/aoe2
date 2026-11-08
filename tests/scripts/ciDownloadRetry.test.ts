@@ -10,14 +10,14 @@
 //
 // The policy is RETRY below on every curl, with `-f`, so that an HTTP error
 // fails curl instead of saving the error page as the download. ci.yml's comment
-// on the `gates` job's civ-engine fetch gives the reasons.
+// before the `gates` job's voxel fetch gives the reasons.
 //
 // Two parts. (1) The reader, on in-file fixtures both ways: a curl without the
 // flags is refused, a flag after a `\` continuation counts, and a comment that
 // names curl is no download. (2) Every workflow in .github/workflows, read
 // PARSED, so a YAML comment is never a command: every curl in a `run:` script
-// keeps the policy, and the scan found the civ-engine and voxel fetches of all
-// three jobs, so a reader that finds nothing fails.
+// keeps the policy, and the scan finds all three voxel fetches, so a reader
+// that finds nothing fails. Engine archives now use npm's locked installation.
 //
 // BOUND. This proves the flags are written, not that a runner's curl honours
 // them. That is curl's contract, probed on 2026-11-05 with these flags against
@@ -108,9 +108,9 @@ describe('every curl in .github/workflows retries with the one policy', () => {
   const curls = workflowCurls();
   const fetching = (url: RegExp) => curls.filter((curl) => curl.words.some((word) => url.test(word))).map((curl) => curl.where).sort();
 
-  it('finds the civ-engine and voxel fetches of all three jobs, so the check below reads them', () => {
+  it('finds all three voxel fetches and no rolling engine download', () => {
     const jobs = ['ci.yml › browser', 'ci.yml › gates', 'playtest.yml › corpus'];
-    expect(fetching(/\/civ-engine\/releases\/download\/engine-dist\/civ-engine\.tgz$/)).toEqual(jobs.map((job) => `${job} › Fetch the prebuilt civ-engine`));
+    expect(fetching(/\/civ-engine\/releases\/download\//)).toEqual([]);
     expect(fetching(/\/voxel\/archive\//)).toEqual(jobs.map((job) => `${job} › Fetch pinned voxel source`));
   });
 
@@ -119,6 +119,17 @@ describe('every curl in .github/workflows retries with the one policy', () => {
       const why = breach(curl);
       return why === undefined ? [] : [`${curl.where}: curl ${why}`];
     });
-    expect(offenders, `every curl takes -f and ${RETRY.join(' ')}; see ci.yml's civ-engine fetch in the gates job`).toEqual([]);
+    expect(offenders, `every curl takes -f and ${RETRY.join(' ')}; see ci.yml's voxel fetch in the gates job`).toEqual([]);
+  });
+
+  it('installs and verifies the pinned engine in all three consuming jobs', () => {
+    for (const [file, jobName] of [['ci.yml', 'gates'], ['ci.yml', 'browser'], ['playtest.yml', 'corpus']]) {
+      const workflow = yaml.load(readFileSync(`${DIR}${file}`, 'utf8')) as Workflow;
+      const commands = workflow.jobs?.[jobName!]?.steps?.map(step => step.run).filter((run): run is string => typeof run === 'string') ?? [];
+      const install = commands.indexOf('npm ci --ignore-scripts');
+      const guard = commands.indexOf('npm run engine:check');
+      expect(install, `${file}/${jobName} clean install`).toBeGreaterThanOrEqual(0);
+      expect(guard, `${file}/${jobName} installed engine verification`).toBeGreaterThan(install);
+    }
   });
 });

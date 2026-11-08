@@ -69,14 +69,14 @@ type StubRecording = Pick<RecordingService, 'bundle' | 'listPriorSessions' | 'lo
 
 describe('createReplayLoadDialog', () => {
   let host: HTMLElement;
-  let toast: { showToast: ReturnType<typeof vi.fn> };
+  let toast: { showToast: ReturnType<typeof vi.fn<(text: string) => void>> };
   let recording: StubRecording;
   let mode: ReplayController['mode'];
-  let enterReplay: ReturnType<typeof vi.fn>;
+  let enterReplay: ReplayController['enterReplay'];
 
   const makeController = (): Pick<ReplayController, 'enterReplay' | 'mode'> => ({
     get mode() { return mode; },
-    enterReplay: enterReplay as unknown as ReplayController['enterReplay'],
+    enterReplay: enterReplay,
   });
 
   beforeEach(() => {

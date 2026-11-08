@@ -2965,6 +2965,10 @@
     {
       "id": 152,
       "theme": "ai-economy-research"
+    },
+    {
+      "id": 153,
+      "theme": "engine-pin"
     }
   ]
 }

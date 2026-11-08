@@ -32,9 +32,7 @@ export default defineConfig({
     // machine (8 cores -> 4 workers; GitHub's 4-vCPU runners -> 2). CI gets its
     // speed from sharding the files across jobs instead (.github/workflows/ci.yml,
     // work 143), so each shard's tests run with the workers this cap gives.
-    poolOptions: {
-      threads: { maxThreads: '50%', minThreads: 1 },
-    },
+    maxWorkers: '50%',
     // The default reporter, plus one that writes each test's duration against its
     // own timeout to tmp/test-times/vitest.json and prints the closest five. CI
     // fails a run past two thirds of any test's limit from that file

@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, type Mocked } from 'vitest';
 import type { World } from 'civ-engine';
 
 import { createMarkerListPanel } from '../../src/ui/annotation/MarkerListPanel';
+
+type StubRecording = Pick<Parameters<typeof createMarkerListPanel>[0]['recording'],
+  'markers' | 'listPriorSessions' | 'exportPriorSession' | 'discardPriorSession'>;
 import type { PriorSessionDescriptor } from '../../src/game/recording/IndexedDBMirror';
 import { SchemaMismatchError } from '../../src/game/recording/IndexedDBMirrorErrors';
 
@@ -25,17 +28,12 @@ const makePrior = (id: string, overrides: Partial<PriorSessionDescriptor> = {}):
 });
 
 describe('MarkerListPanel — Prior Sessions Replay button (Slice 3 — v0.1.10)', () => {
-  let recording: {
-    markers: ReturnType<typeof vi.fn>;
-    listPriorSessions: ReturnType<typeof vi.fn>;
-    exportPriorSession: ReturnType<typeof vi.fn>;
-    discardPriorSession: ReturnType<typeof vi.fn>;
-  };
-  let pauseControl: { pause: ReturnType<typeof vi.fn>; resume: ReturnType<typeof vi.fn>; isPaused: () => boolean };
-  let toast: { showToast: ReturnType<typeof vi.fn> };
-  let bridge: { panCameraTo: ReturnType<typeof vi.fn>; select: ReturnType<typeof vi.fn> };
+  let recording: StubRecording;
+  let pauseControl: { pause: ReturnType<typeof vi.fn<() => void>>; resume: ReturnType<typeof vi.fn<() => void>>; isPaused: () => boolean };
+  let toast: { showToast: ReturnType<typeof vi.fn<(text: string) => void>> };
+  let bridge: Mocked<Parameters<typeof createMarkerListPanel>[0]['bridge']>;
   let world: World;
-  let onReplayPriorSession: ReturnType<typeof vi.fn>;
+  let onReplayPriorSession: NonNullable<Parameters<typeof createMarkerListPanel>[0]['onReplayPriorSession']>;
 
   beforeEach(() => {
     recording = {

@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, type Mocked } from 'vitest';
 import type { EntityRef, World } from 'civ-engine';
 
 import { createAnnotationController } from '../../src/game/recording/AnnotationController';
+
+type StubRecording = Pick<Parameters<typeof createAnnotationController>[0]['recording'],
+  'isRecording' | 'addMarker' | 'attachScreenshot'>;
 import type { AnnotationFormView, AnnotationFormSubmission } from '../../src/ui/annotation/AnnotationForm';
 
 const stubForm = (): AnnotationFormView & {
@@ -38,22 +41,18 @@ const stubForm = (): AnnotationFormView & {
 };
 
 describe('AnnotationController', () => {
-  let recording: {
-    isRecording: ReturnType<typeof vi.fn>;
-    addMarker: ReturnType<typeof vi.fn>;
-    attachScreenshot: ReturnType<typeof vi.fn>;
-  };
-  let pauseControl: { pause: ReturnType<typeof vi.fn>; resume: ReturnType<typeof vi.fn>; isPaused: () => boolean };
-  let toast: { showToast: ReturnType<typeof vi.fn> };
+  let recording: Mocked<StubRecording>;
+  let pauseControl: { pause: ReturnType<typeof vi.fn<() => void>>; resume: ReturnType<typeof vi.fn<() => void>>; isPaused: () => boolean };
+  let toast: { showToast: ReturnType<typeof vi.fn<(text: string) => void>> };
   let world: World;
   let selectedRefs: EntityRef[];
   let canvas: HTMLCanvasElement | null;
 
   beforeEach(() => {
     recording = {
-      isRecording: vi.fn(() => true),
-      addMarker: vi.fn(() => 'marker-id-stub'),
-      attachScreenshot: vi.fn(() => 'attachment-id-stub'),
+      isRecording: vi.fn<StubRecording['isRecording']>(() => true),
+      addMarker: vi.fn<StubRecording['addMarker']>(() => 'marker-id-stub'),
+      attachScreenshot: vi.fn<StubRecording['attachScreenshot']>(() => 'attachment-id-stub'),
     };
     pauseControl = { pause: vi.fn(), resume: vi.fn(), isPaused: () => false };
     toast = { showToast: vi.fn() };
@@ -81,7 +80,7 @@ describe('AnnotationController', () => {
   });
 
   it('onHotkey: no-op + toast when recording is not ready', () => {
-    recording.isRecording = vi.fn(() => false);
+    recording.isRecording = vi.fn<StubRecording['isRecording']>(() => false);
     const form = stubForm();
     const controller = createAnnotationController({
       recording: recording as never,
@@ -117,7 +116,7 @@ describe('AnnotationController', () => {
     const callArgs = recording.addMarker.mock.calls[0][0];
     expect(callArgs.kind).toBe('annotation');
     expect(callArgs.text).toBe('unit stuck');
-    expect(callArgs.refs.entities).toEqual(selectedRefs);
+    expect(callArgs.refs!.entities).toEqual(selectedRefs);
     expect(callArgs.data).toEqual({ author: 'human', severity: 'bug', category: 'pathfinding' });
     expect(pauseControl.resume).toHaveBeenCalledTimes(1);
     expect(form.close).toHaveBeenCalledTimes(1);
@@ -138,8 +137,8 @@ describe('AnnotationController', () => {
     controller.onHotkey();
     form.emitSubmit({ text: 'general issue', severity: 'info', category: 'general', captureScreenshot: false });
     const callArgs = recording.addMarker.mock.calls[0][0];
-    expect(callArgs.refs.entities).toBeUndefined();
-    expect(callArgs.refs.tickRange).toEqual({ from: 42, to: 42 });
+    expect(callArgs.refs!.entities).toBeUndefined();
+    expect(callArgs.refs!.tickRange).toEqual({ from: 42, to: 42 });
     controller.dispose();
   });
 
@@ -213,7 +212,7 @@ describe('AnnotationController', () => {
   });
 
   it('submit with addMarker rejection: keeps form open + showError, no resume', () => {
-    recording.addMarker = vi.fn(() => { throw new Error('recorder_terminated'); });
+    recording.addMarker = vi.fn<StubRecording['addMarker']>(() => { throw new Error('recorder_terminated'); });
     const form = stubForm();
     const controller = createAnnotationController({
       recording: recording as never,

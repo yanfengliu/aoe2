@@ -23,15 +23,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      # aoe2 consumes the engine's PREBUILT dist (the engine CI packs it as the
-      # rolling engine-dist release); it does not build the engine. See ci.yml,
-      # which also says why every curl here takes the same retry flags.
-      - name: Fetch the prebuilt civ-engine
-        shell: bash
-        run: |
-          curl -fsSL --retry 3 --retry-all-errors -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
-          mkdir -p ../civ-engine
-          tar -xzf civ-engine.tgz -C ../civ-engine --strip-components=1
+      # npm ci installs the retained engine archive and verifies lock integrity.
+      # See ci.yml for the retry policy on the remaining voxel download.
       - name: Fetch pinned voxel source
         shell: bash
         run: |
@@ -55,7 +48,8 @@ jobs:
       - name: Install and build voxel
         shell: bash
         run: npm --prefix ../voxel ci
-      - run: npm ci
+      - run: npm ci --ignore-scripts
+      - run: npm run engine:check
       - run: npm run playtest:corpus
       - name: Upload corpus output
         if: always()

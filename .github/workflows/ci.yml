@@ -113,14 +113,8 @@ jobs:
           git fetch --no-tags --depth=1 origin 143ad5116f25393504328056764bcc8706917b9e
           git cat-file -e 143ad5116f25393504328056764bcc8706917b9e^{commit}
 
-      # aoe2 depends on its sibling engine via `file:../civ-engine` (a symlink
-      # to ../civ-engine locally). CI checks out only aoe2, so we fetch the
-      # engine's PREBUILT dist — packed + published by the engine's own CI as
-      # the rolling `engine-dist` release — and extract it into ../civ-engine so
-      # the dep resolves. aoe2 CI does NOT build the engine; that is the engine
-      # CI's job. (Public repo asset → no token needed; curl + tar work on the
-      # ubuntu + windows/git-bash matrix.)
-      #
+      # npm ci installs the commit-named engine archive from the lockfile and
+      # verifies its integrity. The engine producer builds and retains it.
       # Every curl in these workflows retries with the same flags, which
       # tests/scripts/ciDownloadRetry.test.ts holds. `--retry 3` retries a
       # timeout and HTTP 408, 429, 500, 502, 503 and 504 after waits of 1, 2
@@ -130,13 +124,6 @@ jobs:
       # which `--retry` alone leaves unretried (run 38153770319, 2026-10-11).
       # curl's manual warns against `--retry-all-errors` with redirected
       # output; `-o` names a file, which curl empties before each retry.
-      - name: Fetch the prebuilt civ-engine
-        shell: bash
-        run: |
-          curl -fsSL --retry 3 --retry-all-errors -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
-          mkdir -p ../civ-engine
-          tar -xzf civ-engine.tgz -C ../civ-engine --strip-components=1
-
       - name: Fetch pinned voxel source
         shell: bash
         run: |
@@ -168,7 +155,10 @@ jobs:
         run: npm --prefix ../voxel ci
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      - name: Verify installed engine
+        run: npm run engine:check
 
       - name: Typecheck
         run: npm run typecheck
@@ -281,13 +271,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fetch the prebuilt civ-engine
-        shell: bash
-        run: |
-          curl -fsSL --retry 3 --retry-all-errors -o civ-engine.tgz https://github.com/yanfengliu/civ-engine/releases/download/engine-dist/civ-engine.tgz
-          mkdir -p ../civ-engine
-          tar -xzf civ-engine.tgz -C ../civ-engine --strip-components=1
-
       - name: Fetch pinned voxel source
         shell: bash
         run: |
@@ -314,7 +297,10 @@ jobs:
         run: npm --prefix ../voxel ci
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      - name: Verify installed engine
+        run: npm run engine:check
 
       # Key the cache on the version `npm ci` ACTUALLY installed, read out of
       # node_modules rather than the `^1.59.1` range in package.json: Playwright

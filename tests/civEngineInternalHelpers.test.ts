@@ -48,22 +48,17 @@
 //    against civ-engine 2.4.1. The version is not asserted (a bump is not a
 //    promotion and should not be reported as one) but every failure message
 //    carries the version actually measured.
-//  - It measures a LINKED build, not an installed one. `civ-engine` is a
-//    `file:../civ-engine` dependency, so `node_modules/civ-engine` is a symlink
-//    to the sibling checkout, whose `dist/` is gitignored (`../civ-engine/
-//    .gitignore:5`) and is therefore that checkout's own local `tsc` output.
-//    The 2026-09-06 investigation reported it byte-equivalent to a fresh
-//    install; that was NOT re-measured here. CI resolves through the same link
-//    but fills it from the rolling `engine-dist` tarball
-//    (the "Fetch the prebuilt civ-engine" step in `.github/workflows/ci.yml`), so CI and a developer machine can be
-//    two different sets of bytes making the same claim. Each failure message
-//    says which of the two it read.
+//  - The installation control now requires the retained archive named by the
+//    manifest, lock and pin, a physical package and matching compiled Node/browser
+//    versions. npm ci checks archive bytes; this guard does not rehash every
+//    installed file. Failure messages still report the actual resolved package.
 
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { checkEngineInstall } from '../scripts/check-engine.mjs';
 
 const require = createRequire(import.meta.url);
 const enginePackageJsonPath = require.resolve('civ-engine/package.json');
@@ -180,6 +175,12 @@ function promotionMessage(helper: InternalHelper, entry: string): string {
 }
 
 describe('civ-engine internal helpers stay unreachable (tripwire)', () => {
+  it('loads the pinned physical package and both matching compiled runtimes', async () => {
+    const identity = await checkEngineInstall();
+    expect(identity.version).toBe(engineVersion);
+    expect(identity.packageRoot).toBe(resolve(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'civ-engine'));
+  });
+
   it('loads both barrels, and they are the two distinct surfaces', async () => {
     const nodeEntry = (await import('civ-engine')) as Record<string, unknown>;
     const browserEntry = (await import('civ-engine/browser')) as Record<string, unknown>;
