@@ -178,7 +178,9 @@ describe('civ-engine internal helpers stay unreachable (tripwire)', () => {
   it('loads the pinned physical package and both matching compiled runtimes', async () => {
     const identity = await checkEngineInstall();
     expect(identity.version).toBe(engineVersion);
-    expect(identity.packageRoot).toBe(resolve(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'civ-engine'));
+    // The physical package this checkout's `node_modules/civ-engine` resolves to: the checkout's own,
+    // or in a linked worktree the primary checkout's, through the link the guard accepts.
+    expect(identity.packageRoot).toBe(realpathSync(resolve(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'civ-engine')));
   });
 
   it('loads both barrels, and they are the two distinct surfaces', async () => {
