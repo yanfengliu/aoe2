@@ -35,6 +35,7 @@ The reviewer confirmed from the code that one villager takes at most `gatherAmou
 - Nine mutants, each red and restored byte for byte: main's rule of one swing (five cases red); one farmer too many in the rule (four); one too few (four); no farmer needed (two); `readOwned` giving every farm 99 farmers (two), none (two) and one too many (two, the reviewer's); every gatherer counted twice (two); an eaten farm still counted a death (two).
 - On work 152's branch head 4654ed10, in a scratch worktree since removed: the old rule reproduced "tick 20631: owner 1's farm #2184 died and no blow was recorded"; with 5e746f2a's file no death was unrecorded, and the all-AI case failed on its floor instead, with no Town Centre arrows in its window (blows by attacker: light-cavalry 52, knight 26, crossbowman 5). That re-read of the window is that branch's own work.
 - A bound the cases leave: a count that took every gatherer in the world, whatever its target, would pass them, because the fixture's three villagers all gather the one farm.
+- `npm run verify` exited 0 on a5e62c4a, the batch with main's v0.3.279 and work 150 M2's record merged in, and the receipt was accepted on its tree: vitest 5,584 passed and 3 skipped, Playwright 350 passed and 2 skipped.
 - The repairs were not reviewed again: both findings were minor.
 
 ## Round outcome
