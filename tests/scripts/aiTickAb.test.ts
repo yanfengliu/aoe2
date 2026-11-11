@@ -19,7 +19,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { runInterleaved, summarize } from '../../scripts/aiTickAb.mjs';
+import { armBridgeFactory, readArmFlags, runInterleaved, summarize } from '../../scripts/aiTickAb.mjs';
 
 interface StubArm {
   label: string;
@@ -164,5 +164,54 @@ describe('aiTickAb: the foreign load is reported beside the ratio', () => {
     const { arms, clock, busyCores } = stubs([1, 1]);
     const summary = summarize(runInterleaved({ arms, chunkTicks: 100, maxTicks: 300, clock, busyCores }));
     expect(summary.foreignCores.median).toBeCloseTo(2, 10);
+  });
+});
+
+// `--load` and `--projection` (work 150 M2): both arms must open the SAME world
+// on the SAME projection path, or the ratio compares two matches. What can go
+// wrong unseen is the wiring: a flag read but not passed on measures the
+// default world or path under the flag's name, and two arms handed one parsed
+// save share an object that the first arm's bridge may write to.
+describe('aiTickAb: --load and --projection reach both arms alike', () => {
+  const opened: Array<{ seed: string; options: Record<string, unknown> }> = [];
+  const fakeCreate = (seed: string, options: Record<string, unknown> = {}) => {
+    opened.push({ seed, options });
+    return {};
+  };
+
+  it('reads the two flags, and neither when absent', () => {
+    expect(readArmFlags(['castle', 'a', 'b', '--load', 'late.json', '--projection', 'on-read', '--chunk', '500'], 'castle'))
+      .toEqual({ load: 'late.json', projection: 'on-read' });
+    expect(readArmFlags(['lab', 'a', 'b', '--projection', 'every-tick'], 'lab')).toEqual({ load: null, projection: 'every-tick' });
+    expect(readArmFlags(['castle', 'a', 'b'], 'castle')).toEqual({ load: null, projection: null });
+  });
+
+  it('refuses a projection that is neither path, and a save for a scenario that sets its world up after opening', () => {
+    expect(() => readArmFlags(['castle', 'a', 'b', '--projection', 'sometimes'], 'castle')).toThrow('on-read or every-tick');
+    expect(() => readArmFlags(['walk', 'a', 'b', '--load', 'late.json'], 'walk')).toThrow('castle or lab');
+    expect(() => readArmFlags(['garrison', 'a', 'b', '--load', 'late.json'], 'garrison')).toThrow('castle or lab');
+  });
+
+  it('adds the save and the projection to the options the scenario passes, a fresh parse per arm', () => {
+    opened.length = 0;
+    const arm = { saveText: '{"schema":2,"seed":"late"}', projection: 'on-read' };
+    armBridgeFactory(fakeCreate, arm)('aoe2-prototype', { victory: 'conquest-only' });
+    armBridgeFactory(fakeCreate, arm)('aoe2-prototype', { victory: 'conquest-only' });
+    expect(opened[0]).toEqual({
+      seed: 'aoe2-prototype',
+      options: { victory: 'conquest-only', savedGame: { schema: 2, seed: 'late' }, renderProjection: 'on-read' },
+    });
+    expect(opened[1].options.savedGame).toEqual(opened[0].options.savedGame);
+    expect(opened[1].options.savedGame, 'the two arms were handed one parsed save').not.toBe(opened[0].options.savedGame);
+  });
+
+  it('passes the scenario\'s options through untouched without the flags', () => {
+    opened.length = 0;
+    armBridgeFactory(fakeCreate, { saveText: null, projection: null })('aoe2-prototype', { victory: 'conquest-only' });
+    armBridgeFactory(fakeCreate)('aoe2-prototype');
+    expect(opened).toEqual([
+      { seed: 'aoe2-prototype', options: { victory: 'conquest-only' } },
+      { seed: 'aoe2-prototype', options: {} },
+    ]);
   });
 });

@@ -5,6 +5,7 @@
 // every number and a state digest of both worlds at every chunk.
 //
 //   npm run ai:tick-ab -- <scenario> <treeA> <treeB> [--chunk 1000] [--max-ticks N]
+//       [--load <save>] [--projection on-read|every-tick]
 //
 // scenarios: castle — the match `aiReachesCastleAge.test.ts` plays (boot map,
 // both seats AI, the Wonder and Relic victories off since work 128); lab — the no-attack coverage lab of
@@ -48,7 +49,7 @@
 // chunks is the noisier of the two. A ratio inside that band is no difference.
 
 import os from 'node:os';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { runDirectly } from './run-directly.mjs';
 import { advanceMeasuredTicks } from './selfplayMeasurement.mjs';
@@ -197,11 +198,54 @@ function garrisoned(bridge) {
   return bridge;
 }
 
-async function openArm(label, tree, scenario, stateDigest) {
+/**
+ * Reads `--load <save>` and `--projection on-read|every-tick` (work 150 M2).
+ * `--load` boots both arms from one saved game, so it answers "what does a
+ * tick cost in THIS world" for a world no scenario reaches (a late match, a
+ * scratch map); `--projection on-read` gives both arms the self-play gates'
+ * render projection instead of the game's, so the same save can be costed on
+ * either path. Only castle and lab take a save: the other scenarios set their
+ * world up after opening it.
+ * @param {string[]} argv
+ * @param {string} scenarioName
+ * @returns {{ load: string | null, projection: 'on-read' | 'every-tick' | null }}
+ */
+export function readArmFlags(argv, scenarioName) {
+  const text = (name) => {
+    const i = argv.indexOf(`--${name}`);
+    return i === -1 ? null : argv[i + 1];
+  };
+  const load = text('load');
+  const projection = text('projection');
+  if (projection !== null && projection !== 'on-read' && projection !== 'every-tick') {
+    throw new Error(`--projection is on-read or every-tick; got "${projection}"`);
+  }
+  if (load !== null && scenarioName !== 'castle' && scenarioName !== 'lab') {
+    throw new Error(`--load boots the castle or lab configuration from a save; got "${scenarioName}"`);
+  }
+  return { load, projection };
+}
+
+/**
+ * The bridge factory a scenario opens an arm with: the tree's own, with the
+ * save and the projection added to whatever options the scenario passes. Each
+ * call parses the save again, so the two arms never share one object.
+ * @param {(seed: string, options?: any) => any} createSimulationBridge
+ * @param {{ saveText?: string | null, projection?: string | null }} [arm]
+ */
+export function armBridgeFactory(createSimulationBridge, { saveText = null, projection = null } = {}) {
+  return (seed, options = {}) => createSimulationBridge(seed, {
+    ...options,
+    ...(saveText === null ? {} : { savedGame: JSON.parse(saveText) }),
+    ...(projection === null ? {} : { renderProjection: projection }),
+  });
+}
+
+async function openArm(label, tree, scenario, stateDigest, armOptions = {}) {
   const root = tree.replace(/[\\/]+$/, '');
   const { createSimulationBridge } = await import(pathToFileURL(`${root}/src/game/simulation/createSimulationBridge.ts`).href);
   const { HUMAN_PLAYER_ID } = await import(pathToFileURL(`${root}/src/game/simulation/prototypeScenario.ts`).href);
-  const bridge = scenario.open(createSimulationBridge, HUMAN_PLAYER_ID);
+  const bridge = scenario.open(armBridgeFactory(createSimulationBridge, armOptions), HUMAN_PLAYER_ID);
   return {
     label,
     tree: root,
@@ -223,13 +267,18 @@ async function main(argv) {
   const scenario = SCENARIOS[scenarioName];
   if (!scenario || !treeA || !treeB) {
     throw new Error(
-      `usage: npm run ai:tick-ab -- <scenario> <treeA> <treeB> [--chunk 1000] [--max-ticks N]; `
+      `usage: npm run ai:tick-ab -- <scenario> <treeA> <treeB> [--chunk 1000] [--max-ticks N] [--load <save>] [--projection on-read|every-tick]; `
       + `scenario is one of ${Object.keys(SCENARIOS).join(', ')} (got "${scenarioName ?? ''}"), `
       + 'and each tree is a checkout of this repository.',
     );
   }
+  const { load, projection } = readArmFlags(argv, scenarioName);
+  const armOptions = { saveText: load === null ? null : readFileSync(load, 'utf8'), projection };
   const { stateDigest } = await import('civ-engine');
-  const arms = [await openArm('A', treeA, scenario, stateDigest), await openArm('B', treeB, scenario, stateDigest)];
+  const arms = [
+    await openArm('A', treeA, scenario, stateDigest, armOptions),
+    await openArm('B', treeB, scenario, stateDigest, armOptions),
+  ];
   const busy = machineBusyCores();
   const chunkTicks = flag('chunk', scenario.chunkTicks ?? 1000);
   const result = runInterleaved({
@@ -251,6 +300,8 @@ async function main(argv) {
     treeA: arms[0].tree,
     treeB: arms[1].tree,
     chunkTicks,
+    load,
+    projection: projection ?? "each tree's default",
     ...summarize(result),
     finalSaveDigests: finalDigests,
     finalSaveDigestsEqual: finalDigests[0] === finalDigests[1],

@@ -3,6 +3,12 @@
 This file archives the historical observations that used to live in
 `docs/engine-feedback.md`. The live summary now lives in [current.md](./current.md).
 
+## 2026-11-11 — `getState` no longer sorts on every call (engine 2.8.2)
+
+Engine 2.8.2, installed through the pinned 2.9.0, keeps each player's canonical source order until membership changes and its explored-cell order until the explored set grows, so repeated `getState()` and `getSources()` calls skip the sort (`dist/visibility-map.js` 103, 106, 162; its changelog entry of 2026-11-07). What it leaves, by its own account: a re-sort when the explored set grows, and a copy of the output on every read. Not measured again in aoe2 in a world that grew live; in work 150 M2's profile of a loaded 120x120 world on 2.9.0, `getState` is not among the top 45 functions. Moved here by work 150 M2's freshness audit. Original observation, retained verbatim:
+
+- **`getState` sorts every player's sources and explored cells on every call, and in a world that grew live that is a full sort each time (surfaced 2026-09-24, engine 2.4.1).** `getState` spreads each player's source map and explored set and sorts both (`src/visibility-map.ts:161-180`); the source sort goes through `compareByNormalizedKey`, which builds two strings per comparison. aoe2 writes the map's state into the world on every tick a source changes, which in play is nearly every tick. In a live world the sets are in insertion order, so each call sorts from scratch: on the boot map at tick 30,000, `getState` was 3.8% of CPU. The same world loaded from a save paid 0.9% over the next 2,000 ticks, because `fromState` refills the sets in sorted order and the sort then meets sorted input. Found by an A/B that loaded one saved world into both arms (`scripts/profile-selfplay.mjs --load`). **Ask:** keep each player's explored cells in index order (a bitmap per player, or a sorted array kept on insert), and cache a player's serialized entry until it changes. Recorded per the report-don't-modify-engine policy.
+
 ## 2026-11-07 — Selected render invalidation before game adoption
 
 The producer API shipped in engine2.7.0 and is installed through the retained2.9.0 archive. Work154 implements and independently verifies the game adoption; its full delivery remains pending. Original observation, retained verbatim:
