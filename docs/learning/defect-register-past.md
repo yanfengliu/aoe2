@@ -206,6 +206,18 @@ The second 2026-09-26 rollover, of "Three parts of the verification plumbing sai
 
 **The 2026-11-06 work 146 M2 rollover moved the closed 2026-10-17 foundation-clearing entry verbatim.** The new closed entry on the click held on the selection panel while it redrew took the active register to thirteen closed entries, and this was the oldest closed one the classifier marked MOVE. It has no "above" or "below" of its own, and no retained entry points at it by position or by name.
 
+**The 2026-11-11 engine-guard rollover moved the closed 2026-11-04 boar-strike presentation entry verbatim.** The new closed entry on the engine guard refusing every worktree's linked `node_modules` took the active file to 13 closed against a cap of 12. The moved entry holds no "entry above" or "entry below", and none in the active file points at it.
+
+## 2026-11-04 — The boar-strike presentation test read no parts once on CI: its wait passed a frame before the hit state it then read (CI run 40983419097; work 139, FIXED and gated)
+
+**Symptom.** `tests/browser/voxel-unit-attack-animation.spec.ts:36` failed `expect(frozenPresentationAfter.parts).toEqual(frozenPresentationBefore.parts)` on 2026-10-30 (shard 4/4): "before" held `null` parts and "after", two animation frames later, held parts at the same revision 13. It was 1 of 101 runs since 2026-10-01; locally on SwiftShader it failed 9 of 60.
+
+**Investigation and cause.** The spec waited for `presentedRevision === acceptedRevision`. Eight `inspectVoxelUnitMotion` calls before the read each forced a view sync, and in the paused fixture each sync changed nothing visible, so voxel's render world marked each new revision presented at once (5 to 13 in the trace). `AoeVoxelWorldRenderer` hands its hit state over only inside `frame()`, so until the next frame `isInteractionReady()` was false and `inspectPresentedVoxelPartMatrix` returned null. Real clicks are unaffected: their hit test draws a frame first.
+
+**Fix.** `game.waitForPresentedHitState` waits for a world frame drawn after it began, with the runtime running and the accepted epoch and revision presented, and the spec uses it at all five waits. It also requires the frozen pose's parts to be non-null before comparing them; no assertion was removed.
+
+**Check and status.** FIXED and gated: `tests/browser/voxel-presented-hit-state.spec.ts` holds frames, forces the window open, lets frames through only after the wait has polled without returning, and requires the part after the wait. With the spec's original wait put back it failed 10 of 10. The fixed spec passed 60 of 60 locally. Bound: one fixture, one forced-sync source; [gate-proofs.md](gate-proofs.md) has the rest.
+
 ## 2026-11-04 — The 1920px resource-occupation test failed on CI three times in 51 runs: its one-cell walk ended between Playwright's polls (CI runs 38675522945, 39193369383 and 40960398985; work 137, FIXED and gated)
 
 **Symptom.** `tests/browser/resource-workers.spec.ts:100` at 1920px expected "Moving" after a real right-click and read "Gathering food" then "Idle" twice. Once it read "Moving" and then food workers 0. All three came after work 123 made the case fast on 2026-10-14, and none before.
