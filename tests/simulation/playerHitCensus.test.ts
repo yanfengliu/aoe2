@@ -25,21 +25,25 @@
 //    tick it vanished was spent, not killed, and is not counted. A charge spent
 //    on an animal with no player's unit in its blast strikes nothing the feed
 //    records (v0.3.238: it goes off at an animal too), so it would read as an
-//    unrecorded death; no scenario below orders one. A farm eaten to nothing
-//    leaves the world on the swing that takes its last food, which is no blow.
-//    Several villagers can work one farm here, and their swings can land on
-//    one tick (on work 152's branch 17 farmers took a farm's last 2 food in a
-//    tick, which the earlier rule of one swing read as a kill). So the census
-//    reads each farm's food and how many villagers are gathering it, and a
-//    farm gone unstruck that held at most one swing's food for each of them
-//    is eaten, not killed. THE BOUND: a blow that kills a farm holding no
-//    more than its farmers could take on that tick goes unchecked. A farm
-//    gone unstruck with more food than that, or with no farmer, still fails;
-//    the farm cases at the foot of this file hold both sides. A player's
-//    delete, a razed building's garrison (never tracked: a garrisoned unit
-//    has no position) and a Monk's heresy remove entities without a blow; no
-//    scenario below does any of them, but the farm case that deletes a farm
-//    to prove the bound.
+//    unrecorded death; no scenario below orders one. A farm eaten to nothing,
+//    when its owner cannot pay to reseed it, leaves the world on the swing
+//    that takes its last food, which is no blow. Several villagers can work
+//    one farm here, and their swings can land on one tick (on work 152's
+//    branch 17 farmers took a farm's last 2 food in a tick, which the earlier
+//    rule of one swing read as a kill). So the census counts, before each
+//    tick, the villagers whose gather target is the farm, whatever they are
+//    doing (walking to it, carrying a load away, waiting on their swing), and
+//    a farm gone unstruck that held at most one swing's food for each of them
+//    is read as eaten, not killed. THE BOUND: any unstruck removal of a farm
+//    inside that count goes unchecked, a blow in its last swings and a delete
+//    alike, and the count is generous, since it holds villagers that could
+//    not have swung on that tick. A farm gone unstruck holding more than
+//    that, or with no villager on it, still fails. The farm cases at the foot
+//    of this file hold both sides and the bound itself. A player's delete, a
+//    razed building's garrison (never tracked: a garrisoned unit has no
+//    position) and a Monk's heresy remove entities without a blow; no
+//    scenario below does any of them, but those farm cases, which delete a
+//    farm to find the edge.
 //  - A loss is read as the net change over a tick, so a foundation hit on the
 //    tick its builders add hit points can hide a blow. No scenario below hits
 //    a foundation.
@@ -404,18 +408,27 @@ describe('a farm eaten to nothing is not a kill', () => {
     expect(eatenNotKilled({ type: 'farm', food: swings * FARM_SWING_FOOD, farmers })).toBe(eaten);
   });
 
-  /** The depletion fixture: one farm of owner 2's holding 6 food, three villagers beside it, no fight. */
+  /** The depletion fixture: one farm of owner 2's holding 6 food, its three villagers beside it, no fight. */
   function farmFixture() {
     const bridge = createSimulationBridge('farm-depletion-fixture');
     const farm = bridge.getEconomyState().buildings.find((building) => building.buildingType === 'farm');
     if (!farm) throw new Error('the fixture has no farm');
+    const villagers = bridge.getEconomyState().units.filter((unit) => unit.owner === farm.owner && unit.unitType === 'villager').length;
     const held = () => bridge.world.getComponent<{ amount: number }>(farm.id, 'resource')?.amount;
+    const hold = (amount: number) => {
+      const resource = bridge.world.getComponent<{ amount: number }>(farm.id, 'resource');
+      if (!resource) throw new Error('the farm holds no food to set');
+      bridge.world.runMaintenance(() => bridge.world.setComponent(farm.id, 'resource', { ...resource, amount }));
+    };
     const farmers = () => gatherersByTarget(bridge).get(farm.id) ?? 0;
     const stands = () => bridge.getEconomyState().buildings.some((building) => building.id === farm.id);
-    return { bridge, farm, held, farmers, stands };
+    return { bridge, farm, villagers, held, hold, farmers, stands };
   }
 
-  it("when three villagers take a farm's last food on one tick", () => {
+  it("when several villagers take a farm's last food on one tick", () => {
+    // The fixture's villagers stand beside the farm and start together, so their swings land on one
+    // tick. A change that staggers them leaves one food before the last tick and fails the second
+    // expectation with the rule still right: then set the food a tick ahead, as `removedHolding` does.
     const { bridge, held, farmers, stands } = farmFixture();
     const last = { food: 0, farmers: 0 };
     const result = census(bridge, 600, () => {
@@ -423,27 +436,49 @@ describe('a farm eaten to nothing is not a kill', () => {
       if (food !== undefined) Object.assign(last, { food, farmers: farmers() });
     });
     expect(stands(), 'the farm still stands, so nothing was eaten').toBe(false);
-    // The case the rule of one swing read as a kill: more than one swing's food left on the farm's last tick.
     expect(last.food, `the farm left holding ${last.food} food with ${last.farmers} farmers on it`).toBeGreaterThan(FARM_SWING_FOOD);
     expect(last.food).toBeLessThanOrEqual(FARM_SWING_FOOD * last.farmers);
-    expect(result.unrecorded).toEqual([]);
-    expect({ eaten: result.eaten, deaths: result.deaths }).toEqual({ eaten: 1, deaths: 0 });
+    expect({ eaten: result.eaten, deaths: result.deaths, unrecorded: result.unrecorded }).toEqual({ eaten: 1, deaths: 0, unrecorded: [] });
   }, 120_000);
 
-  it('but a farm removed unstruck with more food than its farmers could take is a death with no blow', () => {
-    const { bridge, farm, held, farmers, stands } = farmFixture();
-    const removedWith: Array<{ food: number; farmers: number }> = [];
-    const result = census(bridge, 120, () => {
-      if (removedWith.length > 0 || farmers() === 0) return;
-      removedWith.push({ food: held() ?? 0, farmers: farmers() });
+  /** Runs the census while the farm's owner deletes it, unstruck, on a tick it enters holding one
+   *  swing's food for each villager gathering it and `extra` swings' more. `farmed: false` deletes it
+   *  while no villager is on it yet. The food is set a tick ahead, so the census has read it. */
+  function removedHolding(extra: number, farmed = true) {
+    const { bridge, farm, villagers, held, hold, farmers, stands } = farmFixture();
+    const removed: Array<{ food: number; farmers: number; tick: number }> = [];
+    const result = census(bridge, 200, () => {
+      if (removed.length > 0) return;
+      // Every villager of the fixture is on the farm, or none: the count is the fixture's, not only the census's.
+      if (farmers() !== (farmed ? villagers : 0)) return;
+      const food = (farmers() + extra) * FARM_SWING_FOOD;
+      if (held() !== food) {
+        hold(food);
+        return;
+      }
+      removed.push({ food, farmers: farmers(), tick: bridge.world.tick + 1 });
       expect(bridge.world.submitWithResult('entity.delete', { entityId: farm.id, requestedBy: farm.owner }).accepted, 'the delete was refused').toBe(true);
     });
-    expect(removedWith, 'no villager ever gathered the farm, so it was never removed').toHaveLength(1);
-    expect(removedWith[0].food, `removed holding ${removedWith[0].food} food with ${removedWith[0].farmers} farmers on it`)
-      .toBeGreaterThan(FARM_SWING_FOOD * removedWith[0].farmers);
+    expect(removed, `no tick began with ${farmed ? `all ${villagers} villagers` : 'no villager'} on the farm and its food as set`).toHaveLength(1);
     expect(stands(), 'the farm still stands').toBe(false);
-    expect({ eaten: result.eaten, deaths: result.deaths }).toEqual({ eaten: 0, deaths: 1 });
-    expect(result.unrecorded).toHaveLength(1);
-    expect(result.unrecorded[0]).toMatch(new RegExp(`owner ${farm.owner}'s farm #${farm.id} died and no blow was recorded$`));
+    return { result, removed: removed[0], died: `tick ${removed[0].tick}: owner ${farm.owner}'s farm #${farm.id} died and no blow was recorded` };
+  }
+
+  it('but a farm removed unstruck holding one swing more than its farmers could take is a death with no blow', () => {
+    const { result, removed, died } = removedHolding(1);
+    expect(removed.farmers).toBeGreaterThan(1);
+    expect({ eaten: result.eaten, deaths: result.deaths, unrecorded: result.unrecorded }).toEqual({ eaten: 0, deaths: 1, unrecorded: [died] });
+  }, 120_000);
+
+  it('THE BOUND: the same removal while the farm holds exactly what its farmers could take reads as eaten', () => {
+    const { result, removed } = removedHolding(0);
+    expect(removed.farmers).toBeGreaterThan(1);
+    expect({ eaten: result.eaten, deaths: result.deaths, unrecorded: result.unrecorded }).toEqual({ eaten: 1, deaths: 0, unrecorded: [] });
+  }, 120_000);
+
+  it('and an empty farm no villager is on, removed unstruck, is a death with no blow', () => {
+    const { result, removed, died } = removedHolding(0, false);
+    expect(removed).toMatchObject({ food: 0, farmers: 0 });
+    expect({ eaten: result.eaten, deaths: result.deaths, unrecorded: result.unrecorded }).toEqual({ eaten: 0, deaths: 1, unrecorded: [died] });
   }, 120_000);
 });
