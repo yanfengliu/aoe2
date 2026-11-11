@@ -5,21 +5,23 @@ An AoE2-style RTS prototype built on `civ-engine`.
 ## Requirements
 
 - Node.js 24 or newer
-- The sibling repo `../civ-engine` present on disk, since this project depends on it through a local `file:` dependency
+- The engine archive pinned in `package-lock.json` and `scripts/civ-engine-pin.json` (installed by npm; no sibling engine checkout is required)
 - The sibling repo `../voxel` present on disk at the revision recorded in `.github/voxel-commit`, since AoE2's sole world renderer depends on its local `file:` package
 
 ## Setup
 
 From the repo root:
 
-1. Install and build the reusable renderer package: `npm.cmd --prefix ../voxel install`
-2. Install this project's dependencies: `npm.cmd install`
+1. Install and build the reusable renderer package at the pinned revision: `npm.cmd --prefix ../voxel ci`
+2. Install this project's dependencies: `npm.cmd ci --ignore-scripts` (voxel was built above; this avoids rerunning its prepare hook)
 3. Install the Playwright Chromium runtime (one-time, used by browser gameplay tests): `npm.cmd run test:browser:install`
 4. Start the dev server: `npm.cmd run dev`
 
 Then open the local Vite URL printed in the terminal. By default this is `http://127.0.0.1:5173`.
 
-The development, test, typecheck, lint, and build commands rebuild `../voxel` first. A fresh checkout therefore needs the sibling package and its dependencies installed before those commands run.
+The development, test, typecheck, lint, and build commands verify the installed engine and rebuild voxel only when its source is newer than dist. A fresh checkout needs the pinned renderer package and its dependencies installed before those commands run. Existing installations must run the clean-install step after pulling the engine pin; a matching package version alone does not prove matching compiled bytes.
+
+Engine upgrades update the exact commit-named release URL and verified SHA512 in the pin and npm lock together, followed by clean installation, both audits and the full verify gate. The guard checks the manifest, lock, physical package location and both compiled runtime versions; npm checks archive bytes against the lock integrity. GitHub release administrators can remove retained archives, and the rolling download is not an upgrade input.
 
 ## Renderer
 

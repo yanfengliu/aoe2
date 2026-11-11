@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, type Mocked } from 'vitest';
 import type { EntityRef, Marker, World } from 'civ-engine';
 
 import { createMarkerListPanel } from '../../src/ui/annotation/MarkerListPanel';
+
+type StubRecording = Pick<Parameters<typeof createMarkerListPanel>[0]['recording'],
+  'markers' | 'listPriorSessions' | 'exportPriorSession' | 'discardPriorSession'>;
 import type { PriorSessionDescriptor } from '../../src/game/recording/IndexedDBMirror';
 
 const mountedHost = (): HTMLElement => {
@@ -24,18 +27,10 @@ const stubMarker = (overrides: Partial<Marker> = {}): Marker => ({
 } as Marker);
 
 describe('MarkerListPanel — rendering', () => {
-  let recording: {
-    markers: ReturnType<typeof vi.fn>;
-    listPriorSessions: ReturnType<typeof vi.fn>;
-    exportPriorSession: ReturnType<typeof vi.fn>;
-    discardPriorSession: ReturnType<typeof vi.fn>;
-  };
-  let pauseControl: { pause: ReturnType<typeof vi.fn>; resume: ReturnType<typeof vi.fn>; isPaused: () => boolean };
-  let toast: { showToast: ReturnType<typeof vi.fn> };
-  let bridge: {
-    panCameraTo: ReturnType<typeof vi.fn>;
-    select: ReturnType<typeof vi.fn>;
-  };
+  let recording: StubRecording;
+  let pauseControl: { pause: ReturnType<typeof vi.fn<() => void>>; resume: ReturnType<typeof vi.fn<() => void>>; isPaused: () => boolean };
+  let toast: { showToast: ReturnType<typeof vi.fn<(text: string) => void>> };
+  let bridge: Mocked<Parameters<typeof createMarkerListPanel>[0]['bridge']>;
   let world: World;
 
   beforeEach(() => {
@@ -135,16 +130,11 @@ describe('MarkerListPanel — rendering', () => {
 });
 
 describe('MarkerListPanel — row click stale-ref filter (DESIGN §7)', () => {
-  let recording: {
-    markers: ReturnType<typeof vi.fn>;
-    listPriorSessions: ReturnType<typeof vi.fn>;
-    exportPriorSession: ReturnType<typeof vi.fn>;
-    discardPriorSession: ReturnType<typeof vi.fn>;
-  };
-  let pauseControl: { pause: ReturnType<typeof vi.fn>; resume: ReturnType<typeof vi.fn>; isPaused: () => boolean };
-  let toast: { showToast: ReturnType<typeof vi.fn> };
-  let bridge: { panCameraTo: ReturnType<typeof vi.fn>; select: ReturnType<typeof vi.fn> };
-  let isCurrent: ReturnType<typeof vi.fn>;
+  let recording: StubRecording;
+  let pauseControl: { pause: ReturnType<typeof vi.fn<() => void>>; resume: ReturnType<typeof vi.fn<() => void>>; isPaused: () => boolean };
+  let toast: { showToast: ReturnType<typeof vi.fn<(text: string) => void>> };
+  let bridge: Mocked<Parameters<typeof createMarkerListPanel>[0]['bridge']>;
+  let isCurrent: ReturnType<typeof vi.fn<World['isCurrent']>>;
   let world: World;
 
   beforeEach(() => {
@@ -157,7 +147,7 @@ describe('MarkerListPanel — row click stale-ref filter (DESIGN §7)', () => {
     pauseControl = { pause: vi.fn(), resume: vi.fn(), isPaused: () => false };
     toast = { showToast: vi.fn() };
     bridge = { panCameraTo: vi.fn(), select: vi.fn() };
-    isCurrent = vi.fn();
+    isCurrent = vi.fn<World['isCurrent']>();
     world = { tick: 100, isCurrent } as unknown as World;
   });
 
@@ -295,15 +285,10 @@ describe('MarkerListPanel — row click stale-ref filter (DESIGN §7)', () => {
 });
 
 describe('MarkerListPanel — Prior Sessions section', () => {
-  let recording: {
-    markers: ReturnType<typeof vi.fn>;
-    listPriorSessions: ReturnType<typeof vi.fn>;
-    exportPriorSession: ReturnType<typeof vi.fn>;
-    discardPriorSession: ReturnType<typeof vi.fn>;
-  };
-  let pauseControl: { pause: ReturnType<typeof vi.fn>; resume: ReturnType<typeof vi.fn>; isPaused: () => boolean };
-  let toast: { showToast: ReturnType<typeof vi.fn> };
-  let bridge: { panCameraTo: ReturnType<typeof vi.fn>; select: ReturnType<typeof vi.fn> };
+  let recording: StubRecording;
+  let pauseControl: { pause: ReturnType<typeof vi.fn<() => void>>; resume: ReturnType<typeof vi.fn<() => void>>; isPaused: () => boolean };
+  let toast: { showToast: ReturnType<typeof vi.fn<(text: string) => void>> };
+  let bridge: Mocked<Parameters<typeof createMarkerListPanel>[0]['bridge']>;
   let world: World;
 
   const makePrior = (id: string, overrides: Partial<PriorSessionDescriptor> = {}): PriorSessionDescriptor => ({

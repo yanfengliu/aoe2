@@ -3,7 +3,7 @@
 Status: active
 Owner: ai-train-reasons worker (worktree `ai-train-reasons-1106`) for the Claude coordinator
 Created: 2026-11-06
-Updated: 2026-11-06
+Updated: 2026-11-11
 
 ## Problem and outcome
 
@@ -118,9 +118,15 @@ Not checked in M1: the root file that loads the scripts is not installed, so the
   1. The milestones stay separate. M2 is the flush family (Approach item 4, with the shared rules of item 2, `siegereq` and the Imperial default unit), and M3 is the "usual" family with the reset into it (items 3 and 5). Each is measured and judged on its own under plan 147's drop rule (quoted in the Approach).
   2. The coverage census may lose `longbowman`, the Castle's training floor and possibly the Stable's: DE's flush never trains them, and the lab never retreats. That is a measured consequence of the owner's rule, not a reason to drop M2, but no floor's coverage may simply vanish. In the same commit that re-records `selfPlayContentCensus.expected.json`, move each lost floor to a check of equal strength: a deterministic fixture in which a seat reaches the path through the real AI, for example a Castle that trains its unique unit once DE's rules give it a reason. If M2 alone gives no such path, the floor stays and is re-recorded honestly, as M3's to restore. Name every census move both ways. A building or an Age lost goes to the coordinator first.
   3. The enemy's army is counted from what the seat sees now (`visibility.isVisible(owner, x, y)`, as `bridge/systems/aiSystem.ts`'s sighting scan reads it). A remembered count would change the saved format and is the owner's call; plan 106 holds it as a card "(work 151)", to be raised only if the measurements show that the visible-now count misleads the counters.
-  4. DE's switch to FC (init.per 8880-8896) is not adopted. It stays under plan 106's "Owner decisions waiting", and the coordinator is putting it to the owner.
+  4. DE's switch to FC (init.per 8880-8896) is not adopted. It stays under plan 106's "Owner decisions waiting", and the coordinator is putting it to the owner. Superseded on 2026-11-11 by ruling 7.
   5. As "Verify first" above.
   6. M2 starts when the coordinator says.
+  7. **The switch to FC is adopted (owner decision, 2026-11-11; the coordinator's ruling of the same day).** Asked "Should the computer switch to a fast Castle Age when it has 27 villagers before the Feudal Age?", the owner answered "Yes, adopt it" (spec §13.2, "DE's switch to a fast Castle Age"). This supersedes ruling 4 and every "not adopted" said of the switch in this plan: the Approach's items 3 and 8, the design's "Left out" list and the Outcome's "For the owner" line. The rule is init.per 8882-8896: a `feudal-war` seat holding 27 or more villagers while `sn-current-age` is at most `dfeudal`, and not one of the seven strategies it names, sets `strategy usual`, `milunits yes` and `attackprioritychange yes`, once. What it changes here:
+     - Most seats reach 26-29 villagers by their Feudal click, so "usual" becomes the family most seats play from the Feudal Age, and the flush family the exception. Ruling 1's order no longer fits. The implementing worker proposes the milestones again before coding. No milestone lands the switch without the "usual" family it switches to, and the state that ships is measured with both families and both ways into "usual" (the retreat and this switch) in place.
+     - The expectations change and are stated again beforehand: against the idle human, only the plan goals train before the Imperial Age, so the conquest comes much later or not within the horizon. Name every gate that stood on the computer's early army, and re-record each with its move named.
+     - Ruling 2's census floors are judged on the shipped state: under "usual" the plan goals train the unique unit, so the Castle's floor may hold without a fixture. Measure it; the rule that no floor's coverage simply vanishes stands.
+     - The switch is the owner's adopted rule, so the drop rule does not drop it. A loss of a new kind (a seat that never reaches an Age, or a stalled seat) still comes to the coordinator, who takes it to the owner.
+     - The Feudal peace and the boom switches stay not adopted. The Feudal peace asks `milunits yes` (Approach item 8), so once seats play "usual" its absence here is a difference from DE to state in the spec, not to adopt.
 - Where the code is.
   - `bridge/systems/aiSystemProductionPhase.ts` `runProductionPhase` holds the mix loop (`pickUnitMix(currentAge)`, one idle producer per entry, `trainableInSameLine` for the tier held, the ram skip, then `flushBufferHolds`, then the price check and `purchases.buy`) and the Castle's unique unit after it.
   - `ai.ts` holds `pickUnitMix`, which has no Skirmisher after the Feudal Age; M2 adds the line, Elite Skirmisher at its tier, to the Castle and Imperial mixes.

@@ -3,7 +3,7 @@
 Status: active
 Owner: de-map-size worker for the Claude coordinator
 Created: 2026-11-06
-Updated: 2026-11-06
+Updated: 2026-11-11
 
 ## Problem and outcome
 
@@ -162,6 +162,8 @@ The measurements change the brief's order in one place: DE's start area cannot c
 Five relics and DE's gold come with step 2, since that step regenerates the map they lie on and re-records its relic and coverage baselines anyway. What the computer would need, reported to the AI lane rather than changed here: the radii in the paragraph above, and its site search's cost on bigger maps.
 
 ## M2 starting state (step 0, the per-tick cost)
+
+**Status on 2026-11-11 (the coordinator): work 154 has landed the projection's first part, so M2 measures before it builds anything.** While this lane was stopped (2026-11-06 to 11-11, the weekly usage limit), Codex root's work 154 landed on main as v0.3.278 (`2502de9e`): it keeps civ-engine's `RenderAdapter` and its JSON check and uses engine 2.9.0's selected-entity `invalidate` API, so a change outside components re-projects only the entities it names (plan 154). On the retained 120x120 and 168x168 saves it reports the adapter's inclusive CPU share falling from 54-75% to 23-25%, with no frame-rate or whole-match claim. That is the owner-approved route for the cost this section names first, and it replaces this lane's own design for it (M2a: an aoe2-side projection over `World.onDiff` without the JSON check), which is not built. This lane's uncommitted M2a work in `render-projection-cost-1106` was read by work 154 as reference only. What M2 does now: merge main, measure the tick cost, the frame rate and the four gates' projected times again on the retained worlds, on the pinned engine, against the M1 numbers below; say what still stands between DE Tiny and the lines; and propose only the parts that measurement still asks for. The renderer's per-frame writes (M2b) and the site search (M2c) keep their places, the second still after work 152 M1, and after work 158, which touches placement.
 
 **Where the time goes.** `scripts/profile-selfplay.mjs --config castle --load <save> --sample 1000 --interval 1000` on the retained DE Tiny world at tick 36,000: 44.4 ms a tick, of which `refreshRenderProjection` (`createSimulationBridge.ts` 189-192) is 68.5% (30.4 ms), counted once per sample by `profileRefresh.mjs`. Inside it, civ-engine's `render-adapter.js` `buildSnapshot` projects every entity and `json.js` `assertJsonCompatible` checks each (14.2 ms), and aoe2's `projectEntity` (`bridge/visibility.ts`) takes 10.2 ms. DE Medium at tick 24,000: 59.6% (53.3 of 89.4 ms). Today's maps late: 21-25%. Early in a match it is rare (1.4% today, 8.8% on DE Tiny at tick 12,000): the reconnect runs on the step or read after `markOutOfBandRenderChange` (`flushOutOfBandRenderChange`, 201-205), which healing, herding, deer fleeing, tower and projectile hits, conversions and construction starts call (`docs/engine-feedback/current.md`, the `RenderAdapter` ask), so fights make it frequent. The engine's surface is `connect()` and `disconnect()`: a tick's own diff re-projects only entities whose components changed, and state the projector reads outside components has no way in but a reconnect. M2 works through that public surface and never modifies civ-engine; the JSON check is the engine's, recorded in the engine-feedback file.
 

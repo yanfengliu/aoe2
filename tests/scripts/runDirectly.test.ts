@@ -15,7 +15,7 @@
 // SAFETY. The junction points at a copy inside this test's own sandbox under the OS temp directory, never at this
 // checkout, and it is removed on its own, and checked gone, before the sandbox is deleted.
 //
-// BOUND. The census is a pattern: a guard written some other way would pass it. The junction runs cover the six
+// BOUND. The census is a pattern: a guard written some other way would pass it. The junction runs cover the seven
 // scripts named below, each with plain node; `npm run ai:tick-ab` runs aiTickAb.mjs under tsx, whose guard reads the
 // same (measured once, docs/learning/gate-proofs.md).
 
@@ -42,7 +42,7 @@ const USES_HELPER = /\b(?:from|import)\s*\(?\s*['"](?:\.{1,2}\/)+(?:[\w.-]+\/)*r
 
 // The scripts run through a junction below, by their path under scripts/: every user of the helper, and
 // verify-receipt.mjs, which has no guard.
-const JUNCTION_RUNS = ['aiTickAb.mjs', 'ci-job-headroom.mjs', 'ci-status.mjs', 'selfplay-ab.mjs', 'test-time-headroom.mjs', 'verify-receipt.mjs'];
+const JUNCTION_RUNS = ['aiTickAb.mjs', 'check-engine.mjs', 'ci-job-headroom.mjs', 'ci-status.mjs', 'selfplay-ab.mjs', 'test-time-headroom.mjs', 'verify-receipt.mjs'];
 
 function scriptFiles(dir: string): string[] {
   const found: string[] = [];
@@ -64,7 +64,7 @@ describe('the run-directly census', () => {
     expect(offenders.map(relative), 'decide with runDirectly(import.meta.url) from scripts/run-directly.mjs').toEqual([]);
     const users = files.filter((file) => USES_HELPER.test(readFileSync(file, 'utf8'))).map(relative).sort();
     expect(users, 'the scripts that can also be imported, each through the helper')
-      .toEqual(['aiTickAb.mjs', 'ci-job-headroom.mjs', 'ci-status.mjs', 'selfplay-ab.mjs', 'test-time-headroom.mjs']);
+      .toEqual(['aiTickAb.mjs', 'check-engine.mjs', 'ci-job-headroom.mjs', 'ci-status.mjs', 'selfplay-ab.mjs', 'test-time-headroom.mjs']);
     expect(users.filter((user) => !JUNCTION_RUNS.includes(user)), 'every user of the helper gets a junction run below').toEqual([]);
   });
 
@@ -139,6 +139,7 @@ describe('each gate script really runs when reached through a junction', () => {
   });
 
   const probes = (): Probe[] => [
+    { script: 'check-engine.mjs', args: [], status: 1, says: /(?:civ-engine-pin|package(?:-lock)?)\.json/ },
     { script: 'ci-status.mjs', args: [], status: 1, says: /could not resolve the commit to report on/ },
     {
       script: 'ci-job-headroom.mjs',

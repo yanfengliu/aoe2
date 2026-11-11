@@ -2965,6 +2965,18 @@
     {
       "id": 152,
       "theme": "ai-economy-research"
+    },
+    {
+      "id": 153,
+      "theme": "engine-pin"
+    },
+    {
+      "id": 154,
+      "theme": "render-invalidation"
+    },
+    {
+      "id": 155,
+      "theme": "paused-human-commands"
     }
   ]
 }

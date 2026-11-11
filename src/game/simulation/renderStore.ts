@@ -96,8 +96,7 @@ export class RenderStore {
         if (layerDelta !== 0) return layerDelta;
         if (left.y !== right.y) return left.y - right.y;
         if (left.x !== right.x) return left.x - right.x;
-        // Ties in id order, which is the order a whole-world snapshot inserts
-        // them in, so a store kept by diffs lists them as a fresh one does.
+        // Match a full engine snapshot even after a lower entity ID is reused.
         return left.id - right.id;
       });
   }
