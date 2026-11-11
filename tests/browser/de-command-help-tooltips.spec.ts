@@ -36,6 +36,10 @@ interface TooltipReadout {
   /** Where the line after the title starts, drawn: its first character's top. */
   bodyTop: number | null;
   box: Box;
+  /** One line of the tooltip's text, in pixels, as the browser computes it. */
+  lineHeight: number;
+  /** The hovered control. */
+  target: Box;
   bar: Box;
   map: Box;
   viewport: { width: number; height: number };
@@ -44,7 +48,13 @@ interface TooltipReadout {
 async function hoverAndRead(page: Page, selector: string): Promise<TooltipReadout> {
   await page.locator(selector).hover();
   await expect(page.locator('[data-hud="tooltip"]')).toHaveAttribute('data-hud-tooltip-active', 'true');
-  return page.evaluate(() => {
+  // The tooltip eases 2px into place over 120ms; its box is read once it has
+  // settled (the landing run read a bottom of 593.81 for a box that rests at 592).
+  await page.waitForFunction(() => {
+    const transform = getComputedStyle(document.querySelector('#hud-tooltip')!).transform;
+    return transform === 'none' || transform === 'matrix(1, 0, 0, 1, 0, 0)';
+  });
+  return page.evaluate((hovered) => {
     const box = (element: Element): Box => {
       const rect = element.getBoundingClientRect();
       return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
@@ -67,11 +77,13 @@ async function hoverAndRead(page: Page, selector: string): Promise<TooltipReadou
       titleBox: title ? box(title) : null,
       bodyTop,
       box: box(tooltip),
+      lineHeight: parseFloat(getComputedStyle(tooltip).lineHeight),
+      target: box(document.querySelector(hovered)!),
       bar: box(document.querySelector('.hud-panel--selection')!),
       map: box(document.querySelector('.hud-panel--map')!),
       viewport: { width: window.innerWidth, height: window.innerHeight },
     };
-  });
+  }, selector);
 }
 
 /** The title is a bold line of its own, and what follows starts below it. */
@@ -155,6 +167,36 @@ const LONGEST_REAL = EVERY_REAL.reduce((longest, tooltip) => (tooltip.length > l
 const PADDING = 'A line longer than any tooltip the game writes. ';
 const LONGER_THAN_ANY = `${LONGEST_REAL}\n${PADDING.repeat(Math.ceil((LONGEST_REAL.length * 0.35) / PADDING.length)).trim()}`;
 
+// What each copy is held to (v0.3.279's landing CI, run 43060908486, and the
+// coordinator's three conditions of 2026-11-11).
+//
+// The bound. The positioner floats a command-bar tooltip above the bar, 8px
+// clear of it and of the window's top. At 800x600 the bar's top is at 352px, so
+// the room is 336px: eighteen lines of text at 16.8px a line inside the box's
+// 18px of padding and border. A copy taller than the room falls back: the
+// positioner puts it under the control it describes, pulled up to stay 8px
+// inside the window's foot, and slid clear of the minimap. At 1280x720 the
+// room is 446px and at 1920x1080 806px.
+//
+// The worst real copy, LONGEST_REAL, is already longer than any tooltip the
+// game draws (it holds an age's requirement sentence AND the refusal that
+// stands for it, which the say-once rule never draws together, and four
+// five-digit prices). At every size it must float above the bar with at least
+// one line of room to spare above it: if a platform leaves it less, that red is
+// true, and the answer is the product (a wider tooltip in a narrow window), not
+// this test.
+//
+// LONGER_THAN_ANY, a third longer again, must float above the bar at 1280x720
+// and 1920x1080, whatever the platform, so a positioner that always fell back
+// goes red. At 800x600 it is past the room or within a line of it (on Windows
+// it fitted by one line, on Linux it did not, where the same text wraps a
+// little differently, and the first version of this test asserted it above the
+// bar there: nobody had read its margin). So there the test measures: a copy
+// whose height fits the room must be above the bar, and one that does not must
+// be exactly where the fallback puts it. Each case prints its height and its
+// spare room in lines, so a run's log shows the platform's own numbers.
+const MARGIN = 8;
+
 for (const size of [{ width: 800, height: 600 }, { width: 1280, height: 720 }, { width: 1920, height: 1080 }]) {
   test(`a tooltip longer than any real one stays on screen, above the bar and off the minimap, at ${size.width}x${size.height}`, async ({ page }) => {
     expect(EVERY_REAL.length).toBeGreaterThan(250);
@@ -162,21 +204,47 @@ for (const size of [{ width: 800, height: 600 }, { width: 1280, height: 720 }, {
     await page.setViewportSize(size);
     await game.waitForPausedBootWithSeed(page, 'aoe2-prototype');
     await selectTownCenter(page);
-    // The paused boot draws the card once; the copy is set on the drawn button.
-    await page.locator('[data-command="research-feudal-age"]').evaluate((button, copy) => {
-      button.setAttribute('data-tooltip', copy);
-    }, LONGER_THAN_ANY);
+    const feudal = page.locator('[data-command="research-feudal-age"]');
 
-    const read = await hoverAndRead(page, '[data-command="research-feudal-age"]');
-    expect(read.text).toBe(LONGER_THAN_ANY);
-    expectTitledLines(read, LONGER_THAN_ANY.split('\n')[0]!);
-    expect(read.box.left).toBeGreaterThanOrEqual(0);
-    expect(read.box.top).toBeGreaterThanOrEqual(0);
-    expect(read.box.right).toBeLessThanOrEqual(read.viewport.width);
-    expect(read.box.bottom).toBeLessThanOrEqual(read.viewport.height);
-    expect(read.box.bottom, 'a command-bar tooltip floats above the bar').toBeLessThanOrEqual(read.bar.top);
-    const overlapsMap = read.box.left < read.map.right && read.map.left < read.box.right
-      && read.box.top < read.map.bottom && read.map.top < read.box.bottom;
-    expect(overlapsMap, 'no tooltip covers the minimap').toBe(false);
+    for (const [name, copy] of [['the worst real copy', LONGEST_REAL], ['a third longer again', LONGER_THAN_ANY]] as const) {
+      // The paused boot draws the card once; the copy is set on the drawn
+      // button, and the pointer comes back to it from the map.
+      await page.mouse.move(size.width / 2, 120);
+      await expect(page.locator('[data-hud="tooltip"]')).toHaveAttribute('data-hud-tooltip-active', 'false');
+      await feudal.evaluate((button, text) => { button.setAttribute('data-tooltip', text); }, copy);
+
+      const read = await hoverAndRead(page, '[data-command="research-feudal-age"]');
+      expect(read.text, name).toBe(copy);
+      expectTitledLines(read, copy.split('\n')[0]!);
+      const height = read.box.bottom - read.box.top;
+      const room = read.bar.top - 2 * MARGIN;
+      const fits = height <= room;
+      const spareLines = (read.box.top - MARGIN) / read.lineHeight;
+      console.log(`[tooltip-room] ${size.width}x${size.height} ${name} (${copy.length} characters): ${height.toFixed(1)}px tall in a room of ${room.toFixed(1)}px at ${read.lineHeight.toFixed(1)}px a line; ${fits ? `above the bar with ${spareLines.toFixed(1)} lines to spare` : `${((height - room) / read.lineHeight).toFixed(1)} lines past the room, so it falls back under its control`}`);
+
+      // On screen and off the minimap, wherever it is.
+      expect(read.box.left, name).toBeGreaterThanOrEqual(0);
+      expect(read.box.top, name).toBeGreaterThanOrEqual(0);
+      expect(read.box.right, name).toBeLessThanOrEqual(read.viewport.width);
+      expect(read.box.bottom, name).toBeLessThanOrEqual(read.viewport.height);
+      const overlapsMap = read.box.left < read.map.right && read.map.left < read.box.right
+        && read.box.top < read.map.bottom && read.map.top < read.box.bottom;
+      expect(overlapsMap, `${name}: no tooltip covers the minimap`).toBe(false);
+
+      if (copy === LONGEST_REAL) {
+        expect(read.box.bottom, `${name} floats above the bar`).toBeLessThanOrEqual(read.bar.top);
+        expect(spareLines, `${name} has a line of room to spare above it`).toBeGreaterThanOrEqual(1);
+      } else if (size.height > 600) {
+        expect(read.box.bottom, `${name} floats above the bar where the window has the room`).toBeLessThanOrEqual(read.bar.top);
+      } else if (fits) {
+        expect(read.box.bottom, `${name} fits the room, so it floats above the bar`).toBeLessThanOrEqual(read.bar.top);
+        expect(read.box.top, name).toBeGreaterThanOrEqual(MARGIN - 0.5);
+      } else {
+        // The fallback, as a claim of its own: under the hovered control, pulled
+        // up to stay inside the window's foot (tooltips.ts `positionTooltip`).
+        const fallbackTop = Math.max(MARGIN, Math.min(read.target.bottom + MARGIN, read.viewport.height - height - MARGIN));
+        expect(Math.abs(read.box.top - fallbackTop), `${name} is past the room, so it sits where the fallback puts it (top ${fallbackTop.toFixed(1)}px)`).toBeLessThanOrEqual(1);
+      }
+    }
   });
 }
