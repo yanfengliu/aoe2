@@ -30,13 +30,17 @@ M1 is a study, docs only: source DE's sizes and start area from the installed sc
 
 ## Implementation steps
 
-Current state: M1, the study, landed on main on 2026-11-06 (docs only). M2 is step 0, the per-tick cost, for a fresh worker the coordinator starts; its starting state is below.
+Current state: M1, the study, landed on main on 2026-11-06 (docs only). M2 is step 0, the per-tick cost: work 154 landed its projection part (v0.3.278), this lane measured what is left on 2026-11-11 ("M2 measurement, 2026-11-11" below), M2b (the renderer's per-frame work) is next for a fresh worker, and M2c (the site search) is held until work 152 M1 and work 158 land.
 
 - [x] M1 sourcing (2026-11-06): DE's scripts read, never launched.
 - [x] M1 measurements (2026-11-06): scratch generator and probes under the worktree's ignored `tmp/`.
 - [x] M1 proposal (2026-11-06): below.
 - [x] M1 review and landing (2026-11-06): reviews 0-2 in `reviews/`; the scratch generator, the probes, the folded results, the profiles and the saved worlds copied to the primary checkout's ignored `tmp/work150-retained/` (about 58 MB), which is deleted when step 0 closes.
 - [ ] M2, step 0: the live game's per-tick cost, from "M2 starting state" below.
+  - [x] M2a, the projection follows changes: not carried; work 154 landed the equivalent (v0.3.278), and this lane's own version is the reference commit `a6657e67`, in history only.
+  - [x] M2 measurement (2026-11-11): what is left on main, in "M2 measurement, 2026-11-11" below; `scripts/aiTickAb.mjs` gained `--load` and `--projection`.
+  - [ ] M2b, the renderer's per-frame work: a fresh worker, starting with a main-thread profile of a late DE Tiny frame.
+  - [ ] M2c, the site search: held until work 152 M1 and work 158 land.
 
 ## DE's maps, sourced (M1)
 
@@ -163,7 +167,7 @@ Five relics and DE's gold come with step 2, since that step regenerates the map 
 
 ## M2 starting state (step 0, the per-tick cost)
 
-**Status on 2026-11-11 (the coordinator): work 154 has landed the projection's first part, so M2 measures before it builds anything.** While this lane was stopped (2026-11-06 to 11-11, the weekly usage limit), Codex root's work 154 landed on main as v0.3.278 (`2502de9e`): it keeps civ-engine's `RenderAdapter` and its JSON check and uses engine 2.9.0's selected-entity `invalidate` API, so a change outside components re-projects only the entities it names (plan 154). On the retained 120x120 and 168x168 saves it reports the adapter's inclusive CPU share falling from 54-75% to 23-25%, with no frame-rate or whole-match claim. That is the owner-approved route for the cost this section names first, and it replaces this lane's own design for it (M2a: an aoe2-side projection over `World.onDiff` without the JSON check), which is not built. This lane's uncommitted M2a work in `render-projection-cost-1106` was read by work 154 as reference only. What M2 does now: merge main, measure the tick cost, the frame rate and the four gates' projected times again on the retained worlds, on the pinned engine, against the M1 numbers below; say what still stands between DE Tiny and the lines; and propose only the parts that measurement still asks for. The renderer's per-frame writes (M2b) and the site search (M2c) keep their places, the second still after work 152 M1, and after work 158, which touches placement.
+**Status on 2026-11-11, after the measurement: M2a is not carried, M2b is next, M2c is held, and the engine ask is filed.** While this lane was stopped (2026-11-06 to 11-11, the weekly usage limit), Codex root's work 154 landed on main as v0.3.278 (`2502de9e`): it keeps civ-engine's `RenderAdapter` and its JSON check and uses engine 2.9.0's selected-entity `invalidate` API, so a change outside components re-projects only the entities it names (plan 154). That is the owner-approved route for the cost this section names first, and it is the equivalent of this lane's M2a (an aoe2-side projection over `World.onDiff` without the JSON check), which is therefore not carried: it stands as the reference commit `a6657e67` ("REFERENCE ONLY, NOT FOR LANDING"), reachable in main's history only, with merge `9c26af79` saying why its files are not in the tree; it never ran the full gate. What the retained worlds cost on main is the next section, "M2 measurement, 2026-11-11". M2b, the renderer's per-frame work, is approved for a fresh worker: its first step is a main-thread profile of a late DE Tiny frame (the retained DE Tiny saves at ticks 24,000 and 36,000, loaded as the frame-rate probe loads them; the primary checkout's ignored `tmp/work150-retained/README.md` has the files and the exact commands), so the frame's split between the snapshot build, the runtime's ingest, `getRenderState`'s per-tick sort and filter of about 16,000 projected entities and the shadow and memory lanes is measured before any lane work; its line is work 133's 55 median fps on the GPU at 1600x900. Two small tick items go to that worker as candidates: the HUD's per-tick entity count (`renderMetricsCapture.ts`) and the frame's cell lists (`projectFrame` in `bridge/visibility.ts`). M2c, the site search (`placementSearch.ts`, `aiSitePlacement.ts`), is held until work 152 M1 and Codex's work 158, which touches placement, have landed. The engine's remaining per-tick cost is filed in `docs/engine-feedback/current.md` (`RenderAdapter.buildDiff` copies both of its entity-ref maps every tick). The rest of this section is M1's starting state as written on 2026-11-06: its numbers are the M1-era tree's, and the next section's are main's.
 
 **Where the time goes.** `scripts/profile-selfplay.mjs --config castle --load <save> --sample 1000 --interval 1000` on the retained DE Tiny world at tick 36,000: 44.4 ms a tick, of which `refreshRenderProjection` (`createSimulationBridge.ts` 189-192) is 68.5% (30.4 ms), counted once per sample by `profileRefresh.mjs`. Inside it, civ-engine's `render-adapter.js` `buildSnapshot` projects every entity and `json.js` `assertJsonCompatible` checks each (14.2 ms), and aoe2's `projectEntity` (`bridge/visibility.ts`) takes 10.2 ms. DE Medium at tick 24,000: 59.6% (53.3 of 89.4 ms). Today's maps late: 21-25%. Early in a match it is rare (1.4% today, 8.8% on DE Tiny at tick 12,000): the reconnect runs on the step or read after `markOutOfBandRenderChange` (`flushOutOfBandRenderChange`, 201-205), which healing, herding, deer fleeing, tower and projectile hits, conversions and construction starts call (`docs/engine-feedback/current.md`, the `RenderAdapter` ask), so fights make it frequent. The engine's surface is `connect()` and `disconnect()`: a tick's own diff re-projects only entities whose components changed, and state the projector reads outside components has no way in but a reconnect. M2 works through that public surface and never modifies civ-engine; the JSON check is the engine's, recorded in the engine-feedback file.
 
@@ -180,6 +184,71 @@ Five relics and DE's gold come with step 2, since that step regenerates the map 
 - The pixels: before and after captures of the default view and a loaded late save, with pixel diffs of 0 outside the renderer's known edge ties.
 - The measure: re-run on the retained saves (`deMapFps.mjs` on the GPU at 1600x900, the camera on (26,40), DE Tiny ticks 24,000 and 36,000; `profile-selfplay.mjs --load` at 36,000) against the late tick's on-read 13.6-15.2 ms and work 133's 55-fps line.
 - The gates' lines unmoved: the castle gate and the hit census are projected 13-15% over theirs on DE Tiny, and M2's own share is measured on the real gates.
+
+## M2 measurement, 2026-11-11
+
+What work 154 left of step 0, measured on M1's retained worlds. No game code changed in this milestone: it lands this record, two flags on `scripts/aiTickAb.mjs` with their tests, and one engine-feedback item.
+
+**Method.** Two trees stepped the same retained save, interleaved in one process (`npm run ai:tick-ab -- castle <treeA> <treeB> --load <save> --max-ticks 2000 --chunk 500`, and again with `--projection on-read`): A is the M1-era tree (d6212a55), B is main at eb59353d (merge `9c26af79`, whose tree is main's plus the two flags). The first chunk is left out of the ratios, so each number stands on 1,500 ticks. Both arms ran on the pinned physical civ-engine 2.9.0, through the worktrees' link to the primary checkout's install; the M1-era tree runs on the pin unchanged, so the comparison does not cross engines (M1's own numbers of 2026-11-06 were on the linked sibling, 2.6.2). The state digests were identical at every chunk and the final saves equal in all ten runs, so main plays these worlds byte for byte as the M1-era tree does. The whole-match arms are M1's driver again (`deMapCost.mts`, castle configuration, 45,000 ticks in windows of 3,000), four arms run together on main. The profiles are `scripts/profile-selfplay.mjs --config castle --load <save> --sample 1000 --interval 1000`, folded by `profileShares.mjs`. The frame rate is M1's probe (`deMapFps.mjs`: the save loaded through the HUD's own Load on a production build served on port 4324, 8 seconds of animation-frame intervals, GPU at 1600x900, the camera on (26,40)), eight rounds in two passes ordered base, main, main, base and then main, base, base, main. The machine's busy CPUs were sampled every 10 seconds beside every run.
+
+**Tick cost** (CPU ms per tick, the M1-era tree then main, with main over the M1-era tree in brackets).
+
+| Save | Live path | On read | Foreign busy CPUs, median (live / on read) |
+| --- | --- | --- | --- |
+| DE Tiny, tick 24,000 | 16.4 → 9.1 (0.55) | 7.1 → 7.4 (1.04) | 10 / 16 |
+| DE Tiny, tick 36,000 | 48.3 → 11.4 (0.24) | 8.5 → 8.2 (0.97) | 16 / 18 |
+| DE Medium, tick 24,000 | 38.0 → 17.1 (0.45) | 11.6 → 11.3 (0.98) | 7 / 6 |
+| DE Medium, tick 36,000 | 78.2 → 34.3 (0.44) | 31.7 → 33.5 (1.06) | 14 / 22 |
+| Today's 1v1, tick 36,000 | 10.5 → 8.9 (0.85) | 6.2 → 6.7 (1.08) | 9 / 8 |
+
+The on-read path is unchanged: its ratios run from 0.97 to 1.08 on these 1,500-tick runs, around the instrument's noise (about 3% on a full match, more on short runs). On main the live path still costs 1.2 to 1.5 times the on-read path on DE Tiny and on DE Medium at 24,000, and about the same on DE Medium at 36,000.
+
+**Whole match on main** (45,000 ticks, castle configuration, four arms together, busy CPUs p10/p50/p90 8/11/14; M1's totals in brackets, which the same folding script reproduces from M1's retained rows).
+
+| Map | Live path: total, and ms per tick at 3,000 / 24,000 / 45,000 | On read: the same |
+| --- | --- | --- |
+| Today's 1v1, 60x36 | 233 s (222 s); 1.5 / 6.0 / 8.2 | 172 s (245 s); 0.8 / 4.2 / 6.0 |
+| DE Tiny, 120x120 | 474 s (1,006 s); 6.0 / 15.8 / 11.9 | 302 s (455 s); 2.5 / 10.4 / 7.9 |
+
+DE Tiny over today's map: on the live path 2.03 to tick 45,000 (M1: 4.53) and 2.33 to 9,000 (M1: 2.46); on read 1.76 to 45,000 (M1: 1.86) and 1.95 to 27,000 (M1: 1.97). Both maps played the same matches as on 2026-11-06 (55 units and 61 buildings on DE Tiny at tick 24,000, 89 and 50 on today's map).
+
+**Where a late tick goes on main** (live path, share of profiled time; the groups overlap; 4-9 busy CPUs).
+
+| World | ms per tick | Render projection | JSON checks | Computer's decisions | Placement search | Path search | Movement | Fog and visibility | Villager economy |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| DE Tiny, tick 36,000 | 11.3 | 25.4% | 26.2% | 10.4% | 8.1% | 3.6% | 9.7% | 11.4% | 13.3% |
+| DE Medium, tick 24,000 | 25.0 | 22.3% | 16.2% | 18.1% | 15.0% | 9.8% | 15.9% | 9.5% | 14.2% |
+
+What is left of the projection is mostly the engine adapter's fixed cost per tick: `buildDiff` in engine 2.9.0 copies both of its entity-ref maps every tick (`dist/render-adapter.js` 100-101), and a 120x120 map holds about 16,000 entities, 14,400 of them terrain cells. Its own self time is 13.0% of the late DE Tiny tick and 30.2% of an opening tick (ticks 1-1,501 from the tick-0 save), where the adapter's diff listener is 41.6% of the tick; that the copies are the cause is a reading of the function, not a separate measurement of them. aoe2's own share beside it is the HUD's entity count (`renderMetricsCapture.ts` walks every alive entity each tick, 5.9% of the opening tick) and the frame's cell lists (`projectFrame`, 1.8%-3.1%). The site search is 8.1% of the live tick on DE Tiny at 36,000 and 15.0% on DE Medium at 24,000, about 11% and 19% of the tick outside the projection; that is derived from the live-path profiles, since `profile-selfplay.mjs` has no on-read switch.
+
+**Frame rate over the base** (GPU: RTX 4090 through ANGLE, 1600x900, the camera on (26,40), Normal speed, which is 17 ticks a second since v0.3.275 where M1 measured at 15; every row held 16.7-17.1 ticks a second; each cell lists the four rounds in the order they ran).
+
+| State | M1-era build: fps | Main: fps | Median frame on main | Matrix writes per drawn frame |
+| --- | --- | --- | --- | --- |
+| DE Tiny, tick 24,000 | 32.1, 29.8, 23.5, 24.2 | 24.6, 23.9, 26.3, 22.4 | 33 ms | 5,600-7,300 |
+| DE Tiny, tick 36,000 | 17.8, 14.7, 9.1, 12.0 | 20.4, 19.8, 13.4, 20.2 | 50 ms | 9,300-13,500 |
+| Today's 1v1, tick 36,000 | 51.0, 59.5, 59.6, 56.5 | 59.5, 59.8, 55.3, 51.1 | 16.7 ms | about 1,800 |
+
+No quiet window came: the load was watched for the full 30 minutes, ran from 4 to 31 busy CPUs, and the rounds ran at 5-18. At tick 24,000 the two builds are the same within the load (the M1-era build's two high rows ran at the lowest load, 5-8 busy); at 36,000 main is faster, about 20 fps against 13-15. By arithmetic, not a browser profile: on main the simulation is about 15%-19% of a DE Tiny frame (9-11 ms a tick at 0.7-0.85 ticks a frame), and the rest is presentation. Both builds were made with `node scripts/voxel-build-if-stale.mjs`, `node scripts/build-content.mjs` and `npx vite build`, which skipped `engine:check` on the main arm (built before 2d8824a6 let the check pass in a linked worktree; the engine it loaded was the same verified 2.9.0) and `tsc` on both; each round checked that port 4324 served that tree's own asset hash.
+
+**The four gates, projected onto DE Tiny** (CI's own times at v0.3.278, run 42445998433, on each runner, times the whole-match ratio above for the gate's path and window; every line is two thirds of the limit).
+
+| Gate | Path and window | CI today, Windows / Ubuntu | Ratio | Projected, Windows / Ubuntu | Line (limit) | Verdict |
+| --- | --- | --- | --- | --- | --- | --- |
+| `aiReachesCastleAge` | on read, 45,000 | 154 / 241 s | 1.76 | 271 / 423 s | 400 s (600) | past the line on Ubuntu by 6% |
+| `playerHitCensus` | on read, 26,000 | 161 / 105 s | 1.95 | 315 / 205 s | 200 s (300) | past the limit on Windows, past the line on Ubuntu |
+| `aiEconomySelfPlay` | every tick, 9,000 | 49 / 32 s | 2.33 | 115 / 74 s | 100 s (150) | past the line on Windows by 15% |
+| `villagersAvoidEnemyDefencesSelfPlay` | every tick, 45,000 | 472 / 307 s | 2.03 | 958 / 624 s | 1,200 s (1,800) | under its line (M1 projected 2,084 s) |
+
+**Verdict on step 0's two conditions.** "DE Tiny plays near today's frame rate": not yet. Main draws 22-26 fps at tick 24,000 and about 20 at 36,000 on DE Tiny, where today's map drew 51-60 in the same rounds and work 133's line is 55; work 154 moved the late frame rate a little and the mid-game not at all, so the frame now asks for the renderer's own work (M2b). "The self-play gates keep their CI lines": one of the four does. The villagers gate is back under its line; the hit census is the pressing one, since it already sits at 54% of its limit on Windows and 1.95 times that passes the limit. The castle gate and the hit census need the on-read growth to come down, which is the site search (M2c) and the fog that Codex's work 160 targets; the economy gate's 2.33 is mostly the adapter's fixed cost in the opening, where DE Tiny's live tick at 3,000 is 6.0 ms against 2.5 on read.
+
+**Bounds.** One seed per map, and the scratch map is DE's layout as this game would draw it, not DE's map (M1's bounds stand). The gate ratios come from castle-configuration arms, which play other matches than the gates do; no gate was run locally. The frame rate was not measured on a quiet machine, nor on DE Medium, and no browser profile split the frame. The profile shares are of one 1,000-tick window per world. `tickab` ratios compare 1,500 steady ticks per run under 6-22 foreign busy CPUs.
+
+**Two corrections to the brief.** The M1-era tree does run on the pinned engine, so no comparison had to cross engines. M1's on-read target for a late DE Tiny tick, 13.6-15.2 ms, was inflated by load: interleaved on 2026-11-11 it is 8.2-8.5 ms, and the whole-match arm read 10.4 ms at 24,000 and 7.9 at 45,000.
+
+**Out-of-band sources that neither projection test asserts.** Read from the assertions of `tests/simulation/selectedRenderInvalidation.test.ts` and `renderInvalidationLifecycle.test.ts` only; nothing was run to show a defect, and work 154's file carries all eight cases of this lane's own oracle by name, fixture and evidence floor. No case counts an occurrence of: a line upgrade rewriting a unit's type, tint and size in place (`technologyUnitSweeps.ts`); a monk converting a building (`monkBuildingConversion.ts`); a herdable changing owner (the opening case floors work verbs and a finished construction only); a garrison or an ungarrison as a counted change; shared vision changing (Cartography, Spies); and the replay bridge's projection (`replay/makeReplayBridge.ts`).
+
+**Where the evidence is.** The retained worlds, probes and commands are in the primary checkout's ignored `tmp/work150-retained/` (its `README.md` lists them); the folder is kept, since step 0 is open and M2b measures on its saves. The raw rows of 2026-11-11 (`tickab-*.json`, the four arms' `rows.json`, the profiles, `fps.jsonl`, the load log and the six CI job logs) are copied there under `m2-2026-11-11/`.
 
 ## Tests and fixtures that stand on the boot map (M1)
 
@@ -200,3 +269,5 @@ The fixtures: about 150 fixtures paint `createGrassFixtureTerrain()` at `MAP_WID
 ## Outcome
 
 M1 (2026-11-06): landed on main as one docs-only commit, the squash of the reviewed revisions c4ec8036 (review 0), 4ad9a8ce (review 1) and 2b97690c (review 2), with review 2's wording fixes (27e20bba), main merged in (64a95272) and the landing edits (spec §12's order, the engine-feedback measurement, plan 106's four cards, this section and "M2 starting state"). Checks: `npx vitest run tests/architecture` and `npm run content:validate`. The plan stays open for M2 and the later steps.
+
+M2 measurement (2026-11-11): landed on main with no version bump (tooling and docs only): this plan's measurement section, `scripts/aiTickAb.mjs`'s `--load` and `--projection` with four new cases in `tests/scripts/aiTickAb.test.ts` (six mutants red, the control green), the engine-feedback item on `RenderAdapter.buildDiff`'s per-tick map copies, and the instruments list. The branch landed as it stood, so the M2a reference `a6657e67` is in main's history and not in its tree. Step 0 stays open for M2b and M2c.

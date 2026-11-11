@@ -199,20 +199,53 @@ function garrisoned(bridge) {
 }
 
 /**
- * `--load <save>` boots both arms from one saved game (each parses its own
- * copy) with the scenario's options, and `--projection on-read` gives both the
- * gates' render projection instead of the game's (work 150 M2a).
+ * Reads `--load <save>` and `--projection on-read|every-tick` (work 150 M2).
+ * `--load` boots both arms from one saved game, so it answers "what does a
+ * tick cost in THIS world" for a world no scenario reaches (a late match, a
+ * scratch map); `--projection on-read` gives both arms the self-play gates'
+ * render projection instead of the game's, so the same save can be costed on
+ * either path. Only castle and lab take a save: the other scenarios set their
+ * world up after opening it.
+ * @param {string[]} argv
+ * @param {string} scenarioName
+ * @returns {{ load: string | null, projection: 'on-read' | 'every-tick' | null }}
  */
-async function openArm(label, tree, scenario, stateDigest, { saveText = null, projection = null } = {}) {
-  const root = tree.replace(/[\\/]+$/, '');
-  const { createSimulationBridge } = await import(pathToFileURL(`${root}/src/game/simulation/createSimulationBridge.ts`).href);
-  const { HUMAN_PLAYER_ID } = await import(pathToFileURL(`${root}/src/game/simulation/prototypeScenario.ts`).href);
-  const create = (seed, options = {}) => createSimulationBridge(seed, {
+export function readArmFlags(argv, scenarioName) {
+  const text = (name) => {
+    const i = argv.indexOf(`--${name}`);
+    return i === -1 ? null : argv[i + 1];
+  };
+  const load = text('load');
+  const projection = text('projection');
+  if (projection !== null && projection !== 'on-read' && projection !== 'every-tick') {
+    throw new Error(`--projection is on-read or every-tick; got "${projection}"`);
+  }
+  if (load !== null && scenarioName !== 'castle' && scenarioName !== 'lab') {
+    throw new Error(`--load boots the castle or lab configuration from a save; got "${scenarioName}"`);
+  }
+  return { load, projection };
+}
+
+/**
+ * The bridge factory a scenario opens an arm with: the tree's own, with the
+ * save and the projection added to whatever options the scenario passes. Each
+ * call parses the save again, so the two arms never share one object.
+ * @param {(seed: string, options?: any) => any} createSimulationBridge
+ * @param {{ saveText?: string | null, projection?: string | null }} [arm]
+ */
+export function armBridgeFactory(createSimulationBridge, { saveText = null, projection = null } = {}) {
+  return (seed, options = {}) => createSimulationBridge(seed, {
     ...options,
     ...(saveText === null ? {} : { savedGame: JSON.parse(saveText) }),
     ...(projection === null ? {} : { renderProjection: projection }),
   });
-  const bridge = scenario.open(create, HUMAN_PLAYER_ID);
+}
+
+async function openArm(label, tree, scenario, stateDigest, armOptions = {}) {
+  const root = tree.replace(/[\\/]+$/, '');
+  const { createSimulationBridge } = await import(pathToFileURL(`${root}/src/game/simulation/createSimulationBridge.ts`).href);
+  const { HUMAN_PLAYER_ID } = await import(pathToFileURL(`${root}/src/game/simulation/prototypeScenario.ts`).href);
+  const bridge = scenario.open(armBridgeFactory(createSimulationBridge, armOptions), HUMAN_PLAYER_ID);
   return {
     label,
     tree: root,
@@ -239,18 +272,7 @@ async function main(argv) {
       + 'and each tree is a checkout of this repository.',
     );
   }
-  const text = (name) => {
-    const i = argv.indexOf(`--${name}`);
-    return i === -1 ? null : argv[i + 1];
-  };
-  const load = text('load');
-  const projection = text('projection');
-  if (projection !== null && projection !== 'on-read' && projection !== 'every-tick') {
-    throw new Error(`--projection is on-read or every-tick; got "${projection}"`);
-  }
-  if (load !== null && scenarioName !== 'castle' && scenarioName !== 'lab') {
-    throw new Error(`--load boots the castle or lab configuration from a save; got "${scenarioName}"`);
-  }
+  const { load, projection } = readArmFlags(argv, scenarioName);
   const armOptions = { saveText: load === null ? null : readFileSync(load, 'utf8'), projection };
   const { stateDigest } = await import('civ-engine');
   const arms = [
