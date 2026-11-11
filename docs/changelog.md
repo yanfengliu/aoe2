@@ -2,6 +2,15 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.280
+
+A refused placement says one short sentence.
+
+- **What it says.** Clicking a building onto ground it cannot stand on used to show the simulation's whole reason, such as "Placement blocked for house (2x2): blocked by a town-center (building) at (9,9); 4 of the 4 footprint cells are blocked. Nearest open ground you can see: (7,6).", and over unexplored ground a sentence as wide as the window. It now says one of "Building site obstructed.", "You can't build on unexplored ground.", "Your builders can't reach that site.", "A Dock must be built on the shore." or "A Fish Trap must be built on water.".
+- **A cancelled site.** A foundation whose builders arrive and find its site blocked now says Definitive Edition's "Building site obstructed. Building canceled." Its price still comes back; the message no longer says so.
+- **Unchanged.** Where a building may stand, the red ghost, "Not enough wood.", and every other message. A long message of any kind now wraps 18px inside the window's left edge.
+- **For tools.** `consumeCommandRejection()` and a rejected command's `message` still carry the full reason. `scripts/captureMapScreenshot.mjs` takes `PLACE_CLICK=1` beside `PLACE` to put a refusal's toast in the frame.
+
 ## 0.3.279
 
 A command's tooltip says what it does, as Definitive Edition's (DE's) does.

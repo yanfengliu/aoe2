@@ -83,6 +83,7 @@ import type { PlacementBlockReport } from './placementBlockReport';
 import type { PlacementCellView } from './placementFootprint';
 import { currentEntityId, type GameWorld } from './pureHelpers';
 import { isConstructionStarted } from './unstartedFoundations';
+import { placementRefusalReason } from '../handlers/building/placementRefusal';
 
 export interface FoundationStartDeps {
   world: GameWorld;
@@ -247,11 +248,11 @@ export function createFoundationStart(deps: FoundationStartDeps): FoundationStar
     }
     destroyBuilding(site.id);
     if (!found) return;
-    deps.enqueueRejection(
-      `Your ${building.buildingType} at (${anchor.x},${anchor.y}) was cancelled: its builders found `
-      + `${found.text}. Its cost (${describeCost(cost)}) was refunded.`
-      + (found.foggedAtPlacing ? ' Place it where the ground you have explored is clear.' : ''),
-    );
+    deps.enqueueRejection(placementRefusalReason['site-cancelled'](
+      { buildingType: building.buildingType, x: anchor.x, y: anchor.y },
+      found,
+      describeCost(cost),
+    ));
   }
 
   /** What the builders found, in words that name only what the player sees. */

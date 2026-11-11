@@ -18,6 +18,7 @@ import type { BridgeStateAccessor } from '../../bridge/bridgeStateAccessor';
 import { playerResourcesCodec } from '../../bridge/bridgeStateSerialize';
 import type { KnowledgeBlockReport } from '../../bridge/placementKnowledge';
 import { requiresShorePlacement, requiresWaterPlacement } from '../../shorePlacement';
+import { placementRefusalReason } from './placementRefusal';
 
 export interface BuildingPlaceConfirmValidatorDeps {
   // Phase 2D: playerResources migrated to world.state.aoe2.* via accessor.
@@ -153,19 +154,17 @@ export function makeBuildingPlaceConfirmValidator(
           builderIds,
         },
       )[0];
-      const where = `${data.buildingType} (${footprint.width}x${footprint.height}) `
-        + `at (${data.position.x},${data.position.y})`;
+      const site = {
+        buildingType: data.buildingType,
+        width: footprint.width,
+        height: footprint.height,
+        x: data.position.x,
+        y: data.position.y,
+      };
       // Hotfix 45185 (spec §12.1): a building may stand partly on unexplored
       // ground, never wholly on it.
       if (report?.unexplored === true) {
-        return {
-          code: 'placement_unexplored',
-          message:
-            `Placement blocked for ${where}: none of that ground has been explored. `
-            + 'A building may stand partly on unexplored ground, but at least one of its cells '
-            + 'must be ground you have explored.'
-            + (anchor ? ` Nearest open ground you can see: (${anchor.x},${anchor.y}).` : ''),
-        };
+        return { code: 'placement_unexplored', message: placementRefusalReason.unexplored(site, anchor) };
       }
       // A report through the player's view (spec §12.1) says how many of the
       // footprint's cells lie on unexplored ground holding nothing the player
@@ -175,13 +174,7 @@ export function makeBuildingPlaceConfirmValidator(
       if (report?.unreachableForBuilders === true) {
         return {
           code: 'placement_unreachable',
-          message:
-            `Placement blocked for ${where}: `
-            + (unexplored === undefined
-              ? 'the ground is clear, but no builder can walk to a cell beside it.'
-              : `the ${unexplored > 0 ? 'explored ' : ''}ground is clear, but no builder can walk `
-                + 'to a cell beside it over ground you have explored.')
-            + (anchor ? ` Nearest open ground a builder can reach: (${anchor.x},${anchor.y}).` : ''),
+          message: placementRefusalReason.unreachable(site, unexplored, anchor),
         };
       }
       const cause = report
@@ -194,29 +187,17 @@ export function makeBuildingPlaceConfirmValidator(
         : report && report.totalCellCount > 1
           ? `; ${report.blockedCellCount} of ${report.totalCellCount} footprint cells are blocked`
           : '';
-      const suggestion = anchor
-        ? ` Nearest open ground you can see: (${anchor.x},${anchor.y}).`
-        : '';
       // Nothing stands in the way, so the building's own ground rule refused
       // it: say which rule, rather than blame an obstacle that is not there.
       if (!report && requiresShorePlacement(data.buildingType)) {
-        return {
-          code: 'placement_blocked',
-          message: `Placement blocked for ${where}: a ${data.buildingType} must stand on land `
-            + `and touch water you have explored.${suggestion}`,
-        };
+        return { code: 'placement_blocked', message: placementRefusalReason['needs-shore'](site, anchor) };
       }
       if (!report && requiresWaterPlacement(data.buildingType)) {
-        return {
-          code: 'placement_blocked',
-          message: `Placement blocked for ${where}: a ${data.buildingType} must stand on open water.${suggestion}`,
-        };
+        return { code: 'placement_blocked', message: placementRefusalReason['needs-water'](site, anchor) };
       }
       return {
         code: 'placement_blocked',
-        message:
-          `Placement blocked for ${data.buildingType} `
-          + `(${footprint.width}x${footprint.height}): blocked by ${cause}${counts}.${suggestion}`,
+        message: placementRefusalReason.obstructed(site, cause, counts, anchor),
       };
     }
     const stockpile = deps.accessor.get(playerResourcesCodec).get(unit.owner);

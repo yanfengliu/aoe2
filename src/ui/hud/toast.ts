@@ -16,6 +16,8 @@
 // read 199 between two horns that were exactly 200 ticks apart (defect
 // register 2026-09-24).
 
+import { playerFacingRejection } from './placementRefusalCopy';
+
 const TOAST_LIFETIME_MS = 2400;
 const ALERT_TOAST_LIFETIME_MS = 5000;
 const TOAST_FADE_MS = 240;
@@ -60,4 +62,17 @@ export function createToastController(
   }
 
   return { showToast };
+}
+
+/** Drains the bridge's refusals into toasts, each as the player reads it: a
+ *  placement's as its one short sentence (placementRefusalCopy.ts), any other
+ *  as the simulation wrote it. One at a time, so several refusals in a frame
+ *  are several toasts. */
+export function showCommandRejections(
+  bridge: { consumeCommandRejection(): string | null },
+  showToast: ToastHandle['showToast'],
+): void {
+  for (let reason = bridge.consumeCommandRejection(); reason !== null; reason = bridge.consumeCommandRejection()) {
+    showToast(playerFacingRejection(reason));
+  }
 }

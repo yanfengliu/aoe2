@@ -18,7 +18,7 @@ import type {
 import type { SaveBlob } from '../../game/simulation/saveSchema';
 import { createTooltipController } from './tooltips';
 import { HUD_TEMPLATE_HTML } from './hudTemplate';
-import { createToastController, type ToastHandle } from './toast';
+import { createToastController, showCommandRejections, type ToastHandle } from './toast';
 import {
   createDebugOverlayController,
   type DebugOverlayMode,
@@ -420,15 +420,9 @@ export function createHudController(root: HTMLElement, bridge: HudBridge): HudCo
     }
     selectionPanelHandle.update(selectionState, hudState.playerResources);
 
-    // Slice 11: drain any command-rejection reasons the bridge collected
-    // since the last frame. `consumeCommandRejection()` pops one at a time
-    // so multiple rejections in the same frame still show as individual
-    // toasts without losing any of them.
-    let rejection = bridge.consumeCommandRejection();
-    while (rejection !== null) {
-      showToast(rejection);
-      rejection = bridge.consumeCommandRejection();
-    }
+    // Slice 11: the refusals the bridge collected since the last frame, each a
+    // toast in the words the player reads (work 148 M3).
+    showCommandRejections(bridge, showToast);
 
     // M9: key the redraw on the fog OWNER too (via minimapContentSignature),
     // not just the tick. In replay, `ReplayController` can swap the bridge to a
