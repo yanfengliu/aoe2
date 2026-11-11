@@ -95,7 +95,10 @@ export class RenderStore {
           layerOrder.indexOf(left.layer) - layerOrder.indexOf(right.layer);
         if (layerDelta !== 0) return layerDelta;
         if (left.y !== right.y) return left.y - right.y;
-        return left.x - right.x;
+        if (left.x !== right.x) return left.x - right.x;
+        // Ties in id order, which is the order a whole-world snapshot inserts
+        // them in, so a store kept by diffs lists them as a fresh one does.
+        return left.id - right.id;
       });
   }
 

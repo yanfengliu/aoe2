@@ -32,6 +32,7 @@ import { stateDigest, RenderAdapter } from 'civ-engine';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
+import { IncrementalRenderProjection } from '../../src/game/simulation/bridge/incrementalRenderProjection';
 import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 
 const TICKS = 2000;
@@ -41,6 +42,10 @@ const CHECK_EVERY = 250;
 const adapterPrototype = RenderAdapter.prototype as unknown as {
   buildDiff(...args: unknown[]): unknown;
   buildSnapshot(): unknown;
+};
+// The game's own per-tick projection since work 150 M2a.
+const liveProjectionPrototype = IncrementalRenderProjection.prototype as unknown as {
+  onTick(...args: unknown[]): unknown;
 };
 
 function open(renderProjection: 'every-tick' | 'on-read') {
@@ -90,21 +95,24 @@ describe("renderProjection: 'on-read'", () => {
   it('builds no render diff and no snapshot while it steps, and one snapshot per read', () => {
     const diffs = vi.spyOn(adapterPrototype, 'buildDiff');
     const snapshots = vi.spyOn(adapterPrototype, 'buildSnapshot');
+    const ticksProjected = vi.spyOn(liveProjectionPrototype, 'onTick');
     const headless = open('on-read');
     for (let tick = 0; tick < 200; tick += 1) headless.step(100);
     expect(diffs, 'an on-read bridge projected a tick').not.toHaveBeenCalled();
+    expect(ticksProjected, 'an on-read bridge projected a tick through the game\'s projection').not.toHaveBeenCalled();
     expect(snapshots, 'an on-read bridge projected the world before anyone read it').not.toHaveBeenCalled();
     headless.getRenderState();
     headless.getHudState();
     expect(snapshots).toHaveBeenCalledTimes(2);
     expect(diffs).not.toHaveBeenCalled();
 
-    // The control: the game's bridge does project every tick, so the spies
-    // are wired to the adapter the bridge really uses.
-    diffs.mockClear();
+    // The control: the game's bridge does project every tick — through its
+    // own incremental projection since work 150 M2a, not civ-engine's
+    // adapter — so the spies are wired to the projection it really uses.
     const game = open('every-tick');
     for (let tick = 0; tick < 200; tick += 1) game.step(100);
-    expect(diffs).toHaveBeenCalledTimes(200);
+    expect(ticksProjected).toHaveBeenCalledTimes(200);
+    expect(diffs).not.toHaveBeenCalled();
   }, 60_000);
 
   it('can project the next read after a projection error, and still steps without projecting', () => {

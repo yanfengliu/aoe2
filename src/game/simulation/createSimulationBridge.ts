@@ -3,6 +3,7 @@ import type { EntityRef } from 'civ-engine';
 
 import { clamp, toEngineWorld } from './bridge/pureHelpers';
 import { createProjector } from './bridge/visibility';
+import { IncrementalRenderProjection } from './bridge/incrementalRenderProjection';
 import { createWorld } from './bridge/createWorld';
 import { countResourceWorkers } from './resourceWorkerCounts';
 import { visibilityStateFromSave } from './saveBlobReaders';
@@ -163,51 +164,59 @@ export function createSimulationBridge(
       scenario: freshScenario ?? undefined,
     });
   const renderStore = new RenderStore();
-  const renderAdapter = new RenderAdapter({
-    world: toEngineWorld(world),
-    projector: createProjector(
-      visibility, HUMAN_PLAYER_ID, effectiveSeed, isSelected, getEntityHealth,
-      getRecentUnitDeaths, getRecentUnitAttacks, getWildlifeAlive, getUnitActiveVerb,
-      getInFlightProjectiles,
-      // Allies' vision (DE: from the first frame) and, with Spies, everyone's.
-      // Read per frame so researching Spies mid-match takes effect at once.
-      () => getSharedVisionOwners(HUMAN_PLAYER_ID),
-      // v0.3.105: buildings carry their owner's building set.
-      (owner) => getPlayerCivilization(owner),
-    ),
-    debug: createRenderMetricsCapture(world),
-    send(message) {
-      renderStore.apply(message);
-    },
-  });
+  const projector = createProjector(
+    visibility, HUMAN_PLAYER_ID, effectiveSeed, isSelected, getEntityHealth,
+    getRecentUnitDeaths, getRecentUnitAttacks, getWildlifeAlive, getUnitActiveVerb,
+    getInFlightProjectiles,
+    // Allies' vision (DE: from the first frame) and, with Spies, everyone's.
+    // Read per frame so researching Spies mid-match takes effect at once.
+    () => getSharedVisionOwners(HUMAN_PLAYER_ID),
+    // v0.3.105: buildings carry their owner's building set.
+    (owner) => getPlayerCivilization(owner),
+  );
+  const send = (message: Parameters<RenderStore['apply']>[0]): void => {
+    renderStore.apply(message);
+  };
 
   // 'on-read' (createSimulationBridgeOptions.ts): no projection while the
-  // world steps; each read projects the whole world once.
+  // world steps; each read projects the whole world once, through
+  // civ-engine's own adapter. The game's path follows what changed
+  // (bridge/incrementalRenderProjection.ts, work 150 M2a).
   const projectOnRead = options.renderProjection === 'on-read';
-  if (!projectOnRead) renderAdapter.connect();
-
-  function refreshRenderProjection(): void {
-    renderAdapter.disconnect();
-    renderAdapter.connect();
-  }
+  const renderAdapter = projectOnRead
+    ? new RenderAdapter({
+      world: toEngineWorld(world),
+      projector,
+      debug: createRenderMetricsCapture(world),
+      send,
+    })
+    : null;
+  const liveProjection = projectOnRead
+    ? null
+    : new IncrementalRenderProjection({
+      world,
+      projector,
+      debug: createRenderMetricsCapture(world),
+      send,
+      consumeOutOfBandChange: consumeOutOfBandRenderChange,
+      getSelectedEntityIds: () => getSelectedEntityRefs().map((ref) => ref.id),
+    });
+  liveProjection?.connect();
 
   // Iter-3 V3-19 / iter-1 H-4: per-tick memo for getRenderState. Bumped
-  // every time the projector re-runs (out-of-band change consumed)
-  // OR every world-tick (handled at the start of step()). The cache
-  // key in getRenderState includes this counter so any change to the
-  // projected entities invalidates the cache automatically.
+  // every time a read or step projects an out-of-band change; the tick
+  // moves on every world-tick. The cache key in getRenderState includes
+  // this counter so any change to the projected entities invalidates the
+  // cache automatically.
   let renderStoreVersion = 0;
 
   function flushOutOfBandRenderChange(): void {
-    if (consumeOutOfBandRenderChange() && !projectOnRead) {
-      refreshRenderProjection();
-      renderStoreVersion += 1;
-    }
+    if (liveProjection?.flush()) renderStoreVersion += 1;
   }
 
   /** What every read of the render store does first. */
   function projectForRead(): void {
-    if (!projectOnRead) {
+    if (renderAdapter === null) {
       flushOutOfBandRenderChange();
       return;
     }

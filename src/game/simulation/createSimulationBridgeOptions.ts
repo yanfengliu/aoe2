@@ -58,8 +58,9 @@ export interface CreateSimulationBridgeOptions {
   populationCap?: number;
   /** When the render projection runs. 'every-tick' (the default, and the
    *  game's) keeps the render store current as the world steps: a render diff
-   *  every tick, and the whole world projected again after any change the
-   *  diff cannot see. 'on-read' projects nothing while the world steps and
+   *  every tick, and the entities a change the diff cannot see can reach
+   *  projected again (bridge/incrementalRenderProjection.ts; until work 150
+   *  M2a, the whole world). 'on-read' projects nothing while the world steps and
    *  the whole world once each time getRenderState() or getHudState() is
    *  read. It is for callers that step thousands of ticks and never draw —
    *  the self-play gates — where the per-tick projection was 27% of the
