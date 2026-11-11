@@ -39,7 +39,8 @@ test.describe('an unavailable command says what is missing', () => {
     // The tooltip keeps the price AND gains the reason: the player needs
     // both to decide what to do next.
     const tooltipText = await feudal.getAttribute('data-tooltip');
-    expect(tooltipText).toContain('Cost: 500 food');
+    // DE's title line quotes the price in brackets (work 148 M2; until then "Cost: 500 food").
+    expect(tooltipText).toContain('(500 food;');
     expect(tooltipText).toContain('Dark Age buildings');
 
     // And hovering a DISABLED button really does surface it. This is the

@@ -25,7 +25,9 @@ import {
   formatMarketActionTooltip,
   formatResearchTooltip,
   formatTrainTooltip,
+  withRefusal,
 } from '../tooltips';
+import { escapeHtml } from '../../utils/escapeHtml';
 import { actionGlyph, marketActionGlyph, researchGlyph, resourceGlyph } from '../icons/glyphs';
 import { unitGlyphRole, unitRoleGlyph } from '../icons/unitGlyphs';
 import { TRIBUTE_AMOUNT, tributeCost } from '../../../game/simulation/tributeRules';
@@ -61,10 +63,9 @@ export function commandCostsByHook(costs: readonly CommandCost[]): CommandCosts 
  * is the same text as a stable DOM hook, so a check (and the play-test
  * panel reader) can read it without parsing tooltip prose.
  */
-function reasonMarkup(reason: string | undefined, baseTooltip: string): string {
-  const tooltip = reason ? `${baseTooltip} ${reason}` : baseTooltip;
-  const hook = reason ? ` data-command-reason="${reason}"` : '';
-  return `data-tooltip="${tooltip}"${hook}`;
+function reasonMarkup(reason: string | undefined, tooltip: string): string {
+  const hook = reason ? ` data-command-reason="${escapeHtml(reason)}"` : '';
+  return `data-tooltip="${escapeHtml(tooltip)}"${hook}`;
 }
 
 // M7 UI-icons (v0.1.74): the command-card "Research <Name>" buttons get the
@@ -83,16 +84,13 @@ export function renderResearchButtons(
   return visibleResearchOptions
     .map((technologyType) => {
       const isAvailable = availableResearchOptions.includes(technologyType);
-      const base = formatResearchTooltip(
-        technologyType,
-        formatTechnologyName(technologyType),
-        costs.get(`research-${technologyType}`),
-      );
+      const reason = reasons.get(`research-${technologyType}`);
+      const tooltip = formatResearchTooltip(technologyType, costs.get(`research-${technologyType}`), reason);
       return `
           <button
             class="hud-command-button"
             data-command="research-${technologyType}"
-            ${reasonMarkup(reasons.get(`research-${technologyType}`), base)}
+            ${reasonMarkup(reason, tooltip)}
             type="button"
             ${isAvailable ? '' : 'disabled aria-disabled="true" data-command-locked="true"'}
           >
@@ -127,6 +125,13 @@ export function renderActionButtons(actionOptions: ActionType[]): string {
     .join('');
 }
 
+// A Market button's tooltip is one sentence, not a help text with a title, so
+// its refusal follows on the same line, as it always has.
+function marketTooltip(actionType: MarketActionType, reason: string | undefined): string {
+  const base = formatMarketActionTooltip(actionType);
+  return reason ? `${base} ${reason}` : base;
+}
+
 // M7 UI-icons (v0.1.75): the command-card Buy/Sell "market" buttons get the
 // traded COMMODITY glyph (food/wood/stone) before the label, reusing the
 // top-bar `resourceGlyph` art at the command size. Augment-not-replace: the
@@ -141,7 +146,7 @@ export function renderMarketButtons(
           <button
             class="hud-command-button"
             data-command="market-${actionType}"
-            ${reasonMarkup(reasons.get(`market-${actionType}`), formatMarketActionTooltip(actionType))}
+            ${reasonMarkup(reasons.get(`market-${actionType}`), marketTooltip(actionType, reasons.get(`market-${actionType}`)))}
             type="button"
           >
             ${marketActionGlyph(actionType)}<span class="hud-command-label">${formatMarketActionName(actionType)}</span>
@@ -165,12 +170,13 @@ export function renderTrainButtons(
   return trainOptions
     .map(
       (unitType) => {
-        const base = formatTrainTooltip(formatEntityName(unitType), costs.get(`train-${unitType}`));
+        const reason = reasons.get(`train-${unitType}`);
+        const tooltip = withRefusal(formatTrainTooltip(unitType, costs.get(`train-${unitType}`)), reason);
         return `
           <button
             class="hud-command-button"
             data-command="train-${unitType}"
-            ${reasonMarkup(reasons.get(`train-${unitType}`), base)}
+            ${reasonMarkup(reason, tooltip)}
             type="button"
           >
             ${unitRoleGlyph(unitGlyphRole(unitType), 'hud-command-glyph')}<span class="hud-command-label">Train ${formatEntityName(unitType)}</span>
