@@ -21,7 +21,8 @@ import type {
 } from '../../../game/simulation/types';
 import { canAfford } from '../../../game/simulation/prototypeEconomyRules';
 import { formatEntityName } from '../displayNames';
-import { formatBuildTooltip, formatResourceCost } from '../tooltips';
+import { formatBuildTooltip, formatResourceCost, withRefusal } from '../tooltips';
+import { escapeHtml } from '../../utils/escapeHtml';
 import type { CommandReasons } from './buttons';
 import { buildingGlyph, resourceGlyph } from '../icons/glyphs';
 import { buildPageGlyph } from '../icons/commandGlyphs';
@@ -124,7 +125,7 @@ export function renderBuildButtons(
       // keeps exactly the accessible status it had before this change.
       const refusal = reasons.get(`build-${buildingType}`) ?? '';
       const accessibleStatus = refusal || (affordable ? 'ready.' : `short on ${missingResources}.`);
-      const baseTooltip = formatBuildTooltip(displayName, cost);
+      const tooltip = withRefusal(formatBuildTooltip(buildingType, cost), refusal || undefined);
       const price = cost ? ` Cost: ${formatResourceCost(cost)}.` : '';
       return `
           <button
@@ -132,10 +133,10 @@ export function renderBuildButtons(
             data-command="build-${buildingType}"
             data-command-affordable="${affordable}"
             data-command-active="${active}"
-            data-tooltip="${refusal ? `${baseTooltip} ${refusal}` : baseTooltip}"
-            ${refusal ? `data-command-reason="${refusal}"` : ''}
+            data-tooltip="${escapeHtml(tooltip)}"
+            ${refusal ? `data-command-reason="${escapeHtml(refusal)}"` : ''}
             type="button"
-            aria-label="Build ${displayName}.${price} ${accessibleStatus}"
+            aria-label="${escapeHtml(`Build ${displayName}.${price} ${accessibleStatus}`)}"
             aria-pressed="${active}"
           >
             <span class="hud-build-card__visual">${buildingGlyph(buildingType)}</span>

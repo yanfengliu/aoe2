@@ -9,6 +9,7 @@ export {
   formatTrainTooltip,
   HUD_CHIP_TOOLTIPS,
   SELECTION_DETAIL_TOOLTIPS,
+  withRefusal,
 } from './tooltipCopy';
 
 export interface TooltipHandle {
@@ -195,6 +196,22 @@ export function createTooltipController(
     tooltip.style.top = `${Math.round(top)}px`;
   }
 
+  // A command's help text (work 148 M2) is DE's: a title line, the verb, the
+  // name and the price, drawn bold as DE draws the name (string 26121's
+  // "Create <b>Villager<b> (<cost>)"), then what it does, one line each. The
+  // text stays the copy whole, so a reader of textContent reads the copy.
+  function writeCopy(tooltip: HTMLElement, text: string): void {
+    const breakAt = text.indexOf('\n');
+    if (breakAt < 0) {
+      tooltip.textContent = text;
+      return;
+    }
+    const title = document.createElement('strong');
+    title.className = 'hud-tooltip__title';
+    title.textContent = text.slice(0, breakAt);
+    tooltip.replaceChildren(title, document.createTextNode(text.slice(breakAt)));
+  }
+
   function showTooltipFor(target: Element, text: string): void {
     const tooltip = tooltipElement;
     if (!tooltip || text.trim().length === 0) {
@@ -202,7 +219,7 @@ export function createTooltipController(
       return;
     }
     describeTooltipFor(target);
-    tooltip.textContent = text;
+    writeCopy(tooltip, text);
     tooltip.dataset.hudTooltipActive = 'true';
     tooltip.setAttribute('aria-hidden', 'false');
     positionTooltip(target);

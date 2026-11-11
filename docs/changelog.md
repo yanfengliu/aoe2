@@ -2,6 +2,15 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.279
+
+A command's tooltip says what it does, as Definitive Edition's (DE's) does.
+
+- **What it does.** Hovering a train, research or build button shows a bold title, "Create Villager (50 food)", "Research Loom (50 gold; 25s)" or "Build House (25 wood)", and under it what the unit, technology or building does: "Gathers resources, and builds and repairs buildings.", "Villagers +15 hit points, +1 melee armor and +2 pierce armor.", a soldier's "Strong vs." and "Weak vs.". Every unit, building and technology has its line. The tooltip used to give the price, the time and how to use the button, and nothing of what the thing did.
+- **What an age needs.** An age's button always says its buildings: "Advance to Feudal Age (500 food; 130s; two Dark Age buildings)", and which five count. It used to name them only while you lacked them, so with both built and the food short it said only "Not enough food."
+- **Required for.** The Barracks says it is required for the Stable, Archery Range, Blacksmith, Market and Watch Tower, and Chemistry for Hand Cannoneers and Bombard Cannons.
+- **Changed wording.** The verbs are DE's ("Create", "Build", "Research", "Upgrade to", "Advance to"), and the price sits in brackets in the title where it followed "Cost:". A refusal such as "Not enough wood." is the tooltip's last line. Three old sentences are gone: "Queue a Villager at this building.", "Needs an open production queue slot." (no rule required one) and the build tooltip's "Place a House foundation ... The selected villager walks to the site and builds it."
+
 ## 0.3.278
 
 Health, activity and selection updates avoid rebuilding every terrain and static-resource view each tick. Rendering still observes changes in the same tick, and paused input refreshes immediately. Saved games and recorded simulation state keep the same format.

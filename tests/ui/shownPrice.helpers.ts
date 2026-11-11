@@ -58,17 +58,33 @@ export function mountSelectionPanel(bridge: Bridge): MountedPanel {
   };
 }
 
-/** The first "Cost: …" (or "cost: …") list in a tooltip or label, as a cost
- *  object: "Cost: 60 food, 20 gold." → { food: 60, gold: 20 }. Null when the
- *  text quotes no price at all. */
-export function shownCost(text: string): Cost | null {
-  const match = /\bcosts?:?\s+([^.;()]+)/i.exec(text);
-  if (!match) return null;
+function amountsIn(list: string): Cost {
   const cost: Cost = {};
-  for (const [, amount, kind] of match[1]!.matchAll(/(\d+)\s+(food|wood|gold|stone)\b/g)) {
+  for (const [, amount, kind] of list.matchAll(/(\d+)\s+(food|wood|gold|stone)\b/g)) {
     cost[kind as keyof PlayerResources] = Number(amount);
   }
   return cost;
+}
+
+/** The price a command TOOLTIP quotes, as a cost object. It quotes it as DE's
+ *  help text does, in brackets on its title line (work 148 M2): "Create
+ *  Militia (60 food, 20 gold)" → { food: 60, gold: 20 }, and the part before a
+ *  ";" in "Research Loom (50 gold; 25s)". Null when the title quotes no price
+ *  ("Research Loom (25s)"). The title is the ONLY place read: Spies' rule line
+ *  ("Costs 200 gold per enemy villager ...") is not a quote, and a reader that
+ *  fell back to it answered 200 for a Spies tooltip with no price in its
+ *  title, which is the charge while one enemy villager lives (review round 2,
+ *  R2-3). */
+export function shownCost(tooltip: string): Cost | null {
+  const bracket = /^[^\n(]*\(([^;)\n]*)/.exec(tooltip)?.[1];
+  return bracket !== undefined && /\d+\s+(?:food|wood|gold|stone)\b/.test(bracket) ? amountsIn(bracket) : null;
+}
+
+/** The price an ACCESSIBLE NAME quotes: "Build House. Cost: 25 wood. ready."
+ *  → { wood: 25 }. Null when the label quotes none. */
+export function shownLabelCost(label: string): Cost | null {
+  const quoted = /\bCost:\s+([^.;()]+)/.exec(label)?.[1];
+  return quoted === undefined ? null : amountsIn(quoted);
 }
 
 /** A tribute button's price: "— costs 130 (30% fee)." or "— no fee." for the
@@ -164,7 +180,7 @@ export function drawnCommands(host: HTMLElement): DrawnCommand[] {
       shown = shownCost(tooltip);
     }
     if (kind === 'build') {
-      const label = shownCost(button.getAttribute('aria-label') ?? '');
+      const label = shownLabelCost(button.getAttribute('aria-label') ?? '');
       const chips = buildCardChips(button);
       if (!shown || !label || !sameCost(shown, label) || !sameCost(shown, chips)) {
         quotesDisagree = `tooltip ${formatCost(shown)}, accessible name ${formatCost(label)}, chips ${formatCost(chips)}`;

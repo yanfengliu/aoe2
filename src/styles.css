@@ -570,11 +570,18 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   color: var(--hud-text);
   font-size: 12px;
   line-height: 1.4;
+  /* A command's help text breaks its lines where DE's does: the title, what
+     it does, what it needs (work 148 M2). */
+  white-space: pre-line;
   pointer-events: none;
   opacity: 0;
   transform: translateY(2px);
   transition: opacity 120ms ease, transform 120ms ease;
   z-index: 30;
+}
+
+.hud-tooltip__title {
+  font-weight: 600;
 }
 
 .hud-tooltip[data-hud-tooltip-active="true"] {

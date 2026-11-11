@@ -22,7 +22,8 @@ test('the Train Fishing Ship tooltip quotes an Italian the 64 wood the Dock char
   const tooltip = page.locator('[data-hud="tooltip"]');
   await train.hover();
   await expect(tooltip).toHaveAttribute('data-hud-tooltip-active', 'true');
-  await expect(tooltip).toContainText('Cost: 64 wood.');
+  // DE's title line quotes the price in brackets (work 148 M2; until then "Cost: 64 wood.").
+  await expect(tooltip).toContainText('Build Fishing Ship (64 wood)');
 
   const wood = (): Promise<number> => page.evaluate(
     () => window.__AOE2_TEST__!.getSnapshot().hudState.playerResources.wood,
