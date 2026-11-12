@@ -152,8 +152,20 @@ export function createAoeVoxelPresentationCoordinator(
   let displayedEntities: ProjectedEntityView[] = [];
   let hasCenteredOnBase = false;
   let lastPlacementVisual: PlacementPreviewVisualState | null = null;
-  let lastBuildings: BuildingVisualState[] = [];
-  let lastHealth: EntityHealthBarState[] = [];
+  // The selection's key is read off a list once, not on every frame: the render state hands back the same array
+  // until something on it changes, a selection included, and the list holds an entity for every map cell (work
+  // 150 M2b).
+  let keyedSelection: { readonly entities: readonly ProjectedEntityView[]; readonly key: string } | null = null;
+
+  function selectionKeyOf(entities: readonly ProjectedEntityView[]): string {
+    if (keyedSelection?.entities !== entities) {
+      keyedSelection = {
+        entities,
+        key: entities.filter((entity) => entity.selected).map(renderIdentityKey).join(','),
+      };
+    }
+    return keyedSelection.key;
+  }
 
   function interactionKey(): string {
     const placement = bridgeSwapPending ? null : deps.getPlacementPreviewState();
@@ -172,10 +184,7 @@ export function createAoeVoxelPresentationCoordinator(
     const state = bridge.getRenderState();
     const alpha = bridge.getRenderInterpolationAlpha();
     const nextInteractionKey = interactionKey();
-    const nextSelectionKey = state.entities
-      .filter((entity) => entity.selected)
-      .map(renderIdentityKey)
-      .join(',');
+    const nextSelectionKey = selectionKeyOf(state.entities);
     if (
       !force
       && state.tick === lastRenderedTick
@@ -216,14 +225,12 @@ export function createAoeVoxelPresentationCoordinator(
     }
 
     lastPlacementVisual = placementVisual(placement);
-    lastBuildings = buildingStates(displayedEntities);
-    lastHealth = healthStates(displayedEntities);
   }
 
   function resetForBridgeSwap(): () => void {
     const previous = { lastRenderedTick, lastInterpolationAlpha, lastInteractionKey,
       lastSelectionKey, smoother, displayedEntities, lastPlacementVisual,
-      lastBuildings, lastHealth, hasCenteredOnBase, bridgeSwapPending };
+      hasCenteredOnBase, bridgeSwapPending };
     lastRenderedTick = -1;
     lastInterpolationAlpha = Number.NaN;
     lastInteractionKey = '';
@@ -232,12 +239,10 @@ export function createAoeVoxelPresentationCoordinator(
     bridgeSwapPending = true;
     displayedEntities = [];
     lastPlacementVisual = null;
-    lastBuildings = [];
-    lastHealth = [];
     return () => {
       ({ lastRenderedTick, lastInterpolationAlpha, lastInteractionKey,
         lastSelectionKey, smoother, displayedEntities, lastPlacementVisual,
-        lastBuildings, lastHealth, hasCenteredOnBase, bridgeSwapPending } = previous);
+        hasCenteredOnBase, bridgeSwapPending } = previous);
     };
   }
 
@@ -248,8 +253,10 @@ export function createAoeVoxelPresentationCoordinator(
     getPlacementPreviewVisualState: () => lastPlacementVisual
       ? { ...lastPlacementVisual }
       : null,
-    getBuildingVisualStates: () => lastBuildings.map((state) => ({ ...state })),
-    getEntityHealthBarStates: () => lastHealth.map((state) => ({ ...state })),
+    // Built when they are asked for, from the entities last presented, which is what they were built from on
+    // every frame until work 150 M2b; only a test reads them.
+    getBuildingVisualStates: () => buildingStates(displayedEntities),
+    getEntityHealthBarStates: () => healthStates(displayedEntities),
     getDisplayedEntities: () => displayedEntities.map((entity) => ({
       id: entity.id,
       kind: entity.kind,

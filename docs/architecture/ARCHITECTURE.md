@@ -173,6 +173,19 @@ Read this map first, then only the sections the work needs.
       mutation and same-tick traffic intent without per-tick gatherer drafts), and
       `renderStore.ts` (the per-tick render-message store the projector
       writes into, with indexed reconciliation of transient attack overlays;
+      it hands its list out as two halves, the terrain cells and everything
+      else, keeping the cells' sorted block until one of them changes, and
+      `projectedEntityLists.ts` remembers a list's two halves for whoever reads
+      the list. So the render state's read neither sorts the cells nor reads
+      one on a tick that changed none of them, and a frame between ticks reads
+      no cell: it copies the cells' array once, when the smoother joins the
+      list it hands on. A frame WITH a tick still walks them: the selection
+      key, the ground's packing and the terrain detail are among its readers,
+      and so are the coordinator's lists of building and health-bar states
+      whenever the browser test API asks for them (work 150 M2b rank 1; the
+      counts are held by
+      `tests/simulation/renderStateCellsStaySorted.test.ts` and
+      `tests/rendering/presentationSkipsCells.test.ts`);
       the prior-tick position frame it captured for display interpolation
       until v0.3.192 is gone — the displayed-root smoother keeps its own
       per-unit history under its own version of that rule, visible in the
@@ -294,7 +307,8 @@ Read this map first, then only the sections the work needs.
     `AoeVoxelWorldRenderer` lends the runtime a `Scene` of its own in every
     style, and in the DE style `aoeDeGround.ts`'s textured mesh shows in it (surfaces baked by
     `aoeDeGroundDetail.ts`, per-cell kind, dirt and fog bytes packed by
-    `aoeDeGroundData.ts`, spliced into Three's Lambert program by
+    `aoeDeGroundData.ts` and kept for the frames between ticks by
+    `aoeDeGroundPacking.ts`, spliced into Three's Lambert program by
     `aoeDeGroundShader.ts`), and the adapter leaves the terrain chunks and the
     shore surf out of the snapshot while it shows. The ground draws in one of two
     tiers (`aoeDeGroundTier.ts`): the renderer factory asks the WebGL context it

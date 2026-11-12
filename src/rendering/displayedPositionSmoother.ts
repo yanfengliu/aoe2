@@ -81,6 +81,7 @@
 // smoother cannot do better: at frame granularity the absence was never
 // observed, and closing it needs the bridge to report it.
 
+import { joinProjectedEntityLists, knownProjectedEntityLists } from '../game/simulation/projectedEntityLists';
 import type { ProjectedEntityView } from '../game/simulation/types';
 import { displayDelayTicksFor, maxTilesPerTickFor } from './unitStepCadence';
 
@@ -315,11 +316,17 @@ export function createDisplayedPositionSmoother(
         lastProcessedTick = tick;
       }
       const alpha = Math.max(0, Math.min(1, interpolationAlpha));
-      return entities.map((entity) => (
+      const displayed = (entity: ProjectedEntityView): ProjectedEntityView => (
         entity.isMemory || (entity.kind !== 'unit' && entity.kind !== 'resource')
           ? entity
           : displayedEntity(entity, tick, alpha)
-      ));
+      );
+      // A map cell is drawn where it is, so when the list's two halves are known only the rest is mapped and
+      // the cells are handed on as the array they came in (work 150 M2b: one entity per cell is 14,400 on a
+      // 120x120 map, walked here on every drawn frame until then).
+      const lists = knownProjectedEntityLists(entities);
+      if (lists) return joinProjectedEntityLists(lists.terrain, lists.others.map(displayed));
+      return entities.map(displayed);
     },
     reset,
   };

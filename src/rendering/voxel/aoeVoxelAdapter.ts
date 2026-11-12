@@ -1,5 +1,6 @@
 import type { PaletteResourceV1, RenderSnapshotV1, VoxelChunkV1 } from 'voxel/core';
 
+import { knownProjectedEntityLists } from '../../game/simulation/projectedEntityLists';
 import type { ProjectedEntityView } from '../../game/simulation/types';
 import { artStyleById, DEFAULT_ART_STYLE_ID } from '../artStyles';
 import { copyAoeVoxelResources } from './aoeVoxelResources';
@@ -128,7 +129,9 @@ export class AoeVoxelAdapter {
     if (!Number.isFinite(sampleTimeMs) || sampleTimeMs < 0) {
       throw new RangeError('AoE voxel sample time must be a non-negative finite number.');
     }
-    const terrain = entities.filter((entity) => entity.layer === 'terrain');
+    // The cells as the list's own first half when it is known, so a frame does not walk them to find them.
+    const terrain = knownProjectedEntityLists(entities)?.terrain
+      ?? entities.filter((entity) => entity.layer === 'terrain');
     const ground = this.voxelGround
       ? this.terrainFrame.groundDraft(terrain, overlays.frame, this.exploredGround)
       : NO_VOXEL_GROUND;

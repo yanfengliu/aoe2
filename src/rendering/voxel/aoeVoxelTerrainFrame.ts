@@ -48,6 +48,8 @@ export interface VoxelGroundDraft {
 }
 
 function sameObjects(a: readonly unknown[], b: readonly unknown[]): boolean {
+  // The same array is the usual case: the render state hands on one terrain array until a cell changes.
+  if (a === b) return true;
   if (a.length !== b.length) return false;
   for (let index = 0; index < a.length; index += 1) if (a[index] !== b[index]) return false;
   return true;

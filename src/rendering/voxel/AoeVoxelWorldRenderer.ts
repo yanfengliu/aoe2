@@ -17,13 +17,13 @@ import {
   type ThreeRenderRuntimeOptions,
 } from 'voxel/three';
 
-import type { ProjectedEntityView, ProjectedFrameView } from '../../game/simulation/types';
+import type { ProjectedEntityView } from '../../game/simulation/types';
 import { artStyleById, type ArtStyle, type ArtStyleGround, type ArtStyleId } from '../artStyles';
 import { readArtStylePreference } from '../artStylePreference';
 import type { CameraState } from '../viewTypes';
 import { cameraStateToVoxelView } from './aoeCameraSync';
 import { AoeDeGround } from './aoeDeGround';
-import { packDeGround, type DeGroundData } from './aoeDeGroundData';
+import { KeptDeGroundPacking } from './aoeDeGroundPacking';
 import {
   deGroundTierFor,
   readDeGroundTierOverride,
@@ -141,12 +141,8 @@ export class AoeVoxelWorldRenderer {
   // content; the runtime adds only its root group and its daylight rig, which lights both.
   private readonly scene = new Scene();
   private readonly ground = new AoeDeGround();
-  private groundPacking: {
-    readonly frame: ProjectedFrameView | null;
-    readonly exploredGround: number;
-    readonly sources: readonly ProjectedEntityView[];
-    readonly data: DeGroundData;
-  } | null = null;
+  // The ground's bytes, packed once a tick and kept for the frames between (aoeDeGroundPacking.ts).
+  private readonly groundPacking = new KeptDeGroundPacking();
   // Read once, when the renderer is built; null lets the renderer's name decide.
   private readonly groundTierOverride = readDeGroundTierOverride();
   private rasteriser: string | null = null;
@@ -253,7 +249,7 @@ export class AoeVoxelWorldRenderer {
     // Packed before the snapshot is accepted: if packing throws, the runtime keeps the previous frame whole
     // rather than holding a chunk-less snapshot over a stale ground.
     const ground = this.artStyle.ground === 'textured'
-      ? this.packedGround(entities, overlays?.frame ?? null, this.artStyle.exploredGround)
+      ? this.groundPacking.pack(entities, overlays?.frame ?? null, this.artStyle.exploredGround)
       : null;
     const snapshot = this.adapter.createSnapshot(entities, simulationDisplayTimeMs, overlays);
     const result = acceptAoeVoxelSnapshot(this.runtime, snapshot, this.lastSnapshot);
@@ -286,24 +282,6 @@ export class AoeVoxelWorldRenderer {
       || hitState.revision !== result.revision
     ) throw new Error('Voxel hit state did not match the accepted render snapshot.');
     this.pendingHitState = hitState;
-  }
-
-  /** The Natural ground's bytes for this frame. They read the terrain, the buildings and the fog, which within one
-   *  tick are the same objects from frame to frame, so the last packing is kept until one of them changes. */
-  private packedGround(
-    entities: readonly ProjectedEntityView[],
-    frame: ProjectedFrameView | null,
-    exploredGround: number,
-  ): DeGroundData {
-    const sources = entities.filter((entity) => entity.layer === 'terrain' || entity.layer === 'building');
-    const kept = this.groundPacking;
-    if (kept && frame !== null && kept.frame === frame && kept.exploredGround === exploredGround
-      && kept.sources.length === sources.length && kept.sources.every((entity, index) => entity === sources[index])) {
-      return kept.data;
-    }
-    const data = packDeGround(entities, frame, exploredGround);
-    this.groundPacking = { frame, exploredGround, sources, data };
-    return data;
   }
 
   frame(

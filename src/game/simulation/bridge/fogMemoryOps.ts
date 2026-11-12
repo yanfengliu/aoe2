@@ -15,6 +15,12 @@ import { isFootprintKnown, isFootprintSeen, readSightOwners } from './humanSight
 import type { BridgeStateAccessor } from './bridgeStateAccessor';
 import { lastSeenStaticCodec } from './bridgeStateSerialize';
 
+/** Whether an entity id is live on the list being built. A set answers it, and so does anything that can say
+ *  `has`: the render state asks without gathering every terrain cell's id on every tick (work 150 M2b). */
+export interface EntityIdLookup {
+  has(id: number): boolean;
+}
+
 export interface FogMemoryOps {
   // Return (creating if missing) the per-player memory map. Reading it does
   // NOT mark `lastSeenStatic` dirty — creating a missing inner map does,
@@ -44,7 +50,7 @@ export interface FogMemoryOps {
   // (placementKnowledge.ts, work 122). So a filter added here moves that rule
   // too, and a filter that is about presentation alone belongs in the
   // renderer, not here.
-  getFogMemoryEntities(liveEntityIds: Set<number>): ProjectedEntityView[];
+  getFogMemoryEntities(liveEntityIds: EntityIdLookup): ProjectedEntityView[];
   // Cheap pre-check used by `getRenderState` to short-circuit the merge
   // logic when the human player has no fog memory (e.g. immediately after
   // world bootstrap, or in unit tests that never let the visibility system
@@ -90,7 +96,7 @@ export function createFogMemoryOps(deps: FogMemoryDeps): FogMemoryOps {
     accessor.markDirty(lastSeenStaticCodec);
   }
 
-  function getFogMemoryEntities(liveEntityIds: Set<number>): ProjectedEntityView[] {
+  function getFogMemoryEntities(liveEntityIds: EntityIdLookup): ProjectedEntityView[] {
     const humanMemory = accessor.get(lastSeenStaticCodec).get(humanPlayerId);
     if (!humanMemory || humanMemory.size === 0) {
       return [];

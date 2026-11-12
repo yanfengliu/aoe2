@@ -17,6 +17,7 @@
 // frame, so the picture cannot change: a still recipe reads nothing but its view, its identity and the ground
 // (`compositionGround`, a constant 0). `tests/rendering/aoeVoxelStillCache.test.ts` changes every field of a
 // still view one at a time and requires fresh parts each time.
+import { knownProjectedEntityLists } from '../../game/simulation/projectedEntityLists';
 import type { ProjectedEntityView } from '../../game/simulation/types';
 import { createBuildingParts } from './aoeVoxelBuildingRecipes';
 import { voxelPartMaxY } from './aoeVoxelGeometry';
@@ -171,7 +172,8 @@ export class AoeVoxelEntityPreparer {
     const nextWildlifeFacings = new Map<string, WildlifeFacing>();
     const nextStill = new Map<string, StillEntry>();
     let stillChanged = false;
-    const prepared = entities.filter((entity) => entity.layer !== 'terrain').map((entity): PreparedVoxelEntity => {
+    const posed = knownProjectedEntityLists(entities)?.others ?? entities.filter((entity) => entity.layer !== 'terrain');
+    const prepared = posed.map((entity): PreparedVoxelEntity => {
       const explicit = explicitEntityKey(entity);
       let identity = explicit;
       if (!identity) {

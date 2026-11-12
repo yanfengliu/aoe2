@@ -11,7 +11,9 @@ import type {
   ProjectedFrameView,
   ProjectedUnitAttackView,
 } from '../types';
+import type { EntityIdLookup } from './fogMemoryOps';
 import { compareProjectedRenderEntities } from './pureHelpers';
+import { joinProjectedEntityLists } from '../projectedEntityLists';
 import { isLiveEntityDrawn } from './humanSight';
 import type { RenderStore } from '../renderStore';
 import { indexVisibleUnitAttackAnimations } from './unitAttackAnimationFeed';
@@ -24,7 +26,7 @@ export interface RenderStateOpsDeps {
   getSightOwners: () => readonly number[];
   renderStore: RenderStore;
   getHumanFogMemorySize: () => number;
-  getFogMemoryEntities: (liveIds: Set<number>) => ProjectedEntityView[];
+  getFogMemoryEntities: (liveIds: EntityIdLookup) => ProjectedEntityView[];
   getRecentUnitAttacks: () => readonly ProjectedUnitAttackView[];
   getRenderStoreVersion: () => number;
   /** Whether this building is hidden from the perspective however much of it
@@ -53,6 +55,19 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
     getRenderStoreVersion,
     isFoundationHidden,
   } = deps;
+
+  const terrainIdsByList = new WeakMap<readonly ProjectedEntityView[], Set<number>>();
+  function idsOf(terrain: readonly ProjectedEntityView[]): Set<number> {
+    let ids = terrainIdsByList.get(terrain);
+    if (!ids) {
+      ids = new Set<number>();
+      for (const entity of terrain) {
+        ids.add(entity.id);
+      }
+      terrainIdsByList.set(terrain, ids);
+    }
+    return ids;
+  }
 
   let cache: {
     tick: number;
@@ -97,7 +112,13 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
       ),
       isCurrentlyVisible,
     );
-    const liveEntitiesRaw = renderStore.getEntities();
+    // The list is the terrain cells and then everything else, and the store hands back those two halves: one
+    // entity per cell, 14,400 on a 120x120 map, which the store keeps sorted and this function never walks. A cell
+    // is drawn whatever the fog (the first clause of the rule above), so the terrain passes whole; were the half
+    // ever to hold something that is not a tile, it is filtered like the rest and the list is handed on with
+    // nothing remembered about it, as it was before (work 150 M2b).
+    const lists = renderStore.getEntityLists();
+    const terrain = lists.terrainIsTilesOnly ? lists.terrain : lists.terrain.filter(isCurrentlyVisible);
     // Only entities visible to the human perspective NOW are handed on. The
     // prior-tick position frame that display interpolation once read was
     // filtered through the same rule here; since v0.3.192 the presentation
@@ -106,28 +127,35 @@ export function createRenderStateOps(deps: RenderStateOpsDeps): {
     // (weaker than the store's old per-tick rule when a frame coalesces
     // ticks — named in that module's header), so nothing about the prior
     // tick leaves this function any more.
-    const liveEntities = liveEntitiesRaw.filter(isCurrentlyVisible);
+    const liveOthers = lists.others.filter(isCurrentlyVisible);
 
     // Fog-memory ghosts are merged in only when there are any; with none
     // (the common case, and always when fogMemorySize is 0) the live set is
-    // returned as-is. All three former exits built an identical value + cache
-    // differing only in `entities`, so that construction happens once here.
-    let entities = liveEntities;
+    // returned as-is. The merged sort is over everything but the terrain: it
+    // orders by layer first and is stable, so the terrain block stays where
+    // it is and the rest keep the order a sort of the whole list gave them.
+    let others = liveOthers;
     if (currentFogMemorySize > 0) {
-      const liveIds = new Set<number>();
-      for (const entity of liveEntities) {
-        liveIds.add(entity.id);
+      // Which ids are live: the rest's, gathered now, and the terrain's, gathered once for as long as the
+      // store hands back the same terrain.
+      const terrainIds = idsOf(terrain);
+      const otherIds = new Set<number>();
+      for (const entity of liveOthers) {
+        otherIds.add(entity.id);
       }
-      const memoryEntities = getFogMemoryEntities(liveIds);
+      const memoryEntities = getFogMemoryEntities({
+        has: (id) => otherIds.has(id) || terrainIds.has(id),
+      });
       if (memoryEntities.length > 0) {
-        const merged = liveEntities.slice();
+        const merged = liveOthers.slice();
         for (const entity of memoryEntities) {
           merged.push(entity);
         }
         merged.sort(compareProjectedRenderEntities);
-        entities = merged;
+        others = merged;
       }
     }
+    const entities = lists.terrainIsTilesOnly ? joinProjectedEntityLists(terrain, others) : terrain.concat(others);
 
     const value: RenderStateValue = {
       tick: currentTick,

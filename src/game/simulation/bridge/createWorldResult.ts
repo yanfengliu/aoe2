@@ -129,6 +129,6 @@ export interface CreateWorldResult {
   consumeOutOfBandRenderChange: () => boolean;
   consumeCommandRejection: () => string | null;
   getDebugSnapshot: () => SimulationDebugSnapshot;
-  getFogMemoryEntities: (liveEntityIds: Set<number>) => ProjectedEntityView[];
+  getFogMemoryEntities: (liveEntityIds: import('./fogMemoryOps').EntityIdLookup) => ProjectedEntityView[];
   getHumanFogMemorySize: () => number;
 }

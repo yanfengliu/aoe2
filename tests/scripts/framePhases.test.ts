@@ -72,13 +72,23 @@ describe('the frame\'s phases', () => {
     });
   }
 
-  it('name one function each where the phase is a single root', () => {
-    // A pattern loose enough to match a second function would fold that function's callers into the phase.
-    const single = ['frame', 'tick', 'step', 'tick.ai', 'render-state', 'coordinator', 'present', 'snapshot',
-      'snapshot.prepare', 'snapshot.lanes', 'snapshot.lanes.shadow', 'snapshot.lanes.memory', 'delta', 'writes', 'draw', 'hud', 'hud.minimap'];
-    for (const key of single) {
-      const phase = FRAME_PHASES.find((entry) => entry.key === key)!;
-      expect(claimedLines(phase), `the lines "${key}" claims`).toHaveLength(1);
+  it('claim exactly the functions that root them: one each, or the number a phase says', () => {
+    // One root moving would leave a phase's others matching, and its time folding into its caller's row; a pattern
+    // loose enough to match one function more would fold that function's callers into the phase. So every phase
+    // that names a line is held to an exact count, and the phases with several roots are listed here with theirs,
+    // where a change to one shows (review round 2 of work 150 M2b rank 1, F5: two phases with several roots said
+    // no count, and one pattern also matched a line of an interface).
+    const several: Record<string, number> = {};
+    for (const phase of FRAME_PHASES) {
+      if (phase.roots !== undefined) several[phase.key] = phase.roots;
+    }
+    expect(several).toEqual({
+      'tick.engine-diff': 4, 'tick.projection': 3, ground: 2, 'snapshot.terrain': 2, 'snapshot.hit': 2, ingest: 2, 'renderer-frame': 2,
+    });
+    expect(FRAME_PHASES.filter((phase) => phase.text === undefined).map((phase) => phase.key), 'the phases that are whole files').toEqual(['json', 'recording']);
+    for (const phase of FRAME_PHASES) {
+      if (phase.text === undefined) continue;
+      expect(claimedLines(phase), `the lines "${phase.key}" claims`).toHaveLength(several[phase.key] ?? 1);
     }
   });
 });
