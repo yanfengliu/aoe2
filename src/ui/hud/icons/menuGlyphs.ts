@@ -1,7 +1,9 @@
-// Original procedural glyphs for the icon-only in-game menu actions. These
-// intentionally live apart from glyphs.ts so both icon modules stay below the
-// repository's 500-LOC cap. The native button owns the accessible name and
-// tooltip; every SVG is decorative and uses the existing currentColor palette.
+// Original procedural glyphs for the in-game menu's rows. Each sits before its
+// row's name since work 148 (from v0.3.8 until then the actions were icon-only;
+// the names are in gameMenuCaptions.ts). These intentionally live apart from
+// glyphs.ts so both icon modules stay below the repository's 500-LOC cap. The
+// native button owns the accessible name and tooltip; every SVG is decorative
+// and uses the existing currentColor palette.
 
 export const GAME_MENU_ICON_KINDS = [
   'resume',

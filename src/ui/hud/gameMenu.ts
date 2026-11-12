@@ -8,6 +8,7 @@
 // — this controller does not touch them.
 
 import type { DebugOverlayMode } from './debugOverlay';
+import { GAME_MENU_SETTING_NAMES } from './gameMenuCaptions';
 
 export interface GameMenuDeps {
   // Pause/resume the simulation while the menu is open. Optional so tests and
@@ -56,6 +57,7 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
   const restartButton = root.querySelector<HTMLButtonElement>('[data-hud="menu-restart"]');
   const quitButton = root.querySelector<HTMLButtonElement>('[data-hud="menu-quit"]');
   const backdrop = root.querySelector<HTMLElement>('[data-hud="game-menu-backdrop"]');
+  const panel = menu.querySelector<HTMLElement>('.hud-game-menu__panel');
   const debugCycleButton = root.querySelector<HTMLButtonElement>('[data-hud="menu-debug-cycle"]');
   const debugModeLabel = root.querySelector<HTMLElement>('[data-hud="menu-debug-mode"]');
 
@@ -63,7 +65,7 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
     if (debugModeLabel) {
       debugModeLabel.textContent = mode;
     }
-    debugCycleButton?.setAttribute('aria-label', `Debug overlay: ${mode}`);
+    debugCycleButton?.setAttribute('aria-label', `${GAME_MENU_SETTING_NAMES.debug}: ${mode}`);
   };
   const unsubscribeDebugMode = deps.subscribeDebugOverlayModeChange?.(renderDebugMode);
 
@@ -73,7 +75,7 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
     if (artStyleState) {
       artStyleState.textContent = label;
     }
-    artStyleButton?.setAttribute('aria-label', `Art style: ${label}`);
+    artStyleButton?.setAttribute('aria-label', `${GAME_MENU_SETTING_NAMES.artStyle}: ${label}`);
   };
   // The markup ships a label, but the live style comes from a persisted
   // preference, so the row would lie about the frame until first clicked.
@@ -94,6 +96,14 @@ export function createGameMenu(root: HTMLElement, deps: GameMenuDeps): GameMenuH
       return;
     }
     menu.hidden = false;
+    // The list opens at its top. Where the window is too short for the whole
+    // list it scrolls, and the browser keeps a hidden panel's scroll offset:
+    // without this a menu closed while scrolled to its settings rows came
+    // back with its title above the view, the focused first action at the
+    // view's very top (work 148).
+    if (panel) {
+      panel.scrollTop = 0;
+    }
     menuButton?.setAttribute('aria-expanded', 'true');
     // Auto-pause the sim while the menu is up (players expect Esc to pause),
     // remembering the prior pause state for close().

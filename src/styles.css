@@ -50,6 +50,24 @@
   /* The production queue's icons (work 148 M1). */
   --hud-queue-tile: 28px;
   --hud-queue-gap: 3px;
+  /* The in-match menu (work 148): one fixed width, 44px rows (spec §14.1's
+     target) and the gap between them. */
+  --hud-menu-width: 340px;
+  --hud-menu-row: 44px;
+  --hud-menu-gap: 4px;
+  /* The closed menu's height, as arithmetic: ten rows (eight actions, two
+     settings), the nine gaps between them, and 116px of everything else (the
+     panel's borders 2, its padding 38, the title's line 24, the two gaps
+     between its blocks 24, and the Settings heading with its rule 28): 592px.
+     The panel hangs from the top this height gives it when centred above the
+     84px tooltip lane, never closer than 8px to the window's top.
+     tests/browser/de-game-menu.spec.ts holds the number against the drawn
+     menu: a row added without it here leaves the menu off centre. An even
+     height, so that the top is a whole pixel in a window of even height (720,
+     1080): at 591px it was 22.5px at 1280x720, and half a pixel of offset
+     draws a row's text across two pixel rows, visibly soft. */
+  --hud-menu-height: calc(116px + 10 * var(--hud-menu-row) + 9 * var(--hud-menu-gap));
+  --hud-menu-top: max(8px, calc((100vh - 84px - var(--hud-menu-height)) / 2));
   --hud-radius-lg: 16px;
   --hud-radius-md: 11px;
   --hud-radius-sm: 8px;
@@ -1369,7 +1387,15 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   inset: 0;
   z-index: 50;
   display: grid;
-  place-items: center;
+  /* Centred across, and hung from a FIXED top (work 148): the top a closed
+     menu has when it is centred in the room above the tooltip lane
+     (`--hud-menu-top`). Centring the panel itself moved it whenever it grew:
+     opening the Load form took the row the player had just clicked up by half
+     the form's height, 110px at 1920x1080. Hung from its top the panel grows
+     downward, and what the player was using stays where it was. */
+  justify-items: center;
+  align-items: start;
+  padding-top: var(--hud-menu-top);
   pointer-events: auto;
   /* Reserved tooltip lane: on viewports too narrow to seat the tooltip
      BESIDE the panel it stacks below, and a fully centered panel can leave
@@ -1382,6 +1408,14 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   display: none;
 }
 
+/* A window of odd height: the half pixel is rounded away where the browser
+   can round (the same reason as `--hud-menu-height` being even). */
+@supports (top: round(down, 1.5px, 1px)) {
+  :root {
+    --hud-menu-top: max(8px, round(down, calc((100vh - 84px - var(--hud-menu-height)) / 2), 1px));
+  }
+}
+
 .hud-game-menu__backdrop {
   position: absolute;
   inset: 0;
@@ -1390,22 +1424,33 @@ body:has(.timeline-panel:not([hidden])) #game-root {
 
 .hud-game-menu__panel {
   position: relative;
-  min-width: 280px;
-  max-width: 360px;
-  /* The panel grows with its content — every settings row, and the load form
-     when it opens. Without a ceiling it simply overflows a short viewport, and
-     the overflowing part is the bottom: the load form's Cancel button ends up
-     off-screen, where it can be neither seen nor clicked and the only way out
-     of the panel is Escape. Adding one menu row was enough to cross that line
-     at 390x560. The ceiling also honors the container's reserved tooltip lane
-     (84px) plus breathing room, so the panel scrolls before it starves the
-     stacked-below tooltip of space. */
-  max-height: calc(100vh - 100px);
+  /* ONE width, whatever the panel holds (work 148). It used to take its width
+     from its content, between 280px and 360px, so opening the Load form
+     widened it from 280px to 326px and moved every button in it, and a column
+     of text buttons would have been as wide as its longest caption or settings
+     state. A caption or a state that does not fit its row is cut with an
+     ellipsis instead (below), so no text can resize the menu. */
+  width: min(var(--hud-menu-width), calc(100vw - 24px));
+  /* The panel grows with its content: the Load form when it opens. Without a
+     ceiling it simply overflows a short viewport, and the overflowing part is
+     the bottom, where it can be neither seen nor clicked. The ceiling ends the
+     panel 8px above the container's reserved tooltip lane (84px), so the panel
+     scrolls before it starves the stacked-below tooltip of space. The title,
+     the eight actions and the two settings rows are 592px
+     (`--hud-menu-height`), every one of them set in pixels so a platform's
+     font cannot add a line, and the ceiling holds them whole from a 692px
+     window up: at 1280x720 the closed menu ends 14px above it. A shorter
+     window scrolls the list: at 800x600 the title and the eight actions are
+     in view and the two settings rows are a wheel away, because ten 44px rows
+     alone are 440px of that window's 500px. */
+  max-height: calc(100vh - 92px - var(--hud-menu-top));
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hud-hairline-strong) transparent;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 22px 22px 24px;
+  gap: 12px;
+  padding: 18px 20px 20px;
   border: 1px solid var(--hud-hairline-strong);
   border-radius: 12px;
   background: rgba(20, 28, 30, 0.97);
@@ -1413,29 +1458,50 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   color: var(--hud-text);
 }
 
+/* The column's blocks keep their height under the ceiling: the panel scrolls,
+   it does not squeeze a row. */
+.hud-game-menu__panel > * {
+  flex: 0 0 auto;
+}
+
 .hud-game-menu__title {
   font-size: 20px;
+  line-height: 24px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--hud-text-muted);
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* One action to a row (work 148): Definitive Edition's menu is a column of
+   text buttons. */
 .hud-game-menu__actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--hud-menu-gap);
 }
 
+/* A row is its glyph, then its name, on one line. Its height is the spec's
+   44px target at every window size, set as a height so that the menu's own
+   height is arithmetic and no caption can change it. */
 .hud-menu-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px;
-  padding: 10px 14px;
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  height: var(--hud-menu-row);
+  padding: 0 12px;
   font: inherit;
   font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
   color: var(--hud-text);
   background: var(--hud-surface-raised);
   border: 1px solid var(--hud-hairline-strong);
@@ -1450,39 +1516,88 @@ body:has(.timeline-panel:not([hidden])) #game-root {
   border-color: var(--hud-hairline-strong);
 }
 
-.hud-menu-item--primary {
-  justify-content: center;
-  font-weight: 700;
-  background: rgba(70, 96, 74, 0.9);
-}
-
-.hud-menu-item--primary:hover {
-  background: rgba(88, 120, 92, 0.95);
-}
-
 .hud-menu-item--danger:hover {
   background: rgba(120, 58, 58, 0.95);
   border-color: rgba(221, 145, 145, 0.7);
 }
 
+/* The name takes the row; one longer than the row is cut with an ellipsis and
+   never wraps, widens the panel or makes the row taller. */
+.hud-menu-item__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .hud-game-menu__section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 12px;
+  gap: var(--hud-menu-gap);
+  padding-top: 11px;
   border-top: 1px solid var(--hud-hairline);
 }
 
 .hud-game-menu__section-title {
+  margin-bottom: 2px;
   font-size: 11px;
+  line-height: 14px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--hud-text-muted);
 }
 
+/* A settings row is its glyph, the setting's name and then its state, at the
+   row's right edge. The row holds its shape whatever the state says (the
+   HUD-shape rule): the name's column is as wide as the name, the state has
+   the rest of the row, and a state too long for it is the one that is cut. A
+   grid, because in a flex row a long state takes a fraction of a pixel from
+   the name however the shrink is weighted, and a fraction is enough to cut
+   the name with an ellipsis. Until work 148 the state was positioned out of
+   the flow under a lone glyph. */
+.hud-menu-item--toggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, max-content) minmax(2.5em, 1fr);
+  column-gap: 10px;
+}
+
 .hud-menu-item__state {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
   color: var(--hud-text-muted);
+}
+
+/* The Load form opens directly under the Load Game row (work 148), as wide as
+   the rows. Its lines are set in whole pixels (it is 220px tall with its
+   paste box, 130px without): at the 214.2px its fonts gave it, every row
+   under the open form sat a fraction of a pixel down and drew its text soft. */
+.hud-game-menu__actions .hud-load-panel {
+  max-width: none;
+  margin: 2px 0 4px;
+  line-height: 18px;
+  /* A section of the list, not a surface floating over it: the modal
+     elevation it has as a dialog surface (hudChrome.css) fell on the rows
+     under it and dimmed the first of them, and its backdrop blur made it a
+     layer painted over them. */
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.hud-game-menu__actions .hud-load-panel__textarea {
+  width: 100%;
+  line-height: 17px;
+}
+
+.hud-game-menu__actions .hud-save-load__button {
+  line-height: 16px;
 }
 
 /* Match setup screen (spec §4.6): the bare-visit landing. Dark, centred,

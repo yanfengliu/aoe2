@@ -10,9 +10,10 @@
  * new hues, NO image assets, NO external fonts. Loaded after
  * `hudChrome.css` in `main.ts`.
  *
- * Contract note: resource, command, and selection glyphs AUGMENT their text.
- * The dedicated game-menu glyphs are the deliberate icon-only exception:
- * their native buttons retain accessible names plus hover/focus tooltips.
+ * Contract note: every glyph AUGMENTS text. Resource, command and selection
+ * glyphs always have; the game menu's were the one icon-only exception from
+ * v0.3.8 until work 148 (owner decision, 2026-11-11), and now sit before each
+ * row's name. The menu's buttons keep their accessible names and tooltips.
  */
 
 /* Resource chips: glyph + label share one row above the value. The chip
@@ -128,47 +129,16 @@
 /* A group's icons size the glyph to their own tile (hudCommandPanel.css,
    work 146 M2); the per-type compact chip it sized here is gone. */
 
-/* v0.3.8: dedicated icon-only game-menu actions. Six match actions form a
-   compact scan grid; the Settings action keeps its live state visible. */
-.hud-game-menu__actions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.hud-game-menu__actions .hud-menu-item {
-  justify-content: center;
-  min-width: 0;
-  min-height: 66px;
-  padding: 10px;
-}
-
+/* The game menu's glyphs (v0.3.8). Since work 148 each sits before its row's
+   name, on an action and on a settings row alike; the rows themselves are laid
+   out in styles.css. Until then the actions were a three-column grid of 66px
+   icon-only tiles. */
 .hud-menu-item__glyph {
   flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
+  width: 20px;
+  height: 20px;
   color: currentColor;
   opacity: 0.96;
-}
-
-.hud-menu-item--toggle {
-  position: relative;
-  justify-content: center;
-  min-height: 58px;
-}
-
-.hud-menu-item--toggle .hud-menu-item__glyph {
-  width: 28px;
-  height: 28px;
-}
-
-.hud-menu-item--toggle .hud-menu-item__state {
-  position: absolute;
-  right: 10px;
-  bottom: 8px;
-  min-width: 28px;
-  font-size: 11px;
-  text-align: center;
 }
 
 .hud-menu-item:focus-visible {

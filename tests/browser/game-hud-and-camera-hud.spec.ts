@@ -116,27 +116,36 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
     await game.waitForBoot(page);
     await page.keyboard.press('Escape');
 
+    // `text` is what the row shows beside its icon. Until 2026-11-11 it was
+    // empty for the eight actions and the bare state for the two settings rows:
+    // the icon-only menu the owner asked for on 2026-07-19 (v0.3.8). The owner
+    // reversed that on 2026-11-11 ("Yes, DE's labels", spec §14.1; work 148),
+    // so each action shows its caption and each settings row its name before
+    // its state. The accessible names are the ones the icon-only menu had.
+    // tests/browser/de-game-menu.spec.ts holds the labelled menu itself.
     const actions = [
-      { hook: 'menu-resume', name: 'Resume', icon: 'resume', text: '' },
-      { hook: 'save-button', name: 'Save game', icon: 'save', text: '' },
-      { hook: 'load-button', name: 'Load game', icon: 'load', text: '' },
-      { hook: 'menu-tech-tree', name: 'Technology tree', icon: 'techTree', text: '' },
-      { hook: 'menu-civilizations', name: 'Civilizations', icon: 'civilizations', text: '' },
-      { hook: 'replay-load-button', name: 'Watch a replay…', icon: 'replay', text: '' },
-      { hook: 'menu-restart', name: 'Restart match', icon: 'restart', text: '' },
-      { hook: 'menu-quit', name: 'Quit to title', icon: 'quit', text: '' },
-      { hook: 'menu-debug-cycle', name: 'Debug overlay: off', icon: 'debug', text: 'off' },
+      { hook: 'menu-resume', name: 'Resume', icon: 'resume', text: 'Return to Game' },
+      { hook: 'save-button', name: 'Save game', icon: 'save', text: 'Save Game' },
+      { hook: 'load-button', name: 'Load game', icon: 'load', text: 'Load Game' },
+      { hook: 'menu-tech-tree', name: 'Technology tree', icon: 'techTree', text: 'Technology Tree' },
+      { hook: 'menu-civilizations', name: 'Civilizations', icon: 'civilizations', text: 'Civilizations' },
+      { hook: 'replay-load-button', name: 'Watch a replay…', icon: 'replay', text: 'Watch a Replay…' },
+      { hook: 'menu-restart', name: 'Restart match', icon: 'restart', text: 'Restart' },
+      { hook: 'menu-quit', name: 'Quit to title', icon: 'quit', text: 'Quit Current Game' },
+      { hook: 'menu-debug-cycle', name: 'Debug overlay: off', icon: 'debug', text: 'Debug overlay off' },
       // The live row, not the markup default: the label is republished on
       // mount from the persisted preference, so this also pins that the
       // default style really is the one the canvas is drawn in.
-      { hook: 'menu-art-style-cycle', name: 'Art style: Natural', icon: 'artStyle', text: 'Natural' },
+      { hook: 'menu-art-style-cycle', name: 'Art style: Natural', icon: 'artStyle', text: 'Art style Natural' },
     ] as const;
 
     for (const action of actions) {
       const button = page.locator(`[data-hud="${action.hook}"]`);
       await expect(button).toHaveAccessibleName(action.name);
       await expect(button.locator(`svg[data-menu-icon="${action.icon}"]`)).toHaveCount(1);
-      expect((await button.innerText()).trim()).toBe(action.text);
+      // A settings row's name and state are two boxes, which innerText
+      // separates with a line break: one space stands for it here.
+      expect((await button.innerText()).replace(/\s+/g, ' ').trim()).toBe(action.text);
       const box = await button.boundingBox();
       expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);

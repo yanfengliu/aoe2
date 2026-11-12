@@ -2,6 +2,15 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.282
+
+The in-match menu names its actions, as Definitive Edition's does.
+
+- **What it shows.** The menu (the ☰ button or Esc) was eight icons with no text and two settings rows that showed only "off" and "Natural". It is now titled "Main Menu" and is one column of named rows, each keeping its icon: Return to Game, Save Game, Load Game, Technology Tree, Civilizations, Watch a Replay…, Restart and Quit Current Game, then under "Settings" the rows "Debug overlay" and "Art style", each with its state at the right. Return to Game, Save Game, Load Game, Restart, Quit Current Game and the title are Definitive Edition's own words; the other three names are this game's.
+- **Its shape.** The menu is one width (340px) and no longer widens when the Load form opens. It is 592px tall, so a window at least 692px tall shows all of it. In a shorter window the list scrolls inside the menu: at 800x600 the eight actions are in view and the two settings rows are a turn of the wheel or a Tab away. It opens at its top every time.
+- **Load Game.** The Load form opens directly under the Load Game row, in view. It used to open under the settings rows, with its Restore and Cancel buttons below the edge of the menu in a window 720px tall or less. The rows under it move down while it is open, and nothing above it moves.
+- **Unchanged.** What each action does, the keys (Esc, F1, F2, F4), that the match pauses while the menu is open, and each button's tooltip and accessible name, so a screen reader still hears "Resume" and "Quit to title" and their tooltips still open with those words.
+- **For tools.** Every `data-hud` hook is unchanged. A row's visible text is now its caption (the `innerText` of `[data-hud="menu-resume"]` is "Return to Game"), a settings row's is its name and its state, and the Load form (`[data-hud="load-panel"]`) is the next sibling of the Load row.
 ## 0.3.281
 
 The computer sends its nearest free villager to build, so its buildings start sooner.
