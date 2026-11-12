@@ -165,9 +165,17 @@ export async function clickName(page: Page, hook: string): Promise<void> {
   await page.mouse.click(target.x, target.y);
 }
 
-/** What is written on the open menu: its title, and each row's texts, one per
- *  box in the order they are drawn (a name, and on a settings row its state). */
-async function readWords(page: Page): Promise<{ title: string; rows: { hook: string; words: string[] }[] }> {
+interface RowWords {
+  hook: string;
+  /** The row's texts, one per box in the order they are drawn: a name, and on a settings row its state. */
+  words: string[];
+  /** The middle of the row's name, and whether the pointer there lands on the row. */
+  name: { x: number; y: number; onRow: boolean } | null;
+}
+
+/** What is written on the open menu, read in one round trip: its title, and
+ *  each row's texts and where its name is. */
+async function readWords(page: Page): Promise<{ title: string; rows: RowWords[] }> {
   return page.evaluate(() => {
     const menu = document.querySelector<HTMLElement>('[data-hud="game-menu"]');
     if (!menu) throw new Error('Expected the open game menu.');
@@ -175,13 +183,27 @@ async function readWords(page: Page): Promise<{ title: string; rows: { hook: str
       // The title's own text: the stylesheet draws it in capitals, which is
       // how it looks and not what it says.
       title: (menu.querySelector('.hud-game-menu__title')?.textContent ?? '').trim(),
-      rows: [...menu.querySelectorAll<HTMLElement>('.hud-menu-item')].map((row) => ({
-        hook: row.getAttribute('data-hud') ?? '',
-        words: [...row.children]
-          .filter((child) => child.getAttribute('aria-hidden') !== 'true')
-          .map((child) => (child as HTMLElement).innerText.replace(/\s+/g, ' ').trim())
-          .filter((text) => text.length > 0),
-      })),
+      rows: [...menu.querySelectorAll<HTMLElement>('.hud-menu-item')].map((row) => {
+        const label = row.querySelector<HTMLElement>('.hud-menu-item__label');
+        let name: { x: number; y: number; onRow: boolean } | null = null;
+        if (label) {
+          const range = document.createRange();
+          range.selectNodeContents(label);
+          const rect = range.getBoundingClientRect();
+          const x = rect.left + rect.width / 2;
+          const y = rect.top + rect.height / 2;
+          const hit = document.elementFromPoint(x, y);
+          name = { x, y, onRow: hit !== null && row.contains(hit) };
+        }
+        return {
+          hook: row.getAttribute('data-hud') ?? '',
+          words: [...row.children]
+            .filter((child) => child.getAttribute('aria-hidden') !== 'true')
+            .map((child) => (child as HTMLElement).innerText.replace(/\s+/g, ' ').trim())
+            .filter((text) => text.length > 0),
+          name,
+        };
+      }),
     };
   });
 }
@@ -206,9 +228,10 @@ export async function expectNamesAreTheWordsShown(page: Page): Promise<number> {
     expect(row.words.length, `${row.hook}: something is written on the row`).toBeGreaterThan(0);
     const name = row.words.join(': ');
     await expect(page.locator(`[data-hud="${row.hook}"]`), row.hook).toHaveAccessibleName(name);
-    const named = dialog.getByRole('button', { name, exact: true });
-    await expect(named, `"${name}" names one control of the menu`).toHaveCount(1);
-    await expect(named, `"${name}" names the row it is written on`).toHaveAttribute('data-hud', row.hook);
+    // The controls of the menu that answer to exactly this name, by their hooks: this row, and no other.
+    const named = await dialog.getByRole('button', { name, exact: true })
+      .evaluateAll((elements) => elements.map((element) => element.getAttribute('data-hud')));
+    expect(named, `"${name}" names the row it is written on, and no other control of the menu`).toEqual([row.hook]);
   }
   return shown.rows.length;
 }
@@ -223,14 +246,22 @@ export async function expectTooltipsOpenWithTheName(page: Page): Promise<number>
   const shown = await readWords(page);
   const tooltip = page.locator('[data-hud="tooltip"]');
   for (const row of shown.rows) {
-    const target = await nameTarget(page, row.hook);
+    expect(row.name, `${row.hook} has a name to point at`).not.toBeNull();
+    const target = row.name!;
+    expect(target.onRow, `the pointer reaches ${row.hook}'s name at (${target.x.toFixed(0)}, ${target.y.toFixed(0)})`).toBe(true);
     await page.mouse.move(target.x, target.y);
     const opening = `${row.words[0]} — `;
-    await expect(tooltip, `${row.hook}'s tooltip is up`).toHaveAttribute('data-hud-tooltip-active', 'true');
+    // One read per try: whether the tooltip is up, and what it says. It opens
+    // with the row's name and goes on for more than ten characters.
     await expect
-      .poll(async () => ((await tooltip.textContent()) ?? '').slice(0, opening.length), { message: `${row.hook}'s tooltip opens with "${opening}"` })
-      .toBe(opening);
-    expect(((await tooltip.textContent()) ?? '').length, `${row.hook}'s tooltip says what the row does`).toBeGreaterThan(opening.length + 10);
+      .poll(async () => {
+        const read = await tooltip.evaluate((element) => ({
+          up: (element as HTMLElement).dataset.hudTooltipActive === 'true',
+          text: element.textContent ?? '',
+        }));
+        return `${read.up ? 'up' : 'down'}|${read.text.slice(0, opening.length)}|${read.text.length > opening.length + 10 ? 'says more' : 'says no more'}`;
+      }, { message: `${row.hook}'s tooltip is up, opens with "${opening}" and says what the row does` })
+      .toBe(`up|${opening}|says more`);
   }
   return shown.rows.length;
 }

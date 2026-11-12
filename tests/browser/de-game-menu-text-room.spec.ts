@@ -9,6 +9,17 @@
 // that neither the row nor the panel changes shape, and then write texts four
 // times as long as the longest real ones and require that nothing moved.
 //
+// The captions and the long texts are held at each of the three window sizes.
+// The states are stepped at ONE (1280x720), in a case of their own, and that
+// case then proves why one is enough: it makes the window each of the other
+// two sizes and requires the panel, both settings rows, their name boxes and
+// their state boxes to be the widths they were, so a state has the same room
+// at every size. Until v0.3.283 the states were stepped at all three, nine
+// real clicks a size, each redrawing the world behind the menu: at 1920x1080
+// that case took 14.9 s of its 30 s on one of CI's slower runners (run
+// 43147872356, browser shard 2/4; 12.5 s the run before), and CI fails a test
+// past two thirds of its limit.
+//
 // Bound: three window sizes, the debug overlay's seven modes and the art
 // style's two (tests/ui/gameMenuIcons.test.ts holds that list against the
 // renderer's). The long texts are written into the page, since no real control
@@ -37,6 +48,10 @@ import { DEBUG_OVERLAY_CYCLE } from '../../src/ui/hud/debugOverlay';
  *  Linux CI the same text has drawn up to 2% wider than on Windows. */
 const TEXT_ROOM_SHARE = 0.25;
 
+/** The size the settings rows' states are stepped at: the middle one, where
+ *  nothing scrolls. The stepping case holds the other two sizes to its widths. */
+const STATES_SIZE = MENU_SIZES[1];
+
 test.describe('the in-match menu holds its shape whatever its rows say', () => {
   for (const size of MENU_SIZES) {
     test(`at ${size.width}x${size.height} no caption or settings state can resize the menu`, async ({ page }) => {
@@ -59,39 +74,11 @@ test.describe('the in-match menu holds its shape whatever its rows say', () => {
       console.log(`[menu-room] ${size.width}x${size.height} the tightest caption, "${tightest.name}": ${tightest.textWidth.toFixed(1)}px `
         + `of text with ${tightest.room.toFixed(1)}px (${Math.round((tightest.room / tightest.textWidth) * 100)}%) to spare in its row`);
 
-      // Every real state of both settings rows, stepped by real clicks on the
-      // row's name: the state fits with room to spare, the name stays whole,
-      // and neither the row nor the panel changes shape as the state does.
+      // The menu the long texts are measured against, its last settings row in
+      // view (at 800x600 that takes a turn of the wheel). The real states of
+      // the two settings rows are stepped in the case after these.
       await wheelToRow(page, MENU_SETTINGS.at(-1)!.hook);
       const settled = await readMenu(page);
-      let tightestState = { name: '', textWidth: 0, room: Number.POSITIVE_INFINITY };
-      const stepThrough = async (setting: (typeof MENU_SETTINGS)[number], states: readonly string[]): Promise<void> => {
-        for (let step = 0; step < states.length; step += 1) {
-          const state = states[(step + 1) % states.length]!;
-          await clickName(page, setting.hook);
-          await expect(page.locator(`[data-hud="${setting.stateHook}"]`)).toHaveText(state);
-          const now = await readMenu(page);
-          const row = rowOf(now, setting.hook);
-          const room = row.state!.clientWidth - row.state!.textWidth;
-          expect(row.text).toBe(`${setting.label} ${state}`);
-          expect(row.label!.scrollWidth, `"${setting.label}" stays whole beside "${state}"`).toBeLessThanOrEqual(row.label!.clientWidth);
-          expect(row.state!.lines, `"${state}" is one line`).toBe(1);
-          expect(row.state!.scrollWidth, `"${state}" is not cut`).toBeLessThanOrEqual(row.state!.clientWidth);
-          expect(room, `"${state}" (${row.state!.textWidth.toFixed(1)}px) keeps a quarter of its width free`)
-            .toBeGreaterThanOrEqual(row.state!.textWidth * TEXT_ROOM_SHARE);
-          expectSameBox(now.panel, settled.panel, `the panel with "${state}"`);
-          for (const other of now.rows) {
-            expectSameBox(other.box, rowOf(settled, other.hook).box, `${other.hook} with "${state}"`);
-          }
-          if (room / row.state!.textWidth < tightestState.room / (tightestState.textWidth || 1)) {
-            tightestState = { name: `${setting.label}: ${state}`, textWidth: row.state!.textWidth, room };
-          }
-        }
-      };
-      await stepThrough(MENU_SETTINGS[0], DEBUG_OVERLAY_CYCLE);
-      await stepThrough(MENU_SETTINGS[1], ART_STYLE_LABELS);
-      console.log(`[menu-room] ${size.width}x${size.height} the tightest state, "${tightestState.name}": ${tightestState.textWidth.toFixed(1)}px `
-        + `of text with ${tightestState.room.toFixed(1)}px (${Math.round((tightestState.room / tightestState.textWidth) * 100)}%) to spare in its row`);
 
       // Texts four times as long as the longest real ones: a caption on every
       // action and a state on every settings row, whose names stay the real
@@ -182,4 +169,75 @@ test.describe('the in-match menu holds its shape whatever its rows say', () => {
       }
     });
   }
+
+  // Every real state of both settings rows, stepped by real clicks on the
+  // row's name: the state fits with room to spare, the name stays whole, and
+  // neither the row nor the panel changes shape as the state does. Stepped at
+  // one size; the last block holds the reason one size is enough.
+  test(`every real state of both settings rows fits its row, at ${STATES_SIZE.width}x${STATES_SIZE.height} and so at every size`, async ({ page }) => {
+    const size = STATES_SIZE;
+    await openMenu(page, size);
+    await wheelToRow(page, MENU_SETTINGS.at(-1)!.hook);
+    const settled = await readMenu(page);
+    let tightestState = { name: '', textWidth: 0, room: Number.POSITIVE_INFINITY };
+    const stepThrough = async (setting: (typeof MENU_SETTINGS)[number], states: readonly string[]): Promise<void> => {
+      for (let step = 0; step < states.length; step += 1) {
+        const state = states[(step + 1) % states.length]!;
+        await clickName(page, setting.hook);
+        await expect(page.locator(`[data-hud="${setting.stateHook}"]`)).toHaveText(state);
+        const now = await readMenu(page);
+        const row = rowOf(now, setting.hook);
+        const room = row.state!.clientWidth - row.state!.textWidth;
+        expect(row.text).toBe(`${setting.label} ${state}`);
+        expect(row.label!.scrollWidth, `"${setting.label}" stays whole beside "${state}"`).toBeLessThanOrEqual(row.label!.clientWidth);
+        expect(row.state!.lines, `"${state}" is one line`).toBe(1);
+        expect(row.state!.scrollWidth, `"${state}" is not cut`).toBeLessThanOrEqual(row.state!.clientWidth);
+        expect(room, `"${state}" (${row.state!.textWidth.toFixed(1)}px) keeps a quarter of its width free`)
+          .toBeGreaterThanOrEqual(row.state!.textWidth * TEXT_ROOM_SHARE);
+        expectSameBox(now.panel, settled.panel, `the panel with "${state}"`);
+        for (const other of now.rows) {
+          expectSameBox(other.box, rowOf(settled, other.hook).box, `${other.hook} with "${state}"`);
+        }
+        if (room / row.state!.textWidth < tightestState.room / (tightestState.textWidth || 1)) {
+          tightestState = { name: `${setting.label}: ${state}`, textWidth: row.state!.textWidth, room };
+        }
+      }
+    };
+    await stepThrough(MENU_SETTINGS[0], DEBUG_OVERLAY_CYCLE);
+    await stepThrough(MENU_SETTINGS[1], ART_STYLE_LABELS);
+    console.log(`[menu-room] ${size.width}x${size.height} the tightest state, "${tightestState.name}": ${tightestState.textWidth.toFixed(1)}px `
+      + `of text with ${tightestState.room.toFixed(1)}px (${Math.round((tightestState.room / tightestState.textWidth) * 100)}%) to spare in its row`);
+
+    // Why one size is enough. A state's room is its box's width less its
+    // text's, and the text is the same text in the same font at every size. So
+    // the window is made each of the other sizes, and the panel, both settings
+    // rows, their name boxes and their state boxes must be the widths they are
+    // here: then every state has at 800x600 and at 1920x1080 the room it was
+    // just measured with.
+    const widths = (menu: Awaited<ReturnType<typeof readMenu>>): Record<string, number> => {
+      const read: Record<string, number> = { 'the panel': menu.panel.width };
+      for (const setting of MENU_SETTINGS) {
+        const row = rowOf(menu, setting.hook);
+        read[`${setting.hook}'s row`] = row.box.width;
+        read[`${setting.hook}'s name box`] = row.label!.clientWidth;
+        read[`${setting.hook}'s state box`] = row.state!.clientWidth;
+      }
+      return read;
+    };
+    const here = widths(await readMenu(page));
+    expect(here['the panel'], 'the panel has a width').toBeGreaterThan(0);
+    const others = MENU_SIZES.filter((other) => other.width !== size.width || other.height !== size.height);
+    expect(others, 'the other two sizes').toHaveLength(MENU_SIZES.length - 1);
+    for (const other of others) {
+      await page.setViewportSize(other);
+      const there = widths(await readMenu(page));
+      for (const [what, width] of Object.entries(here)) {
+        expect(Math.abs(there[what]! - width), `${what} is ${there[what]!}px at ${other.width}x${other.height} and ${width}px at ${size.width}x${size.height}`)
+          .toBeLessThanOrEqual(0.01);
+      }
+    }
+    console.log(`[menu-room] the panel (${here['the panel']!.toFixed(1)}px), both settings rows (${here[`${MENU_SETTINGS[0].hook}'s row`]!.toFixed(1)}px) and `
+      + `their state boxes (${here[`${MENU_SETTINGS[0].hook}'s state box`]!}px, ${here[`${MENU_SETTINGS[1].hook}'s state box`]!}px) are the same width at `
+      + `${MENU_SIZES.map((each) => `${each.width}x${each.height}`).join(', ')}`);
+  });
 });

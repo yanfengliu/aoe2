@@ -92,15 +92,6 @@ test.describe("the in-match menu is Definitive Edition's: a titled column of nam
       }
     });
 
-    // The words on the menu are its accessible names, by the browser's own
-    // computation, and each row's tooltip opens with the name on the row. From
-    // v0.3.282 until work 148's follow-up the icon-only menu's names were kept
-    // under the captions: "Return to Game" was announced as "Resume" and "Quit
-    // Current Game" as "Quit to title", their tooltips opening with those words,
-    // and the dialog titled "Main Menu" was named "Game menu".
-    expect(await expectNamesAreTheWordsShown(page)).toBe(menu.rows.length);
-    expect(await expectTooltipsOpenWithTheName(page)).toBe(menu.rows.length);
-
     // The match is paused while the menu is up; the names are clicked on it.
     const pausedTick = (await game.getHudState(page)).tick;
 
@@ -122,6 +113,26 @@ test.describe("the in-match menu is Definitive Edition's: a titled column of nam
     await clickName(page, 'menu-resume');
     await expect(page.locator('[data-hud="game-menu"]')).toBeHidden();
     await expect.poll(async () => (await game.getHudState(page)).tick).toBeGreaterThan(pausedTick);
+  });
+
+  // The words on the menu are its accessible names, by the browser's own
+  // computation, and each row's tooltip opens with the name on the row. From
+  // v0.3.282 until v0.3.283 the icon-only menu's names were kept under the
+  // captions: "Return to Game" was announced as "Resume" and "Quit Current
+  // Game" as "Quit to title", their tooltips opening with those words, and the
+  // dialog titled "Main Menu" was named "Game menu".
+  //
+  // A case of its own: v0.3.283 put these two checks inside the case above,
+  // which then took 17.0 s of its 30 s on one of CI's slower runners (run
+  // 43147872356, browser shard 2/4; 10.4 s on the run before), and CI fails a
+  // test past two thirds of its limit. Here they have a limit of their own,
+  // and read the page in fewer round trips; no check was dropped.
+  test('every row is announced, and explained, in the words written on it', async ({ page }) => {
+    await openMenu(page, { width: 1280, height: 720 });
+    const rows = (await readMenu(page)).rows.length;
+    expect(rows).toBe(MENU_ACTIONS.length + MENU_SETTINGS.length);
+    expect(await expectNamesAreTheWordsShown(page)).toBe(rows);
+    expect(await expectTooltipsOpenWithTheName(page)).toBe(rows);
   });
 
   for (const size of MENU_SIZES) {
