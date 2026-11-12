@@ -121,17 +121,23 @@ test.describe('browser gameplay smoke tests - game-hud-and-camera (hud)', () => 
     // the icon-only menu the owner asked for on 2026-07-19 (v0.3.8). The owner
     // reversed that on 2026-11-11 ("Yes, DE's labels", spec §14.1; work 148),
     // so each action shows its caption and each settings row its name before
-    // its state. The accessible names are the ones the icon-only menu had.
+    // its state. `name` is the accessible name the browser computes: the
+    // words on the row, and for a settings row its name and state as a screen
+    // reader says them. Until work 148's follow-up it was the icon-only
+    // menu's name ("Resume", "Save game", "Load game", "Technology tree",
+    // "Watch a replay…", "Restart match", "Quit to title") under the new
+    // caption; a visible label belongs in the accessible name (WCAG 2.5.3),
+    // so the names follow the captions and this column moved with them.
     // tests/browser/de-game-menu.spec.ts holds the labelled menu itself.
     const actions = [
-      { hook: 'menu-resume', name: 'Resume', icon: 'resume', text: 'Return to Game' },
-      { hook: 'save-button', name: 'Save game', icon: 'save', text: 'Save Game' },
-      { hook: 'load-button', name: 'Load game', icon: 'load', text: 'Load Game' },
-      { hook: 'menu-tech-tree', name: 'Technology tree', icon: 'techTree', text: 'Technology Tree' },
+      { hook: 'menu-resume', name: 'Return to Game', icon: 'resume', text: 'Return to Game' },
+      { hook: 'save-button', name: 'Save Game', icon: 'save', text: 'Save Game' },
+      { hook: 'load-button', name: 'Load Game', icon: 'load', text: 'Load Game' },
+      { hook: 'menu-tech-tree', name: 'Technology Tree', icon: 'techTree', text: 'Technology Tree' },
       { hook: 'menu-civilizations', name: 'Civilizations', icon: 'civilizations', text: 'Civilizations' },
-      { hook: 'replay-load-button', name: 'Watch a replay…', icon: 'replay', text: 'Watch a Replay…' },
-      { hook: 'menu-restart', name: 'Restart match', icon: 'restart', text: 'Restart' },
-      { hook: 'menu-quit', name: 'Quit to title', icon: 'quit', text: 'Quit Current Game' },
+      { hook: 'replay-load-button', name: 'Watch a Replay…', icon: 'replay', text: 'Watch a Replay…' },
+      { hook: 'menu-restart', name: 'Restart', icon: 'restart', text: 'Restart' },
+      { hook: 'menu-quit', name: 'Quit Current Game', icon: 'quit', text: 'Quit Current Game' },
       { hook: 'menu-debug-cycle', name: 'Debug overlay: off', icon: 'debug', text: 'Debug overlay off' },
       // The live row, not the markup default: the label is republished on
       // mount from the persisted preference, so this also pins that the

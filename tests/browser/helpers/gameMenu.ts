@@ -136,10 +136,10 @@ export async function openMenu(page: Page, size: { width: number; height: number
   await expect(page.locator('[data-hud="menu-resume"]')).toBeFocused();
 }
 
-/** Clicks a row with the real mouse on its NAME: the middle of the caption's
- *  text. Refuses a row the pointer cannot reach there, because a click that
- *  misses the panel lands on the backdrop and closes the menu. */
-export async function clickName(page: Page, hook: string): Promise<void> {
+/** The middle of a row's NAME, the caption's own text, where the pointer must
+ *  reach the row: a point that misses the panel is the backdrop, and a click
+ *  there closes the menu. */
+async function nameTarget(page: Page, hook: string): Promise<{ x: number; y: number }> {
   const target = await page.evaluate((rowHook) => {
     const row = document.querySelector<HTMLElement>(`[data-hud="${rowHook}"]`);
     const label = row?.querySelector<HTMLElement>('.hud-menu-item__label');
@@ -152,9 +152,87 @@ export async function clickName(page: Page, hook: string): Promise<void> {
     const hit = document.elementFromPoint(x, y);
     return { x, y, onRow: hit !== null && row.contains(hit) };
   }, hook);
-  expect(target, `${hook} has a name to click`).not.toBeNull();
+  expect(target, `${hook} has a name to point at`).not.toBeNull();
   expect(target!.onRow, `the pointer reaches ${hook}'s name at (${target!.x.toFixed(0)}, ${target!.y.toFixed(0)})`).toBe(true);
-  await page.mouse.click(target!.x, target!.y);
+  return { x: target!.x, y: target!.y };
+}
+
+/** Clicks a row with the real mouse on its NAME: the middle of the caption's
+ *  text. Refuses a row the pointer cannot reach there, because a click that
+ *  misses the panel lands on the backdrop and closes the menu. */
+export async function clickName(page: Page, hook: string): Promise<void> {
+  const target = await nameTarget(page, hook);
+  await page.mouse.click(target.x, target.y);
+}
+
+/** What is written on the open menu: its title, and each row's texts, one per
+ *  box in the order they are drawn (a name, and on a settings row its state). */
+async function readWords(page: Page): Promise<{ title: string; rows: { hook: string; words: string[] }[] }> {
+  return page.evaluate(() => {
+    const menu = document.querySelector<HTMLElement>('[data-hud="game-menu"]');
+    if (!menu) throw new Error('Expected the open game menu.');
+    return {
+      // The title's own text: the stylesheet draws it in capitals, which is
+      // how it looks and not what it says.
+      title: (menu.querySelector('.hud-game-menu__title')?.textContent ?? '').trim(),
+      rows: [...menu.querySelectorAll<HTMLElement>('.hud-menu-item')].map((row) => ({
+        hook: row.getAttribute('data-hud') ?? '',
+        words: [...row.children]
+          .filter((child) => child.getAttribute('aria-hidden') !== 'true')
+          .map((child) => (child as HTMLElement).innerText.replace(/\s+/g, ' ').trim())
+          .filter((text) => text.length > 0),
+      })),
+    };
+  });
+}
+
+/**
+ * The words written on the menu are its accessible names, as the browser
+ * computes them (WCAG 2.5.3, label in name): asked for the dialog named by the
+ * menu's title the page answers with the menu, and asked inside it for the
+ * button named by a row's words it answers with that row and no other, which
+ * is what a person speaking to the page relies on. An action's name is its
+ * caption; a settings row's is its name and state as a screen reader says
+ * them ("Debug overlay: off"). The rows and their words are read from the
+ * page, so a row added later is held too. Returns how many rows it held.
+ */
+export async function expectNamesAreTheWordsShown(page: Page): Promise<number> {
+  const shown = await readWords(page);
+  expect(shown.title.length, 'the menu has a title').toBeGreaterThan(0);
+  const dialog = page.getByRole('dialog', { name: shown.title, exact: true });
+  await expect(dialog, `one dialog is named "${shown.title}", the menu's title`).toHaveCount(1);
+  await expect(dialog).toHaveAttribute('data-hud', 'game-menu');
+  for (const row of shown.rows) {
+    expect(row.words.length, `${row.hook}: something is written on the row`).toBeGreaterThan(0);
+    const name = row.words.join(': ');
+    await expect(page.locator(`[data-hud="${row.hook}"]`), row.hook).toHaveAccessibleName(name);
+    const named = dialog.getByRole('button', { name, exact: true });
+    await expect(named, `"${name}" names one control of the menu`).toHaveCount(1);
+    await expect(named, `"${name}" names the row it is written on`).toHaveAttribute('data-hud', row.hook);
+  }
+  return shown.rows.length;
+}
+
+/**
+ * Every row's tooltip opens with the name written on the row, then says what
+ * the row does. The real mouse rests on each row's name in turn and the
+ * tooltip that is up is read. Every row must be in view (the caller's window
+ * is one where nothing scrolls). Returns how many rows it held.
+ */
+export async function expectTooltipsOpenWithTheName(page: Page): Promise<number> {
+  const shown = await readWords(page);
+  const tooltip = page.locator('[data-hud="tooltip"]');
+  for (const row of shown.rows) {
+    const target = await nameTarget(page, row.hook);
+    await page.mouse.move(target.x, target.y);
+    const opening = `${row.words[0]} — `;
+    await expect(tooltip, `${row.hook}'s tooltip is up`).toHaveAttribute('data-hud-tooltip-active', 'true');
+    await expect
+      .poll(async () => ((await tooltip.textContent()) ?? '').slice(0, opening.length), { message: `${row.hook}'s tooltip opens with "${opening}"` })
+      .toBe(opening);
+    expect(((await tooltip.textContent()) ?? '').length, `${row.hook}'s tooltip says what the row does`).toBeGreaterThan(opening.length + 10);
+  }
+  return shown.rows.length;
 }
 
 /** Turns the wheel over the panel, as a player would, until the row is whole

@@ -40,7 +40,9 @@ import {
   MENU_SETTINGS,
   MENU_SIZES,
   clickName,
+  expectNamesAreTheWordsShown,
   expectSameBox,
+  expectTooltipsOpenWithTheName,
   expectWholePixels,
   openMenu,
   readMenu,
@@ -89,6 +91,15 @@ test.describe("the in-match menu is Definitive Edition's: a titled column of nam
         expect(row.box.top, `${row.hook} is under the row before it`).toBeGreaterThanOrEqual(menu.rows[index - 1]!.box.bottom);
       }
     });
+
+    // The words on the menu are its accessible names, by the browser's own
+    // computation, and each row's tooltip opens with the name on the row. From
+    // v0.3.282 until work 148's follow-up the icon-only menu's names were kept
+    // under the captions: "Return to Game" was announced as "Resume" and "Quit
+    // Current Game" as "Quit to title", their tooltips opening with those words,
+    // and the dialog titled "Main Menu" was named "Game menu".
+    expect(await expectNamesAreTheWordsShown(page)).toBe(menu.rows.length);
+    expect(await expectTooltipsOpenWithTheName(page)).toBe(menu.rows.length);
 
     // The match is paused while the menu is up; the names are clicked on it.
     const pausedTick = (await game.getHudState(page)).tick;

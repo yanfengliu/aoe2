@@ -2,6 +2,15 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.283
+
+The in-match menu is announced, and explained, in the words on its rows.
+
+- **Names.** Since 0.3.282 the menu's rows show their captions, but a screen reader still announced the names the icon-only menu had, and voice control did not answer to the words on the screen. Each row's accessible name is now what is written on it: "Return to Game" (it was "Resume"), "Restart" ("Restart match") and "Quit Current Game" ("Quit to title"), and "Save Game", "Load Game", "Technology Tree" and "Watch a Replay…", which differed only in their capitals. "Civilizations", "Debug overlay: off" and "Art style: Natural" are as they were. The dialog is named by its title, "Main Menu", where it was "Game menu".
+- **Tooltips.** Each tooltip opens with the row's caption and then says what the row does: "Quit Current Game — leave this match and return to a fresh start." where it opened "Quit to title". The first row's now reads "Return to Game — resume the paused match (or press Esc)."; the other rows' words after the dash are unchanged.
+- **Unchanged.** What each action does, how the menu looks and where everything is, the keys, and that the match pauses while the menu is open.
+- **For tools.** Every `data-hud` hook is unchanged, and is the stable way to find a row. A script that finds a menu button by its accessible name or its `aria-label` must use the caption (`[aria-label="Resume"]` is now `[aria-label="Return to Game"]`), and the menu is the dialog named "Main Menu".
+
 ## 0.3.282
 
 The in-match menu names its actions, as Definitive Edition's does.

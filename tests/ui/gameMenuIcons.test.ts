@@ -18,17 +18,20 @@ import { GAME_MENU_ICON_KINDS } from '../../src/ui/hud/icons/menuGlyphs';
 // Edition's own English string that the caption is (its in-match "Main Menu"
 // dialog, read from the install's string table on 2026-11-11), or null where
 // DE's menu has no such action and the caption is this game's own name.
-// `name` is the accessible name, which is kept as it was before the captions
-// (the coordinator's terms), so it differs from the caption for some actions.
+// The caption is the accessible name too. This table had a `name` beside each
+// caption while the icon-only menu's names were kept under the new captions
+// ("Resume", "Save game", "Load game", "Technology tree", "Watch a replay…",
+// "Restart match", "Quit to title"); the names follow the captions now, so
+// the column is gone and the case below holds the rule for every row.
 const MENU_ACTIONS = [
-  { hook: 'menu-resume', name: 'Resume', icon: 'resume', caption: 'Return to Game', de: 9445 },
-  { hook: 'save-button', name: 'Save game', icon: 'save', caption: 'Save Game', de: 9272 },
-  { hook: 'load-button', name: 'Load game', icon: 'load', caption: 'Load Game', de: 9276 },
-  { hook: 'menu-tech-tree', name: 'Technology tree', icon: 'techTree', caption: 'Technology Tree', de: null },
-  { hook: 'menu-civilizations', name: 'Civilizations', icon: 'civilizations', caption: 'Civilizations', de: null },
-  { hook: 'replay-load-button', name: 'Watch a replay…', icon: 'replay', caption: 'Watch a Replay…', de: null },
-  { hook: 'menu-restart', name: 'Restart match', icon: 'restart', caption: 'Restart', de: 9279 },
-  { hook: 'menu-quit', name: 'Quit to title', icon: 'quit', caption: 'Quit Current Game', de: 9273 },
+  { hook: 'menu-resume', icon: 'resume', caption: 'Return to Game', de: 9445 },
+  { hook: 'save-button', icon: 'save', caption: 'Save Game', de: 9272 },
+  { hook: 'load-button', icon: 'load', caption: 'Load Game', de: 9276 },
+  { hook: 'menu-tech-tree', icon: 'techTree', caption: 'Technology Tree', de: null },
+  { hook: 'menu-civilizations', icon: 'civilizations', caption: 'Civilizations', de: null },
+  { hook: 'replay-load-button', icon: 'replay', caption: 'Watch a Replay…', de: null },
+  { hook: 'menu-restart', icon: 'restart', caption: 'Restart', de: 9279 },
+  { hook: 'menu-quit', icon: 'quit', caption: 'Quit Current Game', de: 9273 },
 ] as const;
 
 // The two settings rows: the setting's name, then its state. Keyed by content
@@ -41,7 +44,7 @@ const MENU_SETTINGS = [
 ] as const;
 
 const MENU_ITEMS = [
-  ...MENU_ACTIONS.map((action) => ({ hook: action.hook, icon: action.icon, name: action.name })),
+  ...MENU_ACTIONS.map((action) => ({ hook: action.hook, icon: action.icon, name: action.caption })),
   ...MENU_SETTINGS.map((setting) => ({
     hook: setting.hook,
     icon: setting.icon,
@@ -64,7 +67,125 @@ function comesBefore(first: Node, second: Node): boolean {
   return (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 }
 
+/**
+ * A menu row's accessible name, by the two rules of the name computation a
+ * row can meet (it is a native button with no `aria-labelledby`, which the
+ * caller checks): its `aria-label` when it has one, and otherwise its own
+ * content with what is hidden from assistive technology left out.
+ */
+function accessibleName(row: Element): string {
+  const label = row.getAttribute('aria-label')?.trim();
+  if (label) return label;
+  const copy = row.cloneNode(true) as Element;
+  for (const hidden of copy.querySelectorAll('[aria-hidden="true"]')) hidden.remove();
+  return visibleText(copy);
+}
+
+/** The texts written on a row, one per box, in the order they are drawn: a name, and on a settings row its state. */
+function wordsOn(row: Element): string[] {
+  return [...row.children]
+    .filter((child) => child.getAttribute('aria-hidden') !== 'true')
+    .map((child) => visibleText(child))
+    .filter((text) => text.length > 0);
+}
+
+/** Every row the mounted menu holds, whatever this file's tables say. */
+function menuRows(root: Element): HTMLButtonElement[] {
+  return [...root.querySelectorAll<HTMLButtonElement>('.hud-game-menu .hud-menu-item')];
+}
+
+function expectNameHoldsWords(row: HTMLButtonElement): void {
+  const hook = row.getAttribute('data-hud') ?? '';
+  expect(row.hasAttribute('aria-labelledby'), `${hook}: named by its own attribute or content`).toBe(false);
+  const name = accessibleName(row);
+  const words = wordsOn(row);
+  expect(words.length, `${hook}: something is written on the row`).toBeGreaterThan(0);
+  let from = 0;
+  for (const text of words) {
+    const at = name.indexOf(text, from);
+    expect(at, `${hook}: the name "${name}" holds "${text}", after what is written before it`).toBeGreaterThanOrEqual(0);
+    from = at + text.length;
+  }
+  // The name is the words and nothing else: an action's caption, a settings
+  // row's name and state as a screen reader says them ("Debug overlay: off").
+  expect(name, hook).toBe(words.join(': '));
+}
+
 describe('game-menu actions: a glyph and a name on every row', () => {
+  // The words a player reads on a control are in its accessible name (WCAG
+  // 2.5.3, "Label in Name"), so a person who speaks to the page says what is
+  // written and reaches the control, and a screen reader says the words a
+  // sighted helper would point at. From v0.3.282 until this case the rows
+  // showed Definitive Edition's captions over the names the icon-only menu had
+  // had, so "Return to Game" was announced as "Resume" and "Quit Current Game"
+  // as "Quit to title" (the coordinator's instruction then; reversed for work
+  // 148's follow-up, since the owner's decision is that the menu takes DE's
+  // labels). The rows are read from the menu as it is mounted, not from this
+  // file's tables, so a row added later is held too.
+  it('gives every row an accessible name that holds the words written on it', () => {
+    const root = mountTemplate();
+    document.body.append(root);
+    let debugMode = 0;
+    let artStyle = 0;
+    const artLabels = ART_STYLES.map((style) => style.label);
+    const handle = createGameMenu(root, {
+      cycleDebugOverlay: () => {
+        debugMode = (debugMode + 1) % DEBUG_OVERLAY_CYCLE.length;
+        return DEBUG_OVERLAY_CYCLE[debugMode]!;
+      },
+      cycleArtStyle: () => {
+        artStyle = (artStyle + 1) % artLabels.length;
+        return artLabels[artStyle]!;
+      },
+      artStyleLabel: () => artLabels[0]!,
+    });
+    try {
+      const rows = menuRows(root);
+      expect(rows).toHaveLength(MENU_ACTIONS.length + MENU_SETTINGS.length);
+      for (const row of rows) expectNameHoldsWords(row);
+
+      // A settings row's name follows its state through every state it has.
+      const debugRow = root.querySelector<HTMLButtonElement>('[data-hud="menu-debug-cycle"]')!;
+      const seenDebug = new Set<string>();
+      for (let step = 0; step < DEBUG_OVERLAY_CYCLE.length; step += 1) {
+        debugRow.click();
+        expectNameHoldsWords(debugRow);
+        seenDebug.add(accessibleName(debugRow));
+      }
+      expect([...seenDebug].sort()).toEqual(DEBUG_OVERLAY_CYCLE.map((mode) => `Debug overlay: ${mode}`).sort());
+
+      const artRow = root.querySelector<HTMLButtonElement>('[data-hud="menu-art-style-cycle"]')!;
+      const seenArt = new Set<string>();
+      for (let step = 0; step < artLabels.length; step += 1) {
+        artRow.click();
+        expectNameHoldsWords(artRow);
+        seenArt.add(accessibleName(artRow));
+      }
+      expect([...seenArt].sort()).toEqual(artLabels.map((label) => `Art style: ${label}`).sort());
+    } finally {
+      handle.destroy();
+      root.remove();
+    }
+  });
+
+  // A tooltip names the row it belongs to in the row's own words, then says
+  // what the row does. With the old names kept, "Quit Current Game" was
+  // explained by a tooltip that opened "Quit to title".
+  it('opens every row\'s tooltip with the name written on the row', () => {
+    const root = mountTemplate();
+    const rows = menuRows(root);
+    expect(rows).toHaveLength(MENU_ACTIONS.length + MENU_SETTINGS.length);
+    for (const row of rows) {
+      const hook = row.getAttribute('data-hud') ?? '';
+      const name = visibleText(row.querySelector('.hud-menu-item__label')!);
+      const tooltip = row.getAttribute('data-tooltip') ?? '';
+      expect(tooltip.startsWith(`${name} — `), `${hook}: "${tooltip}" opens with "${name}"`).toBe(true);
+      // And says something after the name.
+      expect(tooltip.length, hook).toBeGreaterThan(`${name} — `.length + 10);
+    }
+  });
+
+
   it('renders every menu item as one distinct decorative SVG with an accessible name', () => {
     const root = mountTemplate();
     const glyphBodies = new Set<string>();
@@ -131,10 +252,16 @@ describe('game-menu actions: a glyph and a name on every row', () => {
     }
   });
 
-  it('titles the dialog "Main Menu", as Definitive Edition titles its own, and keeps the Settings heading', () => {
+  it('titles the dialog "Main Menu", as Definitive Edition titles its own, names it by that title, and keeps the Settings heading', () => {
     const root = mountTemplate();
     expect(root.querySelector('.hud-game-menu__title')?.textContent).toBe('Main Menu');
     expect(root.querySelector('.hud-game-menu__section-title')?.textContent).toBe('Settings');
+    // The dialog is named by the title it shows (it was named "Game menu" under
+    // the title "Main Menu"), so it is announced in the words on the screen.
+    const dialog = root.querySelector('[data-hud="game-menu"]')!;
+    expect(dialog.getAttribute('role')).toBe('dialog');
+    expect(dialog.hasAttribute('aria-labelledby')).toBe(false);
+    expect(dialog.getAttribute('aria-label')).toBe(root.querySelector('.hud-game-menu__title')!.textContent);
   });
 
   it('lists the actions one to a row in their order, with the Load form under its own row', () => {

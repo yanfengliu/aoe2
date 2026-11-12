@@ -51,19 +51,28 @@ function chip(
 // shape, a titled column of text buttons. Each action is one row, its glyph
 // and then its caption (`gameMenuCaptions.ts`); each settings row is its
 // glyph, the setting's name and then its state, which `gameMenu.ts` writes.
-// The accessible names and the tooltips are the ones the icon-only menu of
-// v0.3.8 had. The Load form sits directly under the Load Game row, so it opens
-// where the player is looking: after the Settings rows, where it was, it would
-// open below the fold of a one-column menu.
+// The Load form sits directly under the Load Game row, so it opens where the
+// player is looking: after the Settings rows, where it was, it would open
+// below the fold of a one-column menu.
+//
+// A row's accessible name is the words written on it, and its tooltip opens
+// with them (WCAG 2.5.3, label in name: a person speaking to the page says
+// what is written, and a screen reader says what is shown). Both come from the
+// caption table through these two helpers, which take what a row DOES and no
+// name, so there is no second name to drift from the first. When the captions
+// first shipped the names and tooltips of the icon-only menu were kept, and
+// "Return to Game" was announced as "Resume" and "Quit Current Game" as "Quit
+// to title".
 function menuAction(
   kind: GameMenuActionKind,
   hook: string,
-  name: string,
-  tooltip: string,
+  /** What the action does: the tooltip's words after the caption. */
+  help: string,
   modifier?: 'primary' | 'danger',
 ): string {
+  const caption = GAME_MENU_CAPTIONS[kind].caption;
   const modifierClass = modifier ? ` hud-menu-item--${modifier}` : '';
-  return `<button type="button" class="hud-menu-item${modifierClass}" data-hud="${hook}" aria-label="${name}" data-tooltip="${tooltip}">${gameMenuGlyph(kind)}<span class="hud-menu-item__label">${GAME_MENU_CAPTIONS[kind].caption}</span></button>`;
+  return `<button type="button" class="hud-menu-item${modifierClass}" data-hud="${hook}" aria-label="${caption}" data-tooltip="${caption} — ${help}">${gameMenuGlyph(kind)}<span class="hud-menu-item__label">${caption}</span></button>`;
 }
 
 function menuSetting(
@@ -71,10 +80,11 @@ function menuSetting(
   hook: string,
   stateHook: string,
   state: string,
-  tooltip: string,
+  /** What a click on the setting does: the tooltip's words after its name. */
+  help: string,
 ): string {
   const name = GAME_MENU_SETTING_NAMES[kind];
-  return `<button type="button" class="hud-menu-item hud-menu-item--toggle" data-hud="${hook}" aria-label="${name}: ${state}" data-tooltip="${tooltip}">
+  return `<button type="button" class="hud-menu-item hud-menu-item--toggle" data-hud="${hook}" aria-label="${name}: ${state}" data-tooltip="${name} — ${help}">
               ${gameMenuGlyph(kind)}
               <span class="hud-menu-item__label">${name}</span>
               <span class="hud-menu-item__state" data-hud="${stateHook}" aria-live="polite" aria-atomic="true">${state}</span>
@@ -99,25 +109,25 @@ const LOAD_PANEL_HTML = `<div class="hud-load-panel" data-hud="load-panel" hidde
             </div>`;
 
 const GAME_MENU_HTML = `
-      <div class="hud-game-menu" data-hud="game-menu" role="dialog" aria-modal="true" aria-label="Game menu" hidden>
+      <div class="hud-game-menu" data-hud="game-menu" role="dialog" aria-modal="true" aria-label="${GAME_MENU_TITLE.caption}" hidden>
         <div class="hud-game-menu__backdrop" data-hud="game-menu-backdrop"></div>
         <div class="hud-game-menu__panel">
           <div class="hud-game-menu__title">${GAME_MENU_TITLE.caption}</div>
           <div class="hud-game-menu__actions">
-            ${menuAction('resume', 'menu-resume', 'Resume', 'Resume — return to the paused match (or press Esc).', 'primary')}
-            ${menuAction('save', 'save-button', 'Save game', 'Save game — store the current match in this browser and download a .json copy.')}
-            ${menuAction('load', 'load-button', 'Load game', 'Load game — restore a browser save or paste in a save blob.')}
+            ${menuAction('resume', 'menu-resume', 'resume the paused match (or press Esc).', 'primary')}
+            ${menuAction('save', 'save-button', 'store the current match in this browser and download a .json copy.')}
+            ${menuAction('load', 'load-button', 'restore a browser save or paste in a save blob.')}
             ${LOAD_PANEL_HTML}
-            ${menuAction('techTree', 'menu-tech-tree', 'Technology tree', "Technology tree — browse your civilization's units and technologies; dimmed entries are its holes.")}
-            ${menuAction('civilizations', 'menu-civilizations', 'Civilizations', 'Civilizations — compare all thirty side by side: army type, unique unit, team bonus and every civilization bonus.')}
-            ${menuAction('replay', 'replay-load-button', 'Watch a replay…', 'Watch a replay… — open a live, prior-session, or imported recording.')}
-            ${menuAction('restart', 'menu-restart', 'Restart match', 'Restart match — start this scenario again from the beginning.')}
-            ${menuAction('quit', 'menu-quit', 'Quit to title', 'Quit to title — leave this match and return to a fresh start.', 'danger')}
+            ${menuAction('techTree', 'menu-tech-tree', "browse your civilization's units and technologies; dimmed entries are its holes.")}
+            ${menuAction('civilizations', 'menu-civilizations', 'compare all thirty side by side: army type, unique unit, team bonus and every civilization bonus.')}
+            ${menuAction('replay', 'replay-load-button', 'open a live, prior-session, or imported recording.')}
+            ${menuAction('restart', 'menu-restart', 'start this scenario again from the beginning.')}
+            ${menuAction('quit', 'menu-quit', 'leave this match and return to a fresh start.', 'danger')}
           </div>
           <div class="hud-game-menu__section">
             <div class="hud-game-menu__section-title">Settings</div>
-            ${menuSetting('debug', 'menu-debug-cycle', 'menu-debug-mode', 'off', 'Debug overlay — cycle its mode (same as pressing F2).')}
-            ${menuSetting('artStyle', 'menu-art-style-cycle', 'menu-art-style', 'Natural', 'Art style — switch between natural light and colour with no outlines (Natural) and ink contours over flat colour (Moebius).')}
+            ${menuSetting('debug', 'menu-debug-cycle', 'menu-debug-mode', 'off', 'cycle its mode (same as pressing F2).')}
+            ${menuSetting('artStyle', 'menu-art-style-cycle', 'menu-art-style', 'Natural', 'switch between natural light and colour with no outlines (Natural) and ink contours over flat colour (Moebius).')}
           </div>
         </div>
       </div>`;
