@@ -185,6 +185,7 @@ export function registerAiSystem(bridgeDeps: AiSystemDeps): void {
             unitCommands,
             pendingTrainsByBuilding,
             pendingResearchByBuilding,
+            deps.nearestSiteBuilder,
           );
 
         const ctx: AiOwnerContext = {

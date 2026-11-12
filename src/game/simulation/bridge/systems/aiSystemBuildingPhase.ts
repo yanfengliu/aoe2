@@ -5,6 +5,7 @@ import type { Position } from 'civ-engine';
 
 import { ownerConstructionCost } from '../ownerCosts';
 import type { BuildableBuildingType, BuildingComponent } from '../../types';
+import { buildingFootprint } from '../pureHelpers';
 import { canAfford } from '../../prototypeEconomyRules';
 import { blockedBuildTarget, pickNextBuildTarget, shouldPursueWonder } from '../../ai';
 import { houseWanted } from '../../aiHousing';
@@ -51,6 +52,15 @@ export function runBuildingPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
     purchases,
   } = ctx;
 
+  // WHO BUILDS IT (work 152 M1d). Each path below asks for today's first
+  // available villager BEFORE the site is known, because the site search needs
+  // a villager whose reach the site must be within, and that question did not
+  // change. Once the site is known, the builder is the available villager with
+  // the shortest walk to it (`first` among them, so never a longer one).
+  const builderFor = (first: number, building: BuildableBuildingType, anchor: Position): number => (
+    findAvailableVillagerForBuild(owner, { ...anchor, ...buildingFootprint(building), toBePlaced: true }) ?? first
+  );
+
   // Nomad opening (§5.4): with no Town Center at all, everything else waits.
   // A wood DROPSITE is the only road to the TC's 275 wood, so the lumber camp
   // comes first; the TC follows the moment it is affordable. Gated on the TC
@@ -69,7 +79,7 @@ export function runBuildingPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
     if (stockpile && canAfford(stockpile, townCenterCost)) {
       const anchor = findBuildPlacementNear(builderPosition, 'town-center', [builderId]);
       if (anchor) {
-        purchases.buy({ kind: 'place', builderId, building: 'town-center', anchor, price: townCenterCost });
+        purchases.buy({ kind: 'place', builderId: builderFor(builderId, 'town-center', anchor), building: 'town-center', anchor, price: townCenterCost });
         pendingBuildsByOwner.set(owner, (pendingBuildsByOwner.get(owner) ?? 0) + 1);
       }
       return;
@@ -89,7 +99,7 @@ export function runBuildingPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
         : null;
       const anchor = findBuildPlacementNear(woodline ?? builderPosition, 'lumber-camp', [builderId]);
       if (anchor) {
-        purchases.buy({ kind: 'place', builderId, building: 'lumber-camp', anchor, price: lumberCampCost });
+        purchases.buy({ kind: 'place', builderId: builderFor(builderId, 'lumber-camp', anchor), building: 'lumber-camp', anchor, price: lumberCampCost });
         pendingBuildsByOwner.set(owner, (pendingBuildsByOwner.get(owner) ?? 0) + 1);
       }
     }
@@ -105,21 +115,22 @@ export function runBuildingPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
       && state.lastEnemySightingPosition
       && !findOwnedBuilding(owner, 'watch-tower')
     ) {
-      const builderId = findAvailableVillagerForBuild(owner);
+      const firstId = findAvailableVillagerForBuild(owner);
       const anchor = pickWatchTowerPlacement(
         ownerTownCenterPosition,
         state.lastEnemySightingPosition,
-        builderId === null ? undefined : [builderId],
+        firstId === null ? undefined : [firstId],
       );
       // Phase 1C: gate on raw stockpile affordability (symmetry with
       // wonder/nextBuild paths below).
       const watchTowerCost = ownerConstructionCost(accessor, owner, 'watch-tower');
       if (
-        builderId !== null
+        firstId !== null
         && anchor
         && stockpile
         && canAfford(stockpile, watchTowerCost)
       ) {
+        const builderId = builderFor(firstId, 'watch-tower', anchor);
         purchases.buy({ kind: 'place', builderId, building: 'watch-tower', anchor, price: watchTowerCost });
         claimedVillagers.add(builderId);
         // Phase 1C: watch tower push happens BEFORE the ongoingBuilds
@@ -200,19 +211,20 @@ export function runBuildingPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
         aiResources,
       );
     if (wonderPursuit && ongoingBuilds < maxConcurrentBuilds) {
-      const builderId = findAvailableVillagerForBuild(owner);
+      const firstId = findAvailableVillagerForBuild(owner);
       const anchor = findBuildPlacementNear(
         ownerTownCenterPosition,
         'wonder',
-        builderId === null ? undefined : [builderId],
+        firstId === null ? undefined : [firstId],
       );
       const wonderCost = ownerConstructionCost(accessor, owner, 'wonder');
       if (
-        builderId !== null
+        firstId !== null
         && anchor
         && stockpile
         && canAfford(stockpile, wonderCost)
       ) {
+        const builderId = builderFor(firstId, 'wonder', anchor);
         purchases.buy({ kind: 'place', builderId, building: 'wonder', anchor, price: wonderCost });
         claimedVillagers.add(builderId);
         ongoingBuilds += 1;
@@ -258,7 +270,7 @@ export function runBuildingPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
       ? null
       : ownerConstructionCost(accessor, owner, blocked);
     if (nextBuild && ongoingBuilds < maxConcurrentBuilds && !wonderPursuit) {
-      const builderId = findAvailableVillagerForBuild(owner);
+      const firstId = findAvailableVillagerForBuild(owner);
       // A drop-off building exists to shorten a carry, so it belongs beside
       // what it serves rather than beside the Town Center like everything
       // else. `dropOffAnchorFor` returns null for non-drop-offs and for a
@@ -266,15 +278,16 @@ export function runBuildingPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void {
       const anchor = findBuildPlacementNear(
         dropOffAnchorFor(activeWorld, nextBuild, ownerTownCenterPosition) ?? ownerTownCenterPosition,
         nextBuild,
-        builderId === null ? undefined : [builderId],
+        firstId === null ? undefined : [firstId],
       );
       const buildCost = ownerConstructionCost(accessor, owner, nextBuild);
       if (
-        builderId !== null
+        firstId !== null
         && anchor
         && stockpile
         && canAfford(stockpile, buildCost)
       ) {
+        const builderId = builderFor(firstId, nextBuild, anchor);
         purchases.buy({ kind: 'place', builderId, building: nextBuild, anchor, price: buildCost });
         claimedVillagers.add(builderId);
         ongoingBuilds += 1;

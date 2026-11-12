@@ -37,6 +37,25 @@
 //   soldier ignores villager                  villagers by 5:00 6-7, owner 1 housed 34.2 s       RED
 //   Town Center holds a second villager back  idle while able 211-790 s, longest 49-739 s        RED
 //
+// THE BUILDER'S WALK (work 152 M1d), judged on the same two matches: of every
+// villager a seat sends to a building it places, none it could have sent
+// instead had a shorter walk to the site, nor the same walk and a lower id. A
+// resource's last gatherer is one it could have sent only when no other
+// villager could go, so one of those sent past another is a breach too.
+// `builderWalkProbe.ts` records each order at the instant the seat decides and
+// measures the walks with its own search over the path search's grid, never
+// the game's flood. Measured on 2026-11-11 with main's rule put back (the
+// first villager in entity order): the both-AI match makes 24 placements in
+// this window and 20 of them pass over a villager the rule would send, by 266
+// cells in all and 49 at the most (a farm whose builder walked 54 cells past
+// one standing 5 away); the human-idle match makes 10, and 8 pass one over, by
+// 173 cells in all and 46 at the most.
+//   the first in entity order sent (main)   20 of 24 placements, both-AI; 8 of 10, human idle     RED
+//   a resource's last gatherer taken        this case, and owner 1 housed 94.1 s at 2:31, both-AI  RED
+// No seat crews a site in this window (every building here wants one builder
+// and none loses it), so the crews' case is the lab's, in
+// `selfPlayContentCoverage.test.ts`.
+//
 // Bound: one map (the boot map), the lobby's defaults (Standard difficulty,
 // Standard resources, population 200), the first 9,000 ticks (15 game
 // minutes), and the two seat arrangements a player meets: the human seat idle,
@@ -49,6 +68,7 @@ import { describe, expect, it } from 'vitest';
 import { createSimulationBridge } from '../../src/game/simulation/createSimulationBridge';
 import { DEFAULT_SEED, HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 import { decisionIntervalTicks, villagerCapForAge } from '../../src/game/simulation/ai';
+import { betterBuilders, describeOrder, observeBuilderOrders, type BuilderOrder } from './builderWalkProbe';
 import {
   liveWorldSource,
   sampleAiEconomy,
@@ -107,9 +127,24 @@ const STANDARD_DECISION_TICKS = 30;
  *  the AI's code agreeing with itself (R19); the pin below fails if the
  *  interval ever moves. */
 const IDLE_WHILE_ABLE_TICKS_PER_VILLAGER = STANDARD_DECISION_TICKS;
+/** How many accepted placements each match must show before the builder's
+ *  walk is judged on it, so the case cannot pass on an empty record. */
+const BUILDER_PLACEMENTS_FLOOR = { bothAi: 15, humanIdle: 6 };
 
-function playMatch(allAi: boolean): { seats: Map<number, AiEconomySummary>; ticks: number } {
+interface PlayedMatch { seats: Map<number, AiEconomySummary>; ticks: number; builderOrders: BuilderOrder[] }
+
+/** Each arrangement is played once, whichever case asks first. */
+const played = new Map<boolean, PlayedMatch>();
+function matchOf(allAi: boolean): PlayedMatch {
+  const match = played.get(allAi) ?? playMatch(allAi);
+  played.set(allAi, match);
+  return match;
+}
+
+function playMatch(allAi: boolean): PlayedMatch {
   const bridge = createSimulationBridge(DEFAULT_SEED, allAi ? { forceAiForOwners: new Set([HUMAN_PLAYER_ID]) } : {});
+  // Reads only: the match plays as it does unobserved (builderWalkProbe.ts).
+  const builderOrders = observeBuilderOrders(bridge);
   const owners = allAi ? [1, 2] : [2];
   const samples = new Map<number, AiEconomySample[]>(owners.map((owner) => [owner, []]));
   const source = liveWorldSource(bridge.world);
@@ -125,7 +160,7 @@ function playMatch(allAi: boolean): { seats: Map<number, AiEconomySummary>; tick
     houseWood: HOUSE_WOOD,
     villagerTarget: (age) => villagerCapForAge(age as Parameters<typeof villagerCapForAge>[0]),
   })]));
-  return { seats, ticks: bridge.world.tick - start };
+  return { seats, ticks: bridge.world.tick - start, builderOrders };
 }
 
 function describeSeat(owner: number, summary: AiEconomySummary): string {
@@ -145,7 +180,7 @@ describe('the computer\'s economy at the lobby defaults (work 141)', () => {
 
   for (const allAi of [false, true]) {
     it(`builds Houses before it is housed and keeps its Town Center training — ${allAi ? 'both seats AI' : 'human seat idle'}`, () => {
-      const { seats, ticks } = playMatch(allAi);
+      const { seats, ticks } = matchOf(allAi);
       // The whole window, or the bars below measured a shorter match.
       expect(ticks, 'the match ended before the window did').toBe(WINDOW_TICKS);
       for (const [owner, summary] of seats) {
@@ -156,6 +191,20 @@ describe('the computer\'s economy at the lobby defaults (work 141)', () => {
         expect.soft(summary.idleWhileAbleTicks, message)
           .toBeLessThanOrEqual(IDLE_WHILE_ABLE_TICKS_PER_VILLAGER * summary.villagersTrained);
       }
+    }, 150_000);
+
+    it(`sends each building it places the available villager with the shortest walk — ${allAi ? 'both seats AI' : 'human seat idle'}`, () => {
+      const { builderOrders, ticks } = matchOf(allAi);
+      expect(ticks, 'the match ended before the window did').toBe(WINDOW_TICKS);
+      // Placements the game accepts: a walk is judged only where something is built.
+      const placed = builderOrders.filter((order) => order.kind === 'placement' && order.refusal === null);
+      expect(placed.length, 'placements seen in the window: the record is not reading the match')
+        .toBeGreaterThanOrEqual(BUILDER_PLACEMENTS_FLOOR[allAi ? 'bothAi' : 'humanIdle']);
+      expect(builderOrders.filter((order) => !order.builderAvailable).map(describeOrder), 'a builder that was not available').toEqual([]);
+      expect(
+        builderOrders.filter((order) => betterBuilders(order).length > 0).map(describeOrder),
+        'a builder sent past a villager with a shorter walk',
+      ).toEqual([]);
     }, 150_000);
   }
 });

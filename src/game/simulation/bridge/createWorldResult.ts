@@ -49,6 +49,8 @@ export interface CreateWorldResult {
   getMatchState: () => MatchState;
   getSelectionState: () => SelectionState;
   getPlacementPreview: (x: number, y: number) => PlacementPreviewState | null;
+  /** Debug read: the path search's own passability predicate (cellPassability.ts). */
+  isCellPassableForUnit: (unitId: number, x: number, y: number) => boolean;
   // agent-affordances B/C: agent-snapshot read surfaces (per-building
   // research/train options with locked reasons; fog-gated open-anchor
   // search near a point for the given owner).

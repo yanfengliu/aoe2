@@ -344,6 +344,9 @@ export interface RegisterAllSystemsDeps {
   /** The range plan's answer, kept per unit cell and structural revision
    *  (unitRangeReach.ts): the AI's relic search asks it (work 128). */
   canUnitReachRange: UnitRangeReach;
+  /** Which of a seat's villagers has the shortest walk to a building site
+   *  (siteBuilderWalk.ts): the AI's builder for it (work 152 M1d). */
+  nearestSiteBuilder: import('./siteBuilderWalk').NearestSiteBuilder;
   findWildlifeRangePlan: (
     entityId: number,
     target: Position,

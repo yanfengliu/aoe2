@@ -144,6 +144,7 @@ export function createSimulationBridge(
     consumeOutOfBandRenderChange,
     consumeCommandRejection,
     getDebugSnapshot,
+    isCellPassableForUnit,
     getFogMemoryEntities,
     getHumanFogMemorySize,
     getSelectedEntityRefs,
@@ -474,6 +475,7 @@ export function createSimulationBridge(
     },
     consumeCommandRejection,
     getDebugSnapshot,
+    isCellPassableForUnit,
     saveGame,
     pendingCommands,
     setAgentDispatchObserver(observer) {

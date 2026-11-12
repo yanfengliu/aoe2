@@ -2,6 +2,17 @@
 
 This changelog lists user-visible behavior changes only. Pure refactors and documentation changes are recorded in docs/devlog/.
 
+## 0.3.281
+
+The computer sends its nearest free villager to build, so its buildings start sooner.
+
+- **Who builds.** To each building the computer places, and to each site it reinforces or takes up again, it sends its available villager with the shortest walk to the site. It used to send its first villager in a fixed order, wherever that villager stood: in the default match a House went to a woodcutter 56 cells away on foot while six villagers stood beside the site, and work on it started 69 seconds after it was placed. In that match's first 15 minutes 21 of the computer's 24 buildings passed over a villager with a shorter walk.
+- **Not a resource's last gatherer.** A villager who is the only one the computer has on a resource stays at work while another villager can be sent.
+- **What you will see.** The computer's buildings start sooner after they are placed. It reaches the Castle Age sooner more often than later: measured with its attacks switched off, more than five minutes sooner on 11 of 50 seats, later on 4 and within five minutes on the other 35.
+- **The cost.** A computer that reaches the Castle Age sooner arrives with less wood saved, and it spends wood as fast as it gathers it, so it more often builds its Monastery and Siege Workshop late or never. In the measured wars between two computers a Monastery stood on 65 of 100 seats where it stood on 76, and a Siege Workshop on 61 where it stood on 75; with attacks switched off 41 of 50 seats built a Monastery where 49 did, and 44 a Siege Workshop where 47 did. Against a player who never attacks, and in the high-resource test match, it reaches as many Ages and builds as many of the counted buildings as before, or more. The owner chose on 2026-11-11 to ship the fix with this cost written down; nothing was changed to win those buildings back.
+- **Unchanged.** Where the computer puts a building, what it decides to build, and how many villagers it sends.
+- **For tools.** `bridge.isCellPassableForUnit(unitId, x, y)` answers whether the path search may step a unit onto a cell.
+
 ## 0.3.280
 
 A refused placement says one short sentence.

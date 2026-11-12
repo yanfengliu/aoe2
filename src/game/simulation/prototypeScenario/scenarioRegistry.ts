@@ -4,7 +4,6 @@
 // one-line-per-seed list that only ever grows. Keeping them apart means adding
 // a fixture touches the list and nothing else.
 
-
 // One namespace import instead of naming every factory twice: the list had
 // grown to 230 import lines plus 239 map entries and pushed the file past the
 // 500-line budget on its own. `../fixtures` is a barrel, so this pulls in
@@ -12,6 +11,7 @@
 import * as fixtures from '../fixtures';
 // Imported directly, the way the map factories are: the barrel is at its
 // 500-line budget.
+import { AI_BUILDER_WALK_SCENARIOS } from '../fixtures/aiBuilderWalk';
 import { createAiIdleSurplusFixture } from '../fixtures/aiIdleSurplus';
 import { attackDamageTypesSeeds, createAttackDamageTypesFixture } from '../fixtures/attackDamageTypes';
 import { buildingArmorCensusSeeds, createBuildingArmorCensusFixture } from '../fixtures/buildingArmorCensus';
@@ -412,6 +412,7 @@ export const SCENARIO_FACTORIES: ReadonlyMap<string, ScenarioFactory>
   ['corridor-seal-far-open-fixture', createCorridorSealFixture],
   ['corridor-seal-no-open-fixture', createCorridorSealFixture],
   ['corridor-seal-same-decision-fixture', createCorridorSealFixture],
+  ...AI_BUILDER_WALK_SCENARIOS,
   ['building-footprint-vision-fixture', fixtures.createBuildingFootprintVisionFixture],
   // Slice 11: alternate playable maps. Both share the default
   // two-player layout; only terrain differs.

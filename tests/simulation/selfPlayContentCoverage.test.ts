@@ -86,6 +86,22 @@
 // expectation records that silence rather than asserting it away; the register's
 // 2026-09-03 hoarding entry is the open defect underneath it.
 //
+// THE BUILDER'S WALK (work 152 M1d), judged on the same match: of every
+// villager a seat sends to a building it places, and of every villager it sends
+// to crew a standing site, none it could have sent instead had a shorter walk
+// to the site, nor the same walk and a lower id. A resource's last gatherer is
+// one it could have sent only when no other villager could go. This is the
+// crews' case: the lobby-default matches of `aiEconomySelfPlay.test.ts` make no
+// crew order, and this match crews Castles, Markets, Houses and farms and takes
+// up sites whose builder was lost. `builderWalkProbe.ts` records each order at
+// the instant the seat decides and measures the walks with its own search over
+// the path search's grid, never the game's flood; it reads only, and the census
+// below is the same with it and without.
+//   main's rule put back (the first in entity order sent), 2026-11-11   197 of 225 orders, 51 of its 58 crew orders, past a villager the rule would send; 5,321 cells in all, 144 at the most   RED
+//   the crew phase asks without the site                                 the crew orders                                                                                              RED
+// Bound: this match, so the building types and layouts this AI reaches on this
+// seed; a refused placement is not judged (nothing is built).
+//
 // COST: 194 s alone on a 32-core machine when that was measured on 2026-09-05;
 // 398 s on 2026-09-10 with the three content-pipeline gates running beside it,
 // which is contention rather than a regression — and it is the file the whole
@@ -106,11 +122,16 @@ import { HUMAN_PLAYER_ID } from '../../src/game/simulation/prototypeScenario';
 import { RESEARCH_COSTS } from '../../src/game/simulation/researchTables';
 import { TRAINABLE_UNIT_TYPES } from '../../src/game/simulation/trainingCosts';
 import type { BuildingType } from '../../src/game/simulation/types';
+import { betterBuilders, describeOrder, observeBuilderOrders, type BuilderOrder } from './builderWalkProbe';
 
 const HORIZON_TICKS = 45000;
 const SAMPLE_INTERVAL = 250;
 const OWNERS = [1, 2] as const;
 const EXPECTATION_PATH = 'tests/simulation/selfPlayContentCensus.expected.json';
+/** Orders the lab must show before the builder's walk is judged on it, so the
+ *  case cannot pass on an empty record (207 measured with work 152 M1d: 164
+ *  placements and 43 crew orders; 225 with main's rule, 167 and 58). */
+const BUILDER_ORDERS_FLOOR = { placements: 100, crews: 20 };
 
 interface OwnerCensus {
   buildings: string[];
@@ -132,7 +153,16 @@ interface Census {
 
 const sorted = (values: Iterable<string>): string[] => [...new Set(values)].sort();
 
-function playCoverageLab(seed: string): { census: Census; lastTick: number; outcome: string } {
+interface PlayedLab { census: Census; lastTick: number; outcome: string; builderOrders: BuilderOrder[] }
+
+/** The lab is played once, whichever case asks first. */
+let played: PlayedLab | null = null;
+function labOf(seed: string): PlayedLab {
+  played ??= playCoverageLab(seed);
+  return played;
+}
+
+function playCoverageLab(seed: string): PlayedLab {
   const bridge = createSimulationBridge(seed, {
     forceAiForOwners: new Set([HUMAN_PLAYER_ID]),
     disableAiAttacks: true,
@@ -147,6 +177,8 @@ function playCoverageLab(seed: string): { census: Census; lastTick: number; outc
     // the same (renderProjectionOnRead.test.ts).
     renderProjection: 'on-read',
   });
+  // Reads only: the match plays as it does unobserved (builderWalkProbe.ts).
+  const builderOrders = observeBuilderOrders(bridge);
   const buildingsByOwner = new Map<number, Set<string>>(OWNERS.map((o) => [o, new Set<string>()]));
   const unitsByOwner = new Map<number, Set<string>>(OWNERS.map((o) => [o, new Set<string>()]));
   let lastTick = 0;
@@ -192,7 +224,7 @@ function playCoverageLab(seed: string): { census: Census; lastTick: number; outc
     units: sorted(OWNERS.flatMap((o) => byOwner[String(o)]!.units)),
     technologies: sorted(OWNERS.flatMap((o) => byOwner[String(o)]!.technologies)),
   };
-  return { census, lastTick, outcome: bridge.getMatchState().outcome };
+  return { census, lastTick, outcome: bridge.getMatchState().outcome, builderOrders };
 }
 
 function gap(universe: readonly string[], exercised: readonly string[]): string[] {
@@ -211,7 +243,7 @@ function twoWayDiff(what: string, expected: readonly string[], actual: readonly 
 describe('self-play content coverage — the no-attack lab (spec §15.8)', () => {
   it('makes every recorded producer produce, and censuses the match against a two-way snapshot', () => {
     const expected = JSON.parse(readFileSync(EXPECTATION_PATH, 'utf-8')) as Census;
-    const { census, lastTick, outcome } = playCoverageLab('aoe2-prototype');
+    const { census, lastTick, outcome } = labOf('aoe2-prototype');
 
     const buildingUniverse = Object.keys(AUTHORITATIVE_BUILDING_FOOTPRINTS);
     const unitUniverse = [...TRAINABLE_UNIT_TYPES];
@@ -288,6 +320,27 @@ describe('self-play content coverage — the no-attack lab (spec §15.8)', () =>
       `the lab censused a DIFFERENT match than ${EXPECTATION_PATH} records:\n  ${diffs.join('\n  ')}\n`
       + 'A gain is as much a change as a loss. Re-record the file in the same commit as the change that moved it, '
       + 'and say in the commit message which way the AI moved and why.',
+    ).toEqual([]);
+  }, 1_800_000);
+
+  it('sends every site it places or crews the available villager with the shortest walk', () => {
+    const { builderOrders, lastTick } = labOf('aoe2-prototype');
+    expect(lastTick, 'the lab stopped before its horizon').toBe(HORIZON_TICKS);
+    // A walk is judged only where something is built: a placement the game refuses is listed, not judged.
+    const placed = builderOrders.filter((order) => order.kind === 'placement' && order.refusal === null);
+    const crews = builderOrders.filter((order) => order.kind === 'crew');
+    const byKind = new Map<string, number>();
+    for (const order of builderOrders) {
+      const kind = `${order.kind} ${order.buildingType}${order.refusal === null ? '' : ' (refused)'}`;
+      byKind.set(kind, (byKind.get(kind) ?? 0) + 1);
+    }
+    console.log(`BUILDERS aoe2-prototype lab: ${[...byKind].sort().map(([kind, count]) => `${kind} ${String(count)}`).join(', ')}`);
+    expect(placed.length, 'placements seen: the record is not reading the match').toBeGreaterThanOrEqual(BUILDER_ORDERS_FLOOR.placements);
+    expect(crews.length, 'crew orders seen: the crews\' case needs them').toBeGreaterThanOrEqual(BUILDER_ORDERS_FLOOR.crews);
+    expect(builderOrders.filter((order) => !order.builderAvailable).map(describeOrder), 'a builder that was not available').toEqual([]);
+    expect(
+      builderOrders.filter((order) => betterBuilders(order).length > 0).map(describeOrder),
+      'a builder sent past a villager with a shorter walk',
     ).toEqual([]);
   }, 1_800_000);
 });

@@ -484,6 +484,7 @@ export function wireBridgeOps(deps: WireBridgeOpsDeps): WireBridgeOpsResult {
     ),
     clearSelection: () => selectionMutation(clearSelection),
     getDebugSnapshot,
+    isCellPassableForUnit: (unitId, x, y) => isCellPassableForUnit(unitId, x, y), // the path search's predicate, as a debug read
     getFogMemoryEntities,
     getHumanFogMemorySize,
     getHumanWonderCountdownTicks,

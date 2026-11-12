@@ -72,6 +72,7 @@ export interface RegisterBridgeSystemsDeps {
   movementPlanOps: MovementPlanOps & {
     findDropOffWalkField: DropOffWalkFields['fieldFor'];
     canUnitReachRange: UnitRangeReach;
+    nearestSiteBuilder: import('./siteBuilderWalk').NearestSiteBuilder;
   };
   entityDestroyOps: EntityDestroyOps;
   entityCreateOps: EntityCreateOps;

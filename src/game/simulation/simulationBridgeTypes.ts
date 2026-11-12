@@ -232,6 +232,15 @@ export interface SimulationBridge {
     height: number,
     max: number,
   ): Position[];
+  // Debug read (work 152 M1d): whether the path search may step this unit
+  // onto this cell. It is the search's own predicate (`isCellPassableForUnit`
+  // in bridge/cellPassability.ts, the one `findGridPath` is handed): terrain
+  // for the unit's domain, buildings, resources and the map's edge, and a
+  // finished gate of the unit's own side admits it. A unit that does not
+  // exist is read as a land walker no gate admits. The search also counts the
+  // cell a unit stands on as open, which is the search's rule and not this
+  // predicate's. Read-only: no command, nothing saved, nothing the game reads.
+  isCellPassableForUnit(unitId: number, x: number, y: number): boolean;
   // LLM-agent harness (Phase 1.B): the in-place pendingCommands queue
   // the in-game AI pushes intentions onto. Exposed publicly so
   // `__AOE2_TEST__.agent.dispatchAgentCommand` can shape-validate +

@@ -30,6 +30,7 @@ import type { PlacementSearchStats } from './placementSearch';
 import { createTransformOps } from './transformOps';
 import { createMovementPlanOps } from './movementPlanOps';
 import { createUnitRangeReach } from './unitRangeReach';
+import { createSiteBuilderWalk } from './siteBuilderWalk';
 import { createDropOffWalkFields, type DropOffWalkFieldStats } from './dropOffWalkField';
 import { collectDropOffBuildings, preferSafeDropOffs } from './dropOffBuildings';
 import { createEnemyDefenceLookup } from './enemyDefenceRange';
@@ -317,6 +318,20 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     getApproachCellsForFootprint,
     futureWallsOf,
   });
+  // Which villager walks to a building site (siteBuilderWalk.ts, work 152 M1d):
+  // the flood walks the planner's predicate from the planner's ring, and a site
+  // still to be placed asks the placement rule's reach of the villager it
+  // would name, because the validator will. It rides to the systems on the
+  // movement-plan ops, as the two reach asks above do.
+  const nearestSiteBuilder = createSiteBuilderWalk({
+    mapWidth: world.grid.width,
+    mapHeight: world.grid.height,
+    isCellPassableForUnit,
+    getApproachCellsForFootprint,
+    canBuilderReachFootprint: (builderId, site, activeWorld) => builderReachability
+      .canAnyBuilderReachFootprint([builderId], site.x, site.y, site.width, site.height, activeWorld),
+    structuralRevision: () => worldOccupancy.structuralRevision(),
+  });
   // The player places by what it has explored (placementKnowledge.ts; work
   // 122): the same three answers, read through the fog for the human seat and
   // from the true map for every AI seat.
@@ -425,7 +440,7 @@ export function wirePreSeedOps(deps: WirePreSeedOpsDeps) {
     foundationStart,
     isGarrisonedUnit,
     getActionOptions,
-    movementPlanOps,
+    movementPlanOps: { ...movementPlanOps, nearestSiteBuilder },
     getApproachCellsForFootprint,
     findScenarioSpawnPosition,
     findBuildingSpawnPosition,

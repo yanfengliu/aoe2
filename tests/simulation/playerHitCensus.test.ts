@@ -356,9 +356,22 @@ const SCENARIOS: Scenario[] = [
  *  probe, 2026-11-06): its first blows are a Spearman's at tick 20,585 and a
  *  Town Centre's arrows at 20,758, and it records blows at 20,400-21,599 and
  *  22,200-23,399 (Spearmen, Town Centres and a Watch Tower) and 25,200-25,799
- *  (Light Cavalry), none before. So the census runs the same 6,000 ticks from
- *  tick 20,000, which hold all three; the match is played to there without it. */
-const ALL_AI_CENSUS_FROM = 20_000;
+ *  (Light Cavalry), none before. So the census ran the same 6,000 ticks from
+ *  tick 20,000, which held all three; the match is played to there without it.
+ *
+ *  MOVED AGAIN (work 152 M1d, 2026-11-11). The computer now sends the villager
+ *  with the shortest walk to each building, every all-AI match plays out
+ *  differently, and this one's blows fall earlier: the window from 20,000 held
+ *  a Castle's arrows and Spearmen and no Town Centre's (blows by spearman 34,
+ *  castle 12), so the floor below failed. Read off the hit feed again, over
+ *  the whole match, which now ends in defeat at tick 32,405 (a scratch probe,
+ *  2026-11-11): Militia and a Town Centre's arrows at 9,374-10,199; then
+ *  15,600-18,599 (Spearmen, Archers, a Crossbowman, Scouts, Knights, Light
+ *  Cavalry and the Town Centres' arrows); 21,000-22,199 (a Castle's arrows and
+ *  Spearmen); and from 27,600 to the end. The census runs the same 6,000 ticks
+ *  from tick 15,600, which hold the second and the Castle's arrows. Nothing
+ *  else moved: the length, the floor and every assertion are as they were. */
+const ALL_AI_CENSUS_FROM = 15_600;
 const ALL_AI_CENSUS_TICKS = 6_000;
 
 describe('every hit point a player loses is recorded as a blow', () => {

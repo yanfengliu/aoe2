@@ -17,6 +17,7 @@ import type {
 import type { GameWorld } from '../pureHelpers';
 import type { UnitMovementPlan } from '../movementTypes';
 import type { UnitRangeReach } from '../unitRangeReach';
+import type { BuildSite, NearestSiteBuilder } from '../siteBuilderWalk';
 import type { MonkTask, UnitCommand } from '../sharedTypes';
 import type { AiState } from '../../ai';
 import type { AiPurchaseCommands, AiPurchases } from './aiPurchases';
@@ -83,6 +84,11 @@ export interface AiPhaseDeps {
    *  unit cell and structural revision (unitRangeReach.ts), so the AI never
    *  sends a Monk for a relic it cannot reach (work 128). */
   canUnitReachRange: UnitRangeReach;
+  /** Of the villagers a seat could send to a site, the one with the shortest
+   *  walk to it (siteBuilderWalk.ts, work 152 M1d). `aiSystem.ts` hands it to
+   *  the per-owner helpers; the phases reach it through
+   *  `findAvailableVillagerForBuild`. */
+  nearestSiteBuilder: NearestSiteBuilder;
   pickWatchTowerPlacement: (
     townCenterPosition: Position,
     enemyPosition: Position,
@@ -186,7 +192,9 @@ export interface AiOwnerContext {
   populationBlocked: boolean;
   unitCommands: Map<number, UnitCommand>;
   claimedVillagers: Set<number>;
-  findAvailableVillagerForBuild: (ownerId: number) => number | null;
+  /** Named a site: the available villager with the shortest walk to it. With
+   *  none: the first available in entity order (aiSystemGating.ts). */
+  findAvailableVillagerForBuild: (ownerId: number, site?: BuildSite) => number | null;
   findIdleProducerLocal: (buildingType: BuildingType) => number | null;
   pendingTrainsByBuilding: Map<number, number>;
   pendingResearchByBuilding: Map<number, number>;

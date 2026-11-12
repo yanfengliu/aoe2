@@ -1,7 +1,7 @@
 # The computer researches its economy technologies as Definitive Edition's AI does
 
 Status: active
-Owner: the work 152 worker for the Claude coordinator. M1 is built on branch `ai-economy-research-1106` (its worktree of the same name) and waits on a second measurement. M1d is built, measured and reviewed on branch `ai-builder-walk-1111` (worktree of the same name, from main) and holds there: whether it lands with its measured cost written down or waits for work 151's training rules is with the owner as of 2026-11-11 (Outcome, M1d).
+Owner: the work 152 worker for the Claude coordinator. M1 is built on branch `ai-economy-research-1106` (its worktree of the same name) and waits on a second measurement. M1d is built, measured and reviewed on branch `ai-builder-walk-1111` (worktree of the same name, from main); the owner said on 2026-11-11 to land it with its measured cost written down ("Land it now"), and it landed on main that day as v0.3.281 (Outcome, "M1d: landed as v0.3.281"). Next is M1's second measurement, on the coordinator's word.
 Created: 2026-11-06
 Updated: 2026-11-11
 
@@ -12,7 +12,7 @@ The computer researched no economy technology: `RESEARCH_PRODUCERS` (`aiSystemPr
 ## Scope
 
 - M1 (the coordinator, 2026-11-06): Loom, Wheelbarrow, Double-Bit Axe, Horse Collar and Gold Mining, under DE's research rules and its escrow's flags from the Feudal Age. Split at the coordinator's word: M1a builds it test-first with every unit test's red proof and no heavy run (this record); M1b, a fresh worker, measures, verifies, reviews, live-checks and lands it once the map study's (work 150) timings are done.
-- M1d (the coordinator, 2026-11-11): the computer sends to each building it places, and to each site it crews or takes up again, the available villager with the shortest walk to the site, and passes over a resource's last gatherer while another can go. It is main's defect, found by M1c's trace. Built, measured and reviewed; it holds on its branch, the landing with the owner (Outcome, M1d). Not M1d: where a site is put, and the pocket behind plan 106's card.
+- M1d (the coordinator, 2026-11-11): the computer sends to each building it places, and to each site it crews or takes up again, the available villager with the shortest walk to the site, and passes over a resource's last gatherer while another can go. It is main's defect, found by M1c's trace. Built, measured and reviewed; the owner said "Land it now" on 2026-11-11, so it landed as built, as v0.3.281, with its measured cost written down (Outcome, M1d). Not M1d: where a site is put, and the pocket behind plan 106's card.
 - M2: the Castle and Imperial technologies: Bow Saw, Heavy Plow, Gold Shaft Mining, Stone Mining, Stone Shaft Mining, Hand Cart, Two-Man Saw, Crop Rotation and Guilds. Each milestone is measured and judged on its own under plan 147's drop rule.
 - Binding: the owner's "Keep current AI" (spec §13.1); every purchase through `AiPurchases.buy`, R16-1 left open; drop, don't tune; the census both ways; CI's two-thirds limits.
 - Not this work: each line for a reason (work 151 M2), the farm model's retry, the maps (work 150), the HUD (work 148), the technologies' own effects, `AGENTS.md`. Out of reach and carded in plan 106 "(work 152)": the University's Treadmill Crane (this AI builds no University), Coinage, Banking and Caravan (an ally or trade), and the stale `const.per` constants. Town Watch and Town Patrol are not economy technologies and are left out.
@@ -47,12 +47,14 @@ M1c (one retry with DE's total food, the coordinator's decision of 2026-11-11, t
 - [x] The lab's fall traced in both arms before any build (Outcome, M1c): the early purchases, not the food reading and not the escrow's holds.
 - [x] The coordinator's word (2026-11-11): no retry on the food reading. M1's numbers and its housed-bar gate both stand on the builder defect (Outcome, "The House builder's long way round"), so M1 is measured again after M1d lands, and the adopt-or-drop question waits until then.
 
-M1d (the builder's walk, approved 2026-11-11; holds on its branch, the landing with the owner as of the same day):
+M1d (the builder's walk, approved 2026-11-11; the owner's word to land it given the same day):
 - [x] The decision fixtures and the class test, red on main's rule, each with its mutant (Outcome, M1d: 45 cases, 28 mutants).
 - [x] The fix: each building the computer places, and each site it crews, goes to the available villager with the shortest walk to the site, ties by entity order, a resource's last gatherer passed over while another can go.
 - [x] Measured as M1b measured, then on a second seed set and with attacks off; the coverage census both ways; the self-play gates; the flood's cost. The lab and the idle match hold or rise; the castle configuration's Monasteries and Siege Workshops fall on the seat that loses its war, by the letter of the drop rule, and with attacks off the fall still shows on three maps.
 - [x] Spec §13.2, the instruments list, one independent review round (no finding), a live lobby check.
-- [ ] The owner's word on landing; then the changelog, the devlog, the full gate and its receipt, the landing (Outcome, "Picking M1d up cold").
+- [x] The owner's word on landing: asked "Land the builder fix now with its cost written down, or hold it for the larger AI work?", the owner answered "Land it now" (2026-11-11; spec §13.2 holds the decision and its cost).
+- [x] On the merged tree: the five new files, the five self-play gates and the 28 mutants again; the changelog, the devlog and the architecture record; the live check on the build that lands; the full gate and its receipt (Outcome, "M1d: gated on the merged tree").
+- [ ] The landing: one gated commit on main, pushed, its CI followed to the end.
 
 ## Implementation steps
 
@@ -61,7 +63,7 @@ M1d (the builder's walk, approved 2026-11-11; holds on its branch, the landing w
 - [x] M1a: the rule and its tests, the phase and its fixture tests, the escrow from the Feudal Age, the red proofs, the records.
 - [ ] M1b: measured (2026-11-11), not landed: the coordinator decides between dropping M1 as built and a retry with DE's total food.
 - [ ] M1c: traced (2026-11-11), nothing built: DE's total food would move none of the purchases the count turns on, so the worker stopped for the coordinator's word.
-- [ ] M1d: the builder's walk: built, measured and reviewed (2026-11-11); not gated on the merged tree and not landed: it holds on its branch for the owner's word (Outcome, M1d).
+- [x] M1d: the builder's walk: built, measured and reviewed (2026-11-11); the owner's word to land it the same day; gated on the merged tree and landed as v0.3.281 by a landing worker (Outcome, "M1d: landed as v0.3.281").
 - [ ] M1 measured again on the new main after M1d lands, and judged.
 - [ ] M2: the Castle and Imperial technologies.
 
@@ -432,3 +434,45 @@ To land it, in order (the first brief's steps that remain):
 - A review round only if code changes after 088dd769; the round on record covers that revision.
 - One lobby-default match through the real Start Match on the tree that lands, sound off, PREVIEW_PORT 4326 (`tmp/m1d/live-check.mjs`).
 - `npm run verify` and `node scripts/verify-receipt.mjs check` under the gate lock, then the two-phase landing as the first brief had it, and after it the second measurement of M1 on `ai-economy-research-1106` (merge main, read the hit census's all-AI window again there, re-read M1a's citations into the 2026-11-07 install, measure M1's B arm against the new main and its floor; do not land M1 without the coordinator's answer).
+
+**M1d: gated on the merged tree, for the coordinator's acceptance (2026-11-11; the landing's first phase; not on main).**
+
+The owner's decision (2026-11-11). The coordinator asked: "Land the builder fix now with its cost written down, or hold it for the larger AI work?" The owner answered: "Land it now". So M1d lands as built, with no rule changed and nothing added to buy the castle configuration's counts back. A landing worker took it up from "Picking M1d up cold".
+
+What the merge met. `origin/main` at 0f76b94b, merged at c827403b with no conflict: two docs commits since 2e0da16f (410a8570 brought this plan and plan 106's cards to main as they stood here, and 0f76b94b wrote the owner's decision into spec §13.2 and plan 106). No code came with it. Between the reviewed revision 088dd769 and the tree that is gated, the code that changed is main's (work 148 M3a moved the placement validator's sentences into one module, work 150 M2b added scripts) and the comments in two gates' headers (d803e263).
+
+Run again on the merged tree (2026-11-11, 15:03 to 15:26; when it began the machine's CPUs were 61% busy with 41 node processes, other lanes' among them):
+- The five new test files: 42 cases, green.
+- The five self-play gates in one run of 343 s, 34 cases, green: `aiEconomySelfPlay` 5 of 5 (its two matches 36.2 s and 28.7 s of 150 s, the housed bar where it was), `selfPlayContentCoverage` 2 of 2 (327.6 s of 1,800 s), `playerHitCensus` 25 of 25 (the all-AI case 91.8 s of 300 s), `aiReachesCastleAge` (250.3 s of 600 s) and `villagersAvoidEnemyDefencesSelfPlay` (339.7 s of 1,800 s). The closest to its limit is 42%, under CI's two thirds.
+- Nothing was re-recorded. The lab's census file and the hit census's all-AI window stand as they were recorded at 088dd769, so main's placement change moved no play on this branch: the lab plays the match the census recorded before that change was merged.
+- The mutants, `node tmp/m1d/mutate.mjs --slow`: all 28 red, their output equal line for line to the runs at 088dd769 (`tmp/m1d/land-mutants.txt` against `mutants-fast.txt` and `mutants-slow.txt`), down to the numbers in the failures (owner 1 housed 94.1 s at 2:31 with the last gatherer taken; 8 orders of the idle match past a villager with main's rule).
+
+The engine track's uncommitted work, read before the gate and not touched. Seven `codex/*` worktrees hold uncommitted changes. Of this milestone's 29 files they change `design/spec-final.md` (all seven), `createSimulationBridge.ts` (six), `wireBridgeOps.ts` (five) and, in `engine-capabilities-1108` and `engine-pin-1107`, `createWorldResult.ts`, `aiSystem.ts` (main's lines 272-300; the builder's wiring is at 187), `wirePreSeedOps.ts`, `makeReplayBridge.ts` and `simulationBridgeTypes.ts`. No hunk of theirs meets a hunk of this milestone's; the nearest are eight lines apart, in `makeReplayBridge.ts` (line 332 here, 340-341 there).
+
+The records written for the landing: spec §13.2 (the rule's paragraph, "Who builds it", names each of DE's three builder rules with what it does, states the cost in two sentences and the owner's decision; the decision's own paragraph, written on main, is marked implemented and says only what DE's files say); `docs/changelog.md` under "Unreleased — work 152 M1d"; the devlog's summary line and detailed entry with vNEXT; `ARCHITECTURE.md`'s bridge ops paragraph and a drift-log row for `siteBuilderWalk.ts` and the accessor.
+
+Live check on the tree that lands (built at 15:27 from 2e0876fd, whose code is the gated tree's): one lobby-default match through the real Start Match, `vite preview` on port 4326 serving this checkout's own build (asset names compared), headless Chromium with `--mute-audio`, the lobby's Normal speed in real time (`tmp/m1d/live-check.mjs`; output `tmp/m1d/land-live-check.txt`, screenshots `tmp/m1d/live/`, the earlier check's kept in `tmp/m1d/live-before-merges/`). Lobby: map `aoe2-prototype`, 2 players, Britons. Watched to 5:30 in 194 s: the computer's barracks at (50,20) placed 0:01, work started at once, its builder one cell off; House at (47,22) placed 1:18, work at once; House at (44,20) placed 4:30, work started 2.5 s later from two cells off, complete 4:57. No page error. These are the three buildings, sites, builders and delays of the check before the merges. Bound: the computer's base is under the human seat's fog, so its buildings were read through the game's test API (`window.__AOE2_TEST__`) in the running match and are not in the screenshots, which show the human's base, the clock and the muted sound button.
+
+Review: nothing in the product's code or the tests' code changed after 088dd769 but what main brought, so the one Codex round stands (`reviews/0_implementation.md`) and no second round was spent.
+
+A correction to what the landing was asked to write. "It reaches the Castle Age sooner in most matches" is not what the records say: with attacks off the Castle Age comes more than five minutes sooner on 11 of 50 seats, later on 4 and within five minutes on the other 35, and the castle configuration's median Castle click is 25:55, then 25:58. The changelog says "sooner more often than later" with those numbers. And of the three DE rules the decision's paragraph cited for "nearest first", only init.per 3029-3068 orders builders by distance; 2946-2990 takes villagers that are not building in search order, and buildings.per 1548-1572 sites a House beside one (each read again in the install of 2026-11-07).
+
+The gate (2026-11-11, on a2940081, tree c4833975e0a2, one hold of the gate lock from 15:38:07 to 15:56:48 after a three-minute wait for work 150's frame-cost lane):
+- `tests/scripts` and `tests/architecture`, whole: 41 files, 480 cases, green in 17 s.
+- `PREVIEW_PORT=4326 npm run verify`, its own exit code with no pipe: exit 0 in 18 minutes. 711 unit test files passed and 1 was skipped; 5,744 unit cases passed and 3 were skipped; 356 browser cases passed and 2 were skipped. The unit case closest to its limit is `aiReachesCastleAge` at 42% of 600 s.
+- `node scripts/verify-receipt.mjs check`: exit 0, "verify-receipt: OK. `npm run verify` reached its last step on tree c4833975e0a2 (commit a29400818f5e, finished 2026-11-11T23:56:48.459Z), and that is HEAD's tree. The suites' own reports: vitest 5744 passed and 3 skipped, playwright 356 passed and 2 skipped."
+- This paragraph and the ticked criterion were written after that run, in a docs-only commit the receipt allows; the docs checks were run again on it.
+
+Not checked in this phase: the measurement was not played again on the merged tree (that play did not move is read from the lab's census and the mutants' output being equal, not from a replayed A/B record); the measurement's numbers in the spec, the changelog and the devlog are read from this plan's tables and `tmp/m1d/peace-split.txt`, not derived again; the live check is one match on the boot map to 5:30, read through the test API, with no crew order in that window; hosted CI has not seen this tree, since nothing is pushed; and what the first worker's list above names (three and four players, water maps' Docks, the nomad Lumber Camp, a map past about 8,000 cells, the class case on the castle configuration's own match). No entry was written in `docs/learning/defect-register.md`: the defect was found by this work's trace, not reported by the owner.
+
+What is left: the coordinator's acceptance, then the landing's second phase under the gate lock (merge main, which work 150's frame-cost landing is about to move, take the next free patch version, run the gate again, land one squashed commit, push, follow CI to the end), the records in plan 106, and the three control worktrees' removal. The second measurement of M1 waits for the coordinator's word.
+
+**M1d: landed as v0.3.281 (2026-11-11; the landing's second phase).**
+
+The coordinator accepted the first phase at 945bb287 ("Accepted, land it"), with the corrections above taken: only init.per 3029-3068 orders builders by distance, and "sooner more often than later" is what the records support. No defect-register entry, by the coordinator's word: the defect was not reported by the owner, and the class case is its check.
+
+What the second merge met. Under the gate lock (taken 16:19:08 after work 150's frame-cost landing released it), `origin/main` was f8e8ced2, work 150 M2b rank 1: the render store's lists and the renderer's kept ground, 34 files, no version. Two conflicts, both where each side added a line at the same place, both kept whole: the drift log's last row (main's first) and the devlog summary's first line (this landing's first). `createWorldResult.ts`, which both sides changed, merged by itself. The summary stood at 51 lines, so its oldest, "2026-10-20 Work135 M29", went to the detailed devlog's "Summary entries retained during compaction" beside M28. At the coordinator's word the two summary lines that eb4f54fb and f8e8ced2 had left at the end of that file went into the section too (M27 moved in, and the second copy of M28 removed), so each moved line is listed once; this landing's entry was moved to the file's end, after rank 1's.
+
+The version is 0.3.281: main was still 0.3.280, since rank 1 took none. It is in `package.json`, `package-lock.json`, the changelog's heading, spec §13.2's two paragraphs and the devlog.
+
+The landing is one commit on main, the branch's work squashed onto f8e8ced2. Its gate, its CI run job by job and what was removed afterwards are recorded below it once the run has ended.

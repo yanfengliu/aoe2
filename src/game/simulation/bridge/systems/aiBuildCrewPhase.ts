@@ -17,6 +17,7 @@ import type { Position } from 'civ-engine';
 
 import type { BuildingComponent } from '../../types';
 import { constructionStatesCodec } from '../bridgeStateSerialize';
+import type { BuildSite } from '../siteBuilderWalk';
 import type { AiOwnerContext, AiPhaseDeps } from './aiSystemTypes';
 
 /** How long a crewed building should take, in ticks (60 s at 10 TPS). */
@@ -92,6 +93,8 @@ export function runBuildCrewPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void 
   // Mill, and reinforcing the site that is nearly done buys nothing.
   const sites: Array<{
     id: number; total: number; isWonder: boolean; remaining: number; adopted: boolean;
+    /** Where the site stands, for the builder's walk; absent if it has no position. */
+    footprint: BuildSite | undefined;
   }> = [];
   for (const [siteId, builders] of buildersBySite) {
     const construction = accessor.get(constructionStatesCodec).get(siteId);
@@ -101,6 +104,7 @@ export function runBuildCrewPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void 
     const remaining = construction.totalBuildTicks - construction.buildProgressTicks;
     if (remaining <= 0) continue;
     const isWonder = site.buildingType === 'wonder';
+    const anchor = activeWorld.getComponent<Position>(siteId, 'position');
     if (builders >= targetCrewSize(construction.totalBuildTicks, villagerCount, isWonder)) continue;
     sites.push({
       id: siteId,
@@ -108,6 +112,9 @@ export function runBuildCrewPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void 
       isWonder,
       remaining,
       adopted: adopted.has(siteId),
+      footprint: anchor
+        ? { x: anchor.x, y: anchor.y, width: construction.width, height: construction.height, toBePlaced: false }
+        : undefined,
     });
   }
   sites.sort((a, b) => b.remaining - a.remaining);
@@ -131,7 +138,10 @@ export function runBuildCrewPhase(deps: AiPhaseDeps, ctx: AiOwnerContext): void 
     const wanted = targetCrewSize(site.total, villagerCount, site.isWonder);
     let onSite = buildersBySite.get(site.id) ?? 0;
     while (onSite < wanted && committed < workforceCap) {
-      const villagerId = findAvailableVillagerForBuild(owner);
+      // The available villager with the shortest walk to this site (work 152
+      // M1d, siteBuilderWalk.ts); the first in entity order went before,
+      // wherever it stood.
+      const villagerId = findAvailableVillagerForBuild(owner, site.footprint);
       if (villagerId === null) return; // pool exhausted — later sites wait too
       const villagerPosition = activeWorld.getComponent<Position>(villagerId, 'position');
       if (!villagerPosition) return;

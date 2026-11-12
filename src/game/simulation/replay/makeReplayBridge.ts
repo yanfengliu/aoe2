@@ -329,6 +329,7 @@ export function makeReplayBridge(
     },
     listTributeTargets: () => [],
     humanTributeFeeRate: () => api.humanTributeFeeRate(),
+    isCellPassableForUnit: (unitId: number, x: number, y: number) => api.isCellPassableForUnit(unitId, x, y),
     beginBuildingPlacement(buildingType: BuildableBuildingType) {
       void buildingType;
       return replayCommandRejected();
